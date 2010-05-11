@@ -34,15 +34,32 @@ void C1XCompiler::initialize() {
 
 // Compilation entry point for methods
 void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
-
+	VM_ENTRY_MARK;
+	
 	ResourceMark rm;
 	HandleMark hm;
 
 	TRACE_C1X_1("compile_method");
 
-	methodOop method = (methodOop)target->get_oop();
-	methodHandle m(Thread::current(), method);
-	TRACE_C1X_1("name = %s", m->name_and_sig_as_C_string());
+	methodHandle method(Thread::current(), (methodOop)target->get_oop());
+	TRACE_C1X_1("name = %s", method->name_and_sig_as_C_string());
+
+	JavaValue result(T_VOID);
+	symbolHandle syKlass = oopFactory::new_symbol("com/sun/hotspot/c1x/VMExits", CHECK);
+
+
+	Handle nullh;
+	KlassHandle k = SystemDictionary::resolve_or_null(syKlass, nullh, nullh, CHECK);
+	if (k.is_null()) {
+		tty->print_cr("not found");
+		return;//fatal("Could not find class com.sun.hotspot.c1x.VMExits");
+	}
+	symbolHandle syName = oopFactory::new_symbol("compileMethod", CHECK);
+	symbolHandle sySig = oopFactory::new_symbol("(Lcom/sun/cri/ri/RiMethod;I)V", CHECK);
+	JavaCallArguments args;
+	args.push_oop(method());
+	args.push_int(entry_bci);
+	JavaCalls::call_static(&result, k, syName, sySig, &args, CHECK);
 }
 
 // Print compilation timers and statistics

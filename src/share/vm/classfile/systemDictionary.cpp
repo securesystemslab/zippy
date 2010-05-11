@@ -161,7 +161,8 @@ klassOop SystemDictionary::resolve_or_fail(symbolHandle class_name,
 // Forwards to resolve_instance_class_or_null
 
 klassOop SystemDictionary::resolve_or_null(symbolHandle class_name, Handle class_loader, Handle protection_domain, TRAPS) {
-  assert(!THREAD->is_Compiler_thread(), "Can not load classes with the Compiler thread");
+  // (tw) May we do this?
+  // assert(!THREAD->is_Compiler_thread(), "Can not load classes with the Compiler thread");
   if (FieldType::is_array(class_name())) {
     return resolve_array_class_or_null(class_name, class_loader, protection_domain, CHECK_NULL);
   } else {
