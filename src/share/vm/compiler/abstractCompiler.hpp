@@ -59,9 +59,6 @@ class AbstractCompiler : public CHeapObj {
 #endif // COMPILER2
 #endif // TIERED
 
-  // Customization
-  virtual bool needs_stubs            ()         = 0;
-
   void mark_initialized()                        { _is_initialized = true; }
   bool is_initialized()                          { return _is_initialized; }
 

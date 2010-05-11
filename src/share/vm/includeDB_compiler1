@@ -443,3 +443,16 @@ thread.cpp                              c1_Compiler.hpp
 top.hpp                                 c1_globals.hpp
 
 vmStructs.hpp                           c1_Runtime1.hpp
+
+compileBroker.cpp                       c1x_Compiler.hpp
+
+c1x_Compiler.hpp                        abstractCompiler.hpp
+
+c1x_Compiler.cpp                        c1x_Compiler.hpp
+c1x_Compiler.cpp                        c1x_VMExists.hpp
+
+c1x_VMEntries.cpp                       c1x_VMEntries.hpp
+c1x_VMEntries.cpp                       c1x_VMExists.hpp
+
+c1x_VMExists.hpp                        systemDictionary.hpp
+c1x_VMExists.hpp                        javaCalls.hpp

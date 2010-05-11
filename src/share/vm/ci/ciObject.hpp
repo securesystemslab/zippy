@@ -62,12 +62,14 @@ protected:
   ciObject(Handle h);
   ciObject(ciKlass* klass);
 
+public:
   jobject      handle()  const { return _handle; }
   // Get the VM oop that this object holds.
   oop get_oop() const {
     assert(_handle != NULL, "null oop");
     return JNIHandles::resolve_non_null(_handle);
   }
+protected:
 
   void init_flags_from(oop x) {
     int flags = 0;

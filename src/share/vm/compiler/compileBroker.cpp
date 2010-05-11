@@ -542,7 +542,11 @@ void CompileBroker::compilation_init() {
 
   // Set the interface to the current compiler(s).
 #ifdef COMPILER1
-  _compilers[0] = new Compiler();
+  if (UseC1X) {
+	  _compilers[0] = new C1XCompiler();
+  } else {
+	  _compilers[0] = new Compiler();
+  }
 #ifndef COMPILER2
   _compilers[1] = _compilers[0];
 #endif
@@ -1527,7 +1531,8 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
       system_dictionary_modification_counter = SystemDictionary::number_of_modifications();
     }
 
-    NoHandleMark  nhm;
+	// (tw) Check if we may do this?
+    //NoHandleMark  nhm;
     ThreadToNativeFromVM ttn(thread);
 
     ciEnv ci_env(task, system_dictionary_modification_counter);

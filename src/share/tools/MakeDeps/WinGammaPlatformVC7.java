@@ -230,6 +230,8 @@ public class WinGammaPlatformVC7 extends WinGammaPlatform {
         gc.add(gc_impl);
         rv.add(gc);
 
+        rv.add(new DirectoryFilter("C1X", "share/vm/c1x", sbase));
+
         rv.add(new DirectoryFilter("C1", "share/vm/c1", sbase));
 
         ContainerFilter c2 = new ContainerFilter("C2");
