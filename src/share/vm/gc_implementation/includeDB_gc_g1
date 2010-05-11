@@ -323,8 +323,6 @@ ptrQueue.cpp                            thread_<os_family>.inline.hpp
 ptrQueue.hpp                            allocation.hpp
 ptrQueue.hpp                            sizes.hpp
 
-ptrQueue.inline.hpp                     ptrQueue.hpp
-
 satbQueue.cpp                           allocation.inline.hpp
 satbQueue.cpp                           mutexLocker.hpp
 satbQueue.cpp                           satbQueue.hpp
