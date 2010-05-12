@@ -23,6 +23,7 @@
  */
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.File;
 
 public class Util {
@@ -84,5 +85,25 @@ public class Util {
     }
 
     static String sep = File.separator;
-    static String os = "Win32"; //System.getProperty("os.name");
+    
+    private static String _os;
+    
+    static String os() {
+    	if( _os==null) {
+
+        	for(Map.Entry<String, String> entry: System.getenv().entrySet())
+        		if("PLATFORM_ARCH_MODEL".equals(entry.getKey().toUpperCase())) {
+        			String archModel = entry.getValue();
+        			if("x86_32".equals(archModel))
+        				_os = "Win32";
+        			else if("x86_64".equals(archModel))
+        				_os = "x64";
+        			else
+        				throw new RuntimeException("Unsupported PLATFORM_ARCH_MODEL " + archModel);
+        			return _os;
+        		}
+        	throw new RuntimeException("PLATFORM_ARCH_MODEL not specified");
+    	}
+    	return _os;
+    }
 }
