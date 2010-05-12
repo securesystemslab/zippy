@@ -51,7 +51,7 @@ public class WinGammaPlatformVC7 extends WinGammaPlatform {
             );
 
         startTag("Platforms", null);
-        tag("Platform", new String[] {"Name", Util.os});
+        tag("Platform", new String[] {"Name", Util.os()});
         endTag("Platforms");
 
         startTag("Configurations", null);
@@ -469,7 +469,7 @@ public class WinGammaPlatformVC7 extends WinGammaPlatform {
                 "PreprocessorDefinitions", "NDEBUG",
                 "MkTypLibCompatible", "TRUE",
                 "SuppressStartupBanner", "TRUE",
-                "TargetEnvironment", "1",
+                "TargetEnvironment", Util.os().equals("Win32") ? "1" : "3",
                 "TypeLibraryName", cfg.get("OutputDir") + Util.sep + "vm.tlb",
                 "HeaderFileName", ""
             }
@@ -611,7 +611,7 @@ class CompilerInterfaceVC7 extends CompilerInterface {
         addAttr(rv, "BaseAddress", "0x8000000");
         addAttr(rv, "ImportLibrary", outDir+Util.sep+"jvm.lib");
         // Set /MACHINE option. 1 is machineX86
-        addAttr(rv, "TargetMachine", "1");
+        addAttr(rv, "TargetMachine", Util.os().equals("Win32") ? "1" : "17");
 
         return rv;
     }
@@ -689,6 +689,6 @@ class CompilerInterfaceVC7 extends CompilerInterface {
     }
 
     String makeCfgName(String flavourBuild) {
-        return  flavourBuild + "|" + Util.os;
+        return  flavourBuild + "|" + Util.os();
     }
 }

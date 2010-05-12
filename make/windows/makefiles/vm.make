@@ -144,6 +144,7 @@ CPP_USE_PCH=/Fp"vm.pch" /Yu"incls/_precompiled.incl"
 VM_PATH=../generated/incls
 VM_PATH=$(VM_PATH);../generated/jvmtifiles
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/c1
+VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/c1x
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/compiler
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/code
 VM_PATH=$(VM_PATH);$(WorkSpace)/src/share/vm/interpreter

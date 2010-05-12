@@ -242,12 +242,22 @@ class BuildConfig {
 
     void initDefaultDefines(Vector defines) {
         Vector sysDefines = new Vector();
-        sysDefines.add("WIN32");
+        if( Util.os().equals("Win32")) {
+        	sysDefines.add("WIN32");
+            sysDefines.add("HOTSPOT_LIB_ARCH=\\\"i386\\\"");
+        } else {
+        	sysDefines.add("_AMD64_");
+        	sysDefines.add("AMD64");
+        	sysDefines.add("_WIN64");
+        	sysDefines.add("_LP64");
+        	if (System.getenv("MSC_VER") != null)
+        		sysDefines.add("MSC_VER=" + System.getenv("MSC_VER"));
+            sysDefines.add("HOTSPOT_LIB_ARCH=\\\"amd64\\\"");
+        }
         sysDefines.add("_WINDOWS");
         sysDefines.add("HOTSPOT_BUILD_USER="+System.getProperty("user.name"));
         sysDefines.add("HOTSPOT_BUILD_TARGET=\\\""+get("Build")+"\\\"");
         sysDefines.add("_JNI_IMPLEMENTATION_");
-        sysDefines.add("HOTSPOT_LIB_ARCH=\\\"i386\\\"");
 
         sysDefines.addAll(defines);
 

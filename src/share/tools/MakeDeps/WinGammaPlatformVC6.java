@@ -286,6 +286,6 @@ class CompilerInterfaceVC6  extends CompilerInterface {
     }
 
     String makeCfgName(String flavourBuild) {
-        return "vm - "+ Util.os + " " + flavourBuild;
+        return "vm - "+ "Win32" + " " + flavourBuild;
     }
 }
