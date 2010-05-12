@@ -449,10 +449,13 @@ compileBroker.cpp                       c1x_Compiler.hpp
 c1x_Compiler.hpp                        abstractCompiler.hpp
 
 c1x_Compiler.cpp                        c1x_Compiler.hpp
-c1x_Compiler.cpp                        c1x_VMExists.hpp
+c1x_Compiler.cpp                        c1x_VMExits.hpp
 
 c1x_VMEntries.cpp                       c1x_VMEntries.hpp
-c1x_VMEntries.cpp                       c1x_VMExists.hpp
+c1x_VMEntries.cpp                       c1x_VMExits.hpp
 
-c1x_VMExists.hpp                        systemDictionary.hpp
-c1x_VMExists.hpp                        javaCalls.hpp
+c1x_VMExits.hpp                	        systemDictionary.hpp
+
+c1x_VMExits.cpp                         javaCalls.hpp
+c1x_VMExits.cpp                         c1x_VMExits.hpp
+

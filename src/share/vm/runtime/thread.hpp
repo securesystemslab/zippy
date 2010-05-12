@@ -1576,6 +1576,7 @@ class CompilerThread : public JavaThread {
   CompileLog*   _log;
   CompileTask*  _task;
   CompileQueue* _queue;
+  bool          _is_compiling;
 
  public:
 
@@ -1583,6 +1584,8 @@ class CompilerThread : public JavaThread {
 
   CompilerThread(CompileQueue* queue, CompilerCounters* counters);
 
+  bool is_compiling() const                      { return _is_compiling; }
+  void set_compiling(bool b)                     { _is_compiling = b; }
   bool is_Compiler_thread() const                { return true; }
   // Hide this compiler thread from external view.
   bool is_hidden_from_external_view() const      { return true; }

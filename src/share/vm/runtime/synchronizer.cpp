@@ -2923,6 +2923,10 @@ void ATTR ObjectMonitor::EnterI (TRAPS) {
         }
         ++ nWakeups ;
 
+        if (THREAD->is_Compiler_thread() && nWakeups >= 5) {
+          assert(false, "Compiler thread blocked by lock");
+        }
+
         // Assuming this is not a spurious wakeup we'll normally find _succ == Self.
         // We can defer clearing _succ until after the spin completes
         // TrySpin() must tolerate being called with _succ == Self.

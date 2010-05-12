@@ -244,6 +244,23 @@
   NOT_LP64(  do_alias(machine_word_signature,         int_signature)  )                           \
   LP64_ONLY( do_alias(machine_word_signature,         long_signature) )                           \
                                                                                                   \
+  /* support for C1X */                                                                                        \
+  template(com_sun_hotspot_c1x_VMExits,               "com/sun/hotspot/c1x/VMExits")                           \
+  template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                               \
+  template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                \
+  template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                 \
+  template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                         \
+  template(compileMethod_name,                        "compileMethod")                                         \
+  template(compileMethod_signature,                   "(Lcom/sun/cri/ri/RiMethod;I)V")                         \
+  template(createRiMethod_name,                       "createRiMethod")                                        \
+  template(createRiMethod_signature,                  "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiMethod;")         \
+  template(createRiField_name,                        "createRiField")                                         \
+  template(createRiField_signature,                   "(Ljava/lang/Object;I)Lcom/sun/cri/ri/RiField;")         \
+  template(createRiType_name,                         "createRiType")                                          \
+  template(createRiType_signature,                    "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;")           \
+  template(createRiConstantPool_name,                 "createRiConstantPool")                                  \
+  template(createRiConstantPool_signature,            "(Ljava/lang/Object;I)Lcom/sun/cri/ri/RiConstantPool;")  \
+                                                                                                  \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \
   template(class_initializer_name,                    "<clinit>")                                 \

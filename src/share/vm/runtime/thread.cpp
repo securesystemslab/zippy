@@ -1853,7 +1853,9 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
 
   // Do not throw asynchronous exceptions against the compiler thread
   // (the compiler thread should not be a Java thread -- fix in 1.4.2)
-  if (is_Compiler_thread()) return;
+
+  // (tw) May we do this?
+  //if (is_Compiler_thread()) return;
 
   // This is a change from JDK 1.1, but JDK 1.2 will also do it:
   if (java_throwable->is_a(SystemDictionary::ThreadDeath_klass())) {
@@ -3741,7 +3743,9 @@ GrowableArray<JavaThread*>* Threads::get_pending_threads(int count,
   {
     MutexLockerEx ml(doLock ? Threads_lock : NULL);
     ALL_JAVA_THREADS(p) {
-      if (p->is_Compiler_thread()) continue;
+      
+      // (tw) May we do this?
+      //if (p->is_Compiler_thread()) continue;
 
       address pending = (address)p->current_pending_monitor();
       if (pending == monitor) {             // found a match

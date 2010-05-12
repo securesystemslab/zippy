@@ -39,30 +39,19 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
 	ResourceMark rm;
 	HandleMark hm;
 
-	TRACE_C1X_1("compile_method");
-
-	methodHandle method(Thread::current(), (methodOop)target->get_oop());
-	TRACE_C1X_1("name = %s", method->name_and_sig_as_C_string());
-
-	JavaValue result(T_VOID);
-	symbolHandle syKlass = oopFactory::new_symbol("com/sun/hotspot/c1x/VMExits", CHECK);
-
-
-	Handle nullh;
-	KlassHandle k = SystemDictionary::resolve_or_null(syKlass, nullh, nullh, CHECK);
-	if (k.is_null()) {
-		tty->print_cr("not found");
-		return;//fatal("Could not find class com.sun.hotspot.c1x.VMExits");
-	}
-	symbolHandle syName = oopFactory::new_symbol("compileMethod", CHECK);
-	symbolHandle sySig = oopFactory::new_symbol("(Lcom/sun/cri/ri/RiMethod;I)V", CHECK);
-	JavaCallArguments args;
-	args.push_oop(method());
-	args.push_int(entry_bci);
-	JavaCalls::call_static(&result, k, syName, sySig, &args, CHECK);
+  CompilerThread::current()->set_compiling(true);
+  oop rimethod = get_rimethod(target);
+  VMExits::compileMethod(rimethod, entry_bci);
+	CompilerThread::current()->set_compiling(false);
 }
 
 // Print compilation timers and statistics
 void C1XCompiler::print_timers() {
 	TRACE_C1X_1("print_timers");
+}
+
+oop C1XCompiler::get_rimethod(ciMethod *method) {
+  methodOop m = (methodOop)method->get_oop();
+  // TODO: implement caching
+  return VMExits::createRiMethod(m);
 }

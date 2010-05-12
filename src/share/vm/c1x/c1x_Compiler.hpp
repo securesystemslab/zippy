@@ -44,6 +44,8 @@ public:
 
 	// Print compilation timers and statistics
 	virtual void print_timers();
+
+  static oop get_rimethod(ciMethod *ciMethod);
 };
 
 

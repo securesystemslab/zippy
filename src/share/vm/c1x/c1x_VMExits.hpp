@@ -22,3 +22,18 @@
  *
  */
 
+class VMExits : public AllStatic {
+
+private:
+
+  static KlassHandle _vmExitsKlass;
+
+public:
+
+  static KlassHandle& vmExitsKlass();
+  static void compileMethod(oop method, int entry_bci);
+  static oop createRiMethod(methodOop m);
+  static oop createRiField(klassOop k, int index);
+  static oop createRiType(klassOop k);
+  static oop createRiConstantPool(constantPoolOop cp);
+};

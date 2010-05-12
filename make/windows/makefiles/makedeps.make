@@ -57,6 +57,7 @@ MakeDepsSources=\
 # This is only used internally
 MakeDepsIncludesPRIVATE=\
         -relativeInclude src\share\vm\c1 \
+        -relativeInclude src\share\vm\c1x \
         -relativeInclude src\share\vm\compiler \
         -relativeInclude src\share\vm\code \
         -relativeInclude src\share\vm\interpreter \
