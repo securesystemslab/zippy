@@ -30,11 +30,19 @@
 // Initialization
 void C1XCompiler::initialize() {
 	TRACE_C1X_1("initialize");
+
+  JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
+  jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntries");
+  env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count() );
 }
 
 // Compilation entry point for methods
 void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
+  
+  initialize();
+
 	VM_ENTRY_MARK;
+
 	
 	ResourceMark rm;
 	HandleMark hm;

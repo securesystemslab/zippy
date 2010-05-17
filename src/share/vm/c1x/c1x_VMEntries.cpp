@@ -25,3 +25,18 @@
 
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_VMEntries.cpp.incl"
+
+JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code
+(JNIEnv *, jclass, jobject) {
+  tty->print_cr("hello world");
+  return NULL;
+}
+
+
+JNINativeMethod VMEntries_methods[] = {
+  {CC"RiMethod_code",            CC"(Ljava/lang/Object;)[B",                 FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code)}
+};
+
+int VMEntries_methods_count() {
+  return sizeof(VMEntries_methods) / sizeof(JNINativeMethod);
+}

@@ -22,3 +22,29 @@
  *
  */
 
+#ifndef _Included_com_sun_hotspot_c1x_VMEntries
+#define _Included_com_sun_hotspot_c1x_VMEntries
+#ifdef __cplusplus
+extern "C" {
+
+#define CC (char*)  /*cast a literal from (const char*)*/
+#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &f)
+
+
+#endif
+  /*
+  * Class:     com_sun_hotspot_c1x_VMEntries
+  * Method:    RiMethod_code
+  * Signature: (Ljava/lang/Object;)[B
+  */
+  JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code
+    (JNIEnv *, jclass, jobject);
+
+
+extern JNINativeMethod VMEntries_methods[];
+int VMEntries_methods_count();
+
+#ifdef __cplusplus
+}
+#endif
+#endif
