@@ -29,17 +29,18 @@ KlassHandle VMExits::_vmExitsKlass;
 
 KlassHandle &VMExits::vmExitsKlass() {
 
-  if (_vmExitsKlass.is_null()) {
+  //if (_vmExitsKlass.is_null()) {
     Handle nullh;
     _vmExitsKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), SystemDictionary::java_system_loader(), nullh, Thread::current());
     if (_vmExitsKlass.is_null()) {
       fatal("Could not find class com.sun.hotspot.c1x.VMExits");
     }
-  }
+  //}
   return _vmExitsKlass;
 }
 
 void VMExits::compileMethod(oop method, int entry_bci) {
+  assert(method != NULL, "just checking");
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(method);
@@ -48,6 +49,7 @@ void VMExits::compileMethod(oop method, int entry_bci) {
 }
 
 oop VMExits::createRiMethod(methodOop m) {
+  assert(m != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(m);
@@ -59,6 +61,7 @@ oop VMExits::createRiMethod(methodOop m) {
 }
 
 oop VMExits::createRiField(oop field_holder, symbolOop field_name, oop field_type, int index) {
+  assert(field_holder != NULL && field_name != NULL && field_type != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(field_holder);
@@ -70,6 +73,7 @@ oop VMExits::createRiField(oop field_holder, symbolOop field_name, oop field_typ
 }
 
 oop VMExits::createRiType(klassOop k) {
+  assert(k != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(k);
@@ -86,6 +90,7 @@ oop VMExits::createRiTypePrimitive(int basic_type) {
 }
 
 oop VMExits::createRiTypeUnresolved(symbolOop name, klassOop accessor) {
+  assert(name != NULL && accessor != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(name);
@@ -95,6 +100,7 @@ oop VMExits::createRiTypeUnresolved(symbolOop name, klassOop accessor) {
 }
 
 oop VMExits::createRiConstantPool(constantPoolOop cp) {
+  assert(cp != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(cp);
@@ -103,6 +109,7 @@ oop VMExits::createRiConstantPool(constantPoolOop cp) {
 }
 
 oop VMExits::createRiSignature(symbolOop symbol) {
+  assert(symbol != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(symbol);

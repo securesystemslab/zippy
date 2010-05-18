@@ -1717,7 +1717,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
         __ bind(runtime);
         NOT_LP64(__ push(rcx);)
-        __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_post), card_addr, thread);
+        //__ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_post), card_addr, thread);
         NOT_LP64(__ pop(rcx);)
 
         __ bind(done);

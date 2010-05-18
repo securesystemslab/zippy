@@ -29,6 +29,8 @@
 
 // Initialization
 void C1XCompiler::initialize() {
+  if (_initialized) return;
+  _initialized = true;
 	TRACE_C1X_1("initialize");
 
   JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
@@ -51,7 +53,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
 
 	
 	ResourceMark rm;
-	HandleMark hm;
+	//HandleMark hm;
 
   CompilerThread::current()->set_compiling(true);
   oop rimethod = get_RiMethod(target);
@@ -106,8 +108,23 @@ oop C1XCompiler::get_RiConstantPool(constantPoolOop cp) {
 }
 
 oop C1XCompiler::get_RiType(symbolOop klass, klassOop accessingType) {
+  if (klass == vmSymbols::byte_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_BYTE);
+  } else if (klass == vmSymbols::char_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_CHAR);
+  } else if (klass == vmSymbols::double_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_DOUBLE);
+  } else if (klass == vmSymbols::float_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_FLOAT);
+  } else if (klass == vmSymbols::int_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_INT);
+  } else if (klass == vmSymbols::long_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_LONG);
+  } else if (klass == vmSymbols::bool_signature()) {
+    return VMExits::createRiTypePrimitive((int)T_BOOLEAN);
+  }
   klassOop resolved_type = SystemDictionary::resolve_or_null(klass, accessingType->klass_part()->class_loader(), accessingType->klass_part()->protection_domain(), Thread::current());
-  if (resolved_type == NULL) {
+  if (resolved_type != NULL) {
     return get_RiType(resolved_type);
   } else {
     return get_unresolved_RiType(klass, accessingType);

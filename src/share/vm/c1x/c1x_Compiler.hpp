@@ -24,7 +24,13 @@
 
 class C1XCompiler : public AbstractCompiler {
 
+private:
+
+  boolean _initialized;
+
 public:
+
+  C1XCompiler() { _initialized = false; }
 
 	virtual const char* name() { return "C1X"; }
 

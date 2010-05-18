@@ -209,7 +209,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod(JNIEnv *env, jclass, jobject cpHandle, jint index, jbyte byteCode) {
   VM_ENTRY_MARK;
   constantPoolOop cp = (constantPoolOop)JNIHandles::resolve(cpHandle);
-  Bytecodes::Code bc = (Bytecodes::Code)byteCode;
+  Bytecodes::Code bc = (Bytecodes::Code)(((int)byteCode) & 0xFF);
   ciInstanceKlass* loading_klass = (ciInstanceKlass *)CURRENT_ENV->get_object(cp->pool_holder());
   ciMethod *method = CURRENT_ENV->get_method_by_index(cp, index, bc, loading_klass);
   return JNIHandles::make_local(THREAD, C1XCompiler::get_RiMethod(method));
@@ -308,6 +308,57 @@ JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterfac
   return o->klass_part()->is_interface();
 }
 
+/*
+* Class:     com_sun_hotspot_c1x_VMEntries
+* Method:    RiMethod_accessFlags
+* Signature: (Ljava/lang/Object;)I
+*/
+JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags(JNIEnv *, jclass, jobject method) {
+  methodOop m = (methodOop)JNIHandles::resolve(method);
+  return m->access_flags().as_int();
+}
+
+/*
+* Class:     com_sun_hotspot_c1x_VMEntries
+* Method:    installCode
+* Signature: (Ljava/lang/Object;[BI)V
+*/
+JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_installCode(JNIEnv *jniEnv, jclass, jobject method, jbyteArray code, jint frameSize) {
+
+  methodOop m = (methodOop)JNIHandles::resolve(method);
+  jboolean isCopy = false;
+  jbyte *codeBytes = jniEnv->GetByteArrayElements(code, &isCopy);
+  // TODO: Check if we need to disallocate?
+  int codeSize = jniEnv->GetArrayLength(code);
+  VM_ENTRY_MARK;
+  ciEnv *env = CURRENT_ENV;
+
+  env->set_oop_recorder(new OopRecorder(env->arena()));
+  env->set_debug_info(new DebugInformationRecorder(env->oop_recorder()));
+  env->set_dependencies(new Dependencies(env));
+  ciMethod *ciMethodObject = (ciMethod *)env->get_object(m);
+  CodeOffsets offsets;
+
+  // TODO: This is a hack.. Produce correct entries.
+  offsets.set_value(CodeOffsets::Exceptions, 0);
+  offsets.set_value(CodeOffsets::Deopt, 0);
+
+  CodeBuffer buffer((address)codeBytes, codeSize);
+  buffer.print();
+  CodeSection *inst_section = buffer.insts();
+  inst_section->set_end(inst_section->start() + codeSize);
+  buffer.initialize_oop_recorder(env->oop_recorder());
+  OopMapSet oop_map_set;
+  ExceptionHandlerTable handler_table;
+  ImplicitExceptionTable inc_table;
+  {
+    ThreadToNativeFromVM t((JavaThread*)THREAD);
+    env->register_method(ciMethodObject, -1, &offsets, 0, &buffer, frameSize, &oop_map_set, &handler_table, &inc_table, NULL, env->comp_level(), false, false);
+
+  }
+}
+
+
 
 JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_code",                   CC"(Ljava/lang/Object;)[B",                                                 FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code)},
@@ -327,7 +378,9 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiRuntime_getConstantPool",       CC"(Ljava/lang/Object;)Lcom/sun/cri/ri/RiConstantPool;",                    FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiRuntime_1getConstantPool)},
   {CC"RiType_isArrayClass",             CC"(Ljava/lang/Object;)Z",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isArrayClass)},
   {CC"RiType_isInstanceClass",          CC"(Ljava/lang/Object;)Z",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInstanceClass)},
-  {CC"RiType_isInterface",              CC"(Ljava/lang/Object;)Z",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterface)}
+  {CC"RiType_isInterface",              CC"(Ljava/lang/Object;)Z",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterface)},
+  {CC"RiMethod_accessFlags",            CC"(Ljava/lang/Object;)I",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags)},
+  {CC"installCode",                     CC"(Ljava/lang/Object;[BI)V",                                               FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installCode)}
 };
 
 int VMEntries_methods_count() {
