@@ -34,6 +34,12 @@ void C1XCompiler::initialize() {
   JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntries");
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count() );
+  
+  if (Thread::current()->has_pending_exception()) {
+
+    Thread::current()->pending_exception()->print();
+    fatal("Could not register natives");
+  }
 }
 
 // Compilation entry point for methods
@@ -48,7 +54,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
 	HandleMark hm;
 
   CompilerThread::current()->set_compiling(true);
-  oop rimethod = get_rimethod(target);
+  oop rimethod = get_RiMethod(target);
   VMExits::compileMethod(rimethod, entry_bci);
 	CompilerThread::current()->set_compiling(false);
 }
@@ -58,8 +64,57 @@ void C1XCompiler::print_timers() {
 	TRACE_C1X_1("print_timers");
 }
 
-oop C1XCompiler::get_rimethod(ciMethod *method) {
+oop C1XCompiler::get_RiMethod(ciMethod *method) {
   methodOop m = (methodOop)method->get_oop();
+  return get_RiMethod(m);
+}
+
+oop C1XCompiler::get_RiField(ciField *field) {
+  oop field_holder = get_RiType(field->holder());
+  oop field_type = get_RiType(field->type());
+  symbolOop field_name = field->name()->get_symbolOop();
+  int offset = field->offset();
+
+  // TODO: implement caching
+  return VMExits::createRiField(field_holder, field_name, field_type, offset);
+}
+
+oop C1XCompiler::get_RiMethod(methodOop m) {
   // TODO: implement caching
   return VMExits::createRiMethod(m);
+}
+
+oop C1XCompiler::get_RiType(ciType *type) {
+  if (type->is_loaded()) {
+    if (type->is_primitive_type()) {
+      return VMExits::createRiTypePrimitive((int)type->basic_type());
+    }
+    return get_RiType((klassOop)type->get_oop());
+  } else {
+    return get_unresolved_RiType(((ciKlass *)type)->name()->get_symbolOop(), NULL);
+  }
+}
+
+oop C1XCompiler::get_RiType(klassOop klass) {
+  // TODO: implement caching
+  return VMExits::createRiType(klass);
+}
+
+oop C1XCompiler::get_RiConstantPool(constantPoolOop cp) {
+  // TODO: implement caching
+  return VMExits::createRiConstantPool(cp);
+}
+
+oop C1XCompiler::get_RiType(symbolOop klass, klassOop accessingType) {
+  klassOop resolved_type = SystemDictionary::resolve_or_null(klass, accessingType->klass_part()->class_loader(), accessingType->klass_part()->protection_domain(), Thread::current());
+  if (resolved_type == NULL) {
+    return get_RiType(resolved_type);
+  } else {
+    return get_unresolved_RiType(klass, accessingType);
+  }
+}
+
+oop C1XCompiler::get_unresolved_RiType(symbolOop klass, klassOop accessingType)  {
+  // TODO: implement caching
+  return VMExits::createRiTypeUnresolved(klass, accessingType);
 }

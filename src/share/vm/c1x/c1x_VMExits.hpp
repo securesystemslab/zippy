@@ -33,7 +33,15 @@ public:
   static KlassHandle& vmExitsKlass();
   static void compileMethod(oop method, int entry_bci);
   static oop createRiMethod(methodOop m);
-  static oop createRiField(klassOop k, int index);
+  static oop createRiField(oop field_holder, symbolOop field_name, oop field_type, int index);
   static oop createRiType(klassOop k);
   static oop createRiConstantPool(constantPoolOop cp);
+  static oop createRiTypeUnresolved(symbolOop name, klassOop accessor);
+  static oop createRiSignature(symbolOop name);
+  static oop createCiConstantInt(jint value);
+  static oop createCiConstantLong(jlong value);
+  static oop createCiConstantFloat(jfloat value);
+  static oop createCiConstantDouble(jdouble value);
+  static oop createCiConstantObject(oop value);
+  static oop createRiTypePrimitive(int basic_type);
 };

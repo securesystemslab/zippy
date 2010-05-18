@@ -39,8 +39,10 @@ private:
   ciSymbol(symbolOop s) : ciObject(s) {}
   ciSymbol(symbolHandle s);   // for use with vmSymbolHandles
 
+public:
   symbolOop get_symbolOop() const { return (symbolOop)get_oop(); }
 
+private:
   const char* type_string() { return "ciSymbol"; }
 
   void print_impl(outputStream* st);

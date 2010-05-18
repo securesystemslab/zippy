@@ -45,7 +45,14 @@ public:
 	// Print compilation timers and statistics
 	virtual void print_timers();
 
-  static oop get_rimethod(ciMethod *ciMethod);
+  static oop get_RiMethod(ciMethod *ciMethod);
+  static oop get_RiField(ciField *ciField);
+  static oop get_RiType(ciType *klass);
+  static oop get_RiType(klassOop klass);
+  static oop get_RiMethod(methodOop method);
+  static oop get_RiType(symbolOop klass, klassOop accessingType);
+  static oop get_unresolved_RiType(symbolOop klass, klassOop accessingType);
+  static oop get_RiConstantPool(constantPoolOop cpOop);
 };
 
 

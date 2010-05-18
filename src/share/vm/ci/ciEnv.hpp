@@ -94,6 +94,8 @@ private:
   ciInstance* _the_null_string;      // The Java string "null"
   ciInstance* _the_min_jint_string; // The Java string "-2147483648"
 
+public:
+
   // Look up a klass by name from a particular class loader (the accessor's).
   // If require_local, result must be defined in that class loader, or NULL.
   // If !require_local, a result from remote class loader may be reported,
@@ -128,6 +130,8 @@ private:
                                  int method_index, Bytecodes::Code bc,
                                  ciInstanceKlass* loading_klass);
 
+private:
+
   // Implementation methods for loading and constant pool access.
   ciKlass* get_klass_by_name_impl(ciKlass* accessing_klass,
                                   ciSymbol* klass_name,
@@ -160,6 +164,7 @@ private:
                            symbolOop       sig,
                            Bytecodes::Code bc);
 
+  public:
   // Get a ciObject from the object factory.  Ensures uniqueness
   // of ciObjects.
   ciObject* get_object(oop o) {
@@ -169,6 +174,7 @@ private:
       return _factory->get(o);
     }
   }
+  private:
 
   ciMethod* get_method_from_handle(jobject method);
 

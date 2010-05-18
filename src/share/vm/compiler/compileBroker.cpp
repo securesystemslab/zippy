@@ -865,7 +865,9 @@ void CompileBroker::compile_method_base(methodHandle method,
     MutexLocker locker(_method_queue->lock(), THREAD);
 
 	if (Thread::current()->is_Compiler_thread() && CompilerThread::current()->is_compiling()) {
-		TRACE_C1X_1("Recursive compile!");
+    
+		TRACE_C1X_1("Recursive compile %s!", method->name_and_sig_as_C_string());
+    method->set_not_compilable();
 		return;
 	}
 

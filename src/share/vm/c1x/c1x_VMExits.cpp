@@ -31,7 +31,7 @@ KlassHandle &VMExits::vmExitsKlass() {
 
   if (_vmExitsKlass.is_null()) {
     Handle nullh;
-    _vmExitsKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), nullh, nullh, Thread::current());
+    _vmExitsKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), SystemDictionary::java_system_loader(), nullh, Thread::current());
     if (_vmExitsKlass.is_null()) {
       fatal("Could not find class com.sun.hotspot.c1x.VMExits");
     }
@@ -58,10 +58,12 @@ oop VMExits::createRiMethod(methodOop m) {
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiField(klassOop k, int index) {
+oop VMExits::createRiField(oop field_holder, symbolOop field_name, oop field_type, int index) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
-  args.push_oop(k);
+  args.push_oop(field_holder);
+  args.push_oop(field_name);
+  args.push_oop(field_type);
   args.push_int(index);
   JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, Thread::current());
   return (oop)result.get_jobject();
@@ -75,10 +77,78 @@ oop VMExits::createRiType(klassOop k) {
   return (oop)result.get_jobject();
 }
 
+oop VMExits::createRiTypePrimitive(int basic_type) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_int(basic_type);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createRiTypePrimitive_name(), vmSymbols::createRiTypePrimitive_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+}
+
+oop VMExits::createRiTypeUnresolved(symbolOop name, klassOop accessor) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(name);
+  args.push_oop(accessor);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+}
+
 oop VMExits::createRiConstantPool(constantPoolOop cp) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(cp);
   JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createRiConstantPool_name(), vmSymbols::createRiConstantPool_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+}
+
+oop VMExits::createRiSignature(symbolOop symbol) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(symbol);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createRiSignature_name(), vmSymbols::createRiSignature_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+}
+
+oop VMExits::createCiConstantInt(jint value) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_int(value);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createCiConstantInt_name(), vmSymbols::createCiConstantInt_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+
+}
+
+oop VMExits::createCiConstantLong(jlong value) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_long(value);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createCiConstantLong_name(), vmSymbols::createCiConstantLong_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+
+}
+
+oop VMExits::createCiConstantFloat(jfloat value) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_float(value);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createCiConstantFloat_name(), vmSymbols::createCiConstantFloat_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+
+}
+
+oop VMExits::createCiConstantDouble(jdouble value) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_double(value);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createCiConstantDouble_name(), vmSymbols::createCiConstantDouble_signature(), &args, Thread::current());
+  return (oop)result.get_jobject();
+}
+
+oop VMExits::createCiConstantObject(oop value) {
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(value);
+  JavaCalls::call_static(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantObject_signature(), &args, Thread::current());
   return (oop)result.get_jobject();
 }

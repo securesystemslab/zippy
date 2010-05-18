@@ -243,24 +243,40 @@
   template(findBootstrapMethod_signature, "(Ljava/lang/Class;Ljava/lang/Class;)Ljava/dyn/MethodHandle;") \
   NOT_LP64(  do_alias(machine_word_signature,         int_signature)  )                           \
   LP64_ONLY( do_alias(machine_word_signature,         long_signature) )                           \
-                                                                                                  \
-  /* support for C1X */                                                                                        \
-  template(com_sun_hotspot_c1x_VMExits,               "com/sun/hotspot/c1x/VMExits")                           \
-  template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                               \
-  template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                \
-  template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                 \
-  template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                         \
-  template(compileMethod_name,                        "compileMethod")                                         \
-  template(compileMethod_signature,                   "(Lcom/sun/cri/ri/RiMethod;I)V")                         \
-  template(createRiMethod_name,                       "createRiMethod")                                        \
-  template(createRiMethod_signature,                  "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiMethod;")         \
-  template(createRiField_name,                        "createRiField")                                         \
-  template(createRiField_signature,                   "(Ljava/lang/Object;I)Lcom/sun/cri/ri/RiField;")         \
-  template(createRiType_name,                         "createRiType")                                          \
-  template(createRiType_signature,                    "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;")           \
-  template(createRiConstantPool_name,                 "createRiConstantPool")                                  \
-  template(createRiConstantPool_signature,            "(Ljava/lang/Object;I)Lcom/sun/cri/ri/RiConstantPool;")  \
-                                                                                                  \
+                                                                                                                        \
+  /* support for C1X */                                                                                                 \
+  template(com_sun_hotspot_c1x_VMExits,               "com/sun/hotspot/c1x/VMExits")                                    \
+  template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
+  template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
+  template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
+  template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                                  \
+  template(compileMethod_name,                        "compileMethod")                                                  \
+  template(compileMethod_signature,                   "(Lcom/sun/cri/ri/RiMethod;I)V")                                  \
+  template(createRiMethod_name,                       "createRiMethod")                                                 \
+  template(createRiMethod_signature,                  "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiMethod;")                  \
+  template(createRiSignature_name,                    "createRiSignature")                                              \
+  template(createRiSignature_signature,               "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiSignature;")               \
+  template(createRiField_name,                        "createRiField")                                                  \
+  template(createRiField_signature,                   "(Lcom/sun/cri/ri/RiType;Ljava/lang/Object;Lcom/sun/cri/ri/RiType;I)Lcom/sun/cri/ri/RiField;")                  \
+  template(createRiType_name,                         "createRiType")                                                   \
+  template(createRiType_signature,                    "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;")                    \
+  template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \
+  template(createRiTypePrimitive_signature,           "(I)Lcom/sun/cri/ri/RiType;")                                     \
+  template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
+  template(createRiTypeUnresolved_signature,          "(Ljava/lang/Object;Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;")  \
+  template(createRiConstantPool_name,                 "createRiConstantPool")                                           \
+  template(createRiConstantPool_signature,            "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiConstantPool;")            \
+  template(createCiConstantInt_name,                  "createCiConstantInt")                                            \
+  template(createCiConstantInt_signature,             "(I)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstantLong_name,                 "createCiConstantLong")                                           \
+  template(createCiConstantLong_signature,            "(J)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
+  template(createCiConstantFloat_signature,           "(F)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \
+  template(createCiConstantDouble_signature,          "(D)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstantObject_name,               "createCiConstantObject")                                         \
+  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
+                                                                                                                        \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \
   template(class_initializer_name,                    "<clinit>")                                 \

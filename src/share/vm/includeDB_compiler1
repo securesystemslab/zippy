@@ -453,6 +453,7 @@ c1x_Compiler.cpp                        c1x_VMExits.hpp
 c1x_Compiler.cpp                        c1x_VMEntries.hpp
 
 c1x_VMEntries.cpp                       c1x_VMEntries.hpp
+c1x_VMEntries.cpp                       c1x_Compiler.hpp
 c1x_VMEntries.cpp                       c1x_VMExits.hpp
 
 c1x_VMExits.hpp                	        systemDictionary.hpp
