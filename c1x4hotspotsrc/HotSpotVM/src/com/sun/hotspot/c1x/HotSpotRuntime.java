@@ -79,7 +79,7 @@ public class HotSpotRuntime implements RiRuntime {
     private String disassemble(byte[] code, DisassemblyPrinter disassemblyPrinter) {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final InstructionSet instructionSet = InstructionSet.AMD64;
-        //Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, null, 0, null, disassemblyPrinter);
+        Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, null, 0, null, disassemblyPrinter);
         return byteArrayOutputStream.toString();
     }
 
@@ -222,6 +222,12 @@ public class HotSpotRuntime implements RiRuntime {
 
 	@Override
 	public CiConstant invoke(RiMethod method, CiMethodInvokeArguments args) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CiConstant foldWordOperation(int opcode, CiMethodInvokeArguments args) {
 		// TODO Auto-generated method stub
 		return null;
 	}

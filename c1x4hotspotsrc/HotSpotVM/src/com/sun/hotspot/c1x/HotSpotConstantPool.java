@@ -27,8 +27,8 @@ public class HotSpotConstantPool implements RiConstantPool {
 	}
 
 	@Override
-	public RiMethod lookupMethod(int cpi, byte byteCode) {
-		return VMEntries.RiConstantPool_lookupMethod(constantPoolOop, cpi, byteCode);
+	public RiMethod lookupMethod(int cpi, int byteCode) {
+		return VMEntries.RiConstantPool_lookupMethod(constantPoolOop, cpi, (byte)byteCode);
 	}
 
 	@Override
@@ -37,12 +37,12 @@ public class HotSpotConstantPool implements RiConstantPool {
 	}
 
 	@Override
-	public RiType lookupType(int cpi) {
+	public RiType lookupType(int cpi, int opcode) {
 		return VMEntries.RiConstantPool_lookupType(constantPoolOop, cpi);
 	}
 
 	@Override
-	public RiField lookupField(int cpi) {
+	public RiField lookupField(int cpi, int opcode) {
 		return VMEntries.RiConstantPool_lookupField(constantPoolOop, cpi);
 	}
 

@@ -39,37 +39,40 @@ import com.sun.cri.xir.CiXirAssembler.XirOperand;
 /**
  * 
  * @author Thomas Wuerthinger
- *
+ * 
  */
 public class HotSpotXirGenerator extends RiXirGenerator {
 
 	private XirTemplate[] emptyTemplates = new XirTemplate[CiKind.values().length];
-	
+
 	@Override
 	public List<XirTemplate> buildTemplates(CiXirAssembler asm) {
 
 		List<XirTemplate> templates = new ArrayList<XirTemplate>();
-		for (int i=0; i<CiKind.values().length; i++) {
-			
+		for (int i = 0; i < CiKind.values().length; i++) {
+
 			CiKind curKind = CiKind.values()[i];
 
-			if (curKind == CiKind.Float || curKind == CiKind.Double) continue;
-			
+			if (curKind == CiKind.Float || curKind == CiKind.Double)
+				continue;
+
 			if (CiKind.values()[i] == CiKind.Void) {
 				asm.restart(CiKind.values()[i]);
-				emptyTemplates[i] = asm.finishTemplate("empty-" + CiKind.values()[i]);
+				emptyTemplates[i] = asm.finishTemplate("empty-"
+						+ CiKind.values()[i]);
 			} else {
 				asm.restart();
-				XirOperand result = asm.createTemp("result", CiKind.values()[i]);
-				emptyTemplates[i] = asm.finishTemplate(result, "empty-" + CiKind.values()[i]);
+				XirOperand result = asm
+						.createTemp("result", CiKind.values()[i]);
+				emptyTemplates[i] = asm.finishTemplate(result, "empty-"
+						+ CiKind.values()[i]);
 			}
 			templates.add(emptyTemplates[i]);
 		}
-		
-		
+
 		return templates;
 	}
-	
+
 	@Override
 	public XirSnippet genArrayLength(XirSite site, XirArgument array) {
 		return new XirSnippet(emptyTemplates[CiKind.Int.ordinal()]);
