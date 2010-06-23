@@ -2,8 +2,12 @@
 ^dist/
 ^java/
 ^work/
+.metadata/
+.settings/
 ~$
 .swp$
+.class$
+.log$
 /nbproject/private/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
