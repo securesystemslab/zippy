@@ -33,9 +33,9 @@
 
 #define C1_FLAGS(develop, develop_pd, product, product_pd, notproduct)      \
                                                                             \
-  product(bool, UseC1X, true,						                        \
+  product(bool, UseC1X, false,                                              \
           "Use C1X instead of C1")                                          \
-  product(intx, TraceC1X, 0,						                        \
+  product(intx, TraceC1X, 0,                                                \
           "Trace level for C1X")                                            \
   /* Printing */                                                            \
   notproduct(bool, PrintC1Statistics, false,                                \
@@ -59,7 +59,7 @@
   notproduct(bool, PrintIRDuringConstruction, false,                        \
           "Print IR as it's being constructed (helpful for debugging frontend)")\
                                                                             \
-  notproduct(bool, PrintPhiFunctions, false,                                   \
+  notproduct(bool, PrintPhiFunctions, false,                                \
           "Print phi functions when they are created and simplified")       \
                                                                             \
   notproduct(bool, PrintIR, false,                                          \

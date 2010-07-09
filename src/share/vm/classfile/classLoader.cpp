@@ -164,7 +164,7 @@ ClassFileStream* ClassPathDirEntry::open_stream(const char* name) {
     if (file_handle != -1) {
       // read contents into resource array
       u1* buffer = NEW_RESOURCE_ARRAY(u1, st.st_size);
-      size_t num_read = hpi::read(file_handle, (char*) buffer, st.st_size);
+      size_t num_read = os::read(file_handle, (char*) buffer, st.st_size);
       // close file
       hpi::close(file_handle);
       // construct ClassFileStream

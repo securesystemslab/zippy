@@ -35,6 +35,7 @@ void C1XCompiler::initialize() {
 
   JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntries");
+  assert(klass != NULL, "c1x VMEntries class not found");
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count() );
   
   if (Thread::current()->has_pending_exception()) {

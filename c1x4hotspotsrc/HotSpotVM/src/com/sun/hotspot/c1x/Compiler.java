@@ -56,7 +56,7 @@ public class Compiler {
 		final int wordSize = 8;
 		final int stackFrameAlignment = 8;
 		final int pageSize = 1024;
-		final RiRegisterConfig config = new HotSpotRegisterConfig();
+		final RiRegisterConfig config = new HotSpotRegisterConfig(System.getProperty("os.name").startsWith("Windows"));
         final CiTarget target = new CiTarget(new AMD64(), config, true, wordSize, wordSize, wordSize, stackFrameAlignment, pageSize, wordSize, wordSize, 16);
         final CiCompiler compiler = new C1XCompiler(runtime, target, generator);
         

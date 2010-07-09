@@ -41,9 +41,16 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 		return new CiRegister[]{ AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, AMD64.r10, AMD64.r11} ;
 	}
 	
-
-    private final CiRegister[] generalParameterRegisters = new CiRegister[]{AMD64.rdx, AMD64.r8, AMD64.r9, AMD64.rdi, AMD64.rsi, AMD64.rcx};
+    private final CiRegister[] generalParameterRegisters;
     private final CiRegister[] xmmParameterRegisters = new CiRegister[]{AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5, AMD64.xmm6, AMD64.xmm7};
+
+	public HotSpotRegisterConfig(boolean windowsRegisterLayout) {
+		if(windowsRegisterLayout) {
+		    generalParameterRegisters = new CiRegister[]{AMD64.rdx, AMD64.r8, AMD64.r9, AMD64.rdi, AMD64.rsi, AMD64.rcx};
+		} else {
+		    generalParameterRegisters = new CiRegister[]{AMD64.rsi, AMD64.rdx, AMD64.rcx, AMD64.r8, AMD64.r9, AMD64.rdi};
+		}
+	}
 
 	@Override
 	public int getCalleeSaveRegisterOffset(CiRegister register) {

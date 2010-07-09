@@ -26,7 +26,7 @@ class C1XCompiler : public AbstractCompiler {
 
 private:
 
-  boolean _initialized;
+  bool _initialized;
 
 public:
 
