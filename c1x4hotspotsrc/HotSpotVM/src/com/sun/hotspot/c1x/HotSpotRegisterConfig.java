@@ -44,8 +44,8 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     private final CiRegister[] generalParameterRegisters;
     private final CiRegister[] xmmParameterRegisters = new CiRegister[]{AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5, AMD64.xmm6, AMD64.xmm7};
 
-	public HotSpotRegisterConfig(boolean windowsRegisterLayout) {
-		if(windowsRegisterLayout) {
+	public HotSpotRegisterConfig(HotSpotVMConfig config) {
+		if(config.isWindowsOs()) {
 		    generalParameterRegisters = new CiRegister[]{AMD64.rdx, AMD64.r8, AMD64.r9, AMD64.rdi, AMD64.rsi, AMD64.rcx};
 		} else {
 		    generalParameterRegisters = new CiRegister[]{AMD64.rsi, AMD64.rdx, AMD64.rcx, AMD64.r8, AMD64.r9, AMD64.rdi};
@@ -149,11 +149,6 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 	}
 
 	@Override
-	public CiRegister getSafepointRegister() {
-		return AMD64.r13;
-	}
-
-	@Override
 	public CiRegister getScratchRegister() {
 		return AMD64.r15;
 	}
@@ -161,11 +156,6 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 	@Override
 	public CiRegister getStackPointerRegister() {
 		return AMD64.rsp;
-	}
-
-	@Override
-	public CiRegister getThreadRegister() {
-		return AMD64.r14;
 	}
 
 }

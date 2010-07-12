@@ -51,13 +51,14 @@ public class Compiler {
 	
 	private static CiCompiler createCompiler() {
 
-		final HotSpotRuntime runtime = new HotSpotRuntime();
-		final RiXirGenerator generator = new HotSpotXirGenerator();
+		final HotSpotVMConfig config = VMEntries.getConfiguration();
+		final HotSpotRuntime runtime = new HotSpotRuntime(config);
+		final RiXirGenerator generator = new HotSpotXirGenerator(config);
 		final int wordSize = 8;
 		final int stackFrameAlignment = 8;
 		final int pageSize = 1024;
-		final RiRegisterConfig config = new HotSpotRegisterConfig(System.getProperty("os.name").startsWith("Windows"));
-        final CiTarget target = new CiTarget(new AMD64(), config, true, wordSize, wordSize, wordSize, stackFrameAlignment, pageSize, wordSize, wordSize, 16);
+		final RiRegisterConfig registerConfig = new HotSpotRegisterConfig(config);
+        final CiTarget target = new CiTarget(new AMD64(), registerConfig, true, wordSize, wordSize, wordSize, stackFrameAlignment, pageSize, wordSize, wordSize, 16);
         final CiCompiler compiler = new C1XCompiler(runtime, target, generator);
         
         C1XOptions.setOptimizationLevel(3);

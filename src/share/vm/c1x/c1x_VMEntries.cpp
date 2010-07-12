@@ -358,6 +358,27 @@ JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_installCode(JNIEnv *jn
   }
 }
 
+// helpers used to set fields in the HotSpotVMConfig object
+#define SET_CONFIG_BOOLEAN(name, value) { jfieldID id = jniEnv->GetFieldID(klass, #name, "Z"); jniEnv->SetBooleanField(config, id, value); }
+#define SET_CONFIG_INT(name, value) { jfieldID id = jniEnv->GetFieldID(klass, #name, "I"); jniEnv->SetIntField(config, id, value); }
+
+/*
+* Class:     com_sun_hotspot_c1x_VMEntries
+* Method:    getConfiguration
+* Signature: ()Lcom/sun/hotspot/c1x/HotSpotVMConfig;
+*/
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JNIEnv *jniEnv, jclass) {
+  jclass klass = jniEnv->FindClass("com/sun/hotspot/c1x/HotSpotVMConfig");
+  assert(klass != NULL, "HotSpot vm config class not found");
+  jobject config = jniEnv->AllocObject(klass);
+  jfieldID id = jniEnv->GetFieldID(klass, "windowsOs", "Z");
+#ifdef _WIN64
+  SET_CONFIG_BOOLEAN(windowsOs, true)
+#else
+  SET_CONFIG_BOOLEAN(windowsOs, false)
+#endif
+  return config;
+}
 
 
 JNINativeMethod VMEntries_methods[] = {
@@ -380,7 +401,8 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_isInstanceClass",          CC"(Ljava/lang/Object;)Z",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInstanceClass)},
   {CC"RiType_isInterface",              CC"(Ljava/lang/Object;)Z",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterface)},
   {CC"RiMethod_accessFlags",            CC"(Ljava/lang/Object;)I",                                                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags)},
-  {CC"installCode",                     CC"(Ljava/lang/Object;[BI)V",                                               FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installCode)}
+  {CC"installCode",                     CC"(Ljava/lang/Object;[BI)V",                                               FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installCode)},
+  {CC"getConfiguration",                CC"()Lcom/sun/hotspot/c1x/HotSpotVMConfig;",                                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getConfiguration)}
 };
 
 int VMEntries_methods_count() {

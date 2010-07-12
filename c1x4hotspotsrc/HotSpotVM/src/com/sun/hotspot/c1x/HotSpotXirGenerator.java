@@ -44,6 +44,11 @@ import com.sun.cri.xir.CiXirAssembler.XirOperand;
 public class HotSpotXirGenerator extends RiXirGenerator {
 
 	private XirTemplate[] emptyTemplates = new XirTemplate[CiKind.values().length];
+	private final HotSpotVMConfig config;
+
+	public HotSpotXirGenerator(HotSpotVMConfig config) {
+		this.config = config;
+	}
 
 	@Override
 	public List<XirTemplate> buildTemplates(CiXirAssembler asm) {
@@ -198,6 +203,11 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 	@Override
 	public XirSnippet genSafepoint(XirSite site) {
 		return new XirSnippet(emptyTemplates[CiKind.Void.ordinal()]);
+	}
+
+	@Override
+	public XirSnippet genExceptionObject(XirSite site) {
+		return new XirSnippet(emptyTemplates[CiKind.Object.ordinal()]);
 	}
 
 }

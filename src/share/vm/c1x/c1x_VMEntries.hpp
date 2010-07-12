@@ -206,6 +206,13 @@ JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags
 JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_installCode
 (JNIEnv *, jclass, jobject, jbyteArray, jint);
 
+/*
+* Class:     com_sun_hotspot_c1x_VMEntries
+* Method:    getConfiguration
+* Signature: ()Lcom/sun/hotspot/c1x/HotSpotVMConfig;
+*/
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration
+(JNIEnv *, jclass);
 
 
 extern JNINativeMethod VMEntries_methods[];

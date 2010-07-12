@@ -29,4 +29,5 @@ public class VMEntries {
 	public static native boolean RiType_isInterface(Object klassOop);
 	public static native int RiMethod_accessFlags(Object methodOop);
 	public static native void installCode(Object methodOop, byte[] code, int frameSize);
+	public static native HotSpotVMConfig getConfiguration();
 }

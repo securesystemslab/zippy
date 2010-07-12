@@ -53,6 +53,12 @@ import com.sun.max.asm.dis.DisassemblyPrinter;
  */
 public class HotSpotRuntime implements RiRuntime {
 
+	private final HotSpotVMConfig config;
+
+	public HotSpotRuntime(HotSpotVMConfig config) {
+		this.config = config;
+	}
+
 	@Override
 	public int basicObjectLockOffsetInBytes() {
 		// TODO Auto-generated method stub
@@ -192,12 +198,6 @@ public class HotSpotRuntime implements RiRuntime {
 
 	@Override
 	public int sizeofBasicObjectLock() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int threadExceptionOffset() {
 		// TODO Auto-generated method stub
 		return 0;
 	}
