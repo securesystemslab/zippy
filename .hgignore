@@ -3,7 +3,6 @@
 ^java/
 ^work/
 .metadata/
-.settings/
 ~$
 .swp$
 .class$

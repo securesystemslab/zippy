@@ -94,11 +94,11 @@ public class HotSpotSignature implements RiSignature {
 
     @Override
     public RiType argumentTypeAt(int index, RiType accessingClass) {
-    	System.out.println("argument type at " + index);
-    	Object accessor = null;
-    	if (accessingClass instanceof HotSpotType) {
-    		accessor = ((HotSpotType)accessingClass).klassOop;
-    	}
+        System.out.println("argument type at " + index);
+        Object accessor = null;
+        if (accessingClass instanceof HotSpotType) {
+            accessor = ((HotSpotType) accessingClass).klassOop;
+        }
         return VMEntries.RiSignature_lookupType(arguments.get(index), accessor);
     }
 
