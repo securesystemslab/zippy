@@ -175,6 +175,23 @@ void JavaCalls::call_default_constructor(JavaThread* thread, methodHandle method
   }
 }
 
+// ============ Interface calls ============
+
+void JavaCalls::call_interface(JavaValue* result, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS) {
+  CallInfo callinfo;
+  Handle receiver = args->receiver();
+  KlassHandle recvrKlass(THREAD, receiver.is_null() ? (klassOop)NULL : receiver->klass());
+  LinkResolver::resolve_interface_call(
+          callinfo, receiver, recvrKlass, spec_klass, name, signature,
+          KlassHandle(), false, true, CHECK);
+  methodHandle method = callinfo.selected_method();
+  assert(method.not_null(), "should have thrown exception");
+
+  // Invoke the method
+  JavaCalls::call(result, method, args, CHECK);
+}
+
+
 // ============ Virtual calls ============
 
 void JavaCalls::call_virtual(JavaValue* result, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS) {

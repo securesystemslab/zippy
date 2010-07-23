@@ -21,17 +21,29 @@ package com.sun.hotspot.c1x;
  * Used to communicate configuration details, runtime offsets, etc. to c1x upon compileMethod.
  *
  * @author Lukas Stadler
- *
  */
 public class HotSpotVMConfig {
 
     // os information, register layout, code generation, ...
-    private boolean windowsOs;
+    public boolean windowsOs;
+    public int codeEntryAlignment;
 
     // offsets, ...
+    public int vmPageSize;
+    public int stackShadowPages;
+    public int hubOffset;
 
-    public boolean isWindowsOs() {
-        return windowsOs;
+    // runtime stubs
+    public long instanceofStub;
+    public long debugStub;
+
+    public void check() {
+        assert vmPageSize >= 16;
+        assert codeEntryAlignment > 0;
+        assert stackShadowPages > 0;
+        assert instanceofStub != 0;
+        assert debugStub != 0;
+        System.out.println("Config::debugStub = " + Long.toHexString(debugStub));
     }
 
 }

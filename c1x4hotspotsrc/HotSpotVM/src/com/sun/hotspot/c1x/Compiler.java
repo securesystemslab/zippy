@@ -17,13 +17,11 @@
  */
 package com.sun.hotspot.c1x;
 
-import com.sun.c1x.C1XCompiler;
-import com.sun.c1x.C1XOptions;
-import com.sun.c1x.target.amd64.AMD64;
-import com.sun.cri.ci.CiCompiler;
-import com.sun.cri.ci.CiTarget;
-import com.sun.cri.ri.RiRegisterConfig;
-import com.sun.cri.xir.RiXirGenerator;
+import com.sun.c1x.*;
+import com.sun.c1x.target.amd64.*;
+import com.sun.cri.ci.*;
+import com.sun.cri.ri.*;
+import com.sun.cri.xir.*;
 
 /**
  *
@@ -34,35 +32,95 @@ import com.sun.cri.xir.RiXirGenerator;
  */
 public class Compiler {
 
-    private static CiCompiler compiler;
+    private static Compiler theInstance;
 
-    public static CiCompiler getCompiler() {
-
-        if (compiler == null) {
-            compiler = createCompiler();
+    public static Compiler getInstance() {
+        if (theInstance == null) {
+            theInstance = new Compiler();
         }
-
-        return compiler;
+        return theInstance;
     }
 
-    private static CiCompiler createCompiler() {
+    private static VMEntries vmEntries;
 
-        final HotSpotVMConfig config = VMEntries.getConfiguration();
-        final HotSpotRuntime runtime = new HotSpotRuntime(config);
-        final RiXirGenerator generator = new HotSpotXirGenerator(config);
+    public static VMEntries getVMEntries() {
+        if (vmEntries == null) {
+            System.out.println("getVMEntries");
+            try {
+                //vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
+                vmEntries = new VMEntriesNative();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
+        return vmEntries;
+    }
+
+    private static VMExits vmExits;
+
+    public static VMExits getVMExits() {
+        if (vmExits == null) {
+            System.out.println("getVMExits");
+            try {
+                //vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
+                vmExits = new VMExitsNative();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
+        return vmExits;
+    }
+
+    private final CiCompiler compiler;
+    private final HotSpotVMConfig config;
+    private final HotSpotRuntime runtime;
+    private final RiRegisterConfig registerConfig;
+    private final CiTarget target;
+    private final RiXirGenerator generator;
+
+    private Compiler() {
+        config = getVMEntries().getConfiguration();
+        config.check();
+
+        runtime = new HotSpotRuntime(config);
         final int wordSize = 8;
         final int stackFrameAlignment = 8;
-        final int pageSize = 1024;
-        final RiRegisterConfig registerConfig = new HotSpotRegisterConfig(config);
-        final CiTarget target = new CiTarget(new AMD64(), registerConfig, true, wordSize, wordSize, wordSize, stackFrameAlignment, pageSize, wordSize, wordSize, 16);
-        final CiCompiler compiler = new C1XCompiler(runtime, target, generator);
+        registerConfig = new HotSpotRegisterConfig(config);
+        target = new CiTarget(new AMD64(), registerConfig, true, wordSize, wordSize, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, wordSize, config.codeEntryAlignment, true);
+        generator = new HotSpotXirGenerator(config, registerConfig);
+        compiler = new C1XCompiler(runtime, target, generator);
 
         C1XOptions.setOptimizationLevel(3);
         C1XOptions.TraceBytecodeParserLevel = 4;
         C1XOptions.PrintCFGToFile = false;
         C1XOptions.PrintAssembly = false;// true;
         C1XOptions.PrintCompilation = true;
-        return compiler;
-
+        C1XOptions.GenAssertionCode = true;
+        C1XOptions.DetailedAsserts = true;
     }
+
+    public CiCompiler getCompiler() {
+        return compiler;
+    }
+
+    public HotSpotVMConfig getConfig() {
+        return config;
+    }
+
+    public HotSpotRuntime getRuntime() {
+        return runtime;
+    }
+
+    public RiRegisterConfig getRegisterConfig() {
+        return registerConfig;
+    }
+
+    public CiTarget getTarget() {
+        return target;
+    }
+
+    public RiXirGenerator getGenerator() {
+        return generator;
+    }
+
 }

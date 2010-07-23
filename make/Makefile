@@ -333,11 +333,11 @@ $(EXPORT_DOCS_DIR)/platform/jvmti/%: $(DOCS_DIR)/%
 	$(install-file)
 
 # Xusage file
-$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt: $(XUSAGE)
-	$(prep-target)
-	$(RM) $@.temp
-	$(SED) 's/\(separated by \)[;:]/\1$(PATH_SEP)/g' $< > $@.temp
-	$(MV) $@.temp $@
+#$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt: $(XUSAGE)
+#	$(prep-target)
+#	$(RM) $@.temp
+#	$(SED) 's/\(separated by \)[;:]/\1$(PATH_SEP)/g' $< > $@.temp
+#	$(MV) $@.temp $@
 
 #
 # Clean rules

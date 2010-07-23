@@ -21,17 +21,37 @@
  * have any questions.
  *
  */
+/*
+class OopCache : public AllStatic {
 
+private:
+  static Handle* handles;
+  static Handle* mirrors;
+  static int capacity;
+  static int used;
+
+public:
+  static void initialize();
+  static Handle mirror(oop internal_object);
+  static Handle resolve(oop mirror);
+
+};
+*/
 class VMExits : public AllStatic {
 
 private:
 
   static KlassHandle _vmExitsKlass;
+  static Handle _vmExitsObject;
 
 public:
 
   static KlassHandle& vmExitsKlass();
+  static Handle& instance();
+
+
   static void compileMethod(oop method, int entry_bci);
+
   static oop createRiMethod(methodOop m);
   static oop createRiField(oop field_holder, symbolOop field_name, oop field_type, int index);
   static oop createRiType(klassOop k);
@@ -45,3 +65,10 @@ public:
   static oop createCiConstantObject(oop value);
   static oop createRiTypePrimitive(int basic_type);
 };
+
+inline void check_pending_exception(const char* message) {
+  if (Thread::current()->has_pending_exception()) {
+    Thread::current()->pending_exception()->print();
+    fatal(message);
+  }
+}

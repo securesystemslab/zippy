@@ -22,11 +22,13 @@
  *
  */
 
-#ifndef _Included_com_sun_hotspot_c1x_VMEntries
-#define _Included_com_sun_hotspot_c1x_VMEntries
-
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &f)
+
+#ifdef SOLARIS
+#define JNIEXPORT
+#define JNICALL
+#endif
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -34,7 +36,7 @@
 * Signature: (Ljava/lang/Object;)[B
 */
 JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -42,7 +44,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code
 * Signature: (Ljava/lang/Object;)I
 */
 JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1maxStackSize
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -50,7 +52,7 @@ JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1maxStackSize
 * Signature: (Ljava/lang/Object;)I
 */
 JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1maxLocals
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jobject, jobject);
 
 
 /*
@@ -59,7 +61,7 @@ JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1maxLocals
 * Signature: (Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1holder
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -67,7 +69,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1holder
 * Signature: (Ljava/lang/Object;)Lcom/sun/cri/ri/RiSignature;
 */
 JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1signature
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -75,7 +77,7 @@ JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1signature
 * Signature: (Ljava/lang/Object;)Ljava/lang/String;
 */
 JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1name
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -83,7 +85,7 @@ JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1name
 * Signature: (Ljava/lang/String;Lcom/sun/cri/ri/RiType;)Lcom/sun/cri/ri/RiType;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType
-    (JNIEnv *, jclass, jstring, jobject);
+    (JNIEnv *, jobject, jstring, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -91,7 +93,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookup
 * Signature: (Ljava/lang/Object;)Ljava/lang/String;
 */
 JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1symbolToString
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -99,7 +101,7 @@ JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1symbol
 * Signature: (Ljava/lang/Object;)Ljava/lang/Class;
 */
 JNIEXPORT jclass JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1javaClass
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -107,7 +109,7 @@ JNIEXPORT jclass JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1javaClass
 * Signature: (Ljava/lang/Object;)Ljava/lang/String;
 */
 JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1name
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 
 /*
@@ -116,7 +118,7 @@ JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1name
 * Signature: (Ljava/lang/Object;I)Ljava/lang/Object;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupConstant
-(JNIEnv *, jclass, jobject, jint);
+(JNIEnv *, jobject, jobject, jint);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -124,7 +126,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 * Signature: (Ljava/lang/Object;I)Lcom/sun/cri/ri/RiMethod;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod
-(JNIEnv *, jclass, jobject, jint, jbyte);
+(JNIEnv *, jobject, jobject, jint, jbyte);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -132,7 +134,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 * Signature: (Ljava/lang/Object;I)Lcom/sun/cri/ri/RiSignature;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupSignature
-(JNIEnv *, jclass, jobject, jint);
+(JNIEnv *, jobject, jobject, jint);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -140,7 +142,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 * Signature: (Ljava/lang/Object;I)Lcom/sun/cri/ri/RiType;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupType
-(JNIEnv *, jclass, jobject, jint);
+(JNIEnv *, jobject, jobject, jint);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -148,7 +150,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 * Signature: (Ljava/lang/Object;I)Lcom/sun/cri/ri/RiField;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField
-(JNIEnv *, jclass, jobject, jint);
+(JNIEnv *, jobject, jobject, jint);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -156,7 +158,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 * Signature: (Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_findRiType
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -164,7 +166,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_findRiType
 * Signature: (Ljava/lang/Object;)Lcom/sun/cri/ri/RiConstantPool;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiRuntime_1getConstantPool
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -172,7 +174,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiRuntime_1getConst
 * Signature: (Ljava/lang/Object;)Z
 */
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isArrayClass
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -180,7 +182,7 @@ JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isArrayCla
 * Signature: (Ljava/lang/Object;)Z
 */
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInstanceClass
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -188,7 +190,7 @@ JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInstance
 * Signature: (Ljava/lang/Object;)Z
 */
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterface
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -196,15 +198,15 @@ JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterfac
 * Signature: (Ljava/lang/Object;)I
 */
 JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags
-(JNIEnv *, jclass, jobject);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
 * Method:    installCode
-* Signature: (Ljava/lang/Object;[BI)V
+* Signature: (Lcom/sun/hotspot/c1x/HotSpotTargetMethod;)V
 */
 JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_installCode
-(JNIEnv *, jclass, jobject, jbyteArray, jint);
+(JNIEnv *, jobject, jobject);
 
 /*
 * Class:     com_sun_hotspot_c1x_VMEntries
@@ -212,10 +214,8 @@ JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_installCode
 * Signature: ()Lcom/sun/hotspot/c1x/HotSpotVMConfig;
 */
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration
-(JNIEnv *, jclass);
+(JNIEnv *, jobject);
 
 
 extern JNINativeMethod VMEntries_methods[];
 int VMEntries_methods_count();
-
-#endif

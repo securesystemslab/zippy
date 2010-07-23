@@ -99,7 +99,7 @@ public class HotSpotSignature implements RiSignature {
         if (accessingClass instanceof HotSpotType) {
             accessor = ((HotSpotType) accessingClass).klassOop;
         }
-        return VMEntries.RiSignature_lookupType(arguments.get(index), accessor);
+        return Compiler.getVMEntries().RiSignature_lookupType(arguments.get(index), accessor);
     }
 
     @Override
@@ -114,7 +114,7 @@ public class HotSpotSignature implements RiSignature {
 
     @Override
     public RiType returnType(RiType accessingClass) {
-        return VMEntries.RiSignature_lookupType(returnType, accessingClass);
+        return Compiler.getVMEntries().RiSignature_lookupType(returnType, accessingClass);
     }
 
 }

@@ -46,8 +46,7 @@ public class HotSpotTypePrimitive implements RiType {
 
     @Override
     public CiKind getRepresentationKind(Representation r) {
-        // TODO Auto-generated method stub
-        return null;
+        return kind;
     }
 
     @Override

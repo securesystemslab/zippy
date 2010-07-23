@@ -18,7 +18,6 @@
 package com.sun.hotspot.c1x;
 
 import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -52,6 +51,10 @@ public class HotSpotRuntime implements RiRuntime {
 
     private final HotSpotVMConfig config;
 
+    public static enum Entrypoints {
+        UNVERIFIED, VERIFIED
+    }
+
     public HotSpotRuntime(HotSpotVMConfig config) {
         this.config = config;
     }
@@ -66,12 +69,6 @@ public class HotSpotRuntime implements RiRuntime {
     public int codeOffset() {
         // TODO Auto-generated method stub
         return 0;
-    }
-
-    @Override
-    public void codePrologue(RiMethod method, OutputStream out) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -148,7 +145,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiConstantPool getConstantPool(RiMethod method) {
-        return VMEntries.RiRuntime_getConstantPool(((HotSpotType) method.holder()).klassOop);
+        return Compiler.getVMEntries().RiRuntime_getConstantPool(((HotSpotType) method.holder()).klassOop);
     }
 
     @Override

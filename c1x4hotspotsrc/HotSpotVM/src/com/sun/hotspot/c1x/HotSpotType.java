@@ -45,8 +45,7 @@ public class HotSpotType implements RiType {
 
     @Override
     public CiKind getRepresentationKind(Representation r) {
-        // TODO Auto-generated method stub
-        return null;
+        return CiKind.Object;
     }
 
     @Override
@@ -70,7 +69,7 @@ public class HotSpotType implements RiType {
     @Override
     public boolean isArrayClass() {
         System.out.println("Checking for array class " + name());
-        return VMEntries.RiType_isArrayClass(klassOop);
+        return Compiler.getVMEntries().RiType_isArrayClass(klassOop);
     }
 
     @Override
@@ -87,12 +86,12 @@ public class HotSpotType implements RiType {
 
     @Override
     public boolean isInstanceClass() {
-        return VMEntries.RiType_isInstanceClass(klassOop);
+        return Compiler.getVMEntries().RiType_isInstanceClass(klassOop);
     }
 
     @Override
     public boolean isInterface() {
-        return VMEntries.RiType_isInterface(klassOop);
+        return Compiler.getVMEntries().RiType_isInterface(klassOop);
     }
 
     @Override
@@ -108,7 +107,7 @@ public class HotSpotType implements RiType {
 
     @Override
     public Class< ? > javaClass() {
-        return VMEntries.RiType_javaClass(klassOop);
+        return Compiler.getVMEntries().RiType_javaClass(klassOop);
     }
 
     @Override
@@ -118,13 +117,17 @@ public class HotSpotType implements RiType {
 
     @Override
     public String name() {
-        return VMEntries.RiType_name(klassOop);
+        return Compiler.getVMEntries().RiType_name(klassOop);
     }
 
     @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    public Object klassOop() {
+        return klassOop;
     }
 
 }

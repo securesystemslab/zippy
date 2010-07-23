@@ -54,12 +54,16 @@ public class HotSpotField implements RiField {
 
     @Override
     public String name() {
-        return VMEntries.RiSignature_symbolToString(nameSymbol);
+        return Compiler.getVMEntries().RiSignature_symbolToString(nameSymbol);
     }
 
     @Override
     public RiType type() {
         return type;
+    }
+
+    public int offset() {
+        return offset;
     }
 
 }

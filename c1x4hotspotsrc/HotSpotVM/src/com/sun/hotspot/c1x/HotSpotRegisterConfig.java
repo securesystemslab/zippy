@@ -35,14 +35,15 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     @Override
     public CiRegister[] getAllocatableRegisters() {
-        return new CiRegister[] { AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, AMD64.r10, AMD64.r11};
+        return new CiRegister[] { AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, AMD64.r10, AMD64.r11, AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5,
+                        AMD64.xmm6, AMD64.xmm7, AMD64.xmm8, AMD64.xmm9, AMD64.xmm10, AMD64.xmm11, AMD64.xmm12, AMD64.xmm13, AMD64.xmm14, AMD64.xmm15};
     }
 
     private final CiRegister[] generalParameterRegisters;
     private final CiRegister[] xmmParameterRegisters = new CiRegister[] { AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5, AMD64.xmm6, AMD64.xmm7};
 
     public HotSpotRegisterConfig(HotSpotVMConfig config) {
-        if (config.isWindowsOs()) {
+        if (config.windowsOs) {
             generalParameterRegisters = new CiRegister[] { AMD64.rdx, AMD64.r8, AMD64.r9, AMD64.rdi, AMD64.rsi, AMD64.rcx};
         } else {
             generalParameterRegisters = new CiRegister[] { AMD64.rsi, AMD64.rdx, AMD64.rcx, AMD64.r8, AMD64.r9, AMD64.rdi};
@@ -142,7 +143,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     @Override
     public CiCallingConvention getRuntimeCallingConvention(CiKind[] parameters, CiTarget target) {
-        throw new UnsupportedOperationException();
+        return callingConvention(parameters, true, target);
     }
 
     @Override

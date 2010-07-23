@@ -17,7 +17,7 @@ public class HotSpotMethod implements RiMethod {
 
     @Override
     public int accessFlags() {
-        return VMEntries.RiMethod_accessFlags(methodOop);
+        return Compiler.getVMEntries().RiMethod_accessFlags(methodOop);
     }
 
     @Override
@@ -29,7 +29,7 @@ public class HotSpotMethod implements RiMethod {
     @Override
     public byte[] code() {
         if (code == null) {
-            code = VMEntries.RiMethod_code(methodOop);
+            code = Compiler.getVMEntries().RiMethod_code(methodOop);
         }
 
         return code;
@@ -49,7 +49,7 @@ public class HotSpotMethod implements RiMethod {
 
     @Override
     public RiType holder() {
-        return VMEntries.RiMethod_holder(methodOop);
+        return Compiler.getVMEntries().RiMethod_holder(methodOop);
     }
 
     @Override
@@ -96,12 +96,12 @@ public class HotSpotMethod implements RiMethod {
 
     @Override
     public int maxLocals() {
-        return VMEntries.RiMethod_maxLocals(methodOop);
+        return Compiler.getVMEntries().RiMethod_maxLocals(methodOop);
     }
 
     @Override
     public int maxStackSize() {
-        return VMEntries.RiMethod_maxStackSize(methodOop);
+        return Compiler.getVMEntries().RiMethod_maxStackSize(methodOop);
     }
 
     @Override
@@ -112,12 +112,12 @@ public class HotSpotMethod implements RiMethod {
 
     @Override
     public String name() {
-        return VMEntries.RiMethod_name(methodOop);
+        return Compiler.getVMEntries().RiMethod_name(methodOop);
     }
 
     @Override
     public RiSignature signature() {
-        return new HotSpotSignature(VMEntries.RiMethod_signature(methodOop));
+        return new HotSpotSignature(Compiler.getVMEntries().RiMethod_signature(methodOop));
     }
 
 }

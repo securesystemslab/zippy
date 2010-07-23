@@ -61,7 +61,6 @@ public:
   static oop get_RiConstantPool(constantPoolOop cpOop);
 };
 
-
 // Tracing macros
 
 #define IF_TRACE_C1X_1 if (TraceC1X >= 1) 

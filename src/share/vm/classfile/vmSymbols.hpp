@@ -276,6 +276,9 @@
   template(createCiConstantDouble_signature,          "(D)Lcom/sun/cri/ci/CiConstant;")                                 \
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
+  template(com_sun_hotspot_c1x_Compiler,              "com/sun/hotspot/c1x/Compiler")                                   \
+  template(getVMExits_name,                           "getVMExits")                                                     \
+  template(getVMExits_signature,                      "()Lcom/sun/hotspot/c1x/VMExits;")                                \
                                                                                                                         \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \

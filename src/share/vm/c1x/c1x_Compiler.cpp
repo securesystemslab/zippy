@@ -34,15 +34,11 @@ void C1XCompiler::initialize() {
 	TRACE_C1X_1("initialize");
 
   JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
-  jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntries");
+  jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntriesNative");
   assert(klass != NULL, "c1x VMEntries class not found");
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count() );
   
-  if (Thread::current()->has_pending_exception()) {
-
-    Thread::current()->pending_exception()->print();
-    fatal("Could not register natives");
-  }
+  check_pending_exception("Could not register natives");
 }
 
 // Compilation entry point for methods
@@ -54,7 +50,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
 
 	
 	ResourceMark rm;
-	//HandleMark hm;
+	HandleMark hm;
 
   CompilerThread::current()->set_compiling(true);
   oop rimethod = get_RiMethod(target);
