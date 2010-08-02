@@ -145,7 +145,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiConstantPool getConstantPool(RiMethod method) {
-        return Compiler.getVMEntries().RiRuntime_getConstantPool(((HotSpotType) method.holder()).klassOop);
+        return new HotSpotConstantPool(((HotSpotType) method.holder()).klass);
     }
 
     @Override

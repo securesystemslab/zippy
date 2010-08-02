@@ -6,11 +6,13 @@ import com.sun.cri.ri.*;
 
 public class HotSpotType implements RiType {
 
-    final Object klassOop;
+    // do not query this class object directly, use the VMEntries methods instead!
+    // (otherwise this query won't be recorded correctly)
+    final Class<?> klass;
 
-    public HotSpotType(Object o) {
-        this.klassOop = o;
-        assert klassOop != null;
+    public HotSpotType(Class<?> klass) {
+        this.klass = klass;
+        assert klass != null;
     }
 
     @Override
@@ -69,7 +71,7 @@ public class HotSpotType implements RiType {
     @Override
     public boolean isArrayClass() {
         System.out.println("Checking for array class " + name());
-        return Compiler.getVMEntries().RiType_isArrayClass(klassOop);
+        return Compiler.getVMEntries().RiType_isArrayClass(klass);
     }
 
     @Override
@@ -86,12 +88,12 @@ public class HotSpotType implements RiType {
 
     @Override
     public boolean isInstanceClass() {
-        return Compiler.getVMEntries().RiType_isInstanceClass(klassOop);
+        return Compiler.getVMEntries().RiType_isInstanceClass(klass);
     }
 
     @Override
     public boolean isInterface() {
-        return Compiler.getVMEntries().RiType_isInterface(klassOop);
+        return Compiler.getVMEntries().RiType_isInterface(klass);
     }
 
     @Override
@@ -106,8 +108,8 @@ public class HotSpotType implements RiType {
     }
 
     @Override
-    public Class< ? > javaClass() {
-        return Compiler.getVMEntries().RiType_javaClass(klassOop);
+    public Class<?> javaClass() {
+        return klass;
     }
 
     @Override
@@ -117,7 +119,7 @@ public class HotSpotType implements RiType {
 
     @Override
     public String name() {
-        return Compiler.getVMEntries().RiType_name(klassOop);
+        return Compiler.getVMEntries().RiType_name(klass);
     }
 
     @Override
@@ -126,8 +128,8 @@ public class HotSpotType implements RiType {
         return null;
     }
 
-    public Object klassOop() {
-        return klassOop;
+    public Class<?> klass() {
+        return klass;
     }
 
 }

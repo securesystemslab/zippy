@@ -47,8 +47,8 @@ public class Compiler {
         if (vmEntries == null) {
             System.out.println("getVMEntries");
             try {
-                //vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
-                vmEntries = new VMEntriesNative();
+                vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
+                //vmEntries = new VMEntriesNative();
             } catch (Throwable t) {
                 t.printStackTrace();
             }
@@ -62,8 +62,8 @@ public class Compiler {
         if (vmExits == null) {
             System.out.println("getVMExits");
             try {
-                //vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
-                vmExits = new VMExitsNative();
+                vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
+                //vmExits = new VMExitsNative();
             } catch (Throwable t) {
                 t.printStackTrace();
             }

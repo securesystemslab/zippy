@@ -46,6 +46,8 @@ public class HotSpotXirGenerator extends RiXirGenerator {
     private XirTemplate prologueTemplate;
     private XirTemplate staticPrologueTemplate;
     private XirTemplate epilogueTemplate;
+    private XirTemplate arrayLengthTemplate;
+    private XirTemplate exceptionObjectTemplate;
 
     static class XirPair {
 
@@ -108,6 +110,8 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         prologueTemplate = buildPrologue(false);
         staticPrologueTemplate = buildPrologue(true);
         epilogueTemplate = buildEpilogue();
+        arrayLengthTemplate = buildArrayLength();
+        exceptionObjectTemplate = buildExceptionObject();
         instanceofTemplate = buildInstanceof(false);
         instanceofTemplateNonnull = buildInstanceof(true);
 
@@ -117,7 +121,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
     private XirTemplate buildPrologue(boolean staticMethod) {
         asm.restart(CiKind.Void);
         XirOperand sp = asm.createRegister("stack pointer", CiKind.Word, registerConfig.getStackPointerRegister());
-        XirOperand temp = asm.createRegister("temp (rax)", CiKind.Word, AMD64.rax);
+        XirOperand temp = asm.createRegister("temp (rax)", CiKind.Int, AMD64.rax);
 
         asm.align(config.codeEntryAlignment);
         asm.entrypoint(HotSpotRuntime.Entrypoints.UNVERIFIED);
@@ -131,7 +135,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         }
         asm.entrypoint(HotSpotRuntime.Entrypoints.VERIFIED);
         // stack banging
-        asm.pload(CiKind.Word, temp, sp, asm.i(-config.stackShadowPages * config.vmPageSize), true);
+        asm.pstore(CiKind.Word, sp, asm.i(-config.stackShadowPages * config.vmPageSize), temp, true);
         asm.pushFrame();
 
         return asm.finishTemplate(staticMethod ? "static prologue" : "prologue");
@@ -142,6 +146,19 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         asm.popFrame();
         // TODO safepoint check
         return asm.finishTemplate("epilogue");
+    }
+
+    private XirTemplate buildArrayLength() {
+        XirOperand result = asm.restart(CiKind.Int);
+        XirParameter object = asm.createInputParameter("object", CiKind.Object);
+        asm.pload(CiKind.Int, result, object, asm.i(config.arrayLengthOffset), true);
+        return asm.finishTemplate("arrayLength");
+    }
+
+    private XirTemplate buildExceptionObject() {
+        asm.restart();
+        XirOperand temp = asm.createRegister("temp (rax)", CiKind.Object, AMD64.rax);
+        return asm.finishTemplate(temp, "exception object");
     }
 
     private XirPair buildGetFieldTemplate(CiKind kind, boolean isStatic) {
@@ -213,29 +230,38 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         XirTemplate unresolved;
         {
             XirOperand result = asm.restart(CiKind.Boolean);
-            asm.callRuntime(config.instanceofStub, result);
 
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter hub = asm.createConstantInputParameter("hub", CiKind.Object);
             XirOperand temp = asm.createTemp("temp", CiKind.Object);
-            XirLabel pass = asm.createInlineLabel("pass");
-            XirLabel fail = asm.createInlineLabel("fail");
+            XirLabel end = asm.createInlineLabel("end");
+            XirLabel slow_path = asm.createOutOfLineLabel("slow path");
+
             asm.mov(result, asm.b(false));
             if (!nonnull) {
                 // first check for null
-                asm.jeq(fail, object, asm.o(null));
+                asm.jeq(end, object, asm.o(null));
             }
             asm.pload(CiKind.Object, temp, object, asm.i(config.hubOffset), !nonnull);
-            asm.jneq(fail, temp, hub);
-            asm.bindInline(pass);
             asm.mov(result, asm.b(true));
-            asm.bindInline(fail);
+            asm.jneq(slow_path, temp, hub);
+
+            asm.bindInline(end);
+
+            asm.bindOutOfLine(slow_path);
+            asm.push(temp);
+            asm.push(hub);
+            asm.callRuntime(config.instanceofStub, result);
+            asm.pop(hub);
+            asm.pop(result);
+            asm.jmp(end);
             resolved = asm.finishTemplate("instanceof-leaf<" + nonnull + ">");
         }
         {/*
           * // unresolved instanceof unresolved = buildUnresolvedInstanceOf(nonnull);
           */
             asm.restart(CiKind.Boolean);
+            XirParameter object = asm.createInputParameter("object", CiKind.Object);
             asm.shouldNotReachHere();
             unresolved = asm.finishTemplate("instanceof-leaf<" + nonnull + ">");
         }
@@ -244,7 +270,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
     @Override
     public XirSnippet genArrayLength(XirSite site, XirArgument array) {
-        return new XirSnippet(emptyTemplates[CiKind.Int.ordinal()]);
+        return new XirSnippet(arrayLengthTemplate, array);
     }
 
     @Override
@@ -311,14 +337,11 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
     @Override
     public XirSnippet genInstanceOf(XirSite site, XirArgument receiver, XirArgument hub, RiType type) {
-        /*
         if (type.isResolved()) {
             return new XirSnippet(instanceofTemplate.resolved, receiver, hub);
         }
         // XirArgument guard = guardFor(type, ResolveClass.SNIPPET);
         return new XirSnippet(instanceofTemplate.unresolved, receiver);
-        */
-        return new XirSnippet(emptyTemplates[CiKind.Boolean.ordinal()]);
     }
 
     @Override
@@ -378,10 +401,10 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         if (type.isResolved()) {
             System.out.println("resolved");
             asm.mov(result, asm.o(type));
-            return new XirSnippet(asm.finishTemplate(result, "resolve class"));
+            return new XirSnippet(asm.finishTemplate("resolve class"));
         }
         asm.shouldNotReachHere();
-        return new XirSnippet(asm.finishTemplate(result, "resolve class"));
+        return new XirSnippet(asm.finishTemplate("resolve class"));
 
     }
 
@@ -392,7 +415,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
     @Override
     public XirSnippet genExceptionObject(XirSite site) {
-        return new XirSnippet(emptyTemplates[CiKind.Object.ordinal()]);
+        return new XirSnippet(exceptionObjectTemplate);
     }
 
 }

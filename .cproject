@@ -79,6 +79,7 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 			<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 			<storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
+			<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 			<storageModule moduleId="scannerConfiguration">
 				<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 				<profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
@@ -327,7 +328,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.solaris.base.945602881;cdt.managedbuild.toolchain.gnu.solaris.base.945602881.388217325;cdt.managedbuild.tool.gnu.solaris.c.compiler.base.212558466;cdt.managedbuild.tool.gnu.c.compiler.input.1115218695">
+				<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.solaris.base.945602881;cdt.managedbuild.toolchain.gnu.solaris.base.945602881.305678577;cdt.managedbuild.tool.gnu.solaris.c.compiler.base.351149667;cdt.managedbuild.tool.gnu.c.compiler.input.820447325">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 					<profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
 						<buildOutputProvider>
@@ -410,7 +411,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.solaris.base.945602881;cdt.managedbuild.toolchain.gnu.solaris.base.945602881.305678577;cdt.managedbuild.tool.gnu.solaris.c.compiler.base.351149667;cdt.managedbuild.tool.gnu.c.compiler.input.820447325">
+				<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.solaris.base.945602881;cdt.managedbuild.toolchain.gnu.solaris.base.945602881.388217325;cdt.managedbuild.tool.gnu.solaris.c.compiler.base.212558466;cdt.managedbuild.tool.gnu.c.compiler.input.1115218695">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 					<profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
 						<buildOutputProvider>

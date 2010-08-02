@@ -5508,6 +5508,7 @@ void MacroAssembler::stop(const char* msg) {
   lea(c_rarg1, InternalAddress(rip));
   movq(c_rarg2, rsp); // pass pointer to regs array
   andq(rsp, -16); // align stack as required by ABI
+  mov64(rax, 0);
   call(RuntimeAddress(CAST_FROM_FN_PTR(address, MacroAssembler::debug64)));
   hlt();
 }
@@ -5519,6 +5520,7 @@ void MacroAssembler::warn(const char* msg) {
 
   push_CPU_state();   // keeps alignment at 16 bytes
   lea(c_rarg0, ExternalAddress((address) msg));
+  mov64(rax, 0);
   call_VM_leaf(CAST_FROM_FN_PTR(address, warning), c_rarg0);
   pop_CPU_state();
 

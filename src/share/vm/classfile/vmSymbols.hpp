@@ -251,21 +251,21 @@
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
   template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                                  \
   template(compileMethod_name,                        "compileMethod")                                                  \
-  template(compileMethod_signature,                   "(Lcom/sun/cri/ri/RiMethod;I)V")                                  \
+  template(compileMethod_signature,                   "(Ljava/lang/reflect/Method;I)V")                                 \
   template(createRiMethod_name,                       "createRiMethod")                                                 \
-  template(createRiMethod_signature,                  "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiMethod;")                  \
+  template(createRiMethod_signature,                  "(Ljava/lang/reflect/Method;)Lcom/sun/cri/ri/RiMethod;")          \
   template(createRiSignature_name,                    "createRiSignature")                                              \
-  template(createRiSignature_signature,               "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiSignature;")               \
+  template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/sun/cri/ri/RiSignature;")               \
   template(createRiField_name,                        "createRiField")                                                  \
-  template(createRiField_signature,                   "(Lcom/sun/cri/ri/RiType;Ljava/lang/Object;Lcom/sun/cri/ri/RiType;I)Lcom/sun/cri/ri/RiField;")                  \
+  template(createRiField_signature,                   "(Lcom/sun/cri/ri/RiType;Ljava/lang/String;Lcom/sun/cri/ri/RiType;I)Lcom/sun/cri/ri/RiField;") \
   template(createRiType_name,                         "createRiType")                                                   \
-  template(createRiType_signature,                    "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;")                    \
+  template(createRiType_signature,                    "(Ljava/lang/Class;)Lcom/sun/cri/ri/RiType;")                     \
   template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \
   template(createRiTypePrimitive_signature,           "(I)Lcom/sun/cri/ri/RiType;")                                     \
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
-  template(createRiTypeUnresolved_signature,          "(Ljava/lang/Object;Ljava/lang/Object;)Lcom/sun/cri/ri/RiType;")  \
+  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;Ljava/lang/Class;)Lcom/sun/cri/ri/RiType;")   \
   template(createRiConstantPool_name,                 "createRiConstantPool")                                           \
-  template(createRiConstantPool_signature,            "(Ljava/lang/Object;)Lcom/sun/cri/ri/RiConstantPool;")            \
+  template(createRiConstantPool_signature,            "(Ljava/lang/Class;)Lcom/sun/cri/ri/RiConstantPool;")             \
   template(createCiConstantInt_name,                  "createCiConstantInt")                                            \
   template(createCiConstantInt_signature,             "(I)Lcom/sun/cri/ci/CiConstant;")                                 \
   template(createCiConstantLong_name,                 "createCiConstantLong")                                           \

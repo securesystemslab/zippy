@@ -18,33 +18,31 @@
 
 package com.sun.hotspot.c1x;
 
+import java.lang.reflect.*;
+
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
 /**
+ * Exits from the HotSpot VM into Java code.
  *
- * @author Thomas Wuerthinger
- *
- *         Exits from the HotSpot VM into Java code.
- *
+ * @author Thomas Wuerthinger, Lukas Stadler
  */
 public class VMExitsNative implements VMExits {
 
     @Override
-    public void compileMethod(RiMethod method, int entry_bci) {
+    public void compileMethod(Method method, int entry_bci) {
         try {
-            assert method instanceof RiMethod : "And YES, this assert is necessary and a potential life saver as this method is called from the VM ;-)";
-
             Compiler compiler = Compiler.getInstance();
-            CiResult result = compiler.getCompiler().compileMethod(method, null);
+            HotSpotMethod riMethod = new HotSpotMethod(method);
+            CiResult result = compiler.getCompiler().compileMethod(riMethod, null);
 
             if (result.bailout() != null) {
                 System.out.println("Bailout:");
                 result.bailout().printStackTrace();
             } else {
-                System.out.println("Compilation result: ");
-                System.out.println(result.targetMethod());
-                HotSpotTargetMethod.installCode(compiler.getConfig(), method, result.targetMethod());
+                Logger.log("Compilation result: " + result.targetMethod());
+                HotSpotTargetMethod.installCode(compiler.getConfig(), riMethod, result.targetMethod());
             }
         } catch (Throwable t) {
             System.out.println("Compilation interrupted:");
@@ -57,36 +55,28 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public RiMethod createRiMethod(Object methodOop) {
-        System.out.println("creating RiMethod object");
-        RiMethod m = new HotSpotMethod(methodOop);
-        System.out.println("returning " + m);
+    public RiMethod createRiMethod(Method method) {
+        RiMethod m = new HotSpotMethod(method);
         return m;
     }
 
     @Override
-    public RiSignature createRiSignature(Object symbolOop) {
-        System.out.println("Creating RiSignature object");
-        String name = Compiler.getVMEntries().RiSignature_symbolToString(symbolOop);
-        System.out.println("Signature name: " + name);
-        return new HotSpotSignature(name);
+    public RiSignature createRiSignature(String signature) {
+        return new HotSpotSignature(signature);
     }
 
     @Override
-    public RiField createRiField(RiType holder, Object nameSymbol, RiType type, int offset) {
-        System.out.println("creating RiField object");
-        return new HotSpotField(holder, nameSymbol, type, offset);
+    public RiField createRiField(RiType holder, String name, RiType type, int offset) {
+        return new HotSpotField(holder, name, type, offset);
     }
 
     @Override
-    public RiType createRiType(Object klassOop) {
-        System.out.println("creating RiType object");
+    public RiType createRiType(Class<?> klassOop) {
         return new HotSpotType(klassOop);
     }
 
     @Override
     public RiType createRiTypePrimitive(int basicType) {
-        System.out.println("Creating primitive type with basicType " + basicType);
         CiKind kind = null;
         switch (basicType) {
             case 4:
@@ -119,21 +109,16 @@ public class VMExitsNative implements VMExits {
             default:
                 throw new IllegalArgumentException("Unknown basic type: " + basicType);
         }
-        System.out.println("Chosen kind: " + kind);
         return new HotSpotTypePrimitive(kind);
     }
 
     @Override
-    public RiType createRiTypeUnresolved(Object symbolOop, Object accessingKlassOop) {
-        System.out.println("Creating unresolved RiType object");
-        String name = Compiler.getVMEntries().RiSignature_symbolToString(symbolOop);
-        System.out.println("Class name: " + name);
+    public RiType createRiTypeUnresolved(String name, Class<?> accessingKlassOop) {
         return new HotSpotTypeUnresolved(name);
     }
 
     @Override
-    public RiConstantPool createRiConstantPool(Object constantPoolOop) {
-        System.out.println("creating RiConstantPool object");
+    public RiConstantPool createRiConstantPool(Class<?> constantPoolOop) {
         return new HotSpotConstantPool(constantPoolOop);
     }
 
@@ -160,12 +145,5 @@ public class VMExitsNative implements VMExits {
     @Override
     public CiConstant createCiConstantObject(Object value) {
         return CiConstant.forObject(value);
-    }
-
-    @Override
-    public void main(String[] args) throws InterruptedException {
-        System.out.println(C1XHotSpotTests.add(1, 2));
-        Thread.sleep(5000);
-        System.out.println(C1XHotSpotTests.add(1, 2));
     }
 }

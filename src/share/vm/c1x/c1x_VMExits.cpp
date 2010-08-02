@@ -24,19 +24,7 @@
 
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_VMExits.cpp.incl"
-/*
-jobject         OopCache::handles = NULL;
-jobject         OopCache::mirrors = NULL;
-int             OopCache::capacity = 0;
-int             OopCache::used = 0;
 
-void initialize() {
-
-}
-  static Handle mirror(oop internal_object);
-  static Handle resolve(oop mirror);
-
-*/
 KlassHandle     VMExits::_vmExitsKlass;
 Handle          VMExits::_vmExitsObject;
 
@@ -63,146 +51,149 @@ Handle &VMExits::instance() {
   return _vmExitsObject;
 }
 
-void VMExits::compileMethod(oop method, int entry_bci) {
+void VMExits::compileMethod(methodOop method, int entry_bci) {
   assert(method != NULL, "just checking");
+  oop reflected_method = C1XObjects::getReflectedMethod(method, Thread::current());
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(method);
+  args.push_oop(reflected_method);
   args.push_int(entry_bci);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, Thread::current());
   check_pending_exception("Error while calling compileMethod");
 }
 
-oop VMExits::createRiMethod(methodOop m) {
+oop VMExits::createRiMethod(methodOop m, TRAPS) {
   assert(m != NULL, "just checking");
+  oop reflected_method = C1XObjects::getReflectedMethod(m, CHECK_0);
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(m);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethod_name(), vmSymbols::createRiMethod_signature(), &args, Thread::current());
+  args.push_oop(reflected_method);
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethod_name(), vmSymbols::createRiMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiMethod");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiField(oop field_holder, symbolOop field_name, oop field_type, int index) {
+oop VMExits::createRiField(oop field_holder, symbolOop field_name, oop field_type, int index, TRAPS) {
   assert(field_holder != NULL && field_name != NULL && field_type != NULL, "just checking");
+  oop name = C1XObjects::getReflectedSymbol(field_name, CHECK_0);
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(field_holder);
-  args.push_oop(field_name);
+  args.push_oop(name);
   args.push_oop(field_type);
   args.push_int(index);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiField");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiType(klassOop k) {
+oop VMExits::createRiType(klassOop k, TRAPS) {
   assert(k != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(k);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiType_name(), vmSymbols::createRiType_signature(), &args, Thread::current());
+  args.push_oop(C1XObjects::getReflectedClass(k));
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiType_name(), vmSymbols::createRiType_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiType");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiTypePrimitive(int basic_type) {
+oop VMExits::createRiTypePrimitive(int basic_type, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_int(basic_type);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypePrimitive_name(), vmSymbols::createRiTypePrimitive_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypePrimitive_name(), vmSymbols::createRiTypePrimitive_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypePrimitive");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiTypeUnresolved(symbolOop name, klassOop accessor) {
+oop VMExits::createRiTypeUnresolved(symbolOop name, klassOop accessor, TRAPS) {
 //  assert(name != NULL && accessor != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(name);
-  args.push_oop(accessor);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, Thread::current());
+  args.push_oop(C1XObjects::getReflectedSymbol(name, THREAD));
+  args.push_oop(C1XObjects::getReflectedClass(accessor));
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypeUnresolved");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiConstantPool(constantPoolOop cp) {
+oop VMExits::createRiConstantPool(constantPoolOop cp, TRAPS) {
   assert(cp != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(cp);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiConstantPool_name(), vmSymbols::createRiConstantPool_signature(), &args, Thread::current());
+  args.push_oop(C1XObjects::getReflectedClass(cp->klass()));
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiConstantPool_name(), vmSymbols::createRiConstantPool_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiConstantPool");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createRiSignature(symbolOop symbol) {
+oop VMExits::createRiSignature(symbolOop symbol, TRAPS) {
   assert(symbol != NULL, "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(symbol);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiSignature_name(), vmSymbols::createRiSignature_signature(), &args, Thread::current());
+  args.push_oop(C1XObjects::getReflectedSymbol(symbol, THREAD));
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiSignature_name(), vmSymbols::createRiSignature_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiSignature");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createCiConstantInt(jint value) {
+oop VMExits::createCiConstantInt(jint value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_int(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantInt_name(), vmSymbols::createCiConstantInt_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantInt_name(), vmSymbols::createCiConstantInt_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantInt");
   return (oop)result.get_jobject();
 
 }
 
-oop VMExits::createCiConstantLong(jlong value) {
+oop VMExits::createCiConstantLong(jlong value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_long(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantLong_name(), vmSymbols::createCiConstantLong_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantLong_name(), vmSymbols::createCiConstantLong_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
   return (oop)result.get_jobject();
 
 }
 
-oop VMExits::createCiConstantFloat(jfloat value) {
+oop VMExits::createCiConstantFloat(jfloat value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_float(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantFloat_name(), vmSymbols::createCiConstantFloat_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantFloat_name(), vmSymbols::createCiConstantFloat_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
   return (oop)result.get_jobject();
 
 }
 
-oop VMExits::createCiConstantDouble(jdouble value) {
+oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_double(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantDouble_name(), vmSymbols::createCiConstantDouble_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantDouble_name(), vmSymbols::createCiConstantDouble_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantDouble");
   return (oop)result.get_jobject();
 }
 
-oop VMExits::createCiConstantObject(oop value) {
+oop VMExits::createCiConstantObject(oop value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantObject_signature(), &args, Thread::current());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantObject_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantObject");
   return (oop)result.get_jobject();
 }

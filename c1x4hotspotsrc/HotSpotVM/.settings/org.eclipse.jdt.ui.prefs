@@ -1,4 +1,4 @@
-#Thu Nov 13 14:45:16 PST 2008
+#Fri Jul 23 17:15:05 PDT 2010
 comment_clear_blank_lines=false
 comment_format_comments=true
 comment_format_header=true
@@ -11,7 +11,7 @@ comment_new_line_for_parameter=true
 comment_separate_root_tags=true
 eclipse.preferences.version=1
 editor_save_participant_org.eclipse.jdt.ui.postsavelistener.cleanup=true
-formatter_profile=_MaxineJavaCodeStyle
+formatter_profile=_MaxineJavaCodeStyle2
 formatter_settings_version=11
 org.eclipse.jdt.ui.exception.name=e
 org.eclipse.jdt.ui.gettersetter.use.is=true

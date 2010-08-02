@@ -50,20 +50,20 @@ public:
   static Handle& instance();
 
 
-  static void compileMethod(oop method, int entry_bci);
+  static void compileMethod(methodOop method, int entry_bci);
 
-  static oop createRiMethod(methodOop m);
-  static oop createRiField(oop field_holder, symbolOop field_name, oop field_type, int index);
-  static oop createRiType(klassOop k);
-  static oop createRiConstantPool(constantPoolOop cp);
-  static oop createRiTypeUnresolved(symbolOop name, klassOop accessor);
-  static oop createRiSignature(symbolOop name);
-  static oop createCiConstantInt(jint value);
-  static oop createCiConstantLong(jlong value);
-  static oop createCiConstantFloat(jfloat value);
-  static oop createCiConstantDouble(jdouble value);
-  static oop createCiConstantObject(oop value);
-  static oop createRiTypePrimitive(int basic_type);
+  static oop createRiMethod(methodOop method, TRAPS);
+  static oop createRiField(oop field_holder, symbolOop field_name, oop field_type, int index, TRAPS);
+  static oop createRiType(klassOop k, TRAPS);
+  static oop createRiConstantPool(constantPoolOop cp, TRAPS);
+  static oop createRiTypeUnresolved(symbolOop name, klassOop accessor, TRAPS);
+  static oop createRiSignature(symbolOop name, TRAPS);
+  static oop createCiConstantInt(jint value, TRAPS);
+  static oop createCiConstantLong(jlong value, TRAPS);
+  static oop createCiConstantFloat(jfloat value, TRAPS);
+  static oop createCiConstantDouble(jdouble value, TRAPS);
+  static oop createCiConstantObject(oop value, TRAPS);
+  static oop createRiTypePrimitive(int basic_type, TRAPS);
 };
 
 inline void check_pending_exception(const char* message) {

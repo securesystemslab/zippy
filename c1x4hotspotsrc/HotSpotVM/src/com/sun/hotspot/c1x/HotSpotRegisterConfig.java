@@ -35,7 +35,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     @Override
     public CiRegister[] getAllocatableRegisters() {
-        return new CiRegister[] { AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, AMD64.r10, AMD64.r11, AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5,
+        return new CiRegister[] { AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, /*AMD64.r10, */AMD64.r11, AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5,
                         AMD64.xmm6, AMD64.xmm7, AMD64.xmm8, AMD64.xmm9, AMD64.xmm10, AMD64.xmm11, AMD64.xmm12, AMD64.xmm13, AMD64.xmm14, AMD64.xmm15};
     }
 
@@ -148,7 +148,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     @Override
     public CiRegister getScratchRegister() {
-        return AMD64.r15;
+        return AMD64.r10;
     }
 
     @Override

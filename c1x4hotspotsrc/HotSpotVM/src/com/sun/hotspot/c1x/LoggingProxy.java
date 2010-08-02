@@ -15,10 +15,22 @@ public class LoggingProxy<T> implements InvocationHandler {
         int argCount = args == null ? 0 : args.length;
         if (method.getParameterTypes().length != argCount)
             throw new RuntimeException("wrong parameter count");
-        System.out.println("method " + method + " called with " + argCount + " args");
-        if (args == null)
-            return method.invoke(delegate);
-        return method.invoke(delegate, args);
+        StringBuilder str = new StringBuilder();
+        str.append(method.getReturnType().getSimpleName() + " " + method.getDeclaringClass().getSimpleName() + "." + method.getName() + "(");
+        for (int i = 0; i < argCount; i++) {
+            str.append(i == 0 ? "" : ", ");
+            str.append(Logger.pretty(args[i]));
+        }
+        str.append(")");
+        Logger.startScope(str.toString());
+        final Object result;
+        if (args == null) {
+            result = method.invoke(delegate);
+        } else {
+            result = method.invoke(delegate, args);
+        }
+        Logger.endScope(" = " + Logger.pretty(result));
+        return result;
     }
 
     public static <T> T getProxy(Class<T> interf, T delegate) {

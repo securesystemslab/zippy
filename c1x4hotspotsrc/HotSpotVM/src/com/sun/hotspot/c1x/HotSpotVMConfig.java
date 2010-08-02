@@ -32,6 +32,7 @@ public class HotSpotVMConfig {
     public int vmPageSize;
     public int stackShadowPages;
     public int hubOffset;
+    public int arrayLengthOffset;
 
     // runtime stubs
     public long instanceofStub;
@@ -44,6 +45,7 @@ public class HotSpotVMConfig {
         assert instanceofStub != 0;
         assert debugStub != 0;
         System.out.println("Config::debugStub = " + Long.toHexString(debugStub));
+        System.out.println("Config::instanceofStub = " + Long.toHexString(instanceofStub));
     }
 
 }

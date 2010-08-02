@@ -48,7 +48,7 @@
 // ciObject::ciObject
 ciObject::ciObject(oop o) {
   ASSERT_IN_VM;
-  if (ciObjectFactory::is_initialized()) {
+  if (ciObjectFactory::is_initialized() && !UseC1X) {
     _handle = JNIHandles::make_local(o);
   } else {
     _handle = JNIHandles::make_global(o);
@@ -63,7 +63,7 @@ ciObject::ciObject(oop o) {
 //
 ciObject::ciObject(Handle h) {
   ASSERT_IN_VM;
-  if (ciObjectFactory::is_initialized()) {
+  if (ciObjectFactory::is_initialized() && !UseC1X) {
     _handle = JNIHandles::make_local(h());
   } else {
     _handle = JNIHandles::make_global(h);

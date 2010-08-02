@@ -1,5 +1,6 @@
 package com.sun.hotspot.c1x;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 import com.sun.cri.ci.*;
@@ -8,8 +9,9 @@ import com.sun.cri.ri.*;
 
 public class HotSpotTargetMethod {
 
-    public final Object methodOop;
+    public final Method method;
     private byte[] code;
+    private int codeSize;
     private int frameSize;
 
     public int verifiedEntrypoint;
@@ -19,8 +21,9 @@ public class HotSpotTargetMethod {
     public Object relocationData[];
 
     private HotSpotTargetMethod(HotSpotVMConfig config, RiMethod method, CiTargetMethod targetMethod) {
-        methodOop = ((HotSpotMethod) method).methodOop;
+        this.method= ((HotSpotMethod) method).method;
         code = targetMethod.targetCode();
+        codeSize = targetMethod.targetCodeSize();
         frameSize = targetMethod.frameSize();
         verifiedEntrypoint = targetMethod.entrypointCodeOffsets.get(HotSpotRuntime.Entrypoints.VERIFIED);
         unverifiedEntrypoint = targetMethod.entrypointCodeOffsets.get(HotSpotRuntime.Entrypoints.UNVERIFIED);

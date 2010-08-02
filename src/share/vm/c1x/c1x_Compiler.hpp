@@ -32,33 +32,58 @@ public:
 
   C1XCompiler() { _initialized = false; }
 
-	virtual const char* name() { return "C1X"; }
+  virtual const char* name() { return "C1X"; }
 
-	// Native / OSR not supported
-	virtual bool supports_native()                 { return false; }
-	virtual bool supports_osr   ()                 { return false; }
+  // Native / OSR not supported
+  virtual bool supports_native()                 { return false; }
+  virtual bool supports_osr   ()                 { return false; }
 
-	// Pretend to be C1
-	bool is_c1   ()                                { return true; }
-	bool is_c2   ()                                { return false; }
+  // Pretend to be C1
+  bool is_c1   ()                                { return true; }
+  bool is_c2   ()                                { return false; }
 
-	// Initialization
-	virtual void initialize();
+  // Initialization
+  virtual void initialize();
 
-	// Compilation entry point for methods
-	virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);
+  // Compilation entry point for methods
+  virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);
 
-	// Print compilation timers and statistics
-	virtual void print_timers();
+  // Print compilation timers and statistics
+  virtual void print_timers();
 
-  static oop get_RiMethod(ciMethod *ciMethod);
-  static oop get_RiField(ciField *ciField);
-  static oop get_RiType(ciType *klass);
-  static oop get_RiType(klassOop klass);
-  static oop get_RiMethod(methodOop method);
-  static oop get_RiType(symbolOop klass, klassOop accessingType);
-  static oop get_unresolved_RiType(symbolOop klass, klassOop accessingType);
-  static oop get_RiConstantPool(constantPoolOop cpOop);
+  static oop get_RiType(oop klass, klassOop accessingType, TRAPS);
+  static oop get_RiType(ciType *klass, klassOop accessor, TRAPS);
+  static oop get_RiField(ciField *ciField, TRAPS);
+
+/*
+  static oop get_RiMethod(ciMethod *ciMethod, TRAPS);
+  static oop get_RiType(klassOop klass, TRAPS);
+  static oop get_RiMethod(methodOop method, TRAPS);
+  static oop get_unresolved_RiType(oop klass, klassOop accessingType, TRAPS);
+  static oop get_RiConstantPool(constantPoolOop cpOop, TRAPS);
+*/
+};
+
+class C1XObjects : public AllStatic {
+
+public:
+  static oop getReflectedMethod(methodOop method, TRAPS);
+  static oop getReflectedClass(klassOop klass);
+  static oop getReflectedSymbol(symbolOop symbol, TRAPS);
+
+  static methodOop getInternalMethod(oop method);
+  static klassOop getInternalClass(oop klass);
+  static symbolOop getInternalSymbol(oop string);
+
+  static methodOop getInternalMethod(jobject method) {
+    return getInternalMethod(JNIHandles::resolve(method));
+  }
+  static klassOop getInternalClass(jobject klass) {
+    return getInternalClass(JNIHandles::resolve(klass));
+  }
+  static symbolOop getInternalSymbol(jobject string) {
+    return getInternalSymbol(JNIHandles::resolve(string));
+  }
 };
 
 // Tracing macros

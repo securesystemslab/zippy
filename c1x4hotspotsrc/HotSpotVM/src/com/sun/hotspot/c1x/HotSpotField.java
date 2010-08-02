@@ -8,13 +8,13 @@ import com.sun.cri.ri.RiType;
 public class HotSpotField implements RiField {
 
     private final RiType holder;
-    private final Object nameSymbol;
+    private final String name;
     private final RiType type;
     private final int offset;
 
-    public HotSpotField(RiType holder, Object nameSymbol, RiType type, int offset) {
+    public HotSpotField(RiType holder, String name, RiType type, int offset) {
         this.holder = holder;
-        this.nameSymbol = nameSymbol;
+        this.name = name;
         this.type = type;
         this.offset = offset;
     }
@@ -54,7 +54,7 @@ public class HotSpotField implements RiField {
 
     @Override
     public String name() {
-        return Compiler.getVMEntries().RiSignature_symbolToString(nameSymbol);
+        return name;
     }
 
     @Override

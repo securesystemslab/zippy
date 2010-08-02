@@ -3,9 +3,6 @@
 	<name>c1x4hotspot</name>
 	<comment></comment>
 	<projects>
-		<project>C1X</project>
-		<project>CRI</project>
-		<project>HotSpotVM</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
