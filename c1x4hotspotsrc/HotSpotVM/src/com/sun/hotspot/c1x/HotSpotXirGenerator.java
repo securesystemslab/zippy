@@ -121,6 +121,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         asm.restart(CiKind.Void);
         XirOperand sp = asm.createRegister("stack pointer", CiKind.Word, registerConfig.getStackPointerRegister());
         XirOperand temp = asm.createRegister("temp (rax)", CiKind.Int, AMD64.rax);
+        XirOperand frame_pointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
 
         asm.align(config.codeEntryAlignment);
         asm.mark(MARK_UNVERIFIED_ENTRY);
@@ -133,8 +134,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.align(config.codeEntryAlignment);
         }
         asm.mark(MARK_VERIFIED_ENTRY);
-        // stack banging
-        asm.pstore(CiKind.Word, sp, asm.i(-config.stackShadowPages * config.vmPageSize), temp, true);
+        asm.push(frame_pointer);
         asm.pushFrame();
 
         return asm.finishTemplate(staticMethod ? "static prologue" : "prologue");
@@ -142,7 +142,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     private XirTemplate buildEpilogue() {
         asm.restart(CiKind.Void);
+        XirOperand frame_pointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
         asm.popFrame();
+        asm.pop(frame_pointer);
         // TODO safepoint check
         return asm.finishTemplate("epilogue");
     }
