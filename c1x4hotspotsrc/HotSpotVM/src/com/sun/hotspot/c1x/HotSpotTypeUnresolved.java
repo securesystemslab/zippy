@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
@@ -21,93 +21,111 @@ import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
 /**
- * @author Thomas Wuerthinger
+ * Implementation of RiType for unresolved HotSpot classes.
+ *
+ * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotTypeUnresolved implements RiType {
+public class HotSpotTypeUnresolved implements HotSpotType {
 
     public final String name;
+    private final long accessingClassVmId;
 
     /**
      * Creates a new unresolved type for a specified type descriptor.
-     *
-     * @param typeDescriptor the type's descriptor
-     * @param pool the constant pool containing the unresolved type reference
-     * @param cpi the index in {@code constantPool} of the unresolved type reference
      */
-    public HotSpotTypeUnresolved(String name) {
+    public HotSpotTypeUnresolved(String name, long accessingClassVmId) {
         this.name = name;
+        this.accessingClassVmId = accessingClassVmId;
     }
 
+    @Override
     public String name() {
         return name;
     }
 
-    public Class< ? > javaClass() {
+    @Override
+    public Class<?> javaClass() {
         throw unresolved("javaClass");
     }
 
+    @Override
     public boolean hasSubclass() {
         throw unresolved("hasSubclass()");
     }
 
+    @Override
     public boolean hasFinalizer() {
         throw unresolved("hasFinalizer()");
     }
 
+    @Override
     public boolean hasFinalizableSubclass() {
         throw unresolved("hasFinalizableSubclass()");
     }
 
+    @Override
     public boolean isInterface() {
         throw unresolved("isInterface()");
     }
 
+    @Override
     public boolean isArrayClass() {
         throw unresolved("isArrayClass()");
     }
 
+    @Override
     public boolean isInstanceClass() {
         throw unresolved("isInstanceClass()");
     }
 
+    @Override
     public int accessFlags() {
         throw unresolved("accessFlags()");
     }
 
+    @Override
     public boolean isResolved() {
         return false;
     }
 
+    @Override
     public boolean isInitialized() {
         throw unresolved("isInitialized()");
     }
 
+    @Override
     public boolean isSubtypeOf(RiType other) {
         throw unresolved("isSubtypeOf()");
     }
 
+    @Override
     public boolean isInstance(Object obj) {
         throw unresolved("isInstance()");
     }
 
+    @Override
     public RiType componentType() {
         // TODO: Implement
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public RiType exactType() {
         throw unresolved("exactType()");
     }
 
+    @Override
     public RiType arrayOf() {
         // TODO: Implement
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
         throw unresolved("resolveMethodImpl()");
     }
 
+    @Override
     public CiKind kind() {
         // TODO: Check if this is correct.
         return CiKind.Object;
@@ -129,15 +147,18 @@ public class HotSpotTypeUnresolved implements RiType {
 
     @Override
     public String toString() {
-        return name() + " [unresolved]";
+        return "HotSpotTypeUnresolved<" + name + ">";
     }
 
+    @Override
     public CiConstant getEncoding(RiType.Representation r) {
         throw unresolved("getEncoding()");
     }
 
+    @Override
     public CiKind getRepresentationKind(RiType.Representation r) {
         // TODO: Check if this is correct.
         return CiKind.Object;
     }
+
 }

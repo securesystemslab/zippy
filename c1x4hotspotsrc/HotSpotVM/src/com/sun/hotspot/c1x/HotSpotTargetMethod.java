@@ -1,88 +1,83 @@
+/*
+ * Copyright (c) 2010 Sun Microsystems, Inc. All rights reserved.
+ *
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
+ * described in this document. In particular, and without limitation, these intellectual property rights may include one
+ * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
+ * applications in the U.S. and in other countries.
+ *
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
+ * license agreement and applicable provisions of the FAR and its supplements.
+ *
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
+ * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
+ * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ *
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ */
 package com.sun.hotspot.c1x;
 
-import java.lang.reflect.*;
 import java.util.*;
 
 import com.sun.cri.ci.*;
-import com.sun.cri.ci.CiTargetMethod.*;
-import com.sun.cri.ri.*;
+import com.sun.cri.ci.CiTargetMethod.Site;
 
-public class HotSpotTargetMethod {
+/**
+ * CiTargetMethod augmented with HotSpot-specific information.
+ *
+ * @author Lukas Stadler
+ */
+public class HotSpotTargetMethod implements CompilerObject {
 
-    public final Method method;
-    private byte[] code;
-    private int codeSize;
-    private int frameSize;
+    public final CiTargetMethod targetMethod;
+    public final HotSpotMethod method;                  // used only for methods
+    public final String name;                           // used only for stubs
 
-    public int verifiedEntrypoint;
-    public int unverifiedEntrypoint;
+    public final Site[] sites;
 
-    public int relocationOffsets[];
-    public Object relocationData[];
+    private HotSpotTargetMethod(HotSpotMethod method, CiTargetMethod targetMethod) {
+        this.method = method;
+        this.targetMethod = targetMethod;
+        this.name = null;
 
-    private HotSpotTargetMethod(HotSpotVMConfig config, RiMethod method, CiTargetMethod targetMethod) {
-        this.method= ((HotSpotMethod) method).method;
-        code = targetMethod.targetCode();
-        codeSize = targetMethod.targetCodeSize();
-        frameSize = targetMethod.frameSize();
-        verifiedEntrypoint = targetMethod.entrypointCodeOffsets.get(HotSpotRuntime.Entrypoints.VERIFIED);
-        unverifiedEntrypoint = targetMethod.entrypointCodeOffsets.get(HotSpotRuntime.Entrypoints.UNVERIFIED);
-
-        Map<Integer, Object> relocations = new TreeMap<Integer, Object>();
-        if (!targetMethod.dataReferences.isEmpty()) {
-            for (DataPatch patch : targetMethod.dataReferences) {
-                if (patch.data.kind == CiKind.Object) {
-                    if (patch.data.asObject() instanceof RiType) {
-                        relocations.put(patch.pcOffset, patch.data.asObject());
-                    } else {
-                        throw new RuntimeException("unexpected data reference");
-                    }
-                }
-            }
-        }
-
-        if (!targetMethod.directCalls.isEmpty()) {
-            for (CiTargetMethod.Call call : targetMethod.directCalls) {
-                if (call.globalStubID instanceof Long) {
-                    relocations.put(call.pcOffset, (Long)call.globalStubID);
-                } else if (call.globalStubID instanceof CiRuntimeCall) {
-                    switch ((CiRuntimeCall) call.globalStubID) {
-                        case Debug:
-                            // relocations.put(call.pcOffset, config.debugStub);
-                            System.out.println("debug call");
-                            break;
-                        case UnwindException:
-                        case RegisterFinalizer:
-                        case HandleException:
-                        case OSRMigrationEnd:
-                        case JavaTimeMillis:
-                        case JavaTimeNanos:
-                        case ArithmethicLrem:
-                        case ArithmeticLdiv:
-                        case ArithmeticFrem:
-                        case ArithmeticDrem:
-                        case ArithmeticCos:
-                        case ArithmeticTan:
-                        case ArithmeticLog:
-                        case ArithmeticLog10:
-                        case ArithmeticSin:
-                        default:
-                            throw new RuntimeException("unexpected runtime call: " + call.globalStubID);
-                    }
-                }
-            }
-        }
-        relocationOffsets = new int[relocations.size()];
-        relocationData = new Object[relocations.size()];
-        int i=0;
-        for( Map.Entry<Integer, Object> entry: relocations.entrySet()) {
-            relocationOffsets[i] = entry.getKey();
-            relocationData[i++] = entry.getValue();
-        }
+        sites = getSortedSites(targetMethod);
     }
 
-    public static void installCode(HotSpotVMConfig config, RiMethod method, CiTargetMethod targetMethod) {
-        Compiler.getVMEntries().installCode(new HotSpotTargetMethod(config, method, targetMethod));
+    private HotSpotTargetMethod(CiTargetMethod targetMethod, String name) {
+        this.method = null;
+        this.targetMethod = targetMethod;
+        this.name = name;
+
+        sites = getSortedSites(targetMethod);
+    }
+
+    private Site[] getSortedSites(CiTargetMethod target) {
+        List<?>[] lists = new List<?>[] {target.directCalls, target.indirectCalls, target.safepoints, target.dataReferences, target.exceptionHandlers, target.marks};
+        int count = 0;
+        for (List<?> list: lists) {
+            count += list.size();
+        }
+        Site[] result = new Site[count];
+        int pos = 0;
+        for (List<?> list: lists) {
+            for (Object elem: list) {
+                result[pos++] = (Site)elem;
+            }
+        }
+        Arrays.sort(result, new Comparator<Site>() {
+            public int compare(Site s1, Site s2) {
+                return s1.pcOffset - s2.pcOffset;
+            }
+        });
+        return result;
+    }
+
+    public static void installMethod(HotSpotMethod method, CiTargetMethod targetMethod) {
+        Compiler.getVMEntries().installMethod(new HotSpotTargetMethod(method, targetMethod));
+    }
+
+    public static Object installStub(CiTargetMethod targetMethod, String name) {
+        return Compiler.getVMEntries().installStub(new HotSpotTargetMethod(targetMethod, name));
     }
 
 }

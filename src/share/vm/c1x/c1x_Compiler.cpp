@@ -31,7 +31,7 @@
 void C1XCompiler::initialize() {
   if (_initialized) return;
   _initialized = true;
-	TRACE_C1X_1("initialize");
+    TRACE_C1X_1("initialize");
 
   JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntriesNative");
@@ -39,6 +39,8 @@ void C1XCompiler::initialize() {
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count() );
   
   check_pending_exception("Could not register natives");
+
+  compute_offsets();
 }
 
 // Compilation entry point for methods
@@ -50,9 +52,14 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   ResourceMark rm;
   HandleMark hm;
 
+  C1XObjects::initializeObjects();
+
   CompilerThread::current()->set_compiling(true);
-  VMExits::compileMethod((methodOop)target->get_oop(), entry_bci);
+  methodOop method = (methodOop)target->get_oop();
+  VMExits::compileMethod(C1XObjects::add<methodOop>(method), C1XObjects::toString<Handle>(method->name(), THREAD), entry_bci);
   CompilerThread::current()->set_compiling(false);
+
+  C1XObjects::cleanupLocalObjects();
 }
 
 // Print compilation timers and statistics
@@ -60,129 +67,128 @@ void C1XCompiler::print_timers() {
 	TRACE_C1X_1("print_timers");
 }
 
-oop C1XCompiler::get_RiType(oop name, klassOop accessingType, TRAPS) {
-  symbolOop klass = java_lang_String::as_symbol_or_null(name);
-
-  if (klass == vmSymbols::byte_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_BYTE, THREAD);
-  } else if (klass == vmSymbols::char_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_CHAR, THREAD);
-  } else if (klass == vmSymbols::double_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_DOUBLE, THREAD);
-  } else if (klass == vmSymbols::float_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_FLOAT, THREAD);
-  } else if (klass == vmSymbols::int_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_INT, THREAD);
-  } else if (klass == vmSymbols::long_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_LONG, THREAD);
-  } else if (klass == vmSymbols::bool_signature()) {
-    return VMExits::createRiTypePrimitive((int)T_BOOLEAN, THREAD);
-  }
-  Handle classloader;
-  if (accessingType != NULL) {
-    classloader = accessingType->klass_part()->class_loader();
-  }
-  klassOop resolved_type = SystemDictionary::resolve_or_null(klass, classloader, accessingType->klass_part()->protection_domain(), Thread::current());
-  if (resolved_type != NULL) {
-    return VMExits::createRiType(resolved_type, THREAD);
-  } else {
-    return VMExits::createRiTypeUnresolved(klass, accessingType, THREAD);
-  }
-}
-
 oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
   if (type->is_loaded()) {
     if (type->is_primitive_type()) {
       return VMExits::createRiTypePrimitive((int)type->basic_type(), THREAD);
     }
-    return VMExits::createRiType((klassOop)type->get_oop(), THREAD);
+    klassOop klass = (klassOop)type->get_oop();
+    return VMExits::createRiType(C1XObjects::add<klassOop>(klass), C1XObjects::toString<Handle>(klass->klass_part()->name(), THREAD), THREAD);
   } else {
-    return VMExits::createRiTypeUnresolved(((ciKlass *)type)->name()->get_symbolOop(), accessor, THREAD);
+    symbolOop name = ((ciKlass *)type)->name()->get_symbolOop();
+    return VMExits::createRiTypeUnresolved(C1XObjects::toString<Handle>(name, THREAD), C1XObjects::add<klassOop>(accessor), THREAD);
   }
 }
 
 oop C1XCompiler::get_RiField(ciField *field, TRAPS) {
   oop field_holder = get_RiType(field->holder(), NULL, CHECK_0);
   oop field_type = get_RiType(field->type(), NULL, CHECK_0);
-  symbolOop field_name = field->name()->get_symbolOop();
+  Handle field_name = C1XObjects::toString<Handle>(field->name()->get_symbolOop(), CHECK_0);
   int offset = field->offset();
 
   // TODO: implement caching
   return VMExits::createRiField(field_holder, field_name, field_type, offset, THREAD);
 }
 
-/*
-oop C1XCompiler::get_RiMethod(ciMethod *method, TRAPS) {
-  methodOop m = (methodOop)method->get_oop();
-  return get_RiMethod(m, THREAD);
-}
+// C1XObjects implementation
 
-oop C1XCompiler::get_RiMethod(methodOop m, TRAPS) {
-  // TODO: implement caching
-  return VMExits::createRiMethod(m, THREAD);
-}
+GrowableArray<address>* C1XObjects::_stubs = NULL;
+GrowableArray<jobject>* C1XObjects::_localHandles = NULL;
 
-
-oop C1XCompiler::get_RiType(klassOop klass, TRAPS) {
-  // TODO: implement caching
-  return VMExits::createRiType(klass, THREAD);
-}
-
-oop C1XCompiler::get_RiConstantPool(constantPoolOop cp, TRAPS) {
-  // TODO: implement caching
-  return VMExits::createRiConstantPool(cp, THREAD);
-}
-
-oop C1XCompiler::get_unresolved_RiType(symbolOop klass, klassOop accessingType, TRAPS)  {
-  // TODO: implement caching
-  return VMExits::createRiTypeUnresolved(klass, accessingType, THREAD);
-}
-*/
-
-// conversion internal objects -> reflected objects
-
-oop C1XObjects::getReflectedMethod(methodOop method, TRAPS) {
-  if (method->is_initializer()) {
-    return Reflection::new_constructor(method, CHECK_0);
-  } else {
-    return Reflection::new_method(method, UseNewReflection, false, CHECK_0);
+void C1XObjects::initializeObjects() {
+  if (_stubs == NULL) {
+    assert(_localHandles == NULL, "inconsistent state");
+    _stubs = new(ResourceObj::C_HEAP) GrowableArray<address>(64, true);
+    _localHandles = new(ResourceObj::C_HEAP) GrowableArray<jobject>(64, true);
   }
+  assert(_localHandles->length() == 0, "invalid state");
 }
 
-oop C1XObjects::getReflectedClass(klassOop klass) {
-  return klass->klass_part()->java_mirror();
-}
-
-oop C1XObjects::getReflectedSymbol(symbolOop symbol, TRAPS) {
-  return java_lang_String::create_from_symbol(symbol, THREAD)();
-}
-
-// conversion reflected objects -> internal objects
-
-methodOop C1XObjects::getInternalMethod(oop method) {
-  // copied from JNIEnv::FromReflectedMethod
-  oop mirror     = NULL;
-  int slot       = 0;
-
-  if (method->klass() == SystemDictionary::reflect_Constructor_klass()) {
-    mirror = java_lang_reflect_Constructor::clazz(method);
-    slot   = java_lang_reflect_Constructor::slot(method);
-  } else {
-    assert(method->klass() == SystemDictionary::reflect_Method_klass(), "wrong type");
-    mirror = java_lang_reflect_Method::clazz(method);
-    slot   = java_lang_reflect_Method::slot(method);
+void C1XObjects::cleanupLocalObjects() {
+  for (int i=0; i<_localHandles->length(); i++) {
+    JNIHandles::destroy_global(_localHandles->at(i));
   }
-  klassOop k     = java_lang_Class::as_klassOop(mirror);
-  return instanceKlass::cast(k)->method_with_idnum(slot);
+  _localHandles->clear();
 }
 
-klassOop C1XObjects::getInternalClass(oop klass) {
-  return java_lang_Class::as_klassOop(klass);
+jlong C1XObjects::addStub(address stub) {
+  assert(!_stubs->contains(stub), "duplicate stub");
+  return _stubs->append(stub) | STUB;
 }
 
-symbolOop C1XObjects::getInternalSymbol(oop string) {
-  return java_lang_String::as_symbol_or_null(string);
+jlong C1XObjects::add(Handle obj, CompilerObjectType type) {
+  assert(!obj.is_null(), "cannot add NULL handle");
+  int idx = -1;
+  for (int i=0; i<_localHandles->length(); i++)
+    if (JNIHandles::resolve_non_null(_localHandles->at(i)) == obj()) {
+      idx = i;
+      break;
+    }
+  if (idx = -1) {
+    if (JavaThread::current()->thread_state() == _thread_in_vm) {
+      idx = _localHandles->append(JNIHandles::make_global(obj));
+    } else {
+      VM_ENTRY_MARK;
+      idx = _localHandles->append(JNIHandles::make_global(obj));
+    }
+  }
+  return idx | type;
 }
+
+address C1XObjects::getStub(jlong id) {
+  assert((id & TYPE_MASK) == STUB, "wrong id type, STUB expected");
+  assert((id & ~TYPE_MASK) >= 0 && (id & ~TYPE_MASK) < _stubs->length(), "STUB index out of bounds");
+  return _stubs->at(id & ~TYPE_MASK);
+}
+
+oop C1XObjects::getObject(jlong id) {
+  assert((id & TYPE_MASK) != STUB, "wrong id type");
+  assert((id & ~TYPE_MASK) >= 0 && (id & ~TYPE_MASK) < _localHandles->length(), "index out of bounds");
+  return JNIHandles::resolve_non_null(_localHandles->at(id & ~TYPE_MASK));
+}
+
+
+static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature) {
+  symbolOop name_symbol = SymbolTable::probe(name, strlen(name));
+  symbolOop signature_symbol = SymbolTable::probe(signature, strlen(signature));
+  assert(name_symbol != NULL, "symbol not found - class layout changed?");
+  assert(signature_symbol != NULL, "symbol not found - class layout changed?");
+
+  instanceKlass* ik = instanceKlass::cast(klass_oop);
+  fieldDescriptor fd;
+  if (!ik->find_field(name_symbol, signature_symbol, &fd)) {
+    ResourceMark rm;
+    tty->print_cr("Invalid layout of %s at %s", ik->external_name(), name_symbol->as_C_string());
+    fatal("Invalid layout of preloaded class");
+  }
+  dest_offset = fd.offset();
+}
+
+// create the compute_class
+#define START_CLASS(name) { klassOop k = SystemDictionary::name##_klass();
+
+#define END_CLASS }
+
+#define FIELD(klass, name, signature) compute_offset(klass::_##name##_offset, k, #name, signature);
+#define CHAR_FIELD(klass, name) FIELD(klass, name, "C")
+#define INT_FIELD(klass, name) FIELD(klass, name, "I")
+#define LONG_FIELD(klass, name) FIELD(klass, name, "J")
+#define OOP_FIELD(klass, name, signature) FIELD(klass, name, signature)
+
+
+void C1XCompiler::compute_offsets() {
+  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD)
+}
+
+#define EMPTY0
+#define EMPTY1(x)
+#define EMPTY2(x,y)
+#define FIELD2(klass, name) int klass::_##name##_offset = 0;
+#define FIELD3(klass, name, sig) FIELD2(klass, name)
+
+COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD3)
+
+
 
 
 

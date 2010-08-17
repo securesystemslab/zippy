@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
@@ -17,37 +17,43 @@
  */
 package com.sun.hotspot.c1x;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.*;
+import java.util.*;
 
 import com.sun.c1x.target.amd64.*;
-import com.sun.cri.ci.CiKind;
-import com.sun.cri.ri.RiField;
-import com.sun.cri.ri.RiMethod;
-import com.sun.cri.ri.RiRegisterConfig;
-import com.sun.cri.ri.RiType;
+import com.sun.cri.ci.CiAddress.Scale;
+import com.sun.cri.ci.*;
+import com.sun.cri.ri.*;
 import com.sun.cri.ri.RiType.Representation;
 import com.sun.cri.xir.*;
 import com.sun.cri.xir.CiXirAssembler.*;
 
 /**
  *
- * @author Thomas Wuerthinger
- *
+ * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotXirGenerator extends RiXirGenerator {
+public class HotSpotXirGenerator implements RiXirGenerator {
+
+    // this needs to correspond to c1x_Compiler.hpp
+    private static final Integer MARK_VERIFIED_ENTRY = 1;
+    private static final Integer MARK_UNVERIFIED_ENTRY = 2;
+    private static final Integer MARK_STATIC_CALL_STUB = 1000;
 
     private final HotSpotVMConfig config;
-    private CiXirAssembler asm;
+    private final CiTarget target;
     private final RiRegisterConfig registerConfig;
 
+    private CiXirAssembler asm;
+
     private XirTemplate[] emptyTemplates = new XirTemplate[CiKind.values().length];
+    private XirTemplate[] arrayLoadTemplates = new XirTemplate[CiKind.values().length];
+    private XirTemplate[] arrayStoreTemplates = new XirTemplate[CiKind.values().length];
     private XirTemplate prologueTemplate;
     private XirTemplate staticPrologueTemplate;
     private XirTemplate epilogueTemplate;
     private XirTemplate arrayLengthTemplate;
     private XirTemplate exceptionObjectTemplate;
+    private XirTemplate invokeStaticTemplate;
 
     static class XirPair {
 
@@ -60,15 +66,16 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         }
     }
 
-    private XirPair[] putFieldTemplates;
-    private XirPair[] getFieldTemplates;
-    private XirPair[] putStaticFieldTemplates;
-    private XirPair[] getStaticFieldTemplates;
+    private XirPair[] putFieldTemplates = new XirPair[CiKind.values().length];
+    private XirPair[] getFieldTemplates = new XirPair[CiKind.values().length];
+    private XirPair[] putStaticFieldTemplates = new XirPair[CiKind.values().length];
+    private XirPair[] getStaticFieldTemplates = new XirPair[CiKind.values().length];
     private XirPair instanceofTemplate;
     private XirPair instanceofTemplateNonnull;
 
-    public HotSpotXirGenerator(HotSpotVMConfig config, RiRegisterConfig registerConfig) {
+    public HotSpotXirGenerator(HotSpotVMConfig config, CiTarget target, RiRegisterConfig registerConfig) {
         this.config = config;
+        this.target = target;
         this.registerConfig = registerConfig;
     }
 
@@ -76,36 +83,27 @@ public class HotSpotXirGenerator extends RiXirGenerator {
     public List<XirTemplate> buildTemplates(CiXirAssembler asm) {
         this.asm = asm;
 
-        putFieldTemplates = new XirPair[CiKind.values().length];
-        getFieldTemplates = new XirPair[CiKind.values().length];
-        putStaticFieldTemplates = new XirPair[CiKind.values().length];
-        getStaticFieldTemplates = new XirPair[CiKind.values().length];
-
         List<XirTemplate> templates = new ArrayList<XirTemplate>();
-        for (int index = 0; index < CiKind.values().length; index++) {
+        for (CiKind kind : CiKind.JAVA_VALUES) {
+            int index = kind.ordinal();
 
-            CiKind kind = CiKind.values()[index];
-
-            if (kind == CiKind.Float || kind == CiKind.Double)
-                continue;
-
-            if (CiKind.values()[index] == CiKind.Void) {
+            if (kind == CiKind.Void) {
                 asm.restart(CiKind.values()[index]);
-                emptyTemplates[index] = asm.finishTemplate("empty-" + CiKind.values()[index]);
+                emptyTemplates[index] = asm.finishTemplate("empty-" + kind);
             } else {
                 asm.restart();
-                XirOperand result = asm.createTemp("result", CiKind.values()[index]);
-                emptyTemplates[index] = asm.finishTemplate(result, "empty-" + CiKind.values()[index]);
+                XirOperand result = asm.createTemp("result", kind);
+                emptyTemplates[index] = asm.finishTemplate(result, "empty-" + kind);
 
                 putFieldTemplates[index] = buildPutFieldTemplate(kind, kind == CiKind.Object, false);
                 getFieldTemplates[index] = buildGetFieldTemplate(kind, false);
                 putStaticFieldTemplates[index] = buildPutFieldTemplate(kind, kind == CiKind.Object, true);
                 getStaticFieldTemplates[index] = buildGetFieldTemplate(kind, true);
-// arrayLoadTemplates[index] = buildArrayLoad(kind, asm, true);
-// arrayStoreTemplates[index] = buildArrayStore(kind, asm, true, kind == CiKind.Object, kind == CiKind.Object);
-// newArrayTemplates[index] = buildNewArray(kind);
+                arrayLoadTemplates[index] = buildArrayLoad(kind, asm, true);
+                arrayStoreTemplates[index] = buildArrayStore(kind, asm, true, kind == CiKind.Object, kind == CiKind.Object);
+                // newArrayTemplates[index] = buildNewArray(kind);
             }
-            templates.add(emptyTemplates[index]);
+            // templates.add(emptyTemplates[index]);
         }
         prologueTemplate = buildPrologue(false);
         staticPrologueTemplate = buildPrologue(true);
@@ -114,6 +112,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         exceptionObjectTemplate = buildExceptionObject();
         instanceofTemplate = buildInstanceof(false);
         instanceofTemplateNonnull = buildInstanceof(true);
+        invokeStaticTemplate = buildInvokeStatic();
 
         return templates;
     }
@@ -124,7 +123,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         XirOperand temp = asm.createRegister("temp (rax)", CiKind.Int, AMD64.rax);
 
         asm.align(config.codeEntryAlignment);
-        asm.entrypoint(HotSpotRuntime.Entrypoints.UNVERIFIED);
+        asm.mark(MARK_UNVERIFIED_ENTRY);
         if (!staticMethod) {
             // TODO do some checking...
             asm.add(temp, temp, asm.i(1));
@@ -133,7 +132,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
             asm.align(config.codeEntryAlignment);
         }
-        asm.entrypoint(HotSpotRuntime.Entrypoints.VERIFIED);
+        asm.mark(MARK_VERIFIED_ENTRY);
         // stack banging
         asm.pstore(CiKind.Word, sp, asm.i(-config.stackShadowPages * config.vmPageSize), temp, true);
         asm.pushFrame();
@@ -175,13 +174,16 @@ public class HotSpotXirGenerator extends RiXirGenerator {
         if (isStatic) {
             asm.restart(kind);
             asm.shouldNotReachHere();
-            /*
-             * XirParameter object = asm.createInputParameter("object", CiKind.Object); XirParameter guard =
-             * asm.createInputParameter("guard", CiKind.Object); XirOperand fieldOffset = asm.createTemp("fieldOffset",
-             * CiKind.Int); if (isStatic) { callRuntimeThroughStub(asm, "resolveGetStatic", fieldOffset, guard); } else
-             * { callRuntimeThroughStub(asm, "resolveGetField", fieldOffset, guard); } asm.pload(kind, result, object,
-             * fieldOffset, true);
-             */
+
+// XirParameter object = asm.createInputParameter("object", CiKind.Object);
+// XirParameter guard = asm.createInputParameter("guard", CiKind.Object);
+// XirOperand fieldOffset = asm.createTemp("fieldOffset", CiKind.Int);
+// if (isStatic) {
+// callRuntimeThroughStub(asm, "resolveGetStatic", fieldOffset, guard);
+// } else {
+// callRuntimeThroughStub(asm, "resolveGetField", fieldOffset, guard);
+// }
+// asm.pload(kind, result, object, fieldOffset, true);
 
             unresolved = asm.finishTemplate("getfield<" + kind + ">-unresolved");
         } else {
@@ -210,14 +212,21 @@ public class HotSpotXirGenerator extends RiXirGenerator {
             // unresolved case
             asm.restart(CiKind.Void);
             asm.shouldNotReachHere();
-            /*
-             * XirParameter object = asm.createInputParameter("object", CiKind.Object); XirParameter value =
-             * asm.createInputParameter("value", kind); XirParameter guard = asm.createInputParameter("guard",
-             * CiKind.Object); XirOperand fieldOffset = asm.createTemp("fieldOffset", CiKind.Int); if (isStatic) {
-             * callRuntimeThroughStub(asm, "resolvePutStatic", fieldOffset, guard); } else { callRuntimeThroughStub(asm,
-             * "resolvePutField", fieldOffset, guard); } asm.pstore(kind, object, fieldOffset, value, true); if
-             * (genWriteBarrier) { addWriteBarrier(asm, object, value); }
-             */
+
+//            XirParameter object = asm.createInputParameter("object", CiKind.Object);
+//            XirParameter value = asm.createInputParameter("value", kind);
+//            XirParameter guard = asm.createInputParameter("guard", CiKind.Object);
+//            XirOperand fieldOffset = asm.createTemp("fieldOffset", CiKind.Int);
+//            if (isStatic) {
+//                callRuntimeThroughStub(asm, "resolvePutStatic", fieldOffset, guard);
+//            } else {
+//                callRuntimeThroughStub(asm, "resolvePutField", fieldOffset, guard);
+//            }
+//            asm.pstore(kind, object, fieldOffset, value, true);
+//            if (genWriteBarrier) {
+//                addWriteBarrier(asm, object, value);
+//            }
+
             unresolved = asm.finishTemplate("putfield<" + kind + ", " + genWriteBarrier + ">-unresolved");
         } else {
             unresolved = null;
@@ -262,10 +271,103 @@ public class HotSpotXirGenerator extends RiXirGenerator {
           */
             asm.restart(CiKind.Boolean);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
+            System.out.println(object);
             asm.shouldNotReachHere();
             unresolved = asm.finishTemplate("instanceof-leaf<" + nonnull + ">");
         }
         return new XirPair(resolved, unresolved);
+    }
+
+    private XirTemplate buildArrayStore(CiKind kind, CiXirAssembler asm, boolean genBoundsCheck, boolean genStoreCheck, boolean genWriteBarrier) {
+        asm.restart(CiKind.Void);
+        XirParameter array = asm.createInputParameter("array", CiKind.Object);
+        XirParameter index = asm.createInputParameter("index", CiKind.Int);
+        XirParameter value = asm.createInputParameter("value", kind);
+        XirOperand length = asm.createTemp("length", CiKind.Int);
+        XirOperand temp = asm.createTemp("temp", CiKind.Word);
+        XirOperand valueHub = null;
+        XirOperand compHub = null;
+        XirLabel store = asm.createInlineLabel("store");
+        XirLabel failBoundsCheck = null;
+        XirLabel slowStoreCheck = null;
+        if (genBoundsCheck) {
+            // load the array length and check the index
+            failBoundsCheck = asm.createOutOfLineLabel("failBoundsCheck");
+            asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), true);
+            asm.jugteq(failBoundsCheck, index, length);
+        }
+        if (genStoreCheck) {
+            slowStoreCheck = asm.createOutOfLineLabel("slowStoreCheck");
+            asm.jeq(store, value, asm.o(null)); // first check if value is null
+            valueHub = asm.createTemp("valueHub", CiKind.Object);
+            compHub = asm.createTemp("compHub", CiKind.Object);
+            asm.pload(CiKind.Object, compHub, array, asm.i(config.hubOffset), !genBoundsCheck);
+            asm.pload(CiKind.Object, compHub, compHub, asm.i(config.arrayClassElementOffset), false);
+            asm.pload(CiKind.Object, valueHub, value, asm.i(config.hubOffset), false);
+            asm.jneq(slowStoreCheck, compHub, valueHub); // then check component hub matches value hub
+        }
+        asm.bindInline(store);
+        int elemSize = target.sizeInBytes(kind);
+        asm.pstore(kind, array, index, value, config.getArrayOffset(kind), Scale.fromInt(elemSize), !genBoundsCheck && !genStoreCheck);
+        if (genWriteBarrier) {
+            // addWriteBarrier(asm, array, value);
+        }
+        if (genBoundsCheck) {
+            asm.bindOutOfLine(failBoundsCheck);
+            asm.shouldNotReachHere();
+            // callRuntimeThroughStub(asm, "throwArrayIndexOutOfBoundsException", null, array, index);
+        }
+        if (genStoreCheck) {
+            asm.bindOutOfLine(slowStoreCheck);
+            asm.push(valueHub);
+            asm.push(compHub);
+            asm.callRuntime(config.instanceofStub, null);
+            asm.pop(temp);
+            asm.pop(temp);
+            asm.jneq(store, temp, asm.w(0));
+            asm.shouldNotReachHere();
+            asm.jmp(store);
+        }
+        return asm.finishTemplate("arraystore<" + kind + ">");
+    }
+
+    private XirTemplate buildArrayLoad(CiKind kind, CiXirAssembler asm, boolean genBoundsCheck) {
+        XirOperand result = asm.restart(kind);
+        XirParameter array = asm.createInputParameter("array", CiKind.Object);
+        XirParameter index = asm.createInputParameter("index", CiKind.Int);
+        XirOperand length = asm.createTemp("length", CiKind.Int);
+        XirLabel fail = null;
+        if (genBoundsCheck) {
+            // load the array length and check the index
+            fail = asm.createOutOfLineLabel("fail");
+            asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), true);
+            asm.jugteq(fail, index, length);
+        }
+        int elemSize = target.sizeInBytes(kind);
+        asm.pload(kind, result, array, index, config.getArrayOffset(kind), Scale.fromInt(elemSize), !genBoundsCheck);
+        if (genBoundsCheck) {
+            asm.bindOutOfLine(fail);
+            asm.shouldNotReachHere();
+            // callRuntimeThroughStub(asm, "throwArrayIndexOutOfBoundsException", null, array, index);
+        }
+        return asm.finishTemplate("arrayload<" + kind + ">");
+    }
+
+    private XirTemplate buildInvokeStatic() {
+        asm.restart();
+        XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
+
+        XirLabel stub = asm.createOutOfLineLabel("staticCallStub");
+
+        asm.bindOutOfLine(stub);
+        XirOperand method = asm.createRegister("method", CiKind.Word, AMD64.rbx);
+        asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
+        asm.mov(method, asm.w(0l));
+        XirLabel dummy = asm.createOutOfLineLabel("dummy");
+        asm.jmp(dummy);
+        asm.bindOutOfLine(dummy);
+
+        return asm.finishTemplate(addr, "invokestatic");
     }
 
     @Override
@@ -275,12 +377,14 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
     @Override
     public XirSnippet genArrayLoad(XirSite site, XirArgument array, XirArgument index, XirArgument length, CiKind elementKind, RiType elementType) {
-        return new XirSnippet(emptyTemplates[elementKind.ordinal()]);
+        // TODO: emit different template if length is present
+        return new XirSnippet(arrayLoadTemplates[elementKind.ordinal()], array, index);
     }
 
     @Override
     public XirSnippet genArrayStore(XirSite site, XirArgument array, XirArgument index, XirArgument length, XirArgument value, CiKind elementKind, RiType elementType) {
-        return new XirSnippet(emptyTemplates[CiKind.Void.ordinal()]);
+        // TODO: emit different template if length is present
+        return new XirSnippet(arrayStoreTemplates[elementKind.ordinal()], array, index, value);
     }
 
     @Override
@@ -361,7 +465,7 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
     @Override
     public XirSnippet genInvokeStatic(XirSite site, RiMethod method) {
-        return new XirSnippet(emptyTemplates[CiKind.Word.ordinal()]);
+        return new XirSnippet(invokeStaticTemplate, XirArgument.forWord(0));
     }
 
     @Override
@@ -396,10 +500,8 @@ public class HotSpotXirGenerator extends RiXirGenerator {
 
     @Override
     public XirSnippet genResolveClass(XirSite site, RiType type, Representation representation) {
-        System.out.println("genResolveClass " + type + ", " + representation);
         XirOperand result = asm.restart(CiKind.Object);
         if (type.isResolved()) {
-            System.out.println("resolved");
             asm.mov(result, asm.o(type));
             return new XirSnippet(asm.finishTemplate("resolve class"));
         }

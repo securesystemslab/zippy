@@ -69,10 +69,10 @@
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/share/vm"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/cpu/x86/vm"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="build/solaris/solaris_amd64_compiler1/generated"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/os/linux/vm"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/os_cpu/linux_x86"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/os/linux/launcher"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="build/linux/linux_amd64_compiler1/generated"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

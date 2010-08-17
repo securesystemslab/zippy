@@ -17,13 +17,13 @@
  */
 package com.sun.hotspot.c1x;
 
-import com.sun.cri.ri.*;
+import java.io.*;
+
 
 /**
- * Common interface for all HotSpot RiType-implementations
+ * Marker interface for all HotSpot Ri... types.
  *
  * @author Lukas Stadler
  */
-public interface HotSpotType extends RiType, CompilerObject {
-
+public interface CompilerObject extends Serializable {
 }

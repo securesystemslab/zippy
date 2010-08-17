@@ -177,12 +177,14 @@ void Rewriter::scan_method(methodOop method) {
       switch (c) {
         case Bytecodes::_lookupswitch   : {
 #ifndef CC_INTERP
-          Bytecode_lookupswitch* bc = Bytecode_lookupswitch_at(bcp);
-          bc->set_code(
-            bc->number_of_pairs() < BinarySwitchThreshold
-            ? Bytecodes::_fast_linearswitch
-            : Bytecodes::_fast_binaryswitch
-          );
+          if (!UseC1X) {
+            Bytecode_lookupswitch* bc = Bytecode_lookupswitch_at(bcp);
+            bc->set_code(
+              bc->number_of_pairs() < BinarySwitchThreshold
+              ? Bytecodes::_fast_linearswitch
+              : Bytecodes::_fast_binaryswitch
+            );
+          }
 #endif
           break;
         }

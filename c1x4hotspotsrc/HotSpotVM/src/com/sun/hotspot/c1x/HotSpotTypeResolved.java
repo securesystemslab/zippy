@@ -17,135 +17,135 @@
  */
 package com.sun.hotspot.c1x;
 
+import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
 /**
- * Implementation of RiMethod for HotSpot methods.
+ * Implementation of RiType for resolved non-primitive HotSpot classes.
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotMethod implements RiMethod, CompilerObject {
+public class HotSpotTypeResolved implements HotSpotType {
 
     private final long vmId;
+
     private final String name;
 
     // cached values
-    private byte[] code;
-    private int accessFlags = -1;
-    private int maxLocals = -1;
-    private int maxStackSize = -1;
-    private RiSignature signature;
-    private RiType holder;
+    private Boolean isArrayClass;
+    private Boolean isInstanceClass;
+    private Boolean isInterface;
 
-    public HotSpotMethod(long vmId, String name) {
+    public HotSpotTypeResolved(long vmId, String name) {
         this.vmId = vmId;
         this.name = name;
     }
 
     @Override
     public int accessFlags() {
-        if (accessFlags == -1) {
-            accessFlags = Compiler.getVMEntries().RiMethod_accessFlags(vmId);
-        }
-        return accessFlags;
+        // TODO Auto-generated method stub
+        return 0;
     }
 
     @Override
-    public boolean canBeStaticallyBound() {
+    public RiType arrayOf() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public RiType componentType() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public RiType exactType() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public CiConstant getEncoding(Representation r) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public CiKind getRepresentationKind(Representation r) {
+        return CiKind.Object;
+    }
+
+    @Override
+    public boolean hasFinalizableSubclass() {
         // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public byte[] code() {
-        if (code == null) {
-            code = Compiler.getVMEntries().RiMethod_code(vmId);
-        }
-        return code;
-    }
-
-    @Override
-    public RiExceptionHandler[] exceptionHandlers() {
-        // TODO: Add support for exception handlers
-        return new RiExceptionHandler[0];
-    }
-
-    @Override
-    public boolean hasBalancedMonitors() {
+    public boolean hasFinalizer() {
         // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public RiType holder() {
-        if (holder == null ) {
-            holder = Compiler.getVMEntries().RiMethod_holder(vmId);
-        }
-        return holder;
-    }
-
-    @Override
-    public boolean isClassInitializer() {
+    public boolean hasSubclass() {
         // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public boolean isConstructor() {
+    public boolean isArrayClass() {
+        if (isArrayClass == null)
+            isArrayClass = Compiler.getVMEntries().RiType_isArrayClass(vmId);
+        return isArrayClass;
+    }
+
+    @Override
+    public boolean isInitialized() {
         // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public boolean isLeafMethod() {
+    public boolean isInstance(Object obj) {
         // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public boolean isOverridden() {
-        // TODO Auto-generated method stub
-        return false;
+    public boolean isInstanceClass() {
+        if (isInstanceClass == null)
+            isInstanceClass = Compiler.getVMEntries().RiType_isInstanceClass(vmId);
+        return isInstanceClass;
+    }
+
+    @Override
+    public boolean isInterface() {
+        if (isInterface == null)
+            isInterface = Compiler.getVMEntries().RiType_isInterface(vmId);
+        return isInterface;
     }
 
     @Override
     public boolean isResolved() {
+        return true;
+    }
+
+    @Override
+    public boolean isSubtypeOf(RiType other) {
         // TODO Auto-generated method stub
         return false;
     }
 
     @Override
-    public String jniSymbol() {
-        // TODO Auto-generated method stub
-        return null;
+    public Class<?> javaClass() {
+        throw new RuntimeException("javaClass not implemented");
     }
 
     @Override
-    public Object liveness(int bci) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public int maxLocals() {
-        if (maxLocals == -1) {
-            maxLocals = Compiler.getVMEntries().RiMethod_maxLocals(vmId);
-        }
-        return maxLocals;
-    }
-
-    @Override
-    public int maxStackSize() {
-        if (maxStackSize == -1) {
-            maxStackSize = Compiler.getVMEntries().RiMethod_maxStackSize(vmId);
-        }
-        return maxStackSize;
-    }
-
-    @Override
-    public RiMethodProfile methodData() {
-        // TODO Auto-generated method stub
-        return null;
+    public CiKind kind() {
+        return CiKind.Object;
     }
 
     @Override
@@ -154,16 +154,22 @@ public class HotSpotMethod implements RiMethod, CompilerObject {
     }
 
     @Override
-    public RiSignature signature() {
-        if (signature == null) {
-            signature = new HotSpotSignature(Compiler.getVMEntries().RiMethod_signature(vmId));
-        }
-        return signature;
+    public RiMethod resolveMethodImpl(RiMethod method) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
     public String toString() {
-        return "HotSpotMethod<" + name + ">";
+        return "HotSpotType<" + name + ">";
+    }
+
+    public RiConstantPool constantPool() {
+        return Compiler.getVMEntries().RiType_constantPool(vmId);
+    }
+
+    public long getVmId() {
+        return vmId;
     }
 
 }

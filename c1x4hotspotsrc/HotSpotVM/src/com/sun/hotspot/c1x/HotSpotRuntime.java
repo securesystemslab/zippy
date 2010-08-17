@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
@@ -41,11 +41,9 @@ import com.sun.max.asm.dis.Disassembler;
 import com.sun.max.asm.dis.DisassemblyPrinter;
 
 /**
+ * CRI runtime implementation for the HotSpot VM.
  *
- * @author Thomas Wuerthinger
- *
- *         CRI runtime implementation for the HotSpot VM.
- *
+ * @author Thomas Wuerthinger, Lukas Stadler
  */
 public class HotSpotRuntime implements RiRuntime {
 
@@ -118,7 +116,7 @@ public class HotSpotRuntime implements RiRuntime {
                 }
                 for (DataPatch site : targetMethod.dataReferences) {
                     if (site.pcOffset == pcOffset) {
-                        return "{" + site.data + "}";
+                        return "{" + site.constant + "}";
                     }
                 }
                 return null;
@@ -145,7 +143,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiConstantPool getConstantPool(RiMethod method) {
-        return new HotSpotConstantPool(((HotSpotType) method.holder()).klass);
+        return ((HotSpotTypeResolved) method.holder()).constantPool();
     }
 
     @Override
@@ -155,7 +153,7 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public RiType getRiType(Class< ? > javaClass) {
+    public RiType getRiType(Class<?> javaClass) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -185,9 +183,8 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public Object registerTargetMethod(CiTargetMethod targetMethod, String name) {
-        // TODO Auto-generated method stub
-        return null;
+    public Object registerGlobalStub(CiTargetMethod targetMethod, String name) {
+        return HotSpotTargetMethod.installStub(targetMethod, name);
     }
 
     @Override
@@ -209,7 +206,7 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public RiMethod getRiMethod(Constructor< ? > javaConstructor) {
+    public RiMethod getRiMethod(Constructor<?> javaConstructor) {
         // TODO Auto-generated method stub
         return null;
     }

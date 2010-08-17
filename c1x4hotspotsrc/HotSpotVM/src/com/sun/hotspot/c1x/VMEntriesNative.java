@@ -1,65 +1,88 @@
+/*
+ * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
+ *
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
+ * described in this document. In particular, and without limitation, these intellectual property rights may include one
+ * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
+ * applications in the U.S. and in other countries.
+ *
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
+ * license agreement and applicable provisions of the FAR and its supplements.
+ *
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
+ * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
+ * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ *
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ */
+
 package com.sun.hotspot.c1x;
 
-import java.lang.reflect.*;
-
+import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
+/**
+ * Entries into the HotSpot VM from Java code.
+ *
+ * @author Thomas Wuerthinger, Lukas Stadler
+ */
 public class VMEntriesNative implements VMEntries {
 
     @Override
-    public native byte[] RiMethod_code(Method methodOop);
+    public native byte[] RiMethod_code(long vmId);
 
     @Override
-    public native int RiMethod_maxStackSize(Method methodOop);
+    public native int RiMethod_maxStackSize(long vmId);
 
     @Override
-    public native int RiMethod_maxLocals(Method methodOop);
+    public native int RiMethod_maxLocals(long vmId);
 
     @Override
-    public native RiType RiMethod_holder(Method methodOop);
+    public native RiType RiMethod_holder(long vmId);
 
     @Override
-    public native String RiMethod_signature(Method methodOop);
+    public native String RiMethod_signature(long vmId);
 
     @Override
-    public native String RiMethod_name(Method methodOop);
+    public native int RiMethod_accessFlags(long vmId);
 
     @Override
-    public native int RiMethod_accessFlags(Method methodOop);
+    public native RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
 
     @Override
-    public native RiType RiSignature_lookupType(String returnType, Class<?> accessingClass);
+    public native CiConstant RiConstantPool_lookupConstant(long vmId, int cpi);
 
     @Override
-    public native Object RiConstantPool_lookupConstant(Class<?> constantPoolOop, int cpi);
+    public native RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
 
     @Override
-    public native RiMethod RiConstantPool_lookupMethod(Class<?> constantPoolOop, int cpi, byte byteCode);
+    public native RiSignature RiConstantPool_lookupSignature(long vmId, int cpi);
 
     @Override
-    public native RiSignature RiConstantPool_lookupSignature(Class<?> constantPoolOop, int cpi);
+    public native RiType RiConstantPool_lookupType(long vmId, int cpi);
 
     @Override
-    public native RiType RiConstantPool_lookupType(Class<?> constantPoolOop, int cpi);
+    public native RiField RiConstantPool_lookupField(long vmId, int cpi);
 
     @Override
-    public native RiField RiConstantPool_lookupField(Class<?> constantPoolOop, int cpi);
+    public native boolean RiType_isArrayClass(long vmId);
 
     @Override
-    public native String RiType_name(Class<?> klassOop);
+    public native boolean RiType_isInstanceClass(long vmId);
 
     @Override
-    public native boolean RiType_isArrayClass(Class<?> klassOop);
+    public native boolean RiType_isInterface(long vmId);
 
     @Override
-    public native boolean RiType_isInstanceClass(Class<?> klassOop);
+    public native RiConstantPool RiType_constantPool(long vmId);
 
     @Override
-    public native boolean RiType_isInterface(Class<?> klassOop);
+    public native void installMethod(HotSpotTargetMethod targetMethod);
 
     @Override
-    public native void installCode(HotSpotTargetMethod targetMethod);
+    public native long installStub(HotSpotTargetMethod targetMethod);
 
     @Override
     public native HotSpotVMConfig getConfiguration();
+
 }

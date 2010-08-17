@@ -17,12 +17,14 @@
  */
 package com.sun.hotspot.c1x;
 
+import com.sun.cri.ci.*;
+
 /**
  * Used to communicate configuration details, runtime offsets, etc. to c1x upon compileMethod.
  *
  * @author Lukas Stadler
  */
-public class HotSpotVMConfig {
+public class HotSpotVMConfig implements CompilerObject {
 
     // os information, register layout, code generation, ...
     public boolean windowsOs;
@@ -33,19 +35,45 @@ public class HotSpotVMConfig {
     public int stackShadowPages;
     public int hubOffset;
     public int arrayLengthOffset;
+    public int[] arrayOffsets;
+    public int arrayClassElementOffset;
 
     // runtime stubs
     public long instanceofStub;
     public long debugStub;
+    public long resolveStaticCallStub;
 
     public void check() {
         assert vmPageSize >= 16;
         assert codeEntryAlignment > 0;
         assert stackShadowPages > 0;
-        assert instanceofStub != 0;
-        assert debugStub != 0;
-        System.out.println("Config::debugStub = " + Long.toHexString(debugStub));
-        System.out.println("Config::instanceofStub = " + Long.toHexString(instanceofStub));
+    }
+
+    public int getArrayOffset(CiKind kind) {
+        return arrayOffsets[getKindNumber(kind)];
+    }
+
+    private int getKindNumber(CiKind kind) {
+        if (kind == CiKind.Boolean)
+            return 0;
+        else if (kind == CiKind.Byte)
+            return 1;
+        else if (kind == CiKind.Short)
+            return 2;
+        else if (kind == CiKind.Char)
+            return 3;
+        else if (kind == CiKind.Int)
+            return 4;
+        else if (kind == CiKind.Float)
+            return 5;
+        else if (kind == CiKind.Long)
+            return 6;
+        else if (kind == CiKind.Double)
+            return 7;
+        else if (kind == CiKind.Object)
+            return 8;
+        else
+            throw new RuntimeException(kind + " is not a Java kind");
     }
 
 }

@@ -21,49 +21,57 @@
  * have any questions.
  *
  */
-/*
-class OopCache : public AllStatic {
 
-private:
-  static Handle* handles;
-  static Handle* mirrors;
-  static int capacity;
-  static int used;
-
-public:
-  static void initialize();
-  static Handle mirror(oop internal_object);
-  static Handle resolve(oop mirror);
-
-};
-*/
 class VMExits : public AllStatic {
 
 private:
-
   static KlassHandle _vmExitsKlass;
   static Handle _vmExitsObject;
-
-public:
+  static jobject _vmExitsPermObject;
 
   static KlassHandle& vmExitsKlass();
   static Handle& instance();
 
+public:
 
-  static void compileMethod(methodOop method, int entry_bci);
+  // public abstract void compileMethod(HotSpotProxy method, String name, int entry_bci);
+  static void compileMethod(jlong vmId, Handle name, int entry_bci);
 
-  static oop createRiMethod(methodOop method, TRAPS);
-  static oop createRiField(oop field_holder, symbolOop field_name, oop field_type, int index, TRAPS);
-  static oop createRiType(klassOop k, TRAPS);
-  static oop createRiConstantPool(constantPoolOop cp, TRAPS);
-  static oop createRiTypeUnresolved(symbolOop name, klassOop accessor, TRAPS);
-  static oop createRiSignature(symbolOop name, TRAPS);
+  // public abstract RiMethod createRiMethod(HotSpotProxy method, String name);
+  static oop createRiMethod(jlong vmId, Handle name, TRAPS);
+
+  // public abstract RiField createRiField(RiType holder, String name, RiType type, int offset);
+  static oop createRiField(Handle holder, Handle name, Handle type, int index, TRAPS);
+
+  // public abstract RiType createRiType(HotSpotProxy klassOop, String name);
+  static oop createRiType(jlong vmId, Handle name, TRAPS);
+
+  // public abstract RiConstantPool createRiConstantPool(HotSpotProxy constantPool);
+  static oop createRiConstantPool(jlong vmId, TRAPS);
+
+  // public abstract RiType createRiTypeUnresolved(String name, HotSpotProxy accessingKlass);
+  static oop createRiTypeUnresolved(Handle name, jlong accessingClassVmId, TRAPS);
+
+  // public abstract RiType createRiTypePrimitive(int basicType);
+  static oop createRiTypePrimitive(int basicType, TRAPS);
+
+  // public abstract RiSignature createRiSignature(String signature);
+  static oop createRiSignature(Handle name, TRAPS);
+
+  // public abstract CiConstant createCiConstantInt(int value);
   static oop createCiConstantInt(jint value, TRAPS);
+
+  // public abstract CiConstant createCiConstantLong(long value);
   static oop createCiConstantLong(jlong value, TRAPS);
+
+  // public abstract CiConstant createCiConstantFloat(float value);
   static oop createCiConstantFloat(jfloat value, TRAPS);
+
+  // public abstract CiConstant createCiConstantDouble(double value);
   static oop createCiConstantDouble(jdouble value, TRAPS);
-  static oop createCiConstantObject(oop value, TRAPS);
-  static oop createRiTypePrimitive(int basic_type, TRAPS);
+
+  // public abstract CiConstant createCiConstantObject(HotSpotProxy value);
+  static oop createCiConstantObject(jlong vmId, TRAPS);
 };
 
 inline void check_pending_exception(const char* message) {

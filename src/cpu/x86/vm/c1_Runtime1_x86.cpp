@@ -1366,10 +1366,17 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ movptr(rsi, Address(rsp, (klass_off) * VMRegImpl::stack_slot_size)); // subclass
         __ movptr(rax, Address(rsp, (sup_k_off) * VMRegImpl::stack_slot_size)); // superclass
 
+        Label success;
         Label miss;
+        if (UseC1X) {
+          // TODO this should really be within the XirSnippets
+          __ check_klass_subtype_fast_path(rsi, rax, rcx, &success, &miss, NULL);
+        };
+
         __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, NULL, &miss);
 
         // fallthrough on success:
+        __ bind(success);
         __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), 1); // result
         __ pop(rax);
         __ pop(rcx);

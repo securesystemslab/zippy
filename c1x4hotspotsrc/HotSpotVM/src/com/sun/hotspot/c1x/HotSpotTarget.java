@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
@@ -15,43 +15,26 @@
  *
  * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
  */
-
 package com.sun.hotspot.c1x;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
 /**
- * Exits from the HotSpot VM into Java code.
+ * HotSpot-specific CiTarget that provides the correct stack frame size alignment.
  *
- * @author Thomas Wuerthinger, Lukas Stadler
+ * @author Lukas Stadler
  */
-public interface VMExits {
+public class HotSpotTarget extends CiTarget {
 
-    public abstract void compileMethod(long methodVmId, String name, int entry_bci);
+    public HotSpotTarget(CiArchitecture arch, RiRegisterConfig registerConfig, boolean isMP, int spillSlotSize, int wordSize, int referenceSize, int stackAlignment, int pageSize, int cacheAlignment,
+                    int heapAlignment, int codeAlignment, boolean inlineObjects) {
+        super(arch, registerConfig, isMP, spillSlotSize, wordSize, referenceSize, stackAlignment, pageSize, cacheAlignment, heapAlignment, codeAlignment, inlineObjects);
+    }
 
-    public abstract RiMethod createRiMethod(long vmId, String name);
-
-    public abstract RiSignature createRiSignature(String signature);
-
-    public abstract RiField createRiField(RiType holder, String name, RiType type, int offset);
-
-    public abstract RiType createRiType(long vmId, String name);
-
-    public abstract RiType createRiTypePrimitive(int basicType);
-
-    public abstract RiType createRiTypeUnresolved(String name, long accessingClassVmId);
-
-    public abstract RiConstantPool createRiConstantPool(long vmId);
-
-    public abstract CiConstant createCiConstantInt(int value);
-
-    public abstract CiConstant createCiConstantLong(long value);
-
-    public abstract CiConstant createCiConstantFloat(float value);
-
-    public abstract CiConstant createCiConstantDouble(double value);
-
-    public abstract CiConstant createCiConstantObject(long vmId);
-
+    @Override
+    public int alignFrameSize(int frameSize) {
+        // account for the stored rbp value
+        return super.alignFrameSize(frameSize + wordSize) - wordSize;
+    }
 }

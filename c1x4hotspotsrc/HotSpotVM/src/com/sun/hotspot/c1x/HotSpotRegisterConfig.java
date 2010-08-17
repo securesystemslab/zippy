@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
@@ -138,7 +138,24 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     @Override
     public CiRegister getReturnRegister(CiKind kind) {
-        return AMD64.rax;
+        switch (kind) {
+            case Boolean:
+            case Byte:
+            case Char:
+            case Short:
+            case Int:
+            case Long:
+            case Object:
+                return AMD64.rax;
+            case Float:
+            case Double:
+                return AMD64.xmm0;
+            case Void:
+            case Illegal:
+                return null;
+            default:
+                throw new UnsupportedOperationException("no return register for type " + kind);
+        }
     }
 
     @Override

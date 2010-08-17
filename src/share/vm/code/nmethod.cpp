@@ -2200,7 +2200,7 @@ void nmethod::verify_scopes() {
         // information in a table.
         break;
     }
-    assert(stub == NULL || stub_contains(stub), "static call stub outside stub section");
+    assert(UseC1X || stub == NULL || stub_contains(stub), "static call stub outside stub section");
   }
 }
 

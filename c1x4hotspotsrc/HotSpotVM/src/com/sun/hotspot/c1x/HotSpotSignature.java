@@ -1,13 +1,33 @@
+/*
+ * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
+ *
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
+ * described in this document. In particular, and without limitation, these intellectual property rights may include one
+ * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
+ * applications in the U.S. and in other countries.
+ *
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
+ * license agreement and applicable provisions of the FAR and its supplements.
+ *
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
+ * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
+ * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ *
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ */
 package com.sun.hotspot.c1x;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import com.sun.cri.ci.CiKind;
-import com.sun.cri.ri.RiSignature;
-import com.sun.cri.ri.RiType;
+import com.sun.cri.ci.*;
+import com.sun.cri.ri.*;
 
-public class HotSpotSignature implements RiSignature {
+/**
+ * Represents a method signature.
+ *
+ * @author Thomas Wuerthinger, Lukas Stadler
+ */
+public class HotSpotSignature implements RiSignature, CompilerObject {
 
     private final List<String> arguments = new ArrayList<String>();
     private final String returnType;
@@ -24,11 +44,6 @@ public class HotSpotSignature implements RiSignature {
                 arguments.add(signature.substring(cur, nextCur));
                 cur = nextCur;
             }
-            StringBuilder str = new StringBuilder();
-            for (String param : arguments) {
-                str.append(param).append(", ");
-            }
-            Logger.log("signature " + signature + ": " + str);
 
             cur++;
             int nextCur = parseSignature(signature, cur);
@@ -40,11 +55,12 @@ public class HotSpotSignature implements RiSignature {
     }
 
     private int parseSignature(String signature, int cur) {
+        char first;
+        do {
+            first = signature.charAt(cur++);
+        } while(first == '[');
 
-        char first = signature.charAt(cur);
         switch (first) {
-            case '[':
-                return parseSignature(signature, cur + 1);
             case 'L':
                 while (signature.charAt(cur) != ';')
                     cur++;
@@ -59,7 +75,6 @@ public class HotSpotSignature implements RiSignature {
             case 'J':
             case 'S':
             case 'Z':
-                cur++;
                 break;
             default:
                 assert false;
@@ -74,9 +89,7 @@ public class HotSpotSignature implements RiSignature {
 
     @Override
     public CiKind argumentKindAt(int index) {
-        CiKind kind = CiKind.fromTypeString(arguments.get(index));
-        System.out.println("argument kind: " + index + " is " + kind);
-        return kind;
+        return CiKind.fromTypeString(arguments.get(index));
     }
 
     @Override
@@ -92,9 +105,9 @@ public class HotSpotSignature implements RiSignature {
 
     @Override
     public RiType argumentTypeAt(int index, RiType accessingClass) {
-        Class<?> accessor = null;
-        if (accessingClass instanceof HotSpotType) {
-            accessor = ((HotSpotType) accessingClass).klass;
+        long accessor = 0;
+        if (accessingClass instanceof HotSpotTypeResolved) {
+            accessor = (Long) ((HotSpotTypeResolved) accessingClass).getVmId();
         }
         return Compiler.getVMEntries().RiSignature_lookupType(arguments.get(index), accessor);
     }
@@ -111,11 +124,16 @@ public class HotSpotSignature implements RiSignature {
 
     @Override
     public RiType returnType(RiType accessingClass) {
-        Class<?> accessor = null;
-        if (accessingClass instanceof HotSpotType) {
-            accessor = ((HotSpotType) accessingClass).klass;
+        long accessor = 0;
+        if (accessingClass instanceof HotSpotTypeResolved) {
+            accessor = (Long) ((HotSpotTypeResolved) accessingClass).getVmId();
         }
         return Compiler.getVMEntries().RiSignature_lookupType(returnType, accessor);
+    }
+
+    @Override
+    public String toString() {
+        return "HotSpotSignature<" + originalString + ">";
     }
 
 }

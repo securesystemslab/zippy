@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
@@ -18,10 +18,11 @@
 
 package com.sun.hotspot.c1x;
 
-import java.lang.reflect.*;
+import java.io.*;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
+import com.sun.hotspot.c1x.logging.*;
 
 /**
  * Exits from the HotSpot VM into Java code.
@@ -31,32 +32,31 @@ import com.sun.cri.ri.*;
 public class VMExitsNative implements VMExits {
 
     @Override
-    public void compileMethod(Method method, int entry_bci) {
+    public void compileMethod(long methodVmId, String name, int entry_bci) {
         try {
+            Logger.info("compiling " + name + " (" + methodVmId + ")");
             Compiler compiler = Compiler.getInstance();
-            HotSpotMethod riMethod = new HotSpotMethod(method);
+            HotSpotMethod riMethod = new HotSpotMethod(methodVmId, name);
             CiResult result = compiler.getCompiler().compileMethod(riMethod, null);
 
             if (result.bailout() != null) {
-                System.out.println("Bailout:");
-                result.bailout().printStackTrace();
+                StringWriter out = new StringWriter();
+                result.bailout().printStackTrace(new PrintWriter(out));
+                Logger.info("Bailout:\n" + out.toString());
             } else {
                 Logger.log("Compilation result: " + result.targetMethod());
-                HotSpotTargetMethod.installCode(compiler.getConfig(), riMethod, result.targetMethod());
+                HotSpotTargetMethod.installMethod(riMethod, result.targetMethod());
             }
         } catch (Throwable t) {
-            System.out.println("Compilation interrupted:");
-            t.printStackTrace();
-            if (t instanceof RuntimeException) {
-                throw (RuntimeException) t;
-            }
-            throw new RuntimeException(t);
+            StringWriter out = new StringWriter();
+            t.printStackTrace(new PrintWriter(out));
+            Logger.info("Compilation interrupted:\n" + out.toString());
         }
     }
 
     @Override
-    public RiMethod createRiMethod(Method method) {
-        RiMethod m = new HotSpotMethod(method);
+    public RiMethod createRiMethod(long vmId, String name) {
+        RiMethod m = new HotSpotMethod(vmId, name);
         return m;
     }
 
@@ -71,8 +71,8 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public RiType createRiType(Class<?> klassOop) {
-        return new HotSpotType(klassOop);
+    public RiType createRiType(long vmId, String name) {
+        return new HotSpotTypeResolved(vmId, name);
     }
 
     @Override
@@ -113,13 +113,13 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public RiType createRiTypeUnresolved(String name, Class<?> accessingKlassOop) {
-        return new HotSpotTypeUnresolved(name);
+    public RiType createRiTypeUnresolved(String name, long accessingClassVmId) {
+        return new HotSpotTypeUnresolved(name, accessingClassVmId);
     }
 
     @Override
-    public RiConstantPool createRiConstantPool(Class<?> constantPoolOop) {
-        return new HotSpotConstantPool(constantPoolOop);
+    public RiConstantPool createRiConstantPool(long vmId) {
+        return new HotSpotConstantPool(vmId);
     }
 
     @Override
@@ -143,7 +143,7 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public CiConstant createCiConstantObject(Object value) {
-        return CiConstant.forObject(value);
+    public CiConstant createCiConstantObject(long vmId) {
+        return CiConstant.forObject(vmId);
     }
 }
