@@ -322,9 +322,6 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   arrayOop register_map = (arrayOop)CiDebugInfo::registerRefMap(debug_info);
   arrayOop frame_map = (arrayOop)CiDebugInfo::frameRefMap(debug_info);
 
-  jint register_count = VMRegImpl::stack2reg(0)->value();
-  tty->print_cr("register count: %i", register_count);
-
   for (jint i=0; i<C1X_REGISTER_COUNT; i++) {
     unsigned char byte = ((unsigned char*)register_map->base(T_BYTE))[i / 8];
     bool is_oop = (byte & (1 << (i % 8))) != 0;
@@ -381,6 +378,9 @@ private:
   jint          _parameter_count;
   jint          _constants_size;
   jint          _total_size;
+
+  C1XCompiler::MarkId _next_call_type;
+  address       _invoke_mark_pc;
 
   CodeSection*  _instructions;
   CodeSection*  _constants;
@@ -451,6 +451,8 @@ private:
     // (very) conservative estimate: each site needs a constant section entry
     _constants_size = _sites->length() * BytesPerLong;
     _total_size = align_size_up(_code_size, HeapWordSize) + _constants_size;
+
+    _next_call_type = C1XCompiler::MARK_INVOKE_INVALID;
   }
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
@@ -556,28 +558,47 @@ private:
       oop frame = CiDebugInfo::frame(debug_info);
       record_frame(next_pc_offset, code_pos, frame);
 
-      if (method->is_static()) {
-        tty->print_cr("static method");
+      switch(_next_call_type) {
+        case C1XCompiler::MARK_INVOKEVIRTUAL:
+        case C1XCompiler::MARK_INVOKEINTERFACE: {
+          assert(!method->is_static(), "cannot call static method with invokeinterface");
 
-        address dest = SharedRuntime::get_resolve_static_call_stub();
-        long disp = dest - next_instruction;
-        assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
-        *((jint*)operand) = (jint)disp;
+          address dest = SharedRuntime::get_resolve_virtual_call_stub();
+          long disp = dest - next_instruction;
+          assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+          *((jint*)operand) = (jint)disp;
 
-        _instructions->relocate(instruction, relocInfo::static_call_type, Assembler::call32_operand);
-        tty->print_cr("relocating (Long) %016x/%016x", instruction, operand);
-      } else {
-        tty->print_cr("non-static method");
+          _instructions->relocate(instruction, virtual_call_Relocation::spec(_invoke_mark_pc), Assembler::call32_operand);
+          break;
+        }
+        case C1XCompiler::MARK_INVOKESTATIC: {
+          assert(method->is_static(), "cannot call non-static method with invokestatic");
 
-        address dest = SharedRuntime::get_resolve_opt_virtual_call_stub();
-        long disp = dest - next_instruction;
-        assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
-        *((jint*)operand) = (jint)disp;
+          address dest = SharedRuntime::get_resolve_static_call_stub();
+          long disp = dest - next_instruction;
+          assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+          *((jint*)operand) = (jint)disp;
 
-        _instructions->relocate(instruction, relocInfo::opt_virtual_call_type, Assembler::call32_operand);
-        tty->print_cr("relocating (Long) %016x/%016x", instruction, operand);
+          _instructions->relocate(instruction, relocInfo::static_call_type, Assembler::call32_operand);
+          break;
+        }
+        case C1XCompiler::MARK_INVOKESPECIAL: {
+          assert(!method->is_static(), "cannot call static method with invokespecial");
+
+          address dest = SharedRuntime::get_resolve_opt_virtual_call_stub();
+          long disp = dest - next_instruction;
+          assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+          *((jint*)operand) = (jint)disp;
+
+          _instructions->relocate(instruction, relocInfo::opt_virtual_call_type, Assembler::call32_operand);
+          break;
+        }
+        case C1XCompiler::MARK_INVOKE_INVALID:
+        default:
+          ShouldNotReachHere();
+          break;
       }
-
+      _next_call_type = C1XCompiler::MARK_INVOKE_INVALID;
       _debug_recorder->end_safepoint(pc_offset);
     }
   }
@@ -630,35 +651,14 @@ private:
 
           address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
 
-          *((jobject*)operand) = JNIHandles::make_local(C1XObjects::get<oop>(id));
+          if (id == C1XObjects::DUMMY_CONSTANT) {
+            *((jobject*)operand) = (jobject)Universe::non_oop_word();
+          } else {
+            *((jobject*)operand) = JNIHandles::make_local(C1XObjects::get<oop>(id));
+          }
           _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
           tty->print_cr("relocating (oop constant) at %016x/%016x", instruction, operand);
         }
-
-        /*
-        jlong id = com_sun_hotspot_c1x_HotSpotProxy::get_id(obj);
-        switch (id & C1XObjects::TYPE_MASK) {
-          case C1XObjects::CONSTANT: {
-            address operand = Assembler::locate_operand(inst, Assembler::imm_operand);
-
-            *((jobject*)operand) = JNIHandles::make_local(C1XObjects::get<oop>(id));
-            instructions->relocate(inst, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-            tty->print_cr("relocating (HotSpotType) %02x at %016x/%016x", inst_byte, inst, operand);
-            break;
-          }
-          case C1XObjects::STUB: {
-            address operand = Assembler::locate_operand(inst, Assembler::call32_operand);
-
-            long dest = (long)C1XObjects::getStub(id);
-            long disp = dest - (long)(operand + 4);
-            assert(disp == (int) disp, "disp doesn't fit in 32 bits");
-            *((int*)operand) = (int)disp;
-
-            instructions->relocate(inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
-            tty->print_cr("relocating (Long) %02x at %016x/%016x", inst_byte, inst, operand);
-            break;
-          }
-        }*/
         break;
       }
       default:
@@ -688,6 +688,9 @@ private:
         case C1XCompiler::MARK_VERIFIED_ENTRY:
           _offsets.set_value(CodeOffsets::Verified_Entry, pc_offset);
           break;
+        case C1XCompiler::MARK_OSR_ENTRY:
+          _offsets.set_value(CodeOffsets::OSR_Entry, pc_offset);
+          break;
         case C1XCompiler::MARK_STATIC_CALL_STUB: {
           assert(references->length() == 1, "static call stub needs one reference");
           oop ref = ((oop*)references->base(T_OBJECT))[0];
@@ -695,6 +698,17 @@ private:
           _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
           break;
         }
+        case C1XCompiler::MARK_INVOKE_INVALID:
+        case C1XCompiler::MARK_INVOKEINTERFACE:
+        case C1XCompiler::MARK_INVOKESTATIC:
+        case C1XCompiler::MARK_INVOKESPECIAL:
+        case C1XCompiler::MARK_INVOKEVIRTUAL:
+          _next_call_type = (C1XCompiler::MarkId)id;
+          _invoke_mark_pc = instruction;
+          break;
+        default:
+          ShouldNotReachHere();
+          break;
       }
     }
   }

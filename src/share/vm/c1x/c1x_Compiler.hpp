@@ -60,7 +60,13 @@ public:
   enum MarkId {
     MARK_VERIFIED_ENTRY     = 1,
     MARK_UNVERIFIED_ENTRY   = 2,
-    MARK_STATIC_CALL_STUB   = 1000
+    MARK_OSR_ENTRY          = 3,
+    MARK_STATIC_CALL_STUB   = 1000,
+    MARK_INVOKE_INVALID     = 2000,
+    MARK_INVOKEINTERFACE    = 2001,
+    MARK_INVOKESTATIC       = 2002,
+    MARK_INVOKESPECIAL      = 2003,
+    MARK_INVOKEVIRTUAL      = 2004
   };
 
 /*
@@ -83,13 +89,14 @@ private:
 public:
   // this enum needs to have the same values as the one in HotSpotProxy.java
   enum CompilerObjectType {
-    STUB          = 0x100000000000000l,
-    METHOD        = 0x200000000000000l,
-    CLASS         = 0x300000000000000l,
-    SYMBOL        = 0x400000000000000l,
-    CONSTANT_POOL = 0x500000000000000l,
-    CONSTANT      = 0x600000000000000l,
-    TYPE_MASK     = 0xf00000000000000l
+    STUB           = 0x100000000000000l,
+    METHOD         = 0x200000000000000l,
+    CLASS          = 0x300000000000000l,
+    SYMBOL         = 0x400000000000000l,
+    CONSTANT_POOL  = 0x500000000000000l,
+    CONSTANT       = 0x600000000000000l,
+    TYPE_MASK      = 0xf00000000000000l,
+    DUMMY_CONSTANT = 0x6ffffffffffffffl
   };
 
   static void initializeObjects();

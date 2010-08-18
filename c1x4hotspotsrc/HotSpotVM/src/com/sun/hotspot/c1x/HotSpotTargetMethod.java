@@ -20,7 +20,7 @@ package com.sun.hotspot.c1x;
 import java.util.*;
 
 import com.sun.cri.ci.*;
-import com.sun.cri.ci.CiTargetMethod.Site;
+import com.sun.cri.ci.CiTargetMethod.*;
 
 /**
  * CiTargetMethod augmented with HotSpot-specific information.
@@ -54,21 +54,27 @@ public class HotSpotTargetMethod implements CompilerObject {
     private Site[] getSortedSites(CiTargetMethod target) {
         List<?>[] lists = new List<?>[] {target.directCalls, target.indirectCalls, target.safepoints, target.dataReferences, target.exceptionHandlers, target.marks};
         int count = 0;
-        for (List<?> list: lists) {
+        for (List<?> list : lists) {
             count += list.size();
         }
         Site[] result = new Site[count];
         int pos = 0;
-        for (List<?> list: lists) {
-            for (Object elem: list) {
-                result[pos++] = (Site)elem;
+        for (List<?> list : lists) {
+            for (Object elem : list) {
+                result[pos++] = (Site) elem;
             }
         }
         Arrays.sort(result, new Comparator<Site>() {
+
             public int compare(Site s1, Site s2) {
+                if (s1.pcOffset == s2.pcOffset && (s1 instanceof Mark ^ s2 instanceof Mark)) {
+                    return s1 instanceof Mark ? -1 : 1;
+                }
                 return s1.pcOffset - s2.pcOffset;
             }
         });
+        for(Site site : result)
+            System.out.println(site.pcOffset + ": " + site);
         return result;
     }
 

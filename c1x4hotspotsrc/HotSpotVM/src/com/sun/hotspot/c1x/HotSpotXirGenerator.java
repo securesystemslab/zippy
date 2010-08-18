@@ -38,7 +38,14 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     // this needs to correspond to c1x_Compiler.hpp
     private static final Integer MARK_VERIFIED_ENTRY = 1;
     private static final Integer MARK_UNVERIFIED_ENTRY = 2;
+    private static final Integer MARK_OSR_ENTRY = 3;
     private static final Integer MARK_STATIC_CALL_STUB = 1000;
+
+    private static final Integer MARK_INVOKE_INVALID = 2000;
+    private static final Integer MARK_INVOKEINTERFACE = 2001;
+    private static final Integer MARK_INVOKESTATIC = 2002;
+    private static final Integer MARK_INVOKESPECIAL = 2003;
+    private static final Integer MARK_INVOKEVIRTUAL = 2004;
 
     private final HotSpotVMConfig config;
     private final CiTarget target;
@@ -56,6 +63,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     private XirTemplate exceptionObjectTemplate;
     private XirTemplate invokeStaticTemplate;
     private XirTemplate invokeSpecialTemplate;
+    private XirTemplate invokeInterfaceTemplate;
+    private XirTemplate invokeVirtualTemplate;
     private XirTemplate newInstanceTemplate;
 
     static class XirPair {
@@ -122,6 +131,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         instanceofTemplateNonnull = buildInstanceof(true);
         invokeStaticTemplate = buildInvokeStatic();
         invokeSpecialTemplate = buildInvokeSpecial();
+        invokeInterfaceTemplate = buildInvokeInterface();
+        invokeVirtualTemplate = buildInvokeVirtual();
         newInstanceTemplate = buildNewInstance();
 
         return templates;
@@ -133,6 +144,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         XirOperand frame_pointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
 
         asm.align(config.codeEntryAlignment);
+        asm.mark(MARK_OSR_ENTRY);
         asm.mark(MARK_UNVERIFIED_ENTRY);
         if (!staticMethod) {
             // TODO do some checking...
@@ -368,7 +380,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         asm.restart();
         XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
 
-        XirLabel stub = asm.createOutOfLineLabel("staticCallStub");
+        XirLabel stub = asm.createOutOfLineLabel("call stub");
+        asm.mark(MARK_INVOKESTATIC);
 
         asm.bindOutOfLine(stub);
         XirOperand method = asm.createRegister("method", CiKind.Word, AMD64.rbx);
@@ -385,10 +398,49 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         asm.restart();
         XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
 
-        XirLabel stub = asm.createOutOfLineLabel("specialCallStub");
+        XirLabel stub = asm.createOutOfLineLabel("call stub");
+        asm.mark(MARK_INVOKESPECIAL);
 
         asm.bindOutOfLine(stub);
         XirOperand method = asm.createRegister("method", CiKind.Word, AMD64.rbx);
+        asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
+        asm.mov(method, asm.w(0l));
+        XirLabel dummy = asm.createOutOfLineLabel("dummy");
+        asm.jmp(dummy);
+        asm.bindOutOfLine(dummy);
+
+        return asm.finishTemplate(addr, "invokespecial");
+    }
+
+    private XirTemplate buildInvokeInterface() {
+        asm.restart();
+        XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
+        XirOperand method = asm.createRegister("method", CiKind.Object, AMD64.rbx);
+
+        XirLabel stub = asm.createOutOfLineLabel("call stub");
+        asm.mark(MARK_INVOKEINTERFACE);
+        asm.mov(method, asm.createConstant(CiConstant.forObject(HotSpotProxy.DUMMY_CONSTANT_OBJ)));
+
+        asm.bindOutOfLine(stub);
+        asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
+        asm.mov(method, asm.w(0l));
+        XirLabel dummy = asm.createOutOfLineLabel("dummy");
+        asm.jmp(dummy);
+        asm.bindOutOfLine(dummy);
+
+        return asm.finishTemplate(addr, "invokespecial");
+    }
+
+    private XirTemplate buildInvokeVirtual() {
+        asm.restart();
+        XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
+        XirOperand method = asm.createRegister("method", CiKind.Object, AMD64.rbx);
+
+        XirLabel stub = asm.createOutOfLineLabel("call stub");
+        asm.mark(MARK_INVOKEVIRTUAL);
+        asm.mov(method, asm.createConstant(CiConstant.forObject(HotSpotProxy.DUMMY_CONSTANT_OBJ)));
+
+        asm.bindOutOfLine(stub);
         asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
         asm.mov(method, asm.w(0l));
         XirLabel dummy = asm.createOutOfLineLabel("dummy");
@@ -515,7 +567,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genInvokeInterface(XirSite site, XirArgument receiver, RiMethod method) {
-        return new XirSnippet(emptyTemplates[CiKind.Word.ordinal()]);
+        return new XirSnippet(invokeInterfaceTemplate, XirArgument.forWord(0));
     }
 
     @Override
@@ -530,7 +582,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genInvokeVirtual(XirSite site, XirArgument receiver, RiMethod method) {
-        return new XirSnippet(emptyTemplates[CiKind.Word.ordinal()]);
+        return new XirSnippet(invokeVirtualTemplate, XirArgument.forWord(0));
     }
 
     @Override

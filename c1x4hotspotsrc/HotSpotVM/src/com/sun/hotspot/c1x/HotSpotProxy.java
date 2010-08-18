@@ -29,13 +29,14 @@ public class HotSpotProxy {
 
     private enum CompilerObjectType {
         // this enum needs to have the same values as the one in c1x_Compiler.hpp
-        STUB(0x100000000000000l),
-        METHOD(0x200000000000000l),
-        CLASS(0x300000000000000l),
-        SYMBOL(0x400000000000000l),
-        CONSTANT_POOL(0x500000000000000l),
-        CONSTANT(0x600000000000000l),
-        TYPE_MASK(0xf00000000000000l);
+        STUB(0x100000000000000L),
+        METHOD(0x200000000000000L),
+        CLASS(0x300000000000000L),
+        SYMBOL(0x400000000000000L),
+        CONSTANT_POOL(0x500000000000000L),
+        CONSTANT(0x600000000000000L),
+        TYPE_MASK(0xf00000000000000L),
+        DUMMY_CONSTANT(0x6ffffffffffffffL);
 
         public final long bits;
 
@@ -43,6 +44,8 @@ public class HotSpotProxy {
             this.bits = bits;
         }
     }
+
+    public static final Long DUMMY_CONSTANT_OBJ = CompilerObjectType.DUMMY_CONSTANT.bits;
 
     private static boolean isType(long id, CompilerObjectType type) {
         return (id & CompilerObjectType.TYPE_MASK.bits) == type.bits;

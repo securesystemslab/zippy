@@ -4,7 +4,7 @@ import com.sun.hotspot.c1x.logging.Logger;
 public class jttTests {
 
 	public static void main(String[] args) {
-		runTests(182, 182);
+		runTests(0, 200);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 
