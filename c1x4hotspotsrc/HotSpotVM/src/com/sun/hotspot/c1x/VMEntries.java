@@ -58,6 +58,8 @@ public interface VMEntries {
 
     public boolean RiType_isInterface(long vmId);
 
+    public long RiType_instanceSize(long vmId);
+
     public RiConstantPool RiType_constantPool(long vmId);
 
     public void installMethod(HotSpotTargetMethod targetMethod);

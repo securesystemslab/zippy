@@ -26,6 +26,7 @@ import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 import com.sun.cri.ri.RiType.Representation;
 import com.sun.cri.xir.*;
+import com.sun.cri.xir.CiXirAssembler.XirOperand;
 import com.sun.cri.xir.CiXirAssembler.*;
 
 /**
@@ -54,6 +55,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     private XirTemplate arrayLengthTemplate;
     private XirTemplate exceptionObjectTemplate;
     private XirTemplate invokeStaticTemplate;
+    private XirTemplate invokeSpecialTemplate;
+    private XirTemplate newInstanceTemplate;
 
     static class XirPair {
 
@@ -105,6 +108,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
             // templates.add(emptyTemplates[index]);
         }
+
+        asm.restart();
+        XirOperand result = asm.createTemp("result", CiKind.Word);
+        emptyTemplates[CiKind.Word.ordinal()] = asm.finishTemplate(result, "empty-Word");
+
         prologueTemplate = buildPrologue(false);
         staticPrologueTemplate = buildPrologue(true);
         epilogueTemplate = buildEpilogue();
@@ -113,13 +121,46 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         instanceofTemplate = buildInstanceof(false);
         instanceofTemplateNonnull = buildInstanceof(true);
         invokeStaticTemplate = buildInvokeStatic();
+        invokeSpecialTemplate = buildInvokeSpecial();
+        newInstanceTemplate = buildNewInstance();
 
         return templates;
     }
 
+    private XirTemplate buildNewInstance() {
+        XirOperand result = asm.restart(CiKind.Word);
+        XirOperand type = asm.createInputParameter("type", CiKind.Object);
+        XirOperand instanceSize = asm.createConstantInputParameter("instance size", CiKind.Word);
+
+        XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
+        XirOperand temp1 = asm.createTemp("temp1", CiKind.Word);
+        XirOperand temp2 = asm.createTemp("temp2", CiKind.Word);
+        XirLabel tlabFull = asm.createOutOfLineLabel("tlab full");
+        XirLabel resume = asm.createInlineLabel("resume");
+
+        asm.pload(CiKind.Word, result, thread, asm.i(config.threadTlabTopOffset), false);
+        asm.add(temp1, result, instanceSize);
+        asm.pload(CiKind.Word, temp2, thread, asm.i(config.threadTlabEndOffset), false);
+
+        asm.jgt(tlabFull, temp1, temp2);
+        asm.pstore(CiKind.Word, thread, asm.i(config.threadTlabTopOffset), temp1, false);
+        asm.bindInline(resume);
+
+        asm.pload(CiKind.Word, temp1, type, asm.i(config.instanceHeaderPrototypeOffset), false);
+        asm.pstore(CiKind.Word, result, temp1, false);
+        asm.pstore(CiKind.Object, result, asm.i(config.hubOffset), type, false);
+
+        asm.bindOutOfLine(tlabFull);
+        XirOperand arg = asm.createRegister("runtime call argument", CiKind.Object, AMD64.rdx);
+        asm.mov(arg, type);
+        asm.callRuntime(config.newInstanceStub, result);
+        asm.jmp(resume);
+
+        return asm.finishTemplate("new instance");
+    }
+
     private XirTemplate buildPrologue(boolean staticMethod) {
         asm.restart(CiKind.Void);
-        XirOperand sp = asm.createRegister("stack pointer", CiKind.Word, registerConfig.getStackPointerRegister());
         XirOperand temp = asm.createRegister("temp (rax)", CiKind.Int, AMD64.rax);
         XirOperand frame_pointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
 
@@ -372,6 +413,23 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         return asm.finishTemplate(addr, "invokestatic");
     }
 
+    private XirTemplate buildInvokeSpecial() {
+        asm.restart();
+        XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
+
+        XirLabel stub = asm.createOutOfLineLabel("specialCallStub");
+
+        asm.bindOutOfLine(stub);
+        XirOperand method = asm.createRegister("method", CiKind.Word, AMD64.rbx);
+        asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
+        asm.mov(method, asm.w(0l));
+        XirLabel dummy = asm.createOutOfLineLabel("dummy");
+        asm.jmp(dummy);
+        asm.bindOutOfLine(dummy);
+
+        return asm.finishTemplate(addr, "invokespecial");
+    }
+
     @Override
     public XirSnippet genArrayLength(XirSite site, XirArgument array) {
         return new XirSnippet(arrayLengthTemplate, array);
@@ -462,7 +520,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genInvokeSpecial(XirSite site, XirArgument receiver, RiMethod method) {
-        return new XirSnippet(emptyTemplates[CiKind.Word.ordinal()]);
+        return new XirSnippet(invokeSpecialTemplate, XirArgument.forWord(0));
     }
 
     @Override
@@ -492,7 +550,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genNewInstance(XirSite site, RiType type) {
-        return new XirSnippet(emptyTemplates[CiKind.Object.ordinal()]);
+        assert type instanceof HotSpotTypeResolved;
+        HotSpotTypeResolved resolved = (HotSpotTypeResolved) type;
+        return new XirSnippet(newInstanceTemplate, XirArgument.forObject(type), XirArgument.forWord(resolved.instanceSize()));
     }
 
     @Override

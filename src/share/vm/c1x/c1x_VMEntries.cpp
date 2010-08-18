@@ -29,7 +29,7 @@
 
 
 
-// public byte[] RiMethod_code(HotSpotProxy method);
+// public byte[] RiMethod_code(long vmId);
 JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code(JNIEnv *env, jobject, jlong vmId) {
   methodOop method = C1XObjects::get<methodOop>(vmId);
   int code_size = method->code_size();
@@ -38,17 +38,17 @@ JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code(J
   return result;
 }
 
-// public int RiMethod_maxStackSize(HotSpotProxy method);
+// public int RiMethod_maxStackSize(long vmId);
 JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1maxStackSize(JNIEnv *, jobject, jlong vmId) {
   return C1XObjects::get<methodOop>(vmId)->max_stack();
 }
 
-// public int RiMethod_maxLocals(HotSpotProxy method);
+// public int RiMethod_maxLocals(long vmId);
 JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1maxLocals(JNIEnv *, jobject, jlong vmId) {
   return C1XObjects::get<methodOop>(vmId)->max_locals();
 }
 
-// public RiType RiMethod_holder(HotSpotProxy method);
+// public RiType RiMethod_holder(long vmId);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1holder(JNIEnv *, jobject, jlong vmId) {
   VM_ENTRY_MARK
   klassOop klass = C1XObjects::get<methodOop>(vmId)->method_holder();
@@ -58,19 +58,19 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1holder(JN
   return JNIHandles::make_local(THREAD, holder);
 }
 
-// public String RiMethod_signature(HotSpotProxy method);
+// public String RiMethod_signature(long vmId);
 JNIEXPORT jstring JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1signature(JNIEnv *env, jobject, jlong vmId) {
   VM_ENTRY_MARK
   methodOop method = C1XObjects::get<methodOop>(vmId);
   return C1XObjects::toString<jstring>(method->signature(), THREAD);
 }
 
-// public int RiMethod_accessFlags(HotSpotProxy method);
+// public int RiMethod_accessFlags(long vmId);
 JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags(JNIEnv *, jobject, jlong vmId) {
   return C1XObjects::get<methodOop>(vmId)->access_flags().as_int();
 }
 
-// public RiType RiSignature_lookupType(String returnType, HotSpotProxy accessingClass);
+// public RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType(JNIEnv *, jobject, jstring jname, jlong accessingClassVmId) {
   VM_ENTRY_MARK;
 
@@ -112,7 +112,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookup
   return JNIHandles::make_local(THREAD, result);
 }
 
-// public Object RiConstantPool_lookupConstant(HotSpotProxy constantPool, int cpi);
+// public Object RiConstantPool_lookupConstant(long vmId, int cpi);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupConstant(JNIEnv *env, jobject, jlong vmId, jint index) {
   VM_ENTRY_MARK;
 
@@ -168,7 +168,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   return JNIHandles::make_local(THREAD, result);
 }
 
-// public RiMethod RiConstantPool_lookupMethod(HotSpotProxy constantPool, int cpi, byte byteCode
+// public RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jlong vmId, jint index, jbyte byteCode) {
   VM_ENTRY_MARK;
 
@@ -182,13 +182,13 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   return JNIHandles::make_local(THREAD, VMExits::createRiMethod(C1XObjects::add<methodOop>(method), name, THREAD));
 }
 
-// public RiSignature RiConstantPool_lookupSignature(HotSpotProxy constantPool, int cpi);
+// public RiSignature RiConstantPool_lookupSignature(long vmId, int cpi);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupSignature(JNIEnv *env, jobject, jlong vmId, jint index) {
   fatal("currently unsupported");
   return NULL;
 }
 
-// public RiType RiConstantPool_lookupType(HotSpotProxy constantPool, int cpi);
+// public RiType RiConstantPool_lookupType(long vmId, int cpi);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupType(JNIEnv *env, jobject, jlong vmId, jint index) {
   VM_ENTRY_MARK;
 
@@ -201,7 +201,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 
 }
 
-// public RiField RiConstantPool_lookupField(HotSpotProxy constantPool, int cpi);
+// public RiField RiConstantPool_lookupField(long vmId, int cpi);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jlong vmId, jint index) {
   VM_ENTRY_MARK;
 
@@ -212,7 +212,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, THREAD));
 }
 
-// public RiConstantPool RiType_constantPool(HotSpotProxy type);
+// public RiConstantPool RiType_constantPool(long vmId);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPool(JNIEnv *, jobject, jlong vmId) {
   VM_ENTRY_MARK;
 
@@ -220,19 +220,24 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPoo
   return JNIHandles::make_local(VMExits::createRiConstantPool(C1XObjects::add<constantPoolOop>(constantPool), THREAD));
 }
 
-// public boolean RiType_isArrayClass(HotSpotProxy klass);
+// public boolean RiType_isArrayClass(long vmId);
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isArrayClass(JNIEnv *, jobject, jlong vmId) {
   return C1XObjects::get<klassOop>(vmId)->klass_part()->oop_is_javaArray();
 }
 
-// public boolean RiType_isInstanceClass(HotSpotProxy klass);
+// public boolean RiType_isInstanceClass(long vmId);
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInstanceClass(JNIEnv *, jobject, jlong vmId) {
   return C1XObjects::get<klassOop>(vmId)->klass_part()->oop_is_instance();
 }
 
-// public boolean RiType_isInterface(HotSpotProxy klass);
+// public boolean RiType_isInterface(long vmId);
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterface(JNIEnv *, jobject, jlong vmId) {
   return C1XObjects::get<klassOop>(vmId)->klass_part()->is_interface();
+}
+
+// public long RiType_instanceSize(long vmId);
+JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1instanceSize(JNIEnv *, jobject, jlong vmId) {
+  return align_object_size(instanceKlass::cast(C1XObjects::get<klassOop>(vmId))->size_helper() * HeapWordSize);
 }
 
 
@@ -278,10 +283,15 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_int(env, config, "stackShadowPages", StackShadowPages);
   set_int(env, config, "hubOffset", oopDesc::klass_offset_in_bytes());
   set_int(env, config, "arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
+  set_int(env, config, "threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
+  set_int(env, config, "threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
+  set_int(env, config, "instanceHeaderPrototypeOffset", Klass::prototype_header_offset_in_bytes() + klassOopDesc::klass_part_offset_in_bytes());
 
   set_long(env, config, "instanceofStub", C1XObjects::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
   set_long(env, config, "debugStub", C1XObjects::addStub((address)warning));
   set_long(env, config, "resolveStaticCallStub", C1XObjects::addStub(SharedRuntime::get_resolve_static_call_stub()));
+  set_long(env, config, "newInstanceStub", C1XObjects::addStub(Runtime1::entry_for(Runtime1::fast_new_instance_id)));
+
   jintArray arrayOffsets = env->NewIntArray(basicTypeCount);
   for (int i=0; i<basicTypeCount; i++) {
     jint offset = arrayOopDesc::base_offset_in_bytes(basicTypes[i]);
@@ -510,19 +520,34 @@ private:
 
     assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (symbol ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
+    address instruction = _instructions->start() + pc_offset;
+    address operand = Assembler::locate_operand(instruction, Assembler::call32_operand);
+    address next_instruction = Assembler::locate_next_instruction(instruction);
+
     if (runtime_call != NULL) {
+      if (runtime_call == CiRuntimeCall::Debug()) {
+        tty->print_cr("CiRuntimeCall::Debug()");
+      } else {
+        runtime_call->print();
+      }
       tty->print_cr("runtime_call");
     } else if (global_stub != NULL) {
-      tty->print_cr("global_stub_id");
+      assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
+
+      jlong stub_id = global_stub->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
+      address dest = C1XObjects::getStub(stub_id);
+      long disp = dest - next_instruction;
+      assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+      *((jint*)operand) = (jint)disp;
+
+      _instructions->relocate(instruction, runtime_call_Relocation::spec(), Assembler::call32_operand);
+      tty->print_cr("relocating (stub)  %016x/%016x", instruction, operand);
     } else if (symbol != NULL) {
       tty->print_cr("symbol");
     } else { // method != NULL
       assert(hotspot_method->is_a(SystemDictionary::HotSpotMethod_klass()), "unexpected RiMethod subclass");
       methodOop method = C1XObjects::get<methodOop>(HotSpotMethod::vmId(hotspot_method));
 
-      address instruction = _instructions->start() + pc_offset;
-      address operand = Assembler::locate_operand(instruction, Assembler::call32_operand);
-      address next_instruction = Assembler::locate_next_instruction(instruction);
       jint next_pc_offset = next_instruction - _instructions->start();
 
       assert(debug_info != NULL, "debug info expected");
@@ -534,7 +559,6 @@ private:
       if (method->is_static()) {
         tty->print_cr("static method");
 
-
         address dest = SharedRuntime::get_resolve_static_call_stub();
         long disp = dest - next_instruction;
         assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
@@ -544,7 +568,14 @@ private:
         tty->print_cr("relocating (Long) %016x/%016x", instruction, operand);
       } else {
         tty->print_cr("non-static method");
-        ShouldNotReachHere();
+
+        address dest = SharedRuntime::get_resolve_opt_virtual_call_stub();
+        long disp = dest - next_instruction;
+        assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+        *((jint*)operand) = (jint)disp;
+
+        _instructions->relocate(instruction, relocInfo::opt_virtual_call_type, Assembler::call32_operand);
+        tty->print_cr("relocating (Long) %016x/%016x", instruction, operand);
       }
 
       _debug_recorder->end_safepoint(pc_offset);
@@ -556,8 +587,6 @@ private:
     oop kind = CiConstant::kind(constant);
 
     address instruction = _instructions->start() + pc_offset;
-    address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
-    address next_instruction = Assembler::locate_next_instruction(instruction);
 
     switch(CiKind::typeChar(kind)) {
       case 'z':
@@ -570,6 +599,8 @@ private:
       case 'f':
       case 'l':
       case 'd': {
+        address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
+        address next_instruction = Assembler::locate_next_instruction(instruction);
         // we don't care if this is a long/double/etc., the primitive field contains the right bits
         address dest = _constants->end();
         *(jlong*)dest = CiConstant::primitive(constant);
@@ -583,10 +614,53 @@ private:
         tty->print_cr("relocating (Float/Long/Double) at %016x/%016x", instruction, operand);
         break;
       }
-      case 'a':
-        CiConstant::object(constant)->print();
-        tty->print_cr("DataPatch of object type");
+      case 'a': {
+        address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
+        oop obj = CiConstant::object(constant);
+
+        if (obj->is_a(HotSpotTypeResolved::klass())) {
+          *((jobject*)operand) = JNIHandles::make_local(C1XObjects::get<klassOop>(HotSpotTypeResolved::vmId(obj)));
+          _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+          tty->print_cr("relocating (HotSpotType) at %016x/%016x", instruction, operand);
+        } else {
+          assert(java_lang_boxing_object::is_instance(obj, T_LONG), "unexpected DataPatch object type");
+          jlong id = obj->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
+
+          assert((id & C1XObjects::TYPE_MASK) == C1XObjects::CONSTANT, "unexpected DataPatch type");
+
+          address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
+
+          *((jobject*)operand) = JNIHandles::make_local(C1XObjects::get<oop>(id));
+          _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+          tty->print_cr("relocating (oop constant) at %016x/%016x", instruction, operand);
+        }
+
+        /*
+        jlong id = com_sun_hotspot_c1x_HotSpotProxy::get_id(obj);
+        switch (id & C1XObjects::TYPE_MASK) {
+          case C1XObjects::CONSTANT: {
+            address operand = Assembler::locate_operand(inst, Assembler::imm_operand);
+
+            *((jobject*)operand) = JNIHandles::make_local(C1XObjects::get<oop>(id));
+            instructions->relocate(inst, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+            tty->print_cr("relocating (HotSpotType) %02x at %016x/%016x", inst_byte, inst, operand);
+            break;
+          }
+          case C1XObjects::STUB: {
+            address operand = Assembler::locate_operand(inst, Assembler::call32_operand);
+
+            long dest = (long)C1XObjects::getStub(id);
+            long disp = dest - (long)(operand + 4);
+            assert(disp == (int) disp, "disp doesn't fit in 32 bits");
+            *((int*)operand) = (int)disp;
+
+            instructions->relocate(inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
+            tty->print_cr("relocating (Long) %02x at %016x/%016x", inst_byte, inst, operand);
+            break;
+          }
+        }*/
         break;
+      }
       default:
         fatal("unexpected CiKind in DataPatch");
         break;
@@ -790,6 +864,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_isArrayClass",             CC"("PROXY")Z",                     FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isArrayClass)},
   {CC"RiType_isInstanceClass",          CC"("PROXY")Z",                     FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInstanceClass)},
   {CC"RiType_isInterface",              CC"("PROXY")Z",                     FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1isInterface)},
+  {CC"RiType_instanceSize",             CC"("PROXY")J",                     FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1instanceSize)},
   {CC"getConfiguration",                CC"()"CONFIG,                       FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getConfiguration)},
   {CC"installMethod",                   CC"("TARGET_METHOD")V",             FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installMethod)},
   {CC"installStub",                     CC"("TARGET_METHOD")"PROXY,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installStub)}

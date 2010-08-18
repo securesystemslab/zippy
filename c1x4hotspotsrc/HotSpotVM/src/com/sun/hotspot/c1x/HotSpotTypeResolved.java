@@ -35,6 +35,7 @@ public class HotSpotTypeResolved implements HotSpotType {
     private Boolean isArrayClass;
     private Boolean isInstanceClass;
     private Boolean isInterface;
+    private long instanceSize;
 
     public HotSpotTypeResolved(long vmId, String name) {
         this.vmId = vmId;
@@ -170,6 +171,13 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     public long getVmId() {
         return vmId;
+    }
+
+    public long instanceSize() {
+        if (instanceSize == 0) {
+            instanceSize = Compiler.getVMEntries().RiType_instanceSize(vmId);
+        }
+        return instanceSize;
     }
 
 }

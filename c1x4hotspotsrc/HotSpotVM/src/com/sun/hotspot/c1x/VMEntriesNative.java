@@ -74,6 +74,9 @@ public class VMEntriesNative implements VMEntries {
     public native boolean RiType_isInterface(long vmId);
 
     @Override
+    public native long RiType_instanceSize(long vmId);
+
+    @Override
     public native RiConstantPool RiType_constantPool(long vmId);
 
     @Override

@@ -148,7 +148,7 @@ oop C1XObjects::getObject(jlong id) {
 }
 
 
-static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature) {
+static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
   symbolOop name_symbol = SymbolTable::probe(name, strlen(name));
   symbolOop signature_symbol = SymbolTable::probe(signature, strlen(signature));
   assert(name_symbol != NULL, "symbol not found - class layout changed?");
@@ -161,6 +161,7 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
     tty->print_cr("Invalid layout of %s at %s", ik->external_name(), name_symbol->as_C_string());
     fatal("Invalid layout of preloaded class");
   }
+  assert(fd.is_static() == static_field, "static/instance mismatch");
   dest_offset = fd.offset();
 }
 
@@ -169,15 +170,16 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
 
 #define END_CLASS }
 
-#define FIELD(klass, name, signature) compute_offset(klass::_##name##_offset, k, #name, signature);
-#define CHAR_FIELD(klass, name) FIELD(klass, name, "C")
-#define INT_FIELD(klass, name) FIELD(klass, name, "I")
-#define LONG_FIELD(klass, name) FIELD(klass, name, "J")
-#define OOP_FIELD(klass, name, signature) FIELD(klass, name, signature)
+#define FIELD(klass, name, signature, static_field) compute_offset(klass::_##name##_offset, k, #name, signature, static_field);
+#define CHAR_FIELD(klass, name) FIELD(klass, name, "C", false)
+#define INT_FIELD(klass, name) FIELD(klass, name, "I", false)
+#define LONG_FIELD(klass, name) FIELD(klass, name, "J", false)
+#define OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, false)
+#define STATIC_OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, true)
 
 
 void C1XCompiler::compute_offsets() {
-  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD)
+  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 }
 
 #define EMPTY0
@@ -186,7 +188,7 @@ void C1XCompiler::compute_offsets() {
 #define FIELD2(klass, name) int klass::_##name##_offset = 0;
 #define FIELD3(klass, name, sig) FIELD2(klass, name)
 
-COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD3)
+COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD3, FIELD3)
 
 
 

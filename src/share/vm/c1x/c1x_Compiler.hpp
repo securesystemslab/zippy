@@ -188,7 +188,7 @@ inline symbolOop C1XObjects::toSymbol(jstring string) {
 // defines the structure of the CiTargetMethod - classes
 // this will generate classes with accessors similar to javaClasses.hpp
 
-#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, long_field, oop_field)   \
+#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, long_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
     long_field(HotSpotTypeResolved, vmId)                                               \
   end_class                                                                             \
@@ -261,6 +261,7 @@ inline symbolOop C1XObjects::toSymbol(jstring string) {
     char_field(CiKind, typeChar)                                                        \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
+    static_oop_field(CiRuntimeCall, Debug, "Lcom/sun/cri/ci/CiRuntimeCall;");           \
   end_class                                                                             \
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
@@ -292,8 +293,12 @@ inline symbolOop C1XObjects::toSymbol(jstring string) {
 #define INT_FIELD(klass, name) FIELD(name, jint, int_field)
 #define LONG_FIELD(klass, name) FIELD(name, jlong, long_field)
 #define OOP_FIELD(klass, name, signature) FIELD(name, oop, obj_field)
+#define STATIC_OOP_FIELD(klassName, name, signature) \
+    static int _##name##_offset;                \
+    static oop name()             { return klassName::klass()->obj_field(_##name##_offset); } \
+    static void set_##name(oop x) { klassName::klass()->obj_field_put(_##name##_offset, x); }
 
-COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD)
+COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 #undef START_CLASS
 #undef END_CLASS
 #undef FIELD
@@ -301,5 +306,6 @@ COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, O
 #undef INT_FIELD
 #undef LONG_FIELD
 #undef OOP_FIELD
+#undef STATIC_OOP_FIELD
 
 

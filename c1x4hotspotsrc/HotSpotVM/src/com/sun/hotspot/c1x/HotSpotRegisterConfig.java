@@ -146,6 +146,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
             case Int:
             case Long:
             case Object:
+            case Word:
                 return AMD64.rax;
             case Float:
             case Double:

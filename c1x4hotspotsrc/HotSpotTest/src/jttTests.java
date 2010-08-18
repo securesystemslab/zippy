@@ -4,7 +4,7 @@ import com.sun.hotspot.c1x.logging.Logger;
 public class jttTests {
 
 	public static void main(String[] args) {
-		runTests(128, 128);
+		runTests(182, 182);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 
@@ -730,7 +730,7 @@ public class jttTests {
 			jtt_optimize_Inline02();
 			break;
 		case 226:
-			jtt_optimize_List_reorder_bug();
+			//jtt_optimize_List_reorder_bug();
 			break;
 		case 227:
 			jtt_optimize_NCE_01();
