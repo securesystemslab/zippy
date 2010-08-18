@@ -127,38 +127,6 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         return templates;
     }
 
-    private XirTemplate buildNewInstance() {
-        XirOperand result = asm.restart(CiKind.Word);
-        XirOperand type = asm.createInputParameter("type", CiKind.Object);
-        XirOperand instanceSize = asm.createConstantInputParameter("instance size", CiKind.Word);
-
-        XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
-        XirOperand temp1 = asm.createTemp("temp1", CiKind.Word);
-        XirOperand temp2 = asm.createTemp("temp2", CiKind.Word);
-        XirLabel tlabFull = asm.createOutOfLineLabel("tlab full");
-        XirLabel resume = asm.createInlineLabel("resume");
-
-        asm.pload(CiKind.Word, result, thread, asm.i(config.threadTlabTopOffset), false);
-        asm.add(temp1, result, instanceSize);
-        asm.pload(CiKind.Word, temp2, thread, asm.i(config.threadTlabEndOffset), false);
-
-        asm.jgt(tlabFull, temp1, temp2);
-        asm.pstore(CiKind.Word, thread, asm.i(config.threadTlabTopOffset), temp1, false);
-        asm.bindInline(resume);
-
-        asm.pload(CiKind.Word, temp1, type, asm.i(config.instanceHeaderPrototypeOffset), false);
-        asm.pstore(CiKind.Word, result, temp1, false);
-        asm.pstore(CiKind.Object, result, asm.i(config.hubOffset), type, false);
-
-        asm.bindOutOfLine(tlabFull);
-        XirOperand arg = asm.createRegister("runtime call argument", CiKind.Object, AMD64.rdx);
-        asm.mov(arg, type);
-        asm.callRuntime(config.newInstanceStub, result);
-        asm.jmp(resume);
-
-        return asm.finishTemplate("new instance");
-    }
-
     private XirTemplate buildPrologue(boolean staticMethod) {
         asm.restart(CiKind.Void);
         XirOperand temp = asm.createRegister("temp (rax)", CiKind.Int, AMD64.rax);
@@ -428,6 +396,38 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         asm.bindOutOfLine(dummy);
 
         return asm.finishTemplate(addr, "invokespecial");
+    }
+
+    private XirTemplate buildNewInstance() {
+        XirOperand result = asm.restart(CiKind.Word);
+        XirOperand type = asm.createInputParameter("type", CiKind.Object);
+        XirOperand instanceSize = asm.createConstantInputParameter("instance size", CiKind.Word);
+
+        XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
+        XirOperand temp1 = asm.createTemp("temp1", CiKind.Word);
+        XirOperand temp2 = asm.createTemp("temp2", CiKind.Word);
+        XirLabel tlabFull = asm.createOutOfLineLabel("tlab full");
+        XirLabel resume = asm.createInlineLabel("resume");
+
+        asm.pload(CiKind.Word, result, thread, asm.i(config.threadTlabTopOffset), false);
+        asm.add(temp1, result, instanceSize);
+        asm.pload(CiKind.Word, temp2, thread, asm.i(config.threadTlabEndOffset), false);
+
+        asm.jgt(tlabFull, temp1, temp2);
+        asm.pstore(CiKind.Word, thread, asm.i(config.threadTlabTopOffset), temp1, false);
+        asm.bindInline(resume);
+
+        asm.pload(CiKind.Word, temp1, type, asm.i(config.instanceHeaderPrototypeOffset), false);
+        asm.pstore(CiKind.Word, result, temp1, false);
+        asm.pstore(CiKind.Object, result, asm.i(config.hubOffset), type, false);
+
+        asm.bindOutOfLine(tlabFull);
+        XirOperand arg = asm.createRegister("runtime call argument", CiKind.Object, AMD64.rdx);
+        asm.mov(arg, type);
+        asm.callRuntime(config.newInstanceStub, result);
+        asm.jmp(resume);
+
+        return asm.finishTemplate("new instance");
     }
 
     @Override
