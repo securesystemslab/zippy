@@ -35,17 +35,17 @@ import com.sun.cri.xir.CiXirAssembler.*;
  */
 public class HotSpotXirGenerator implements RiXirGenerator {
 
-    // this needs to correspond to c1x_Compiler.hpp
-    private static final Integer MARK_VERIFIED_ENTRY = 1;
-    private static final Integer MARK_UNVERIFIED_ENTRY = 2;
-    private static final Integer MARK_OSR_ENTRY = 3;
-    private static final Integer MARK_STATIC_CALL_STUB = 1000;
-
-    private static final Integer MARK_INVOKE_INVALID = 2000;
-    private static final Integer MARK_INVOKEINTERFACE = 2001;
-    private static final Integer MARK_INVOKESTATIC = 2002;
-    private static final Integer MARK_INVOKESPECIAL = 2003;
-    private static final Integer MARK_INVOKEVIRTUAL = 2004;
+    // this needs to correspond to c1x_CodeInstaller.hpp
+    private static final Integer MARK_VERIFIED_ENTRY = 0x0001;
+    private static final Integer MARK_UNVERIFIED_ENTRY = 0x0002;
+    private static final Integer MARK_OSR_ENTRY = 0x0003;
+    private static final Integer MARK_STATIC_CALL_STUB = 0x1000;
+    private static final Integer MARK_INVOKE_INVALID = 0x2000;
+    private static final Integer MARK_INVOKEINTERFACE = 0x2001;
+    private static final Integer MARK_INVOKESTATIC = 0x2002;
+    private static final Integer MARK_INVOKESPECIAL = 0x2003;
+    private static final Integer MARK_INVOKEVIRTUAL = 0x2004;
+    private static final Integer MARK_IMPLICIT_NULL_EXCEPTION_TARGET = 0x3000;
 
     private final HotSpotVMConfig config;
     private final CiTarget target;
@@ -446,6 +446,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         XirLabel dummy = asm.createOutOfLineLabel("dummy");
         asm.jmp(dummy);
         asm.bindOutOfLine(dummy);
+
+        asm.mark(MARK_IMPLICIT_NULL_EXCEPTION_TARGET, XirMark.CALLSITE);
+        asm.callRuntime(config.throwImplicitNullStub, null);
 
         return asm.finishTemplate(addr, "invokespecial");
     }

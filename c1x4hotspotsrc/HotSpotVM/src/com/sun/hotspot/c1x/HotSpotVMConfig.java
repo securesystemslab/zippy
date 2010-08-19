@@ -46,6 +46,7 @@ public class HotSpotVMConfig implements CompilerObject {
     public long debugStub;
     public long resolveStaticCallStub;
     public long newInstanceStub;
+    public long throwImplicitNullStub;
 
     public void check() {
         assert vmPageSize >= 16;
