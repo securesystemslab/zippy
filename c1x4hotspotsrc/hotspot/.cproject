@@ -16,21 +16,18 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="c1x4hotspot" buildProperties="" description="" id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration artifactName="hotspot" buildProperties="" description="" id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881.305678577" name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.1866612258" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.2075405295" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
-							<builder arguments="${workspace_loc:/c1x4hotspot}/domake" autoBuildTarget="jvmg1" buildPath="${workspace_loc:/c1x4hotspot}/make" cleanBuildTarget="clean" command="bash" enableAutoBuild="true" enableCleanBuild="false" enabledIncrementalBuild="true" id="cdt.managedbuild.target.gnu.builder.base.81453037" incrementalBuildTarget="jvmg1" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base">
+							<builder arguments="${workspace_loc:/hotspot}/../../domake" autoBuildTarget="jvmg1" buildPath="${workspace_loc:/hotspot}/../../make" cleanBuildTarget="clean" command="bash" enableAutoBuild="true" enableCleanBuild="false" enabledIncrementalBuild="true" id="cdt.managedbuild.target.gnu.builder.base.81453037" incrementalBuildTarget="jvmg1" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base">
 								<outputEntries>
-									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="make"/>
-									<entry excluding="libjvm*.so" flags="VALUE_WORKSPACE_PATH" kind="outputPath" name="build/linux/linux_amd64_compiler1/jvmg"/>
+									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name=""/>
 								</outputEntries>
 							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1094883386" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1342888057" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
-								<option id="gnu.cpp.compiler.option.include.paths.801956928" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c1x4hotspot/build/solaris/solaris_amd64_compiler1/generated}&quot;"/>
-								</option>
+								<option id="gnu.cpp.compiler.option.include.paths.801956928" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.634868600" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="_LP64"/>
 									<listOptionValue builtIn="false" value="_REENTRANT"/>
@@ -67,12 +64,11 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/share/vm"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/cpu/x86/vm"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/os/linux/vm"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/os_cpu/linux_x86"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/os/linux/launcher"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="build/linux/linux_amd64_compiler1/generated"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="vm"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="os"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="cpu"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="os_cpu"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="generated"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -664,6 +660,6 @@
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-		<project id="c1x4hotspot.null.1712822257" name="c1x4hotspot"/>
+		<project id="hotspot.null.1712822257" name="hotspot"/>
 	</storageModule>
 </cproject>

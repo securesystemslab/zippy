@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>c1x4hotspot</name>
+	<name>hotspot</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -11,7 +11,7 @@
 			<arguments>
 				<dictionary>
 					<key>?children?</key>
-					<value>?name?=outputEntries\|?children?=?name?=entry\\\\\\\|\\\|?name?=entry\\\\\\\|\\\|\||</value>
+					<value>?name?=outputEntries\|?children?=?name?=entry\\\\\\\|\\\|\||</value>
 				</dictionary>
 				<dictionary>
 					<key>?name?</key>
@@ -27,7 +27,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildArguments</key>
-					<value>${workspace_loc:/c1x4hotspot}/domake</value>
+					<value>${workspace_loc:/hotspot}/../../domake</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildCommand</key>
@@ -35,7 +35,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildLocation</key>
-					<value>${workspace_loc:/c1x4hotspot}/make</value>
+					<value>${workspace_loc:/hotspot}/../../make</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.cleanBuildTarget</key>
@@ -86,9 +86,34 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>client</name>
+			<name>cpu</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/jre1.7.0/lib/amd64/client</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/src/cpu/x86</locationURI>
+		</link>
+		<link>
+			<name>generated</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/build/linux/linux_amd64_compiler1/generated</locationURI>
+		</link>
+		<link>
+			<name>jvmg</name>
+			<type>2</type>
+			<locationURI>build/linux/linux_amd64_compiler1/jvmg</locationURI>
+		</link>
+		<link>
+			<name>os</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/os/linux</locationURI>
+		</link>
+		<link>
+			<name>os_cpu</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/os_cpu/linux_x86</locationURI>
+		</link>
+		<link>
+			<name>vm</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/share/vm</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
