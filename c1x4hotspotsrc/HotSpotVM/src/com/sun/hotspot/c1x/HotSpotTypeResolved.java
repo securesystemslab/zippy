@@ -145,7 +145,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public boolean isSubtypeOf(RiType other) {
-        assert other instanceof HotSpotType;
+        assert other instanceof HotSpotType  : "unexpected 'other' type: " + other;
         if (other instanceof HotSpotTypeResolved)
             return Compiler.getVMEntries().RiType_isSubtypeOf(vmId, other);
         // no resolved type is a subtype of an unresolved type

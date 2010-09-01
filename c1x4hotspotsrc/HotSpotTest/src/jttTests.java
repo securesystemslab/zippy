@@ -4,7 +4,7 @@ import com.sun.hotspot.c1x.logging.Logger;
 public class jttTests {
 
 	public static void main(String[] args) {
-		runTests(0, 1000);
+		runTests(526, 526);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 
@@ -1630,13 +1630,13 @@ public class jttTests {
 			jtt_reflect_Class_getField01();
 			break;
 		case 526:
-			//jtt_reflect_Class_getField02();
+			jtt_reflect_Class_getField02();
 			break;
 		case 527:
 			jtt_reflect_Class_getMethod01();
 			break;
 		case 528:
-			//jtt_reflect_Class_getMethod02();
+			jtt_reflect_Class_getMethod02();
 			break;
 		case 529:
 			jtt_reflect_Class_newInstance01();
@@ -1681,19 +1681,19 @@ public class jttTests {
 			jtt_reflect_Invoke_except01();
 			break;
 		case 543:
-			//jtt_reflect_Invoke_main01();
+			jtt_reflect_Invoke_main01();
 			break;
 		case 544:
-			//jtt_reflect_Invoke_main02();
+			jtt_reflect_Invoke_main02();
 			break;
 		case 545:
-			//jtt_reflect_Invoke_main03();
+			jtt_reflect_Invoke_main03();
 			break;
 		case 546:
-			//jtt_reflect_Invoke_virtual01();
+			jtt_reflect_Invoke_virtual01();
 			break;
 		case 547:
-			//jtt_reflect_Method_getParameterTypes01();
+			jtt_reflect_Method_getParameterTypes01();
 			break;
 		case 548:
 			jtt_reflect_Method_getReturnType01();
@@ -1795,10 +1795,10 @@ public class jttTests {
 			jtt_jdk_Class_getName();
 			break;
 		case 581:
-			//jtt_jdk_EnumMap01();
+			jtt_jdk_EnumMap01();
 			break;
 		case 582:
-			//jtt_jdk_EnumMap02();
+			jtt_jdk_EnumMap02();
 			break;
 		case 583:
 			jtt_jdk_System_currentTimeMillis01();

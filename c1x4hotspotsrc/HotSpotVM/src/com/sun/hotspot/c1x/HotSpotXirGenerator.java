@@ -242,6 +242,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     private XirTemplate buildArrayLength() {
         XirOperand result = asm.restart(CiKind.Int);
         XirParameter object = asm.createInputParameter("object", CiKind.Object);
+        asm.nop(1);
         asm.mark(MARK_IMPLICIT_NULL);
         asm.pload(CiKind.Int, result, object, asm.i(config.arrayLengthOffset), true);
         return asm.finishTemplate("arrayLength");
@@ -274,6 +275,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirOperand result = asm.restart(kind);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter fieldOffset = asm.createConstantInputParameter("fieldOffset", CiKind.Int);
+            asm.nop(1);
             asm.mark(MARK_IMPLICIT_NULL);
             asm.pload(kind, result, object, fieldOffset, true);
             resolved = asm.finishTemplate("getfield<" + kind + ">");
@@ -291,6 +293,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter value = asm.createInputParameter("value", kind);
             XirParameter fieldOffset = asm.createConstantInputParameter("fieldOffset", CiKind.Int);
+            asm.nop(1);
             asm.mark(MARK_IMPLICIT_NULL);
             asm.pstore(kind, object, fieldOffset, value, true);
             if (genWriteBarrier) {
@@ -311,6 +314,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirOperand result = asm.restart(kind);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter fieldOffset = asm.createConstantInputParameter("fieldOffset", CiKind.Int);
+            asm.nop(1);
             asm.mark(MARK_IMPLICIT_NULL);
             asm.pload(kind, result, object, fieldOffset, true);
             resolved = asm.finishTemplate("getfield<" + kind + ">");
@@ -328,6 +332,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter value = asm.createInputParameter("value", kind);
             XirParameter fieldOffset = asm.createConstantInputParameter("fieldOffset", CiKind.Int);
+            asm.nop(1);
             asm.mark(MARK_IMPLICIT_NULL);
             asm.pstore(kind, object, fieldOffset, value, true);
             if (genWriteBarrier) {
@@ -500,6 +505,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 length = asm.createInputParameter("length", CiKind.Int);
             } else {
                 length = asm.createTemp("length", CiKind.Int);
+                asm.nop(1);
                 asm.mark(MARK_IMPLICIT_NULL);
                 asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), true);
                 implicitNullException = false;
@@ -565,6 +571,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 length = asm.createInputParameter("length", CiKind.Int);
             } else {
                 length = asm.createTemp("length", CiKind.Int);
+                asm.nop(1);
                 asm.mark(MARK_IMPLICIT_NULL);
                 asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), true);
                 implicitNullException = false;
@@ -574,6 +581,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         }
         int elemSize = target.sizeInBytes(kind);
         if (implicitNullException) {
+            asm.nop(1);
             asm.mark(MARK_IMPLICIT_NULL);
         }
         asm.pload(kind, result, array, index, config.getArrayOffset(kind), Scale.fromInt(elemSize), implicitNullException);
@@ -611,6 +619,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
         XirLabel stub = asm.createOutOfLineLabel("call stub");
 
+        asm.nop(1);
         asm.mark(MARK_IMPLICIT_NULL);
         asm.pload(CiKind.Word, temp, receiver, true);
         asm.mark(MARK_INVOKESPECIAL);
@@ -635,6 +644,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
         XirLabel stub = asm.createOutOfLineLabel("call stub");
 
+        asm.nop(1);
         asm.mark(MARK_IMPLICIT_NULL);
         asm.pload(CiKind.Word, temp, receiver, true);
         asm.mark(MARK_INVOKEINTERFACE);
@@ -659,6 +669,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
         XirLabel stub = asm.createOutOfLineLabel("call stub");
 
+        asm.nop(1);
         asm.mark(MARK_IMPLICIT_NULL);
         asm.pload(CiKind.Word, temp, receiver, true);
         asm.mark(MARK_INVOKEVIRTUAL);
@@ -972,7 +983,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genResolveClass(XirSite site, RiType type, Representation representation) {
-        assert representation == Representation.ObjectHub;
+        assert representation == Representation.ObjectHub : "unexpected representation: " + representation;
         if (type instanceof HotSpotTypeResolved) {
             return new XirSnippet(resolveClassTemplate.resolved, XirArgument.forObject(type));
         }
