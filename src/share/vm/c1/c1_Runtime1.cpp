@@ -173,6 +173,8 @@ void Runtime1::generate_blob_for(StubID id) {
     case slow_subtype_check_id:
     case fpu2long_stub_id:
     case unwind_exception_id:
+    case c1x_unwind_exception_call_id:
+    case c1x_slow_subtype_check_id:
 #ifndef TIERED
     case counter_overflow_id: // Not generated outside the tiered world
 #endif
@@ -411,6 +413,9 @@ extern void vm_exit(int code);
 JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* thread, oopDesc* ex, address pc, nmethod*& nm))
 
   Handle exception(thread, ex);
+  if (UseC1X && exception.is_null()) {
+    exception = Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
+  }
   nm = CodeCache::find_nmethod(pc);
   assert(nm != NULL, "this is not an nmethod");
   // Adjust the pc as needed/

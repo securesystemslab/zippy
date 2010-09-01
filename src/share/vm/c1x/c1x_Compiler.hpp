@@ -26,11 +26,16 @@ class C1XCompiler : public AbstractCompiler {
 
 private:
 
-  bool _initialized;
+  bool                  _initialized;
+
+  static C1XCompiler*   _instance;
 
 public:
 
-  C1XCompiler() { _initialized = false; }
+  C1XCompiler();
+
+  static C1XCompiler* instance() { return _instance; }
+
 
   virtual const char* name() { return "C1X"; }
 
@@ -54,13 +59,8 @@ public:
   static oop get_RiType(ciType *klass, klassOop accessor, TRAPS);
   static oop get_RiField(ciField *ciField, TRAPS);
 
-/*
-  static oop get_RiMethod(ciMethod *ciMethod, TRAPS);
-  static oop get_RiType(klassOop klass, TRAPS);
-  static oop get_RiMethod(methodOop method, TRAPS);
-  static oop get_unresolved_RiType(oop klass, klassOop accessingType, TRAPS);
-  static oop get_RiConstantPool(constantPoolOop cpOop, TRAPS);
-*/
+  static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
+
 };
 
 // Tracing macros
@@ -71,11 +71,12 @@ public:
 #define IF_TRACE_C1X_4 if (TraceC1X >= 4) 
 #define IF_TRACE_C1X_5 if (TraceC1X >= 5) 
 
-#define TRACE_C1X_1 if (TraceC1X >= 1) tty->print("TraceC1X-1: "); if (TraceC1X >= 1) tty->print_cr
-#define TRACE_C1X_2 if (TraceC1X >= 2) tty->print("   TraceC1X-2: "); if (TraceC1X >= 2) tty->print_cr
-#define TRACE_C1X_3 if (TraceC1X >= 3) tty->print("      TraceC1X-3: "); if (TraceC1X >= 3) tty->print_cr
-#define TRACE_C1X_4 if (TraceC1X >= 4) tty->print("         TraceC1X-4: "); if (TraceC1X >= 4) tty->print_cr
-#define TRACE_C1X_5 if (TraceC1X >= 5) tty->print("            TraceC1X-5: "); if (TraceC1X >= 5) tty->print_cr
+// using commas to keep one-instruction semantics
+#define TRACE_C1X_1 if (TraceC1X >= 1 && (tty->print("TraceC1X-1: "), true)) tty->print_cr
+#define TRACE_C1X_2 if (TraceC1X >= 2 && (tty->print("   TraceC1X-2: "), true)) tty->print_cr
+#define TRACE_C1X_3 if (TraceC1X >= 3 && (tty->print("      TraceC1X-3: "), true)) tty->print_cr
+#define TRACE_C1X_4 if (TraceC1X >= 4 && (tty->print("         TraceC1X-4: "), true)) tty->print_cr
+#define TRACE_C1X_5 if (TraceC1X >= 5 && (tty->print("            TraceC1X-5: "), true)) tty->print_cr
 
 
 

@@ -20,6 +20,7 @@ package com.sun.hotspot.c1x.logging;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
+
 /**
  * Scoped logging class used to display the call hierarchy of VMEntries/VMExits calls
  *
@@ -27,7 +28,7 @@ import java.util.*;
  */
 public class Logger {
 
-    private static final boolean ENABLED = true;
+    public static final boolean ENABLED = Boolean.valueOf(System.getProperty("c1x.debug"));
     private static final int SPACING = 4;
     private static Deque<Boolean> openStack = new LinkedList<Boolean>();
     private static boolean open = false;
@@ -36,21 +37,30 @@ public class Logger {
     private final static PrintStream out;
 
     static {
-        PrintStream ps;
-        try {
-            ps = new PrintStream(new FileOutputStream("output.txt"));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            ps = null;
+        PrintStream ps = null;
+        String filename = System.getProperty("c1x.info_file");
+        if (filename != null && !"".equals(filename)) {
+            try {
+                ps = new PrintStream(new FileOutputStream(filename));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                ps = null;
+            }
         }
         out = ps;
-        out.println("start: " + new Date());
+        if (out != null)
+            out.println("start: " + new Date());
     }
 
     public static void info(String message) {
-        log(message);
-        out.println(message);
-        out.flush();
+        if (ENABLED)
+            log(message);
+        else
+            System.out.println(message);
+        if (out != null) {
+            out.println(message);
+            out.flush();
+        }
     }
 
     public static void log(String message) {

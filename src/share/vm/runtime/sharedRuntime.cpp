@@ -611,7 +611,11 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #ifndef PRODUCT
           _implicit_null_throws++;
 #endif
-          target_pc = nm->continuation_for_implicit_exception(pc);
+          if (UseC1X) {
+            target_pc = Runtime1::entry_for(Runtime1::c1x_global_implicit_null_id);
+          } else {
+            target_pc = nm->continuation_for_implicit_exception(pc);
+          }
           // If there's an unexpected fault, target_pc might be NULL,
           // in which case we want to fall through into the normal
           // error handling code.
@@ -627,7 +631,11 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #ifndef PRODUCT
         _implicit_div0_throws++;
 #endif
-        target_pc = nm->continuation_for_implicit_exception(pc);
+        if (UseC1X) {
+          target_pc = Runtime1::entry_for(Runtime1::c1x_throw_div0_exception_id);
+        } else {
+          target_pc = nm->continuation_for_implicit_exception(pc);
+        }
         // If there's an unexpected fault, target_pc might be NULL,
         // in which case we want to fall through into the normal
         // error handling code.

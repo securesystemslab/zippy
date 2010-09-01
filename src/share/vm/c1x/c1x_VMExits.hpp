@@ -34,23 +34,26 @@ private:
 
 public:
 
-  // public abstract void compileMethod(HotSpotProxy method, String name, int entry_bci);
+  // public abstract void compileMethod(long vmId, String name, int entry_bci);
   static void compileMethod(jlong vmId, Handle name, int entry_bci);
 
-  // public abstract RiMethod createRiMethod(HotSpotProxy method, String name);
-  static oop createRiMethod(jlong vmId, Handle name, TRAPS);
+  // public abstract RiMethod createRiMethodResolved(long vmId, String name);
+  static oop createRiMethodResolved(jlong vmId, Handle name, TRAPS);
+
+  // public abstract RiMethod createRiMethodUnresolved(String name, String signature, RiType holder);
+  static oop createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS);
 
   // public abstract RiField createRiField(RiType holder, String name, RiType type, int offset);
   static oop createRiField(Handle holder, Handle name, Handle type, int index, TRAPS);
 
-  // public abstract RiType createRiType(HotSpotProxy klassOop, String name);
+  // public abstract RiType createRiType(long vmId, String name);
   static oop createRiType(jlong vmId, Handle name, TRAPS);
 
-  // public abstract RiConstantPool createRiConstantPool(HotSpotProxy constantPool);
-  static oop createRiConstantPool(jlong vmId, TRAPS);
-
-  // public abstract RiType createRiTypeUnresolved(String name, HotSpotProxy accessingKlass);
+  // public abstract RiType createRiTypeUnresolved(String name, long accessingClassVmId);
   static oop createRiTypeUnresolved(Handle name, jlong accessingClassVmId, TRAPS);
+
+  // public abstract RiConstantPool createRiConstantPool(long vmId);
+  static oop createRiConstantPool(jlong vmId, TRAPS);
 
   // public abstract RiType createRiTypePrimitive(int basicType);
   static oop createRiTypePrimitive(int basicType, TRAPS);
@@ -70,7 +73,7 @@ public:
   // public abstract CiConstant createCiConstantDouble(double value);
   static oop createCiConstantDouble(jdouble value, TRAPS);
 
-  // public abstract CiConstant createCiConstantObject(HotSpotProxy value);
+  // public abstract CiConstant createCiConstantObject(long vmId);
   static oop createCiConstantObject(jlong vmId, TRAPS);
 };
 

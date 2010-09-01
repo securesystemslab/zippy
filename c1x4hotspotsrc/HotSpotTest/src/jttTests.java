@@ -4,7 +4,7 @@ import com.sun.hotspot.c1x.logging.Logger;
 public class jttTests {
 
 	public static void main(String[] args) {
-		runTests(0, 200);
+		runTests(0, 1000);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 
@@ -82,7 +82,7 @@ public class jttTests {
 			jtt_bytecode_BC_arraylength();
 			break;
 		case 10:
-			//jtt_bytecode_BC_athrow();
+			jtt_bytecode_BC_athrow();
 			break;
 		case 11:
 			jtt_bytecode_BC_baload();
@@ -97,25 +97,25 @@ public class jttTests {
 			jtt_bytecode_BC_castore();
 			break;
 		case 15:
-			//jtt_bytecode_BC_checkcast01();
+			jtt_bytecode_BC_checkcast01();
 			break;
 		case 16:
-			//jtt_bytecode_BC_checkcast02();
+			jtt_bytecode_BC_checkcast02();
 			break;
 		case 17:
 			jtt_bytecode_BC_d2f();
 			break;
 		case 18:
-			//jtt_bytecode_BC_d2i01();
+			jtt_bytecode_BC_d2i01();
 			break;
 		case 19:
-			//jtt_bytecode_BC_d2i02();
+			jtt_bytecode_BC_d2i02();
 			break;
 		case 20:
-			//jtt_bytecode_BC_d2l01();
+			jtt_bytecode_BC_d2l01();
 			break;
 		case 21:
-			//jtt_bytecode_BC_d2l02();
+			jtt_bytecode_BC_d2l02();
 			break;
 		case 22:
 			jtt_bytecode_BC_dadd();
@@ -580,10 +580,10 @@ public class jttTests {
 			jtt_bytecode_BC_lxor();
 			break;
 		case 176:
-			jtt_bytecode_BC_monitorenter();
+			// jtt_bytecode_BC_monitorenter();
 			break;
 		case 177:
-			jtt_bytecode_BC_monitorenter02();
+			// jtt_bytecode_BC_monitorenter02();
 			break;
 		case 178:
 			jtt_bytecode_BC_multianewarray01();
@@ -1024,7 +1024,7 @@ public class jttTests {
 			jtt_except_BC_lrem();
 			break;
 		case 324:
-			jtt_except_BC_monitorenter();
+			//jtt_except_BC_monitorenter();
 			break;
 		case 325:
 			jtt_except_BC_multianewarray();
@@ -1108,19 +1108,19 @@ public class jttTests {
 			jtt_except_Catch_Two03();
 			break;
 		case 352:
-			jtt_except_Except_Synchronized01();
+			//jtt_except_Except_Synchronized01();
 			break;
 		case 353:
-			jtt_except_Except_Synchronized02();
+			//jtt_except_Except_Synchronized02();
 			break;
 		case 354:
-			jtt_except_Except_Synchronized03();
+			//jtt_except_Except_Synchronized03();
 			break;
 		case 355:
-			jtt_except_Except_Synchronized04();
+			//jtt_except_Except_Synchronized04();
 			break;
 		case 356:
-			jtt_except_Except_Synchronized05();
+			//jtt_except_Except_Synchronized05();
 			break;
 		case 357:
 			jtt_except_Finally01();
@@ -1159,19 +1159,19 @@ public class jttTests {
 			jtt_except_Throw_NPE_01();
 			break;
 		case 369:
-			jtt_except_Throw_Synchronized01();
+			//jtt_except_Throw_Synchronized01();
 			break;
 		case 370:
-			jtt_except_Throw_Synchronized02();
+			//jtt_except_Throw_Synchronized02();
 			break;
 		case 371:
-			jtt_except_Throw_Synchronized03();
+			//jtt_except_Throw_Synchronized03();
 			break;
 		case 372:
-			jtt_except_Throw_Synchronized04();
+			//jtt_except_Throw_Synchronized04();
 			break;
 		case 373:
-			jtt_except_Throw_Synchronized05();
+			//jtt_except_Throw_Synchronized05();
 			break;
 		case 374:
 			jtt_lang_Boxed_TYPE_01();
@@ -1213,7 +1213,7 @@ public class jttTests {
 			jtt_lang_Class_getComponentType01();
 			break;
 		case 387:
-			jtt_lang_Class_getInterfaces01();
+			//jtt_lang_Class_getInterfaces01();
 			break;
 		case 388:
 			jtt_lang_Class_getName01();
@@ -1378,16 +1378,16 @@ public class jttTests {
 			jtt_lang_Object_hashCode01();
 			break;
 		case 442:
-			jtt_lang_Object_notify01();
+			//jtt_lang_Object_notify01();
 			break;
 		case 443:
-			jtt_lang_Object_notify02();
+			//jtt_lang_Object_notify02();
 			break;
 		case 444:
-			jtt_lang_Object_notifyAll01();
+			//jtt_lang_Object_notifyAll01();
 			break;
 		case 445:
-			jtt_lang_Object_notifyAll02();
+			//jtt_lang_Object_notifyAll02();
 			break;
 		case 446:
 			jtt_lang_Object_toString01();
@@ -1396,13 +1396,13 @@ public class jttTests {
 			jtt_lang_Object_toString02();
 			break;
 		case 448:
-			jtt_lang_Object_wait01();
+			//jtt_lang_Object_wait01();
 			break;
 		case 449:
-			jtt_lang_Object_wait02();
+			//jtt_lang_Object_wait02();
 			break;
 		case 450:
-			jtt_lang_Object_wait03();
+			//jtt_lang_Object_wait03();
 			break;
 		case 451:
 			jtt_lang_ProcessEnvironment_init();
@@ -1453,7 +1453,7 @@ public class jttTests {
 			jtt_micro_BigIntParams02();
 			break;
 		case 467:
-			jtt_micro_BigInterfaceParams01();
+			//jtt_micro_BigInterfaceParams01();
 			break;
 		case 468:
 			jtt_micro_BigLongParams02();
@@ -1471,7 +1471,7 @@ public class jttTests {
 			jtt_micro_BigObjectParams01();
 			break;
 		case 473:
-			jtt_micro_BigObjectParams02();
+			//jtt_micro_BigObjectParams02();
 			break;
 		case 474:
 			jtt_micro_BigParamsAlignment();
@@ -1480,7 +1480,7 @@ public class jttTests {
 			jtt_micro_BigShortParams01();
 			break;
 		case 476:
-			jtt_micro_BigVirtualParams01();
+			//jtt_micro_BigVirtualParams01();
 			break;
 		case 477:
 			jtt_micro_Bubblesort();
@@ -1501,7 +1501,7 @@ public class jttTests {
 			jtt_micro_StrangeFrames();
 			break;
 		case 483:
-			jtt_micro_String_format01();
+			//jtt_micro_String_format01();
 			break;
 		case 484:
 			jtt_micro_String_format02();
@@ -1630,13 +1630,13 @@ public class jttTests {
 			jtt_reflect_Class_getField01();
 			break;
 		case 526:
-			jtt_reflect_Class_getField02();
+			//jtt_reflect_Class_getField02();
 			break;
 		case 527:
 			jtt_reflect_Class_getMethod01();
 			break;
 		case 528:
-			jtt_reflect_Class_getMethod02();
+			//jtt_reflect_Class_getMethod02();
 			break;
 		case 529:
 			jtt_reflect_Class_newInstance01();
@@ -1681,19 +1681,19 @@ public class jttTests {
 			jtt_reflect_Invoke_except01();
 			break;
 		case 543:
-			jtt_reflect_Invoke_main01();
+			//jtt_reflect_Invoke_main01();
 			break;
 		case 544:
-			jtt_reflect_Invoke_main02();
+			//jtt_reflect_Invoke_main02();
 			break;
 		case 545:
-			jtt_reflect_Invoke_main03();
+			//jtt_reflect_Invoke_main03();
 			break;
 		case 546:
-			jtt_reflect_Invoke_virtual01();
+			//jtt_reflect_Invoke_virtual01();
 			break;
 		case 547:
-			jtt_reflect_Method_getParameterTypes01();
+			//jtt_reflect_Method_getParameterTypes01();
 			break;
 		case 548:
 			jtt_reflect_Method_getReturnType01();
@@ -1702,28 +1702,28 @@ public class jttTests {
 			jtt_reflect_Reflection_getCallerClass01();
 			break;
 		case 550:
-			jtt_threads_Monitor_contended01();
+			//jtt_threads_Monitor_contended01();
 			break;
 		case 551:
-			jtt_threads_Monitor_notowner01();
+			//jtt_threads_Monitor_notowner01();
 			break;
 		case 552:
-			jtt_threads_Monitorenter01();
+			//jtt_threads_Monitorenter01();
 			break;
 		case 553:
-			jtt_threads_Monitorenter02();
+			//jtt_threads_Monitorenter02();
 			break;
 		case 554:
-			jtt_threads_Object_wait01();
+			//jtt_threads_Object_wait01();
 			break;
 		case 555:
-			jtt_threads_Object_wait02();
+			//jtt_threads_Object_wait02();
 			break;
 		case 556:
-			jtt_threads_Object_wait03();
+			//jtt_threads_Object_wait03();
 			break;
 		case 557:
-			jtt_threads_Object_wait04();
+			//jtt_threads_Object_wait04();
 			break;
 		case 558:
 			jtt_threads_ThreadLocal01();
@@ -1732,19 +1732,19 @@ public class jttTests {
 			jtt_threads_ThreadLocal02();
 			break;
 		case 560:
-			jtt_threads_ThreadLocal03();
+			//jtt_threads_ThreadLocal03();
 			break;
 		case 561:
 			jtt_threads_Thread_currentThread01();
 			break;
 		case 562:
-			jtt_threads_Thread_getState01();
+			//jtt_threads_Thread_getState01();
 			break;
 		case 563:
-			jtt_threads_Thread_getState02();
+			//jtt_threads_Thread_getState02();
 			break;
 		case 564:
-			jtt_threads_Thread_holdsLock01();
+			//jtt_threads_Thread_holdsLock01();
 			break;
 		case 565:
 			jtt_threads_Thread_isAlive01();
@@ -1753,7 +1753,7 @@ public class jttTests {
 			jtt_threads_Thread_isInterrupted01();
 			break;
 		case 567:
-			jtt_threads_Thread_isInterrupted02();
+			//jtt_threads_Thread_isInterrupted02();
 			break;
 		case 568:
 			jtt_threads_Thread_isInterrupted03();
@@ -1795,10 +1795,10 @@ public class jttTests {
 			jtt_jdk_Class_getName();
 			break;
 		case 581:
-			jtt_jdk_EnumMap01();
+			//jtt_jdk_EnumMap01();
 			break;
 		case 582:
-			jtt_jdk_EnumMap02();
+			//jtt_jdk_EnumMap02();
 			break;
 		case 583:
 			jtt_jdk_System_currentTimeMillis01();

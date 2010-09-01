@@ -172,8 +172,9 @@ class SymbolPropertyTable;
   template(Long_klass,                   java_lang_Long,                 Pre) \
                                                                               \
   template(HotSpotTypeResolved_klass,    com_sun_hotspot_c1x_HotSpotTypeResolved, Pre)                  \
-  template(HotSpotMethod_klass,          com_sun_hotspot_c1x_HotSpotMethod, Pre)                        \
+  template(HotSpotMethodResolved_klass,  com_sun_hotspot_c1x_HotSpotMethodResolved, Pre)                \
   template(HotSpotTargetMethod_klass,    com_sun_hotspot_c1x_HotSpotTargetMethod, Pre)                  \
+  template(HotSpotExceptionHandler_klass,com_sun_hotspot_c1x_HotSpotExceptionHandler, Pre)              \
   template(CiTargetMethod_klass,         com_sun_cri_ci_CiTargetMethod, Pre)                            \
   template(CiTargetMethod_Site_klass,    com_sun_cri_ci_CiTargetMethod_Site, Pre)                       \
   template(CiTargetMethod_Call_klass,    com_sun_cri_ci_CiTargetMethod_Call, Pre)                       \
@@ -190,6 +191,7 @@ class SymbolPropertyTable;
   template(CiKind_klass,                 com_sun_cri_ci_CiKind, Pre)                                    \
   template(CiRuntimeCall_klass,          com_sun_cri_ci_CiRuntimeCall, Pre)                             \
   template(RiMethod_klass,               com_sun_cri_ri_RiMethod, Pre)                                  \
+  template(RiExceptionHandler_klass,     com_sun_cri_ri_RiExceptionHandler, Pre)                        \
 
   /*end*/
 

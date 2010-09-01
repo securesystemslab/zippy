@@ -28,48 +28,68 @@ import com.sun.cri.ri.*;
 public class HotSpotTypeResolved implements HotSpotType {
 
     private final long vmId;
-
+    private final long javaMirrorVmId;
     private final String name;
+    private final int accessFlags;
+    private final boolean hasFinalizer;
+    private final boolean hasSubclass;
+    private final boolean hasFinalizableSubclass;
+    private final boolean isInitialized;
+    private final boolean isArrayClass;
+    private final boolean isInstanceClass;
+    private final boolean isInterface;
+    private final int instanceSize;
 
-    // cached values
-    private Boolean isArrayClass;
-    private Boolean isInstanceClass;
-    private Boolean isInterface;
-    private long instanceSize;
-
-    public HotSpotTypeResolved(long vmId, String name) {
+    public HotSpotTypeResolved(long vmId, long javaMirrorVmId, String name, int accessFlags, boolean hasFinalizer, boolean hasSubclass, boolean hasFinalizableSubclass, boolean isInitialized,
+                    boolean isArrayClass, boolean isInstanceClass, boolean isInterface, int instanceSize) {
         this.vmId = vmId;
+        this.javaMirrorVmId = javaMirrorVmId;
         this.name = name;
+        this.accessFlags = accessFlags;
+        this.hasFinalizer = hasFinalizer;
+        this.hasSubclass = hasSubclass;
+        this.hasFinalizableSubclass = hasFinalizableSubclass;
+        this.isInitialized = isInitialized;
+        this.isArrayClass = isArrayClass;
+        this.isInstanceClass = isInstanceClass;
+        this.isInterface = isInterface;
+        this.instanceSize = instanceSize;
     }
 
     @Override
     public int accessFlags() {
-        // TODO Auto-generated method stub
-        return 0;
+        return accessFlags;
     }
 
     @Override
     public RiType arrayOf() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public RiType componentType() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public RiType exactType() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public CiConstant getEncoding(Representation r) {
-        // TODO Auto-generated method stub
-        return null;
+        switch (r) {
+            case JavaClass:
+                return CiConstant.forObject((Long) javaMirrorVmId);
+            case ObjectHub:
+                return CiConstant.forObject(this);
+            case StaticFields:
+                return CiConstant.forObject(this);
+            case TypeInfo:
+                return CiConstant.forObject(this);
+            default:
+                return null;
+        }
     }
 
     @Override
@@ -79,52 +99,42 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public boolean hasFinalizableSubclass() {
-        // TODO Auto-generated method stub
-        return false;
+        return hasFinalizableSubclass;
     }
 
     @Override
     public boolean hasFinalizer() {
-        // TODO Auto-generated method stub
-        return false;
+        return hasFinalizer;
     }
 
     @Override
     public boolean hasSubclass() {
-        // TODO Auto-generated method stub
-        return false;
+        return hasSubclass;
     }
 
     @Override
     public boolean isArrayClass() {
-        if (isArrayClass == null)
-            isArrayClass = Compiler.getVMEntries().RiType_isArrayClass(vmId);
         return isArrayClass;
     }
 
     @Override
     public boolean isInitialized() {
-        // TODO Auto-generated method stub
-        return false;
+        return isInitialized;
     }
 
     @Override
     public boolean isInstance(Object obj) {
-        // TODO Auto-generated method stub
+
         return false;
     }
 
     @Override
     public boolean isInstanceClass() {
-        if (isInstanceClass == null)
-            isInstanceClass = Compiler.getVMEntries().RiType_isInstanceClass(vmId);
         return isInstanceClass;
     }
 
     @Override
     public boolean isInterface() {
-        if (isInterface == null)
-            isInterface = Compiler.getVMEntries().RiType_isInterface(vmId);
         return isInterface;
     }
 
@@ -135,7 +145,10 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public boolean isSubtypeOf(RiType other) {
-        // TODO Auto-generated method stub
+        assert other instanceof HotSpotType;
+        if (other instanceof HotSpotTypeResolved)
+            return Compiler.getVMEntries().RiType_isSubtypeOf(vmId, other);
+        // no resolved type is a subtype of an unresolved type
         return false;
     }
 
@@ -151,18 +164,18 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public String name() {
-        return name;
+        return "L" + name + ";";
     }
 
     @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
-        // TODO Auto-generated method stub
-        return null;
+        assert method instanceof HotSpotMethod;
+        return Compiler.getVMEntries().RiType_resolveMethodImpl(vmId, method.name(), method.signature().asString());
     }
 
     @Override
     public String toString() {
-        return "HotSpotType<" + name + ">";
+        return "HotSpotType<" + name + ", resolved>";
     }
 
     public RiConstantPool constantPool() {
@@ -173,10 +186,7 @@ public class HotSpotTypeResolved implements HotSpotType {
         return vmId;
     }
 
-    public long instanceSize() {
-        if (instanceSize == 0) {
-            instanceSize = Compiler.getVMEntries().RiType_instanceSize(vmId);
-        }
+    public int instanceSize() {
         return instanceSize;
     }
 

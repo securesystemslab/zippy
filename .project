@@ -88,7 +88,7 @@
 		<link>
 			<name>client</name>
 			<type>2</type>
-			<location>/home/ls/source/jre1.7.0/lib/amd64/client</location>
+			<locationURI>PARENT-1-PROJECT_LOC/jre1.7.0/lib/amd64/client</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

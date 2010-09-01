@@ -26,12 +26,22 @@
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_Compiler.cpp.incl"
 
+C1XCompiler* C1XCompiler::_instance = NULL;
+
+
+C1XCompiler::C1XCompiler() {
+  _initialized = false;
+  assert(_instance == NULL, "only one instance allowed");
+  _instance = this;
+}
+
+
 
 // Initialization
 void C1XCompiler::initialize() {
   if (_initialized) return;
   _initialized = true;
-    TRACE_C1X_1("initialize");
+  TRACE_C1X_1("C1XCompiler::initialize");
 
   JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntriesNative");
@@ -63,7 +73,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
 
 // Print compilation timers and statistics
 void C1XCompiler::print_timers() {
-	TRACE_C1X_1("print_timers");
+  TRACE_C1X_1("C1XCompiler::print_timers");
 }
 
 oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
@@ -71,8 +81,9 @@ oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
     if (type->is_primitive_type()) {
       return VMExits::createRiTypePrimitive((int)type->basic_type(), THREAD);
     }
-    klassOop klass = (klassOop)type->get_oop();
-    return VMExits::createRiType(VmIds::add<klassOop>(klass), VmIds::toString<Handle>(klass->klass_part()->name(), THREAD), THREAD);
+    KlassHandle klass = (klassOop)type->get_oop();
+    Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
+    return createHotSpotTypeResolved(klass, name, CHECK_NULL);
   } else {
     symbolOop name = ((ciKlass *)type)->name()->get_symbolOop();
     return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), VmIds::add<klassOop>(accessor), THREAD);
@@ -88,4 +99,34 @@ oop C1XCompiler::get_RiField(ciField *field, TRAPS) {
   // TODO: implement caching
   return VMExits::createRiField(field_holder, field_name, field_type, offset, THREAD);
 }
+
+
+oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
+  instanceKlass::cast(HotSpotTypeResolved::klass())->initialize(CHECK_NULL);
+  oop obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
+
+  HotSpotTypeResolved::set_vmId(obj, VmIds::add(klass, VmIds::CLASS));
+  HotSpotTypeResolved::set_javaMirrorVmId(obj, VmIds::add(klass->java_mirror(), VmIds::CONSTANT));
+  HotSpotTypeResolved::set_name(obj, name());
+  HotSpotTypeResolved::set_accessFlags(obj, klass->access_flags().as_int());
+  HotSpotTypeResolved::set_isInterface(obj, klass->is_interface());
+  HotSpotTypeResolved::set_isInstanceClass(obj, klass->oop_is_instance());
+
+  if (klass->oop_is_javaArray()) {
+    HotSpotTypeResolved::set_isArrayClass(obj, true);
+  } else {
+    HotSpotTypeResolved::set_isArrayClass(obj, false);
+    HotSpotTypeResolved::set_isInitialized(obj, instanceKlass::cast(klass())->is_initialized());
+    HotSpotTypeResolved::set_instanceSize(obj, instanceKlass::cast(klass())->size_helper() * HeapWordSize);
+    HotSpotTypeResolved::set_hasFinalizer(obj, klass->has_finalizer());
+  }
+
+  // TODO replace these with correct values
+  HotSpotTypeResolved::set_hasSubclass(obj, false);
+  HotSpotTypeResolved::set_hasFinalizableSubclass(obj, false);
+
+  return obj;
+}
+
+
 

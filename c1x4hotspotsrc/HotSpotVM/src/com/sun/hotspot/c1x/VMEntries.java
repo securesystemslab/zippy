@@ -42,7 +42,7 @@ public interface VMEntries {
 
     public RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
 
-    public CiConstant RiConstantPool_lookupConstant(long vmId, int cpi);
+    public Object RiConstantPool_lookupConstant(long vmId, int cpi);
 
     public RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
 
@@ -52,14 +52,6 @@ public interface VMEntries {
 
     public RiField RiConstantPool_lookupField(long vmId, int cpi);
 
-    public boolean RiType_isArrayClass(long vmId);
-
-    public boolean RiType_isInstanceClass(long vmId);
-
-    public boolean RiType_isInterface(long vmId);
-
-    public long RiType_instanceSize(long vmId);
-
     public RiConstantPool RiType_constantPool(long vmId);
 
     public void installMethod(HotSpotTargetMethod targetMethod);
@@ -67,5 +59,13 @@ public interface VMEntries {
     public long installStub(HotSpotTargetMethod targetMethod);
 
     public HotSpotVMConfig getConfiguration();
+
+    public RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
+
+    public RiMethod RiType_resolveMethodImpl(long vmId, String name, String signature);
+
+    public boolean RiType_isSubtypeOf(long vmId, RiType other);
+
+    public RiType getPrimitiveArrayType(CiKind kind);
 
 }

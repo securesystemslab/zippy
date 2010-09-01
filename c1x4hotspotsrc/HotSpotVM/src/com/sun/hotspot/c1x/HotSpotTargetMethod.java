@@ -21,6 +21,7 @@ import java.util.*;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ci.CiTargetMethod.*;
+import com.sun.hotspot.c1x.logging.*;
 
 /**
  * CiTargetMethod augmented with HotSpot-specific information.
@@ -30,17 +31,23 @@ import com.sun.cri.ci.CiTargetMethod.*;
 public class HotSpotTargetMethod implements CompilerObject {
 
     public final CiTargetMethod targetMethod;
-    public final HotSpotMethod method;                  // used only for methods
-    public final String name;                           // used only for stubs
+    public final HotSpotMethodResolved method; // used only for methods
+    public final String name; // used only for stubs
 
     public final Site[] sites;
+    public final ExceptionHandler[] exceptionHandlers;
 
-    private HotSpotTargetMethod(HotSpotMethod method, CiTargetMethod targetMethod) {
+    private HotSpotTargetMethod(HotSpotMethodResolved method, CiTargetMethod targetMethod) {
         this.method = method;
         this.targetMethod = targetMethod;
         this.name = null;
 
         sites = getSortedSites(targetMethod);
+        if (targetMethod.exceptionHandlers == null) {
+            exceptionHandlers = null;
+        } else {
+            exceptionHandlers = targetMethod.exceptionHandlers.toArray(new ExceptionHandler[targetMethod.exceptionHandlers.size()]);
+        }
     }
 
     private HotSpotTargetMethod(CiTargetMethod targetMethod, String name) {
@@ -49,10 +56,12 @@ public class HotSpotTargetMethod implements CompilerObject {
         this.name = name;
 
         sites = getSortedSites(targetMethod);
+        assert targetMethod.exceptionHandlers == null || targetMethod.exceptionHandlers.size() == 0;
+        exceptionHandlers = null;
     }
 
     private Site[] getSortedSites(CiTargetMethod target) {
-        List<?>[] lists = new List<?>[] {target.directCalls, target.indirectCalls, target.safepoints, target.dataReferences, target.exceptionHandlers, target.marks};
+        List<?>[] lists = new List<?>[] { target.directCalls, target.indirectCalls, target.safepoints, target.dataReferences, target.marks};
         int count = 0;
         for (List<?> list : lists) {
             count += list.size();
@@ -73,12 +82,13 @@ public class HotSpotTargetMethod implements CompilerObject {
                 return s1.pcOffset - s2.pcOffset;
             }
         });
-        for(Site site : result)
-            System.out.println(site.pcOffset + ": " + site);
+        if (Logger.ENABLED)
+            for (Site site : result)
+                Logger.log(site.pcOffset + ": " + site);
         return result;
     }
 
-    public static void installMethod(HotSpotMethod method, CiTargetMethod targetMethod) {
+    public static void installMethod(HotSpotMethodResolved method, CiTargetMethod targetMethod) {
         Compiler.getVMEntries().installMethod(new HotSpotTargetMethod(method, targetMethod));
     }
 

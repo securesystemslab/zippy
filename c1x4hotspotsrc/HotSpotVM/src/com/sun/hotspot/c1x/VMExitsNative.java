@@ -34,9 +34,9 @@ public class VMExitsNative implements VMExits {
     @Override
     public void compileMethod(long methodVmId, String name, int entry_bci) {
         try {
-            Logger.info("compiling " + name + " (" + methodVmId + ")");
+            Logger.info("compiling " + name + " (0x" + Long.toHexString(methodVmId) + ")");
             Compiler compiler = Compiler.getInstance();
-            HotSpotMethod riMethod = new HotSpotMethod(methodVmId, name);
+            HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
             CiResult result = compiler.getCompiler().compileMethod(riMethod, null);
 
             if (result.bailout() != null) {
@@ -55,9 +55,13 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public RiMethod createRiMethod(long vmId, String name) {
-        RiMethod m = new HotSpotMethod(vmId, name);
-        return m;
+    public RiMethod createRiMethodResolved(long vmId, String name) {
+        return new HotSpotMethodResolved(vmId, name);
+    }
+
+    @Override
+    public RiMethod createRiMethodUnresolved(String name, String signature, RiType holder) {
+        return new HotSpotMethodUnresolved(name, signature, holder);
     }
 
     @Override
@@ -72,7 +76,7 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public RiType createRiType(long vmId, String name) {
-        return new HotSpotTypeResolved(vmId, name);
+        throw new RuntimeException("not implemented");
     }
 
     @Override

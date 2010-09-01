@@ -40,13 +40,24 @@ public class HotSpotVMConfig implements CompilerObject {
     public int threadTlabTopOffset;
     public int threadTlabEndOffset;
     public int instanceHeaderPrototypeOffset;
+    public int threadExceptionOopOffset;
+    public int threadExceptionPcOffset;
+    public int threadMultiNewArrayStorage;
 
     // runtime stubs
-    public long instanceofStub;
     public long debugStub;
-    public long resolveStaticCallStub;
+    public long instanceofStub;
     public long newInstanceStub;
-    public long throwImplicitNullStub;
+    public long newTypeArrayStub;
+    public long newObjectArrayStub;
+    public long newMultiArrayStub;
+    public long loadKlassStub;
+    public long resolveStaticCallStub;
+    public long unwindExceptionStub;
+    public long handleExceptionStub;
+    public long throwClassCastException;
+    public long throwArrayStoreException;
+    public long throwArrayIndexException;
 
     public void check() {
         assert vmPageSize >= 16;

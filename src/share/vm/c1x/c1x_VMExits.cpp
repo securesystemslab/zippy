@@ -75,15 +75,28 @@ void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
   _vmExitsObject = Handle();
 }
 
-oop VMExits::createRiMethod(jlong vmId, Handle name, TRAPS) {
+oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_long(vmId);
   args.push_oop(name);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethod_name(), vmSymbols::createRiMethod_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createRiMethod");
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethodResolved_name(), vmSymbols::createRiMethodResolved_signature(), &args, THREAD);
+  check_pending_exception("Error while calling createRiMethodResolved");
+  return (oop)result.get_jobject();
+}
+
+oop VMExits::createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS) {
+  assert(!name.is_null(), "just checking");
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  args.push_oop(name);
+  args.push_oop(signature);
+  args.push_oop(holder);
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethodUnresolved_name(), vmSymbols::createRiMethodUnresolved_signature(), &args, THREAD);
+  check_pending_exception("Error while calling createRiMethodUnresolved");
   return (oop)result.get_jobject();
 }
 

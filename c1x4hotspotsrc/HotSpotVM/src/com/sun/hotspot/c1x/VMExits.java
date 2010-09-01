@@ -30,7 +30,9 @@ public interface VMExits {
 
     public abstract void compileMethod(long methodVmId, String name, int entry_bci);
 
-    public abstract RiMethod createRiMethod(long vmId, String name);
+    public abstract RiMethod createRiMethodResolved(long vmId, String name);
+
+    public abstract RiMethod createRiMethodUnresolved(String name, String signature, RiType holder);
 
     public abstract RiSignature createRiSignature(String signature);
 

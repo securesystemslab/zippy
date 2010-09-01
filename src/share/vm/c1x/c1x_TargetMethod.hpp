@@ -27,18 +27,37 @@ void c1x_compute_offsets();
 // defines the structure of the CiTargetMethod - classes
 // this will generate classes with accessors similar to javaClasses.hpp
 
-#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, long_field, oop_field, static_oop_field)   \
+#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
     long_field(HotSpotTypeResolved, vmId)                                               \
+    long_field(HotSpotTypeResolved, javaMirrorVmId)                                     \
+    oop_field(HotSpotTypeResolved, name, "Ljava/lang/String;")                          \
+    int_field(HotSpotTypeResolved, accessFlags)                                         \
+    boolean_field(HotSpotTypeResolved, hasFinalizer)                                    \
+    boolean_field(HotSpotTypeResolved, hasSubclass)                                     \
+    boolean_field(HotSpotTypeResolved, hasFinalizableSubclass)                          \
+    boolean_field(HotSpotTypeResolved, isInitialized)                                   \
+    boolean_field(HotSpotTypeResolved, isArrayClass)                                    \
+    boolean_field(HotSpotTypeResolved, isInstanceClass)                                 \
+    boolean_field(HotSpotTypeResolved, isInterface)                                     \
+    int_field(HotSpotTypeResolved, instanceSize)                                        \
   end_class                                                                             \
-  start_class(HotSpotMethod)                                                            \
-    long_field(HotSpotMethod, vmId)                                                     \
+  start_class(HotSpotMethodResolved)                                                    \
+    long_field(HotSpotMethodResolved, vmId)                                             \
   end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/sun/cri/ci/CiTargetMethod;")     \
-    oop_field(HotSpotTargetMethod, method, "Lcom/sun/hotspot/c1x/HotSpotMethod;")       \
+    oop_field(HotSpotTargetMethod, method, "Lcom/sun/hotspot/c1x/HotSpotMethodResolved;")\
     oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
     oop_field(HotSpotTargetMethod, sites, "[Lcom/sun/cri/ci/CiTargetMethod$Site;")      \
+    oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/sun/cri/ci/CiTargetMethod$ExceptionHandler;") \
+  end_class                                                                             \
+  start_class(HotSpotExceptionHandler)                                                  \
+    int_field(HotSpotExceptionHandler, startBci)                                        \
+    int_field(HotSpotExceptionHandler, endBci)                                          \
+    int_field(HotSpotExceptionHandler, handlerBci)                                      \
+    int_field(HotSpotExceptionHandler, catchClassIndex)                                 \
+    oop_field(HotSpotExceptionHandler, catchClass, "Lcom/sun/cri/ri/RiType;")           \
   end_class                                                                             \
   start_class(CiTargetMethod)                                                           \
     int_field(CiTargetMethod, frameSize)                                                \
@@ -66,6 +85,9 @@ void c1x_compute_offsets();
   end_class                                                                             \
   start_class(CiTargetMethod_ExceptionHandler)                                          \
     int_field(CiTargetMethod_ExceptionHandler, handlerPos)                              \
+    int_field(CiTargetMethod_ExceptionHandler, handlerBci)                              \
+    int_field(CiTargetMethod_ExceptionHandler, bci)                                     \
+    int_field(CiTargetMethod_ExceptionHandler, scopeLevel)                              \
     oop_field(CiTargetMethod_ExceptionHandler, exceptionType, "Lcom/sun/cri/ri/RiType;")\
   end_class                                                                             \
   start_class(CiTargetMethod_Mark)                                                      \
@@ -100,7 +122,22 @@ void c1x_compute_offsets();
     char_field(CiKind, typeChar)                                                        \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
+    static_oop_field(CiRuntimeCall, UnwindException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, RegisterFinalizer, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, HandleException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, OSRMigrationEnd, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, JavaTimeMillis, "Lcom/sun/cri/ci/CiRuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, JavaTimeNanos, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
     static_oop_field(CiRuntimeCall, Debug, "Lcom/sun/cri/ci/CiRuntimeCall;");           \
+    static_oop_field(CiRuntimeCall, ArithmethicLrem, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, ArithmeticLdiv, "Lcom/sun/cri/ci/CiRuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, ArithmeticFrem, "Lcom/sun/cri/ci/CiRuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, ArithmeticDrem, "Lcom/sun/cri/ci/CiRuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, ArithmeticCos, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, ArithmeticTan, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, ArithmeticLog, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, ArithmeticLog10, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, ArithmeticSin, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
   end_class                                                                             \
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
@@ -109,6 +146,9 @@ void c1x_compute_offsets();
   start_class(CiStackSlot)                                                              \
   end_class                                                                             \
   /* end*/
+
+
+
 
 #define START_CLASS(name)                       \
   class name : AllStatic {                      \
@@ -124,12 +164,15 @@ void c1x_compute_offsets();
 #define FIELD(name, type, accessor)             \
     static int _##name##_offset;                \
     static type name(oop obj)                   { check(obj); return obj->accessor(_##name##_offset); } \
+    static type name(Handle obj)                { check(obj()); return obj->accessor(_##name##_offset); } \
     static type name(jobject obj)               { check(JNIHandles::resolve(obj)); return JNIHandles::resolve(obj)->accessor(_##name##_offset); } \
     static void set_##name(oop obj, type x)     { check(obj); obj->accessor##_put(_##name##_offset, x); } \
+    static void set_##name(Handle obj, type x)  { check(obj()); obj->accessor##_put(_##name##_offset, x); } \
     static void set_##name(jobject obj, type x) { check(JNIHandles::resolve(obj)); JNIHandles::resolve(obj)->accessor##_put(_##name##_offset, x); }
 
 #define CHAR_FIELD(klass, name) FIELD(name, jchar, char_field)
 #define INT_FIELD(klass, name) FIELD(name, jint, int_field)
+#define BOOLEAN_FIELD(klass, name) FIELD(name, jboolean, bool_field)
 #define LONG_FIELD(klass, name) FIELD(name, jlong, long_field)
 #define OOP_FIELD(klass, name, signature) FIELD(name, oop, obj_field)
 #define STATIC_OOP_FIELD(klassName, name, signature) \
@@ -137,12 +180,13 @@ void c1x_compute_offsets();
     static oop name()             { return klassName::klass()->obj_field(_##name##_offset); } \
     static void set_##name(oop x) { klassName::klass()->obj_field_put(_##name##_offset, x); }
 
-COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
+COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 #undef START_CLASS
 #undef END_CLASS
 #undef FIELD
 #undef CHAR_FIELD
 #undef INT_FIELD
+#undef BOOLEAN_FIELD
 #undef LONG_FIELD
 #undef OOP_FIELD
 #undef STATIC_OOP_FIELD

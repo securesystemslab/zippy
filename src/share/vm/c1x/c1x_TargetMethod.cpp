@@ -51,13 +51,14 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
 #define FIELD(klass, name, signature, static_field) compute_offset(klass::_##name##_offset, k, #name, signature, static_field);
 #define CHAR_FIELD(klass, name) FIELD(klass, name, "C", false)
 #define INT_FIELD(klass, name) FIELD(klass, name, "I", false)
+#define BOOLEAN_FIELD(klass, name) FIELD(klass, name, "Z", false)
 #define LONG_FIELD(klass, name) FIELD(klass, name, "J", false)
 #define OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, false)
 #define STATIC_OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, true)
 
 
 void c1x_compute_offsets() {
-  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
+  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 }
 
 #define EMPTY0
@@ -66,7 +67,7 @@ void c1x_compute_offsets() {
 #define FIELD2(klass, name) int klass::_##name##_offset = 0;
 #define FIELD3(klass, name, sig) FIELD2(klass, name)
 
-COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD3, FIELD3)
+COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD2, FIELD3, FIELD3)
 
 
 

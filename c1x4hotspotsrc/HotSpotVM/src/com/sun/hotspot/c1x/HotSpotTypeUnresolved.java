@@ -147,7 +147,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public String toString() {
-        return "HotSpotTypeUnresolved<" + name + ">";
+        return "HotSpotType<" + name + ", unresolved>";
     }
 
     @Override

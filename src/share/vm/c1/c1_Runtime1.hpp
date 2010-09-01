@@ -60,6 +60,11 @@ class StubAssembler;
   stub(g1_post_barrier_slow)         \
   stub(fpu2long_stub)                \
   stub(counter_overflow)             \
+  stub(c1x_unwind_exception_call)    \
+  stub(c1x_handle_exception)         \
+  stub(c1x_global_implicit_null)     \
+  stub(c1x_throw_div0_exception)     \
+  stub(c1x_slow_subtype_check)       \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
@@ -124,6 +129,7 @@ class Runtime1: public AllStatic {
   static OopMapSet* generate_code_for(StubID id, StubAssembler* masm);
   static OopMapSet* generate_exception_throw(StubAssembler* sasm, address target, bool has_argument);
   static void generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map, bool ignore_fpu_registers = false);
+  static void c1x_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map);
   static void generate_unwind_exception(StubAssembler *sasm);
   static OopMapSet* generate_patching(StubAssembler* sasm, address target);
 

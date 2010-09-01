@@ -47,7 +47,6 @@ public class HotSpotTypePrimitive implements HotSpotType {
 
     @Override
     public RiType componentType() {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -71,61 +70,51 @@ public class HotSpotTypePrimitive implements HotSpotType {
 
     @Override
     public boolean hasFinalizableSubclass() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean hasFinalizer() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean hasSubclass() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isArrayClass() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isInitialized() {
-        // TODO Auto-generated method stub
-        return false;
+        return true;
     }
 
     @Override
     public boolean isInstance(Object obj) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isInstanceClass() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isInterface() {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean isResolved() {
-        // TODO Auto-generated method stub
         return true;
     }
 
     @Override
     public boolean isSubtypeOf(RiType other) {
-        // TODO Auto-generated method stub
         return false;
     }
 

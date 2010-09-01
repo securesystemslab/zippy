@@ -26,16 +26,20 @@ class CodeInstaller {
 private:
   // this needs to correspond to HotSpotXirGenerator.java
   enum MarkId {
-    MARK_VERIFIED_ENTRY                 = 0x0001,
-    MARK_UNVERIFIED_ENTRY               = 0x0002,
-    MARK_OSR_ENTRY                      = 0x0003,
-    MARK_STATIC_CALL_STUB               = 0x1000,
-    MARK_INVOKE_INVALID                 = 0x2000,
-    MARK_INVOKEINTERFACE                = 0x2001,
-    MARK_INVOKESTATIC                   = 0x2002,
-    MARK_INVOKESPECIAL                  = 0x2003,
-    MARK_INVOKEVIRTUAL                  = 0x2004,
-    MARK_IMPLICIT_NULL_EXCEPTION_TARGET = 0x3000
+    MARK_VERIFIED_ENTRY             = 0x0001,
+    MARK_UNVERIFIED_ENTRY           = 0x0002,
+    MARK_OSR_ENTRY                  = 0x0003,
+    MARK_UNWIND_ENTRY               = 0x0004,
+    MARK_EXCEPTION_HANDLER_ENTRY    = 0x0005,
+    MARK_STATIC_CALL_STUB           = 0x1000,
+    MARK_INVOKE_INVALID             = 0x2000,
+    MARK_INVOKEINTERFACE            = 0x2001,
+    MARK_INVOKESTATIC               = 0x2002,
+    MARK_INVOKESPECIAL              = 0x2003,
+    MARK_INVOKEVIRTUAL              = 0x2004,
+    MARK_IMPLICIT_NULL              = 0x3000,
+    MARK_KLASS_PATCHING             = 0x4000,
+    MARK_DUMMY_OOP_RELOCATION       = 0x4001
   };
 
   ciEnv*        _env;
@@ -44,6 +48,7 @@ private:
   oop           _hotspot_method;
   oop           _name;
   arrayOop      _sites;
+  arrayOop      _exception_handlers;
   CodeOffsets   _offsets;
 
   arrayOop      _code;
@@ -59,9 +64,11 @@ private:
   CodeSection*  _instructions;
   CodeSection*  _constants;
 
-  OopRecorder*  _oop_recorder;
+  OopRecorder*              _oop_recorder;
   DebugInformationRecorder* _debug_recorder;
-  Dependencies* _dependencies;
+  Dependencies*             _dependencies;
+  ExceptionHandlerTable     _exception_handler_table;
+  ImplicitExceptionTable    _implicit_exception_table;
 
 public:
 
@@ -80,9 +87,10 @@ private:
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site);
-  void site_ExceptionHandler(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Mark(CodeBuffer& buffer, jint pc_offset, oop site);
 
   void record_frame(jint pc_offset, oop code_pos, oop frame);
+
+  void process_exception_handlers();
 
 };

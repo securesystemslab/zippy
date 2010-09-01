@@ -246,14 +246,16 @@
                                                                                                                         \
   /* support for C1X */                                                                                                 \
   template(com_sun_hotspot_c1x_VMExits,               "com/sun/hotspot/c1x/VMExits")                                    \
-  template(com_sun_hotspot_c1x_HotSpotMethod,         "com/sun/hotspot/c1x/HotSpotMethod")                              \
+  template(com_sun_hotspot_c1x_HotSpotMethodResolved, "com/sun/hotspot/c1x/HotSpotMethodResolved")                      \
   template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/sun/hotspot/c1x/HotSpotTargetMethod")                        \
   template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolved")                        \
+  template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/sun/hotspot/c1x/HotSpotExceptionHandler")                   \
   template(com_sun_hotspot_c1x_Compiler,              "com/sun/hotspot/c1x/Compiler")                                   \
   template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
   template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
   template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                                  \
+  template(com_sun_cri_ri_RiExceptionHandler,         "com/sun/cri/ri/RiExceptionHandler")                              \
   template(com_sun_cri_ci_CiTargetMethod,             "com/sun/cri/ci/CiTargetMethod")                                  \
   template(com_sun_cri_ci_CiTargetMethod_Site,        "com/sun/cri/ci/CiTargetMethod$Site")                             \
   template(com_sun_cri_ci_CiTargetMethod_Call,        "com/sun/cri/ci/CiTargetMethod$Call")                             \
@@ -271,8 +273,10 @@
   template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
   template(compileMethod_name,                        "compileMethod")                                                  \
   template(compileMethod_signature,                   "(JLjava/lang/String;I)V")                                        \
-  template(createRiMethod_name,                       "createRiMethod")                                                 \
-  template(createRiMethod_signature,                  "(JLjava/lang/String;)Lcom/sun/cri/ri/RiMethod;")                 \
+  template(createRiMethodResolved_name,               "createRiMethodResolved")                                         \
+  template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/sun/cri/ri/RiMethod;")                 \
+  template(createRiMethodUnresolved_name,             "createRiMethodUnresolved")                                       \
+  template(createRiMethodUnresolved_signature,        "(Ljava/lang/String;Ljava/lang/String;Lcom/sun/cri/ri/RiType;)Lcom/sun/cri/ri/RiMethod;") \
   template(createRiSignature_name,                    "createRiSignature")                                              \
   template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/sun/cri/ri/RiSignature;")               \
   template(createRiField_name,                        "createRiField")                                                  \

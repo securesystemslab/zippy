@@ -763,6 +763,9 @@ class JavaThread: public Thread {
 
  private:
 
+  // c1x needs some place to put the dimensions
+  jint c1x_multinewarray_storage[256];
+
   StackGuardState        _stack_guard_state;
 
   // Compiler exception handling (NOTE: The _exception_oop is *NOT* the same as _pending_exception. It is
@@ -1191,6 +1194,7 @@ class JavaThread: public Thread {
   static ByteSize is_method_handle_return_offset() { return byte_offset_of(JavaThread, _is_method_handle_return); }
   static ByteSize stack_guard_state_offset()     { return byte_offset_of(JavaThread, _stack_guard_state   ); }
   static ByteSize suspend_flags_offset()         { return byte_offset_of(JavaThread, _suspend_flags       ); }
+  static ByteSize c1x_multinewarray_storage_offset() { return byte_offset_of(JavaThread, c1x_multinewarray_storage); }
 
   static ByteSize do_not_unlock_if_synchronized_offset() { return byte_offset_of(JavaThread, _do_not_unlock_if_synchronized); }
   static ByteSize should_post_on_exceptions_flag_offset() {

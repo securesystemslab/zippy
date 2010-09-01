@@ -62,8 +62,10 @@ public class Compiler {
     public static VMEntries getVMEntries() {
         if (vmEntries == null) {
             try {
-                vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
-                // vmEntries = new VMEntriesNative();
+                if (Logger.ENABLED)
+                    vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
+                else
+                    vmEntries = new VMEntriesNative();
             } catch (Throwable t) {
                 t.printStackTrace();
             }
@@ -86,12 +88,14 @@ public class Compiler {
                     ReplacingInputStream input = new ReplacingInputStream(socket.getInputStream());
 
                     InvocationSocket invocation = new InvocationSocket(output, input);
-                    VMExits exits = (VMExits)Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] {VMExits.class}, invocation);
+                    VMExits exits = (VMExits) Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] { VMExits.class}, invocation);
                     VMEntries entries = Compiler.initializeClient(exits);
                     invocation.setDelegate(entries);
                 } else {
-                    vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
-                    // vmExits = new VMExitsNative();
+                    if (Logger.ENABLED)
+                        vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
+                    else
+                        vmExits = new VMExitsNative();
                 }
             } catch (Throwable t) {
                 t.printStackTrace();
@@ -120,13 +124,14 @@ public class Compiler {
         compiler = new C1XCompiler(runtime, target, generator);
 
         C1XOptions.setOptimizationLevel(3);
-        C1XOptions.TraceBytecodeParserLevel = 4;
+        C1XOptions.TraceBytecodeParserLevel = Logger.ENABLED ? 4 : 0;
         C1XOptions.PrintCFGToFile = false;
         C1XOptions.PrintAssembly = false;// true;
-        C1XOptions.PrintCompilation = true;
+        C1XOptions.PrintCompilation = Logger.ENABLED;
         C1XOptions.GenAssertionCode = true;
         C1XOptions.DetailedAsserts = true;
         C1XOptions.GenSpecialDivChecks = true;
+        C1XOptions.AlignCallsForPatching = true;
     }
 
     public CiCompiler getCompiler() {

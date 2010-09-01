@@ -50,7 +50,7 @@ public class VMEntriesNative implements VMEntries {
     public native RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
 
     @Override
-    public native CiConstant RiConstantPool_lookupConstant(long vmId, int cpi);
+    public native Object RiConstantPool_lookupConstant(long vmId, int cpi);
 
     @Override
     public native RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
@@ -65,18 +65,6 @@ public class VMEntriesNative implements VMEntries {
     public native RiField RiConstantPool_lookupField(long vmId, int cpi);
 
     @Override
-    public native boolean RiType_isArrayClass(long vmId);
-
-    @Override
-    public native boolean RiType_isInstanceClass(long vmId);
-
-    @Override
-    public native boolean RiType_isInterface(long vmId);
-
-    @Override
-    public native long RiType_instanceSize(long vmId);
-
-    @Override
     public native RiConstantPool RiType_constantPool(long vmId);
 
     @Override
@@ -87,5 +75,17 @@ public class VMEntriesNative implements VMEntries {
 
     @Override
     public native HotSpotVMConfig getConfiguration();
+
+    @Override
+    public native RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
+
+    @Override
+    public native RiMethod RiType_resolveMethodImpl(long vmId, String name, String signature);
+
+    @Override
+    public native boolean RiType_isSubtypeOf(long vmId, RiType other);
+
+    @Override
+    public native RiType getPrimitiveArrayType(CiKind kind);
 
 }
