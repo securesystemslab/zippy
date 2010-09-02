@@ -26,11 +26,11 @@
 # include "incls/_c1x_VMExits.cpp.incl"
 
 // these are *local* handles, and they need to be cleared before compileMethod returns
-KlassHandle     VMExits::_vmExitsKlass;
-Handle          VMExits::_vmExitsObject;
+KlassHandle VMExits::_vmExitsKlass;
+Handle VMExits::_vmExitsObject;
 
 // this is a *global* handle
-jobject         VMExits::_vmExitsPermObject;
+jobject VMExits::_vmExitsPermObject;
 
 KlassHandle &VMExits::vmExitsKlass() {
   if (_vmExitsKlass.is_null()) {
@@ -50,7 +50,7 @@ Handle &VMExits::instance() {
       JavaCallArguments args;
       JavaCalls::call_static(&result, compiler_klass(), vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), &args, Thread::current());
       check_pending_exception("Couldn't get VMExits");
-      oop res = (oop)result.get_jobject();
+      oop res = (oop) result.get_jobject();
       _vmExitsPermObject = JNIHandles::make_global(res);
     }
     _vmExitsObject = JNIHandles::resolve(_vmExitsPermObject);
@@ -84,7 +84,7 @@ oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   args.push_oop(name);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethodResolved_name(), vmSymbols::createRiMethodResolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiMethodResolved");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS) {
@@ -97,7 +97,7 @@ oop VMExits::createRiMethodUnresolved(Handle name, Handle signature, Handle hold
   args.push_oop(holder);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethodUnresolved_name(), vmSymbols::createRiMethodUnresolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiMethodUnresolved");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, TRAPS) {
@@ -113,7 +113,7 @@ oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, T
   args.push_int(index);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiField");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiType(jlong vmId, Handle name, TRAPS) {
@@ -125,7 +125,7 @@ oop VMExits::createRiType(jlong vmId, Handle name, TRAPS) {
   args.push_oop(name);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiType_name(), vmSymbols::createRiType_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiType");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiTypePrimitive(int basic_type, TRAPS) {
@@ -135,7 +135,7 @@ oop VMExits::createRiTypePrimitive(int basic_type, TRAPS) {
   args.push_int(basic_type);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypePrimitive_name(), vmSymbols::createRiTypePrimitive_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypePrimitive");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiTypeUnresolved(Handle name, jlong accessingClassVmId, TRAPS) {
@@ -147,7 +147,7 @@ oop VMExits::createRiTypeUnresolved(Handle name, jlong accessingClassVmId, TRAPS
   args.push_long(accessingClassVmId);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypeUnresolved");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiConstantPool(jlong vmId, TRAPS) {
@@ -157,7 +157,7 @@ oop VMExits::createRiConstantPool(jlong vmId, TRAPS) {
   args.push_long(vmId);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiConstantPool_name(), vmSymbols::createRiConstantPool_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiConstantPool");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createRiSignature(Handle name, TRAPS) {
@@ -168,7 +168,7 @@ oop VMExits::createRiSignature(Handle name, TRAPS) {
   args.push_oop(name);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiSignature_name(), vmSymbols::createRiSignature_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiSignature");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createCiConstantInt(jint value, TRAPS) {
@@ -178,7 +178,7 @@ oop VMExits::createCiConstantInt(jint value, TRAPS) {
   args.push_int(value);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantInt_name(), vmSymbols::createCiConstantInt_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantInt");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 
 }
 
@@ -189,7 +189,7 @@ oop VMExits::createCiConstantLong(jlong value, TRAPS) {
   args.push_long(value);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantLong_name(), vmSymbols::createCiConstantLong_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 
 }
 
@@ -200,7 +200,7 @@ oop VMExits::createCiConstantFloat(jfloat value, TRAPS) {
   args.push_float(value);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantFloat_name(), vmSymbols::createCiConstantFloat_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 
 }
 
@@ -211,7 +211,7 @@ oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
   args.push_double(value);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantDouble_name(), vmSymbols::createCiConstantDouble_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantDouble");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }
 
 oop VMExits::createCiConstantObject(jlong vmId, TRAPS) {
@@ -221,5 +221,5 @@ oop VMExits::createCiConstantObject(jlong vmId, TRAPS) {
   args.push_long(vmId);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantLong_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantObject");
-  return (oop)result.get_jobject();
+  return (oop) result.get_jobject();
 }

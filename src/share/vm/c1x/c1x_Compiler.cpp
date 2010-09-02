@@ -22,12 +22,10 @@
  *
  */
 
-
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_Compiler.cpp.incl"
 
 C1XCompiler* C1XCompiler::_instance = NULL;
-
 
 C1XCompiler::C1XCompiler() {
   _initialized = false;
@@ -35,19 +33,17 @@ C1XCompiler::C1XCompiler() {
   _instance = this;
 }
 
-
-
 // Initialization
 void C1XCompiler::initialize() {
   if (_initialized) return;
   _initialized = true;
   TRACE_C1X_1("C1XCompiler::initialize");
 
-  JNIEnv *env = ((JavaThread *)Thread::current())->jni_environment();
+  JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntriesNative");
   assert(klass != NULL, "c1x VMEntries class not found");
-  env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count() );
-  
+  env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
+
   check_pending_exception("Could not register natives");
 
   c1x_compute_offsets();
@@ -56,7 +52,6 @@ void C1XCompiler::initialize() {
 // Compilation entry point for methods
 void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   initialize();
-
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -64,7 +59,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   VmIds::initializeObjects();
 
   CompilerThread::current()->set_compiling(true);
-  methodOop method = (methodOop)target->get_oop();
+  methodOop method = (methodOop) target->get_oop();
   VMExits::compileMethod(VmIds::add<methodOop>(method), VmIds::toString<Handle>(method->name(), THREAD), entry_bci);
   CompilerThread::current()->set_compiling(false);
 
@@ -79,13 +74,13 @@ void C1XCompiler::print_timers() {
 oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
   if (type->is_loaded()) {
     if (type->is_primitive_type()) {
-      return VMExits::createRiTypePrimitive((int)type->basic_type(), THREAD);
+      return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
     }
-    KlassHandle klass = (klassOop)type->get_oop();
+    KlassHandle klass = (klassOop) type->get_oop();
     Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
     return createHotSpotTypeResolved(klass, name, CHECK_NULL);
   } else {
-    symbolOop name = ((ciKlass *)type)->name()->get_symbolOop();
+    symbolOop name = ((ciKlass *) type)->name()->get_symbolOop();
     return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), VmIds::add<klassOop>(accessor), THREAD);
   }
 }
@@ -99,7 +94,6 @@ oop C1XCompiler::get_RiField(ciField *field, TRAPS) {
   // TODO: implement caching
   return VMExits::createRiField(field_holder, field_name, field_type, offset, THREAD);
 }
-
 
 oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
   instanceKlass::cast(HotSpotTypeResolved::klass())->initialize(CHECK_NULL);
@@ -127,6 +121,4 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
 
   return obj;
 }
-
-
 

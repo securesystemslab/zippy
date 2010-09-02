@@ -96,11 +96,6 @@
 			<locationURI>PARENT-2-PROJECT_LOC/build/linux/linux_amd64_compiler1/generated</locationURI>
 		</link>
 		<link>
-			<name>jvmg</name>
-			<type>2</type>
-			<locationURI>build/linux/linux_amd64_compiler1/jvmg</locationURI>
-		</link>
-		<link>
 			<name>os</name>
 			<type>2</type>
 			<locationURI>PARENT-2-PROJECT_LOC/src/os/linux</locationURI>

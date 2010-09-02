@@ -33,14 +33,14 @@ GrowableArray<jobject>* VmIds::_localHandles = NULL;
 void VmIds::initializeObjects() {
   if (_stubs == NULL) {
     assert(_localHandles == NULL, "inconsistent state");
-    _stubs = new(ResourceObj::C_HEAP) GrowableArray<address>(64, true);
-    _localHandles = new(ResourceObj::C_HEAP) GrowableArray<jobject>(64, true);
+    _stubs = new (ResourceObj::C_HEAP) GrowableArray<address> (64, true);
+    _localHandles = new (ResourceObj::C_HEAP) GrowableArray<jobject> (64, true);
   }
   assert(_localHandles->length() == 0, "invalid state");
 }
 
 void VmIds::cleanupLocalObjects() {
-  for (int i=0; i<_localHandles->length(); i++) {
+  for (int i = 0; i < _localHandles->length(); i++) {
     JNIHandles::destroy_global(_localHandles->at(i));
   }
   _localHandles->clear();
@@ -54,7 +54,7 @@ jlong VmIds::addStub(address stub) {
 jlong VmIds::add(Handle obj, CompilerObjectType type) {
   assert(!obj.is_null(), "cannot add NULL handle");
   int idx = -1;
-  for (int i=0; i<_localHandles->length(); i++)
+  for (int i = 0; i < _localHandles->length(); i++)
     if (JNIHandles::resolve_non_null(_localHandles->at(i)) == obj()) {
       idx = i;
       break;

@@ -22,19 +22,15 @@
  *
  */
 
-
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_VMEntries.cpp.incl"
-
-
-
 
 // public byte[] RiMethod_code(long vmId);
 JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code(JNIEnv *env, jobject, jlong vmId) {
   methodOop method = VmIds::get<methodOop>(vmId);
   int code_size = method->code_size();
   jbyteArray result = env->NewByteArray(code_size);
-  env->SetByteArrayRegion(result, 0, code_size, (const jbyte *)method->code_base());
+  env->SetByteArrayRegion(result, 0, code_size, (const jbyte *) method->code_base());
   return result;
 }
 
@@ -80,7 +76,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1exce
   instanceKlass::cast(HotSpotExceptionHandler::klass())->initialize(CHECK_NULL);
   objArrayHandle array = oopFactory::new_objArray(SystemDictionary::RiExceptionHandler_klass(), handler_count, CHECK_NULL);
 
-  for (int i=0; i<handler_count; i++) {
+  for (int i = 0; i < handler_count; i++) {
     // exception handlers are stored as four integers: start bci, end bci, handler bci, catch class constant pool index
     int base = i * 4;
     Handle entry = instanceKlass::cast(HotSpotExceptionHandler::klass())->allocate_instance(CHECK_NULL);
@@ -94,7 +90,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1exce
       HotSpotExceptionHandler::set_catchClass(entry, NULL);
     } else {
       constantPoolOop cp = instanceKlass::cast(method->method_holder())->constants();
-      ciInstanceKlass* loading_klass = (ciInstanceKlass *)CURRENT_ENV->get_object(method->method_holder());
+      ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(method->method_holder());
       bool is_accessible = false;
       ciKlass *klass = CURRENT_ENV->get_klass_by_index(cp, catch_class_index, is_accessible, loading_klass);
       oop catch_class = C1XCompiler::get_RiType(klass, method->method_holder(), CHECK_NULL);
@@ -104,7 +100,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1exce
     array->obj_at_put(i, entry());
   }
 
-  return (jobjectArray)JNIHandles::make_local(array());
+  return (jobjectArray) JNIHandles::make_local(array());
 }
 
 // public RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
@@ -116,21 +112,21 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookup
 
   oop result;
   if (nameSymbol == vmSymbols::int_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_INT, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_INT, THREAD);
   } else if (nameSymbol == vmSymbols::long_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_LONG, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_LONG, THREAD);
   } else if (nameSymbol == vmSymbols::bool_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_BOOLEAN, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_BOOLEAN, THREAD);
   } else if (nameSymbol == vmSymbols::char_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_CHAR, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_CHAR, THREAD);
   } else if (nameSymbol == vmSymbols::short_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_SHORT, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_SHORT, THREAD);
   } else if (nameSymbol == vmSymbols::byte_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_BYTE, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_BYTE, THREAD);
   } else if (nameSymbol == vmSymbols::double_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_DOUBLE, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_DOUBLE, THREAD);
   } else if (nameSymbol == vmSymbols::float_signature()) {
-    result = VMExits::createRiTypePrimitive((int)T_FLOAT, THREAD);
+    result = VMExits::createRiTypePrimitive((int) T_FLOAT, THREAD);
   } else {
     Handle classloader;
     Handle protectionDomain;
@@ -181,7 +177,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
     result = VMExits::createCiConstantObject(VmIds::add<oop>(string), CHECK_0);
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
     bool ignore;
-    ciInstanceKlass* accessor = (ciInstanceKlass*)ciEnv::current()->get_object(cp->pool_holder());
+    ciInstanceKlass* accessor = (ciInstanceKlass*) ciEnv::current()->get_object(cp->pool_holder());
     ciKlass* klass = ciEnv::current()->get_klass_by_index(cp, index, ignore, accessor);
     result = C1XCompiler::get_RiType(klass, cp->pool_holder(), CHECK_NULL);
   } else if (tag.is_object()) {
@@ -201,16 +197,16 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 
   constantPoolHandle cp = VmIds::get<constantPoolOop>(vmId);
 
-  Bytecodes::Code bc = (Bytecodes::Code)(((int)byteCode) & 0xFF);
-  ciInstanceKlass* loading_klass = (ciInstanceKlass *)CURRENT_ENV->get_object(cp->pool_holder());
+  Bytecodes::Code bc = (Bytecodes::Code) (((int) byteCode) & 0xFF);
+  ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciMethod *cimethod = CURRENT_ENV->get_method_by_index(cp, index, bc, loading_klass);
   if (cimethod->is_loaded()) {
-    methodOop method = (methodOop)cimethod->get_oop();
+    methodOop method = (methodOop) cimethod->get_oop();
     Handle name = VmIds::toString<Handle>(method->name(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMExits::createRiMethodResolved(VmIds::add<methodOop>(method), name, THREAD));
   } else {
-    Handle name = VmIds::toString<Handle>((symbolOop)cimethod->name()->get_oop(), CHECK_NULL);
-    Handle signature = VmIds::toString<Handle>((symbolOop)cimethod->signature()->as_symbol()->get_oop(), CHECK_NULL);
+    Handle name = VmIds::toString<Handle>((symbolOop) cimethod->name()->get_oop(), CHECK_NULL);
+    Handle signature = VmIds::toString<Handle>((symbolOop) cimethod->signature()->as_symbol()->get_oop(), CHECK_NULL);
     Handle holder = C1XCompiler::get_RiType(cimethod->holder(), cp->klass(), THREAD);
     return JNIHandles::make_local(THREAD, VMExits::createRiMethodUnresolved(name, signature, holder, THREAD));
   }
@@ -228,7 +224,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 
   constantPoolOop cp = VmIds::get<constantPoolOop>(vmId);
 
-  ciInstanceKlass* loading_klass = (ciInstanceKlass *)CURRENT_ENV->get_object(cp->pool_holder());
+  ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   bool is_accessible = false;
   ciKlass *klass = CURRENT_ENV->get_klass_by_index(cp, index, is_accessible, loading_klass);
   return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, cp->klass(), THREAD));
@@ -240,7 +236,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 
   constantPoolOop cp = VmIds::get<constantPoolOop>(vmId);
 
-  ciInstanceKlass* loading_klass = (ciInstanceKlass *)CURRENT_ENV->get_object(cp->pool_holder());
+  ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
   return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, THREAD));
 }
