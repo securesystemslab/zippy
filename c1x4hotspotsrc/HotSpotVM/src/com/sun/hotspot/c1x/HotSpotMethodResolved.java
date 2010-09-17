@@ -17,6 +17,8 @@
  */
 package com.sun.hotspot.c1x;
 
+import java.lang.reflect.*;
+
 import com.sun.cri.ri.*;
 
 /**
@@ -37,6 +39,7 @@ public class HotSpotMethodResolved implements HotSpotMethod {
     private RiExceptionHandler[] exceptionHandlers;
     private RiSignature signature;
     private RiType holder;
+    private Boolean hasBalancedMonitors;
 
     public HotSpotMethodResolved(long vmId, String name) {
         this.vmId = vmId;
@@ -53,8 +56,7 @@ public class HotSpotMethodResolved implements HotSpotMethod {
 
     @Override
     public boolean canBeStaticallyBound() {
-        // TODO Auto-generated method stub
-        return false;
+        return isLeafMethod() || Modifier.isStatic(accessFlags());
     }
 
     @Override
@@ -75,13 +77,15 @@ public class HotSpotMethodResolved implements HotSpotMethod {
 
     @Override
     public boolean hasBalancedMonitors() {
-        // TODO Auto-generated method stub
-        return false;
+        if (hasBalancedMonitors == null) {
+            hasBalancedMonitors = Compiler.getVMEntries().RiMethod_hasBalancedMonitors(vmId);
+        }
+        return hasBalancedMonitors;
     }
 
     @Override
     public RiType holder() {
-        if (holder == null ) {
+        if (holder == null) {
             holder = Compiler.getVMEntries().RiMethod_holder(vmId);
         }
         return holder;
@@ -99,14 +103,12 @@ public class HotSpotMethodResolved implements HotSpotMethod {
 
     @Override
     public boolean isLeafMethod() {
-        // TODO Auto-generated method stub
-        return false;
+        return Modifier.isFinal(accessFlags()) || Modifier.isPrivate(accessFlags());
     }
 
     @Override
     public boolean isOverridden() {
-        // TODO Auto-generated method stub
-        return false;
+        throw new UnsupportedOperationException("isOverridden");
     }
 
     @Override
@@ -116,13 +118,11 @@ public class HotSpotMethodResolved implements HotSpotMethod {
 
     @Override
     public String jniSymbol() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("jniSymbol");
     }
 
     @Override
     public Object liveness(int bci) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -144,7 +144,6 @@ public class HotSpotMethodResolved implements HotSpotMethod {
 
     @Override
     public RiMethodProfile methodData() {
-        // TODO Auto-generated method stub
         return null;
     }
 

@@ -59,7 +59,7 @@ jlong VmIds::add(Handle obj, CompilerObjectType type) {
       idx = i;
       break;
     }
-  if (idx = -1) {
+  if (idx == -1) {
     if (JavaThread::current()->thread_state() == _thread_in_vm) {
       idx = _localHandles->append(JNIHandles::make_global(obj));
     } else {

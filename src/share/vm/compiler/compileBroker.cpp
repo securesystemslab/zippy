@@ -863,14 +863,14 @@ void CompileBroker::compile_method_base(methodHandle method,
   // Acquire our lock.
   {
     MutexLocker locker(_method_queue->lock(), THREAD);
-
+/*
 	if (Thread::current()->is_Compiler_thread() && CompilerThread::current()->is_compiling()) {
     
 		TRACE_C1X_1("Recursive compile %s!", method->name_and_sig_as_C_string());
-    method->set_not_compilable();
+    //method->set_not_compilable();
 		return;
 	}
-
+*/
     // Make sure the method has not slipped into the queues since
     // last we checked; note that those checks were "fast bail-outs".
     // Here we need to be more careful, see 14012000 below.

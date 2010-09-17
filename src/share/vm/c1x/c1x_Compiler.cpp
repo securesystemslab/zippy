@@ -85,11 +85,11 @@ oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
   }
 }
 
-oop C1XCompiler::get_RiField(ciField *field, TRAPS) {
-  oop field_holder = get_RiType(field->holder(), NULL, CHECK_0);
-  oop field_type = get_RiType(field->type(), NULL, CHECK_0);
+oop C1XCompiler::get_RiField(ciField *field, klassOop accessor, TRAPS) {
+  oop field_holder = get_RiType(field->holder(), accessor, CHECK_0);
+  oop field_type = get_RiType(field->type(), accessor, CHECK_0);
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbolOop(), CHECK_0);
-  int offset = field->offset();
+  int offset = field->holder()->is_loaded() ? field->offset() : -1;
 
   // TODO: implement caching
   return VMExits::createRiField(field_holder, field_name, field_type, offset, THREAD);
@@ -108,8 +108,10 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
 
   if (klass->oop_is_javaArray()) {
     HotSpotTypeResolved::set_isArrayClass(obj, true);
+    HotSpotTypeResolved::set_componentType(obj, NULL);
   } else {
     HotSpotTypeResolved::set_isArrayClass(obj, false);
+    HotSpotTypeResolved::set_componentType(obj, NULL);
     HotSpotTypeResolved::set_isInitialized(obj, instanceKlass::cast(klass())->is_initialized());
     HotSpotTypeResolved::set_instanceSize(obj, instanceKlass::cast(klass())->size_helper() * HeapWordSize);
     HotSpotTypeResolved::set_hasFinalizer(obj, klass->has_finalizer());

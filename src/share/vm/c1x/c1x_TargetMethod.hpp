@@ -41,6 +41,7 @@ void c1x_compute_offsets();
     boolean_field(HotSpotTypeResolved, isInstanceClass)                                 \
     boolean_field(HotSpotTypeResolved, isInterface)                                     \
     int_field(HotSpotTypeResolved, instanceSize)                                        \
+    oop_field(HotSpotTypeResolved, componentType, "Lcom/sun/cri/ri/RiType;")            \
   end_class                                                                             \
   start_class(HotSpotMethodResolved)                                                    \
     long_field(HotSpotMethodResolved, vmId)                                             \

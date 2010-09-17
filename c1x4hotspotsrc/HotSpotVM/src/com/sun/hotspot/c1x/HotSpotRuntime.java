@@ -17,28 +17,17 @@
  */
 package com.sun.hotspot.c1x;
 
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.io.*;
+import java.lang.reflect.*;
 
-import com.sun.cri.ci.CiConstant;
-import com.sun.cri.ci.CiMethodInvokeArguments;
-import com.sun.cri.ci.CiTargetMethod;
+import com.sun.cri.ci.*;
 import com.sun.cri.ci.CiTargetMethod.Call;
 import com.sun.cri.ci.CiTargetMethod.DataPatch;
 import com.sun.cri.ci.CiTargetMethod.Safepoint;
-import com.sun.cri.ri.RiConstantPool;
-import com.sun.cri.ri.RiField;
-import com.sun.cri.ri.RiMethod;
-import com.sun.cri.ri.RiOsrFrame;
-import com.sun.cri.ri.RiRuntime;
-import com.sun.cri.ri.RiSnippets;
-import com.sun.cri.ri.RiType;
-import com.sun.max.asm.InstructionSet;
-import com.sun.max.asm.dis.DisassembledObject;
-import com.sun.max.asm.dis.Disassembler;
-import com.sun.max.asm.dis.DisassemblyPrinter;
+import com.sun.cri.ri.*;
+import com.sun.max.asm.*;
+import com.sun.max.asm.dis.*;
+import com.sun.max.lang.*;
 
 /**
  * CRI runtime implementation for the HotSpot VM.
@@ -59,13 +48,11 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public int basicObjectLockOffsetInBytes() {
-        // TODO Auto-generated method stub
         return 0;
     }
 
     @Override
     public int codeOffset() {
-        // TODO Auto-generated method stub
         return 0;
     }
 
@@ -77,7 +64,7 @@ public class HotSpotRuntime implements RiRuntime {
     private String disassemble(byte[] code, DisassemblyPrinter disassemblyPrinter) {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final InstructionSet instructionSet = InstructionSet.AMD64;
-        Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, null, 0, null, disassemblyPrinter);
+        Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, WordWidth.BITS_64, 0, null, disassemblyPrinter);
         return byteArrayOutputStream.toString();
     }
 
@@ -148,37 +135,36 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiOsrFrame getOsrFrame(RiMethod method, int bci) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public RiType getRiType(Class<?> javaClass) {
-        // TODO Auto-generated method stub
-        return null;
+        if (javaClass == Object[].class || javaClass == Long.class || javaClass == Integer.class || javaClass == Throwable.class) {
+            return Compiler.getVMEntries().getType(javaClass);
+        }
+        throw new UnsupportedOperationException("unexpected class in getRiType: " + javaClass);
     }
 
     @Override
     public RiSnippets getSnippets() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("getSnippets");
     }
 
     @Override
     public boolean mustInline(RiMethod method) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean mustNotCompile(RiMethod method) {
-        // TODO Auto-generated method stub
         return false;
     }
 
     @Override
     public boolean mustNotInline(RiMethod method) {
-        // TODO Auto-generated method stub
+        if (Modifier.isNative(method.accessFlags()))
+            return true;
         return false;
     }
 
@@ -195,32 +181,44 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiField getRiField(Field javaField) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("getRiField");
     }
 
     @Override
     public RiMethod getRiMethod(Method javaMethod) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("getRiMethod");
     }
 
     @Override
     public RiMethod getRiMethod(Constructor<?> javaConstructor) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("getRiMethod");
     }
 
     @Override
     public CiConstant invoke(RiMethod method, CiMethodInvokeArguments args) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public CiConstant foldWordOperation(int opcode, CiMethodInvokeArguments args) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("foldWordOperation");
+    }
+
+    @Override
+    public boolean compareConstantObjects(Object x, Object y) {
+        if (x == null && y == null) {
+            return true;
+        } else if (x == null || y == null) {
+            return false;
+        } else if (x instanceof Long && y instanceof Long) {
+            return (Long) x == (long) (Long) y;
+        }
+        throw new UnsupportedOperationException("compareConstantObjects: " + x + ", " + y);
+    }
+
+    @Override
+    public boolean recordLeafMethodAssumption(RiMethod method) {
+        return false;
     }
 
 }

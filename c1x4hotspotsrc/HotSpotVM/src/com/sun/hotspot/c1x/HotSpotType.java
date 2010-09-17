@@ -26,4 +26,6 @@ import com.sun.cri.ri.*;
  */
 public interface HotSpotType extends RiType, CompilerObject {
 
+    String simpleName();
+
 }

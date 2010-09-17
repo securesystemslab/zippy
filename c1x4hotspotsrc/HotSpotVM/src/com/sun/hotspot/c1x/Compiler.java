@@ -48,8 +48,13 @@ public class Compiler {
     private static VMEntries vmEntries;
 
     public static VMExits initializeServer(VMEntries entries) {
-        vmEntries = LoggingProxy.getProxy(VMEntries.class, entries);
-        vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
+        if (Logger.ENABLED) {
+            vmEntries = LoggingProxy.getProxy(VMEntries.class, entries);
+            vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
+        } else {
+            vmEntries = entries;
+            vmExits = new VMExitsNative();
+        }
         return vmExits;
     }
 
@@ -62,10 +67,11 @@ public class Compiler {
     public static VMEntries getVMEntries() {
         if (vmEntries == null) {
             try {
-                if (Logger.ENABLED)
+                if (Logger.ENABLED) {
                     vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
-                else
+                } else {
                     vmEntries = new VMEntriesNative();
+                }
             } catch (Throwable t) {
                 t.printStackTrace();
             }
@@ -92,10 +98,11 @@ public class Compiler {
                     VMEntries entries = Compiler.initializeClient(exits);
                     invocation.setDelegate(entries);
                 } else {
-                    if (Logger.ENABLED)
+                    if (Logger.ENABLED) {
                         vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
-                    else
+                    } else {
                         vmExits = new VMExitsNative();
+                    }
                 }
             } catch (Throwable t) {
                 t.printStackTrace();
@@ -120,18 +127,29 @@ public class Compiler {
         final int stackFrameAlignment = 16;
         registerConfig = new HotSpotRegisterConfig(config);
         target = new HotSpotTarget(new AMD64(), registerConfig, true, wordSize, wordSize, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, wordSize, config.codeEntryAlignment, true);
-        generator = LoggingProxy.getProxy(RiXirGenerator.class, new HotSpotXirGenerator(config, target, registerConfig));
+
+        if (Logger.ENABLED) {
+            generator = LoggingProxy.getProxy(RiXirGenerator.class, new HotSpotXirGenerator(config, target, registerConfig));
+        } else {
+            generator = new HotSpotXirGenerator(config, target, registerConfig);
+        }
         compiler = new C1XCompiler(runtime, target, generator);
 
         C1XOptions.setOptimizationLevel(3);
-        C1XOptions.TraceBytecodeParserLevel = Logger.ENABLED ? 4 : 0;
+        C1XOptions.UseDeopt = false;
+        C1XOptions.IRChecking = Logger.ENABLED;
+        C1XOptions.TraceBytecodeParserLevel = 0;
+        // C1XOptions.TraceBytecodeParserLevel = Logger.ENABLED ? 4 : 0;
         C1XOptions.PrintCFGToFile = false;
         C1XOptions.PrintAssembly = false;// true;
         C1XOptions.PrintCompilation = Logger.ENABLED;
-        C1XOptions.GenAssertionCode = true;
-        C1XOptions.DetailedAsserts = true;
+        C1XOptions.GenAssertionCode = Logger.ENABLED;
+        C1XOptions.DetailedAsserts = Logger.ENABLED;
+
         C1XOptions.GenSpecialDivChecks = true;
         C1XOptions.AlignCallsForPatching = true;
+        C1XOptions.NullCheckUniquePc = true;
+        C1XOptions.invokeinterfaceTemplatePos = true;
     }
 
     public CiCompiler getCompiler() {

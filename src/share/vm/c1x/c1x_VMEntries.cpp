@@ -103,6 +103,16 @@ JNIEXPORT jobjectArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1exce
   return (jobjectArray) JNIHandles::make_local(array());
 }
 
+// public boolean RiMethod_hasBalancedMonitors(long vmId);
+JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1hasBalancedMonitors(JNIEnv *, jobject, jlong vmId) {
+  ciMethod* cimethod;
+  {
+    VM_ENTRY_MARK;
+    cimethod = (ciMethod*)CURRENT_ENV->get_object(VmIds::get<methodOop>(vmId));
+  }
+  return cimethod->has_balanced_monitors();
+}
+
 // public RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jlong accessingClassVmId) {
   VM_ENTRY_MARK;
@@ -128,13 +138,17 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookup
   } else if (nameSymbol == vmSymbols::float_signature()) {
     result = VMExits::createRiTypePrimitive((int) T_FLOAT, THREAD);
   } else {
-    Handle classloader;
-    Handle protectionDomain;
-    if (accessingClassVmId != 0) {
-      classloader = VmIds::get<klassOop>(accessingClassVmId)->klass_part()->class_loader();
-      protectionDomain = VmIds::get<klassOop>(accessingClassVmId)->klass_part()->protection_domain();
+    klassOop resolved_type = NULL;
+    // if the name isn't in the symbol table then the class isn't loaded anyway...
+    if (nameSymbol != NULL) {
+      Handle classloader;
+      Handle protectionDomain;
+      if (accessingClassVmId != 0) {
+        classloader = VmIds::get<klassOop>(accessingClassVmId)->klass_part()->class_loader();
+        protectionDomain = VmIds::get<klassOop>(accessingClassVmId)->klass_part()->protection_domain();
+      }
+      resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
     }
-    klassOop resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
     if (resolved_type != NULL) {
       result = C1XCompiler::createHotSpotTypeResolved(resolved_type, name, CHECK_NULL);
     } else {
@@ -174,7 +188,10 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
         return NULL;
       }
     }
-    result = VMExits::createCiConstantObject(VmIds::add<oop>(string), CHECK_0);
+    jlong id = VmIds::add<oop>(string);
+//    tty->print("\n\nstring: 0x%08x%08x\n", string, id>>32, id);
+//    string->print();
+    result = VMExits::createCiConstantObject(id, CHECK_0);
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
     bool ignore;
     ciInstanceKlass* accessor = (ciInstanceKlass*) ciEnv::current()->get_object(cp->pool_holder());
@@ -238,7 +255,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 
   ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
-  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, THREAD));
+  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, cp->pool_holder(), THREAD));
 }
 
 // public RiConstantPool RiType_constantPool(long vmId);
@@ -264,17 +281,36 @@ JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeO
   assert(other->is_a(HotSpotTypeResolved::klass()), "resolved hotspot type expected");
   klassOop thisKlass = VmIds::get<klassOop>(vmId);
   klassOop otherKlass = VmIds::get<klassOop>(HotSpotTypeResolved::vmId(other));
-  return instanceKlass::cast(thisKlass)->is_subtype_of(otherKlass);
+  if (thisKlass->klass_part()->oop_is_instance_slow()) {
+    return instanceKlass::cast(thisKlass)->is_subtype_of(otherKlass);
+  } else if (thisKlass->klass_part()->oop_is_array()) {
+    return arrayKlass::cast(thisKlass)->is_subtype_of(otherKlass);
+  } else {
+    fatal("unexpected class type");
+  }
 }
 
-// helpers used to set fields in the HotSpotVMConfig object
-jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
-  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
-  if (id == NULL) {
-    TRACE_C1X_1("field not found: %s (%s)", name, sig);
-    fatal("field not found");
+// public RiType RiType_componentType(long vmId);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentType(JNIEnv *, jobject, jlong vmId) {
+  ciArrayKlass* klass;
+  {
+    VM_ENTRY_MARK;
+    klass = (ciArrayKlass *) CURRENT_ENV->get_object(VmIds::get<klassOop>(vmId));
   }
-  return id;
+  ciType* element_type = klass->element_type();
+
+  VM_ENTRY_MARK;
+  return JNIHandles::make_local(C1XCompiler::get_RiType(element_type, VmIds::get<klassOop>(vmId), THREAD));
+}
+
+// public RiType RiType_arrayOf(long vmId);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf(JNIEnv *, jobject, jlong vmId) {
+  VM_ENTRY_MARK;
+
+  instanceKlass* klass = instanceKlass::cast(VmIds::get<klassOop>(vmId));
+  KlassHandle array = klass->array_klass(THREAD);
+  Handle name = array->name();
+  return JNIHandles::make_local(THREAD, C1XCompiler::createHotSpotTypeResolved(array, name, THREAD));
 }
 
 // public RiType getPrimitiveArrayType(CiKind kind);
@@ -299,6 +335,26 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayTy
   return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, NULL, THREAD));
 }
 
+// public RiType getType(Class<?> javaClass);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getType(JNIEnv *env, jobject, jobject javaClass) {
+  VM_ENTRY_MARK;
+  KlassHandle klass = java_lang_Class::as_klassOop(JNIHandles::resolve(javaClass));
+  Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
+
+  oop type = C1XCompiler::createHotSpotTypeResolved(klass, name, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, type);
+}
+
+
+// helpers used to set fields in the HotSpotVMConfig object
+jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
+  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
+  if (id == NULL) {
+    TRACE_C1X_1("field not found: %s (%s)", name, sig);
+    fatal("field not found");
+  }
+  return id;
+}
 
 void set_boolean(JNIEnv* env, jobject obj, const char* name, bool value) { env->SetBooleanField(obj, getFieldID(env, obj, name, "Z"), value); }
 void set_int(JNIEnv* env, jobject obj, const char* name, int value) { env->SetIntField(obj, getFieldID(env, obj, name, "I"), value); }
@@ -331,6 +387,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_int(env, config, "stackShadowPages", StackShadowPages);
   set_int(env, config, "hubOffset", oopDesc::klass_offset_in_bytes());
   set_int(env, config, "arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
+  set_int(env, config, "klassStateOffset", instanceKlass::init_state_offset_in_bytes() + sizeof(oopDesc));
+  set_int(env, config, "klassStateFullyInitialized", (int)instanceKlass::fully_initialized);
   set_int(env, config, "threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int(env, config, "threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
   set_int(env, config, "instanceHeaderPrototypeOffset", Klass::prototype_header_offset_in_bytes() + klassOopDesc::klass_part_offset_in_bytes());
@@ -341,16 +399,45 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_long(env, config, "debugStub", VmIds::addStub((address)warning));
   set_long(env, config, "instanceofStub", VmIds::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
   set_long(env, config, "newInstanceStub", VmIds::addStub(Runtime1::entry_for(Runtime1::fast_new_instance_init_check_id)));
+  set_long(env, config, "unresolvedNewInstanceStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_instance_id)));
   set_long(env, config, "newTypeArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_type_array_id)));
   set_long(env, config, "newObjectArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_object_array_id)));
   set_long(env, config, "newMultiArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_multi_array_id)));
   set_long(env, config, "loadKlassStub", VmIds::addStub(Runtime1::entry_for(Runtime1::load_klass_patching_id)));
+  set_long(env, config, "accessFieldStub", VmIds::addStub(Runtime1::entry_for(Runtime1::access_field_patching_id)));
   set_long(env, config, "resolveStaticCallStub", VmIds::addStub(SharedRuntime::get_resolve_static_call_stub()));
+  set_long(env, config, "inlineCacheMissStub", VmIds::addStub(SharedRuntime::get_ic_miss_stub()));
   set_long(env, config, "unwindExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_unwind_exception_call_id)));
   set_long(env, config, "handleExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::handle_exception_nofpu_id)));
   set_long(env, config, "throwClassCastException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_class_cast_exception_id)));
   set_long(env, config, "throwArrayStoreException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_array_store_exception_id)));
   set_long(env, config, "throwArrayIndexException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_range_check_failed_id)));
+  set_long(env, config, "monitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorenter_nofpu_id)));
+  set_long(env, config, "monitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorexit_nofpu_id)));
+
+  BarrierSet* bs = Universe::heap()->barrier_set();
+  switch (bs->kind()) {
+    case BarrierSet::CardTableModRef:
+    case BarrierSet::CardTableExtension: {
+      jlong base = (jlong)((CardTableModRefBS*)bs)->byte_map_base;
+      assert(base != 0, "unexpected byte_map_base");
+      set_long(env, config, "cardtableStartAddress", base);
+      set_int(env, config, "cardtableShift", CardTableModRefBS::card_shift);
+      break;
+    }
+    case BarrierSet::ModRef:
+    case BarrierSet::Other:
+      set_long(env, config, "cardtableStartAddress", 0);
+      set_int(env, config, "cardtableShift", 0);
+      // No post barriers
+      break;
+#ifndef SERIALGC
+    case BarrierSet::G1SATBCT:
+    case BarrierSet::G1SATBCTLogging:
+#endif // SERIALGC
+    default:
+      ShouldNotReachHere();
+    }
 
   jintArray arrayOffsets = env->NewIntArray(basicTypeCount);
   for (int i=0; i<basicTypeCount; i++) {
@@ -394,6 +481,7 @@ JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_installStub(JNIEnv *j
 #define CI_KIND         "Lcom/sun/cri/ci/CiKind;"
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"
+#define CLASS           "Ljava/lang/Class;"
 
 JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_code",                   CC"("PROXY")[B",                    FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code)},
@@ -403,6 +491,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_signature",              CC"("PROXY")"STRING,                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1signature)},
   {CC"RiMethod_accessFlags",            CC"("PROXY")I",                     FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags)},
   {CC"RiMethod_exceptionHandlers",      CC"("PROXY")"EXCEPTION_HANDLERS,    FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1exceptionHandlers)},
+  {CC"RiMethod_hasBalancedMonitors",    CC"("PROXY")Z",                     FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1hasBalancedMonitors)},
   {CC"RiSignature_lookupType",          CC"("STRING PROXY")"TYPE,           FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,               FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,              FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod)},
@@ -412,7 +501,10 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_constantPool",             CC"("PROXY")"CONSTANT_POOL,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPool)},
   {CC"RiType_resolveMethodImpl",        CC"("PROXY STRING STRING")"METHOD,  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMethodImpl)},
   {CC"RiType_isSubtypeOf",              CC"("PROXY TYPE")Z",                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf)},
+  {CC"RiType_componentType",            CC"("PROXY")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentType)},
+  {CC"RiType_arrayOf",                  CC"("PROXY")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf)},
   {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayType)},
+  {CC"getType",                         CC"("CLASS")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getType)},
   {CC"getConfiguration",                CC"()"CONFIG,                       FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getConfiguration)},
   {CC"installMethod",                   CC"("TARGET_METHOD")V",             FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installMethod)},
   {CC"installStub",                     CC"("TARGET_METHOD")"PROXY,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installStub)}

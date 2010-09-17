@@ -171,27 +171,27 @@ class SymbolPropertyTable;
   template(Integer_klass,                java_lang_Integer,              Pre) \
   template(Long_klass,                   java_lang_Long,                 Pre) \
                                                                               \
-  template(HotSpotTypeResolved_klass,    com_sun_hotspot_c1x_HotSpotTypeResolved, Pre)                  \
-  template(HotSpotMethodResolved_klass,  com_sun_hotspot_c1x_HotSpotMethodResolved, Pre)                \
-  template(HotSpotTargetMethod_klass,    com_sun_hotspot_c1x_HotSpotTargetMethod, Pre)                  \
-  template(HotSpotExceptionHandler_klass,com_sun_hotspot_c1x_HotSpotExceptionHandler, Pre)              \
-  template(CiTargetMethod_klass,         com_sun_cri_ci_CiTargetMethod, Pre)                            \
-  template(CiTargetMethod_Site_klass,    com_sun_cri_ci_CiTargetMethod_Site, Pre)                       \
-  template(CiTargetMethod_Call_klass,    com_sun_cri_ci_CiTargetMethod_Call, Pre)                       \
-  template(CiTargetMethod_DataPatch_klass, com_sun_cri_ci_CiTargetMethod_DataPatch, Pre)                \
-  template(CiTargetMethod_Safepoint_klass, com_sun_cri_ci_CiTargetMethod_Safepoint, Pre)                \
-  template(CiTargetMethod_ExceptionHandler_klass, com_sun_cri_ci_CiTargetMethod_ExceptionHandler, Pre)  \
-  template(CiTargetMethod_Mark_klass,    com_sun_cri_ci_CiTargetMethod_Mark, Pre)                       \
-  template(CiDebugInfo_klass,            com_sun_cri_ci_CiDebugInfo, Pre)                               \
-  template(CiDebugInfo_Frame_klass,      com_sun_cri_ci_CiDebugInfo_Frame, Pre)                         \
-  template(CiRegisterValue_klass,        com_sun_cri_ci_CiRegisterValue, Pre)                           \
-  template(CiStackSlot_klass,            com_sun_cri_ci_CiStackSlot, Pre)                               \
-  template(CiCodePos_klass,              com_sun_cri_ci_CiCodePos, Pre)                                 \
-  template(CiConstant_klass,             com_sun_cri_ci_CiConstant, Pre)                                \
-  template(CiKind_klass,                 com_sun_cri_ci_CiKind, Pre)                                    \
-  template(CiRuntimeCall_klass,          com_sun_cri_ci_CiRuntimeCall, Pre)                             \
-  template(RiMethod_klass,               com_sun_cri_ri_RiMethod, Pre)                                  \
-  template(RiExceptionHandler_klass,     com_sun_cri_ri_RiExceptionHandler, Pre)                        \
+  template(HotSpotTypeResolved_klass,    com_sun_hotspot_c1x_HotSpotTypeResolved,                   Opt) \
+  template(HotSpotMethodResolved_klass,  com_sun_hotspot_c1x_HotSpotMethodResolved,                 Opt) \
+  template(HotSpotTargetMethod_klass,    com_sun_hotspot_c1x_HotSpotTargetMethod,                   Opt) \
+  template(HotSpotExceptionHandler_klass,com_sun_hotspot_c1x_HotSpotExceptionHandler,               Opt) \
+  template(CiTargetMethod_klass,         com_sun_cri_ci_CiTargetMethod,                             Opt) \
+  template(CiTargetMethod_Site_klass,    com_sun_cri_ci_CiTargetMethod_Site,                        Opt) \
+  template(CiTargetMethod_Call_klass,    com_sun_cri_ci_CiTargetMethod_Call,                        Opt) \
+  template(CiTargetMethod_DataPatch_klass, com_sun_cri_ci_CiTargetMethod_DataPatch,                 Opt) \
+  template(CiTargetMethod_Safepoint_klass, com_sun_cri_ci_CiTargetMethod_Safepoint,                 Opt) \
+  template(CiTargetMethod_ExceptionHandler_klass, com_sun_cri_ci_CiTargetMethod_ExceptionHandler,   Opt) \
+  template(CiTargetMethod_Mark_klass,    com_sun_cri_ci_CiTargetMethod_Mark,                        Opt) \
+  template(CiDebugInfo_klass,            com_sun_cri_ci_CiDebugInfo,                                Opt) \
+  template(CiDebugInfo_Frame_klass,      com_sun_cri_ci_CiDebugInfo_Frame,                          Opt) \
+  template(CiRegisterValue_klass,        com_sun_cri_ci_CiRegisterValue,                            Opt) \
+  template(CiStackSlot_klass,            com_sun_cri_ci_CiStackSlot,                                Opt) \
+  template(CiCodePos_klass,              com_sun_cri_ci_CiCodePos,                                  Opt) \
+  template(CiConstant_klass,             com_sun_cri_ci_CiConstant,                                 Opt) \
+  template(CiKind_klass,                 com_sun_cri_ci_CiKind,                                     Opt) \
+  template(CiRuntimeCall_klass,          com_sun_cri_ci_CiRuntimeCall,                              Opt) \
+  template(RiMethod_klass,               com_sun_cri_ri_RiMethod,                                   Opt) \
+  template(RiExceptionHandler_klass,     com_sun_cri_ri_RiExceptionHandler,                         Opt) \
 
   /*end*/
 

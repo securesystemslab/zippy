@@ -25,18 +25,21 @@
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_CodeInstaller.cpp.incl"
 
-#define C1X_REGISTER_COUNT 32
+// TODO this should be handled in a more robust way - not hard coded...
+Register CPU_REGS[] = { rax, rbx, rcx, rdx, rsi, rdi, r11, r12, r13, r14 };
+const static int NUM_CPU_REGS = 10;
+XMMRegister XMM_REGS[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
+const static int NUM_XMM_REGS = 16;
+const static int NUM_REGS = NUM_CPU_REGS + NUM_XMM_REGS;
 
 // convert c1x register indices (as used in oop maps) to hotspot registers
 VMReg get_hotspot_reg(jint c1x_reg) {
-  Register cpu_registers[] = { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
-  XMMRegister xmm_registers[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
 
-  if (c1x_reg < 16) {
-    return cpu_registers[c1x_reg]->as_VMReg();
+  assert(c1x_reg >= 0 && c1x_reg < NUM_REGS, "invalid register number");
+  if (c1x_reg < NUM_CPU_REGS) {
+    return CPU_REGS[c1x_reg]->as_VMReg();
   } else {
-    assert(c1x_reg < C1X_REGISTER_COUNT, "invalid register number");
-    return xmm_registers[c1x_reg - 16]->as_VMReg();
+    return XMM_REGS[c1x_reg - NUM_CPU_REGS]->as_VMReg();
   }
 }
 
@@ -46,7 +49,9 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   arrayOop register_map = (arrayOop) CiDebugInfo::registerRefMap(debug_info);
   arrayOop frame_map = (arrayOop) CiDebugInfo::frameRefMap(debug_info);
 
-  for (jint i = 0; i < C1X_REGISTER_COUNT; i++) {
+  assert(register_map->length() == (NUM_REGS + 7) / 8, "unexpected register_map length");
+
+  for (jint i = 0; i < NUM_REGS; i++) {
     unsigned char byte = ((unsigned char*) register_map->base(T_BYTE))[i / 8];
     bool is_oop = (byte & (1 << (i % 8))) != 0;
     VMReg reg = get_hotspot_reg(i);
@@ -57,18 +62,24 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
     }
   }
 
-  for (jint i = 0; i < frame_size; i++) {
-    unsigned char byte = ((unsigned char*) frame_map->base(T_BYTE))[i / 8];
-    bool is_oop = (byte & (1 << (i % 8))) != 0;
-    VMReg reg = VMRegImpl::stack2reg(i);
-    if (is_oop) {
-      map->set_oop(reg);
-    } else {
-      map->set_value(reg);
+  if (frame_size > 0) {
+    assert(frame_map->length() == ((frame_size / HeapWordSize) + 7) / 8, "unexpected register_map length");
+
+    for (jint i = 0; i < frame_size / HeapWordSize; i++) {
+      unsigned char byte = ((unsigned char*) frame_map->base(T_BYTE))[i / 8];
+      bool is_oop = (byte & (1 << (i % 8))) != 0;
+      // hotspot stack slots are 4 bytes
+      VMReg reg = VMRegImpl::stack2reg(i * 2);
+      if (is_oop) {
+        map->set_oop(reg);
+      } else {
+        map->set_value(reg);
+      }
     }
+  } else {
+    assert(frame_map == NULL || frame_map->length() == 0, "cannot have frame_map for frames with size 0");
   }
 
-  // TODO parameters?
   return map;
 }
 
@@ -260,7 +271,7 @@ void CodeInstaller::process_exception_handlers() {
 void CodeInstaller::record_scope(jint pc_offset, oop code_pos, oop frame) {
   oop caller_pos = CiCodePos::caller(code_pos);
   if (caller_pos != NULL) {
-    oop caller_frame = CiDebugInfo_Frame::caller(frame);
+    oop caller_frame = frame == NULL ? NULL : CiDebugInfo_Frame::caller(frame);
     record_scope(pc_offset, caller_pos, caller_frame);
   } else {
     assert(frame == NULL || CiDebugInfo_Frame::caller(frame) == NULL, "unexpected layout - mismatching nesting of Frame and CiCodePos");
@@ -336,7 +347,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (symbol ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
-  NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
+  assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size)");
   jint next_pc_offset = pc_offset + NativeCall::instruction_size;
 
   if (debug_info != NULL) {
@@ -347,6 +358,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (runtime_call != NULL) {
+    NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
     if (runtime_call == CiRuntimeCall::Debug()) {
       TRACE_C1X_3("CiRuntimeCall::Debug()");
     } else if (runtime_call == CiRuntimeCall::UnwindException()) {
@@ -357,19 +369,33 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       call->set_destination(Runtime1::entry_for(Runtime1::c1x_handle_exception_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_C1X_3("CiRuntimeCall::HandleException()");
+    } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
+      call->set_destination((address)os::javaTimeMillis);
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_C1X_3("CiRuntimeCall::JavaTimeMillis()");
+    } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
+      call->set_destination((address)os::javaTimeNanos);
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_C1X_3("CiRuntimeCall::JavaTimeNanos()");
     } else {
       TRACE_C1X_1("runtime_call not implemented: ");
       IF_TRACE_C1X_1 runtime_call->print();
     }
   } else if (global_stub != NULL) {
+    NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
     assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
 
-    call->set_destination(VmIds::getStub(global_stub));
-    _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-    TRACE_C1X_3("relocating (stub)  at %016x", call->instruction_address());
+    if (inst->is_call()) {
+      nativeCall_at((address)inst)->set_destination(VmIds::getStub(global_stub));
+    } else {
+      nativeJump_at((address)inst)->set_jump_destination(VmIds::getStub(global_stub));
+    }
+    _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
+    TRACE_C1X_3("relocating (stub)  at %016x", inst);
   } else if (symbol != NULL) {
     fatal("symbol");
   } else { // method != NULL
+    NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
     assert(hotspot_method != NULL, "unexpected RiMethod");
     assert(debug_info != NULL, "debug info expected");
 
@@ -523,14 +549,15 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_IMPLICIT_NULL:
         _implicit_exception_table.append(pc_offset, pc_offset);
         break;
-      case MARK_KLASS_PATCHING: {
+      case MARK_KLASS_PATCHING:
+      case MARK_ACCESS_FIELD_PATCHING: {
         unsigned char* byte_count = (unsigned char*) (instruction - 1);
         unsigned char* byte_skip = (unsigned char*) (instruction - 2);
         unsigned char* being_initialized_entry_offset = (unsigned char*) (instruction - 3);
 
         assert(*byte_skip == 5, "unexpected byte_skip");
 
-        assert(references->length() == 2, "MARK_KLASS_PATCHING needs 2 references");
+        assert(references->length() == 2, "MARK_KLASS_PATCHING/MARK_ACCESS_FIELD_PATCHING needs 2 references");
         oop ref1 = ((oop*) references->base(T_OBJECT))[0];
         oop ref2 = ((oop*) references->base(T_OBJECT))[1];
         int i_byte_count = CiTargetMethod_Site::pcOffset(ref2) - CiTargetMethod_Site::pcOffset(ref1);
@@ -538,6 +565,12 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         *byte_count = i_byte_count;
         *being_initialized_entry_offset = *byte_count + *byte_skip;
 
+        // we need to correct the offset of a field access - it's created with MAX_INT to ensure the correct size, and hotspot expects 0
+        if (id == MARK_ACCESS_FIELD_PATCHING) {
+          NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + CiTargetMethod_Site::pcOffset(ref1));
+          assert(inst->offset() == max_jint, "unexpected offset value");
+          inst->set_offset(0);
+        }
         break;
       }
       case MARK_DUMMY_OOP_RELOCATION: {

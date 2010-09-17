@@ -68,4 +68,12 @@ public interface VMEntries {
 
     public RiType getPrimitiveArrayType(CiKind kind);
 
+    public RiType RiType_arrayOf(long vmId);
+
+    public RiType RiType_componentType(long vmId);
+
+    public RiType getType(Class<?> javaClass);
+
+    public boolean RiMethod_hasBalancedMonitors(long vmId);
+
 }

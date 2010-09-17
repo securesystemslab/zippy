@@ -88,4 +88,16 @@ public class VMEntriesNative implements VMEntries {
     @Override
     public native RiType getPrimitiveArrayType(CiKind kind);
 
+    @Override
+    public native RiType RiType_arrayOf(long vmId);
+
+    @Override
+    public native RiType RiType_componentType(long vmId);
+
+    @Override
+    public native RiType getType(Class<?> javaClass);
+
+    @Override
+    public native boolean RiMethod_hasBalancedMonitors(long vmId);
+
 }

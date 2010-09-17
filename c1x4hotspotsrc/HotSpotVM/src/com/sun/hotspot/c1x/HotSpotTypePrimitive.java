@@ -134,6 +134,11 @@ public class HotSpotTypePrimitive implements HotSpotType {
     }
 
     @Override
+    public String simpleName() {
+        return kind.toString();
+    }
+
+    @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
         return null;
     }

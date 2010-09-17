@@ -35,6 +35,8 @@ public class HotSpotVMConfig implements CompilerObject {
     public int stackShadowPages;
     public int hubOffset;
     public int arrayLengthOffset;
+    public int klassStateOffset;
+    public int klassStateFullyInitialized;
     public int[] arrayOffsets;
     public int arrayClassElementOffset;
     public int threadTlabTopOffset;
@@ -43,21 +45,28 @@ public class HotSpotVMConfig implements CompilerObject {
     public int threadExceptionOopOffset;
     public int threadExceptionPcOffset;
     public int threadMultiNewArrayStorage;
+    public long cardtableStartAddress;
+    public int cardtableShift;
 
     // runtime stubs
     public long debugStub;
     public long instanceofStub;
     public long newInstanceStub;
+    public long unresolvedNewInstanceStub;
     public long newTypeArrayStub;
     public long newObjectArrayStub;
     public long newMultiArrayStub;
     public long loadKlassStub;
+    public long accessFieldStub;
     public long resolveStaticCallStub;
+    public long inlineCacheMissStub;
     public long unwindExceptionStub;
     public long handleExceptionStub;
     public long throwClassCastException;
     public long throwArrayStoreException;
     public long throwArrayIndexException;
+    public long monitorEnterStub;
+    public long monitorExitStub;
 
     public void check() {
         assert vmPageSize >= 16;

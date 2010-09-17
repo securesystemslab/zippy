@@ -17,8 +17,11 @@
  */
 package com.sun.hotspot.c1x;
 
+import java.lang.reflect.*;
+
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
+import com.sun.hotspot.c1x.logging.*;
 
 /**
  * Implementation of RiType for resolved non-primitive HotSpot classes.
@@ -39,9 +42,10 @@ public class HotSpotTypeResolved implements HotSpotType {
     private final boolean isInstanceClass;
     private final boolean isInterface;
     private final int instanceSize;
+    private final RiType componentType;
 
     public HotSpotTypeResolved(long vmId, long javaMirrorVmId, String name, int accessFlags, boolean hasFinalizer, boolean hasSubclass, boolean hasFinalizableSubclass, boolean isInitialized,
-                    boolean isArrayClass, boolean isInstanceClass, boolean isInterface, int instanceSize) {
+                    boolean isArrayClass, boolean isInstanceClass, boolean isInterface, int instanceSize, RiType componentType) {
         this.vmId = vmId;
         this.javaMirrorVmId = javaMirrorVmId;
         this.name = name;
@@ -54,6 +58,7 @@ public class HotSpotTypeResolved implements HotSpotType {
         this.isInstanceClass = isInstanceClass;
         this.isInterface = isInterface;
         this.instanceSize = instanceSize;
+        this.componentType = componentType;
     }
 
     @Override
@@ -63,16 +68,23 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public RiType arrayOf() {
+        Logger.log("arrayOf " + name);
         return null;
+        //return Compiler.getVMEntries().RiType_arrayOf(vmId);
     }
 
     @Override
     public RiType componentType() {
-        return null;
+        Logger.log("componentType " + name + " isarray: " + isArrayClass);
+        return Compiler.getVMEntries().RiType_componentType(vmId);
     }
 
     @Override
     public RiType exactType() {
+        // TODO is this correct? what's this exactType good for?
+        if (Modifier.isFinal(accessFlags)) {
+            return this;
+        }
         return null;
     }
 
@@ -124,8 +136,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public boolean isInstance(Object obj) {
-
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -145,7 +156,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public boolean isSubtypeOf(RiType other) {
-        assert other instanceof HotSpotType  : "unexpected 'other' type: " + other;
+        assert other instanceof HotSpotType : "unexpected 'other' type: " + other;
         if (other instanceof HotSpotTypeResolved)
             return Compiler.getVMEntries().RiType_isSubtypeOf(vmId, other);
         // no resolved type is a subtype of an unresolved type
@@ -165,6 +176,11 @@ public class HotSpotTypeResolved implements HotSpotType {
     @Override
     public String name() {
         return "L" + name + ";";
+    }
+
+    @Override
+    public String simpleName() {
+        return name;
     }
 
     @Override

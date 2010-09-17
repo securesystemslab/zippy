@@ -28,6 +28,7 @@ import com.sun.cri.ri.*;
 public class HotSpotTypeUnresolved implements HotSpotType {
 
     public final String name;
+    public final int dimensions;
     private final long accessingClassVmId;
 
     /**
@@ -35,11 +36,28 @@ public class HotSpotTypeUnresolved implements HotSpotType {
      */
     public HotSpotTypeUnresolved(String name, long accessingClassVmId) {
         this.name = name;
+        this.dimensions = 0;
+        this.accessingClassVmId = accessingClassVmId;
+    }
+
+    public HotSpotTypeUnresolved(String name, int dimensions, long accessingClassVmId) {
+        this.name = name;
+        this.dimensions = dimensions;
         this.accessingClassVmId = accessingClassVmId;
     }
 
     @Override
     public String name() {
+        StringBuilder str = new StringBuilder();
+        for (int i = 0; i < dimensions; i++) {
+            str.append('[');
+        }
+        str.append('L').append(name).append(';');
+        return str.toString();
+    }
+
+    @Override
+    public String simpleName() {
         return name;
     }
 
@@ -70,7 +88,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public boolean isArrayClass() {
-        throw unresolved("isArrayClass()");
+        return dimensions > 0;
     }
 
     @Override
@@ -116,8 +134,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        // TODO: Implement
-        throw new UnsupportedOperationException();
+        return new HotSpotTypeUnresolved(name, dimensions + 1, accessingClassVmId);
     }
 
     @Override
@@ -127,7 +144,6 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public CiKind kind() {
-        // TODO: Check if this is correct.
         return CiKind.Object;
     }
 

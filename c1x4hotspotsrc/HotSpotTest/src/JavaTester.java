@@ -1,10 +1,10 @@
 
 import com.sun.hotspot.c1x.logging.Logger;
 
-public class jttTests {
+public class JavaTester {
 
 	public static void main(String[] args) {
-		runTests(526, 526);
+		runTests(0, 1000);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 
@@ -28,7 +28,7 @@ public class jttTests {
 	}
 
 	static void begin(String testName) {
-		jttTests.testName = testName;
+		JavaTester.testName = testName;
 		executed++;
 	}
 
@@ -580,10 +580,10 @@ public class jttTests {
 			jtt_bytecode_BC_lxor();
 			break;
 		case 176:
-			// jtt_bytecode_BC_monitorenter();
+			jtt_bytecode_BC_monitorenter();
 			break;
 		case 177:
-			// jtt_bytecode_BC_monitorenter02();
+			jtt_bytecode_BC_monitorenter02();
 			break;
 		case 178:
 			jtt_bytecode_BC_multianewarray01();
@@ -730,7 +730,7 @@ public class jttTests {
 			jtt_optimize_Inline02();
 			break;
 		case 226:
-			//jtt_optimize_List_reorder_bug();
+			jtt_optimize_List_reorder_bug();
 			break;
 		case 227:
 			jtt_optimize_NCE_01();
@@ -1024,7 +1024,7 @@ public class jttTests {
 			jtt_except_BC_lrem();
 			break;
 		case 324:
-			//jtt_except_BC_monitorenter();
+			jtt_except_BC_monitorenter();
 			break;
 		case 325:
 			jtt_except_BC_multianewarray();
@@ -1090,13 +1090,13 @@ public class jttTests {
 			jtt_except_Catch_NPE_11();
 			break;
 		case 346:
-			jtt_except_Catch_StackOverflowError_01();
+			//jtt_except_Catch_StackOverflowError_01();
 			break;
 		case 347:
-			jtt_except_Catch_StackOverflowError_02();
+			//jtt_except_Catch_StackOverflowError_02();
 			break;
 		case 348:
-			jtt_except_Catch_StackOverflowError_03();
+			//jtt_except_Catch_StackOverflowError_03();
 			break;
 		case 349:
 			jtt_except_Catch_Two01();
@@ -1108,19 +1108,19 @@ public class jttTests {
 			jtt_except_Catch_Two03();
 			break;
 		case 352:
-			//jtt_except_Except_Synchronized01();
+			jtt_except_Except_Synchronized01();
 			break;
 		case 353:
-			//jtt_except_Except_Synchronized02();
+			jtt_except_Except_Synchronized02();
 			break;
 		case 354:
-			//jtt_except_Except_Synchronized03();
+			jtt_except_Except_Synchronized03();
 			break;
 		case 355:
-			//jtt_except_Except_Synchronized04();
+			jtt_except_Except_Synchronized04();
 			break;
 		case 356:
-			//jtt_except_Except_Synchronized05();
+			jtt_except_Except_Synchronized05();
 			break;
 		case 357:
 			jtt_except_Finally01();
@@ -1159,19 +1159,19 @@ public class jttTests {
 			jtt_except_Throw_NPE_01();
 			break;
 		case 369:
-			//jtt_except_Throw_Synchronized01();
+			jtt_except_Throw_Synchronized01();
 			break;
 		case 370:
-			//jtt_except_Throw_Synchronized02();
+			jtt_except_Throw_Synchronized02();
 			break;
 		case 371:
-			//jtt_except_Throw_Synchronized03();
+			jtt_except_Throw_Synchronized03();
 			break;
 		case 372:
-			//jtt_except_Throw_Synchronized04();
+			jtt_except_Throw_Synchronized04();
 			break;
 		case 373:
-			//jtt_except_Throw_Synchronized05();
+			jtt_except_Throw_Synchronized05();
 			break;
 		case 374:
 			jtt_lang_Boxed_TYPE_01();
@@ -1213,7 +1213,7 @@ public class jttTests {
 			jtt_lang_Class_getComponentType01();
 			break;
 		case 387:
-			//jtt_lang_Class_getInterfaces01();
+			jtt_lang_Class_getInterfaces01();
 			break;
 		case 388:
 			jtt_lang_Class_getName01();
@@ -1453,7 +1453,7 @@ public class jttTests {
 			jtt_micro_BigIntParams02();
 			break;
 		case 467:
-			//jtt_micro_BigInterfaceParams01();
+			jtt_micro_BigInterfaceParams01();
 			break;
 		case 468:
 			jtt_micro_BigLongParams02();
@@ -1471,7 +1471,7 @@ public class jttTests {
 			jtt_micro_BigObjectParams01();
 			break;
 		case 473:
-			//jtt_micro_BigObjectParams02();
+			jtt_micro_BigObjectParams02();
 			break;
 		case 474:
 			jtt_micro_BigParamsAlignment();
@@ -1480,7 +1480,7 @@ public class jttTests {
 			jtt_micro_BigShortParams01();
 			break;
 		case 476:
-			//jtt_micro_BigVirtualParams01();
+			jtt_micro_BigVirtualParams01();
 			break;
 		case 477:
 			jtt_micro_Bubblesort();
@@ -1501,7 +1501,7 @@ public class jttTests {
 			jtt_micro_StrangeFrames();
 			break;
 		case 483:
-			//jtt_micro_String_format01();
+			jtt_micro_String_format01();
 			break;
 		case 484:
 			jtt_micro_String_format02();
@@ -1732,16 +1732,16 @@ public class jttTests {
 			jtt_threads_ThreadLocal02();
 			break;
 		case 560:
-			//jtt_threads_ThreadLocal03();
+			jtt_threads_ThreadLocal03();
 			break;
 		case 561:
 			jtt_threads_Thread_currentThread01();
 			break;
 		case 562:
-			//jtt_threads_Thread_getState01();
+			jtt_threads_Thread_getState01();
 			break;
 		case 563:
-			//jtt_threads_Thread_getState02();
+			jtt_threads_Thread_getState02();
 			break;
 		case 564:
 			//jtt_threads_Thread_holdsLock01();
@@ -1814,6 +1814,9 @@ public class jttTests {
 			break;
 		case 587:
 			jtt_jdk_UnsafeAccess01();
+			break;
+		case 588:
+			jtt_micro_ReferenceMap01();
 			break;
 		}
 		return true;
@@ -23845,6 +23848,23 @@ public class jttTests {
 			// (0) == 42
 			runString = "(0)";
 			if (42 != jtt.jdk.UnsafeAccess01.test(0)) {
+				fail(runString);
+				return;
+			}
+		} catch (Throwable t) {
+			fail(runString, t);
+			return;
+		}
+		pass();
+	}
+
+	static void jtt_micro_ReferenceMap01() {
+		begin("jtt.micro.ReferenceMap01");
+		String runString = null;
+		try {
+			// (0) == 7878
+			runString = "(0)";
+			if (7878 != jtt.micro.ReferenceMap01.test(0)) {
 				fail(runString);
 				return;
 			}

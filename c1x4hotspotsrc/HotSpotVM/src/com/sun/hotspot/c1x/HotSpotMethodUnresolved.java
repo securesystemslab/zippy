@@ -130,4 +130,9 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
         return new CiUnresolvedException(operation + " not defined for unresolved method " + name);
     }
 
+    @Override
+    public String toString() {
+        return "HotSpotMethod<" + name + ", unresolved>";
+    }
+
 }

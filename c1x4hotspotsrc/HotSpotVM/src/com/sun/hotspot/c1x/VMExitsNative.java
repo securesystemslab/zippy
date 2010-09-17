@@ -34,7 +34,7 @@ public class VMExitsNative implements VMExits {
     @Override
     public void compileMethod(long methodVmId, String name, int entry_bci) {
         try {
-            Logger.info("compiling " + name + " (0x" + Long.toHexString(methodVmId) + ")");
+//            long t1 = System.nanoTime();
             Compiler compiler = Compiler.getInstance();
             HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
             CiResult result = compiler.getCompiler().compileMethod(riMethod, null);
@@ -47,6 +47,8 @@ public class VMExitsNative implements VMExits {
                 Logger.log("Compilation result: " + result.targetMethod());
                 HotSpotTargetMethod.installMethod(riMethod, result.targetMethod());
             }
+//            long time = (System.nanoTime() - t1) / 1000000;
+//            Logger.info("compiling " + name + " (0x" + Long.toHexString(methodVmId) + "): " + (time) + "ms");
         } catch (Throwable t) {
             StringWriter out = new StringWriter();
             t.printStackTrace(new PrintWriter(out));
