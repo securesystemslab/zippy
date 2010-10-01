@@ -38,17 +38,8 @@ public class HotSpotRuntime implements RiRuntime {
 
     private final HotSpotVMConfig config;
 
-    public static enum Entrypoints {
-        UNVERIFIED, VERIFIED
-    }
-
     public HotSpotRuntime(HotSpotVMConfig config) {
         this.config = config;
-    }
-
-    @Override
-    public int basicObjectLockOffsetInBytes() {
-        return 0;
     }
 
     @Override
@@ -175,8 +166,13 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public int sizeofBasicObjectLock() {
-        // TODO Auto-generated method stub
-        return 0;
+        // TODO shouldn't be hard coded
+        return 2 * 8;
+    }
+
+    @Override
+    public int basicObjectLockOffsetInBytes() {
+        return 8;
     }
 
     @Override

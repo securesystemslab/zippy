@@ -1830,94 +1830,203 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
 #endif // !SERIALGC
 
-    case c1x_unwind_exception_call_id:
+    case c1x_unwind_exception_call_id: {
+      // remove the frame from the stack
+      __ movptr(rsp, rbp);
+      __ pop(rbp);
+      // exception_oop is passed using ordinary java calling conventions
+      __ movptr(rax, j_rarg0);
+
+      Label nonNullExceptionOop;
+      __ testptr(rax, rax);
+      __ jcc(Assembler::notZero, nonNullExceptionOop);
       {
-        // remove the frame from the stack
-        __ movptr(rsp, rbp);
-        __ pop(rbp);
-        // exception_oop is passed using ordinary java calling conventions
-        __ movptr(rax, j_rarg0);
-
-        Label nonNullExceptionOop;
-        __ testptr(rax, rax);
-        __ jcc(Assembler::notZero, nonNullExceptionOop);
-        {
-          __ enter();
-          oop_maps = new OopMapSet();
-          OopMap* oop_map = save_live_registers(sasm, 0);
-          int call_offset = __ call_RT(rax, noreg, (address)c1x_create_null_exception, 0);
-          oop_maps->add_gc_map(call_offset, oop_map);
-          __ leave();
-        }
-        __ bind(nonNullExceptionOop);
-
-        __ set_info("unwind_exception", dont_gc_arguments);
-        // note: no stubframe since we are about to leave the current
-        //       activation and we are calling a leaf VM function only.
-        generate_unwind_exception(sasm);
-        __ should_not_reach_here();
-      }
-      break;
-
-    case c1x_handle_exception_id:
-      { StubFrame f(sasm, "c1x_handle_exception", dont_gc_arguments);
+        __ enter();
         oop_maps = new OopMapSet();
-        OopMap* oop_map = save_live_registers(sasm, 1, false);
-        c1x_generate_handle_exception(sasm, oop_maps, oop_map);
+        OopMap* oop_map = save_live_registers(sasm, 0);
+        int call_offset = __ call_RT(rax, noreg, (address)c1x_create_null_exception, 0);
+        oop_maps->add_gc_map(call_offset, oop_map);
+        __ leave();
+      }
+      __ bind(nonNullExceptionOop);
+
+      __ set_info("unwind_exception", dont_gc_arguments);
+      // note: no stubframe since we are about to leave the current
+      //       activation and we are calling a leaf VM function only.
+      generate_unwind_exception(sasm);
+      __ should_not_reach_here();
+      break;
+    }
+
+    case c1x_handle_exception_id: {
+      StubFrame f(sasm, "c1x_handle_exception", dont_gc_arguments);
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 1, false);
+      c1x_generate_handle_exception(sasm, oop_maps, oop_map);
+      break;
+    }
+
+    case c1x_global_implicit_null_id: {
+      __ push(rax);
+      __ push(rax);
+      // move saved fp to make space for the inserted return address
+      __ get_thread(rax);
+      __ movptr(rax, Address(rax, JavaThread::saved_exception_pc_offset()));
+      __ movptr(Address(rsp, HeapWordSize), rax);
+      __ pop(rax);
+
+      { StubFrame f(sasm, "c1x_global_implicit_null_id", dont_gc_arguments);
+        oop_maps = generate_exception_throw(sasm, CAST_FROM_FN_PTR(address, throw_null_pointer_exception), false);
       }
       break;
+    }
 
-    case c1x_global_implicit_null_id:
+    case c1x_throw_div0_exception_id: {
+      __ push(rax);
+      __ push(rax);
+      // move saved fp to make space for the inserted return address
+      __ get_thread(rax);
+      __ movptr(rax, Address(rax, JavaThread::saved_exception_pc_offset()));
+      __ movptr(Address(rsp, HeapWordSize), rax);
+      __ pop(rax);
+
+      { StubFrame f(sasm, "throw_div0_exception", dont_gc_arguments);
+        oop_maps = generate_exception_throw(sasm, CAST_FROM_FN_PTR(address, throw_div0_exception), false);
+      }
+      break;
+    }
+
+    case c1x_slow_subtype_check_id: {
+      Label success;
+      Label miss;
+
+      // TODO this should really be within the XirSnippets
+      __ check_klass_subtype_fast_path(j_rarg0, j_rarg1, j_rarg2, &success, &miss, NULL);
+      __ check_klass_subtype_slow_path(j_rarg0, j_rarg1, j_rarg2, j_rarg3, NULL, &miss);
+
+      // fallthrough on success:
+      __ bind(success);
+      __ movptr(rax, 1);
+      __ ret(0);
+
+      __ bind(miss);
+      __ movptr(rax, NULL_WORD);
+      __ ret(0);
+      break;
+    }
+
+    case c1x_arithmetic_frem_id: {
+      __ subptr(rsp, 8);
+      __ movflt(Address(rsp, 0), xmm1);
+      __ fld_s(Address(rsp, 0));
+      __ movflt(Address(rsp, 0), xmm0);
+      __ fld_s(Address(rsp, 0));
+      Label L;
+      __ bind(L);
+      __ fprem();
+      __ fwait();
+      __ fnstsw_ax();
+      __ testl(rax, 0x400);
+      __ jcc(Assembler::notZero, L);
+      __ fxch(1);
+      __ fpop();
+      __ fstp_s(Address(rsp, 0));
+      __ movflt(xmm0, Address(rsp, 0));
+      __ addptr(rsp, 8);
+      __ ret(0);
+      break;
+    }
+    case c1x_arithmetic_drem_id: {
+      __ subptr(rsp, 8);
+      __ movdbl(Address(rsp, 0), xmm1);
+      __ fld_d(Address(rsp, 0));
+      __ movdbl(Address(rsp, 0), xmm0);
+      __ fld_d(Address(rsp, 0));
+      Label L;
+      __ bind(L);
+      __ fprem();
+      __ fwait();
+      __ fnstsw_ax();
+      __ testl(rax, 0x400);
+      __ jcc(Assembler::notZero, L);
+      __ fxch(1);
+      __ fpop();
+      __ fstp_d(Address(rsp, 0));
+      __ movdbl(xmm0, Address(rsp, 0));
+      __ addptr(rsp, 8);
+      __ ret(0);
+      break;
+    }
+    case c1x_monitorenter_id: {
+      Label slow_case;
+
+      Register obj = j_rarg0;
+      Register lock = j_rarg1;
+
+      Register scratch1 = rax;
+      Register scratch2 = rbx;
+
+      // copied from LIR_Assembler::emit_lock
+      if (UseFastLocking) {
+        assert(BasicLock::displaced_header_offset_in_bytes() == 0, "lock_reg must point to the displaced header");
+        __ lock_object(scratch1, obj, lock, scratch2, slow_case);
+      __ ret(0);
+      }
+
+      __ bind(slow_case);
       {
-        __ push(rax);
-        __ push(rax);
-        // move saved fp to make space for the inserted return address
-        __ get_thread(rax);
-        __ movptr(rax, Address(rax, JavaThread::saved_exception_pc_offset()));
-        __ movptr(Address(rsp, HeapWordSize), rax);
-        __ pop(rax);
+        StubFrame f(sasm, "c1x_monitorenter", dont_gc_arguments);
+        OopMap* map = save_live_registers(sasm, 1, save_fpu_registers);
 
-        { StubFrame f(sasm, "c1x_global_implicit_null_id", dont_gc_arguments);
-          oop_maps = generate_exception_throw(sasm, CAST_FROM_FN_PTR(address, throw_null_pointer_exception), false);
-        }
+        // Called with store_parameter and not C abi
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorenter), obj, lock);
+
+        oop_maps = new OopMapSet();
+        oop_maps->add_gc_map(call_offset, map);
+        restore_live_registers(sasm, save_fpu_registers);
       }
+      __ ret(0);
       break;
+    }
+    case c1x_monitorexit_id: {
+      Label slow_case;
 
-    case c1x_throw_div0_exception_id:
+      Register obj = j_rarg0;
+      Register lock = j_rarg1;
+
+      // needed in rax later on...
+      Register lock2 = rax;
+      __ mov(lock2, lock);
+      Register scratch1 = rbx;
+
+      // copied from LIR_Assembler::emit_lock
+      if (UseFastLocking) {
+        assert(BasicLock::displaced_header_offset_in_bytes() == 0, "lock_reg must point to the displaced header");
+        __ unlock_object(scratch1, obj, lock2, slow_case);
+      __ ret(0);
+      }
+
+      __ bind(slow_case);
       {
-        __ push(rax);
-        __ push(rax);
-        // move saved fp to make space for the inserted return address
-        __ get_thread(rax);
-        __ movptr(rax, Address(rax, JavaThread::saved_exception_pc_offset()));
-        __ movptr(Address(rsp, HeapWordSize), rax);
-        __ pop(rax);
+        StubFrame f(sasm, "c1x_monitorexit", dont_gc_arguments);
+        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
-        { StubFrame f(sasm, "throw_div0_exception", dont_gc_arguments);
-          oop_maps = generate_exception_throw(sasm, CAST_FROM_FN_PTR(address, throw_div0_exception), false);
-        }
+        // note: really a leaf routine but must setup last java sp
+        //       => use call_RT for now (speed can be improved by
+        //       doing last java sp setup manually)
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorexit), lock);
+
+        oop_maps = new OopMapSet();
+        oop_maps->add_gc_map(call_offset, map);
+        restore_live_registers(sasm, save_fpu_registers);
       }
+      __ ret(0);
       break;
+    }
 
-    case c1x_slow_subtype_check_id:
-      {
-        Label success;
-        Label miss;
 
-        // TODO this should really be within the XirSnippets
-        __ check_klass_subtype_fast_path(j_rarg0, j_rarg1, j_rarg2, &success, &miss, NULL);
-        __ check_klass_subtype_slow_path(j_rarg0, j_rarg1, j_rarg2, j_rarg3, NULL, &miss);
 
-        // fallthrough on success:
-        __ bind(success);
-        __ movptr(rax, 1);
-        __ ret(0);
 
-        __ bind(miss);
-        __ movptr(rax, NULL_WORD);
-        __ ret(0);
-      }
-      break;
     default:
       { StubFrame f(sasm, "unimplemented entry", dont_gc_arguments);
         __ movptr(rax, (int)id);

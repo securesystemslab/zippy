@@ -22,9 +22,12 @@
  *
  */
 
+/*
+ * This class handles the conversion from a CiTargetMethod to a CodeBlob or an nmethod.
+ */
 class CodeInstaller {
 private:
-  // this needs to correspond to HotSpotXirGenerator.java
+  // these need to correspond to HotSpotXirGenerator.java
   enum MarkId {
     MARK_VERIFIED_ENTRY             = 0x0001,
     MARK_UNVERIFIED_ENTRY           = 0x0002,
@@ -80,6 +83,7 @@ public:
   CodeInstaller(oop target_method, jlong& id);
 
 private:
+  // extract the fields of the CiTargetMethod
   void initialize_fields(oop target_method);
 
   // perform data and call relocation on the CodeBuffer

@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
  * described in this document. In particular, and without limitation, these intellectual property rights may include one
  * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
  * applications in the U.S. and in other countries.
- * 
+ *
  * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
  * license agreement and applicable provisions of the FAR and its supplements.
- * 
+ *
  * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
  * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
  * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
- * 
+ *
  * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
  */
 package com.sun.hotspot.c1x;
@@ -29,13 +29,14 @@ import com.sun.cri.ri.RiRegisterConfig;
 
 /**
  * @author Thomas Wuerthinger
- * 
+ *
  */
 public class HotSpotRegisterConfig implements RiRegisterConfig {
 
+    // be careful - the contents of this array are duplicated in c1x_CodeInstaller.cpp
     @Override
     public CiRegister[] getAllocatableRegisters() {
-        return new CiRegister[] { AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, /* AMD64.r10, */AMD64.r11, AMD64.r12, AMD64.r13, AMD64.r14, AMD64.xmm0, AMD64.xmm1, AMD64.xmm2,
+        return new CiRegister[] { AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, AMD64.r8, AMD64.r9, /* AMD64.r10, */AMD64.r11, AMD64.r12, AMD64.r13, AMD64.r14, AMD64.xmm0, AMD64.xmm1, AMD64.xmm2,
                         AMD64.xmm3, AMD64.xmm4, AMD64.xmm5, AMD64.xmm6, AMD64.xmm7, AMD64.xmm8, AMD64.xmm9, AMD64.xmm10, AMD64.xmm11, AMD64.xmm12, AMD64.xmm13, AMD64.xmm14, AMD64.xmm15};
     }
 

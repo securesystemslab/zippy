@@ -4,7 +4,7 @@ import com.sun.hotspot.c1x.logging.Logger;
 public class JavaTester {
 
 	public static void main(String[] args) {
-		runTests(0, 1000);
+		runTests(0, 0);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 
@@ -166,7 +166,7 @@ public class JavaTester {
 			jtt_bytecode_BC_dneg();
 			break;
 		case 38:
-			//jtt_bytecode_BC_drem();
+			jtt_bytecode_BC_drem();
 			break;
 		case 39:
 			jtt_bytecode_BC_dreturn();
@@ -244,7 +244,7 @@ public class JavaTester {
 			jtt_bytecode_BC_fneg();
 			break;
 		case 64:
-			//jtt_bytecode_BC_frem();
+			jtt_bytecode_BC_frem();
 			break;
 		case 65:
 			jtt_bytecode_BC_freturn();
@@ -1090,13 +1090,13 @@ public class JavaTester {
 			jtt_except_Catch_NPE_11();
 			break;
 		case 346:
-			//jtt_except_Catch_StackOverflowError_01();
+			jtt_except_Catch_StackOverflowError_01();
 			break;
 		case 347:
-			//jtt_except_Catch_StackOverflowError_02();
+			jtt_except_Catch_StackOverflowError_02();
 			break;
 		case 348:
-			//jtt_except_Catch_StackOverflowError_03();
+			jtt_except_Catch_StackOverflowError_03();
 			break;
 		case 349:
 			jtt_except_Catch_Two01();
@@ -1378,16 +1378,16 @@ public class JavaTester {
 			jtt_lang_Object_hashCode01();
 			break;
 		case 442:
-			//jtt_lang_Object_notify01();
+			jtt_lang_Object_notify01();
 			break;
 		case 443:
-			//jtt_lang_Object_notify02();
+			jtt_lang_Object_notify02();
 			break;
 		case 444:
-			//jtt_lang_Object_notifyAll01();
+			jtt_lang_Object_notifyAll01();
 			break;
 		case 445:
-			//jtt_lang_Object_notifyAll02();
+			jtt_lang_Object_notifyAll02();
 			break;
 		case 446:
 			jtt_lang_Object_toString01();
@@ -1396,13 +1396,13 @@ public class JavaTester {
 			jtt_lang_Object_toString02();
 			break;
 		case 448:
-			//jtt_lang_Object_wait01();
+			jtt_lang_Object_wait01();
 			break;
 		case 449:
-			//jtt_lang_Object_wait02();
+			jtt_lang_Object_wait02();
 			break;
 		case 450:
-			//jtt_lang_Object_wait03();
+			jtt_lang_Object_wait03();
 			break;
 		case 451:
 			jtt_lang_ProcessEnvironment_init();
@@ -1702,28 +1702,28 @@ public class JavaTester {
 			jtt_reflect_Reflection_getCallerClass01();
 			break;
 		case 550:
-			//jtt_threads_Monitor_contended01();
+			jtt_threads_Monitor_contended01();
 			break;
 		case 551:
-			//jtt_threads_Monitor_notowner01();
+			jtt_threads_Monitor_notowner01();
 			break;
 		case 552:
-			//jtt_threads_Monitorenter01();
+			jtt_threads_Monitorenter01();
 			break;
 		case 553:
-			//jtt_threads_Monitorenter02();
+			jtt_threads_Monitorenter02();
 			break;
 		case 554:
-			//jtt_threads_Object_wait01();
+			jtt_threads_Object_wait01();
 			break;
 		case 555:
-			//jtt_threads_Object_wait02();
+			jtt_threads_Object_wait02();
 			break;
 		case 556:
-			//jtt_threads_Object_wait03();
+			jtt_threads_Object_wait03();
 			break;
 		case 557:
-			//jtt_threads_Object_wait04();
+			jtt_threads_Object_wait04();
 			break;
 		case 558:
 			jtt_threads_ThreadLocal01();
@@ -1744,7 +1744,7 @@ public class JavaTester {
 			jtt_threads_Thread_getState02();
 			break;
 		case 564:
-			//jtt_threads_Thread_holdsLock01();
+			jtt_threads_Thread_holdsLock01();
 			break;
 		case 565:
 			jtt_threads_Thread_isAlive01();
@@ -1753,7 +1753,7 @@ public class JavaTester {
 			jtt_threads_Thread_isInterrupted01();
 			break;
 		case 567:
-			//jtt_threads_Thread_isInterrupted02();
+			jtt_threads_Thread_isInterrupted02();
 			break;
 		case 568:
 			jtt_threads_Thread_isInterrupted03();
@@ -1795,7 +1795,7 @@ public class JavaTester {
 			jtt_jdk_Class_getName();
 			break;
 		case 581:
-			jtt_jdk_EnumMap01();
+			//jtt_jdk_EnumMap01();
 			break;
 		case 582:
 			jtt_jdk_EnumMap02();

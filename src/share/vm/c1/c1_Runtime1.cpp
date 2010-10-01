@@ -175,6 +175,8 @@ void Runtime1::generate_blob_for(StubID id) {
     case unwind_exception_id:
     case c1x_unwind_exception_call_id:
     case c1x_slow_subtype_check_id:
+    case c1x_arithmetic_frem_id:
+    case c1x_arithmetic_drem_id:
 #ifndef TIERED
     case counter_overflow_id: // Not generated outside the tiered world
 #endif

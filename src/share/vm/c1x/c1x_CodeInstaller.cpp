@@ -25,8 +25,9 @@
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_CodeInstaller.cpp.incl"
 
+
 // TODO this should be handled in a more robust way - not hard coded...
-Register CPU_REGS[] = { rax, rbx, rcx, rdx, rsi, rdi, r11, r12, r13, r14 };
+Register CPU_REGS[] = { rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r11, r12, r13, r14 };
 const static int NUM_CPU_REGS = 10;
 XMMRegister XMM_REGS[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
 const static int NUM_XMM_REGS = 16;
@@ -84,15 +85,49 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
 }
 
 // TODO: finish this - c1x doesn't provide any scope values at the moment
-static ScopeValue* get_hotspot_value(oop value) {
-  fatal("not implemented");
+static ScopeValue* get_hotspot_value(oop value, int frame_size) {
+  if (value == CiValue::IllegalValue()) {
+    return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
+  }
+
+  BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
   if (value->is_a(CiRegisterValue::klass())) {
-    TRACE_C1X_4("register value");
-    IF_TRACE_C1X_4 value->print();
+    jint number = CiRegister::number(CiRegisterValue::_register(value));
+
+    if (number < 16) {
+      return new LocationValue(Location::new_reg_loc(Location::normal, as_Register(number)->as_VMReg()));
+    } else {
+      return new LocationValue(Location::new_reg_loc(Location::normal, as_XMMRegister(number - 16)->as_VMReg()));
+    }
   } else if (value->is_a(CiStackSlot::klass())) {
-    TRACE_C1X_4("stack value");
-    IF_TRACE_C1X_4 value->print();
+    jint index = CiStackSlot::index(value);
+    if (index >= 0) {
+      return new LocationValue(Location::new_stk_loc(Location::normal, index * HeapWordSize));
+    } else {
+      int frame_size_bytes = frame_size + 2 * HeapWordSize;
+      return new LocationValue(Location::new_stk_loc(Location::normal, -(index * HeapWordSize) + frame_size_bytes));
+    }
+  } else if (value->is_a(CiConstant::klass())){
+    oop obj = CiConstant::object(value);
+    jlong prim = CiConstant::primitive(value);
+    if (type == T_INT || type == T_FLOAT) {
+      return new ConstantIntValue(*(jint*)&prim);
+    } else if (type == T_LONG || type == T_DOUBLE) {
+      return new ConstantLongValue(prim);
+    } else if (type == T_OBJECT) {
+      oop obj = CiConstant::object(value);
+      if (obj == NULL) {
+        return new ConstantOopWriteValue(NULL);
+      } else {
+        obj->print();
+        ShouldNotReachHere();
+      }
+      //return new ConstantOopWriteValue()
+    }
+    tty->print("%i", type);
+    ShouldNotReachHere();
   } else {
+    value->klass()->print();
     ShouldNotReachHere();
   }
 }
@@ -277,13 +312,24 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, oop frame) {
     assert(frame == NULL || CiDebugInfo_Frame::caller(frame) == NULL, "unexpected layout - mismatching nesting of Frame and CiCodePos");
   }
 
-  assert(frame == NULL || code_pos == CiDebugInfo_Frame::codePos(frame), "unexpected CiCodePos layout");
+  if (frame != NULL) {
+    assert(CiCodePos::bci(code_pos) == CiCodePos::bci(CiDebugInfo_Frame::codePos(frame)), "unexpected CiCodePos layout");
+    assert(CiCodePos::method(code_pos) == CiCodePos::method(CiDebugInfo_Frame::codePos(frame)), "unexpected CiCodePos layout");
+  }
 
   oop hotspot_method = CiCodePos::method(code_pos);
   assert(hotspot_method != NULL && hotspot_method->is_a(HotSpotMethodResolved::klass()), "unexpected hotspot method");
   methodOop method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(hotspot_method));
   ciMethod *cimethod = (ciMethod *) _env->get_object(method);
   jint bci = CiCodePos::bci(code_pos);
+  bool reexecute;
+  if (bci == -1) {
+     reexecute = false;
+  } else {
+    Bytecodes::Code code   = Bytecodes::java_code_at(method->bcp_from(bci));
+    reexecute = Interpreter::bytecode_should_reexecute(code);
+  }
+
 
   if (frame != NULL) {
     jint local_count = CiDebugInfo_Frame::numLocals(frame);
@@ -292,31 +338,32 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, oop frame) {
     arrayOop values = (arrayOop) CiDebugInfo_Frame::values(frame);
 
     assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
-    assert(monitor_count == 0, "monitors not supported");
 
     GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
     GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
     GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
 
     for (jint i = 0; i < values->length(); i++) {
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i]);
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size);
 
       if (i < local_count) {
         locals->append(value);
       } else if (i < local_count + expression_count) {
         expressions->append(value);
       } else {
-        ShouldNotReachHere();
-        // monitors->append(value);
+        assert(value->is_location(), "invalid monitor location");
+        LocationValue* loc = (LocationValue*)value;
+        LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, loc->location().stack_offset() + HeapWordSize));
+        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, loc->location().stack_offset())));
       }
     }
     DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
     DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
     DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
-    _debug_recorder->describe_scope(pc_offset, cimethod, bci, false, false, false, locals_token, expressions_token, monitors_token);
+    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, false, false, locals_token, expressions_token, monitors_token);
   } else {
-    _debug_recorder->describe_scope(pc_offset, cimethod, bci, false, false, false, NULL, NULL, NULL);
+    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, false, false, NULL, NULL, NULL);
   }
 }
 
@@ -377,6 +424,14 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       call->set_destination((address)os::javaTimeNanos);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_C1X_3("CiRuntimeCall::JavaTimeNanos()");
+    } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
+      call->set_destination(Runtime1::entry_for(Runtime1::c1x_arithmetic_frem_id));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_C1X_3("CiRuntimeCall::ArithmeticFrem()");
+    } else if (runtime_call == CiRuntimeCall::ArithmeticDrem()) {
+      call->set_destination(Runtime1::entry_for(Runtime1::c1x_arithmetic_drem_id));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_C1X_3("CiRuntimeCall::ArithmeticDrem()");
     } else {
       TRACE_C1X_1("runtime_call not implemented: ");
       IF_TRACE_C1X_1 runtime_call->print();

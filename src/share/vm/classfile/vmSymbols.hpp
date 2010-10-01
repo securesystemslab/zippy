@@ -265,8 +265,10 @@
   template(com_sun_cri_ci_CiTargetMethod_Mark,        "com/sun/cri/ci/CiTargetMethod$Mark")                             \
   template(com_sun_cri_ci_CiDebugInfo,                "com/sun/cri/ci/CiDebugInfo")                                     \
   template(com_sun_cri_ci_CiDebugInfo_Frame,          "com/sun/cri/ci/CiDebugInfo$Frame")                               \
-  template(com_sun_cri_ci_CiRegisterValue,            "com/sun/cri/ci/CiRegisterValue")                                 \
+  template(com_sun_cri_ci_CiValue,                    "com/sun/cri/ci/CiValue")                                         \
   template(com_sun_cri_ci_CiStackSlot,                "com/sun/cri/ci/CiStackSlot")                                     \
+  template(com_sun_cri_ci_CiRegisterValue,            "com/sun/cri/ci/CiRegisterValue")                                 \
+  template(com_sun_cri_ci_CiRegister,                 "com/sun/cri/ci/CiRegister")                                      \
   template(com_sun_cri_ci_CiCodePos,                  "com/sun/cri/ci/CiCodePos")                                       \
   template(com_sun_cri_ci_CiConstant,                 "com/sun/cri/ci/CiConstant")                                      \
   template(com_sun_cri_ci_CiKind,                     "com/sun/cri/ci/CiKind")                                          \

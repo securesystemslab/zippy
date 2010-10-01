@@ -65,6 +65,10 @@ class StubAssembler;
   stub(c1x_global_implicit_null)     \
   stub(c1x_throw_div0_exception)     \
   stub(c1x_slow_subtype_check)       \
+  stub(c1x_arithmetic_frem)          \
+  stub(c1x_arithmetic_drem)          \
+  stub(c1x_monitorenter)             \
+  stub(c1x_monitorexit)              \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,

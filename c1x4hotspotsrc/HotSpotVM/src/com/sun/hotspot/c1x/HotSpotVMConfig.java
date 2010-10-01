@@ -47,6 +47,7 @@ public class HotSpotVMConfig implements CompilerObject {
     public int threadMultiNewArrayStorage;
     public long cardtableStartAddress;
     public int cardtableShift;
+    public long safepointPollingAddress;
 
     // runtime stubs
     public long debugStub;

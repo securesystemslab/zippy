@@ -48,6 +48,7 @@ void Compiler::initialize() {
 
 
 void Compiler::compile_method(ciEnv* env, ciMethod* method, int entry_bci) {
+  assert(!UseC1X, "c1 called in UseC1X mode!");
 
   if (!is_initialized()) {
     initialize();

@@ -8,12 +8,24 @@ public class C1XTest {
 		return sum;
 	}
 	
-	public static void main3(String[] args) {/*
-		long s = 0;
-		s += value();
-		System.out.println(s);*/
+	public static class Unresolved {
+		public static int i = 1234;
 	}
-
+	
+	public static void main4(String[] args) {
+		System.out.println(Unresolved.i);
+	}
+	
+	public static void main3(String[] args) {
+		System.out.println("before");
+		synchronized(args) {
+			System.out.println("enter1");
+			System.gc();
+			System.out.println("enter2");
+		}
+		System.out.println("exit");
+	}
+	
 	public static void main2(String[] args) {
 		Other.I[] array = new Other.I[] { new Other.A(), new Other.B(),
 				new Other.C(), new Other.A(), new Other.B(), new Other.C() };
@@ -32,7 +44,7 @@ public class C1XTest {
 			test1();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 20; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {
@@ -40,7 +52,7 @@ public class C1XTest {
 			test2();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 10; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {
@@ -48,7 +60,7 @@ public class C1XTest {
 			test3();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 10; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {
@@ -56,7 +68,7 @@ public class C1XTest {
 			test4();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 2; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {
@@ -64,7 +76,7 @@ public class C1XTest {
 			test5();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 2; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {
@@ -72,7 +84,7 @@ public class C1XTest {
 			test6();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 2; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {
@@ -80,7 +92,7 @@ public class C1XTest {
 			test7();
 		}
 		System.out.println();
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 2; i++) {
 			Thread.sleep(1000);
 		}
 		for (int i = 0; i < 10000; i++) {

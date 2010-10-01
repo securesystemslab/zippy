@@ -124,3 +124,21 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   return obj;
 }
 
+BasicType C1XCompiler::kindToBasicType(jchar ch) {
+  switch(ch) {
+    case 'z': return T_BOOLEAN;
+    case 'b': return T_BYTE;
+    case 's': return T_SHORT;
+    case 'c': return T_CHAR;
+    case 'i': return T_INT;
+    case 'f': return T_FLOAT;
+    case 'l': return T_LONG;
+    case 'd': return T_DOUBLE;
+    case 'a': return T_OBJECT;
+    case '-': return T_ILLEGAL;
+    default:
+      fatal1("unexpected CiKind: %c", ch);
+      break;
+  }
+}
+

@@ -30,6 +30,7 @@
 GrowableArray<address>* VmIds::_stubs = NULL;
 GrowableArray<jobject>* VmIds::_localHandles = NULL;
 
+
 void VmIds::initializeObjects() {
   if (_stubs == NULL) {
     assert(_localHandles == NULL, "inconsistent state");

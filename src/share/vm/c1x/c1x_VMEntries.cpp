@@ -316,21 +316,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf(JNI
 // public RiType getPrimitiveArrayType(CiKind kind);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayType(JNIEnv *env, jobject, jobject kind) {
   VM_ENTRY_MARK;
-  BasicType type;
-  switch(CiKind::typeChar(kind)) {
-    case 'z': type = T_BOOLEAN; break;
-    case 'b': type = T_BYTE; break;
-    case 's': type = T_SHORT; break;
-    case 'c': type = T_CHAR; break;
-    case 'i': type = T_INT; break;
-    case 'f': type = T_FLOAT; break;
-    case 'l': type = T_LONG; break;
-    case 'd': type = T_DOUBLE; break;
-    case 'a':
-    default:
-      fatal("unexpected CiKind in getPrimitiveArrayType");
-      break;
-  }
+  BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(kind));
+  assert(type != T_OBJECT, "primitive type expecteds");
   ciKlass* klass = ciTypeArrayKlass::make(type);
   return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, NULL, THREAD));
 }
@@ -412,8 +399,9 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_long(env, config, "throwClassCastException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_class_cast_exception_id)));
   set_long(env, config, "throwArrayStoreException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_array_store_exception_id)));
   set_long(env, config, "throwArrayIndexException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_range_check_failed_id)));
-  set_long(env, config, "monitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorenter_nofpu_id)));
-  set_long(env, config, "monitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorexit_nofpu_id)));
+  set_long(env, config, "monitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_monitorenter_id)));
+  set_long(env, config, "monitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_monitorexit_id)));
+  set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
 
   BarrierSet* bs = Universe::heap()->barrier_set();
   switch (bs->kind()) {

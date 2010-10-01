@@ -71,7 +71,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         this.registerConfig = registerConfig;
     }
 
-    private SimpleTemplates prologueTemplates = new SimpleTemplates(STATIC_METHOD, SYNCHRONIZED) {
+    private SimpleTemplates prologueTemplates = new SimpleTemplates(STATIC_METHOD) {
 
         @Override
         protected XirTemplate create(CiXirAssembler asm, long flags) {
@@ -96,13 +96,10 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
             asm.align(config.codeEntryAlignment);
             asm.mark(MARK_VERIFIED_ENTRY);
+            asm.stackOverflowCheck();
             asm.push(framePointer);
             asm.mov(framePointer, stackPointer);
             asm.pushFrame();
-
-            if (is(SYNCHRONIZED, flags)) {
-                // TODO synchronized methods / monitors
-            }
 
             // -- out of line -------------------------------------------------------
             XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
@@ -139,10 +136,6 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.restart(CiKind.Void);
             XirOperand framePointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
 
-            if (is(SYNCHRONIZED, flags)) {
-                // TODO synchronized methods / monitors
-            }
-
             asm.popFrame();
             asm.pop(framePointer);
 
@@ -158,7 +151,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             asm.restart(CiKind.Void);
 
-            // TODO safepoint
+            // XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
+            // asm.pload(CiKind.Word, temp, asm.w(config.safepointPollingAddress), true);
+
             return asm.finishTemplate("safepoint");
         }
     };
@@ -297,14 +292,18 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             asm.restart(CiKind.Void);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
-            XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
+            XirParameter lock = asm.createInputParameter("lock", CiKind.Word);
 
             if (is(NULL_CHECK, flags)) {
                 asm.nop(1);
                 asm.mark(MARK_IMPLICIT_NULL);
-                asm.pload(CiKind.Word, temp, object, true);
+                asm.pload(CiKind.Word, asm.createTemp("temp", CiKind.Word), object, true);
             }
-
+/*
+            useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
+            useRegisters(asm, AMD64.rax);
+            asm.callRuntime(config.monitorEnterStub, null, object, lock);
+*/
             return asm.finishTemplate("monitorEnter");
         }
     };
@@ -315,14 +314,12 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             asm.restart(CiKind.Void);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
-            XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
-
-            if (is(NULL_CHECK, flags)) {
-                asm.nop(1);
-                asm.mark(MARK_IMPLICIT_NULL);
-                asm.pload(CiKind.Word, temp, object, true);
-            }
-
+            XirParameter lock = asm.createInputParameter("lock", CiKind.Word);
+/*
+            useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
+            useRegisters(asm, AMD64.rax);
+            asm.callRuntime(config.monitorExitStub, null, object, lock);
+*/
             return asm.finishTemplate("monitorExit");
         }
     };
@@ -360,7 +357,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirParameter value = asm.createInputParameter("value", kind);
 
             if (is(UNRESOLVED, flags)) {
-                UnresolvedFieldPatching fieldPatching = new UnresolvedFieldPatching(asm, object, value, false, is(NULL_CHECK, flags), config);
+                UnresolvedFieldPatching fieldPatching = new UnresolvedFieldPatching(asm, object, value, true, is(NULL_CHECK, flags), config);
                 fieldPatching.emitInline();
                 // -- out of line -------------------------------------------------------
                 fieldPatching.emitOutOfLine();
@@ -389,7 +386,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
             XirOperand temp1 = asm.createRegister("temp1", CiKind.Word, AMD64.rcx);
             XirOperand temp2 = asm.createRegister("temp2", CiKind.Word, AMD64.rbx);
-            XirOperand temp2i = asm.createRegister("temp2i", CiKind.Word, AMD64.rbx);
+            XirOperand temp2i = asm.createRegister("temp2i", CiKind.Int, AMD64.rbx);
             useRegisters(asm, AMD64.rsi);
             XirLabel tlabFull = asm.createOutOfLineLabel("tlab full");
             XirLabel resume = asm.createInlineLabel("resume");
@@ -421,6 +418,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.bindOutOfLine(tlabFull);
             XirOperand arg = asm.createRegister("runtime call argument", CiKind.Object, AMD64.rdx);
             asm.mov(arg, type);
+            useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.newInstanceStub, result);
             asm.jmp(resume);
 
@@ -439,6 +437,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             patching.emitInline();
             useRegisters(asm, AMD64.rbx, AMD64.rcx, AMD64.rsi);
+            useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.unresolvedNewInstanceStub, result);
 
             // -- out of line -------------------------------------------------------
@@ -469,7 +468,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
 
             asm.mov(length, lengthParam);
-            useRegisters(asm, AMD64.rax, AMD64.rsi, AMD64.rcx, AMD64.rdi);
+            useRegisters(asm, AMD64.rsi, AMD64.rcx, AMD64.rdi);
+            useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.newObjectArrayStub, result);
             if (is(UNRESOLVED, flags)) {
                 patching.emitOutOfLine();
@@ -492,7 +492,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             asm.mov(hub, hubParam);
             asm.mov(length, lengthParam);
-            useRegisters(asm, AMD64.rax, AMD64.rsi, AMD64.rcx, AMD64.rdi);
+            useRegisters(asm, AMD64.rsi, AMD64.rcx, AMD64.rdi);
+            useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.newTypeArrayStub, result);
 
             return asm.finishTemplate("newTypeArray");
@@ -525,6 +526,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
 
             asm.mov(rank, asm.i(dimensions));
+            useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.newMultiArrayStub, result);
             if (is(UNRESOLVED, flags)) {
                 patching.emitOutOfLine();
@@ -791,8 +793,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     }
 
     @Override
-    public XirSnippet genResolveClass(XirSite site, RiType type, Representation representation) {
-        assert representation == Representation.ObjectHub : "unexpected representation: " + representation;
+    public XirSnippet genResolveClass(XirSite site, RiType type, Representation rep) {
+        assert rep == Representation.ObjectHub || rep == Representation.StaticFields : "unexpected representation: " + rep;
         if (type instanceof HotSpotTypeResolved) {
             return new XirSnippet(resolveClassTemplates.get(site), XirArgument.forObject(type));
         }
@@ -825,13 +827,13 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     }
 
     @Override
-    public XirSnippet genMonitorEnter(XirSite site, XirArgument receiver) {
-        return new XirSnippet(monitorEnterTemplates.get(site), receiver);
+    public XirSnippet genMonitorEnter(XirSite site, XirArgument receiver, XirArgument lockAddress) {
+        return new XirSnippet(monitorEnterTemplates.get(site), receiver, lockAddress);
     }
 
     @Override
-    public XirSnippet genMonitorExit(XirSite site, XirArgument receiver) {
-        return new XirSnippet(monitorExitTemplates.get(site), receiver);
+    public XirSnippet genMonitorExit(XirSite site, XirArgument receiver, XirArgument lockAddress) {
+        return new XirSnippet(monitorExitTemplates.get(site), receiver, lockAddress);
     }
 
     @Override
@@ -1038,6 +1040,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.mark(MARK_DUMMY_OOP_RELOCATION);
             if (nullCheck) {
                 asm.mark(MARK_IMPLICIT_NULL);
+                asm.safepoint();
             }
             asm.jmp(patchStub);
 

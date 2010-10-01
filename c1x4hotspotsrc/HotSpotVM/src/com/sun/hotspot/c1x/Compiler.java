@@ -67,10 +67,12 @@ public class Compiler {
     public static VMEntries getVMEntries() {
         if (vmEntries == null) {
             try {
+                vmEntries = new VMEntriesNative();
+                if (CountingProxy.ENABLED) {
+                    vmEntries = CountingProxy.getProxy(VMEntries.class, vmEntries);
+                }
                 if (Logger.ENABLED) {
-                    vmEntries = LoggingProxy.getProxy(VMEntries.class, new VMEntriesNative());
-                } else {
-                    vmEntries = new VMEntriesNative();
+                    vmEntries = LoggingProxy.getProxy(VMEntries.class, vmEntries);
                 }
             } catch (Throwable t) {
                 t.printStackTrace();
@@ -98,10 +100,12 @@ public class Compiler {
                     VMEntries entries = Compiler.initializeClient(exits);
                     invocation.setDelegate(entries);
                 } else {
+                    vmExits = new VMExitsNative();
+                    if (CountingProxy.ENABLED) {
+                        vmExits = CountingProxy.getProxy(VMExits.class, vmExits);
+                    }
                     if (Logger.ENABLED) {
-                        vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
-                    } else {
-                        vmExits = new VMExitsNative();
+                        vmExits = LoggingProxy.getProxy(VMExits.class, vmExits);
                     }
                 }
             } catch (Throwable t) {
@@ -136,6 +140,8 @@ public class Compiler {
         compiler = new C1XCompiler(runtime, target, generator);
 
         C1XOptions.setOptimizationLevel(3);
+        C1XOptions.OptInlineExcept = false;
+        C1XOptions.OptInlineSynchronized = false;
         C1XOptions.UseDeopt = false;
         C1XOptions.IRChecking = Logger.ENABLED;
         C1XOptions.TraceBytecodeParserLevel = 0;
@@ -146,10 +152,13 @@ public class Compiler {
         C1XOptions.GenAssertionCode = Logger.ENABLED;
         C1XOptions.DetailedAsserts = Logger.ENABLED;
 
+        // these options are important - c1x4hotspot will not generate correct code without them
         C1XOptions.GenSpecialDivChecks = true;
         C1XOptions.AlignCallsForPatching = true;
         C1XOptions.NullCheckUniquePc = true;
         C1XOptions.invokeinterfaceTemplatePos = true;
+        C1XOptions.StackShadowPages = config.stackShadowPages;
+
     }
 
     public CiCompiler getCompiler() {

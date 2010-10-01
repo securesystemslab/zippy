@@ -25,6 +25,9 @@
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_TargetMethod.cpp.incl"
 
+// This function is similar to javaClasses.cpp, it computes the field offset of a (static or instance) field.
+// It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.
+
 static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
   symbolOop name_symbol = SymbolTable::probe(name, strlen(name));
   symbolOop signature_symbol = SymbolTable::probe(signature, strlen(signature));
@@ -42,7 +45,8 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
   dest_offset = fd.offset();
 }
 
-// create the compute_class
+// This piece of macro magic creates the contents of the c1x_compute_offsets method that initializes the field indices of all the access classes.
+
 #define START_CLASS(name) { klassOop k = SystemDictionary::name##_klass();
 
 #define END_CLASS }

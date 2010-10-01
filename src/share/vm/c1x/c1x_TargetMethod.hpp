@@ -24,8 +24,23 @@
 
 void c1x_compute_offsets();
 
-// defines the structure of the CiTargetMethod - classes
-// this will generate classes with accessors similar to javaClasses.hpp
+/* This macro defines the structure of the CiTargetMethod - classes.
+ * It will generate classes with accessors similar to javaClasses.hpp, but with specializations for oops, Handles and jni handles.
+ *
+ * The public interface of these classes will look like this:
+
+ * class CiStackSlot : AllStatic {
+ * public:
+ *   static klassOop klass();
+ *   static jint  index(oop obj);
+ *   static jint  index(Handle obj);
+ *   static jint  index(jobject obj);
+ *   static void set_index(oop obj, jint x);
+ *   static void set_index(Handle obj, jint x);
+ *   static void set_index(jobject obj, jint x);
+ * };
+ *
+ */
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
@@ -142,9 +157,18 @@ void c1x_compute_offsets();
   end_class                                                                             \
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
+  start_class(CiValue)                                                                  \
+    oop_field(CiValue, kind, "Lcom/sun/cri/ci/CiKind;")                                 \
+    static_oop_field(CiValue, IllegalValue, "Lcom/sun/cri/ci/CiValue;");                \
+  end_class                                                                             \
   start_class(CiRegisterValue)                                                          \
+    oop_field(CiRegisterValue, _register, "Lcom/sun/cri/ci/CiRegister;")                \
+  end_class                                                                             \
+  start_class(CiRegister)                                                               \
+    int_field(CiRegister, number)                                                       \
   end_class                                                                             \
   start_class(CiStackSlot)                                                              \
+    int_field(CiStackSlot, index)                                                       \
   end_class                                                                             \
   /* end*/
 

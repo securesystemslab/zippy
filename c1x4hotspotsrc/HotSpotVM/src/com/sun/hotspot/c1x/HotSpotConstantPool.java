@@ -17,6 +17,8 @@
  */
 package com.sun.hotspot.c1x;
 
+import java.util.*;
+
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
@@ -28,6 +30,7 @@ import com.sun.cri.ri.*;
 public class HotSpotConstantPool implements RiConstantPool, CompilerObject {
 
     long vmId;
+    HashMap<Integer, Object> cache = new HashMap<Integer, Object>();
 
     public HotSpotConstantPool(long vmId) {
         this.vmId = vmId;
@@ -41,27 +44,52 @@ public class HotSpotConstantPool implements RiConstantPool, CompilerObject {
 
     @Override
     public Object lookupConstant(int cpi) {
-        return Compiler.getVMEntries().RiConstantPool_lookupConstant(vmId, cpi);
+        Object value = cache.get(cpi);
+        if (value == null) {
+            value = Compiler.getVMEntries().RiConstantPool_lookupConstant(vmId, cpi);
+            cache.put(cpi, value);
+        }
+        return value;
     }
 
     @Override
     public RiMethod lookupMethod(int cpi, int byteCode) {
-        return Compiler.getVMEntries().RiConstantPool_lookupMethod(vmId, cpi, (byte) byteCode);
+        RiMethod value = (RiMethod) cache.get(cpi);
+        if (value == null) {
+            value = Compiler.getVMEntries().RiConstantPool_lookupMethod(vmId, cpi, (byte) byteCode);
+            cache.put(cpi, value);
+        }
+        return value;
     }
 
     @Override
     public RiSignature lookupSignature(int cpi) {
-        return Compiler.getVMEntries().RiConstantPool_lookupSignature(vmId, cpi);
+        RiSignature value = (RiSignature) cache.get(cpi);
+        if (value == null) {
+            value = Compiler.getVMEntries().RiConstantPool_lookupSignature(vmId, cpi);
+            cache.put(cpi, value);
+        }
+        return value;
     }
 
     @Override
     public RiType lookupType(int cpi, int opcode) {
-        return Compiler.getVMEntries().RiConstantPool_lookupType(vmId, cpi);
+        RiType value = (RiType) cache.get(cpi);
+        if (value == null) {
+            value = Compiler.getVMEntries().RiConstantPool_lookupType(vmId, cpi);
+            cache.put(cpi, value);
+        }
+        return value;
     }
 
     @Override
     public RiField lookupField(int cpi, int opcode) {
-        return Compiler.getVMEntries().RiConstantPool_lookupField(vmId, cpi);
+        RiField value = (RiField) cache.get(cpi);
+        if (value == null) {
+            value = Compiler.getVMEntries().RiConstantPool_lookupField(vmId, cpi);
+            cache.put(cpi, value);
+        }
+        return value;
     }
 
 }

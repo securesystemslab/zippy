@@ -25,6 +25,6 @@
 extern JNINativeMethod VMEntries_methods[];
 int VMEntries_methods_count();
 
-
+// nothing here - no need to define the jni method implementations in a header file
 
 

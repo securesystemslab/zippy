@@ -1495,6 +1495,7 @@ void CompileBroker::maybe_block() {
 void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
   if (PrintCompilation) {
     ResourceMark rm;
+    tty->print("%s: ", compiler(task->comp_level())->name());
     task->print_line();
   }
   elapsedTimer time;

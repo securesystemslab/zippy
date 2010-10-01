@@ -61,22 +61,24 @@ public:
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
 
+  static BasicType kindToBasicType(jchar ch);
 };
 
 // Tracing macros
 
-#define IF_TRACE_C1X_1 if (TraceC1X >= 1) 
-#define IF_TRACE_C1X_2 if (TraceC1X >= 2) 
-#define IF_TRACE_C1X_3 if (TraceC1X >= 3) 
-#define IF_TRACE_C1X_4 if (TraceC1X >= 4) 
-#define IF_TRACE_C1X_5 if (TraceC1X >= 5) 
+#define IF_TRACE_C1X_1 if (!(TraceC1X >= 1)) ; else
+#define IF_TRACE_C1X_2 if (!(TraceC1X >= 2)) ; else
+#define IF_TRACE_C1X_3 if (!(TraceC1X >= 3)) ; else
+#define IF_TRACE_C1X_4 if (!(TraceC1X >= 4)) ; else
+#define IF_TRACE_C1X_5 if (!(TraceC1X >= 5)) ; else
 
-// using commas to keep one-instruction semantics
-#define TRACE_C1X_1 if (TraceC1X >= 1 && (tty->print("TraceC1X-1: "), true)) tty->print_cr
-#define TRACE_C1X_2 if (TraceC1X >= 2 && (tty->print("   TraceC1X-2: "), true)) tty->print_cr
-#define TRACE_C1X_3 if (TraceC1X >= 3 && (tty->print("      TraceC1X-3: "), true)) tty->print_cr
-#define TRACE_C1X_4 if (TraceC1X >= 4 && (tty->print("         TraceC1X-4: "), true)) tty->print_cr
-#define TRACE_C1X_5 if (TraceC1X >= 5 && (tty->print("            TraceC1X-5: "), true)) tty->print_cr
+// using commas and else to keep one-instruction semantics
+
+#define TRACE_C1X_1 if (!(TraceC1X >= 1 && (tty->print("TraceC1X-1: "), true))) ; else tty->print_cr
+#define TRACE_C1X_2 if (!(TraceC1X >= 2 && (tty->print("   TraceC1X-2: "), true))) ; else tty->print_cr
+#define TRACE_C1X_3 if (!(TraceC1X >= 3 && (tty->print("      TraceC1X-3: "), true))) ; else tty->print_cr
+#define TRACE_C1X_4 if (!(TraceC1X >= 4 && (tty->print("         TraceC1X-4: "), true))) ; else tty->print_cr
+#define TRACE_C1X_5 if (!(TraceC1X >= 5 && (tty->print("            TraceC1X-5: "), true))) ; else tty->print_cr
 
 
 

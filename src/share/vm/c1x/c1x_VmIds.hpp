@@ -43,7 +43,9 @@ public:
     DUMMY_CONSTANT = 0x6ffffffffffffffl
   };
 
+  // Initializes the VmIds for a compilation, by creating the arrays
   static void initializeObjects();
+  // Cleans up after a compilation, by deallocating the arrays
   static void cleanupLocalObjects();
 
   // Adds a stub address, and returns the corresponding vmId (which is of type STUB)
@@ -71,8 +73,10 @@ public:
   // Helper function to convert a java.lang.String object to a symbolOop (this will return NULL if the symbol doesn't exist in the system)
   static symbolOop toSymbol(jstring string);
 
+  // Helper function to get the contents of a java.lang.Long
   static jlong getBoxedLong(oop obj);
 };
+
 
 template <> inline jlong VmIds::add<methodOop>(methodOop obj){
   assert(obj != NULL, "trying to add NULL<methodOop>");
@@ -99,6 +103,7 @@ template <> inline jlong VmIds::add<oop>(oop obj) {
   assert(obj->is_oop(), "trying to add mistyped object");
   return add(Handle(obj), CONSTANT);
 }
+
 
 template <> inline methodOop VmIds::get<methodOop>(jlong id){
   assert((id & TYPE_MASK) == METHOD, "METHOD expected");
