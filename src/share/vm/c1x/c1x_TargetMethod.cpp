@@ -31,6 +31,11 @@
 static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
   symbolOop name_symbol = SymbolTable::probe(name, strlen(name));
   symbolOop signature_symbol = SymbolTable::probe(signature, strlen(signature));
+#ifdef DEBUG
+  if (name_symbol == NULL) {
+    tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass_oop->klass_part()->name()->as_C_string());
+  }
+#endif
   assert(name_symbol != NULL, "symbol not found - class layout changed?");
   assert(signature_symbol != NULL, "symbol not found - class layout changed?");
 

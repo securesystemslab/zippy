@@ -92,7 +92,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
 
   BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
   if (value->is_a(CiRegisterValue::klass())) {
-    jint number = CiRegister::number(CiRegisterValue::_register(value));
+    jint number = CiRegister::number(CiRegisterValue::reg(value));
 
     if (number < 16) {
       return new LocationValue(Location::new_reg_loc(Location::normal, as_Register(number)->as_VMReg()));

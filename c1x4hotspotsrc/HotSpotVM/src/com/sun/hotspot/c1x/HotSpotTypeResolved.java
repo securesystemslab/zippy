@@ -165,7 +165,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public Class<?> javaClass() {
-        throw new RuntimeException("javaClass not implemented");
+        return null;
     }
 
     @Override

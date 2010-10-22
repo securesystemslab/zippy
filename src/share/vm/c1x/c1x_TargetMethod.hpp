@@ -162,7 +162,7 @@ void c1x_compute_offsets();
     static_oop_field(CiValue, IllegalValue, "Lcom/sun/cri/ci/CiValue;");                \
   end_class                                                                             \
   start_class(CiRegisterValue)                                                          \
-    oop_field(CiRegisterValue, _register, "Lcom/sun/cri/ci/CiRegister;")                \
+    oop_field(CiRegisterValue, reg, "Lcom/sun/cri/ci/CiRegister;")                      \
   end_class                                                                             \
   start_class(CiRegister)                                                               \
     int_field(CiRegister, number)                                                       \

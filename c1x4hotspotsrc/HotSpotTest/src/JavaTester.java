@@ -3,8 +3,22 @@ import com.sun.hotspot.c1x.logging.Logger;
 
 public class JavaTester {
 
+	/**
+	 * Call with start and end test number as parameters.
+	 */
 	public static void main(String[] args) {
-		runTests(0, 0);
+		int start = 0;
+		int end = 10000;
+		
+		if (args.length > 0) {
+			start = Integer.parseInt(args[0]);
+		}
+		
+		if (args.length > 1) {
+			end = Integer.parseInt(args[1]);
+		}
+		
+		runTests(start, end);
 		Logger.info("total: " + executed + " tests executed, " + passed + " passed, " + failed + " failed");
 	}
 

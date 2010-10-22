@@ -60,12 +60,6 @@ public class HotSpotField implements RiField, CompilerObject {
     }
 
     @Override
-    public boolean isConstant() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
     public boolean isResolved() {
         return offset != -1;
     }

@@ -25,18 +25,6 @@ public class C1XTest {
 		}
 		System.out.println("exit");
 	}
-	
-	public static void main2(String[] args) {
-		Other.I[] array = new Other.I[] { new Other.A(), new Other.B(),
-				new Other.C(), new Other.A(), new Other.B(), new Other.C() };
-
-		int sum = 0;
-		for (int i = 0; i < 20; i++)
-			for (Other.I o : array) {
-				sum += o.v();
-			}
-		System.out.println(sum);
-	}
 
 	public static void main(String[] args) throws IOException, Exception {
 		for (int i = 0; i < 10000; i++) {
