@@ -28,9 +28,9 @@
 
 // TODO this should be handled in a more robust way - not hard coded...
 Register CPU_REGS[] = { rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r11, r12, r13, r14 };
-const static int NUM_CPU_REGS = 10;
+const static int NUM_CPU_REGS = sizeof(CPU_REGS) / sizeof(Register);
 XMMRegister XMM_REGS[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
-const static int NUM_XMM_REGS = 16;
+const static int NUM_XMM_REGS = sizeof(XMM_REGS) / sizeof(XMMRegister);
 const static int NUM_REGS = NUM_CPU_REGS + NUM_XMM_REGS;
 
 // convert c1x register indices (as used in oop maps) to hotspot registers

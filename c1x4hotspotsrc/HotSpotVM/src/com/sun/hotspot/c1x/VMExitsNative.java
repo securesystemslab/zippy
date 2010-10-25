@@ -36,6 +36,8 @@ import com.sun.hotspot.c1x.logging.*;
  */
 public class VMExitsNative implements VMExits {
 
+    public static boolean compileMethods = true;
+
     @Override
     public boolean setOption(String option) {
         if (option.length() == 0) {
@@ -100,6 +102,11 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public void compileMethod(long methodVmId, String name, int entryBCI) {
+
+        if (!compileMethods) {
+            return;
+        }
+
         try {
             Compiler compiler = Compiler.getInstance();
             HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
@@ -118,6 +125,7 @@ public class VMExitsNative implements VMExits {
             t.printStackTrace(new PrintWriter(out));
             Logger.info("Compilation interrupted:\n" + out.toString());
         }
+        System.gc();
     }
 
     @Override

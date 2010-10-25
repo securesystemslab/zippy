@@ -44,11 +44,23 @@ public final class Compiler {
     public static Compiler getInstance() {
         if (theInstance == null) {
             theInstance = new Compiler();
+            Runtime.getRuntime().addShutdownHook(new ShutdownThread());
         }
         return theInstance;
     }
 
     private static VMEntries vmEntries;
+
+
+    public static class ShutdownThread extends Thread {
+        @Override
+        public void run() {
+            VMExitsNative.compileMethods = false;
+            if (C1XOptions.PrintTimers) {
+                C1XTimers.print();
+            }
+        }
+    }
 
     public static VMExits initializeServer(VMEntries entries) {
         if (Logger.ENABLED) {
