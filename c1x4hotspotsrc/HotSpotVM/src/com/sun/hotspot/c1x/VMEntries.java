@@ -1,19 +1,22 @@
 /*
- * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
  *
- * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
- * described in this document. In particular, and without limitation, these intellectual property rights may include one
- * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
- * applications in the U.S. and in other countries.
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation, these intellectual property
+ * rights may include one or more of the U.S. patents listed at http://www.sun.com/patents and one or
+ * more additional patents or pending patent applications in the U.S. and in other countries.
  *
- * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
- * license agreement and applicable provisions of the FAR and its supplements.
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun
+ * Microsystems, Inc. standard license agreement and applicable provisions of the FAR and its
+ * supplements.
  *
- * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
- * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
- * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or
+ * registered trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks
+ * are used under license and are trademarks or registered trademarks of SPARC International, Inc. in the
+ * U.S. and other countries.
  *
- * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open
+ * Company, Ltd.
  */
 
 package com.sun.hotspot.c1x;
@@ -28,52 +31,55 @@ import com.sun.cri.ri.*;
  */
 public interface VMEntries {
 
-    public byte[] RiMethod_code(long vmId);
+    // CHECKSTYLE:OFF
 
-    public int RiMethod_maxStackSize(long vmId);
+    byte[] RiMethod_code(long vmId);
 
-    public int RiMethod_maxLocals(long vmId);
+    int RiMethod_maxStackSize(long vmId);
 
-    public RiType RiMethod_holder(long vmId);
+    int RiMethod_maxLocals(long vmId);
 
-    public String RiMethod_signature(long vmId);
+    RiType RiMethod_holder(long vmId);
 
-    public int RiMethod_accessFlags(long vmId);
+    String RiMethod_signature(long vmId);
 
-    public RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
+    int RiMethod_accessFlags(long vmId);
 
-    public Object RiConstantPool_lookupConstant(long vmId, int cpi);
+    RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
 
-    public RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
+    Object RiConstantPool_lookupConstant(long vmId, int cpi);
 
-    public RiSignature RiConstantPool_lookupSignature(long vmId, int cpi);
+    RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
 
-    public RiType RiConstantPool_lookupType(long vmId, int cpi);
+    RiSignature RiConstantPool_lookupSignature(long vmId, int cpi);
 
-    public RiField RiConstantPool_lookupField(long vmId, int cpi);
+    RiType RiConstantPool_lookupType(long vmId, int cpi);
 
-    public RiConstantPool RiType_constantPool(long vmId);
+    RiField RiConstantPool_lookupField(long vmId, int cpi);
 
-    public void installMethod(HotSpotTargetMethod targetMethod);
+    RiConstantPool RiType_constantPool(long vmId);
 
-    public long installStub(HotSpotTargetMethod targetMethod);
+    void installMethod(HotSpotTargetMethod targetMethod);
 
-    public HotSpotVMConfig getConfiguration();
+    long installStub(HotSpotTargetMethod targetMethod);
 
-    public RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
+    HotSpotVMConfig getConfiguration();
 
-    public RiMethod RiType_resolveMethodImpl(long vmId, String name, String signature);
+    RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
 
-    public boolean RiType_isSubtypeOf(long vmId, RiType other);
+    RiMethod RiType_resolveMethodImpl(long vmId, String name, String signature);
 
-    public RiType getPrimitiveArrayType(CiKind kind);
+    boolean RiType_isSubtypeOf(long vmId, RiType other);
 
-    public RiType RiType_arrayOf(long vmId);
+    RiType getPrimitiveArrayType(CiKind kind);
 
-    public RiType RiType_componentType(long vmId);
+    RiType RiType_arrayOf(long vmId);
 
-    public RiType getType(Class<?> javaClass);
+    RiType RiType_componentType(long vmId);
 
-    public boolean RiMethod_hasBalancedMonitors(long vmId);
+    RiType getType(Class<?> javaClass);
 
+    boolean RiMethod_hasBalancedMonitors(long vmId);
+
+    // CHECKSTYLE:ON
 }

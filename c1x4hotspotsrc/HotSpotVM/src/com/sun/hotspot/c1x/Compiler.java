@@ -1,19 +1,22 @@
 /*
- * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
  *
- * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
- * described in this document. In particular, and without limitation, these intellectual property rights may include one
- * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
- * applications in the U.S. and in other countries.
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation, these intellectual property
+ * rights may include one or more of the U.S. patents listed at http://www.sun.com/patents and one or
+ * more additional patents or pending patent applications in the U.S. and in other countries.
  *
- * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
- * license agreement and applicable provisions of the FAR and its supplements.
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun
+ * Microsystems, Inc. standard license agreement and applicable provisions of the FAR and its
+ * supplements.
  *
- * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
- * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
- * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or
+ * registered trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks
+ * are used under license and are trademarks or registered trademarks of SPARC International, Inc. in the
+ * U.S. and other countries.
  *
- * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open
+ * Company, Ltd.
  */
 package com.sun.hotspot.c1x;
 
@@ -34,7 +37,7 @@ import com.sun.hotspot.c1x.server.CompilationServer.ReplacingOutputStream;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class Compiler {
+public final class Compiler {
 
     private static Compiler theInstance;
 
@@ -96,7 +99,7 @@ public class Compiler {
                     ReplacingInputStream input = new ReplacingInputStream(socket.getInputStream());
 
                     InvocationSocket invocation = new InvocationSocket(output, input);
-                    VMExits exits = (VMExits) Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] { VMExits.class}, invocation);
+                    VMExits exits = (VMExits) Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] {VMExits.class}, invocation);
                     VMEntries entries = Compiler.initializeClient(exits);
                     invocation.setDelegate(entries);
                 } else {
@@ -144,11 +147,6 @@ public class Compiler {
         C1XOptions.OptInlineSynchronized = false;
         C1XOptions.UseDeopt = false;
         C1XOptions.IRChecking = Logger.ENABLED;
-        C1XOptions.TraceBytecodeParserLevel = 0;
-        // C1XOptions.TraceBytecodeParserLevel = Logger.ENABLED ? 4 : 0;
-        C1XOptions.PrintCFGToFile = false;
-        C1XOptions.PrintAssembly = false;// true;
-        C1XOptions.PrintCompilation = Logger.ENABLED;
         C1XOptions.GenAssertionCode = Logger.ENABLED;
         C1XOptions.DetailedAsserts = Logger.ENABLED;
 

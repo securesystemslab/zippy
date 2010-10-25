@@ -25,14 +25,16 @@
 class VMExits : public AllStatic {
 
 private:
-  static KlassHandle _vmExitsKlass;
-  static Handle _vmExitsObject;
   static jobject _vmExitsPermObject;
+  static jobject _vmExitsPermKlass;
 
-  static KlassHandle& vmExitsKlass();
-  static Handle& instance();
+  static KlassHandle vmExitsKlass();
+  static Handle instance();
 
 public:
+
+  // public abstract boolean setOption(String option);
+  static jboolean setOption(Handle option);
 
   // public abstract void compileMethod(long vmId, String name, int entry_bci);
   static void compileMethod(jlong vmId, Handle name, int entry_bci);

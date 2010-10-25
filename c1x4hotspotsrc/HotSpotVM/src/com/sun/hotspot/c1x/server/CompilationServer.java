@@ -1,19 +1,22 @@
 /*
- * Copyright (c) 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
  *
- * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
- * described in this document. In particular, and without limitation, these intellectual property rights may include one
- * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
- * applications in the U.S. and in other countries.
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation, these intellectual property
+ * rights may include one or more of the U.S. patents listed at http://www.sun.com/patents and one or
+ * more additional patents or pending patent applications in the U.S. and in other countries.
  *
- * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
- * license agreement and applicable provisions of the FAR and its supplements.
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun
+ * Microsystems, Inc. standard license agreement and applicable provisions of the FAR and its
+ * supplements.
  *
- * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
- * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
- * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or
+ * registered trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks
+ * are used under license and are trademarks or registered trademarks of SPARC International, Inc. in the
+ * U.S. and other countries.
  *
- * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open
+ * Company, Ltd.
  */
 package com.sun.hotspot.c1x.server;
 
@@ -76,10 +79,10 @@ public class CompilationServer {
                 CiConstant o = (CiConstant) obj;
                 return new Container(clazz, o.kind, o.boxedValue());
             } else if (clazz == CiDebugInfo.class) {
-                CiDebugInfo o = (CiDebugInfo)obj;
+                CiDebugInfo o = (CiDebugInfo) obj;
                 return new Container(clazz, o.codePos, o.frame, o.registerRefMap, o.frameRefMap);
-            } else if(clazz == CiCodePos.class) {
-                CiCodePos o = (CiCodePos)obj;
+            } else if (clazz == CiCodePos.class) {
+                CiCodePos o = (CiCodePos) obj;
                 return new Container(clazz, o.caller, o.method, o.bci);
             }
             return obj;
@@ -99,13 +102,13 @@ public class CompilationServer {
         @Override
         protected Object resolveObject(Object obj) throws IOException {
             if (obj instanceof Container) {
-                Container c = (Container)obj;
-                if( c.clazz == CiConstant.class) {
+                Container c = (Container) obj;
+                if (c.clazz == CiConstant.class) {
                     return CiConstant.forBoxed((CiKind) c.values[0], c.values[1]);
                 } else if (c.clazz == CiDebugInfo.class) {
-                    return new CiDebugInfo((CiCodePos)c.values[0], (Frame)c.values[1], (byte[])c.values[2], (byte[])c.values[3]);
+                    return new CiDebugInfo((CiCodePos) c.values[0], (Frame) c.values[1], (byte[]) c.values[2], (byte[]) c.values[3]);
                 } else if (c.clazz == CiCodePos.class) {
-                    return new CiCodePos((CiCodePos)c.values[0], (RiMethod)c.values[1], (Integer)c.values[2]);
+                    return new CiCodePos((CiCodePos) c.values[0], (RiMethod) c.values[1], (Integer) c.values[2]);
                 }
                 throw new RuntimeException("unexpected container class");
             }
@@ -124,7 +127,7 @@ public class CompilationServer {
                 input = new ReplacingInputStream(socket.getInputStream());
 
                 InvocationSocket invocation = new InvocationSocket(output, input);
-                VMEntries entries = (VMEntries) Proxy.newProxyInstance(VMEntries.class.getClassLoader(), new Class<?>[] { VMEntries.class}, invocation);
+                VMEntries entries = (VMEntries) Proxy.newProxyInstance(VMEntries.class.getClassLoader(), new Class<?>[] {VMEntries.class}, invocation);
                 VMExits exits = Compiler.initializeServer(entries);
                 invocation.setDelegate(exits);
 

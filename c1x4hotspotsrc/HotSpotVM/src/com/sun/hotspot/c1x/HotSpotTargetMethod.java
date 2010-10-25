@@ -1,19 +1,22 @@
 /*
- * Copyright (c) 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
  *
- * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
- * described in this document. In particular, and without limitation, these intellectual property rights may include one
- * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
- * applications in the U.S. and in other countries.
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation, these intellectual property
+ * rights may include one or more of the U.S. patents listed at http://www.sun.com/patents and one or
+ * more additional patents or pending patent applications in the U.S. and in other countries.
  *
- * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
- * license agreement and applicable provisions of the FAR and its supplements.
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun
+ * Microsystems, Inc. standard license agreement and applicable provisions of the FAR and its
+ * supplements.
  *
- * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
- * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
- * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or
+ * registered trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks
+ * are used under license and are trademarks or registered trademarks of SPARC International, Inc. in the
+ * U.S. and other countries.
  *
- * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open
+ * Company, Ltd.
  */
 package com.sun.hotspot.c1x;
 
@@ -28,7 +31,7 @@ import com.sun.hotspot.c1x.logging.*;
  *
  * @author Lukas Stadler
  */
-public class HotSpotTargetMethod implements CompilerObject {
+public final class HotSpotTargetMethod implements CompilerObject {
 
     public final CiTargetMethod targetMethod;
     public final HotSpotMethodResolved method; // used only for methods
@@ -61,7 +64,7 @@ public class HotSpotTargetMethod implements CompilerObject {
     }
 
     private Site[] getSortedSites(CiTargetMethod target) {
-        List<?>[] lists = new List<?>[] { target.directCalls, target.indirectCalls, target.safepoints, target.dataReferences, target.marks};
+        List<?>[] lists = new List<?>[] {target.directCalls, target.indirectCalls, target.safepoints, target.dataReferences, target.marks};
         int count = 0;
         for (List<?> list : lists) {
             count += list.size();
@@ -82,9 +85,11 @@ public class HotSpotTargetMethod implements CompilerObject {
                 return s1.pcOffset - s2.pcOffset;
             }
         });
-        if (Logger.ENABLED)
-            for (Site site : result)
+        if (Logger.ENABLED) {
+            for (Site site : result) {
                 Logger.log(site.pcOffset + ": " + site);
+            }
+        }
         return result;
     }
 

@@ -1,19 +1,22 @@
 /*
- * Copyright (c) 2009-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
  *
- * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
- * described in this document. In particular, and without limitation, these intellectual property rights may include one
- * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
- * applications in the U.S. and in other countries.
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation, these intellectual property
+ * rights may include one or more of the U.S. patents listed at http://www.sun.com/patents and one or
+ * more additional patents or pending patent applications in the U.S. and in other countries.
  *
- * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
- * license agreement and applicable provisions of the FAR and its supplements.
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun
+ * Microsystems, Inc. standard license agreement and applicable provisions of the FAR and its
+ * supplements.
  *
- * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
- * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
- * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or
+ * registered trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks
+ * are used under license and are trademarks or registered trademarks of SPARC International, Inc. in the
+ * U.S. and other countries.
  *
- * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open
+ * Company, Ltd.
  */
 package com.sun.hotspot.c1x;
 
@@ -88,7 +91,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 XirOperand temp = asm.createRegister("temp (r10)", CiKind.Word, AMD64.r10);
                 XirOperand cache = asm.createRegister("cache (rax)", CiKind.Word, AMD64.rax);
 
-                CiCallingConvention conventions = registerConfig.getJavaCallingConvention(new CiKind[] { CiKind.Object}, false, target);
+                CiCallingConvention conventions = registerConfig.getJavaCallingConvention(new CiKind[] {CiKind.Object}, false, target);
                 XirOperand receiver = asm.createRegister("cache (rax)", CiKind.Word, conventions.locations[0].asRegister());
 
                 asm.pload(CiKind.Word, temp, receiver, asm.i(config.hubOffset), false);
@@ -254,7 +257,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.bindOutOfLine(stub);
             XirOperand method = asm.createRegister("method", CiKind.Word, AMD64.rbx);
             asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
-            asm.mov(method, asm.w(0l));
+            asm.mov(method, asm.w(0L));
             XirLabel dummy = asm.createOutOfLineLabel("dummy");
             asm.jmp(dummy);
             asm.bindOutOfLine(dummy);
@@ -277,7 +280,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.bindOutOfLine(stub);
             XirOperand method = asm.createRegister("method", CiKind.Word, AMD64.rbx);
             asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
-            asm.mov(method, asm.w(0l));
+            asm.mov(method, asm.w(0L));
             XirLabel dummy = asm.createOutOfLineLabel("dummy");
             asm.jmp(dummy);
             asm.bindOutOfLine(dummy);
@@ -556,7 +559,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirOperand objHub = asm.createTemp("objHub", CiKind.Object);
 
             XirLabel end = asm.createInlineLabel("end");
-            XirLabel slow_path = asm.createOutOfLineLabel("slow path");
+            XirLabel slowPath = asm.createOutOfLineLabel("slow path");
 
             if (is(NULL_CHECK, flags)) {
                 // null can be cast to anything
@@ -565,11 +568,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             asm.pload(CiKind.Object, objHub, object, asm.i(config.hubOffset), false);
             // if we get an exact match: succeed immediately
-            asm.jneq(slow_path, objHub, hub);
+            asm.jneq(slowPath, objHub, hub);
             asm.bindInline(end);
 
             // -- out of line -------------------------------------------------------
-            asm.bindOutOfLine(slow_path);
+            asm.bindOutOfLine(slowPath);
             checkSubtype(asm, objHub, objHub, hub);
             asm.jneq(end, objHub, asm.o(null));
             XirOperand scratch = asm.createRegister("scratch", CiKind.Object, AMD64.r10);
@@ -606,7 +609,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirOperand objHub = asm.createTemp("objHub", CiKind.Object);
 
             XirLabel end = asm.createInlineLabel("end");
-            XirLabel slow_path = asm.createOutOfLineLabel("slow path");
+            XirLabel slowPath = asm.createOutOfLineLabel("slow path");
 
             if (is(NULL_CHECK, flags)) {
                 // null isn't "instanceof" anything
@@ -617,11 +620,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.pload(CiKind.Object, objHub, object, asm.i(config.hubOffset), false);
             // if we get an exact match: succeed immediately
             asm.mov(result, asm.b(true));
-            asm.jneq(slow_path, objHub, hub);
+            asm.jneq(slowPath, objHub, hub);
             asm.bindInline(end);
 
             // -- out of line -------------------------------------------------------
-            asm.bindOutOfLine(slow_path);
+            asm.bindOutOfLine(slowPath);
             checkSubtype(asm, result, objHub, hub);
             asm.jmp(end);
 
@@ -990,7 +993,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.mov(arg, asm.createConstant(CiConstant.forObject(null)));
             XirMark end = asm.mark(null);
             // make this piece of data look like an instruction
-            asm.rawBytes(new byte[] { (byte) 0xb8, 0, 0, 0x05, 0});
+            asm.rawBytes(new byte[] {(byte) 0xb8, 0, 0, 0x05, 0});
             asm.mark(MARK_KLASS_PATCHING, begin, end);
             asm.bindOutOfLine(patchStub);
             asm.callRuntime(config.loadKlassStub, null);
@@ -1062,7 +1065,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
             XirMark end = asm.mark(null);
             // make this piece of data look like an instruction
-            asm.rawBytes(new byte[] { (byte) 0xb8, 0, 0, 0x05, 0});
+            asm.rawBytes(new byte[] {(byte) 0xb8, 0, 0, 0x05, 0});
             asm.mark(MARK_ACCESS_FIELD_PATCHING, begin, end);
             asm.bindOutOfLine(patchStub);
             asm.callRuntime(config.accessFieldStub, null);

@@ -36,6 +36,7 @@ C1XCompiler::C1XCompiler() {
 // Initialization
 void C1XCompiler::initialize() {
   if (_initialized) return;
+  Thread* THREAD = Thread::current();
   _initialized = true;
   TRACE_C1X_1("C1XCompiler::initialize");
 
@@ -47,6 +48,16 @@ void C1XCompiler::initialize() {
   check_pending_exception("Could not register natives");
 
   c1x_compute_offsets();
+
+  {
+    VM_ENTRY_MARK;
+    HandleMark hm;
+    for (int i = 0; i < Arguments::num_c1x_args(); ++i) {
+      const char* arg = Arguments::c1x_args_array()[i];
+      Handle option = java_lang_String::create_from_str(arg, THREAD);
+      VMExits::setOption(option);
+    }
+  }
 }
 
 // Compilation entry point for methods

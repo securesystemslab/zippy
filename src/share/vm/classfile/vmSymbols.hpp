@@ -275,6 +275,8 @@
   template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
   template(compileMethod_name,                        "compileMethod")                                                  \
   template(compileMethod_signature,                   "(JLjava/lang/String;I)V")                                        \
+  template(setOption_name,                            "setOption")                                                      \
+  template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
   template(createRiMethodResolved_name,               "createRiMethodResolved")                                         \
   template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/sun/cri/ri/RiMethod;")                 \
   template(createRiMethodUnresolved_name,             "createRiMethodUnresolved")                                       \

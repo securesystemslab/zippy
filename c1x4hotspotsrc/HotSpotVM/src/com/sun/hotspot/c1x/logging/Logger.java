@@ -1,19 +1,22 @@
 /*
- * Copyright (c) 2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
  *
- * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product that is
- * described in this document. In particular, and without limitation, these intellectual property rights may include one
- * or more of the U.S. patents listed at http://www.sun.com/patents and one or more additional patents or pending patent
- * applications in the U.S. and in other countries.
+ * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
+ * that is described in this document. In particular, and without limitation, these intellectual property
+ * rights may include one or more of the U.S. patents listed at http://www.sun.com/patents and one or
+ * more additional patents or pending patent applications in the U.S. and in other countries.
  *
- * U.S. Government Rights - Commercial software. Government users are subject to the Sun Microsystems, Inc. standard
- * license agreement and applicable provisions of the FAR and its supplements.
+ * U.S. Government Rights - Commercial software. Government users are subject to the Sun
+ * Microsystems, Inc. standard license agreement and applicable provisions of the FAR and its
+ * supplements.
  *
- * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or registered
- * trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks are used under license and
- * are trademarks or registered trademarks of SPARC International, Inc. in the U.S. and other countries.
+ * Use is subject to license terms. Sun, Sun Microsystems, the Sun logo, Java and Solaris are trademarks or
+ * registered trademarks of Sun Microsystems, Inc. in the U.S. and other countries. All SPARC trademarks
+ * are used under license and are trademarks or registered trademarks of SPARC International, Inc. in the
+ * U.S. and other countries.
  *
- * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open Company, Ltd.
+ * UNIX is a registered trademark in the U.S. and other countries, exclusively licensed through X/Open
+ * Company, Ltd.
  */
 package com.sun.hotspot.c1x.logging;
 
@@ -22,7 +25,7 @@ import java.lang.reflect.*;
 import java.util.*;
 
 /**
- * Scoped logging class used to display the call hierarchy of VMEntries/VMExits calls
+ * Scoped logging class used to display the call hierarchy of VMEntries/VMExits calls.
  *
  * @author Lukas Stadler
  */
@@ -34,7 +37,7 @@ public class Logger {
     private static boolean open = false;
     private static int level = 0;
 
-    private final static PrintStream out;
+    private static final PrintStream out;
 
     static {
         PrintStream ps = null;
@@ -48,15 +51,17 @@ public class Logger {
             }
         }
         out = ps;
-        if (out != null)
+        if (out != null) {
             out.println("start: " + new Date());
+        }
     }
 
     public static void info(String message) {
-        if (ENABLED)
+        if (ENABLED) {
             log(message);
-        else
+        } else {
             System.out.println(message);
+        }
         if (out != null) {
             out.println(message);
             out.flush();
@@ -93,10 +98,11 @@ public class Logger {
     public static void endScope(String message) {
         if (ENABLED) {
             level--;
-            if (open)
+            if (open) {
                 System.out.println(message);
-            else
+            } else {
                 System.out.println(space(level) + "..." + message);
+            }
             open = openStack.pop();
         }
     }
@@ -108,11 +114,13 @@ public class Logger {
         String result;
         if (count >= spaces.length || spaces[count] == null) {
             StringBuilder str = new StringBuilder();
-            for (int i = 0; i < count * SPACING; i++)
+            for (int i = 0; i < count * SPACING; i++) {
                 str.append(' ');
+            }
             result = str.toString();
-            if (count < spaces.length)
+            if (count < spaces.length) {
                 spaces[count] = result;
+            }
         } else {
             result = spaces[count];
         }
@@ -134,12 +142,14 @@ public class Logger {
         } else if (value instanceof Class<?>) {
             return "class \"" + ((Class<?>) value).getSimpleName() + "\"";
         } else if (value instanceof Integer) {
-            if ((Integer) value < 10)
+            if ((Integer) value < 10) {
                 return value.toString();
+            }
             return value + " (0x" + Integer.toHexString((Integer) value) + ")";
         } else if (value instanceof Long) {
-            if ((Long) value < 10)
+            if ((Long) value < 10) {
                 return value + "l";
+            }
             return value + "l (0x" + Long.toHexString((Long) value) + "l)";
         } else if (klass.isArray()) {
             StringBuilder str = new StringBuilder();

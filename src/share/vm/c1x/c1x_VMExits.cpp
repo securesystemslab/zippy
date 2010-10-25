@@ -25,37 +25,44 @@
 # include "incls/_precompiled.incl"
 # include "incls/_c1x_VMExits.cpp.incl"
 
-// these are *local* handles, and they need to be cleared before compileMethod returns
-KlassHandle VMExits::_vmExitsKlass;
-Handle VMExits::_vmExitsObject;
-
 // this is a *global* handle
 jobject VMExits::_vmExitsPermObject;
+jobject VMExits::_vmExitsPermKlass;
 
-KlassHandle &VMExits::vmExitsKlass() {
-  if (_vmExitsKlass.is_null()) {
-    _vmExitsKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    if (_vmExitsKlass.is_null()) {
+KlassHandle VMExits::vmExitsKlass() {
+  if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
+    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    if (result == NULL) {
       fatal("Could not find class com.sun.hotspot.c1x.VMExits");
     }
+    _vmExitsPermKlass = JNIHandles::make_global(result);
   }
-  return _vmExitsKlass;
+  return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmExitsPermKlass));
 }
 
-Handle &VMExits::instance() {
-  if (_vmExitsObject.is_null()) {
-    if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
-      KlassHandle compiler_klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-      JavaValue result(T_OBJECT);
-      JavaCallArguments args;
-      JavaCalls::call_static(&result, compiler_klass(), vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), &args, Thread::current());
-      check_pending_exception("Couldn't get VMExits");
-      oop res = (oop) result.get_jobject();
-      _vmExitsPermObject = JNIHandles::make_global(res);
-    }
-    _vmExitsObject = JNIHandles::resolve(_vmExitsPermObject);
+Handle VMExits::instance() {
+  if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
+    KlassHandle compiler_klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    JavaValue result(T_OBJECT);
+    JavaCallArguments args;
+    JavaCalls::call_static(&result, compiler_klass(), vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), &args, Thread::current());
+    check_pending_exception("Couldn't get VMExits");
+    oop res = (oop) result.get_jobject();
+    _vmExitsPermObject = JNIHandles::make_global(res);
   }
-  return _vmExitsObject;
+  return Handle(JNIHandles::resolve_non_null(_vmExitsPermObject));
+}
+
+jboolean VMExits::setOption(Handle option) {
+  assert(!option.is_null(), "");
+  Thread* THREAD = Thread::current();
+  JavaValue result(T_BOOLEAN);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  args.push_oop(option);
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::setOption_name(), vmSymbols::setOption_signature(), &args, THREAD);
+  check_pending_exception("Error while calling setOption");
+  return result.get_jboolean();
 }
 
 void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
@@ -69,10 +76,6 @@ void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
   args.push_int(entry_bci);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
-
-  // TODO hack hack
-  _vmExitsKlass = KlassHandle();
-  _vmExitsObject = Handle();
 }
 
 oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
