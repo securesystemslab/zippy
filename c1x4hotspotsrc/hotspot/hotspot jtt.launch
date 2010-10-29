@@ -2,8 +2,8 @@
 <launchConfiguration type="org.eclipse.cdt.launch.applicationLaunchType">
 <intAttribute key="org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="2"/>
 <stringAttribute key="org.eclipse.cdt.launch.COREFILE_PATH" value=""/>
-<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_ARGUMENTS" value="-client -XX:+UseC1X -Xcomp -XX:CompileOnly=jtt -XX:+PrintCompilation -Xbootclasspath/p:${workspace_loc:hotspot}/../../../maxine/C1X/bin:${workspace_loc:hotspot}/../../../maxine/CRI/bin:${workspace_loc:hotspot}/../../../maxine/Base/bin:${workspace_loc:hotspot}/../../../maxine/Assembler/bin:${workspace_loc:hotspot}/../HotSpotVM/bin -classpath ${workspace_loc:hotspot}/../../../maxine/VM/bin:${workspace_loc:hotspot}/../HotSpotTest/bin -C1X:+PrintCompilation JavaTester 575"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="/home/tw/Projects/jre1.7.0/bin/java"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_ARGUMENTS" value="-client -XX:+UseC1X -Xcomp -XX:CompileOnly=jtt -XX:+PrintCompilation -Xbootclasspath/p:${workspace_loc:hotspot}/../../../maxine/C1X/bin:${workspace_loc:hotspot}/../../../maxine/CRI/bin:${workspace_loc:hotspot}/../../../maxine/Base/bin:${workspace_loc:hotspot}/../../../maxine/Assembler/bin:${workspace_loc:hotspot}/../HotSpotVM/bin -classpath ${workspace_loc:hotspot}/../../../maxine/VM/bin:${workspace_loc:hotspot}/../HotSpotTest/bin -C1X:+PrintCompilation JavaTester"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="java"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="hotspot"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="cdt.managedbuild.toolchain.gnu.solaris.base.945602881"/>
 <booleanAttribute key="org.eclipse.cdt.launch.use_terminal" value="true"/>

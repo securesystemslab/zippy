@@ -50,7 +50,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   arrayOop register_map = (arrayOop) CiDebugInfo::registerRefMap(debug_info);
   arrayOop frame_map = (arrayOop) CiDebugInfo::frameRefMap(debug_info);
 
-  assert(register_map->length() == (NUM_REGS + 7) / 8, "unexpected register_map length");
+  assert(register_map->length() == (NUM_CPU_REGS + 7) / 8, "unexpected register_map length");
 
   for (jint i = 0; i < NUM_REGS; i++) {
     unsigned char byte = ((unsigned char*) register_map->base(T_BYTE))[i / 8];

@@ -1,7 +1,25 @@
 #!/bin/bash
-pushd make
+
+test -n "$JRE7" || { echo "Need to set JRE7 environment variable to the base of a JRE 1.7"; exit 1; }
+
+# Resolve location of this script
+me="${BASH_SOURCE[0]}"
+while [ -h "$me" ]; do
+    me=`readlink -e "$me"`
+done
+
+grep '-client KNOWN' $JRE7/lib/amd64/jvm.cfg >/dev/null
+if [ $? -ne 0 ] ; then
+    echo "The setting for -client in $JRE7/lib/amd64/jvm.cfg must be:"
+    echo
+    echo "  -client KNOWN"
+    echo
+    exit 1
+fi
+
+pushd $(dirname "$me")/make
 ALT_BOOTDIR=/usr/lib/jvm/java-6-openjdk/ LANG=C ARCH_DATA_MODEL=64 HOTSPOT_BUILD_JOBS=2 make jvmg1
-cp ../build/linux/linux_amd64_compiler1/jvmg/libjvm.so ../../jre1.7.0/lib/amd64/client
-cp ../build/linux/linux_amd64_compiler1/jvmg/libjsig.so ../../jre1.7.0/lib/amd64/client
+cp ../build/linux/linux_amd64_compiler1/jvmg/libjvm.so $JRE7/lib/amd64/client
+cp ../build/linux/linux_amd64_compiler1/jvmg/libjsig.so $JRE7/lib/amd64/client
 popd
 

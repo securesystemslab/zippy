@@ -39,10 +39,13 @@ import com.sun.max.lang.*;
  */
 public class HotSpotRuntime implements RiRuntime {
 
-    private final HotSpotVMConfig config;
+    final HotSpotVMConfig config;
+    final HotSpotRegisterConfig regConfig;
+
 
     public HotSpotRuntime(HotSpotVMConfig config) {
         this.config = config;
+        regConfig = new HotSpotRegisterConfig(config);
     }
 
     @Override
@@ -57,7 +60,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     private String disassemble(byte[] code, DisassemblyPrinter disassemblyPrinter) {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        final InstructionSet instructionSet = InstructionSet.AMD64;
+        final ISA instructionSet = ISA.AMD64;
         Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, WordWidth.BITS_64, 0, null, disassemblyPrinter);
         return byteArrayOutputStream.toString();
     }
@@ -218,4 +221,8 @@ public class HotSpotRuntime implements RiRuntime {
         return false;
     }
 
+    @Override
+    public RiRegisterConfig getRegisterConfig(RiMethod method) {
+        return regConfig;
+    }
 }

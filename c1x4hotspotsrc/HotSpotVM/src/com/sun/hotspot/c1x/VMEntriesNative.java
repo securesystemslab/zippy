@@ -31,6 +31,7 @@ import com.sun.cri.ri.*;
  */
 public class VMEntriesNative implements VMEntries {
 
+    // Checkstyle: stop
     @Override
     public native byte[] RiMethod_code(long vmId);
 
@@ -102,5 +103,5 @@ public class VMEntriesNative implements VMEntries {
 
     @Override
     public native boolean RiMethod_hasBalancedMonitors(long vmId);
-
+    // Checkstyle: resume
 }

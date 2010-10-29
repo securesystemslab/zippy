@@ -140,14 +140,11 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
 
     @Override
     public Class<?> accessor() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public int intrinsic() {
-        // TODO Auto-generated method stub
         return 0;
     }
-
 }

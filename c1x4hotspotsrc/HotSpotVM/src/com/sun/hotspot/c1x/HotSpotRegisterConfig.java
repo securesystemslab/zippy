@@ -20,6 +20,10 @@
  */
 package com.sun.hotspot.c1x;
 
+import static com.sun.c1x.target.amd64.AMD64.*;
+
+import java.util.*;
+
 import com.sun.c1x.target.amd64.AMD64;
 import com.sun.c1x.util.Util;
 import com.sun.cri.ci.CiCallingConvention;
@@ -28,7 +32,8 @@ import com.sun.cri.ci.CiRegister;
 import com.sun.cri.ci.CiStackSlot;
 import com.sun.cri.ci.CiTarget;
 import com.sun.cri.ci.CiValue;
-import com.sun.cri.ri.RiRegisterConfig;
+import com.sun.cri.ci.CiRegister.*;
+import com.sun.cri.ri.*;
 
 /**
  * @author Thomas Wuerthinger
@@ -37,26 +42,41 @@ import com.sun.cri.ri.RiRegisterConfig;
 public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     // be careful - the contents of this array are duplicated in c1x_CodeInstaller.cpp
+    private final CiRegister[] allocatable = {
+        rax, rbx, rcx, rdx, rsi, rdi, r8, r9, /* r10, */r11, r12, r13, r14,
+        xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7,
+        xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
+    };
+
+    private final EnumMap<RegisterFlag, CiRegister[]> categorized = CiRegister.categorize(allocatable);
+
+    private final RiRegisterAttributes[] attributesMap;
+
     @Override
     public CiRegister[] getAllocatableRegisters() {
-        return new CiRegister[] {AMD64.rax, AMD64.rbx, AMD64.rcx, AMD64.rdx, AMD64.rsi, AMD64.rdi, AMD64.r8, AMD64.r9, /* AMD64.r10, */AMD64.r11, AMD64.r12, AMD64.r13, AMD64.r14, AMD64.xmm0, AMD64.xmm1, AMD64.xmm2,
-                        AMD64.xmm3, AMD64.xmm4, AMD64.xmm5, AMD64.xmm6, AMD64.xmm7, AMD64.xmm8, AMD64.xmm9, AMD64.xmm10, AMD64.xmm11, AMD64.xmm12, AMD64.xmm13, AMD64.xmm14, AMD64.xmm15};
+        return allocatable;
+    }
+
+    @Override
+    public EnumMap<RegisterFlag, CiRegister[]> getCategorizedAllocatableRegisters() {
+        return categorized;
+    }
+
+    @Override
+    public RiRegisterAttributes[] getAttributesMap() {
+        return attributesMap;
     }
 
     private final CiRegister[] generalParameterRegisters;
-    private final CiRegister[] xmmParameterRegisters = new CiRegister[] {AMD64.xmm0, AMD64.xmm1, AMD64.xmm2, AMD64.xmm3, AMD64.xmm4, AMD64.xmm5, AMD64.xmm6, AMD64.xmm7};
+    private final CiRegister[] xmmParameterRegisters = {xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
 
     public HotSpotRegisterConfig(HotSpotVMConfig config) {
         if (config.windowsOs) {
-            generalParameterRegisters = new CiRegister[] {AMD64.rdx, AMD64.r8, AMD64.r9, AMD64.rdi, AMD64.rsi, AMD64.rcx};
+            generalParameterRegisters = new CiRegister[] {rdx, r8, r9, rdi, rsi, rcx};
         } else {
-            generalParameterRegisters = new CiRegister[] {AMD64.rsi, AMD64.rdx, AMD64.rcx, AMD64.r8, AMD64.r9, AMD64.rdi};
+            generalParameterRegisters = new CiRegister[] {rsi, rdx, rcx, r8, r9, rdi};
         }
-    }
-
-    @Override
-    public int getCalleeSaveRegisterOffset(CiRegister register) {
-        return 0;
+        attributesMap = RiRegisterAttributes.createMap(this, AMD64.allRegisters);
     }
 
     @Override
@@ -64,13 +84,15 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
         return getAllocatableRegisters();
     }
 
+    private final CiRegister[] none = {};
+
     @Override
-    public CiRegister getFramePointerRegister() {
-        return AMD64.rbp;
+    public CiRegister[] getCalleeSaveRegisters() {
+        return none;
     }
 
     @Override
-    public CiRegister getIntegerRegister(int index) {
+    public CiRegister getRegister(int index) {
         throw new UnsupportedOperationException();
     }
 
@@ -125,18 +147,8 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     }
 
     @Override
-    public int getMinimumCalleeSaveFrameSize() {
-        return 0;
-    }
-
-    @Override
     public CiCallingConvention getNativeCallingConvention(CiKind[] parameters, boolean outgoing, CiTarget target) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public CiRegister[] getRegisterReferenceMapOrder() {
-        return getAllocatableRegisters();
     }
 
     @Override
@@ -150,10 +162,10 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
             case Long:
             case Object:
             case Word:
-                return AMD64.rax;
+                return rax;
             case Float:
             case Double:
-                return AMD64.xmm0;
+                return xmm0;
             case Void:
             case Illegal:
                 return null;
@@ -169,12 +181,21 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     @Override
     public CiRegister getScratchRegister() {
-        return AMD64.r10;
+        return r10;
     }
 
     @Override
-    public CiRegister getStackPointerRegister() {
-        return AMD64.rsp;
+    public CiRegister getFrameRegister() {
+        return rsp;
     }
 
+    @Override
+    public String toString() {
+        String res = String.format(
+             "Allocatable: " + Arrays.toString(getAllocatableRegisters()) + "%n" +
+             "CallerSave:  " + Arrays.toString(getCallerSaveRegisters()) + "%n" +
+             "CalleeSave:  " + Arrays.toString(getCalleeSaveRegisters()) + "%n" +
+             "Scratch:     " + getScratchRegister() + "%n");
+        return res;
+    }
 }

@@ -110,7 +110,7 @@ public class VMExitsNative implements VMExits {
         try {
             Compiler compiler = Compiler.getInstance();
             HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
-            CiResult result = compiler.getCompiler().compileMethod(riMethod, null);
+            CiResult result = compiler.getCompiler().compileMethod(riMethod, -1, null);
 
             if (result.bailout() != null) {
                 StringWriter out = new StringWriter();

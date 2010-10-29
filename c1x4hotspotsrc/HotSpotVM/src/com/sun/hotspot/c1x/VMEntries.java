@@ -31,7 +31,7 @@ import com.sun.cri.ri.*;
  */
 public interface VMEntries {
 
-    // CHECKSTYLE:OFF
+    // Checkstyle: stop
 
     byte[] RiMethod_code(long vmId);
 
@@ -81,5 +81,5 @@ public interface VMEntries {
 
     boolean RiMethod_hasBalancedMonitors(long vmId);
 
-    // CHECKSTYLE:ON
+    // Checkstyle: resume
 }

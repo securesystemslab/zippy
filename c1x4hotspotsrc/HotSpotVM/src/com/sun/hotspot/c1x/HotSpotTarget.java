@@ -21,7 +21,6 @@
 package com.sun.hotspot.c1x;
 
 import com.sun.cri.ci.*;
-import com.sun.cri.ri.*;
 
 /**
  * HotSpot-specific CiTarget that provides the correct stack frame size alignment.
@@ -30,9 +29,9 @@ import com.sun.cri.ri.*;
  */
 public class HotSpotTarget extends CiTarget {
 
-    public HotSpotTarget(CiArchitecture arch, RiRegisterConfig registerConfig, boolean isMP, int spillSlotSize, int wordSize, int referenceSize, int stackAlignment, int pageSize, int cacheAlignment,
+    public HotSpotTarget(CiArchitecture arch, CiRegisterSaveArea rsa, boolean isMP, int spillSlotSize, int wordSize, int referenceSize, int stackAlignment, int pageSize, int cacheAlignment,
                     int heapAlignment, int codeAlignment, boolean inlineObjects) {
-        super(arch, registerConfig, isMP, spillSlotSize, wordSize, referenceSize, stackAlignment, pageSize, cacheAlignment, heapAlignment, codeAlignment, inlineObjects);
+        super(arch, rsa, isMP, spillSlotSize, wordSize, referenceSize, stackAlignment, pageSize, cacheAlignment, heapAlignment, codeAlignment, inlineObjects);
     }
 
     @Override
