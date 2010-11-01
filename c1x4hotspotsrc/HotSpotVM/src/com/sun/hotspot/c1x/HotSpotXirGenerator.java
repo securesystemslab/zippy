@@ -20,6 +20,9 @@
  */
 package com.sun.hotspot.c1x;
 
+import static com.sun.cri.ci.CiCallingConvention.Type.*;
+import static com.sun.hotspot.c1x.TemplateFlag.*;
+
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -30,8 +33,10 @@ import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 import com.sun.cri.ri.RiType.Representation;
 import com.sun.cri.xir.*;
-import com.sun.cri.xir.CiXirAssembler.*;
-import static com.sun.hotspot.c1x.TemplateFlag.*;
+import com.sun.cri.xir.CiXirAssembler.XirLabel;
+import com.sun.cri.xir.CiXirAssembler.XirMark;
+import com.sun.cri.xir.CiXirAssembler.XirOperand;
+import com.sun.cri.xir.CiXirAssembler.XirParameter;
 
 /**
  *
@@ -91,7 +96,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 XirOperand temp = asm.createRegister("temp (r10)", CiKind.Word, AMD64.r10);
                 XirOperand cache = asm.createRegister("cache (rax)", CiKind.Word, AMD64.rax);
 
-                CiCallingConvention conventions = registerConfig.getJavaCallingConvention(new CiKind[] {CiKind.Object}, false, target);
+                CiCallingConvention conventions = registerConfig.getCallingConvention(Java, new CiKind[] {CiKind.Object}, false, target);
                 XirOperand receiver = asm.createRegister("cache (rax)", CiKind.Word, conventions.locations[0].asRegister());
 
                 asm.pload(CiKind.Word, temp, receiver, asm.i(config.hubOffset), false);

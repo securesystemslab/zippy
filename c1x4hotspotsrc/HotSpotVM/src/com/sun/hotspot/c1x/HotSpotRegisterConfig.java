@@ -24,15 +24,11 @@ import static com.sun.c1x.target.amd64.AMD64.*;
 
 import java.util.*;
 
-import com.sun.c1x.target.amd64.AMD64;
-import com.sun.c1x.util.Util;
-import com.sun.cri.ci.CiCallingConvention;
-import com.sun.cri.ci.CiKind;
-import com.sun.cri.ci.CiRegister;
-import com.sun.cri.ci.CiStackSlot;
-import com.sun.cri.ci.CiTarget;
-import com.sun.cri.ci.CiValue;
-import com.sun.cri.ci.CiRegister.*;
+import com.sun.c1x.target.amd64.*;
+import com.sun.c1x.util.*;
+import com.sun.cri.ci.*;
+import com.sun.cri.ci.CiCallingConvention.Type;
+import com.sun.cri.ci.CiRegister.RegisterFlag;
 import com.sun.cri.ri.*;
 
 /**
@@ -69,6 +65,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
     private final CiRegister[] generalParameterRegisters;
     private final CiRegister[] xmmParameterRegisters = {xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
+    private final CiRegister[] allParameterRegisters;
 
     public HotSpotRegisterConfig(HotSpotVMConfig config) {
         if (config.windowsOs) {
@@ -77,6 +74,8 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
             generalParameterRegisters = new CiRegister[] {rsi, rdx, rcx, r8, r9, rdi};
         }
         attributesMap = RiRegisterAttributes.createMap(this, AMD64.allRegisters);
+        allParameterRegisters = Arrays.copyOf(generalParameterRegisters, generalParameterRegisters.length + xmmParameterRegisters.length);
+        System.arraycopy(xmmParameterRegisters, 0, allParameterRegisters, generalParameterRegisters.length, xmmParameterRegisters.length);
     }
 
     @Override
@@ -97,8 +96,15 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     }
 
     @Override
-    public CiCallingConvention getJavaCallingConvention(CiKind[] parameters, boolean outgoing, CiTarget target) {
-        return callingConvention(parameters, outgoing, target);
+    public CiCallingConvention getCallingConvention(Type type, CiKind[] parameters, boolean outgoing, CiTarget target) {
+        if (type == Type.Native) {
+            throw new UnsupportedOperationException();
+        }
+        return callingConvention(parameters, type == Type.Runtime ? true : outgoing, target);
+    }
+
+    public CiRegister[] getCallingConventionRegisters(Type type) {
+        return allParameterRegisters;
     }
 
     private CiCallingConvention callingConvention(CiKind[] types, boolean outgoing, CiTarget target) {
@@ -147,11 +153,6 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     }
 
     @Override
-    public CiCallingConvention getNativeCallingConvention(CiKind[] parameters, boolean outgoing, CiTarget target) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public CiRegister getReturnRegister(CiKind kind) {
         switch (kind) {
             case Boolean:
@@ -172,11 +173,6 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
             default:
                 throw new UnsupportedOperationException("no return register for type " + kind);
         }
-    }
-
-    @Override
-    public CiCallingConvention getRuntimeCallingConvention(CiKind[] parameters, CiTarget target) {
-        return callingConvention(parameters, true, target);
     }
 
     @Override
