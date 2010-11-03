@@ -591,6 +591,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         oop ref = ((oop*) references->base(T_OBJECT))[0];
         address call_pc = _instructions->start() + CiTargetMethod_Site::pcOffset(ref);
         _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
+        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         break;
       }
       case MARK_INVOKE_INVALID:

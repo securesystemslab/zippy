@@ -19,6 +19,7 @@ fi
 
 pushd $(dirname "$me")/make
 ALT_BOOTDIR=/usr/lib/jvm/java-6-openjdk/ LANG=C ARCH_DATA_MODEL=64 HOTSPOT_BUILD_JOBS=2 make jvmg1
+echo "Copying binaries to JRE7 directory $JRE7"
 cp ../build/linux/linux_amd64_compiler1/jvmg/libjvm.so $JRE7/lib/amd64/client
 cp ../build/linux/linux_amd64_compiler1/jvmg/libjsig.so $JRE7/lib/amd64/client
 popd

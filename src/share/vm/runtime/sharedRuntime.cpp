@@ -612,7 +612,6 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           _implicit_null_throws++;
 #endif
           if (UseC1X) {
-            tty->print("implicit null at %08x%08x", ((long)pc) >> 32, pc);
             target_pc = Runtime1::entry_for(Runtime1::c1x_global_implicit_null_id);
           } else {
             target_pc = nm->continuation_for_implicit_exception(pc);
