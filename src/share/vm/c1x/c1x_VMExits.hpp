@@ -82,8 +82,10 @@ public:
 inline void check_pending_exception(const char* message) {
   Thread* THREAD = Thread::current();
   if (THREAD->has_pending_exception()) {
-    java_lang_Throwable::print(PENDING_EXCEPTION, tty);
-    java_lang_Throwable::print_stack_trace(PENDING_EXCEPTION, tty);
+    Handle exception = PENDING_EXCEPTION;
+    CLEAR_PENDING_EXCEPTION;
+    java_lang_Throwable::print(exception, tty);
+    java_lang_Throwable::print_stack_trace(exception(), tty);
     fatal(message);
   }
 }
