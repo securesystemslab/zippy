@@ -55,7 +55,8 @@ void C1XCompiler::initialize() {
     for (int i = 0; i < Arguments::num_c1x_args(); ++i) {
       const char* arg = Arguments::c1x_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);
-      VMExits::setOption(option);
+      bool result = VMExits::setOption(option);
+      if (!result) fatal("Invalid option for C1X!");
     }
   }
 }

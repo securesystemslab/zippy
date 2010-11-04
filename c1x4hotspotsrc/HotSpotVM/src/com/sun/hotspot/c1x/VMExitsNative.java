@@ -74,13 +74,15 @@ public class VMExitsNative implements VMExits {
                     value = Integer.parseInt(valueString);
                 } else if (f.getType() == Boolean.TYPE) {
                     value = Boolean.parseBoolean(valueString);
+                } else if (f.getType() == String.class) {
+                    value = valueString;
                 }
             }
             if (value != null) {
                 f.set(null, value);
                 Logger.info("Set option " + fieldName + " to " + value);
             } else {
-                Logger.info("Wrong value \"" + valueString + "\" for option fieldName");
+                Logger.info("Wrong value \"" + valueString + "\" for option " + fieldName);
                 return false;
             }
         } catch (SecurityException e) {
