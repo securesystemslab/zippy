@@ -96,7 +96,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 XirOperand temp = asm.createRegister("temp (r10)", CiKind.Word, AMD64.r10);
                 XirOperand cache = asm.createRegister("cache (rax)", CiKind.Word, AMD64.rax);
 
-                CiCallingConvention conventions = registerConfig.getCallingConvention(Java, new CiKind[] {CiKind.Object}, false, target);
+                CiCallingConvention conventions = registerConfig.getCallingConvention(JavaCallee, new CiKind[] {CiKind.Object}, target);
                 XirOperand receiver = asm.createRegister("cache (rax)", CiKind.Word, conventions.locations[0].asRegister());
 
                 asm.pload(CiKind.Word, temp, receiver, asm.i(config.hubOffset), false);
