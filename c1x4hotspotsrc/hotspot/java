@@ -1,6 +1,0 @@
-#!/bin/bash
-# Launcher for JRE7 modified to run the HotSpotX compiler
-
-test -n "$JRE7" || { echo "Need to set JRE7 environment variable to the base of a JRE 1.7"; exit 1; }
-exec $JRE7/bin/java "$@"
-
