@@ -27,7 +27,8 @@
 
 
 // TODO this should be handled in a more robust way - not hard coded...
-Register CPU_REGS[] = { rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r11, r12, r13, r14 };
+Register CPU_REGS[] = { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
+bool OOP_ALLOWED[] = {true, true, true, true, false, false, true, true, true, true, false, true, true, true, true, true};
 const static int NUM_CPU_REGS = sizeof(CPU_REGS) / sizeof(Register);
 XMMRegister XMM_REGS[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
 const static int NUM_XMM_REGS = sizeof(XMM_REGS) / sizeof(XMMRegister);
@@ -52,11 +53,12 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
 
   assert(register_map->length() == (NUM_CPU_REGS + 7) / 8, "unexpected register_map length");
 
-  for (jint i = 0; i < NUM_REGS; i++) {
+  for (jint i = 0; i < NUM_CPU_REGS; i++) {
     unsigned char byte = ((unsigned char*) register_map->base(T_BYTE))[i / 8];
     bool is_oop = (byte & (1 << (i % 8))) != 0;
     VMReg reg = get_hotspot_reg(i);
     if (is_oop) {
+      assert(OOP_ALLOWED[i], "this register may never be an oop, register map misaligned?");
       map->set_oop(reg);
     } else {
       map->set_value(reg);

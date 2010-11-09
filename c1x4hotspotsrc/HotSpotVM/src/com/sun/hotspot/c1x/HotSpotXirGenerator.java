@@ -444,8 +444,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             UnresolvedClassPatching patching = new UnresolvedClassPatching(asm, arg, config);
 
             patching.emitInline();
-            useRegisters(asm, AMD64.rbx, AMD64.rcx, AMD64.rsi);
-            useRegisters(asm, AMD64.rax);
+            useRegisters(asm, AMD64.rbx, AMD64.rcx, AMD64.rsi, AMD64.rax);
             asm.callRuntime(config.unresolvedNewInstanceStub, result);
 
             // -- out of line -------------------------------------------------------
@@ -476,8 +475,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
 
             asm.mov(length, lengthParam);
-            useRegisters(asm, AMD64.rsi, AMD64.rcx, AMD64.rdi);
-            useRegisters(asm, AMD64.rax);
+            useRegisters(asm, AMD64.rsi, AMD64.rcx, AMD64.rdi, AMD64.rax);
             asm.callRuntime(config.newObjectArrayStub, result);
             if (is(UNRESOLVED, flags)) {
                 patching.emitOutOfLine();
@@ -500,8 +498,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             asm.mov(hub, hubParam);
             asm.mov(length, lengthParam);
-            useRegisters(asm, AMD64.rsi, AMD64.rcx, AMD64.rdi);
-            useRegisters(asm, AMD64.rax);
+            useRegisters(asm, AMD64.rsi, AMD64.rcx, AMD64.rdi, AMD64.rax);
             asm.callRuntime(config.newTypeArrayStub, result);
 
             return asm.finishTemplate("newTypeArray");

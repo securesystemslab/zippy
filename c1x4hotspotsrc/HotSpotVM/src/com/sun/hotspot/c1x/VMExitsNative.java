@@ -127,7 +127,6 @@ public class VMExitsNative implements VMExits {
             t.printStackTrace(new PrintWriter(out));
             Logger.info("Compilation interrupted:\n" + out.toString());
         }
-        System.gc();
     }
 
     @Override

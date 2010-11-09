@@ -180,7 +180,6 @@ public final class Compiler {
         C1XOptions.UseDeopt = false;
         C1XOptions.IRChecking = Logger.ENABLED;
         C1XOptions.GenAssertionCode = Logger.ENABLED;
-        C1XOptions.DetailedAsserts = Logger.ENABLED;
 
         // these options are important - c1x4hotspot will not generate correct code without them
         C1XOptions.GenSpecialDivChecks = true;
