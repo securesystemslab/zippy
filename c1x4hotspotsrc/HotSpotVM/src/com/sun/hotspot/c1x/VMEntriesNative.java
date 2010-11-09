@@ -103,5 +103,9 @@ public class VMEntriesNative implements VMEntries {
 
     @Override
     public native boolean RiMethod_hasBalancedMonitors(long vmId);
+
+    @Override
+    public native void recordBailout(String reason);
+
     // Checkstyle: resume
 }

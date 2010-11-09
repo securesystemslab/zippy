@@ -81,5 +81,7 @@ public interface VMEntries {
 
     boolean RiMethod_hasBalancedMonitors(long vmId);
 
+    void recordBailout(String reason);
+
     // Checkstyle: resume
 }

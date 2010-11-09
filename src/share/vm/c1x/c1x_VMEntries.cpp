@@ -449,6 +449,11 @@ JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_installStub(JNIEnv *j
   return id;
 }
 
+// public void recordBailout(String reason);
+JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_recordBailout(JNIEnv *jniEnv, jobject) {
+  fatal("Bailout in C1X");
+}
+
 
 
 
@@ -495,7 +500,8 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"getType",                         CC"("CLASS")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getType)},
   {CC"getConfiguration",                CC"()"CONFIG,                       FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getConfiguration)},
   {CC"installMethod",                   CC"("TARGET_METHOD")V",             FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installMethod)},
-  {CC"installStub",                     CC"("TARGET_METHOD")"PROXY,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installStub)}
+  {CC"installStub",                     CC"("TARGET_METHOD")"PROXY,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_installStub)},
+  {CC"recordBailout",                   CC"("STRING")V",                    FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_recordBailout)}
 };
 
 int VMEntries_methods_count() {

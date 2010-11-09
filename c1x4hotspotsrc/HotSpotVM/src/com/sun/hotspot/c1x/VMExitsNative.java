@@ -103,7 +103,7 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public void compileMethod(long methodVmId, String name, int entryBCI) {
+    public void compileMethod(long methodVmId, String name, int entryBCI) throws Throwable {
 
         if (!compileMethods) {
             return;
@@ -118,6 +118,7 @@ public class VMExitsNative implements VMExits {
                 StringWriter out = new StringWriter();
                 result.bailout().printStackTrace(new PrintWriter(out));
                 Logger.info("Bailout:\n" + out.toString());
+                Compiler.getVMEntries().recordBailout(result.bailout().getMessage());
             } else {
                 Logger.log("Compilation result: " + result.targetMethod());
                 HotSpotTargetMethod.installMethod(riMethod, result.targetMethod());
@@ -126,6 +127,7 @@ public class VMExitsNative implements VMExits {
             StringWriter out = new StringWriter();
             t.printStackTrace(new PrintWriter(out));
             Logger.info("Compilation interrupted:\n" + out.toString());
+            throw t;
         }
     }
 

@@ -33,7 +33,7 @@ public interface VMExits {
 
     boolean setOption(String option);
 
-    void compileMethod(long methodVmId, String name, int entryBCI);
+    void compileMethod(long methodVmId, String name, int entryBCI) throws Throwable;
 
     RiMethod createRiMethodResolved(long vmId, String name);
 
