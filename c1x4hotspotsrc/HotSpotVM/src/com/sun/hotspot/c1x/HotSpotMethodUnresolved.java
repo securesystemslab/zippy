@@ -120,6 +120,11 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
     }
 
     @Override
+    public StackTraceElement toStackTraceElement(int bci) {
+        return CiUtil.toStackTraceElement(this, bci);
+    }
+
+    @Override
     public boolean canBeStaticallyBound() {
         throw unresolved("canBeStaticallyBound");
     }

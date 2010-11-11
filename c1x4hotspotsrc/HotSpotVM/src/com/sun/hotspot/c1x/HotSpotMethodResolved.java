@@ -22,6 +22,7 @@ package com.sun.hotspot.c1x;
 
 import java.lang.reflect.*;
 
+import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
 /**
@@ -153,6 +154,11 @@ public class HotSpotMethodResolved implements HotSpotMethod {
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public StackTraceElement toStackTraceElement(int bci) {
+        return CiUtil.toStackTraceElement(this, bci);
     }
 
     @Override

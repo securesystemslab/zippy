@@ -28,7 +28,6 @@ import java.rmi.registry.*;
 import javax.net.*;
 
 import com.sun.cri.ci.*;
-import com.sun.cri.ci.CiDebugInfo.Frame;
 import com.sun.cri.ri.*;
 import com.sun.hotspot.c1x.*;
 import com.sun.hotspot.c1x.Compiler;
@@ -80,7 +79,7 @@ public class CompilationServer {
                 return new Container(clazz, o.kind, o.boxedValue());
             } else if (clazz == CiDebugInfo.class) {
                 CiDebugInfo o = (CiDebugInfo) obj;
-                return new Container(clazz, o.codePos, o.frame, o.registerRefMap, o.frameRefMap);
+                return new Container(clazz, o.codePos, o.registerRefMap, o.frameRefMap);
             } else if (clazz == CiCodePos.class) {
                 CiCodePos o = (CiCodePos) obj;
                 return new Container(clazz, o.caller, o.method, o.bci);
@@ -106,7 +105,7 @@ public class CompilationServer {
                 if (c.clazz == CiConstant.class) {
                     return CiConstant.forBoxed((CiKind) c.values[0], c.values[1]);
                 } else if (c.clazz == CiDebugInfo.class) {
-                    return new CiDebugInfo((CiCodePos) c.values[0], (Frame) c.values[1], (byte[]) c.values[2], (byte[]) c.values[3]);
+                    return new CiDebugInfo((CiCodePos) c.values[0], (byte[]) c.values[2], (byte[]) c.values[3]);
                 } else if (c.clazz == CiCodePos.class) {
                     return new CiCodePos((CiCodePos) c.values[0], (RiMethod) c.values[1], (Integer) c.values[2]);
                 }

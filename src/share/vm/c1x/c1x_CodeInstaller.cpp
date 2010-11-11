@@ -304,18 +304,14 @@ void CodeInstaller::process_exception_handlers() {
 
 }
 
-void CodeInstaller::record_scope(jint pc_offset, oop code_pos, oop frame) {
+void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
   oop caller_pos = CiCodePos::caller(code_pos);
   if (caller_pos != NULL) {
-    oop caller_frame = frame == NULL ? NULL : CiDebugInfo_Frame::caller(frame);
-    record_scope(pc_offset, caller_pos, caller_frame);
-  } else {
-    assert(frame == NULL || CiDebugInfo_Frame::caller(frame) == NULL, "unexpected layout - mismatching nesting of Frame and CiCodePos");
+    record_scope(pc_offset, caller_pos);
   }
-
-  if (frame != NULL) {
-    assert(CiCodePos::bci(code_pos) == CiCodePos::bci(CiDebugInfo_Frame::codePos(frame)), "unexpected CiCodePos layout");
-    assert(CiCodePos::method(code_pos) == CiCodePos::method(CiDebugInfo_Frame::codePos(frame)), "unexpected CiCodePos layout");
+  oop frame = NULL;
+  if (code_pos->klass()->klass_part()->name() == vmSymbols::com_sun_cri_ci_CiDebugInfo_Frame()) {
+    frame = code_pos;
   }
 
   oop hotspot_method = CiCodePos::method(code_pos);
@@ -377,8 +373,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   _debug_recorder->add_safepoint(pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
 
   oop code_pos = CiDebugInfo::codePos(debug_info);
-  oop frame = CiDebugInfo::frame(debug_info);
-  record_scope(pc_offset, code_pos, frame);
+  record_scope(pc_offset, code_pos);
 
   _debug_recorder->end_safepoint(pc_offset);
 }
@@ -401,8 +396,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   if (debug_info != NULL) {
     _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
     oop code_pos = CiDebugInfo::codePos(debug_info);
-    oop frame = CiDebugInfo::frame(debug_info);
-    record_scope(next_pc_offset, code_pos, frame);
+    record_scope(next_pc_offset, code_pos);
   }
 
   if (runtime_call != NULL) {

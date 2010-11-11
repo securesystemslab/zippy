@@ -96,18 +96,18 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     }
 
     @Override
-    public CiCallingConvention getCallingConvention(Type type, CiKind[] parameters, boolean outgoing, CiTarget target) {
-        if (type == Type.Native) {
+    public CiCallingConvention getCallingConvention(Type type, CiKind[] parameters, CiTarget target) {
+        if (type == Type.NativeCall) {
             throw new UnsupportedOperationException();
         }
-        return callingConvention(parameters, type == Type.Runtime ? true : outgoing, target);
+        return callingConvention(parameters, type, target);
     }
 
     public CiRegister[] getCallingConventionRegisters(Type type) {
         return allParameterRegisters;
     }
 
-    private CiCallingConvention callingConvention(CiKind[] types, boolean outgoing, CiTarget target) {
+    private CiCallingConvention callingConvention(CiKind[] types, Type type, CiTarget target) {
         CiValue[] locations = new CiValue[types.length];
 
         int currentGeneral = 0;
@@ -144,7 +144,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
 
             if (locations[i] == null) {
                 // we need to adjust for the frame pointer stored on the stack, which shifts incoming arguments by one slot
-                locations[i] = CiStackSlot.get(kind.stackKind(), currentStackIndex + (outgoing ? 0 : 1), !outgoing);
+                locations[i] = CiStackSlot.get(kind.stackKind(), currentStackIndex + (type.out ? 0 : 1), !type.out);
                 currentStackIndex += target.spillSlots(kind);
             }
         }

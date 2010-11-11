@@ -7,6 +7,7 @@ me="${BASH_SOURCE[0]}"
 while [ -h "$me" ]; do
     me=`readlink -e "$me"`
 done
+hsx_home=$(cd `dirname $me`; pwd)
 
 grep '-client KNOWN' $JRE7/lib/amd64/jvm.cfg >/dev/null
 if [ $? -ne 0 ] ; then
@@ -17,7 +18,13 @@ if [ $? -ne 0 ] ; then
     exit 1
 fi
 
-pushd $(dirname "$me")/make
+java_link="$hsx_home/c1x4hotspotsrc/hotspot/java"
+if [ ! -e $java_link ]; then
+    echo "Creating link: $java_link -> $JRE7/bin/java"
+    ln -s $JRE7/bin/java $java_link
+fi
+
+pushd $hsx_home/make
 ALT_BOOTDIR=/usr/lib/jvm/java-6-openjdk/ LANG=C ARCH_DATA_MODEL=64 HOTSPOT_BUILD_JOBS=2 make jvmg1
 echo "Copying binaries to JRE7 directory $JRE7"
 cp ../build/linux/linux_amd64_compiler1/jvmg/libjvm.so $JRE7/lib/amd64/client
