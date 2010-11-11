@@ -32,6 +32,7 @@ public class HotSpotVMConfig implements CompilerObject {
     // os information, register layout, code generation, ...
     public boolean windowsOs;
     public int codeEntryAlignment;
+    public boolean verifyPointers;
 
     // offsets, ...
     public int vmPageSize;
@@ -71,6 +72,7 @@ public class HotSpotVMConfig implements CompilerObject {
     public long throwArrayIndexException;
     public long monitorEnterStub;
     public long monitorExitStub;
+    public long verifyPointerStub;
 
     public void check() {
         assert vmPageSize >= 16;

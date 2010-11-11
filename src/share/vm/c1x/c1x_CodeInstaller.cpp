@@ -93,21 +93,22 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
   }
 
   BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
+  Location::Type locationType = Location::normal;
+  if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
   if (value->is_a(CiRegisterValue::klass())) {
     jint number = CiRegister::number(CiRegisterValue::reg(value));
-
     if (number < 16) {
-      return new LocationValue(Location::new_reg_loc(Location::normal, as_Register(number)->as_VMReg()));
+      return new LocationValue(Location::new_reg_loc(locationType, as_Register(number)->as_VMReg()));
     } else {
-      return new LocationValue(Location::new_reg_loc(Location::normal, as_XMMRegister(number - 16)->as_VMReg()));
+      return new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
     }
   } else if (value->is_a(CiStackSlot::klass())) {
     jint index = CiStackSlot::index(value);
     if (index >= 0) {
-      return new LocationValue(Location::new_stk_loc(Location::normal, index * HeapWordSize));
+      return new LocationValue(Location::new_stk_loc(locationType, index * HeapWordSize));
     } else {
       int frame_size_bytes = frame_size + 2 * HeapWordSize;
-      return new LocationValue(Location::new_stk_loc(Location::normal, -(index * HeapWordSize) + frame_size_bytes));
+      return new LocationValue(Location::new_stk_loc(locationType, -(index * HeapWordSize) + frame_size_bytes));
     }
   } else if (value->is_a(CiConstant::klass())){
     oop obj = CiConstant::object(value);
@@ -136,7 +137,6 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
 
 // constructor used to create a method
 CodeInstaller::CodeInstaller(oop target_method) {
-  VM_ENTRY_MARK;
   _env = CURRENT_ENV;
 
   initialize_fields(target_method);
@@ -157,7 +157,7 @@ CodeInstaller::CodeInstaller(oop target_method) {
   process_exception_handlers();
   {
     int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
-    ThreadToNativeFromVM t((JavaThread*) THREAD);
+    ThreadToNativeFromVM t((JavaThread*) Thread::current());
     _env->register_method(ciMethodObject, -1, &_offsets, 0, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
         &_implicit_exception_table, C1XCompiler::instance(), _env->comp_level(), false, false);
   }
@@ -165,7 +165,6 @@ CodeInstaller::CodeInstaller(oop target_method) {
 
 // constructor used to create a stub
 CodeInstaller::CodeInstaller(oop target_method, jlong& id) {
-  VM_ENTRY_MARK;
   _env = CURRENT_ENV;
 
   initialize_fields(target_method);
@@ -328,7 +327,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, oop frame) {
   if (bci == -1) {
      reexecute = false;
   } else {
-    Bytecodes::Code code   = Bytecodes::java_code_at(method->bcp_from(bci));
+    Bytecodes::Code code = Bytecodes::java_code_at(method->bcp_from(bci));
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 

@@ -37,6 +37,7 @@ import com.sun.cri.xir.CiXirAssembler.XirLabel;
 import com.sun.cri.xir.CiXirAssembler.XirMark;
 import com.sun.cri.xir.CiXirAssembler.XirOperand;
 import com.sun.cri.xir.CiXirAssembler.XirParameter;
+import com.sun.cri.xir.CiXirAssembler.XirRegister;
 
 /**
  *
@@ -84,8 +85,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         @Override
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             asm.restart(CiKind.Void);
-            XirOperand framePointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
-            XirOperand stackPointer = asm.createRegister("stack pointer", CiKind.Word, AMD64.rsp);
+            XirOperand framePointer = asm.createRegisterTemp("frame pointer", CiKind.Word, AMD64.rbp);
+            XirOperand stackPointer = asm.createRegisterTemp("stack pointer", CiKind.Word, AMD64.rsp);
             XirLabel unverifiedStub = null;
 
             asm.mark(MARK_OSR_ENTRY);
@@ -93,11 +94,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             if (!is(STATIC_METHOD, flags)) {
                 unverifiedStub = asm.createOutOfLineLabel("unverified");
 
-                XirOperand temp = asm.createRegister("temp (r10)", CiKind.Word, AMD64.r10);
-                XirOperand cache = asm.createRegister("cache (rax)", CiKind.Word, AMD64.rax);
+                XirOperand temp = asm.createRegisterTemp("temp (r10)", CiKind.Word, AMD64.r10);
+                XirOperand cache = asm.createRegisterTemp("cache (rax)", CiKind.Word, AMD64.rax);
 
                 CiCallingConvention conventions = registerConfig.getCallingConvention(Java, new CiKind[] {CiKind.Object}, false, target);
-                XirOperand receiver = asm.createRegister("cache (rax)", CiKind.Word, conventions.locations[0].asRegister());
+                XirOperand receiver = asm.createRegisterTemp("receiver", CiKind.Word, conventions.locations[0].asRegister());
 
                 asm.pload(CiKind.Word, temp, receiver, asm.i(config.hubOffset), false);
                 asm.jneq(unverifiedStub, cache, temp);
@@ -110,7 +111,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.pushFrame();
 
             // -- out of line -------------------------------------------------------
-            XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
+            XirOperand thread = asm.createRegisterTemp("thread", CiKind.Word, AMD64.r15);
             XirOperand exceptionOop = asm.createTemp("exception oop", CiKind.Object);
             XirLabel unwind = asm.createOutOfLineLabel("unwind");
             asm.bindOutOfLine(unwind);
@@ -142,7 +143,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         @Override
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             asm.restart(CiKind.Void);
-            XirOperand framePointer = asm.createRegister("frame pointer", CiKind.Word, AMD64.rbp);
+            XirOperand framePointer = asm.createRegisterTemp("frame pointer", CiKind.Word, AMD64.rbp);
 
             asm.popFrame();
             asm.pop(framePointer);
@@ -171,7 +172,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         @Override
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             XirOperand result = asm.restart(CiKind.Object);
-            XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
+            XirOperand thread = asm.createRegisterTemp("thread", CiKind.Word, AMD64.r15);
 
             asm.pload(CiKind.Object, result, thread, asm.i(config.threadExceptionOopOffset), false);
             asm.pstore(CiKind.Object, thread, asm.i(config.threadExceptionOopOffset), asm.o(null), false);
@@ -206,7 +207,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.restart();
             XirParameter receiver = asm.createInputParameter("receiver", CiKind.Object);
             XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
-            XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
+            XirOperand temp = asm.createRegisterTemp("temp", CiKind.Word, AMD64.rax);
 
             if (is(NULL_CHECK, flags)) {
                 asm.nop(1);
@@ -227,7 +228,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.restart();
             XirParameter receiver = asm.createInputParameter("receiver", CiKind.Object);
             XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
-            XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
+            XirOperand temp = asm.createRegisterTemp("temp", CiKind.Word, AMD64.rax);
 
             if (is(NULL_CHECK, flags)) {
                 asm.nop(1);
@@ -248,7 +249,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.restart();
             XirParameter receiver = asm.createInputParameter("receiver", CiKind.Object);
             XirParameter addr = asm.createConstantInputParameter("addr", CiKind.Word);
-            XirOperand temp = asm.createRegister("temp", CiKind.Word, AMD64.rax);
+            XirOperand temp = asm.createRegisterTemp("temp", CiKind.Word, AMD64.rax);
             XirLabel stub = asm.createOutOfLineLabel("call stub");
 
             if (is(NULL_CHECK, flags)) {
@@ -260,7 +261,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             // -- out of line -------------------------------------------------------
             asm.bindOutOfLine(stub);
-            XirOperand method = asm.createRegister("method", CiKind.Object, AMD64.rbx);
+            XirOperand method = asm.createRegisterTemp("method", CiKind.Object, AMD64.rbx);
             asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
             asm.mov(method, asm.w(0L));
             XirLabel dummy = asm.createOutOfLineLabel("dummy");
@@ -283,7 +284,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             // -- out of line -------------------------------------------------------
             asm.bindOutOfLine(stub);
-            XirOperand method = asm.createRegister("method", CiKind.Object, AMD64.rbx);
+            XirOperand method = asm.createRegisterTemp("method", CiKind.Object, AMD64.rbx);
             asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
             asm.mov(method, asm.w(0L));
             XirLabel dummy = asm.createOutOfLineLabel("dummy");
@@ -376,9 +377,14 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.nop(1);
                 asm.mark(MARK_IMPLICIT_NULL);
             }
+            if (kind == CiKind.Object) {
+                verifyPointer(asm, value);
+            }
             asm.pstore(kind, object, fieldOffset, value, is(NULL_CHECK, flags));
             if (is(WRITE_BARRIER, flags)) {
-                writeBarrier(asm, object);
+                XirOperand temp = asm.createTemp("temp", CiKind.Word);
+                asm.mov(temp, object);
+                writeBarrier(asm, temp);
             }
             return asm.finishTemplate("putfield<" + kind + ">");
         }
@@ -391,10 +397,10 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirOperand result = asm.restart(CiKind.Word);
             XirOperand type = asm.createInputParameter("type", CiKind.Object);
 
-            XirOperand thread = asm.createRegister("thread", CiKind.Word, AMD64.r15);
-            XirOperand temp1 = asm.createRegister("temp1", CiKind.Word, AMD64.rcx);
-            XirOperand temp2 = asm.createRegister("temp2", CiKind.Word, AMD64.rbx);
-            XirOperand temp2i = asm.createRegister("temp2i", CiKind.Int, AMD64.rbx);
+            XirOperand thread = asm.createRegisterTemp("thread", CiKind.Word, AMD64.r15);
+            XirOperand temp1 = asm.createRegisterTemp("temp1", CiKind.Word, AMD64.rcx);
+            XirOperand temp2 = asm.createRegisterTemp("temp2", CiKind.Word, AMD64.rbx);
+            XirOperand temp2i = asm.createRegisterTemp("temp2i", CiKind.Int, AMD64.rbx);
             useRegisters(asm, AMD64.rsi);
             XirLabel tlabFull = asm.createOutOfLineLabel("tlab full");
             XirLabel resume = asm.createInlineLabel("resume");
@@ -424,7 +430,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             // -- out of line -------------------------------------------------------
             asm.bindOutOfLine(tlabFull);
-            XirOperand arg = asm.createRegister("runtime call argument", CiKind.Object, AMD64.rdx);
+            XirOperand arg = asm.createRegisterTemp("runtime call argument", CiKind.Object, AMD64.rdx);
             asm.mov(arg, type);
             useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.newInstanceStub, result);
@@ -439,7 +445,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         @Override
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             XirOperand result = asm.restart(CiKind.Word);
-            XirOperand arg = asm.createRegister("runtime call argument", CiKind.Object, AMD64.rdx);
+            XirOperand arg = asm.createRegisterTemp("runtime call argument", CiKind.Object, AMD64.rdx);
 
             UnresolvedClassPatching patching = new UnresolvedClassPatching(asm, arg, config);
 
@@ -462,8 +468,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             XirParameter lengthParam = asm.createInputParameter("length", CiKind.Int);
 
-            XirOperand length = asm.createRegister("length", CiKind.Int, AMD64.rbx);
-            XirOperand hub = asm.createRegister("hub", CiKind.Object, AMD64.rdx);
+            XirOperand length = asm.createRegisterTemp("length", CiKind.Int, AMD64.rbx);
+            XirOperand hub = asm.createRegisterTemp("hub", CiKind.Object, AMD64.rdx);
 
             UnresolvedClassPatching patching = null;
             if (is(UNRESOLVED, flags)) {
@@ -493,8 +499,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirParameter lengthParam = asm.createInputParameter("length", CiKind.Int);
             XirParameter hubParam = asm.createConstantInputParameter("hub", CiKind.Object);
 
-            XirOperand length = asm.createRegister("length", CiKind.Int, AMD64.rbx);
-            XirOperand hub = asm.createRegister("hub", CiKind.Object, AMD64.rdx);
+            XirOperand length = asm.createRegisterTemp("length", CiKind.Int, AMD64.rbx);
+            XirOperand hub = asm.createRegisterTemp("hub", CiKind.Object, AMD64.rdx);
 
             asm.mov(hub, hubParam);
             asm.mov(length, lengthParam);
@@ -511,10 +517,10 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         protected XirTemplate create(CiXirAssembler asm, long flags, int dimensions) {
             XirOperand result = asm.restart(CiKind.Object);
 
-            XirOperand hub = asm.createRegister("hub", CiKind.Object, AMD64.rax);
-            XirOperand rank = asm.createRegister("rank", CiKind.Int, AMD64.rbx);
-            XirOperand sizes = asm.createRegister("sizes", CiKind.Long, AMD64.rcx);
-            XirOperand thread = asm.createRegister("thread", CiKind.Long, AMD64.r15);
+            XirOperand hub = asm.createRegisterTemp("hub", CiKind.Object, AMD64.rax);
+            XirOperand rank = asm.createRegisterTemp("rank", CiKind.Int, AMD64.rbx);
+            XirOperand sizes = asm.createRegisterTemp("sizes", CiKind.Long, AMD64.rcx);
+            XirOperand thread = asm.createRegisterTemp("thread", CiKind.Long, AMD64.r15);
             asm.add(sizes, thread, asm.l(config.threadMultiNewArrayStorage));
             for (int i = 0; i < dimensions; i++) {
                 XirParameter length = asm.createInputParameter("length" + i, CiKind.Int);
@@ -577,7 +583,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.bindOutOfLine(slowPath);
             checkSubtype(asm, objHub, objHub, hub);
             asm.jneq(end, objHub, asm.o(null));
-            XirOperand scratch = asm.createRegister("scratch", CiKind.Object, AMD64.r10);
+            XirOperand scratch = asm.createRegisterTemp("scratch", CiKind.Object, AMD64.r10);
             asm.mov(scratch, object);
             asm.callRuntime(config.throwClassCastException, null);
             asm.shouldNotReachHere();
@@ -738,9 +744,17 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             if (implicitNullException) {
                 asm.mark(MARK_IMPLICIT_NULL);
             }
-            asm.pstore(kind, array, index, value, config.getArrayOffset(kind), Scale.fromInt(elemSize), implicitNullException);
+            int disp = config.getArrayOffset(kind);
+            Scale scale = Scale.fromInt(elemSize);
+            if (kind == CiKind.Object) {
+                verifyPointer(asm, value);
+            }
             if (is(WRITE_BARRIER, flags)) {
-                writeBarrier(asm, array);
+                asm.lea(temp, array, index, disp, scale);
+                asm.pstore(kind, temp, value, implicitNullException);
+                writeBarrier(asm, temp);
+            } else {
+                asm.pstore(kind, array, index, value, disp, scale, implicitNullException);
             }
 
             // -- out of line -------------------------------------------------------
@@ -771,6 +785,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.nop(1);
                 asm.mark(MARK_IMPLICIT_NULL);
             }
+            verifyPointer(asm, object);
             asm.pload(CiKind.Int, result, object, asm.i(config.arrayLengthOffset), true);
             return asm.finishTemplate("arrayLength");
         }
@@ -1077,6 +1092,17 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         }
     }
 
+    private void verifyPointer(CiXirAssembler asm, XirOperand pointer) {
+        if (config.verifyPointers) {
+            // The verify pointer stub wants the argument in a fixed register.
+            XirOperand fixed = asm.createRegisterTemp("fixed", CiKind.Object, AMD64.r13);
+            asm.push(fixed);
+            asm.mov(fixed, pointer);
+            asm.callRuntime(config.verifyPointerStub, null);
+            asm.pop(fixed);
+        }
+    }
+
     private void checkSubtype(CiXirAssembler asm, XirOperand result, XirOperand objHub, XirOperand hub) {
         asm.push(objHub);
         asm.push(hub);
@@ -1088,7 +1114,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     private void useRegisters(CiXirAssembler asm, CiRegister... registers) {
         if (registers != null) {
             for (CiRegister register : registers) {
-                asm.createRegister("reg", CiKind.Illegal, register);
+                asm.createRegisterTemp("reg", CiKind.Illegal, register);
             }
         }
     }

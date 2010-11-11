@@ -174,13 +174,6 @@ public final class Compiler {
         }
         compiler = new C1XCompiler(runtime, target, generator, registerConfig);
 
-        C1XOptions.setOptimizationLevel(3);
-        C1XOptions.OptInlineExcept = false;
-        C1XOptions.OptInlineSynchronized = false;
-        C1XOptions.UseDeopt = false;
-        C1XOptions.IRChecking = Logger.ENABLED;
-        C1XOptions.GenAssertionCode = Logger.ENABLED;
-
         // these options are important - c1x4hotspot will not generate correct code without them
         C1XOptions.GenSpecialDivChecks = true;
         C1XOptions.AlignCallsForPatching = true;
