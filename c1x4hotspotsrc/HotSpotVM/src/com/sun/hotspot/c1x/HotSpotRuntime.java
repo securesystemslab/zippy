@@ -225,4 +225,9 @@ public class HotSpotRuntime implements RiRuntime {
     public RiRegisterConfig getRegisterConfig(RiMethod method) {
         return regConfig;
     }
+
+    public boolean needsDebugInfo() {
+        return false;
+    }
+
 }

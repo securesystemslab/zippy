@@ -79,7 +79,6 @@ void c1x_compute_offsets();
     int_field(CiTargetMethod, frameSize)                                                \
     oop_field(CiTargetMethod, targetCode, "[B")                                         \
     int_field(CiTargetMethod, targetCodeSize)                                           \
-    int_field(CiTargetMethod, referenceRegisterCount)                                   \
   end_class                                                                             \
   start_class(CiTargetMethod_Site)                                                      \
     int_field(CiTargetMethod_Site, pcOffset)                                            \

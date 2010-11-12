@@ -20,11 +20,8 @@
  */
 package com.sun.hotspot.c1x;
 
-import static com.sun.c1x.target.amd64.AMD64.*;
-
 import java.lang.reflect.Proxy;
 import java.net.*;
-import java.util.*;
 
 import com.sun.c1x.*;
 import com.sun.c1x.target.amd64.*;
@@ -136,26 +133,9 @@ public final class Compiler {
     private final CiCompiler compiler;
     private final HotSpotVMConfig config;
     private final HotSpotRuntime runtime;
-    private final RiRegisterConfig registerConfig;
+    private final HotSpotRegisterConfig registerConfig;
     private final CiTarget target;
     private final RiXirGenerator generator;
-
-    public static final CiRegisterSaveArea RSA;
-    static {
-        int offset = 0;
-        CiRegister[] rsaRegs = {
-            rax,  rcx,  rdx,   rbx,   rsp,   rbp,   rsi,   rdi,
-            r8,   r9,   r10,   r11,   r12,   r13,   r14,   r15,
-            xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7,
-            xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
-        };
-        Map<CiRegister, Integer> registerOffsets = new HashMap<CiRegister, Integer>(rsaRegs.length);
-        for (CiRegister reg : rsaRegs) {
-            registerOffsets.put(reg, offset);
-            offset += reg.isFpu() ? 16 : 8;
-        }
-        RSA = new CiRegisterSaveArea(offset, registerOffsets, 8, rax, r15);
-    }
 
     private Compiler() {
         config = getVMEntries().getConfiguration();
@@ -165,7 +145,7 @@ public final class Compiler {
         final int wordSize = 8;
         final int stackFrameAlignment = 16;
         registerConfig = runtime.regConfig;
-        target = new HotSpotTarget(new AMD64(), RSA, true, wordSize, wordSize, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, wordSize, config.codeEntryAlignment, true);
+        target = new HotSpotTarget(new AMD64(), true, wordSize, wordSize, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, wordSize, config.codeEntryAlignment, true);
 
         if (Logger.ENABLED) {
             generator = LoggingProxy.getProxy(RiXirGenerator.class, new HotSpotXirGenerator(config, target, registerConfig));
