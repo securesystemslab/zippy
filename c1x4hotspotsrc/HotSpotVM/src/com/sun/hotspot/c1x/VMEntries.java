@@ -55,7 +55,7 @@ public interface VMEntries {
 
     RiType RiConstantPool_lookupType(long vmId, int cpi);
 
-    RiField RiConstantPool_lookupField(long vmId, int cpi);
+    RiField RiConstantPool_lookupField(long vmId, int cpi, byte byteCode);
 
     RiConstantPool RiType_constantPool(long vmId);
 

@@ -1809,7 +1809,7 @@ public class JavaTester {
 			jtt_jdk_Class_getName();
 			break;
 		case 581:
-			//jtt_jdk_EnumMap01();
+			jtt_jdk_EnumMap01();
 			break;
 		case 582:
 			jtt_jdk_EnumMap02();

@@ -56,8 +56,8 @@ public:
   // Print compilation timers and statistics
   virtual void print_timers();
 
-  static oop get_RiType(ciType *klass, klassOop accessor, TRAPS);
-  static oop get_RiField(ciField *ciField, klassOop accessor, TRAPS);
+  static oop get_RiType(ciType *klass, KlassHandle accessor, TRAPS);
+  static oop get_RiField(ciField *ciField, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS);
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
 
