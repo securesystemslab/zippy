@@ -320,7 +320,10 @@ void CompileTask::print_line() {
   if (is_osr) tty->print(" @ %d", osr_bci());
 
   // print method size
-  tty->print_cr(" (%d bytes)", method->code_size());
+  tty->print(" (%d bytes)", method->code_size());
+
+  // invocation count
+  tty->print_cr(" %d invocations", _hot_count);
 }
 
 
@@ -477,6 +480,9 @@ CompileTask* CompileQueue::get() {
     _last = NULL;
   }
 
+  // (tw) Immediately set compiling flag.
+  JavaThread::current()->as_CompilerThread()->set_compiling(true);
+
   return task;
 
 }
@@ -530,6 +536,69 @@ CompilerCounters::CompilerCounters(const char* thread_name, int instance, TRAPS)
     _perf_compiles = PerfDataManager::create_counter(SUN_CI, name,
                                                      PerfData::U_Events, CHECK);
   }
+}
+
+// Bootstrap the C1X compiler. Compiles all methods until compile queue is empty and no compilation is active.
+void CompileBroker::bootstrap_c1x() {
+  Thread* THREAD = Thread::current();
+  tty->print_cr("Bootstrapping C1X...");
+
+  C1XCompiler* compiler = C1XCompiler::instance();
+  if (compiler == NULL) fatal("must use flag -XX:+UseC1X");
+
+  jlong start = os::javaTimeMillis();
+  {
+    HandleMark hm;
+    instanceKlass* klass = (instanceKlass*)SystemDictionary::Object_klass()->klass_part();
+    methodOop method = klass->find_method(vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
+    CompileBroker::compile_method(method, -1, method, 0, "initial compile of object initializer", THREAD);
+    if (HAS_PENDING_EXCEPTION) {
+      CLEAR_PENDING_EXCEPTION;
+      fatal("error inserting object initializer into compile queue");
+    }
+  }
+  int z = 0;
+  while (true) {
+    {
+      HandleMark hm;
+      ResourceMark rm;
+      MutexLocker locker(_method_queue->lock(), Thread::current());
+      if (_method_queue->is_empty()) {
+        MutexLocker mu(Threads_lock); // grab Threads_lock
+        JavaThread* current = Threads::first();
+        bool compiling = false;
+        while (current != NULL) {
+          if (current->is_Compiler_thread()) {
+            CompilerThread* comp_thread = current->as_CompilerThread();
+            if (comp_thread->is_compiling()) {
+              if (TraceC1X >= 4) {
+                tty->print_cr("Compile queue empty, but following thread is still compiling:");
+                comp_thread->print();
+              }
+              compiling = true;
+            }
+          }
+          current = current->next();
+        }
+        if (!compiling) {
+          break;
+        }
+      }
+      if (TraceC1X >= 4) {
+        _method_queue->print();
+      }
+    }
+
+    {
+      ThreadToNativeFromVM trans(JavaThread::current());
+      usleep(1000);
+    }
+    ++z;
+  }
+  jlong diff = os::javaTimeMillis() - start;
+  tty->print_cr("Finished bootstrap in %d ms", diff);
+  if (CITime) CompileBroker::print_times();
+  tty->print_cr("===========================================================================");
 }
 
 
@@ -863,14 +932,14 @@ void CompileBroker::compile_method_base(methodHandle method,
   // Acquire our lock.
   {
     MutexLocker locker(_method_queue->lock(), THREAD);
-/*
-	if (Thread::current()->is_Compiler_thread() && CompilerThread::current()->is_compiling()) {
-    
-		TRACE_C1X_1("Recursive compile %s!", method->name_and_sig_as_C_string());
-    //method->set_not_compilable();
-		return;
-	}
-*/
+
+    if (Thread::current()->is_Compiler_thread() && CompilerThread::current()->is_compiling() && !BackgroundCompilation) {
+
+      TRACE_C1X_1("Recursive compile %s!", method->name_and_sig_as_C_string());
+      method->set_not_compilable();
+      return;
+    }
+
     // Make sure the method has not slipped into the queues since
     // last we checked; note that those checks were "fast bail-outs".
     // Here we need to be more careful, see 14012000 below.
@@ -1352,6 +1421,9 @@ void CompileBroker::compiler_thread_loop() {
 
   while (true) {
     {
+      // Unset compiling flag.
+      thread->set_compiling(false);
+
       // We need this HandleMark to avoid leaking VM handles.
       HandleMark hm(thread);
 
