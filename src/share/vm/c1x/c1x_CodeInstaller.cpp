@@ -327,7 +327,6 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 
-
   if (frame != NULL) {
     jint local_count = CiDebugInfo_Frame::numLocals(frame);
     jint expression_count = CiDebugInfo_Frame::numStack(frame);
@@ -350,8 +349,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
       } else {
         assert(value->is_location(), "invalid monitor location");
         LocationValue* loc = (LocationValue*)value;
-        LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, loc->location().stack_offset() + HeapWordSize));
-        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, loc->location().stack_offset())));
+        int monitor_offset = loc->location().stack_offset();
+        LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, monitor_offset + BasicObjectLock::obj_offset_in_bytes()));
+        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, monitor_offset  + BasicObjectLock::lock_offset_in_bytes())));
       }
     }
     DebugToken* locals_token = _debug_recorder->create_scope_values(locals);

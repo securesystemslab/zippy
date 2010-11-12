@@ -180,6 +180,7 @@ public final class Compiler {
         C1XOptions.NullCheckUniquePc = true;
         C1XOptions.invokeinterfaceTemplatePos = true;
         C1XOptions.StackShadowPages = config.stackShadowPages;
+        C1XOptions.NeedsDebugInformation = false;
 
     }
 

@@ -307,11 +307,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.mark(MARK_IMPLICIT_NULL);
                 asm.pload(CiKind.Word, asm.createTemp("temp", CiKind.Word), object, true);
             }
-/*
+
             useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
             useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.monitorEnterStub, null, object, lock);
-*/
+
             return asm.finishTemplate("monitorEnter");
         }
     };
@@ -323,11 +323,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.restart(CiKind.Void);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter lock = asm.createInputParameter("lock", CiKind.Word);
-/*
+
             useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
             useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.monitorExitStub, null, object, lock);
-*/
+
             return asm.finishTemplate("monitorExit");
         }
     };
