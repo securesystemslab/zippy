@@ -1915,6 +1915,12 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
+    case c1x_verify_pointer_id: {
+      __ verify_oop(r13, "c1x verify pointer");
+      __ ret(0);
+      break;
+    }
+
     case c1x_arithmetic_frem_id: {
       __ subptr(rsp, 8);
       __ movflt(Address(rsp, 0), xmm1);

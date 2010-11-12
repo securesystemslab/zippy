@@ -69,6 +69,7 @@ class StubAssembler;
   stub(c1x_arithmetic_drem)          \
   stub(c1x_monitorenter)             \
   stub(c1x_monitorexit)              \
+  stub(c1x_verify_pointer)           \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,

@@ -98,8 +98,8 @@ oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
 }
 
 oop C1XCompiler::get_RiField(ciField *field, klassOop accessor, TRAPS) {
-  oop field_holder = get_RiType(field->holder(), accessor, CHECK_0);
-  oop field_type = get_RiType(field->type(), accessor, CHECK_0);
+  Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
+  Handle field_type = get_RiType(field->type(), accessor, CHECK_0);
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbolOop(), CHECK_0);
   int offset = field->holder()->is_loaded() ? field->offset() : -1;
 

@@ -23,6 +23,7 @@ package com.sun.hotspot.c1x;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.*;
 
 import com.sun.c1x.*;
 import com.sun.cri.ci.*;
@@ -37,6 +38,16 @@ import com.sun.hotspot.c1x.logging.*;
 public class VMExitsNative implements VMExits {
 
     public static boolean compileMethods = true;
+
+    /**
+     * Default option configuration for C1X.
+     */
+    static {
+        C1XOptions.setOptimizationLevel(3);
+        C1XOptions.OptInlineExcept = false;
+        C1XOptions.OptInlineSynchronized = false;
+        C1XOptions.UseDeopt = false;
+    }
 
     @Override
     public boolean setOption(String option) {
@@ -102,6 +113,8 @@ public class VMExitsNative implements VMExits {
         return true;
     }
 
+    private static Set<String> compiledMethods = new HashSet<String>();
+
     @Override
     public void compileMethod(long methodVmId, String name, int entryBCI) throws Throwable {
 
@@ -113,11 +126,25 @@ public class VMExitsNative implements VMExits {
             Compiler compiler = Compiler.getInstance();
             HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
             CiResult result = compiler.getCompiler().compileMethod(riMethod, -1, null);
+            String qualifiedName = CiUtil.toJavaName(riMethod.holder()) + "::" + riMethod.name();
+            compiledMethods.add(qualifiedName);
 
             if (result.bailout() != null) {
                 StringWriter out = new StringWriter();
                 result.bailout().printStackTrace(new PrintWriter(out));
+                Throwable cause = result.bailout().getCause();
                 Logger.info("Bailout:\n" + out.toString());
+                if (cause != null) {
+                    Logger.info("Trace for cause: ");
+                    for (StackTraceElement e : cause.getStackTrace()) {
+                        String current = e.getClassName() + "::" + e.getMethodName();
+                        String type = "";
+                        if (compiledMethods.contains(current)) {
+                            type = "compiled";
+                        }
+                        Logger.info(String.format("%-10s %3d %s", type, e.getLineNumber(), current));
+                    }
+                }
                 Compiler.getVMEntries().recordBailout(result.bailout().getMessage());
             } else {
                 Logger.log("Compilation result: " + result.targetMethod());

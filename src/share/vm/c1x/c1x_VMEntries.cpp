@@ -369,6 +369,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
 #else
   set_boolean(env, config, "windowsOs", false);
 #endif
+  set_boolean(env, config, "verifyPointers", VerifyOops);
   set_int(env, config, "codeEntryAlignment", CodeEntryAlignment);
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);
@@ -385,6 +386,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
 
   set_long(env, config, "debugStub", VmIds::addStub((address)warning));
   set_long(env, config, "instanceofStub", VmIds::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
+  set_long(env, config, "verifyPointerStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_verify_pointer_id)));
   set_long(env, config, "newInstanceStub", VmIds::addStub(Runtime1::entry_for(Runtime1::fast_new_instance_init_check_id)));
   set_long(env, config, "unresolvedNewInstanceStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_instance_id)));
   set_long(env, config, "newTypeArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_type_array_id)));
@@ -439,11 +441,13 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
 
 // public void installMethod(HotSpotTargetMethod targetMethod);
 JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod) {
+  VM_ENTRY_MARK;
   CodeInstaller installer(JNIHandles::resolve(targetMethod));
 }
 
 // public HotSpotProxy installStub(HotSpotTargetMethod targetMethod, String name);
 JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
+  VM_ENTRY_MARK;
   jlong id;
   CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
   return id;

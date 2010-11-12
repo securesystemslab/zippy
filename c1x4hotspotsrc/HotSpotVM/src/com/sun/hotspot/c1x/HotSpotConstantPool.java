@@ -20,8 +20,6 @@
  */
 package com.sun.hotspot.c1x;
 
-import java.util.*;
-
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 

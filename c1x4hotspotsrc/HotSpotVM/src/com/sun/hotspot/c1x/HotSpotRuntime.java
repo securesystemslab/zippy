@@ -22,6 +22,7 @@ package com.sun.hotspot.c1x;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.*;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ci.CiTargetMethod.Call;
@@ -117,7 +118,8 @@ public class HotSpotRuntime implements RiRuntime {
                 return string;
             }
         };
-        return disassemble(targetMethod.targetCode(), disassemblyPrinter);
+        final byte[] code = Arrays.copyOf(targetMethod.targetCode(), targetMethod.targetCodeSize());
+        return disassemble(code, disassemblyPrinter);
     }
 
     @Override
@@ -225,9 +227,4 @@ public class HotSpotRuntime implements RiRuntime {
     public RiRegisterConfig getRegisterConfig(RiMethod method) {
         return regConfig;
     }
-
-    public boolean needsDebugInfo() {
-        return false;
-    }
-
 }
