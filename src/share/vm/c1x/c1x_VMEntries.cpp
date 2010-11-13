@@ -248,14 +248,15 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 }
 
 // public RiField RiConstantPool_lookupField(long vmId, int cpi);
-JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jlong vmId, jint index) {
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jlong vmId, jint index, jbyte byteCode) {
   VM_ENTRY_MARK;
 
   constantPoolOop cp = VmIds::get<constantPoolOop>(vmId);
 
   ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
-  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, cp->pool_holder(), THREAD));
+  Bytecodes::Code code = (Bytecodes::Code)(((int) byteCode) & 0xFF);
+  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, cp->pool_holder(), code, THREAD));
 }
 
 // public RiConstantPool RiType_constantPool(long vmId);
@@ -319,7 +320,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayTy
   BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(kind));
   assert(type != T_OBJECT, "primitive type expecteds");
   ciKlass* klass = ciTypeArrayKlass::make(type);
-  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, NULL, THREAD));
+  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, KlassHandle(NULL, THREAD), THREAD));
 }
 
 // public RiType getType(Class<?> javaClass);
@@ -494,7 +495,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,              FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod)},
   {CC"RiConstantPool_lookupSignature",  CC"("PROXY"I)"SIGNATURE,            FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupSignature)},
   {CC"RiConstantPool_lookupType",       CC"("PROXY"I)"TYPE,                 FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupType)},
-  {CC"RiConstantPool_lookupField",      CC"("PROXY"I)"FIELD,                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField)},
+  {CC"RiConstantPool_lookupField",      CC"("PROXY"IB)"FIELD,               FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField)},
   {CC"RiType_constantPool",             CC"("PROXY")"CONSTANT_POOL,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPool)},
   {CC"RiType_resolveMethodImpl",        CC"("PROXY STRING STRING")"METHOD,  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMethodImpl)},
   {CC"RiType_isSubtypeOf",              CC"("PROXY TYPE")Z",                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf)},

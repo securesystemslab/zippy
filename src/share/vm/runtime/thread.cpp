@@ -2799,6 +2799,7 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
   _task  = NULL;
   _queue = queue;
   _counters = counters;
+  _is_compiling = false;
 
 #ifndef PRODUCT
   _ideal_graph_printer = NULL;

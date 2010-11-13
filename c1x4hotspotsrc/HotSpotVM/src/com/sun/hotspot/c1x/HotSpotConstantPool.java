@@ -64,7 +64,7 @@ public class HotSpotConstantPool implements RiConstantPool, CompilerObject {
 
     @Override
     public RiField lookupField(int cpi, int opcode) {
-        return Compiler.getVMEntries().RiConstantPool_lookupField(vmId, cpi);
+        return Compiler.getVMEntries().RiConstantPool_lookupField(vmId, cpi, (byte) opcode);
     }
 
 }

@@ -66,7 +66,7 @@ public class VMEntriesNative implements VMEntries {
     public native RiType RiConstantPool_lookupType(long vmId, int cpi);
 
     @Override
-    public native RiField RiConstantPool_lookupField(long vmId, int cpi);
+    public native RiField RiConstantPool_lookupField(long vmId, int cpi, byte byteCode);
 
     @Override
     public native RiConstantPool RiType_constantPool(long vmId);

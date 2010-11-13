@@ -66,7 +66,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   }
 
   if (frame_size > 0) {
-    assert(frame_map->length() == ((frame_size / HeapWordSize) + 7) / 8, "unexpected register_map length");
+    assert(frame_map->length() == ((frame_size / HeapWordSize) + 7) / 8, "unexpected frame_map length");
 
     for (jint i = 0; i < frame_size / HeapWordSize; i++) {
       unsigned char byte = ((unsigned char*) frame_map->base(T_BYTE))[i / 8];
@@ -327,7 +327,6 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 
-
   if (frame != NULL) {
     jint local_count = CiDebugInfo_Frame::numLocals(frame);
     jint expression_count = CiDebugInfo_Frame::numStack(frame);
@@ -350,8 +349,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
       } else {
         assert(value->is_location(), "invalid monitor location");
         LocationValue* loc = (LocationValue*)value;
-        LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, loc->location().stack_offset() + HeapWordSize));
-        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, loc->location().stack_offset())));
+        int monitor_offset = loc->location().stack_offset();
+        LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, monitor_offset + BasicObjectLock::obj_offset_in_bytes()));
+        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, monitor_offset  + BasicObjectLock::lock_offset_in_bytes())));
       }
     }
     DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
@@ -385,8 +385,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop global_stub = CiTargetMethod_Call::globalStubID(site);
 
   oop debug_info = CiTargetMethod_Call::debugInfo(site);
-  arrayOop stack_map = (arrayOop) CiTargetMethod_Call::stackMap(site);
-  arrayOop register_map = (arrayOop) CiTargetMethod_Call::registerMap(site);
 
   assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (symbol ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 

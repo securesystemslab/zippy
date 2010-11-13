@@ -35,6 +35,8 @@
                                                                             \
   product(bool, UseC1X, false,                                              \
           "Use C1X instead of C1")                                          \
+  product(bool, BootstrapC1X, false,                                        \
+          "Bootstrap C1X before running Java main method")                  \
   product(intx, TraceC1X, 0,                                                \
           "Trace level for C1X")                                            \
   /* Printing */                                                            \

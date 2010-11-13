@@ -358,4 +358,6 @@ class CompileBroker: AllStatic {
   static void print_last_compile();
 
   static void print_compiler_threads_on(outputStream* st);
+
+  static void bootstrap_c1x();
 };

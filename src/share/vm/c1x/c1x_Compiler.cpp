@@ -45,7 +45,10 @@ void C1XCompiler::initialize() {
   assert(klass != NULL, "c1x VMEntries class not found");
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
 
-  check_pending_exception("Could not register natives");
+  {
+    VM_ENTRY_MARK;
+    check_pending_exception("Could not register natives");
+  }
 
   c1x_compute_offsets();
 
@@ -83,7 +86,7 @@ void C1XCompiler::print_timers() {
   TRACE_C1X_1("C1XCompiler::print_timers");
 }
 
-oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
+oop C1XCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
   if (type->is_loaded()) {
     if (type->is_primitive_type()) {
       return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
@@ -93,15 +96,23 @@ oop C1XCompiler::get_RiType(ciType *type, klassOop accessor, TRAPS) {
     return createHotSpotTypeResolved(klass, name, CHECK_NULL);
   } else {
     symbolOop name = ((ciKlass *) type)->name()->get_symbolOop();
-    return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), VmIds::add<klassOop>(accessor), THREAD);
+    return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), VmIds::add<klassOop>(accessor()), THREAD);
   }
 }
 
-oop C1XCompiler::get_RiField(ciField *field, klassOop accessor, TRAPS) {
+oop C1XCompiler::get_RiField(ciField *field, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
   Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
   Handle field_type = get_RiType(field->type(), accessor, CHECK_0);
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbolOop(), CHECK_0);
-  int offset = field->holder()->is_loaded() ? field->offset() : -1;
+
+  ciInstanceKlass* accessor_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(accessor());
+  bool will_link;
+  {
+    ThreadToNativeFromVM trans((JavaThread*)THREAD);
+    will_link = field->will_link(accessor_klass, byteCode);
+  }
+
+  int offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
 
   // TODO: implement caching
   return VMExits::createRiField(field_holder, field_name, field_type, offset, THREAD);

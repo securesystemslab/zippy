@@ -307,11 +307,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.mark(MARK_IMPLICIT_NULL);
                 asm.pload(CiKind.Word, asm.createTemp("temp", CiKind.Word), object, true);
             }
-/*
+
             useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
             useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.monitorEnterStub, null, object, lock);
-*/
+
             return asm.finishTemplate("monitorEnter");
         }
     };
@@ -323,11 +323,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.restart(CiKind.Void);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter lock = asm.createInputParameter("lock", CiKind.Word);
-/*
+
             useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
             useRegisters(asm, AMD64.rax);
             asm.callRuntime(config.monitorExitStub, null, object, lock);
-*/
+
             return asm.finishTemplate("monitorExit");
         }
     };
@@ -813,7 +813,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genResolveClass(XirSite site, RiType type, Representation rep) {
-        assert rep == Representation.ObjectHub || rep == Representation.StaticFields : "unexpected representation: " + rep;
+        assert rep == Representation.ObjectHub || rep == Representation.StaticFields || rep == Representation.JavaClass : "unexpected representation: " + rep;
         if (type instanceof HotSpotTypeResolved) {
             return new XirSnippet(resolveClassTemplates.get(site), XirArgument.forObject(type));
         }
@@ -995,6 +995,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.mark(MARK_DUMMY_OOP_RELOCATION);
             asm.jmp(patchStub);
 
+            // TODO(tw): Need a safepoint here?
+
             // TODO: make this more generic & safe - this is needed to create space for patching
             asm.nop(5);
 
@@ -1059,8 +1061,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.mark(MARK_DUMMY_OOP_RELOCATION);
             if (nullCheck) {
                 asm.mark(MARK_IMPLICIT_NULL);
-                asm.safepoint();
             }
+            asm.safepoint();
             asm.jmp(patchStub);
 
             // TODO: make this more generic & safe - this is needed to create space for patching
