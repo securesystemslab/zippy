@@ -106,11 +106,7 @@ oop C1XCompiler::get_RiField(ciField *field, KlassHandle accessor, Bytecodes::Co
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbolOop(), CHECK_0);
 
   ciInstanceKlass* accessor_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(accessor());
-  bool will_link;
-  {
-    ThreadToNativeFromVM trans((JavaThread*)THREAD);
-    will_link = field->will_link(accessor_klass, byteCode);
-  }
+  bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
 
   int offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
 

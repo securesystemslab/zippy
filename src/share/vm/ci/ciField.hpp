@@ -160,6 +160,8 @@ public:
   // at each point of access.
   bool will_link(ciInstanceKlass* accessing_klass,
                  Bytecodes::Code bc);
+  bool will_link_from_vm(ciInstanceKlass* accessing_klass,
+                 Bytecodes::Code bc);
 
   // Java access flags
   bool is_public      () { return flags().is_public(); }
