@@ -131,6 +131,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
     ShouldNotReachHere();
   } else {
     value->klass()->print();
+    value->print();
     ShouldNotReachHere();
   }
 }

@@ -540,6 +540,7 @@ CompilerCounters::CompilerCounters(const char* thread_name, int instance, TRAPS)
 
 // Bootstrap the C1X compiler. Compiles all methods until compile queue is empty and no compilation is active.
 void CompileBroker::bootstrap_c1x() {
+  HandleMark hm;
   Thread* THREAD = Thread::current();
   tty->print_cr("Bootstrapping C1X...");
 
@@ -547,16 +548,15 @@ void CompileBroker::bootstrap_c1x() {
   if (compiler == NULL) fatal("must use flag -XX:+UseC1X");
 
   jlong start = os::javaTimeMillis();
-  {
-    HandleMark hm;
-    instanceKlass* klass = (instanceKlass*)SystemDictionary::Object_klass()->klass_part();
-    methodOop method = klass->find_method(vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
-    CompileBroker::compile_method(method, -1, method, 0, "initial compile of object initializer", THREAD);
-    if (HAS_PENDING_EXCEPTION) {
-      CLEAR_PENDING_EXCEPTION;
-      fatal("error inserting object initializer into compile queue");
-    }
+
+  instanceKlass* klass = (instanceKlass*)SystemDictionary::Object_klass()->klass_part();
+  methodOop method = klass->find_method(vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
+  CompileBroker::compile_method(method, -1, method, 0, "initial compile of object initializer", THREAD);
+  if (HAS_PENDING_EXCEPTION) {
+    CLEAR_PENDING_EXCEPTION;
+    fatal("error inserting object initializer into compile queue");
   }
+
   int z = 0;
   while (true) {
     {
@@ -595,6 +595,10 @@ void CompileBroker::bootstrap_c1x() {
     }
     ++z;
   }
+
+  // Do a full garbage collection.
+  Universe::heap()->collect(GCCause::_java_lang_system_gc);
+
   jlong diff = os::javaTimeMillis() - start;
   tty->print_cr("Finished bootstrap in %d ms", diff);
   if (CITime) CompileBroker::print_times();

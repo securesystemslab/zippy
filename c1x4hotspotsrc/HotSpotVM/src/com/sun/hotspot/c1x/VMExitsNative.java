@@ -37,6 +37,7 @@ import com.sun.hotspot.c1x.logging.*;
  */
 public class VMExitsNative implements VMExits {
 
+    public static final boolean LogCompiledMethods = false;
     public static boolean compileMethods = true;
 
     /**
@@ -47,6 +48,7 @@ public class VMExitsNative implements VMExits {
         C1XOptions.OptInlineExcept = false;
         C1XOptions.OptInlineSynchronized = false;
         C1XOptions.UseDeopt = false;
+        C1XOptions.IRChecking = false;
     }
 
     @Override
@@ -126,8 +128,10 @@ public class VMExitsNative implements VMExits {
             Compiler compiler = Compiler.getInstance();
             HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
             CiResult result = compiler.getCompiler().compileMethod(riMethod, -1, null);
-            String qualifiedName = CiUtil.toJavaName(riMethod.holder()) + "::" + riMethod.name();
-            compiledMethods.add(qualifiedName);
+            if (LogCompiledMethods) {
+                String qualifiedName = CiUtil.toJavaName(riMethod.holder()) + "::" + riMethod.name();
+                compiledMethods.add(qualifiedName);
+            }
 
             if (result.bailout() != null) {
                 StringWriter out = new StringWriter();
