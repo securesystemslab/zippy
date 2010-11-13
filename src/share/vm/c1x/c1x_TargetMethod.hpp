@@ -79,7 +79,6 @@ void c1x_compute_offsets();
     int_field(CiTargetMethod, frameSize)                                                \
     oop_field(CiTargetMethod, targetCode, "[B")                                         \
     int_field(CiTargetMethod, targetCodeSize)                                           \
-    int_field(CiTargetMethod, referenceRegisterCount)                                   \
   end_class                                                                             \
   start_class(CiTargetMethod_Site)                                                      \
     int_field(CiTargetMethod_Site, pcOffset)                                            \
@@ -90,8 +89,6 @@ void c1x_compute_offsets();
     oop_field(CiTargetMethod_Call, symbol, "Ljava/lang/String;")                        \
     oop_field(CiTargetMethod_Call, globalStubID, "Ljava/lang/Object;")                  \
     oop_field(CiTargetMethod_Call, debugInfo, "Lcom/sun/cri/ci/CiDebugInfo;")           \
-    oop_field(CiTargetMethod_Call, stackMap, "[B")                                      \
-    oop_field(CiTargetMethod_Call, registerMap, "[B")                                   \
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \
     oop_field(CiTargetMethod_DataPatch, constant, "Lcom/sun/cri/ci/CiConstant;")        \

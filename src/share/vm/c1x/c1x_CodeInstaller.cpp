@@ -66,7 +66,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   }
 
   if (frame_size > 0) {
-    assert(frame_map->length() == ((frame_size / HeapWordSize) + 7) / 8, "unexpected register_map length");
+    assert(frame_map->length() == ((frame_size / HeapWordSize) + 7) / 8, "unexpected frame_map length");
 
     for (jint i = 0; i < frame_size / HeapWordSize; i++) {
       unsigned char byte = ((unsigned char*) frame_map->base(T_BYTE))[i / 8];
@@ -385,8 +385,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop global_stub = CiTargetMethod_Call::globalStubID(site);
 
   oop debug_info = CiTargetMethod_Call::debugInfo(site);
-  arrayOop stack_map = (arrayOop) CiTargetMethod_Call::stackMap(site);
-  arrayOop register_map = (arrayOop) CiTargetMethod_Call::registerMap(site);
 
   assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (symbol ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
