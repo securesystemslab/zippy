@@ -256,7 +256,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
   Bytecodes::Code code = (Bytecodes::Code)(((int) byteCode) & 0xFF);
-  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, cp->pool_holder(), code, THREAD));
+  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, loading_klass, cp->pool_holder(), code, THREAD));
 }
 
 // public RiConstantPool RiType_constantPool(long vmId);

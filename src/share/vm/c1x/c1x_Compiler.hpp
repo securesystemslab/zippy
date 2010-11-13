@@ -57,7 +57,7 @@ public:
   virtual void print_timers();
 
   static oop get_RiType(ciType *klass, KlassHandle accessor, TRAPS);
-  static oop get_RiField(ciField *ciField, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS);
+  static oop get_RiField(ciField *ciField, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS);
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
 

@@ -307,6 +307,7 @@ bool ciField::will_link(ciInstanceKlass* accessing_klass,
 // link errors?
 bool ciField::will_link_from_vm(ciInstanceKlass* accessing_klass,
                         Bytecodes::Code bc) {
+  Thread* THREAD = Thread::current();
   if (_offset == -1) {
     // at creation we couldn't link to our holder so we need to
     // maintain that stance, otherwise there's no safe way to use this
