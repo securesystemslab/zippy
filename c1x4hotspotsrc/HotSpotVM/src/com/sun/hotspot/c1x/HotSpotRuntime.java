@@ -171,7 +171,7 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public int sizeofBasicObjectLock() {
+    public int sizeOfBasicObjectLock() {
         // TODO shouldn't be hard coded
         return 2 * 8;
     }
