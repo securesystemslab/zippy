@@ -27,7 +27,7 @@
 
 // public byte[] RiMethod_code(long vmId);
 JNIEXPORT jbyteArray JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1code(JNIEnv *env, jobject, jlong vmId) {
-  methodOop method = VmIds::get<methodOop>(vmId);
+  methodHandle method = VmIds::get<methodOop>(vmId);
   int code_size = method->code_size();
   jbyteArray result = env->NewByteArray(code_size);
   env->SetByteArrayRegion(result, 0, code_size, (const jbyte *) method->code_base());
