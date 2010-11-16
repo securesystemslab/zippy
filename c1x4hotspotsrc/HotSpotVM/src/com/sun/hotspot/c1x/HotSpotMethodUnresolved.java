@@ -115,8 +115,8 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
     }
 
     @Override
-    public Object liveness(int bci) {
-        throw unresolved("liveness");
+    public CiBitMap[] livenessMap() {
+        return null;
     }
 
     @Override
