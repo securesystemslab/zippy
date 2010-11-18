@@ -125,8 +125,7 @@ public class HotSpotMethodResolved implements HotSpotMethod {
         throw new UnsupportedOperationException("jniSymbol");
     }
 
-    @Override
-    public Object liveness(int bci) {
+    public CiBitMap[] livenessMap() {
         return null;
     }
 
