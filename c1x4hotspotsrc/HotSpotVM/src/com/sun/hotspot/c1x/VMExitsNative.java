@@ -236,7 +236,7 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public CiConstant createCiConstantLong(long value) {
-        return new CiConstant(CiKind.Long, value);
+        return CiConstant.forLong(value);
     }
 
     @Override

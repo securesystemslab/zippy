@@ -112,8 +112,13 @@ void c1x_compute_offsets();
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
     oop_field(CiDebugInfo, codePos, "Lcom/sun/cri/ci/CiCodePos;")                       \
-    oop_field(CiDebugInfo, registerRefMap, "[B")                                        \
-    oop_field(CiDebugInfo, frameRefMap, "[B")                                           \
+    long_field(CiDebugInfo, registerRefMap)                                             \
+    oop_field(CiDebugInfo, frameRefMap, "Lcom/sun/cri/ci/CiBitMap;")                    \
+  end_class                                                                             \
+  start_class(CiBitMap)                                                                 \
+    int_field(CiBitMap, size)                                                           \
+    long_field(CiBitMap, low)                                                           \
+    oop_field(CiBitMap, extra, "[J")                                                    \
   end_class                                                                             \
   start_class(CiDebugInfo_Frame)                                                        \
     oop_field(CiDebugInfo_Frame, values, "[Lcom/sun/cri/ci/CiValue;")                   \

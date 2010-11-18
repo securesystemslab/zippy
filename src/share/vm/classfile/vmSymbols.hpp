@@ -264,6 +264,7 @@
   template(com_sun_cri_ci_CiTargetMethod_Safepoint,   "com/sun/cri/ci/CiTargetMethod$Safepoint")                        \
   template(com_sun_cri_ci_CiTargetMethod_ExceptionHandler, "com/sun/cri/ci/CiTargetMethod$ExceptionHandler")            \
   template(com_sun_cri_ci_CiTargetMethod_Mark,        "com/sun/cri/ci/CiTargetMethod$Mark")                             \
+  template(com_sun_cri_ci_CiBitMap,                   "com/sun/cri/ci/CiBitMap")                                        \
   template(com_sun_cri_ci_CiDebugInfo,                "com/sun/cri/ci/CiDebugInfo")                                     \
   template(com_sun_cri_ci_CiDebugInfo_Frame,          "com/sun/cri/ci/CiDebugInfo$Frame")                               \
   template(com_sun_cri_ci_CiValue,                    "com/sun/cri/ci/CiValue")                                         \

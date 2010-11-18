@@ -33,6 +33,7 @@ const static int NUM_CPU_REGS = sizeof(CPU_REGS) / sizeof(Register);
 XMMRegister XMM_REGS[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
 const static int NUM_XMM_REGS = sizeof(XMM_REGS) / sizeof(XMMRegister);
 const static int NUM_REGS = NUM_CPU_REGS + NUM_XMM_REGS;
+const static jlong NO_REF_MAP = 0x8000000000000000L;
 
 // convert c1x register indices (as used in oop maps) to hotspot registers
 VMReg get_hotspot_reg(jint c1x_reg) {
@@ -48,15 +49,13 @@ VMReg get_hotspot_reg(jint c1x_reg) {
 // creates a hotspot oop map out of the byte arrays provided by CiDebugInfo
 static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(frame_size, parameter_count);
-  arrayOop register_map = (arrayOop) CiDebugInfo::registerRefMap(debug_info);
-  arrayOop frame_map = (arrayOop) CiDebugInfo::frameRefMap(debug_info);
+  jlong register_map = CiDebugInfo::registerRefMap(debug_info);
+  oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
 
-  if (register_map != NULL) {
-    assert(register_map->length() == (NUM_CPU_REGS + 7) / 8, "unexpected register_map length");
-
+  assert(sizeof(register_map) * 8 >= (unsigned) NUM_CPU_REGS, "unexpected register_map length");
+  if (register_map != NO_REF_MAP) {
     for (jint i = 0; i < NUM_CPU_REGS; i++) {
-      unsigned char byte = ((unsigned char*) register_map->base(T_BYTE))[i / 8];
-      bool is_oop = (byte & (1 << (i % 8))) != 0;
+      bool is_oop = (register_map & (1L << i)) != 0;
       VMReg reg = get_hotspot_reg(i);
       if (is_oop) {
         assert(OOP_ALLOWED[i], "this register may never be an oop, register map misaligned?");
@@ -68,11 +67,21 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   }
 
   if (frame_size > 0) {
-    assert(frame_map->length() == ((frame_size / HeapWordSize) + 7) / 8, "unexpected frame_map length");
+    assert(CiBitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
 
     for (jint i = 0; i < frame_size / HeapWordSize; i++) {
-      unsigned char byte = ((unsigned char*) frame_map->base(T_BYTE))[i / 8];
-      bool is_oop = (byte & (1 << (i % 8))) != 0;
+      bool is_oop;
+      if (i < 64) {
+        jlong low = CiBitMap::low(frame_map);
+        is_oop = (low & (1 << i)) != 0;
+      } else {
+        const unsigned int MapWordBits = 64;
+        jint extra_idx = (i - MapWordBits) / MapWordBits;
+        arrayOop extra = (arrayOop) CiBitMap::extra(frame_map);
+        assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
+        jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
+        is_oop = (word & (1 << (i % MapWordBits))) != 0;
+      }
       // hotspot stack slots are 4 bytes
       VMReg reg = VMRegImpl::stack2reg(i * 2);
       if (is_oop) {
@@ -82,7 +91,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
       }
     }
   } else {
-    assert(frame_map == NULL || frame_map->length() == 0, "cannot have frame_map for frames with size 0");
+    assert(frame_map == NULL || CiBitMap::size(frame_map) == 0, "cannot have frame_map for frames with size 0");
   }
 
   return map;

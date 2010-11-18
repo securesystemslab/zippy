@@ -67,21 +67,15 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     private final CiRegister[] xmmParameterRegisters = {xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
     private final CiRegister[] allParameterRegisters;
 
-    public static final CiRegisterSaveArea RSA;
+    public static final CiCalleeSaveArea RSA;
     static {
-        int offset = 0;
         CiRegister[] rsaRegs = {
             rax,  rcx,  rdx,   rbx,   rsp,   rbp,   rsi,   rdi,
             r8,   r9,   r10,   r11,   r12,   r13,   r14,   r15,
             xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7,
             xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
         };
-        Map<CiRegister, Integer> registerOffsets = new HashMap<CiRegister, Integer>(rsaRegs.length);
-        for (CiRegister reg : rsaRegs) {
-            registerOffsets.put(reg, offset);
-            offset += reg.isFpu() ? 16 : 8;
-        }
-        RSA = new CiRegisterSaveArea(offset, registerOffsets, 8);
+        RSA = new CiCalleeSaveArea(-1, rsaRegs, 8);
     }
 
     public HotSpotRegisterConfig(HotSpotVMConfig config) {
@@ -98,13 +92,6 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     @Override
     public CiRegister[] getCallerSaveRegisters() {
         return getAllocatableRegisters();
-    }
-
-    private final CiRegister[] none = {};
-
-    @Override
-    public CiRegister[] getCalleeSaveRegisters() {
-        return none;
     }
 
     @Override
@@ -202,7 +189,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
         return rsp;
     }
 
-    public CiRegisterSaveArea getRSA() {
+    public CiCalleeSaveArea getCalleeSaveArea() {
         return RSA;
     }
 
@@ -211,7 +198,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
         String res = String.format(
              "Allocatable: " + Arrays.toString(getAllocatableRegisters()) + "%n" +
              "CallerSave:  " + Arrays.toString(getCallerSaveRegisters()) + "%n" +
-             "CalleeSave:  " + Arrays.toString(getCalleeSaveRegisters()) + "%n" +
+             "CalleeSave:  " + getCalleeSaveArea() + "%n" +
              "Scratch:     " + getScratchRegister() + "%n");
         return res;
     }
