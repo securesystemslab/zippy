@@ -248,6 +248,7 @@
   template(com_sun_hotspot_c1x_VMExits,               "com/sun/hotspot/c1x/VMExits")                                    \
   template(com_sun_hotspot_c1x_HotSpotMethodResolved, "com/sun/hotspot/c1x/HotSpotMethodResolved")                      \
   template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/sun/hotspot/c1x/HotSpotTargetMethod")                        \
+  template(com_sun_hotspot_c1x_HotSpotField,          "com/sun/hotspot/c1x/HotSpotField")                               \
   template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolved")                        \
   template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/sun/hotspot/c1x/HotSpotExceptionHandler")                   \
   template(com_sun_hotspot_c1x_Compiler,              "com/sun/hotspot/c1x/Compiler")                                   \
@@ -293,8 +294,6 @@
   template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;J)Lcom/sun/cri/ri/RiType;")                   \
   template(createRiConstantPool_name,                 "createRiConstantPool")                                           \
   template(createRiConstantPool_signature,            "(J)Lcom/sun/cri/ri/RiConstantPool;")                             \
-  template(createCiConstantInt_name,                  "createCiConstantInt")                                            \
-  template(createCiConstantInt_signature,             "(I)Lcom/sun/cri/ci/CiConstant;")                                 \
   template(createCiConstantLong_name,                 "createCiConstantLong")                                           \
   template(createCiConstantLong_signature,            "(J)Lcom/sun/cri/ci/CiConstant;")                                 \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
@@ -302,6 +301,7 @@
   template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \
   template(createCiConstantDouble_signature,          "(D)Lcom/sun/cri/ci/CiConstant;")                                 \
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
+  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
   template(getVMExits_name,                           "getVMExits")                                                     \
   template(getVMExits_signature,                      "()Lcom/sun/hotspot/c1x/VMExits;")                                \
                                                                                                                         \

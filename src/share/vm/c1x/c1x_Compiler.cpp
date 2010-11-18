@@ -116,7 +116,7 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   oop obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
 
   HotSpotTypeResolved::set_vmId(obj, VmIds::add(klass, VmIds::CLASS));
-  HotSpotTypeResolved::set_javaMirrorVmId(obj, VmIds::add(klass->java_mirror(), VmIds::CONSTANT));
+  HotSpotTypeResolved::set_javaMirror(obj, klass->java_mirror());
   HotSpotTypeResolved::set_name(obj, name());
   HotSpotTypeResolved::set_accessFlags(obj, klass->access_flags().as_int());
   HotSpotTypeResolved::set_isInterface(obj, klass->is_interface());

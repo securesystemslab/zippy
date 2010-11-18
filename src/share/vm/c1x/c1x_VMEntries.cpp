@@ -168,7 +168,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
   if (tag.is_int()) {
-    result = VMExits::createCiConstantInt(cp->int_at(index), CHECK_0);
+    result = VMExits::createCiConstantLong(cp->int_at(index), CHECK_0);
+    CiValue::set_kind(result, CiKind::Int());
   } else if (tag.is_long()) {
     result = VMExits::createCiConstantLong(cp->long_at(index), CHECK_0);
   } else if (tag.is_float()) {
@@ -188,10 +189,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
         return NULL;
       }
     }
-    jlong id = VmIds::add<oop>(string);
-//    tty->print("\n\nstring: 0x%08x%08x\n", string, id>>32, id);
-//    string->print();
-    result = VMExits::createCiConstantObject(id, CHECK_0);
+    result = VMExits::createCiConstantObject(string, CHECK_0);
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
     bool ignore;
     ciInstanceKlass* accessor = (ciInstanceKlass*) ciEnv::current()->get_object(cp->pool_holder());
@@ -200,7 +198,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   } else if (tag.is_object()) {
     oop obj = cp->object_at(index);
     assert(obj->is_instance(), "must be an instance");
-    result = VMExits::createCiConstantObject(VmIds::add<oop>(obj), CHECK_NULL);
+    result = VMExits::createCiConstantObject(obj, CHECK_NULL);
   } else {
     ShouldNotReachHere();
   }
@@ -256,7 +254,57 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
   Bytecodes::Code code = (Bytecodes::Code)(((int) byteCode) & 0xFF);
-  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiField(field, loading_klass, cp->pool_holder(), code, THREAD));
+  Handle field_handle = C1XCompiler::get_RiField(field, loading_klass, cp->pool_holder(), code, THREAD);
+  if (field->is_constant() && field->is_static()) {
+    ciConstant constant = field->constant_value();
+    oop constant_object = NULL;
+    switch (constant.basic_type()) {
+      case T_OBJECT:
+      case T_ARRAY:
+        {
+          ciObject* obj = constant.as_object();
+          if (obj->is_null_object()) {
+            constant_object = VMExits::createCiConstantObject(NULL, CHECK_0);
+          } else if (obj->can_be_constant()) {
+            constant_object = VMExits::createCiConstantObject(constant.as_object()->get_oop(), CHECK_0);
+          }
+        }
+        break;
+      case T_DOUBLE:
+        constant_object = VMExits::createCiConstantDouble(constant.as_double(), CHECK_0);
+        break;
+      case T_LONG:
+        constant_object = VMExits::createCiConstantLong(constant.as_long(), CHECK_0);
+        break;
+      case T_INT:
+        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
+        CiValue::set_kind(constant_object, CiKind::Int());
+        break;
+      case T_SHORT:
+        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
+        CiValue::set_kind(constant_object, CiKind::Short());
+        break;
+      case T_CHAR:
+        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
+        CiValue::set_kind(constant_object, CiKind::Char());
+        break;
+      case T_BYTE:
+        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
+        CiValue::set_kind(constant_object, CiKind::Byte());
+        break;
+      case T_BOOLEAN:
+        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
+        CiValue::set_kind(constant_object, CiKind::Boolean());
+        break;
+      default:
+        constant.print();
+        fatal("Unhandled constant");
+    }
+    if (constant_object != NULL) {
+      HotSpotField::set_constant(field_handle, constant_object);
+    }
+  }
+  return JNIHandles::make_local(THREAD, field_handle());
 }
 
 // public RiConstantPool RiType_constantPool(long vmId);

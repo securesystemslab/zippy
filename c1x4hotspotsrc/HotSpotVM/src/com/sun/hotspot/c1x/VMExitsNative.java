@@ -49,6 +49,7 @@ public class VMExitsNative implements VMExits {
         C1XOptions.OptInlineSynchronized = false;
         C1XOptions.UseDeopt = false;
         C1XOptions.IRChecking = false;
+        C1XOptions.DetailedAsserts = false;
     }
 
     @Override
@@ -151,7 +152,6 @@ public class VMExitsNative implements VMExits {
                 }
                 Compiler.getVMEntries().recordBailout(result.bailout().getMessage());
             } else {
-                Logger.log("Compilation result: " + result.targetMethod());
                 HotSpotTargetMethod.installMethod(riMethod, result.targetMethod());
             }
         } catch (Throwable t) {
@@ -235,13 +235,8 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public CiConstant createCiConstantInt(int value) {
-        return CiConstant.forInt(value);
-    }
-
-    @Override
     public CiConstant createCiConstantLong(long value) {
-        return CiConstant.forLong(value);
+        return new CiConstant(CiKind.Long, value);
     }
 
     @Override
@@ -255,7 +250,7 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public CiConstant createCiConstantObject(long vmId) {
-        return CiConstant.forObject(vmId);
+    public CiConstant createCiConstantObject(Object object) {
+        return CiConstant.forObject(object);
     }
 }

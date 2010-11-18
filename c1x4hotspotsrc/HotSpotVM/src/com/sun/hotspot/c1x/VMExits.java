@@ -51,14 +51,12 @@ public interface VMExits {
 
     RiConstantPool createRiConstantPool(long vmId);
 
-    CiConstant createCiConstantInt(int value);
-
     CiConstant createCiConstantLong(long value);
 
     CiConstant createCiConstantFloat(float value);
 
     CiConstant createCiConstantDouble(double value);
 
-    CiConstant createCiConstantObject(long vmId);
+    CiConstant createCiConstantObject(Object object);
 
 }

@@ -56,6 +56,9 @@ public final class Compiler {
         @Override
         public void run() {
             VMExitsNative.compileMethods = false;
+            if (C1XOptions.PrintMetrics) {
+                C1XMetrics.print();
+            }
             if (C1XOptions.PrintTimers) {
                 C1XTimers.print();
             }
@@ -156,7 +159,6 @@ public final class Compiler {
 
         // these options are important - c1x4hotspot will not generate correct code without them
         C1XOptions.GenSpecialDivChecks = true;
-        C1XOptions.AlignCallsForPatching = true;
         C1XOptions.NullCheckUniquePc = true;
         C1XOptions.invokeinterfaceTemplatePos = true;
         C1XOptions.StackShadowPages = config.stackShadowPages;

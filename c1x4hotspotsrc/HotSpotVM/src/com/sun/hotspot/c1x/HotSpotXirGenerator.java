@@ -260,7 +260,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             // -- out of line -------------------------------------------------------
             asm.bindOutOfLine(stub);
-            XirOperand method = asm.createRegisterTemp("method", CiKind.Object, AMD64.rbx);
+            XirOperand method = asm.createRegisterTemp("method", CiKind.Word, AMD64.rbx);
             asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
             asm.mov(method, asm.w(0L));
             XirLabel dummy = asm.createOutOfLineLabel("dummy");
@@ -283,7 +283,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             // -- out of line -------------------------------------------------------
             asm.bindOutOfLine(stub);
-            XirOperand method = asm.createRegisterTemp("method", CiKind.Object, AMD64.rbx);
+            XirOperand method = asm.createRegisterTemp("method", CiKind.Word, AMD64.rbx);
             asm.mark(MARK_STATIC_CALL_STUB, XirMark.CALLSITE);
             asm.mov(method, asm.w(0L));
             XirLabel dummy = asm.createOutOfLineLabel("dummy");
@@ -1008,7 +1008,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             asm.bindOutOfLine(replacement);
             XirMark begin = asm.mark(null);
-            asm.mov(arg, asm.createConstant(CiConstant.forObject(null)));
+            asm.mov(arg, asm.createConstant(CiConstant.NULL_OBJECT));
             XirMark end = asm.mark(null);
             // make this piece of data look like an instruction
             asm.rawBytes(new byte[] {(byte) 0xb8, 0, 0, 0x05, 0});

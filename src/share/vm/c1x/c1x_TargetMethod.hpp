@@ -45,7 +45,7 @@ void c1x_compute_offsets();
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
     long_field(HotSpotTypeResolved, vmId)                                               \
-    long_field(HotSpotTypeResolved, javaMirrorVmId)                                     \
+    oop_field(HotSpotTypeResolved, javaMirror, "Ljava/lang/Class;")                     \
     oop_field(HotSpotTypeResolved, name, "Ljava/lang/String;")                          \
     int_field(HotSpotTypeResolved, accessFlags)                                         \
     boolean_field(HotSpotTypeResolved, hasFinalizer)                                    \
@@ -57,6 +57,9 @@ void c1x_compute_offsets();
     boolean_field(HotSpotTypeResolved, isInterface)                                     \
     int_field(HotSpotTypeResolved, instanceSize)                                        \
     oop_field(HotSpotTypeResolved, componentType, "Lcom/sun/cri/ri/RiType;")            \
+  end_class                                                                             \
+  start_class(HotSpotField)                                                             \
+    oop_field(HotSpotField, constant, "Lcom/sun/cri/ci/CiConstant;")                    \
   end_class                                                                             \
   start_class(HotSpotMethodResolved)                                                    \
     long_field(HotSpotMethodResolved, vmId)                                             \
@@ -130,6 +133,11 @@ void c1x_compute_offsets();
   end_class                                                                             \
   start_class(CiKind)                                                                   \
     char_field(CiKind, typeChar)                                                        \
+    static_oop_field(CiKind, Boolean, "Lcom/sun/cri/ci/CiKind;");                       \
+    static_oop_field(CiKind, Byte, "Lcom/sun/cri/ci/CiKind;");                          \
+    static_oop_field(CiKind, Char, "Lcom/sun/cri/ci/CiKind;");                          \
+    static_oop_field(CiKind, Short, "Lcom/sun/cri/ci/CiKind;");                         \
+    static_oop_field(CiKind, Int, "Lcom/sun/cri/ci/CiKind;");                           \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \

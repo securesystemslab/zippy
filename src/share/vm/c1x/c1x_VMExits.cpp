@@ -174,17 +174,6 @@ oop VMExits::createRiSignature(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createCiConstantInt(jint value, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_int(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantInt_name(), vmSymbols::createCiConstantInt_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createCiConstantInt");
-  return (oop) result.get_jobject();
-
-}
-
 oop VMExits::createCiConstantLong(jlong value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
@@ -217,12 +206,12 @@ oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createCiConstantObject(jlong vmId, TRAPS) {
+oop VMExits::createCiConstantObject(Handle object, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_long(vmId);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantLong_signature(), &args, THREAD);
+  args.push_oop(object);
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantObject_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantObject");
   return (oop) result.get_jobject();
 }

@@ -33,36 +33,19 @@ import com.sun.hotspot.c1x.logging.*;
  */
 public class HotSpotTypeResolved implements HotSpotType {
 
-    private final long vmId;
-    private final long javaMirrorVmId;
-    private final String name;
-    private final int accessFlags;
-    private final boolean hasFinalizer;
-    private final boolean hasSubclass;
-    private final boolean hasFinalizableSubclass;
-    private final boolean isInitialized;
-    private final boolean isArrayClass;
-    private final boolean isInstanceClass;
-    private final boolean isInterface;
-    private final int instanceSize;
-    private final RiType componentType;
-
-    public HotSpotTypeResolved(long vmId, long javaMirrorVmId, String name, int accessFlags, boolean hasFinalizer, boolean hasSubclass, boolean hasFinalizableSubclass, boolean isInitialized,
-                    boolean isArrayClass, boolean isInstanceClass, boolean isInterface, int instanceSize, RiType componentType) {
-        this.vmId = vmId;
-        this.javaMirrorVmId = javaMirrorVmId;
-        this.name = name;
-        this.accessFlags = accessFlags;
-        this.hasFinalizer = hasFinalizer;
-        this.hasSubclass = hasSubclass;
-        this.hasFinalizableSubclass = hasFinalizableSubclass;
-        this.isInitialized = isInitialized;
-        this.isArrayClass = isArrayClass;
-        this.isInstanceClass = isInstanceClass;
-        this.isInterface = isInterface;
-        this.instanceSize = instanceSize;
-        this.componentType = componentType;
-    }
+    private long vmId;
+    private Class javaMirror;
+    private String name;
+    private int accessFlags;
+    private boolean hasFinalizer;
+    private boolean hasSubclass;
+    private boolean hasFinalizableSubclass;
+    private boolean isInitialized;
+    private boolean isArrayClass;
+    private boolean isInstanceClass;
+    private boolean isInterface;
+    private int instanceSize;
+    private RiType componentType;
 
     @Override
     public int accessFlags() {
@@ -78,7 +61,6 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public RiType componentType() {
-        Logger.log("componentType " + name + " isarray: " + isArrayClass);
         return Compiler.getVMEntries().RiType_componentType(vmId);
     }
 
@@ -95,7 +77,7 @@ public class HotSpotTypeResolved implements HotSpotType {
     public CiConstant getEncoding(Representation r) {
         switch (r) {
             case JavaClass:
-                return CiConstant.forObject((Long) javaMirrorVmId);
+                return CiConstant.forObject(javaMirror);
             case ObjectHub:
                 return CiConstant.forObject(this);
             case StaticFields:
@@ -139,7 +121,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public boolean isInstance(Object obj) {
-        throw new UnsupportedOperationException();
+        return javaMirror.isInstance(obj);
     }
 
     @Override
@@ -168,7 +150,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public Class<?> javaClass() {
-        return null;
+        return javaMirror;
     }
 
     @Override

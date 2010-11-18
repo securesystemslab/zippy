@@ -63,9 +63,6 @@ public:
   // public abstract RiSignature createRiSignature(String signature);
   static oop createRiSignature(Handle name, TRAPS);
 
-  // public abstract CiConstant createCiConstantInt(int value);
-  static oop createCiConstantInt(jint value, TRAPS);
-
   // public abstract CiConstant createCiConstantLong(long value);
   static oop createCiConstantLong(jlong value, TRAPS);
 
@@ -76,7 +73,7 @@ public:
   static oop createCiConstantDouble(jdouble value, TRAPS);
 
   // public abstract CiConstant createCiConstantObject(long vmId);
-  static oop createCiConstantObject(jlong vmId, TRAPS);
+  static oop createCiConstantObject(Handle object, TRAPS);
 };
 
 inline void check_pending_exception(const char* message) {

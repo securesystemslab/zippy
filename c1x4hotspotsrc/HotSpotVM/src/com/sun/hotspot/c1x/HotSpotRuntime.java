@@ -139,10 +139,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiType getRiType(Class<?> javaClass) {
-        if (javaClass == Object[].class || javaClass == Long.class || javaClass == Integer.class || javaClass == Throwable.class) {
-            return Compiler.getVMEntries().getType(javaClass);
-        }
-        throw new UnsupportedOperationException("unexpected class in getRiType: " + javaClass);
+        return Compiler.getVMEntries().getType(javaClass);
     }
 
     @Override
@@ -208,14 +205,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public boolean compareConstantObjects(Object x, Object y) {
-        if (x == null && y == null) {
-            return true;
-        } else if (x == null || y == null) {
-            return false;
-        } else if (x instanceof Long && y instanceof Long) {
-            return (Long) x == (long) (Long) y;
-        }
-        throw new UnsupportedOperationException("compareConstantObjects: " + x + ", " + y);
+        return x == y;
     }
 
     @Override

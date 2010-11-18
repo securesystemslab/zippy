@@ -51,17 +51,19 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   arrayOop register_map = (arrayOop) CiDebugInfo::registerRefMap(debug_info);
   arrayOop frame_map = (arrayOop) CiDebugInfo::frameRefMap(debug_info);
 
-  assert(register_map->length() == (NUM_CPU_REGS + 7) / 8, "unexpected register_map length");
+  if (register_map != NULL) {
+    assert(register_map->length() == (NUM_CPU_REGS + 7) / 8, "unexpected register_map length");
 
-  for (jint i = 0; i < NUM_CPU_REGS; i++) {
-    unsigned char byte = ((unsigned char*) register_map->base(T_BYTE))[i / 8];
-    bool is_oop = (byte & (1 << (i % 8))) != 0;
-    VMReg reg = get_hotspot_reg(i);
-    if (is_oop) {
-      assert(OOP_ALLOWED[i], "this register may never be an oop, register map misaligned?");
-      map->set_oop(reg);
-    } else {
-      map->set_value(reg);
+    for (jint i = 0; i < NUM_CPU_REGS; i++) {
+      unsigned char byte = ((unsigned char*) register_map->base(T_BYTE))[i / 8];
+      bool is_oop = (byte & (1 << (i % 8))) != 0;
+      VMReg reg = get_hotspot_reg(i);
+      if (is_oop) {
+        assert(OOP_ALLOWED[i], "this register may never be an oop, register map misaligned?");
+        map->set_oop(reg);
+      } else {
+        map->set_value(reg);
+      }
     }
   }
 
@@ -138,34 +140,39 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
 
 // constructor used to create a method
 CodeInstaller::CodeInstaller(oop target_method) {
-  _env = CURRENT_ENV;
+  ciMethod *ciMethodObject = NULL;
+  {
+    No_Safepoint_Verifier no_safepoint;
+    _env = CURRENT_ENV;
 
-  initialize_fields(target_method);
-  assert(_hotspot_method != NULL && _name == NULL, "installMethod needs NON-NULL method and NULL name");
-  assert(_hotspot_method->is_a(HotSpotMethodResolved::klass()), "installMethod needs a HotSpotMethodResolved");
+    initialize_fields(target_method);
+    assert(_hotspot_method != NULL && _name == NULL, "installMethod needs NON-NULL method and NULL name");
+    assert(_hotspot_method->is_a(HotSpotMethodResolved::klass()), "installMethod needs a HotSpotMethodResolved");
 
-  // TODO: This is a hack.. Produce correct entries.
-  _offsets.set_value(CodeOffsets::Exceptions, 0);
-  _offsets.set_value(CodeOffsets::Deopt, 0);
+    // TODO: This is a hack.. Produce correct entries.
+    _offsets.set_value(CodeOffsets::Exceptions, 0);
+    _offsets.set_value(CodeOffsets::Deopt, 0);
 
-  methodOop method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(_hotspot_method));
-  ciMethod *ciMethodObject = (ciMethod *) _env->get_object(method);
-  _parameter_count = method->size_of_parameters();
+    methodOop method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(_hotspot_method));
+    ciMethodObject = (ciMethod *) _env->get_object(method);
+    _parameter_count = method->size_of_parameters();
+  }
 
   // (very) conservative estimate: each site needs a relocation
   CodeBuffer buffer("temp c1x method", _total_size, _sites->length() * relocInfo::length_limit);
   initialize_buffer(buffer);
   process_exception_handlers();
-  {
-    int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
-    ThreadToNativeFromVM t((JavaThread*) Thread::current());
-    _env->register_method(ciMethodObject, -1, &_offsets, 0, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-        &_implicit_exception_table, C1XCompiler::instance(), _env->comp_level(), false, false);
-  }
+
+  int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
+  ThreadToNativeFromVM t((JavaThread*) Thread::current());
+  _env->register_method(ciMethodObject, -1, &_offsets, 0, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+      &_implicit_exception_table, C1XCompiler::instance(), _env->comp_level(), false, false);
+
 }
 
 // constructor used to create a stub
 CodeInstaller::CodeInstaller(oop target_method, jlong& id) {
+  No_Safepoint_Verifier no_safepoint;
   _env = CURRENT_ENV;
 
   initialize_fields(target_method);
@@ -524,25 +531,28 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
     }
     case 'a': {
       address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-      oop obj = CiConstant::object(constant);
+      Handle obj = CiConstant::object(constant);
 
       if (obj->is_a(HotSpotTypeResolved::klass())) {
         *((jobject*) operand) = JNIHandles::make_local(VmIds::get<klassOop>(HotSpotTypeResolved::vmId(obj)));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_C1X_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
       } else {
-        assert(java_lang_boxing_object::is_instance(obj, T_LONG), "unexpected DataPatch object type");
-        jlong id = obj->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
+        jobject value;
+        if (java_lang_boxing_object::is_instance(obj(), T_LONG)) {
+          jlong id = obj->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
 
-        assert((id & VmIds::TYPE_MASK) == VmIds::CONSTANT, "unexpected DataPatch type");
-
-        address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-
-        if (id == VmIds::DUMMY_CONSTANT) {
-          *((jobject*) operand) = (jobject) Universe::non_oop_word();
+          //assert((id & VmIds::TYPE_MASK) == VmIds::CONSTANT, "unexpected DataPatch type");
+          address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
+          if (id == VmIds::DUMMY_CONSTANT) {
+            value = (jobject) Universe::non_oop_word();
+          } else {
+            value = JNIHandles::make_local(VmIds::get<oop>(id));
+          }
         } else {
-          *((jobject*) operand) = JNIHandles::make_local(VmIds::get<oop>(id));
+          value = JNIHandles::make_local(obj());
         }
+        *((jobject*) operand) = value;
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_C1X_3("relocating (oop constant) at %016x/%016x", instruction, operand);
       }

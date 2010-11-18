@@ -172,6 +172,7 @@ class SymbolPropertyTable;
   template(Long_klass,                   java_lang_Long,                 Pre) \
                                                                               \
   template(HotSpotTypeResolved_klass,    com_sun_hotspot_c1x_HotSpotTypeResolved,                   Opt) \
+  template(HotSpotField_klass,           com_sun_hotspot_c1x_HotSpotField,                          Opt) \
   template(HotSpotMethodResolved_klass,  com_sun_hotspot_c1x_HotSpotMethodResolved,                 Opt) \
   template(HotSpotTargetMethod_klass,    com_sun_hotspot_c1x_HotSpotTargetMethod,                   Opt) \
   template(HotSpotExceptionHandler_klass,com_sun_hotspot_c1x_HotSpotExceptionHandler,               Opt) \

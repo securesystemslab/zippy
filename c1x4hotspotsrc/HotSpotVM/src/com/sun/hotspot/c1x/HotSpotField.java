@@ -37,6 +37,7 @@ public class HotSpotField implements RiField, CompilerObject {
     private final String name;
     private final RiType type;
     private final int offset;
+    private CiConstant constant;
 
     public HotSpotField(RiType holder, String name, RiType type, int offset) {
         this.holder = holder;
@@ -53,7 +54,10 @@ public class HotSpotField implements RiField, CompilerObject {
 
     @Override
     public CiConstant constantValue(Object object) {
-        // TODO Auto-generated method stub
+        if (object == null) {
+            // Constant part only valid for static fields.
+            return constant;
+        }
         return null;
     }
 

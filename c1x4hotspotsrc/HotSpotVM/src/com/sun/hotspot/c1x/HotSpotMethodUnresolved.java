@@ -140,7 +140,7 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
 
     @Override
     public String toString() {
-        return "HotSpotMethod<" + name + ", unresolved>";
+        return "HotSpotMethod<" + holder.name() + ". " + name + ", unresolved>";
     }
 
     @Override

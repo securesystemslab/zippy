@@ -20,7 +20,6 @@
  */
 package com.sun.hotspot.c1x;
 
-import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
 /**
@@ -34,12 +33,6 @@ public class HotSpotConstantPool implements RiConstantPool, CompilerObject {
 
     public HotSpotConstantPool(long vmId) {
         this.vmId = vmId;
-    }
-
-    @Override
-    public CiConstant encoding() {
-        // TODO: Check if this is correct.
-        return CiConstant.forObject(vmId);
     }
 
     @Override
