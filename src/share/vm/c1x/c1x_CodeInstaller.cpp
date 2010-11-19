@@ -46,16 +46,30 @@ VMReg get_hotspot_reg(jint c1x_reg) {
   }
 }
 
+static bool is_bit_set(oop bit_map, int i) {
+  if (i < 64) {
+    jlong low = CiBitMap::low(bit_map);
+    return (low & (1 << i)) != 0;
+  } else {
+    const unsigned int MapWordBits = 64;
+    jint extra_idx = (i - MapWordBits) / MapWordBits;
+    arrayOop extra = (arrayOop) CiBitMap::extra(bit_map);
+    assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
+    jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
+    return (word & (1 << (i % MapWordBits))) != 0;
+  }
+}
+
 // creates a hotspot oop map out of the byte arrays provided by CiDebugInfo
 static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(frame_size, parameter_count);
-  jlong register_map = CiDebugInfo::registerRefMap(debug_info);
+  oop register_map = (oop) CiDebugInfo::registerRefMap(debug_info);
   oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
 
-  assert(sizeof(register_map) * 8 >= (unsigned) NUM_CPU_REGS, "unexpected register_map length");
-  if (register_map != NO_REF_MAP) {
+  if (register_map != NULL) {
+    assert(CiBitMap::size(register_map) == (unsigned) NUM_CPU_REGS, "unexpected register_map length");
     for (jint i = 0; i < NUM_CPU_REGS; i++) {
-      bool is_oop = (register_map & (1L << i)) != 0;
+      bool is_oop = is_bit_set(register_map, i);
       VMReg reg = get_hotspot_reg(i);
       if (is_oop) {
         assert(OOP_ALLOWED[i], "this register may never be an oop, register map misaligned?");
@@ -70,18 +84,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
     assert(CiBitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
 
     for (jint i = 0; i < frame_size / HeapWordSize; i++) {
-      bool is_oop;
-      if (i < 64) {
-        jlong low = CiBitMap::low(frame_map);
-        is_oop = (low & (1 << i)) != 0;
-      } else {
-        const unsigned int MapWordBits = 64;
-        jint extra_idx = (i - MapWordBits) / MapWordBits;
-        arrayOop extra = (arrayOop) CiBitMap::extra(frame_map);
-        assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
-        jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
-        is_oop = (word & (1 << (i % MapWordBits))) != 0;
-      }
+      bool is_oop = is_bit_set(frame_map, i);
       // hotspot stack slots are 4 bytes
       VMReg reg = VMRegImpl::stack2reg(i * 2);
       if (is_oop) {

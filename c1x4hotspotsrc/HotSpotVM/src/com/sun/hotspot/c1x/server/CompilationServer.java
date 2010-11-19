@@ -105,7 +105,7 @@ public class CompilationServer {
                 if (c.clazz == CiConstant.class) {
                     return CiConstant.forBoxed((CiKind) c.values[0], c.values[1]);
                 } else if (c.clazz == CiDebugInfo.class) {
-                    return new CiDebugInfo((CiCodePos) c.values[0], (Long) c.values[2], (CiBitMap) c.values[3]);
+                    return new CiDebugInfo((CiCodePos) c.values[0], (CiBitMap) c.values[2], (CiBitMap) c.values[3]);
                 } else if (c.clazz == CiCodePos.class) {
                     return new CiCodePos((CiCodePos) c.values[0], (RiMethod) c.values[1], (Integer) c.values[2]);
                 }
