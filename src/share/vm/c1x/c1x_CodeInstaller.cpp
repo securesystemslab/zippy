@@ -88,7 +88,6 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
       // hotspot stack slots are 4 bytes
       VMReg reg = VMRegImpl::stack2reg(i * 2);
       if (is_oop) {
-        tty->print_cr("oop is set at %d (%d)", i, i*8);
         map->set_oop(reg);
       } else {
         map->set_value(reg);
