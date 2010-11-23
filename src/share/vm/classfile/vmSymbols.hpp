@@ -295,8 +295,8 @@
   template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;J)Lcom/sun/cri/ri/RiType;")                   \
   template(createRiConstantPool_name,                 "createRiConstantPool")                                           \
   template(createRiConstantPool_signature,            "(J)Lcom/sun/cri/ri/RiConstantPool;")                             \
-  template(createCiConstantLong_name,                 "createCiConstantLong")                                           \
-  template(createCiConstantLong_signature,            "(J)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstant_name,                     "createCiConstant")                                               \
+  template(createCiConstant_signature,                "(Lcom/sun/cri/ci/CiKind;J)Lcom/sun/cri/ci/CiConstant;")          \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
   template(createCiConstantFloat_signature,           "(F)Lcom/sun/cri/ci/CiConstant;")                                 \
   template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \

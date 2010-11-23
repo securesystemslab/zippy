@@ -63,8 +63,8 @@ public:
   // public abstract RiSignature createRiSignature(String signature);
   static oop createRiSignature(Handle name, TRAPS);
 
-  // public abstract CiConstant createCiConstantLong(long value);
-  static oop createCiConstantLong(jlong value, TRAPS);
+  // public abstract CiConstant createCiConstant(CiKind kind, long value);
+  static oop createCiConstant(Handle kind, jlong value, TRAPS);
 
   // public abstract CiConstant createCiConstantFloat(float value);
   static oop createCiConstantFloat(jfloat value, TRAPS);

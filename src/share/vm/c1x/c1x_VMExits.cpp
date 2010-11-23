@@ -174,12 +174,13 @@ oop VMExits::createRiSignature(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createCiConstantLong(jlong value, TRAPS) {
+oop VMExits::createCiConstant(Handle kind, jlong value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
+  args.push_oop(kind());
   args.push_long(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantLong_name(), vmSymbols::createCiConstantLong_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstant_name(), vmSymbols::createCiConstant_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
   return (oop) result.get_jobject();
 

@@ -47,16 +47,16 @@ VMReg get_hotspot_reg(jint c1x_reg) {
 }
 
 static bool is_bit_set(oop bit_map, int i) {
-  if (i < 64) {
+  const int MapWordBits = 64;
+  if (i < MapWordBits) {
     jlong low = CiBitMap::low(bit_map);
-    return (low & (1 << i)) != 0;
+    return (low & (1L << i)) != 0;
   } else {
-    const unsigned int MapWordBits = 64;
     jint extra_idx = (i - MapWordBits) / MapWordBits;
     arrayOop extra = (arrayOop) CiBitMap::extra(bit_map);
     assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
     jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
-    return (word & (1 << (i % MapWordBits))) != 0;
+    return (word & (1L << (i % MapWordBits))) != 0;
   }
 }
 
@@ -88,6 +88,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
       // hotspot stack slots are 4 bytes
       VMReg reg = VMRegImpl::stack2reg(i * 2);
       if (is_oop) {
+        tty->print_cr("oop is set at %d (%d)", i, i*8);
         map->set_oop(reg);
       } else {
         map->set_value(reg);

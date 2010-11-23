@@ -147,7 +147,7 @@ public final class Compiler {
         runtime = new HotSpotRuntime(config);
         final int wordSize = 8;
         final int stackFrameAlignment = 16;
-        registerConfig = runtime.regConfig;
+        registerConfig = runtime.globalStubRegConfig;
         target = new HotSpotTarget(new AMD64(), true, wordSize, wordSize, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, wordSize, config.codeEntryAlignment, true);
 
         if (Logger.ENABLED) {

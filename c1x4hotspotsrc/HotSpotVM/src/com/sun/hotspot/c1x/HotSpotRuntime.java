@@ -42,11 +42,13 @@ public class HotSpotRuntime implements RiRuntime {
 
     final HotSpotVMConfig config;
     final HotSpotRegisterConfig regConfig;
+    final HotSpotRegisterConfig globalStubRegConfig;
 
 
     public HotSpotRuntime(HotSpotVMConfig config) {
         this.config = config;
-        regConfig = new HotSpotRegisterConfig(config);
+        regConfig = new HotSpotRegisterConfig(config, false);
+        globalStubRegConfig = new HotSpotRegisterConfig(config, true);
     }
 
     @Override

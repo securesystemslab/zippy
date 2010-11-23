@@ -168,10 +168,9 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
   if (tag.is_int()) {
-    result = VMExits::createCiConstantLong(cp->int_at(index), CHECK_0);
-    CiValue::set_kind(result, CiKind::Int());
+    result = VMExits::createCiConstant(CiKind::Int(), cp->int_at(index), CHECK_0);
   } else if (tag.is_long()) {
-    result = VMExits::createCiConstantLong(cp->long_at(index), CHECK_0);
+    result = VMExits::createCiConstant(CiKind::Long(), cp->long_at(index), CHECK_0);
   } else if (tag.is_float()) {
     result = VMExits::createCiConstantFloat(cp->float_at(index), CHECK_0);
   } else if (tag.is_double()) {
@@ -274,27 +273,22 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
         constant_object = VMExits::createCiConstantDouble(constant.as_double(), CHECK_0);
         break;
       case T_LONG:
-        constant_object = VMExits::createCiConstantLong(constant.as_long(), CHECK_0);
+        constant_object = VMExits::createCiConstant(CiKind::Long(), constant.as_long(), CHECK_0);
         break;
       case T_INT:
-        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
-        CiValue::set_kind(constant_object, CiKind::Int());
+        constant_object = VMExits::createCiConstant(CiKind::Int(), constant.as_int(), CHECK_0);
         break;
       case T_SHORT:
-        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
-        CiValue::set_kind(constant_object, CiKind::Short());
+        constant_object = VMExits::createCiConstant(CiKind::Short(), constant.as_int(), CHECK_0);
         break;
       case T_CHAR:
-        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
-        CiValue::set_kind(constant_object, CiKind::Char());
+        constant_object = VMExits::createCiConstant(CiKind::Char(), constant.as_int(), CHECK_0);
         break;
       case T_BYTE:
-        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
-        CiValue::set_kind(constant_object, CiKind::Byte());
+        constant_object = VMExits::createCiConstant(CiKind::Byte(), constant.as_int(), CHECK_0);
         break;
       case T_BOOLEAN:
-        constant_object = VMExits::createCiConstantLong(constant.as_int(), CHECK_0);
-        CiValue::set_kind(constant_object, CiKind::Boolean());
+        constant_object = VMExits::createCiConstant(CiKind::Boolean(), constant.as_int(), CHECK_0);
         break;
       default:
         constant.print();

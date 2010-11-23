@@ -143,6 +143,7 @@ void c1x_compute_offsets();
     static_oop_field(CiKind, Char, "Lcom/sun/cri/ci/CiKind;");                          \
     static_oop_field(CiKind, Short, "Lcom/sun/cri/ci/CiKind;");                         \
     static_oop_field(CiKind, Int, "Lcom/sun/cri/ci/CiKind;");                           \
+    static_oop_field(CiKind, Long, "Lcom/sun/cri/ci/CiKind;");                          \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \

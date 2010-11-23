@@ -67,23 +67,29 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     private final CiRegister[] xmmParameterRegisters = {xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7};
     private final CiRegister[] allParameterRegisters;
 
-    public static final CiCalleeSaveArea RSA;
-    static {
-        CiRegister[] rsaRegs = {
-            rax,  rcx,  rdx,   rbx,   rsp,   rbp,   rsi,   rdi,
-            r8,   r9,   r10,   r11,   r12,   r13,   r14,   r15,
-            xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7,
-            xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
-        };
-        RSA = new CiCalleeSaveArea(-1, rsaRegs, 8);
-    }
+    private final CiRegister[] rsaRegs = {
+        rax,  rcx,  rdx,   rbx,   rsp,   rbp,   rsi,   rdi,
+        r8,   r9,   r10,   r11,   r12,   r13,   r14,   r15,
+        xmm0, xmm1, xmm2,  xmm3,  xmm4,  xmm5,  xmm6,  xmm7,
+        xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
+    };
 
-    public HotSpotRegisterConfig(HotSpotVMConfig config) {
+    private final CiCalleeSaveArea registerSaveArea;
+
+
+    public HotSpotRegisterConfig(HotSpotVMConfig config, boolean globalStubConfig) {
         if (config.windowsOs) {
             generalParameterRegisters = new CiRegister[] {rdx, r8, r9, rdi, rsi, rcx};
         } else {
             generalParameterRegisters = new CiRegister[] {rsi, rdx, rcx, r8, r9, rdi};
         }
+
+        if (globalStubConfig) {
+            registerSaveArea = new CiCalleeSaveArea(-1, rsaRegs, 8);
+        } else {
+            registerSaveArea = CiCalleeSaveArea.EMPTY;
+        }
+
         attributesMap = RiRegisterAttributes.createMap(this, AMD64.allRegisters);
         allParameterRegisters = Arrays.copyOf(generalParameterRegisters, generalParameterRegisters.length + xmmParameterRegisters.length);
         System.arraycopy(xmmParameterRegisters, 0, allParameterRegisters, generalParameterRegisters.length, xmmParameterRegisters.length);
@@ -190,7 +196,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     }
 
     public CiCalleeSaveArea getCalleeSaveArea() {
-        return RSA;
+        return registerSaveArea;
     }
 
     @Override

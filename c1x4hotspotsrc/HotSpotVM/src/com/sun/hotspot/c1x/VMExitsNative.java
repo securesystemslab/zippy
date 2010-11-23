@@ -235,8 +235,22 @@ public class VMExitsNative implements VMExits {
     }
 
     @Override
-    public CiConstant createCiConstantLong(long value) {
-        return CiConstant.forLong(value);
+    public CiConstant createCiConstant(CiKind kind, long value) {
+        if (kind == CiKind.Long) {
+            return CiConstant.forLong(value);
+        } else if (kind == CiKind.Int) {
+            return CiConstant.forInt((int) value);
+        } else if (kind == CiKind.Short) {
+            return CiConstant.forShort((short) value);
+        } else if (kind == CiKind.Char) {
+            return CiConstant.forChar((char) value);
+        } else if (kind == CiKind.Byte) {
+            return CiConstant.forByte((byte) value);
+        } else if (kind == CiKind.Boolean) {
+            return (value == 0) ? CiConstant.FALSE : CiConstant.TRUE;
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
 
     @Override
