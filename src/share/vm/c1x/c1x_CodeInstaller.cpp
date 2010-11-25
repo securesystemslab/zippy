@@ -484,7 +484,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       }
       case MARK_INVOKESTATIC: {
         assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
-
         call->set_destination(SharedRuntime::get_resolve_static_call_stub());
         _instructions->relocate(call->instruction_address(), relocInfo::static_call_type, Assembler::call32_operand);
         break;

@@ -835,7 +835,9 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* thread, Runtime1::StubID stub_i
           k = resolved->klass_part()->java_mirror();
         }
         break;
-      default: Unimplemented();
+      default:
+        tty->print_cr("Unhandled bytecode: %d stub_id=%d caller=%s bci=%d pc=%d", code, stub_id, caller_method->name()->as_C_string(), bci, caller_frame.pc());
+        Unimplemented();
     }
     // convert to handle
     load_klass = Handle(THREAD, k);

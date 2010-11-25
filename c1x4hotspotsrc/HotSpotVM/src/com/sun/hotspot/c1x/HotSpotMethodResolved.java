@@ -170,7 +170,7 @@ public class HotSpotMethodResolved implements HotSpotMethod {
 
     @Override
     public String toString() {
-        return "HotSpotMethod<" + holder.name() + ". " + name + ">";
+        return "HotSpotMethod<" + holder().name() + ". " + name + ">";
     }
 
     @Override
