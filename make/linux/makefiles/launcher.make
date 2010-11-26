@@ -72,5 +72,5 @@ $(LAUNCHER): $(LAUNCHER.o) $(LIBJVM) $(LAUNCHER_MAPFILE)
 	    $(LINK_LAUNCHER/PRE_HOOK) \
 	    $(LINK_LAUNCHER) $(LFLAGS_LAUNCHER) -o $@ $(LAUNCHER.o) $(LIBS_LAUNCHER); \
 	    $(LINK_LAUNCHER/POST_HOOK) \
-	    [ -f $(LAUNCHER_G) ] || { ln -s $@ $(LAUNCHER_G); }; \
+	    #[ -f $(LAUNCHER_G) ] || { ln -s $@ $(LAUNCHER_G); }; \
         }

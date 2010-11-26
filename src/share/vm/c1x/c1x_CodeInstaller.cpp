@@ -127,7 +127,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
   } else if (value->is_a(CiConstant::klass())){
     oop obj = CiConstant::object(value);
     jlong prim = CiConstant::primitive(value);
-    if (type == T_INT || type == T_FLOAT) {
+    if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
       return new ConstantIntValue(*(jint*)&prim);
     } else if (type == T_LONG || type == T_DOUBLE) {
       return new ConstantLongValue(prim);
@@ -139,7 +139,8 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
         obj->print();
         ShouldNotReachHere();
       }
-      //return new ConstantOopWriteValue()
+    } else if (type == T_ADDRESS) {
+      return new ConstantLongValue(prim);
     }
     tty->print("%i", type);
     ShouldNotReachHere();

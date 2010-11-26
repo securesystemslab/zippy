@@ -209,7 +209,6 @@ $(LIBJVM): $(LIBJVM.o) $(LIBJVM_MAPFILE) $(LD_SCRIPT)
 		       $(LFLAGS_VM) -o $@ $(LIBJVM.o) $(LIBS_VM);       \
 	    $(LINK_LIB.CC/POST_HOOK)                                    \
 	    rm -f $@.1; ln -s $@ $@.1;                                  \
-	    [ -f $(LIBJVM_G) ] || { ln -s $@ $(LIBJVM_G); ln -s $@.1 $(LIBJVM_G).1; }; \
 	    if [ -x /usr/sbin/selinuxenabled ] ; then                   \
 	      /usr/sbin/selinuxenabled;                                 \
               if [ $$? = 0 ] ; then					\
@@ -220,6 +219,7 @@ $(LIBJVM): $(LIBJVM.o) $(LIBJVM_MAPFILE) $(LD_SCRIPT)
 	      fi							\
 	    fi                                                          \
 	}
+	    #[ -f $(LIBJVM_G) ] || { ln -s $@ $(LIBJVM_G); ln -s $@.1 $(LIBJVM_G).1; }; \
 
 DEST_JVM = $(JDK_LIBDIR)/$(VM_SUBDIR)/$(LIBJVM)
 

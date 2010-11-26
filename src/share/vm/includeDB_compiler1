@@ -453,6 +453,8 @@ c1x_CodeInstaller.cpp                   c1x_Compiler.hpp
 c1x_CodeInstaller.cpp                   c1x_TargetMethod.hpp
 c1x_CodeInstaller.cpp                   c1x_VmIds.hpp
 c1x_CodeInstaller.cpp                   c1_Runtime1.hpp
+c1x_CodeInstaller.cpp                   vmreg.hpp
+c1x_CodeInstaller.cpp                   vmreg_<arch>.inline.hpp
 
 c1x_Compiler.hpp                        abstractCompiler.hpp
 

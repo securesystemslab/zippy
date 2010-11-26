@@ -151,6 +151,7 @@ BasicType C1XCompiler::kindToBasicType(jchar ch) {
     case 'l': return T_LONG;
     case 'd': return T_DOUBLE;
     case 'a': return T_OBJECT;
+    case 'r': return T_ADDRESS;
     case '-': return T_ILLEGAL;
     default:
       fatal1("unexpected CiKind: %c", ch);

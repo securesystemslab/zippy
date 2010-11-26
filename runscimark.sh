@@ -1,6 +1,6 @@
 #!/bin/bash
-if [ -z "${JRE7}" ]; then
-  echo "JRE7 is not defined."
+if [ -z "${JDK7}" ]; then
+  echo "JDK7 is not defined."
   exit 1;
 fi
 if [ -z "${MAXINE}" ]; then
@@ -18,5 +18,5 @@ fi
 for (( i = 1; i <= 5000; i++ ))      ### Outer for loop ###
 do
   echo "$i "
-  ${JRE7}/bin/java -client -esa -ea -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+UseC1X -Xms32m -Xmx100m -Xbootclasspath/p:${MAXINE}/C1X/bin:${MAXINE}/CRI/bin:${MAXINE}/Base/bin:${MAXINE}/Assembler/bin:${C1X}/c1x4hotspotsrc/HotSpotVM/bin -Xbootclasspath/a:${SCIMARK} -C1X:+PrintTimers  jnt.scimark2.commandline -large
+  ${JDK7}/jre/bin/java -client -esa -ea -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+PrintCompilation -XX:+UseC1X -Xms32m -Xmx100m -Xbootclasspath/p:${MAXINE}/C1X/bin:${MAXINE}/CRI/bin:${MAXINE}/Base/bin:${MAXINE}/Assembler/bin:${C1X}/c1x4hotspotsrc/HotSpotVM/bin -Xbootclasspath/a:${SCIMARK} -C1X:+PrintTimers  jnt.scimark2.commandline -large
 done
