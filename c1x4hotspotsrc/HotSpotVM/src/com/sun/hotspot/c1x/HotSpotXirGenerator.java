@@ -372,12 +372,12 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 return asm.finishTemplate("putfield<" + kind + ">");
             }
             XirParameter fieldOffset = asm.createConstantInputParameter("fieldOffset", CiKind.Int);
+            if (kind == CiKind.Object) {
+                verifyPointer(asm, value);
+            }
             if (is(NULL_CHECK, flags)) {
                 asm.nop(1);
                 asm.mark(MARK_IMPLICIT_NULL);
-            }
-            if (kind == CiKind.Object) {
-                verifyPointer(asm, value);
             }
             asm.pstore(kind, object, fieldOffset, value, is(NULL_CHECK, flags));
             if (is(WRITE_BARRIER, flags)) {

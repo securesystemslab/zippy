@@ -66,7 +66,7 @@ ciInstanceKlass::ciInstanceKlass(KlassHandle h_k) :
     Handle h_protection_domain(thread, ik->protection_domain());
     _loader = JNIHandles::make_global(h_loader);
     _protection_domain = JNIHandles::make_global(h_protection_domain);
-    _is_shared = true;
+    _is_shared = !ciObjectFactory::is_initialized();
   }
 
   // Lazy fields get filled in only upon request.

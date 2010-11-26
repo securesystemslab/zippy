@@ -165,6 +165,7 @@ ciEnv::ciEnv(Arena* arena) {
 }
 
 ciEnv::~ciEnv() {
+  _factory->cleanup();
   CompilerThread* current_thread = CompilerThread::current();
   current_thread->set_env(NULL);
 }

@@ -1616,7 +1616,7 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
     }
 
 	// (tw) Check if we may do this?
-    //NoHandleMark  nhm;
+    // NoHandleMark  nhm;
     ThreadToNativeFromVM ttn(thread);
 
     ciEnv ci_env(task, system_dictionary_modification_counter);
