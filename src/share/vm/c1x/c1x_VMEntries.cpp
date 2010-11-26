@@ -314,7 +314,16 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMeth
   VM_ENTRY_MARK;
 
   klassOop klass = VmIds::get<klassOop>(vmId);
-  methodOop method = klass->klass_part()->lookup_method(VmIds::toSymbol(name), VmIds::toSymbol(signature));
+  symbolOop name_symbol = VmIds::toSymbol(name);
+  symbolOop signature_symbol = VmIds::toSymbol(signature);
+  methodOop method = klass->klass_part()->lookup_method(name_symbol, signature_symbol);
+  if (method == NULL) {
+    if (TraceC1X >= 3) {
+      ResourceMark rm;
+      tty->print_cr("Could not resolve method %s %s on klass %d", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->klass_part()->name()->as_C_string());
+    }
+    return NULL;
+  }
   return JNIHandles::make_local(THREAD, VMExits::createRiMethodResolved(VmIds::add<methodOop>(method), Handle(JNIHandles::resolve(name)), THREAD));
 }
 
