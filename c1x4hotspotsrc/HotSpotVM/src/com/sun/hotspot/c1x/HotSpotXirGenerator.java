@@ -993,9 +993,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             asm.bindInline(patchSite);
             asm.mark(MARK_DUMMY_OOP_RELOCATION);
-            asm.jmp(patchStub);
 
-            // TODO(tw): Need a safepoint here?
+            asm.jmp(patchStub);
 
             // TODO: make this more generic & safe - this is needed to create space for patching
             asm.nop(5);

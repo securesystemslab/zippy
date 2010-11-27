@@ -38,8 +38,22 @@ public class HotSpotTypeUnresolved implements HotSpotType {
      * Creates a new unresolved type for a specified type descriptor.
      */
     public HotSpotTypeUnresolved(String name, long accessingClassVmId) {
+        assert name.length() > 0 : "name cannot be empty";
+
+        int dimensions = 0;
+        // Decode name if necessary.
+        if (name.charAt(name.length() - 1) == ';') {
+            int startIndex = 0;
+            while (name.charAt(startIndex) == '[') {
+                startIndex++;
+                dimensions++;
+            }
+            assert name.charAt(startIndex) == 'L';
+            name = name.substring(startIndex + 1, name.length() - 1);
+        }
+
         this.name = name;
-        this.dimensions = 0;
+        this.dimensions = dimensions;
         this.accessingClassVmId = accessingClassVmId;
     }
 
@@ -127,7 +141,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public RiType componentType() {
-        assert dimensions > 0;
+        assert isArrayClass() : "no array class" + name();
         return new HotSpotTypeUnresolved(name, dimensions - 1, accessingClassVmId);
     }
 
@@ -177,7 +191,6 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public CiKind getRepresentationKind(RiType.Representation r) {
-        // TODO: Check if this is correct.
         return CiKind.Object;
     }
 

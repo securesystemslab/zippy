@@ -637,7 +637,19 @@ JRT_LEAF(void, Runtime1::monitorexit(JavaThread* thread, BasicObjectLock* lock))
   EXCEPTION_MARK;
 
   oop obj = lock->obj();
-  assert(obj->is_oop(), "must be NULL or an object");
+
+#ifdef DEBUG
+  if (!obj->is_oop()) {
+    ResetNoHandleMark rhm;
+    nmethod* method = thread->last_frame().cb()->as_nmethod_or_null();
+    if (method != NULL) {
+      tty->print_cr("ERROR in monitorexit in method %s", method->name());
+    }
+    thread->print_stack_on(tty);
+    assert(false, "invalid lock object pointer dected");
+  }
+#endif
+
   if (UseFastLocking) {
     // When using fast locking, the compiled code has already tried the fast case
     ObjectSynchronizer::slow_exit(obj, lock->lock(), THREAD);
