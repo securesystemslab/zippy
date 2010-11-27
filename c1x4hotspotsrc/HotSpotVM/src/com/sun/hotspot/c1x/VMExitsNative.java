@@ -26,6 +26,7 @@ import java.lang.reflect.*;
 import java.util.*;
 
 import com.sun.c1x.*;
+import com.sun.c1x.debug.*;
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 import com.sun.hotspot.c1x.logging.*;
@@ -138,7 +139,7 @@ public class VMExitsNative implements VMExits {
                 StringWriter out = new StringWriter();
                 result.bailout().printStackTrace(new PrintWriter(out));
                 Throwable cause = result.bailout().getCause();
-                Logger.info("Bailout:\n" + out.toString());
+                TTY.println("Bailout:\n" + out.toString());
                 if (cause != null) {
                     Logger.info("Trace for cause: ");
                     for (StackTraceElement e : cause.getStackTrace()) {
@@ -157,7 +158,7 @@ public class VMExitsNative implements VMExits {
         } catch (Throwable t) {
             StringWriter out = new StringWriter();
             t.printStackTrace(new PrintWriter(out));
-            Logger.info("Compilation interrupted:\n" + out.toString());
+            TTY.println("Compilation interrupted:\n" + out.toString());
             throw t;
         }
     }

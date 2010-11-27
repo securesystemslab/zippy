@@ -272,6 +272,9 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
       case T_DOUBLE:
         constant_object = VMExits::createCiConstantDouble(constant.as_double(), CHECK_0);
         break;
+      case T_FLOAT:
+        constant_object = VMExits::createCiConstantFloat(constant.as_float(), CHECK_0);
+        break;
       case T_LONG:
         constant_object = VMExits::createCiConstant(CiKind::Long(), constant.as_long(), CHECK_0);
         break;

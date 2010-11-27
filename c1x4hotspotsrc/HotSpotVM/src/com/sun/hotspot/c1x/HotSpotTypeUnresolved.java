@@ -44,6 +44,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
     }
 
     public HotSpotTypeUnresolved(String name, int dimensions, long accessingClassVmId) {
+        assert dimensions >= 0;
         this.name = name;
         this.dimensions = dimensions;
         this.accessingClassVmId = accessingClassVmId;
@@ -126,8 +127,8 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public RiType componentType() {
-        // TODO: Implement
-        throw new UnsupportedOperationException();
+        assert dimensions > 0;
+        return new HotSpotTypeUnresolved(name, dimensions - 1, accessingClassVmId);
     }
 
     @Override

@@ -66,7 +66,6 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public RiType exactType() {
-        // TODO is this correct? what's this exactType good for?
         if (Modifier.isFinal(accessFlags)) {
             return this;
         }

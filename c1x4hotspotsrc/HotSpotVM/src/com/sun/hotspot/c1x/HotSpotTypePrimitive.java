@@ -55,8 +55,7 @@ public class HotSpotTypePrimitive implements HotSpotType {
 
     @Override
     public RiType exactType() {
-        // TODO Auto-generated method stub
-        return null;
+        return this;
     }
 
     @Override
