@@ -551,16 +551,8 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
         TRACE_C1X_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
       } else {
         jobject value;
-        if (java_lang_boxing_object::is_instance(obj(), T_LONG)) {
-          jlong id = obj->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
-
-          //assert((id & VmIds::TYPE_MASK) == VmIds::CONSTANT, "unexpected DataPatch type");
-          address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-          if (id == VmIds::DUMMY_CONSTANT) {
-            value = (jobject) Universe::non_oop_word();
-          } else {
-            value = JNIHandles::make_local(VmIds::get<oop>(id));
-          }
+        if (obj() == HotSpotProxy::DUMMY_CONSTANT_OBJ()) {
+          value = (jobject) Universe::non_oop_word();
         } else {
           value = JNIHandles::make_local(obj());
         }

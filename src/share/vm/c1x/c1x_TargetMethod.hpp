@@ -64,6 +64,9 @@ void c1x_compute_offsets();
   start_class(HotSpotMethodResolved)                                                    \
     long_field(HotSpotMethodResolved, vmId)                                             \
   end_class                                                                             \
+  start_class(HotSpotProxy)                                                             \
+    static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \
+  end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/sun/cri/ci/CiTargetMethod;")     \
     oop_field(HotSpotTargetMethod, method, "Lcom/sun/hotspot/c1x/HotSpotMethodResolved;")\
