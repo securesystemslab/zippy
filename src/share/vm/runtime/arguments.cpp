@@ -2549,6 +2549,35 @@ SOLARIS_ONLY(
           return JNI_EINVAL;
         }
       }
+    } else if (match_option(option, "-graal", &tail)) {
+      if (PrintVMOptions) {
+        tty->print("Running Graal VM... ");
+      }
+      UseC1X = true;
+      BootstrapC1X = true;
+      const int BUFFER_SIZE = 1024;
+      char maxine_dir[BUFFER_SIZE];
+      char graal_dir[BUFFER_SIZE];
+      char temp[BUFFER_SIZE];
+      if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
+        fatal("Must set MAXINE environment variable to a Maxine project directory.");
+      }
+      if (PrintVMOptions) tty->print("MAXINE=%s", maxine_dir);
+      if (!os::getenv("GRAAL", graal_dir, sizeof(graal_dir))) {
+        fatal("Must set GRAAL environment variable to a Graal project directory.");
+      }
+      if (PrintVMOptions) tty->print_cr(" GRAAL=%s", graal_dir);
+      sprintf(temp, "%s/C1X/bin", maxine_dir);
+      scp_p->add_prefix(temp);
+      sprintf(temp, "%s/CRI/bin", maxine_dir);
+      scp_p->add_prefix(temp);
+      sprintf(temp, "%s/Base/bin", maxine_dir);
+      scp_p->add_prefix(temp);
+      sprintf(temp, "%s/Assembler/bin", maxine_dir);
+      scp_p->add_prefix(temp);
+      sprintf(temp, "%s/c1x4hotspotsrc/HotSpotVM/bin", graal_dir);
+      scp_p->add_prefix(temp);
+      *scp_assembly_required_p = true;
     } else if (match_option(option, "-C1X:", &tail)) { // -C1X:xxxx
       // Option for the C1X compiler.
       if (PrintVMOptions) {
