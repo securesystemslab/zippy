@@ -148,6 +148,10 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookup
         protectionDomain = VmIds::get<klassOop>(accessingClassVmId)->klass_part()->protection_domain();
       }
       resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+      if (HAS_PENDING_EXCEPTION) {
+        CLEAR_PENDING_EXCEPTION;
+        resolved_type = NULL;
+      }
     }
     if (resolved_type != NULL) {
       result = C1XCompiler::createHotSpotTypeResolved(resolved_type, name, CHECK_NULL);

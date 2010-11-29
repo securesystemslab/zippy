@@ -3293,12 +3293,13 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     if (JvmtiExport::should_post_thread_life()) {
        JvmtiExport::post_thread_start(thread);
     }
-    // Check if we should compile all classes on bootclasspath
-    NOT_PRODUCT(if (CompileTheWorld) ClassLoader::compile_the_world();)
 
     if (BootstrapC1X) {
       CompileBroker::bootstrap_c1x();
     }
+
+    // Check if we should compile all classes on bootclasspath
+    NOT_PRODUCT(if (CompileTheWorld) ClassLoader::compile_the_world();)
 
     // Since this is not a JVM_ENTRY we have to set the thread state manually before leaving.
     ThreadStateTransition::transition_and_fence(thread, _thread_in_vm, _thread_in_native);

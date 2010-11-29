@@ -43,6 +43,9 @@ KlassHandle VMExits::vmExitsKlass() {
 Handle VMExits::instance() {
   if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
     KlassHandle compiler_klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    if (compiler_klass.is_null()) {
+      fatal("Could not find class com.sun.hotspot.c1x.Compiler");
+    }
     JavaValue result(T_OBJECT);
     JavaCallArguments args;
     JavaCalls::call_static(&result, compiler_klass(), vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), &args, Thread::current());

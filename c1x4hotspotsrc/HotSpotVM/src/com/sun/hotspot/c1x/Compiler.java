@@ -20,7 +20,6 @@
  */
 package com.sun.hotspot.c1x;
 
-import java.lang.management.*;
 import java.lang.reflect.Proxy;
 import java.net.*;
 
