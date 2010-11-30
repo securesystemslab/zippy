@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -81,20 +81,24 @@ void G1MMUTrackerQueue::add_pause(double start, double end, bool gc_thread) {
 
   remove_expired_entries(end);
   if (_no_entries == QueueLength) {
-    // OK, right now when we fill up we bomb out
-    // there are a few ways of dealing with this "gracefully"
+    // OK, we've filled up the queue. There are a few ways
+    // of dealing with this "gracefully"
     //   increase the array size (:-)
     //   remove the oldest entry (this might allow more GC time for
-    //     the time slice than what's allowed)
+    //     the time slice than what's allowed) - this is what we
+    //     currently do
     //   consolidate the two entries with the minimum gap between them
     //     (this might allow less GC time than what's allowed)
-    guarantee(NOT_PRODUCT(ScavengeALot ||) G1UseFixedWindowMMUTracker,
-              "array full, currently we can't recover unless +G1UseFixedWindowMMUTracker");
+
     // In the case where ScavengeALot is true, such overflow is not
     // uncommon; in such cases, we can, without much loss of precision
     // or performance (we are GC'ing most of the time anyway!),
-    // simply overwrite the oldest entry in the tracker: this
-    // is also the behaviour when G1UseFixedWindowMMUTracker is enabled.
+    // simply overwrite the oldest entry in the tracker.
+
+    if (G1PolicyVerbose > 1) {
+      warning("MMU Tracker Queue overflow. Replacing earliest entry.");
+    }
+
     _head_index = trim_index(_head_index + 1);
     assert(_head_index == _tail_index, "Because we have a full circular buffer");
     _tail_index = trim_index(_tail_index + 1);

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -318,6 +318,51 @@ void TemplateTable::ldc(bool wide) {
   __ bind(exit);
 }
 
+// Fast path for caching oop constants.
+// %%% We should use this to handle Class and String constants also.
+// %%% It will simplify the ldc/primitive path considerably.
+void TemplateTable::fast_aldc(bool wide) {
+  transition(vtos, atos);
+
+  if (!EnableMethodHandles) {
+    // We should not encounter this bytecode if !EnableMethodHandles.
+    // The verifier will stop it.  However, if we get past the verifier,
+    // this will stop the thread in a reasonable way, without crashing the JVM.
+    __ call_VM(noreg, CAST_FROM_FN_PTR(address,
+                     InterpreterRuntime::throw_IncompatibleClassChangeError));
+    // the call_VM checks for exception, so we should never return here.
+    __ should_not_reach_here();
+    return;
+  }
+
+  Register Rcache = G3_scratch;
+  Register Rscratch = G4_scratch;
+
+  resolve_cache_and_index(f1_oop, Otos_i, Rcache, Rscratch, wide ? sizeof(u2) : sizeof(u1));
+
+  __ verify_oop(Otos_i);
+
+  Label L_done;
+  const Register Rcon_klass = G3_scratch;  // same as Rcache
+  const Register Rarray_klass = G4_scratch;  // same as Rscratch
+  __ load_klass(Otos_i, Rcon_klass);
+  AddressLiteral array_klass_addr((address)Universe::systemObjArrayKlassObj_addr());
+  __ load_contents(array_klass_addr, Rarray_klass);
+  __ cmp(Rarray_klass, Rcon_klass);
+  __ brx(Assembler::notEqual, false, Assembler::pt, L_done);
+  __ delayed()->nop();
+  __ ld(Address(Otos_i, arrayOopDesc::length_offset_in_bytes()), Rcon_klass);
+  __ tst(Rcon_klass);
+  __ brx(Assembler::zero, true, Assembler::pt, L_done);
+  __ delayed()->clr(Otos_i);    // executed only if branch is taken
+
+  // Load the exception from the system-array which wraps it:
+  __ load_heap_oop(Otos_i, arrayOopDesc::base_offset_in_bytes(T_OBJECT), Otos_i);
+  __ throw_if_not_x(Assembler::never, Interpreter::throw_exception_entry(), G3_scratch);
+
+  __ bind(L_done);
+}
+
 void TemplateTable::ldc2_w() {
   transition(vtos, vtos);
   Label retry, resolved, Long, exit;
@@ -580,7 +625,6 @@ void TemplateTable::saload() {
 
 void TemplateTable::iload(int n) {
   transition(vtos, itos);
-  debug_only(__ verify_local_tag(frame::TagValue, Llocals, Otos_i, n));
   __ ld( Llocals, Interpreter::local_offset_in_bytes(n), Otos_i );
 }
 
@@ -588,7 +632,6 @@ void TemplateTable::iload(int n) {
 void TemplateTable::lload(int n) {
   transition(vtos, ltos);
   assert(n+1 < Argument::n_register_parameters, "would need more code");
-  debug_only(__ verify_local_tag(frame::TagCategory2, Llocals, Otos_l, n));
   __ load_unaligned_long(Llocals, Interpreter::local_offset_in_bytes(n+1), Otos_l);
 }
 
@@ -596,7 +639,6 @@ void TemplateTable::lload(int n) {
 void TemplateTable::fload(int n) {
   transition(vtos, ftos);
   assert(n < Argument::n_register_parameters, "would need more code");
-  debug_only(__ verify_local_tag(frame::TagValue, Llocals, G3_scratch, n));
   __ ldf( FloatRegisterImpl::S, Llocals, Interpreter::local_offset_in_bytes(n),     Ftos_f );
 }
 
@@ -604,14 +646,12 @@ void TemplateTable::fload(int n) {
 void TemplateTable::dload(int n) {
   transition(vtos, dtos);
   FloatRegister dst = Ftos_d;
-  debug_only(__ verify_local_tag(frame::TagCategory2, Llocals, G3_scratch, n));
   __ load_unaligned_double(Llocals, Interpreter::local_offset_in_bytes(n+1), dst);
 }
 
 
 void TemplateTable::aload(int n) {
   transition(vtos, atos);
-  debug_only(__ verify_local_tag(frame::TagReference, Llocals, Otos_i, n));
   __ ld_ptr( Llocals, Interpreter::local_offset_in_bytes(n), Otos_i );
 }
 
@@ -707,12 +747,11 @@ void TemplateTable::dstore() {
 
 void TemplateTable::astore() {
   transition(vtos, vtos);
-  // astore tos can also be a returnAddress, so load and store the tag too
-  __ load_ptr_and_tag(0, Otos_i, Otos_l2);
-  __ inc(Lesp, Interpreter::stackElementSize());
+  __ load_ptr(0, Otos_i);
+  __ inc(Lesp, Interpreter::stackElementSize);
   __ verify_oop_or_return_address(Otos_i, G3_scratch);
   locals_index(G3_scratch);
-  __ store_local_ptr( G3_scratch, Otos_i, Otos_l2 );
+  __ store_local_ptr(G3_scratch, Otos_i);
 }
 
 
@@ -750,12 +789,11 @@ void TemplateTable::wide_dstore() {
 
 void TemplateTable::wide_astore() {
   transition(vtos, vtos);
-  // astore tos can also be a returnAddress, so load and store the tag too
-  __ load_ptr_and_tag(0, Otos_i, Otos_l2);
-  __ inc(Lesp, Interpreter::stackElementSize());
+  __ load_ptr(0, Otos_i);
+  __ inc(Lesp, Interpreter::stackElementSize);
   __ verify_oop_or_return_address(Otos_i, G3_scratch);
   locals_index_wide(G3_scratch);
-  __ store_local_ptr( G3_scratch, Otos_i, Otos_l2 );
+  __ store_local_ptr(G3_scratch, Otos_i);
 }
 
 
@@ -845,13 +883,13 @@ void TemplateTable::aastore() {
   do_oop_store(_masm, O1, noreg, arrayOopDesc::base_offset_in_bytes(T_OBJECT), Otos_i, G3_scratch, _bs->kind(), true);
 
   __ ba(false,done);
-  __ delayed()->inc(Lesp, 3* Interpreter::stackElementSize()); // adj sp (pops array, index and value)
+  __ delayed()->inc(Lesp, 3* Interpreter::stackElementSize); // adj sp (pops array, index and value)
 
   __ bind(is_null);
   do_oop_store(_masm, O1, noreg, arrayOopDesc::base_offset_in_bytes(T_OBJECT), G0, G4_scratch, _bs->kind(), true);
 
   __ profile_null_seen(G3_scratch);
-  __ inc(Lesp, 3* Interpreter::stackElementSize());     // adj sp (pops array, index and value)
+  __ inc(Lesp, 3* Interpreter::stackElementSize);     // adj sp (pops array, index and value)
   __ bind(done);
 }
 
@@ -884,7 +922,6 @@ void TemplateTable::sastore() {
 
 void TemplateTable::istore(int n) {
   transition(itos, vtos);
-  __ tag_local(frame::TagValue, Llocals, Otos_i, n);
   __ st(Otos_i, Llocals, Interpreter::local_offset_in_bytes(n));
 }
 
@@ -892,7 +929,6 @@ void TemplateTable::istore(int n) {
 void TemplateTable::lstore(int n) {
   transition(ltos, vtos);
   assert(n+1 < Argument::n_register_parameters, "only handle register cases");
-  __ tag_local(frame::TagCategory2, Llocals, Otos_l, n);
   __ store_unaligned_long(Otos_l, Llocals, Interpreter::local_offset_in_bytes(n+1));
 
 }
@@ -901,7 +937,6 @@ void TemplateTable::lstore(int n) {
 void TemplateTable::fstore(int n) {
   transition(ftos, vtos);
   assert(n < Argument::n_register_parameters, "only handle register cases");
-  __ tag_local(frame::TagValue, Llocals, Otos_l, n);
   __ stf(FloatRegisterImpl::S, Ftos_f, Llocals, Interpreter::local_offset_in_bytes(n));
 }
 
@@ -909,30 +944,28 @@ void TemplateTable::fstore(int n) {
 void TemplateTable::dstore(int n) {
   transition(dtos, vtos);
   FloatRegister src = Ftos_d;
-  __ tag_local(frame::TagCategory2, Llocals, Otos_l, n);
   __ store_unaligned_double(src, Llocals, Interpreter::local_offset_in_bytes(n+1));
 }
 
 
 void TemplateTable::astore(int n) {
   transition(vtos, vtos);
-  // astore tos can also be a returnAddress, so load and store the tag too
-  __ load_ptr_and_tag(0, Otos_i, Otos_l2);
-  __ inc(Lesp, Interpreter::stackElementSize());
+  __ load_ptr(0, Otos_i);
+  __ inc(Lesp, Interpreter::stackElementSize);
   __ verify_oop_or_return_address(Otos_i, G3_scratch);
-  __ store_local_ptr( n, Otos_i, Otos_l2 );
+  __ store_local_ptr(n, Otos_i);
 }
 
 
 void TemplateTable::pop() {
   transition(vtos, vtos);
-  __ inc(Lesp, Interpreter::stackElementSize());
+  __ inc(Lesp, Interpreter::stackElementSize);
 }
 
 
 void TemplateTable::pop2() {
   transition(vtos, vtos);
-  __ inc(Lesp, 2 * Interpreter::stackElementSize());
+  __ inc(Lesp, 2 * Interpreter::stackElementSize);
 }
 
 
@@ -940,8 +973,8 @@ void TemplateTable::dup() {
   transition(vtos, vtos);
   // stack: ..., a
   // load a and tag
-  __ load_ptr_and_tag(0, Otos_i, Otos_l2);
-  __ push_ptr(Otos_i, Otos_l2);
+  __ load_ptr(0, Otos_i);
+  __ push_ptr(Otos_i);
   // stack: ..., a, a
 }
 
@@ -949,11 +982,11 @@ void TemplateTable::dup() {
 void TemplateTable::dup_x1() {
   transition(vtos, vtos);
   // stack: ..., a, b
-  __ load_ptr_and_tag(1, G3_scratch, G4_scratch);   // get a
-  __ load_ptr_and_tag(0, Otos_l1, Otos_l2);         // get b
-  __ store_ptr_and_tag(1, Otos_l1, Otos_l2);        // put b
-  __ store_ptr_and_tag(0, G3_scratch, G4_scratch);  // put a - like swap
-  __ push_ptr(Otos_l1, Otos_l2);                    // push b
+  __ load_ptr( 1, G3_scratch);  // get a
+  __ load_ptr( 0, Otos_l1);     // get b
+  __ store_ptr(1, Otos_l1);     // put b
+  __ store_ptr(0, G3_scratch);  // put a - like swap
+  __ push_ptr(Otos_l1);         // push b
   // stack: ..., b, a, b
 }
 
@@ -962,27 +995,27 @@ void TemplateTable::dup_x2() {
   transition(vtos, vtos);
   // stack: ..., a, b, c
   // get c and push on stack, reuse registers
-  __ load_ptr_and_tag(0, G3_scratch, G4_scratch);     // get c
-  __ push_ptr(G3_scratch, G4_scratch);               // push c with tag
+  __ load_ptr( 0, G3_scratch);  // get c
+  __ push_ptr(G3_scratch);      // push c with tag
   // stack: ..., a, b, c, c  (c in reg)  (Lesp - 4)
   // (stack offsets n+1 now)
-  __ load_ptr_and_tag(3, Otos_l1, Otos_l2);          // get a
-  __ store_ptr_and_tag(3, G3_scratch, G4_scratch);   // put c at 3
+  __ load_ptr( 3, Otos_l1);     // get a
+  __ store_ptr(3, G3_scratch);  // put c at 3
   // stack: ..., c, b, c, c  (a in reg)
-  __ load_ptr_and_tag(2, G3_scratch, G4_scratch);    // get b
-  __ store_ptr_and_tag(2, Otos_l1, Otos_l2);         // put a at 2
+  __ load_ptr( 2, G3_scratch);  // get b
+  __ store_ptr(2, Otos_l1);     // put a at 2
   // stack: ..., c, a, c, c  (b in reg)
-  __ store_ptr_and_tag(1, G3_scratch, G4_scratch);   // put b at 1
+  __ store_ptr(1, G3_scratch);  // put b at 1
   // stack: ..., c, a, b, c
 }
 
 
 void TemplateTable::dup2() {
   transition(vtos, vtos);
-  __ load_ptr_and_tag(1, G3_scratch, G4_scratch);     // get a
-  __ load_ptr_and_tag(0, Otos_l1, Otos_l2);           // get b
-  __ push_ptr(G3_scratch, G4_scratch);                // push a
-  __ push_ptr(Otos_l1, Otos_l2);                      // push b
+  __ load_ptr(1, G3_scratch);  // get a
+  __ load_ptr(0, Otos_l1);     // get b
+  __ push_ptr(G3_scratch);     // push a
+  __ push_ptr(Otos_l1);        // push b
   // stack: ..., a, b, a, b
 }
 
@@ -990,17 +1023,17 @@ void TemplateTable::dup2() {
 void TemplateTable::dup2_x1() {
   transition(vtos, vtos);
   // stack: ..., a, b, c
-  __ load_ptr_and_tag(1, Lscratch, G1_scratch);       // get b
-  __ load_ptr_and_tag(2, Otos_l1, Otos_l2);           // get a
-  __ store_ptr_and_tag(2, Lscratch, G1_scratch);      // put b at a
+  __ load_ptr( 1, Lscratch);    // get b
+  __ load_ptr( 2, Otos_l1);     // get a
+  __ store_ptr(2, Lscratch);    // put b at a
   // stack: ..., b, b, c
-  __ load_ptr_and_tag(0, G3_scratch, G4_scratch);     // get c
-  __ store_ptr_and_tag(1, G3_scratch, G4_scratch);    // put c at b
+  __ load_ptr( 0, G3_scratch);  // get c
+  __ store_ptr(1, G3_scratch);  // put c at b
   // stack: ..., b, c, c
-  __ store_ptr_and_tag(0, Otos_l1, Otos_l2);          // put a at c
+  __ store_ptr(0, Otos_l1);     // put a at c
   // stack: ..., b, c, a
-  __ push_ptr(Lscratch, G1_scratch);                  // push b
-  __ push_ptr(G3_scratch, G4_scratch);                // push c
+  __ push_ptr(Lscratch);        // push b
+  __ push_ptr(G3_scratch);      // push c
   // stack: ..., b, c, a, b, c
 }
 
@@ -1010,18 +1043,18 @@ void TemplateTable::dup2_x1() {
 void TemplateTable::dup2_x2() {
   transition(vtos, vtos);
   // stack: ..., a, b, c, d
-  __ load_ptr_and_tag(1, Lscratch, G1_scratch);       // get c
-  __ load_ptr_and_tag(3, Otos_l1, Otos_l2);           // get a
-  __ store_ptr_and_tag(3, Lscratch, G1_scratch);      // put c at 3
-  __ store_ptr_and_tag(1, Otos_l1, Otos_l2);          // put a at 1
+  __ load_ptr( 1, Lscratch);    // get c
+  __ load_ptr( 3, Otos_l1);     // get a
+  __ store_ptr(3, Lscratch);    // put c at 3
+  __ store_ptr(1, Otos_l1);     // put a at 1
   // stack: ..., c, b, a, d
-  __ load_ptr_and_tag(2, G3_scratch, G4_scratch);     // get b
-  __ load_ptr_and_tag(0, Otos_l1, Otos_l2);           // get d
-  __ store_ptr_and_tag(0, G3_scratch, G4_scratch);    // put b at 0
-  __ store_ptr_and_tag(2, Otos_l1, Otos_l2);          // put d at 2
+  __ load_ptr( 2, G3_scratch);  // get b
+  __ load_ptr( 0, Otos_l1);     // get d
+  __ store_ptr(0, G3_scratch);  // put b at 0
+  __ store_ptr(2, Otos_l1);     // put d at 2
   // stack: ..., c, d, a, b
-  __ push_ptr(Lscratch, G1_scratch);                  // push c
-  __ push_ptr(Otos_l1, Otos_l2);                      // push d
+  __ push_ptr(Lscratch);        // push c
+  __ push_ptr(Otos_l1);         // push d
   // stack: ..., c, d, a, b, c, d
 }
 
@@ -1029,10 +1062,10 @@ void TemplateTable::dup2_x2() {
 void TemplateTable::swap() {
   transition(vtos, vtos);
   // stack: ..., a, b
-  __ load_ptr_and_tag(1, G3_scratch, G4_scratch);     // get a
-  __ load_ptr_and_tag(0, Otos_l1, Otos_l2);           // get b
-  __ store_ptr_and_tag(0, G3_scratch, G4_scratch);    // put b
-  __ store_ptr_and_tag(1, Otos_l1, Otos_l2);          // put a
+  __ load_ptr( 1, G3_scratch);  // get a
+  __ load_ptr( 0, Otos_l1);     // get b
+  __ store_ptr(0, G3_scratch);  // put b
+  __ store_ptr(1, Otos_l1);     // put a
   // stack: ..., b, a
 }
 
@@ -1045,9 +1078,9 @@ void TemplateTable::iop2(Operation op) {
    case  sub:  __  sub(O1, Otos_i, Otos_i);  break;
      // %%%%% Mul may not exist: better to call .mul?
    case  mul:  __ smul(O1, Otos_i, Otos_i);  break;
-   case _and:  __  and3(O1, Otos_i, Otos_i);  break;
-   case  _or:  __   or3(O1, Otos_i, Otos_i);  break;
-   case _xor:  __  xor3(O1, Otos_i, Otos_i);  break;
+   case _and:  __ and3(O1, Otos_i, Otos_i);  break;
+   case  _or:  __  or3(O1, Otos_i, Otos_i);  break;
+   case _xor:  __ xor3(O1, Otos_i, Otos_i);  break;
    case  shl:  __  sll(O1, Otos_i, Otos_i);  break;
    case  shr:  __  sra(O1, Otos_i, Otos_i);  break;
    case ushr:  __  srl(O1, Otos_i, Otos_i);  break;
@@ -1061,17 +1094,17 @@ void TemplateTable::lop2(Operation op) {
   __ pop_l(O2);
   switch (op) {
 #ifdef _LP64
-   case  add:  __ add(O2, Otos_l, Otos_l);  break;
-   case  sub:  __ sub(O2, Otos_l, Otos_l);  break;
-   case _and:  __ and3( O2, Otos_l, Otos_l);  break;
-   case  _or:  __  or3( O2, Otos_l, Otos_l);  break;
-   case _xor:  __ xor3( O2, Otos_l, Otos_l);  break;
+   case  add:  __  add(O2, Otos_l, Otos_l);  break;
+   case  sub:  __  sub(O2, Otos_l, Otos_l);  break;
+   case _and:  __ and3(O2, Otos_l, Otos_l);  break;
+   case  _or:  __  or3(O2, Otos_l, Otos_l);  break;
+   case _xor:  __ xor3(O2, Otos_l, Otos_l);  break;
 #else
    case  add:  __ addcc(O3, Otos_l2, Otos_l2);  __ addc(O2, Otos_l1, Otos_l1);  break;
    case  sub:  __ subcc(O3, Otos_l2, Otos_l2);  __ subc(O2, Otos_l1, Otos_l1);  break;
-   case _and:  __ and3(  O3, Otos_l2, Otos_l2);  __ and3( O2, Otos_l1, Otos_l1);  break;
-   case  _or:  __  or3(  O3, Otos_l2, Otos_l2);  __  or3( O2, Otos_l1, Otos_l1);  break;
-   case _xor:  __ xor3(  O3, Otos_l2, Otos_l2);  __ xor3( O2, Otos_l1, Otos_l1);  break;
+   case _and:  __  and3(O3, Otos_l2, Otos_l2);  __ and3(O2, Otos_l1, Otos_l1);  break;
+   case  _or:  __   or3(O3, Otos_l2, Otos_l2);  __  or3(O2, Otos_l1, Otos_l1);  break;
+   case _xor:  __  xor3(O3, Otos_l2, Otos_l2);  __ xor3(O2, Otos_l1, Otos_l1);  break;
 #endif
    default: ShouldNotReachHere();
   }
@@ -1307,7 +1340,7 @@ void TemplateTable::iinc() {
   __ ldsb(Lbcp, 2, O2);  // load constant
   __ access_local_int(G3_scratch, Otos_i);
   __ add(Otos_i, O2, Otos_i);
-  __ st(Otos_i, G3_scratch, Interpreter::value_offset_in_bytes());    // access_local_int puts E.A. in G3_scratch
+  __ st(Otos_i, G3_scratch, 0);    // access_local_int puts E.A. in G3_scratch
 }
 
 
@@ -1317,7 +1350,7 @@ void TemplateTable::wide_iinc() {
   __ get_2_byte_integer_at_bcp( 4,  O2, O3, InterpreterMacroAssembler::Signed);
   __ access_local_int(G3_scratch, Otos_i);
   __ add(Otos_i, O3, Otos_i);
-  __ st(Otos_i, G3_scratch, Interpreter::value_offset_in_bytes());    // access_local_int puts E.A. in G3_scratch
+  __ st(Otos_i, G3_scratch, 0);    // access_local_int puts E.A. in G3_scratch
 }
 
 
@@ -1555,7 +1588,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
     // Bump Lbcp to target of JSR
     __ add(Lbcp, O1_disp, Lbcp);
     // Push returnAddress for "ret" on stack
-    __ push_ptr(Otos_i, G0); // push ptr sized thing plus 0 for tag.
+    __ push_ptr(Otos_i);
     // And away we go!
     __ dispatch_next(vtos);
     return;
@@ -1567,6 +1600,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
   const Register O0_cur_bcp = O0;
   __ mov( Lbcp, O0_cur_bcp );
 
+
   bool increment_invocation_counter_for_backward_branches = UseCompiler && UseLoopCounter;
   if ( increment_invocation_counter_for_backward_branches ) {
     Label Lforward;
@@ -1575,17 +1609,84 @@ void TemplateTable::branch(bool is_jsr, bool is_wide) {
     // Bump bytecode pointer by displacement (take the branch)
     __ delayed()->add( O1_disp, Lbcp, Lbcp );     // add to bc addr
 
-    // Update Backedge branch separately from invocations
-    const Register G4_invoke_ctr = G4;
-    __ increment_backedge_counter(G4_invoke_ctr, G1_scratch);
-    if (ProfileInterpreter) {
-      __ test_invocation_counter_for_mdp(G4_invoke_ctr, Lbcp, G3_scratch, Lforward);
-      if (UseOnStackReplacement) {
-        __ test_backedge_count_for_osr(O2_bumped_count, O0_cur_bcp, G3_scratch);
+    if (TieredCompilation) {
+      Label Lno_mdo, Loverflow;
+      int increment = InvocationCounter::count_increment;
+      int mask = ((1 << Tier0BackedgeNotifyFreqLog) - 1) << InvocationCounter::count_shift;
+      if (ProfileInterpreter) {
+        // If no method data exists, go to profile_continue.
+        __ ld_ptr(Lmethod, methodOopDesc::method_data_offset(), G4_scratch);
+        __ br_null(G4_scratch, false, Assembler::pn, Lno_mdo);
+        __ delayed()->nop();
+
+        // Increment backedge counter in the MDO
+        Address mdo_backedge_counter(G4_scratch, in_bytes(methodDataOopDesc::backedge_counter_offset()) +
+                                                 in_bytes(InvocationCounter::counter_offset()));
+        __ increment_mask_and_jump(mdo_backedge_counter, increment, mask, G3_scratch, Lscratch,
+                                   Assembler::notZero, &Lforward);
+        __ ba(false, Loverflow);
+        __ delayed()->nop();
       }
+
+      // If there's no MDO, increment counter in methodOop
+      __ bind(Lno_mdo);
+      Address backedge_counter(Lmethod, in_bytes(methodOopDesc::backedge_counter_offset()) +
+                                        in_bytes(InvocationCounter::counter_offset()));
+      __ increment_mask_and_jump(backedge_counter, increment, mask, G3_scratch, Lscratch,
+                                 Assembler::notZero, &Lforward);
+      __ bind(Loverflow);
+
+      // notify point for loop, pass branch bytecode
+      __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::frequency_counter_overflow), O0_cur_bcp);
+
+      // Was an OSR adapter generated?
+      // O0 = osr nmethod
+      __ br_null(O0, false, Assembler::pn, Lforward);
+      __ delayed()->nop();
+
+      // Has the nmethod been invalidated already?
+      __ ld(O0, nmethod::entry_bci_offset(), O2);
+      __ cmp(O2, InvalidOSREntryBci);
+      __ br(Assembler::equal, false, Assembler::pn, Lforward);
+      __ delayed()->nop();
+
+      // migrate the interpreter frame off of the stack
+
+      __ mov(G2_thread, L7);
+      // save nmethod
+      __ mov(O0, L6);
+      __ set_last_Java_frame(SP, noreg);
+      __ call_VM_leaf(noreg, CAST_FROM_FN_PTR(address, SharedRuntime::OSR_migration_begin), L7);
+      __ reset_last_Java_frame();
+      __ mov(L7, G2_thread);
+
+      // move OSR nmethod to I1
+      __ mov(L6, I1);
+
+      // OSR buffer to I0
+      __ mov(O0, I0);
+
+      // remove the interpreter frame
+      __ restore(I5_savedSP, 0, SP);
+
+      // Jump to the osr code.
+      __ ld_ptr(O1, nmethod::osr_entry_point_offset(), O2);
+      __ jmp(O2, G0);
+      __ delayed()->nop();
+
     } else {
-      if (UseOnStackReplacement) {
-        __ test_backedge_count_for_osr(G4_invoke_ctr, O0_cur_bcp, G3_scratch);
+      // Update Backedge branch separately from invocations
+      const Register G4_invoke_ctr = G4;
+      __ increment_backedge_counter(G4_invoke_ctr, G1_scratch);
+      if (ProfileInterpreter) {
+        __ test_invocation_counter_for_mdp(G4_invoke_ctr, Lbcp, G3_scratch, Lforward);
+        if (UseOnStackReplacement) {
+          __ test_backedge_count_for_osr(O2_bumped_count, O0_cur_bcp, G3_scratch);
+        }
+      } else {
+        if (UseOnStackReplacement) {
+          __ test_backedge_count_for_osr(G4_invoke_ctr, O0_cur_bcp, G3_scratch);
+        }
       }
     }
 
@@ -1961,21 +2062,39 @@ void TemplateTable::volatile_barrier(Assembler::Membar_mask_bits order_constrain
 }
 
 // ----------------------------------------------------------------------------
-void TemplateTable::resolve_cache_and_index(int byte_no, Register Rcache, Register index) {
-  assert(byte_no == 1 || byte_no == 2, "byte_no out of range");
+void TemplateTable::resolve_cache_and_index(int byte_no,
+                                            Register result,
+                                            Register Rcache,
+                                            Register index,
+                                            size_t index_size) {
   // Depends on cpCacheOop layout!
-  const int shift_count = (1 + byte_no)*BitsPerByte;
   Label resolved;
 
-  __ get_cache_and_index_at_bcp(Rcache, index, 1);
-  __ ld_ptr(Rcache, constantPoolCacheOopDesc::base_offset() +
-                    ConstantPoolCacheEntry::indices_offset(), Lbyte_code);
+  __ get_cache_and_index_at_bcp(Rcache, index, 1, index_size);
+  if (byte_no == f1_oop) {
+    // We are resolved if the f1 field contains a non-null object (CallSite, etc.)
+    // This kind of CP cache entry does not need to match the flags byte, because
+    // there is a 1-1 relation between bytecode type and CP entry type.
+    assert_different_registers(result, Rcache);
+    __ ld_ptr(Rcache, constantPoolCacheOopDesc::base_offset() +
+              ConstantPoolCacheEntry::f1_offset(), result);
+    __ tst(result);
+    __ br(Assembler::notEqual, false, Assembler::pt, resolved);
+    __ delayed()->set((int)bytecode(), O1);
+  } else {
+    assert(byte_no == f1_byte || byte_no == f2_byte, "byte_no out of range");
+    assert(result == noreg, "");  //else change code for setting result
+    const int shift_count = (1 + byte_no)*BitsPerByte;
 
-  __ srl(  Lbyte_code, shift_count, Lbyte_code );
-  __ and3( Lbyte_code,        0xFF, Lbyte_code );
-  __ cmp(  Lbyte_code, (int)bytecode());
-  __ br(   Assembler::equal, false, Assembler::pt, resolved);
-  __ delayed()->set((int)bytecode(), O1);
+    __ ld_ptr(Rcache, constantPoolCacheOopDesc::base_offset() +
+              ConstantPoolCacheEntry::indices_offset(), Lbyte_code);
+
+    __ srl(  Lbyte_code, shift_count, Lbyte_code );
+    __ and3( Lbyte_code,        0xFF, Lbyte_code );
+    __ cmp(  Lbyte_code, (int)bytecode());
+    __ br(   Assembler::equal, false, Assembler::pt, resolved);
+    __ delayed()->set((int)bytecode(), O1);
+  }
 
   address entry;
   switch (bytecode()) {
@@ -1987,12 +2106,18 @@ void TemplateTable::resolve_cache_and_index(int byte_no, Register Rcache, Regist
     case Bytecodes::_invokespecial  : // fall through
     case Bytecodes::_invokestatic   : // fall through
     case Bytecodes::_invokeinterface: entry = CAST_FROM_FN_PTR(address, InterpreterRuntime::resolve_invoke);  break;
+    case Bytecodes::_invokedynamic  : entry = CAST_FROM_FN_PTR(address, InterpreterRuntime::resolve_invokedynamic);  break;
+    case Bytecodes::_fast_aldc      : entry = CAST_FROM_FN_PTR(address, InterpreterRuntime::resolve_ldc);     break;
+    case Bytecodes::_fast_aldc_w    : entry = CAST_FROM_FN_PTR(address, InterpreterRuntime::resolve_ldc);     break;
     default                         : ShouldNotReachHere();                                 break;
   }
   // first time invocation - must resolve first
   __ call_VM(noreg, entry, O1);
   // Update registers with resolved info
-  __ get_cache_and_index_at_bcp(Rcache, index, 1);
+  __ get_cache_and_index_at_bcp(Rcache, index, 1, index_size);
+  if (result != noreg)
+    __ ld_ptr(Rcache, constantPoolCacheOopDesc::base_offset() +
+              ConstantPoolCacheEntry::f1_offset(), result);
   __ bind(resolved);
 }
 
@@ -2001,7 +2126,8 @@ void TemplateTable::load_invoke_cp_cache_entry(int byte_no,
                                                Register Ritable_index,
                                                Register Rflags,
                                                bool is_invokevirtual,
-                                               bool is_invokevfinal) {
+                                               bool is_invokevfinal,
+                                               bool is_invokedynamic) {
   // Uses both G3_scratch and G4_scratch
   Register Rcache = G3_scratch;
   Register Rscratch = G4_scratch;
@@ -2025,11 +2151,15 @@ void TemplateTable::load_invoke_cp_cache_entry(int byte_no,
 
   if (is_invokevfinal) {
     __ get_cache_and_index_at_bcp(Rcache, Rscratch, 1);
+    __ ld_ptr(Rcache, method_offset, Rmethod);
+  } else if (byte_no == f1_oop) {
+    // Resolved f1_oop goes directly into 'method' register.
+    resolve_cache_and_index(byte_no, Rmethod, Rcache, Rscratch, sizeof(u4));
   } else {
-    resolve_cache_and_index(byte_no, Rcache, Rscratch);
+    resolve_cache_and_index(byte_no, noreg, Rcache, Rscratch, sizeof(u2));
+    __ ld_ptr(Rcache, method_offset, Rmethod);
   }
 
-  __ ld_ptr(Rcache, method_offset, Rmethod);
   if (Ritable_index != noreg) {
     __ ld_ptr(Rcache, index_offset, Ritable_index);
   }
@@ -2110,7 +2240,7 @@ void TemplateTable::getfield_or_static(int byte_no, bool is_static) {
   Register Rflags = G1_scratch;
   ByteSize cp_base_offset = constantPoolCacheOopDesc::base_offset();
 
-  resolve_cache_and_index(byte_no, Rcache, index);
+  resolve_cache_and_index(byte_no, noreg, Rcache, index, sizeof(u2));
   jvmti_post_field_access(Rcache, index, is_static, false);
   load_field_cp_cache_entry(Rclass, Rcache, index, Roffset, Rflags, is_static);
 
@@ -2475,7 +2605,7 @@ void TemplateTable::putfield_or_static(int byte_no, bool is_static) {
   Register Rflags = G1_scratch;
   ByteSize cp_base_offset = constantPoolCacheOopDesc::base_offset();
 
-  resolve_cache_and_index(byte_no, Rcache, index);
+  resolve_cache_and_index(byte_no, noreg, Rcache, index, sizeof(u2));
   jvmti_post_field_mod(Rcache, index, is_static);
   load_field_cp_cache_entry(Rclass, Rcache, index, Roffset, Rflags, is_static);
 
@@ -2742,7 +2872,7 @@ void TemplateTable::fast_xaccess(TosState state) {
   Register Rflags  = G4_scratch;
   Register Rreceiver = Lscratch;
 
-  __ ld_ptr(Llocals, Interpreter::value_offset_in_bytes(), Rreceiver);
+  __ ld_ptr(Llocals, 0, Rreceiver);
 
   // access constant pool cache  (is resolved)
   __ get_cache_and_index_at_bcp(Rcache, G4_scratch, 2);
@@ -2816,6 +2946,7 @@ void TemplateTable::generate_vtable_call(Register Rrecv, Register Rindex, Regist
 
 void TemplateTable::invokevirtual(int byte_no) {
   transition(vtos, vtos);
+  assert(byte_no == f2_byte, "use this argument");
 
   Register Rscratch = G3_scratch;
   Register Rtemp = G4_scratch;
@@ -2823,7 +2954,7 @@ void TemplateTable::invokevirtual(int byte_no) {
   Register Rrecv = G5_method;
   Label notFinal;
 
-  load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Rret, true);
+  load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Rret, true, false, false);
   __ mov(SP, O5_savedSP); // record SP that we wanted the callee to restore
 
   // Check for vfinal
@@ -2864,9 +2995,10 @@ void TemplateTable::invokevirtual(int byte_no) {
 
 void TemplateTable::fast_invokevfinal(int byte_no) {
   transition(vtos, vtos);
+  assert(byte_no == f2_byte, "use this argument");
 
   load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Lscratch, true,
-                             /*is_invokevfinal*/true);
+                             /*is_invokevfinal*/true, false);
   __ mov(SP, O5_savedSP); // record SP that we wanted the callee to restore
   invokevfinal_helper(G3_scratch, Lscratch);
 }
@@ -2901,12 +3033,13 @@ void TemplateTable::invokevfinal_helper(Register Rscratch, Register Rret) {
 
 void TemplateTable::invokespecial(int byte_no) {
   transition(vtos, vtos);
+  assert(byte_no == f1_byte, "use this argument");
 
   Register Rscratch = G3_scratch;
   Register Rtemp = G4_scratch;
   Register Rret = Lscratch;
 
-  load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Rret, false);
+  load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Rret, /*virtual*/ false, false, false);
   __ mov(SP, O5_savedSP); // record SP that we wanted the callee to restore
 
   __ verify_oop(G5_method);
@@ -2934,12 +3067,13 @@ void TemplateTable::invokespecial(int byte_no) {
 
 void TemplateTable::invokestatic(int byte_no) {
   transition(vtos, vtos);
+  assert(byte_no == f1_byte, "use this argument");
 
   Register Rscratch = G3_scratch;
   Register Rtemp = G4_scratch;
   Register Rret = Lscratch;
 
-  load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Rret, false);
+  load_invoke_cp_cache_entry(byte_no, G5_method, noreg, Rret, /*virtual*/ false, false, false);
   __ mov(SP, O5_savedSP); // record SP that we wanted the callee to restore
 
   __ verify_oop(G5_method);
@@ -2992,6 +3126,7 @@ void TemplateTable::invokeinterface_object_method(Register RklassOop,
 
 void TemplateTable::invokeinterface(int byte_no) {
   transition(vtos, vtos);
+  assert(byte_no == f1_byte, "use this argument");
 
   Register Rscratch = G4_scratch;
   Register Rret = G3_scratch;
@@ -3001,7 +3136,7 @@ void TemplateTable::invokeinterface(int byte_no) {
   Register Rflags = O1;
   assert_different_registers(Rscratch, G5_method);
 
-  load_invoke_cp_cache_entry(byte_no, Rinterface, Rindex, Rflags, false);
+  load_invoke_cp_cache_entry(byte_no, Rinterface, Rindex, Rflags, /*virtual*/ false, false, false);
   __ mov(SP, O5_savedSP); // record SP that we wanted the callee to restore
 
   // get receiver
@@ -3118,6 +3253,7 @@ void TemplateTable::invokeinterface(int byte_no) {
 
 void TemplateTable::invokedynamic(int byte_no) {
   transition(vtos, vtos);
+  assert(byte_no == f1_oop, "use this argument");
 
   if (!EnableInvokeDynamic) {
     // We should not encounter this bytecode if !EnableInvokeDynamic.
@@ -3130,7 +3266,42 @@ void TemplateTable::invokedynamic(int byte_no) {
     return;
   }
 
-  __ stop("invokedynamic NYI");//6815692//
+  // G5: CallSite object (f1)
+  // XX: unused (f2)
+  // XX: flags (unused)
+
+  Register G5_callsite = G5_method;
+  Register Rscratch    = G3_scratch;
+  Register Rtemp       = G1_scratch;
+  Register Rret        = Lscratch;
+
+  load_invoke_cp_cache_entry(byte_no, G5_callsite, noreg, Rret,
+                             /*virtual*/ false, /*vfinal*/ false, /*indy*/ true);
+  __ mov(SP, O5_savedSP);  // record SP that we wanted the callee to restore
+
+  __ verify_oop(G5_callsite);
+
+  // profile this call
+  __ profile_call(O4);
+
+  // get return address
+  AddressLiteral table(Interpreter::return_5_addrs_by_index_table());
+  __ set(table, Rtemp);
+  __ srl(Rret, ConstantPoolCacheEntry::tosBits, Rret);  // get return type
+  // Make sure we don't need to mask Rret for tosBits after the above shift
+  ConstantPoolCacheEntry::verify_tosBits();
+  __ sll(Rret, LogBytesPerWord, Rret);
+  __ ld_ptr(Rtemp, Rret, Rret);  // get return address
+
+  __ load_heap_oop(G5_callsite, __ delayed_value(java_dyn_CallSite::target_offset_in_bytes, Rscratch), G3_method_handle);
+  __ null_check(G3_method_handle);
+
+  // Adjust Rret first so Llast_SP can be same as Rret
+  __ add(Rret, -frame::pc_return_offset, O7);
+  __ add(Lesp, BytesPerWord, Gargs);  // setup parameter pointer
+  __ jump_to_method_handle_entry(G3_method_handle, Rtemp, /* emit_delayed_nop */ false);
+  // Record SP so we can remove any stack space allocated by adapter transition
+  __ delayed()->mov(SP, Llast_SP);
 }
 
 
@@ -3153,12 +3324,14 @@ void TemplateTable::_new() {
   __ get_2_byte_integer_at_bcp(1, Rscratch, Roffset, InterpreterMacroAssembler::Unsigned);
   __ get_cpool_and_tags(Rscratch, G3_scratch);
   // make sure the class we're about to instantiate has been resolved
+  // This is done before loading instanceKlass to be consistent with the order
+  // how Constant Pool is updated (see constantPoolOopDesc::klass_at_put)
   __ add(G3_scratch, typeArrayOopDesc::header_size(T_BYTE) * wordSize, G3_scratch);
   __ ldub(G3_scratch, Roffset, G3_scratch);
   __ cmp(G3_scratch, JVM_CONSTANT_Class);
   __ br(Assembler::notEqual, false, Assembler::pn, slow_case);
   __ delayed()->sll(Roffset, LogBytesPerWord, Roffset);
-
+  // get instanceKlass
   //__ sll(Roffset, LogBytesPerWord, Roffset);        // executed in delay slot
   __ add(Roffset, sizeof(constantPoolOopDesc), Roffset);
   __ ld_ptr(Rscratch, Roffset, RinstanceKlass);
@@ -3649,7 +3822,7 @@ void TemplateTable::multianewarray() {
   transition(vtos, atos);
      // put ndims * wordSize into Lscratch
   __ ldub( Lbcp,     3,               Lscratch);
-  __ sll(  Lscratch, Interpreter::logStackElementSize(), Lscratch);
+  __ sll(  Lscratch, Interpreter::logStackElementSize, Lscratch);
      // Lesp points past last_dim, so set to O1 to first_dim address
   __ add(  Lesp,     Lscratch,        O1);
      call_VM(Otos_i, CAST_FROM_FN_PTR(address, InterpreterRuntime::multianewarray), O1);

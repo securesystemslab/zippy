@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -45,18 +45,26 @@ class AbstractCompiler : public CHeapObj {
   // Missing feature tests
   virtual bool supports_native()                 { return true; }
   virtual bool supports_osr   ()                 { return true; }
-#if defined(TIERED) || ( !defined(COMPILER1) && !defined(COMPILER2))
+#if defined(TIERED) || ( !defined(COMPILER1) && !defined(COMPILER2) && !defined(SHARK))
   virtual bool is_c1   ()                        { return false; }
   virtual bool is_c2   ()                        { return false; }
+  virtual bool is_shark()                        { return false; }
 #else
 #ifdef COMPILER1
   bool is_c1   ()                                { return true; }
   bool is_c2   ()                                { return false; }
+  bool is_shark()                                { return false; }
 #endif // COMPILER1
 #ifdef COMPILER2
   bool is_c1   ()                                { return false; }
   bool is_c2   ()                                { return true; }
+  bool is_shark()                                { return false; }
 #endif // COMPILER2
+#ifdef SHARK
+  bool is_c1   ()                                { return false; }
+  bool is_c2   ()                                { return false; }
+  bool is_shark()                                { return true; }
+#endif // SHARK
 #endif // TIERED
 
   void mark_initialized()                        { _is_initialized = true; }

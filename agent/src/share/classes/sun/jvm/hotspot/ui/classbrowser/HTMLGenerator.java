@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -460,6 +460,18 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
       return buf.toString();
    }
 
+   private String genListOfShort(int[] values) {
+      Formatter buf = new Formatter(genHTML);
+      buf.append('[');
+      for (int i = 0; i < values.length; i++) {
+          if (i > 0)  buf.append(' ');
+          buf.append('#');
+          buf.append(Integer.toString(values[i]));
+      }
+      buf.append(']');
+      return buf.toString();
+   }
+
    protected String genHTMLTableForConstantPool(ConstantPool cpool) {
       Formatter buf = new Formatter(genHTML);
       buf.beginTable(1);
@@ -570,6 +582,21 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
             case JVM_CONSTANT_StringIndex:
                buf.cell("JVM_CONSTANT_StringIndex");
                buf.cell(Integer.toString(cpool.getIntAt(index)));
+               break;
+
+            case JVM_CONSTANT_MethodHandle:
+               buf.cell("JVM_CONSTANT_MethodHandle");
+               buf.cell(genLowHighShort(cpool.getIntAt(index)));
+               break;
+
+            case JVM_CONSTANT_MethodType:
+               buf.cell("JVM_CONSTANT_MethodType");
+               buf.cell(Integer.toString(cpool.getIntAt(index)));
+               break;
+
+            case JVM_CONSTANT_InvokeDynamic:
+               buf.cell("JVM_CONSTANT_InvokeDynamic");
+               buf.cell(genListOfShort(cpool.getMultiOperandsAt(index)));
                break;
 
             default:
@@ -1400,13 +1427,13 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
          buf.append(genMethodAndKlassLink(nmethod.getMethod()));
 
          buf.h3("Compiled Code");
-         sun.jvm.hotspot.debugger.Address codeBegin = nmethod.codeBegin();
-         sun.jvm.hotspot.debugger.Address codeEnd   = nmethod.codeEnd();
-         final int codeSize = (int)codeEnd.minus(codeBegin);
-         final long startPc = addressToLong(codeBegin);
-         final byte[] code = new byte[codeSize];
+         sun.jvm.hotspot.debugger.Address instsBegin = nmethod.instsBegin();
+         sun.jvm.hotspot.debugger.Address instsEnd   = nmethod.instsEnd();
+         final int instsSize = nmethod.instsSize();
+         final long startPc = addressToLong(instsBegin);
+         final byte[] code = new byte[instsSize];
          for (int i=0; i < code.length; i++)
-            code[i] = codeBegin.getJByteAt(i);
+            code[i] = instsBegin.getJByteAt(i);
 
          final long verifiedEntryPoint = addressToLong(nmethod.getVerifiedEntryPoint());
          final long entryPoint = addressToLong(nmethod.getEntryPoint());
@@ -1484,8 +1511,8 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
          buf.h3("CodeBlob");
 
          buf.h3("Compiled Code");
-         final sun.jvm.hotspot.debugger.Address codeBegin = blob.instructionsBegin();
-         final int codeSize = blob.getInstructionsSize();
+         final sun.jvm.hotspot.debugger.Address codeBegin = blob.codeBegin();
+         final int codeSize = blob.getCodeSize();
          final long startPc = addressToLong(codeBegin);
          final byte[] code = new byte[codeSize];
          for (int i=0; i < code.length; i++)

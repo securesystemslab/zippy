@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2005, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -174,8 +174,9 @@ class Chunk: public CHeapObj {
 
   // Start the chunk_pool cleaner task
   static void start_chunk_pool_cleaner_task();
-};
 
+  static void clean_chunk_pool();
+};
 
 //------------------------------Arena------------------------------------------
 // Fast allocation of memory
@@ -288,16 +289,17 @@ private:
 
 // One of the following macros must be used when allocating
 // an array or object from an arena
-#define NEW_ARENA_ARRAY(arena, type, size)\
-  (type*) arena->Amalloc((size) * sizeof(type))
+#define NEW_ARENA_ARRAY(arena, type, size) \
+  (type*) (arena)->Amalloc((size) * sizeof(type))
 
-#define REALLOC_ARENA_ARRAY(arena, type, old, old_size, new_size)\
-  (type*) arena->Arealloc((char*)(old), (old_size) * sizeof(type), (new_size) * sizeof(type) )
+#define REALLOC_ARENA_ARRAY(arena, type, old, old_size, new_size)    \
+  (type*) (arena)->Arealloc((char*)(old), (old_size) * sizeof(type), \
+                            (new_size) * sizeof(type) )
 
-#define FREE_ARENA_ARRAY(arena, type, old, size)\
-  arena->Afree((char*)(old), (size) * sizeof(type))
+#define FREE_ARENA_ARRAY(arena, type, old, size) \
+  (arena)->Afree((char*)(old), (size) * sizeof(type))
 
-#define NEW_ARENA_OBJ(arena, type)\
+#define NEW_ARENA_OBJ(arena, type) \
   NEW_ARENA_ARRAY(arena, type, 1)
 
 
@@ -316,32 +318,36 @@ extern void resource_free_bytes( char *old, size_t size );
 // use delete to deallocate.
 class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
  public:
-  enum allocation_type { UNKNOWN = 0, C_HEAP, RESOURCE_AREA, ARENA };
+  enum allocation_type { STACK_OR_EMBEDDED = 0, RESOURCE_AREA, C_HEAP, ARENA, allocation_mask = 0x3 };
+  static void set_allocation_type(address res, allocation_type type) NOT_DEBUG_RETURN;
 #ifdef ASSERT
  private:
-  allocation_type _allocation;
+  // When this object is allocated on stack the new() operator is not
+  // called but garbage on stack may look like a valid allocation_type.
+  // Store negated 'this' pointer when new() is called to distinguish cases.
+  uintptr_t _allocation;
  public:
-  bool allocated_on_C_heap()    { return _allocation == C_HEAP; }
+  allocation_type get_allocation_type() const;
+  bool allocated_on_stack()    const { return get_allocation_type() == STACK_OR_EMBEDDED; }
+  bool allocated_on_res_area() const { return get_allocation_type() == RESOURCE_AREA; }
+  bool allocated_on_C_heap()   const { return get_allocation_type() == C_HEAP; }
+  bool allocated_on_arena()    const { return get_allocation_type() == ARENA; }
+  ResourceObj(); // default construtor
+  ResourceObj(const ResourceObj& r); // default copy construtor
+  ResourceObj& operator=(const ResourceObj& r); // default copy assignment
+  ~ResourceObj();
 #endif // ASSERT
 
  public:
   void* operator new(size_t size, allocation_type type);
   void* operator new(size_t size, Arena *arena) {
       address res = (address)arena->Amalloc(size);
-      // Set allocation type in the resource object
-      DEBUG_ONLY(((ResourceObj *)res)->_allocation = ARENA;)
+      DEBUG_ONLY(set_allocation_type(res, ARENA);)
       return res;
   }
   void* operator new(size_t size) {
       address res = (address)resource_allocate_bytes(size);
-      // Set allocation type in the resource object
-      DEBUG_ONLY(((ResourceObj *)res)->_allocation = RESOURCE_AREA;)
-      return res;
-  }
-  void* operator new(size_t size, void* where, allocation_type type) {
-      void* res = where;
-      // Set allocation type in the resource object
-      DEBUG_ONLY(((ResourceObj *)res)->_allocation = type;)
+      DEBUG_ONLY(set_allocation_type(res, RESOURCE_AREA);)
       return res;
   }
   void  operator delete(void* p);

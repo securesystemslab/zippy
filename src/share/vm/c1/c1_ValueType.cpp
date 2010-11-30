@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2005, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -46,27 +46,26 @@ IntConstant*    intOne       = NULL;
 ObjectConstant* objectNull   = NULL;
 
 
-void ValueType::initialize() {
+void ValueType::initialize(Arena* arena) {
   // Note: Must initialize all types for each compilation
   //       as they are allocated within a ResourceMark!
 
   // types
-  voidType     = new VoidType();
-  intType      = new IntType();
-  longType     = new LongType();
-  floatType    = new FloatType();
-  doubleType   = new DoubleType();
-  objectType   = new ObjectType();
-  arrayType    = new ArrayType();
-  instanceType = new InstanceType();
-  classType    = new ClassType();
-  addressType  = new AddressType();
-  illegalType  = new IllegalType();
+  voidType     = new (arena) VoidType();
+  intType      = new (arena) IntType();
+  longType     = new (arena) LongType();
+  floatType    = new (arena) FloatType();
+  doubleType   = new (arena) DoubleType();
+  objectType   = new (arena) ObjectType();
+  arrayType    = new (arena) ArrayType();
+  instanceType = new (arena) InstanceType();
+  classType    = new (arena) ClassType();
+  addressType  = new (arena) AddressType();
+  illegalType  = new (arena) IllegalType();
 
-  // constants
-  intZero     = new IntConstant(0);
-  intOne      = new IntConstant(1);
-  objectNull  = new ObjectConstant(ciNullObject::make());
+  intZero     = new (arena) IntConstant(0);
+  intOne      = new (arena) IntConstant(1);
+  objectNull  = new (arena) ObjectConstant(ciNullObject::make());
 };
 
 

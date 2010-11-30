@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -118,12 +118,8 @@ public:
                                 bool& is_accessible,
                                 ciInstanceKlass* loading_klass);
   ciConstant get_constant_by_index(constantPoolHandle cpool,
-                                   int constant_index,
+                                   int pool_index, int cache_index,
                                    ciInstanceKlass* accessor);
-  bool       is_unresolved_string(ciInstanceKlass* loading_klass,
-                                   int constant_index) const;
-  bool       is_unresolved_klass(ciInstanceKlass* loading_klass,
-                                   int constant_index) const;
   ciField*   get_field_by_index(ciInstanceKlass* loading_klass,
                                 int field_index);
   ciMethod*  get_method_by_index(constantPoolHandle cpool,
@@ -141,12 +137,8 @@ private:
                                      bool& is_accessible,
                                      ciInstanceKlass* loading_klass);
   ciConstant get_constant_by_index_impl(constantPoolHandle cpool,
-                                        int constant_index,
+                                        int pool_index, int cache_index,
                                         ciInstanceKlass* loading_klass);
-  bool       is_unresolved_string_impl (instanceKlass* loading_klass,
-                                        int constant_index) const;
-  bool       is_unresolved_klass_impl (instanceKlass* loading_klass,
-                                        int constant_index) const;
   ciField*   get_field_by_index_impl(ciInstanceKlass* loading_klass,
                                      int field_index);
   ciMethod*  get_method_by_index_impl(constantPoolHandle cpool,
@@ -194,6 +186,25 @@ private:
   ciKlass* get_unloaded_klass(ciKlass* accessing_klass,
                               ciSymbol* name) {
     return _factory->get_unloaded_klass(accessing_klass, name, true);
+  }
+
+  // Get a ciKlass representing an unloaded klass mirror.
+  // Result is not necessarily unique, but will be unloaded.
+  ciInstance* get_unloaded_klass_mirror(ciKlass* type) {
+    return _factory->get_unloaded_klass_mirror(type);
+  }
+
+  // Get a ciInstance representing an unresolved method handle constant.
+  ciInstance* get_unloaded_method_handle_constant(ciKlass*  holder,
+                                                  ciSymbol* name,
+                                                  ciSymbol* signature,
+                                                  int       ref_kind) {
+    return _factory->get_unloaded_method_handle_constant(holder, name, signature, ref_kind);
+  }
+
+  // Get a ciInstance representing an unresolved method type constant.
+  ciInstance* get_unloaded_method_type_constant(ciSymbol* signature) {
+    return _factory->get_unloaded_method_type_constant(signature);
   }
 
   // See if we already have an unloaded klass for the given name

@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2007, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -29,7 +29,12 @@ class JavaThread;
 class ObjPtrQueue: public PtrQueue {
 public:
   ObjPtrQueue(PtrQueueSet* qset_, bool perm = false) :
-    PtrQueue(qset_, perm, qset_->is_active()) { }
+    // SATB queues are only active during marking cycles. We create
+    // them with their active field set to false. If a thread is
+    // created during a cycle and its SATB queue needs to be activated
+    // before the thread starts running, we'll need to set its active
+    // field to true. This is done in JavaThread::initialize_queues().
+    PtrQueue(qset_, perm, false /* active */) { }
   // Apply the closure to all elements, and reset the index to make the
   // buffer empty.
   void apply_closure(ObjectClosure* cl);

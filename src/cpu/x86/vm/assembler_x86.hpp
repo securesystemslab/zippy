@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -134,6 +134,9 @@ REGISTER_DECLARATION(Register, r15_thread, r15); // callee-saved
 #define rscratch1 noreg
 
 #endif // _LP64
+
+// JSR 292 fixed register usages:
+REGISTER_DECLARATION(Register, rbp_mh_SP_save, rbp);
 
 // Address is an abstraction used to represent a memory location
 // using any of the amd64 addressing modes with one object.
@@ -1008,6 +1011,7 @@ private:
   void hlt();
 
   void idivl(Register src);
+  void divl(Register src); // Unsigned division
 
   void idivq(Register src);
 
@@ -1511,7 +1515,7 @@ class MacroAssembler: public Assembler {
   void extend_sign(Register hi, Register lo);
 
   // Loading values by size and signed-ness
-  void load_sized_value(Register dst, Address src, int size_in_bytes, bool is_signed);
+  void load_sized_value(Register dst, Address src, size_t size_in_bytes, bool is_signed);
 
   // Support for inc/dec with optimal instruction selection depending on value
 
@@ -1679,23 +1683,23 @@ class MacroAssembler: public Assembler {
   void load_klass(Register dst, Register src);
   void store_klass(Register dst, Register src);
 
+  void load_heap_oop(Register dst, Address src);
+  void store_heap_oop(Address dst, Register src);
+
+  // Used for storing NULL. All other oop constants should be
+  // stored using routines that take a jobject.
+  void store_heap_oop_null(Address dst);
+
   void load_prototype_header(Register dst, Register src);
 
 #ifdef _LP64
   void store_klass_gap(Register dst, Register src);
-
-  void load_heap_oop(Register dst, Address src);
-  void store_heap_oop(Address dst, Register src);
 
   // This dummy is to prevent a call to store_heap_oop from
   // converting a zero (like NULL) into a Register by giving
   // the compiler two choices it can't resolve
 
   void store_heap_oop(Address dst, void* dummy);
-
-  // Used for storing NULL. All other oop constants should be
-  // stored using routines that take a jobject.
-  void store_heap_oop_null(Address dst);
 
   void encode_heap_oop(Register r);
   void decode_heap_oop(Register r);
@@ -1711,6 +1715,9 @@ class MacroAssembler: public Assembler {
 
   // if heap base register is used - reinit it with the correct value
   void reinit_heapbase();
+
+  DEBUG_ONLY(void verify_heapbase(const char* msg);)
+
 #endif // _LP64
 
   // Int division/remainder for Java
@@ -1921,7 +1928,7 @@ class MacroAssembler: public Assembler {
 
   void untested()                                { stop("untested"); }
 
-  void unimplemented(const char* what = "")      { char* b = new char[1024];  jio_snprintf(b, sizeof(b), "unimplemented: %s", what);  stop(b); }
+  void unimplemented(const char* what = "")      { char* b = new char[1024];  jio_snprintf(b, 1024, "unimplemented: %s", what);  stop(b); }
 
   void should_not_reach_here()                   { stop("should not reach here"); }
 
@@ -2235,6 +2242,11 @@ public:
   void char_arrays_equals(bool is_array_equ, Register ary1, Register ary2,
                           Register limit, Register result, Register chr,
                           XMMRegister vec1, XMMRegister vec2);
+
+  // Fill primitive arrays
+  void generate_fill(BasicType t, bool aligned,
+                     Register to, Register value, Register count,
+                     Register rtmp, XMMRegister xtmp);
 
 #undef VIRTUAL
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -86,6 +86,7 @@ static inline uint64_t cast_uint64_t(size_t x)
   nonstatic_field(constantPoolOopDesc,         _tags,                                         typeArrayOop)                          \
   nonstatic_field(constantPoolOopDesc,         _cache,                                        constantPoolCacheOop)                  \
   nonstatic_field(constantPoolOopDesc,         _pool_holder,                                  klassOop)                              \
+  nonstatic_field(constantPoolOopDesc,         _operands,                                     typeArrayOop)                          \
   nonstatic_field(constantPoolOopDesc,         _length,                                       int)                                   \
   nonstatic_field(constantPoolCacheOopDesc,    _length,                                       int)                                   \
   nonstatic_field(constantPoolCacheOopDesc,    _constant_pool,                                constantPoolOop)                       \
@@ -604,11 +605,10 @@ static inline uint64_t cast_uint64_t(size_t x)
   nonstatic_field(CodeBlob,                    _size,                                         int)                                   \
   nonstatic_field(CodeBlob,                    _header_size,                                  int)                                   \
   nonstatic_field(CodeBlob,                    _relocation_size,                              int)                                   \
-  nonstatic_field(CodeBlob,                    _instructions_offset,                          int)                                   \
+  nonstatic_field(CodeBlob,                    _content_offset,                               int)                                   \
+  nonstatic_field(CodeBlob,                    _code_offset,                                  int)                                   \
   nonstatic_field(CodeBlob,                    _frame_complete_offset,                        int)                                   \
   nonstatic_field(CodeBlob,                    _data_offset,                                  int)                                   \
-  nonstatic_field(CodeBlob,                    _oops_offset,                                  int)                                   \
-  nonstatic_field(CodeBlob,                    _oops_length,                                  int)                                   \
   nonstatic_field(CodeBlob,                    _frame_size,                                   int)                                   \
   nonstatic_field(CodeBlob,                    _oop_maps,                                     OopMapSet*)                            \
                                                                                                                                      \
@@ -616,7 +616,6 @@ static inline uint64_t cast_uint64_t(size_t x)
   /* NMethods (NOTE: incomplete, but only a little) */                                                                               \
   /**************************************************/                                                                               \
                                                                                                                                      \
-     static_field(nmethod,             _zombie_instruction_size,                      int)                                   \
   nonstatic_field(nmethod,             _method,                                       methodOop)                             \
   nonstatic_field(nmethod,             _entry_bci,                                    int)                                   \
   nonstatic_field(nmethod,             _osr_link,                                     nmethod*)                              \
@@ -626,6 +625,8 @@ static inline uint64_t cast_uint64_t(size_t x)
   nonstatic_field(nmethod,             _deoptimize_offset,                            int)                                   \
   nonstatic_field(nmethod,             _orig_pc_offset,                               int)                                   \
   nonstatic_field(nmethod,             _stub_offset,                                  int)                                   \
+  nonstatic_field(nmethod,             _consts_offset,                                int)                                   \
+  nonstatic_field(nmethod,             _oops_offset,                                  int)                                   \
   nonstatic_field(nmethod,             _scopes_data_offset,                           int)                                   \
   nonstatic_field(nmethod,             _scopes_pcs_offset,                            int)                                   \
   nonstatic_field(nmethod,             _dependencies_offset,                          int)                                   \
@@ -1328,14 +1329,6 @@ static inline uint64_t cast_uint64_t(size_t x)
   declare_constant(LogBytesPerWord)                                       \
   declare_constant(BytesPerLong)                                          \
                                                                           \
-  /********************/                                                  \
-  /* Object alignment */                                                  \
-  /********************/                                                  \
-                                                                          \
-  declare_constant(MinObjAlignment)                                       \
-  declare_constant(MinObjAlignmentInBytes)                                \
-  declare_constant(LogMinObjAlignmentInBytes)                             \
-                                                                          \
   /********************************************/                          \
   /* Generation and Space Hierarchy Constants */                          \
   /********************************************/                          \
@@ -1534,6 +1527,17 @@ static inline uint64_t cast_uint64_t(size_t x)
   /*********************************/                                     \
                                                                           \
   declare_constant(symbolOopDesc::max_symbol_length)                      \
+                                                                          \
+  /*************************************************/                     \
+  /* constantPoolOop layout enum for InvokeDynamic */                     \
+  /*************************************************/                     \
+                                                                          \
+  declare_constant(constantPoolOopDesc::_multi_operand_count_offset)      \
+  declare_constant(constantPoolOopDesc::_multi_operand_base_offset)       \
+  declare_constant(constantPoolOopDesc::_indy_bsm_offset)                 \
+  declare_constant(constantPoolOopDesc::_indy_nt_offset)                  \
+  declare_constant(constantPoolOopDesc::_indy_argc_offset)                \
+  declare_constant(constantPoolOopDesc::_indy_argv_offset)                \
                                                                           \
   /*********************************************/                         \
   /* ConstantPoolCacheEntry FlagBitValues enum */                         \

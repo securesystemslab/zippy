@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -252,7 +252,7 @@ class HeapRegion: public G1OffsetTableContigSpace {
                                 // survivor
   };
 
-  YoungType _young_type;
+  volatile YoungType _young_type;
   int  _young_index_in_cset;
   SurvRateGroup* _surv_rate_group;
   int  _age_index;
@@ -395,13 +395,11 @@ class HeapRegion: public G1OffsetTableContigSpace {
 
   // Causes the current region to represent a humongous object spanning "n"
   // regions.
-  virtual void set_startsHumongous();
+  void set_startsHumongous(HeapWord* new_end);
 
   // The regions that continue a humongous sequence should be added using
   // this method, in increasing address order.
   void set_continuesHumongous(HeapRegion* start);
-
-  void add_continuingHumongousRegion(HeapRegion* cont);
 
   // If the region has a remembered set, return a pointer to it.
   HeapRegionRemSet* rem_set() const {
@@ -726,16 +724,12 @@ class HeapRegion: public G1OffsetTableContigSpace {
   HeapWord*
   object_iterate_mem_careful(MemRegion mr, ObjectClosure* cl);
 
+  // In this version - if filter_young is true and the region
+  // is a young region then we skip the iteration.
   HeapWord*
   oops_on_card_seq_iterate_careful(MemRegion mr,
-                                   FilterOutOfRegionClosure* cl);
-
-  // The region "mr" is entirely in "this", and starts and ends at block
-  // boundaries. The caller declares that all the contained blocks are
-  // coalesced into one.
-  void declare_filled_region_to_BOT(MemRegion mr) {
-    _offsets.single_block(mr.start(), mr.end());
-  }
+                                   FilterOutOfRegionClosure* cl,
+                                   bool filter_young);
 
   // A version of block start that is guaranteed to find *some* block
   // boundary at or before "p", but does not object iteration, and may

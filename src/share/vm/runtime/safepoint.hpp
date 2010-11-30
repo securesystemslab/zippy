@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -147,6 +147,9 @@ public:
   static long last_non_safepoint_interval() {
     return os::javaTimeMillis() - _end_of_last_safepoint;
   }
+  static long end_of_last_safepoint() {
+    return _end_of_last_safepoint;
+  }
   static bool is_cleanup_needed();
   static void do_cleanup_tasks();
 
@@ -185,6 +188,7 @@ class ThreadSafepointState: public CHeapObj {
 
   JavaThread *                   _thread;
   volatile suspend_type          _type;
+  JavaThreadState                _orig_thread_state;
 
 
  public:
@@ -199,6 +203,7 @@ class ThreadSafepointState: public CHeapObj {
   JavaThread*  thread() const         { return _thread; }
   suspend_type type() const           { return _type; }
   bool         is_running() const     { return (_type==_running); }
+  JavaThreadState orig_thread_state() const { return _orig_thread_state; }
 
   // Support for safepoint timeout (debugging)
   bool has_called_back() const                   { return _has_called_back; }
@@ -226,15 +231,4 @@ class ThreadSafepointState: public CHeapObj {
   }
 };
 
-//
-// CounterDecay
-//
-// Interates through invocation counters and decrements them. This
-// is done at each safepoint.
-//
-class CounterDecay : public AllStatic {
-  static jlong _last_timestamp;
- public:
-  static  void decay();
-  static  bool is_decay_needed() { return (os::javaTimeMillis() - _last_timestamp) > CounterDecayMinIntervalLength; }
-};
+

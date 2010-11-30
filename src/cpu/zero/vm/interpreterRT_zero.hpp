@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2005, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2007, 2008 Red Hat, Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -17,9 +17,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -92,15 +92,15 @@ class SignatureHandlerGenerator : public SignatureHandlerGeneratorBase {
 
  public:
   SignatureHandlerGenerator(methodHandle method, CodeBuffer* buffer)
-    : SignatureHandlerGeneratorBase(method, (ffi_cif *) buffer->code_end()),
+    : SignatureHandlerGeneratorBase(method, (ffi_cif *) buffer->insts_end()),
       _cb(buffer) {
-    _cb->set_code_end((address) (cif() + 1));
+    _cb->set_insts_end((address) (cif() + 1));
   }
 
  private:
   void push(intptr_t value) {
-    intptr_t *dst = (intptr_t *) _cb->code_end();
-    _cb->set_code_end((address) (dst + 1));
+    intptr_t *dst = (intptr_t *) _cb->insts_end();
+    _cb->set_insts_end((address) (dst + 1));
     *dst = value;
   }
 };

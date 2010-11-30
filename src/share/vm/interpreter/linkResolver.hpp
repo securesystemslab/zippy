@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -73,6 +73,7 @@ class CallInfo: public LinkInfo {
   void         set_static(   KlassHandle resolved_klass,                             methodHandle resolved_method                                                , TRAPS);
   void         set_interface(KlassHandle resolved_klass, KlassHandle selected_klass, methodHandle resolved_method, methodHandle selected_method                  , TRAPS);
   void         set_virtual(  KlassHandle resolved_klass, KlassHandle selected_klass, methodHandle resolved_method, methodHandle selected_method, int vtable_index, TRAPS);
+  void         set_dynamic(                                                          methodHandle resolved_method,                                                 TRAPS);
   void         set_common(   KlassHandle resolved_klass, KlassHandle selected_klass, methodHandle resolved_method, methodHandle selected_method, int vtable_index, TRAPS);
 
   friend class LinkResolver;
@@ -103,7 +104,8 @@ class LinkResolver: AllStatic {
   static void lookup_method_in_klasses          (methodHandle& result, KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS);
   static void lookup_instance_method_in_klasses (methodHandle& result, KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS);
   static void lookup_method_in_interfaces       (methodHandle& result, KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS);
-  static void lookup_implicit_method            (methodHandle& result, KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS);
+  static void lookup_implicit_method            (methodHandle& result, KlassHandle klass, symbolHandle name, symbolHandle signature,
+                                                 KlassHandle current_klass, TRAPS);
 
   static int vtable_index_of_miranda_method(KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS);
 

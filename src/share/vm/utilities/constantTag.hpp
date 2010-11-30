@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -78,13 +78,32 @@ class constantTag VALUE_OBJ_CLASS_SPEC {
   bool is_field_or_method() const   { return is_field() || is_method() || is_interface_method(); }
   bool is_symbol() const            { return is_utf8(); }
 
+  bool is_method_type() const              { return _tag == JVM_CONSTANT_MethodType; }
+  bool is_method_handle() const            { return _tag == JVM_CONSTANT_MethodHandle; }
+  bool is_invoke_dynamic() const           { return _tag == JVM_CONSTANT_InvokeDynamic; }
+
+  bool is_loadable_constant() const {
+    return ((_tag >= JVM_CONSTANT_Integer && _tag <= JVM_CONSTANT_String) ||
+            is_method_type() || is_method_handle() ||
+            is_unresolved_klass() || is_unresolved_string() ||
+            is_object());
+  }
+
+  constantTag() {
+    _tag = JVM_CONSTANT_Invalid;
+  }
   constantTag(jbyte tag) {
     assert((tag >= 0 && tag <= JVM_CONSTANT_NameAndType) ||
+           (tag >= JVM_CONSTANT_MethodHandle && tag <= JVM_CONSTANT_InvokeDynamic) ||
            (tag >= JVM_CONSTANT_InternalMin && tag <= JVM_CONSTANT_InternalMax), "Invalid constant tag");
     _tag = tag;
   }
 
   jbyte value()                      { return _tag; }
+
+  BasicType basic_type() const;        // if used with ldc, what kind of value gets pushed?
+
+  const char* internal_name() const;  // for error reporting
 
   void print_on(outputStream* st) const PRODUCT_RETURN;
 };

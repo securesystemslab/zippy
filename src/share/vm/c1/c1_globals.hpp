@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,21 +16,15 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
 //
 // Defines all global flags used by the client compiler.
 //
-#ifndef TIERED
-  #define NOT_TIERED(x) x
-#else
-  #define NOT_TIERED(x)
-#endif
-
 #define C1_FLAGS(develop, develop_pd, product, product_pd, notproduct)      \
                                                                             \
   product(bool, UseC1X, false,                                              \
@@ -86,6 +80,9 @@
                                                                             \
   develop(bool, SelectivePhiFunctions, true,                                \
           "create phi functions at loop headers only when necessary")       \
+                                                                            \
+  develop(bool, OptimizeIfOps, true,                                        \
+          "Optimize multiple IfOps")                                        \
                                                                             \
   develop(bool, DoCEE, true,                                                \
           "Do Conditional Expression Elimination to simplify CFG")          \
@@ -228,9 +225,6 @@
   develop(bool, DeoptC1, true,                                              \
           "Use deoptimization in C1")                                       \
                                                                             \
-  develop(bool, DeoptOnAsyncException, true,                                \
-          "Deoptimize upon Thread.stop(); improves precision of IR")        \
-                                                                            \
   develop(bool, PrintBailouts, false,                                       \
           "Print bailout and its reason")                                   \
                                                                             \
@@ -285,41 +279,29 @@
   product_pd(intx, SafepointPollOffset,                                     \
           "Offset added to polling address (Intel only)")                   \
                                                                             \
-  product(bool, UseNewFeature1, false,                                      \
-          "Enable new feature for testing.  This is a dummy flag.")         \
-                                                                            \
-  product(bool, UseNewFeature2, false,                                      \
-          "Enable new feature for testing.  This is a dummy flag.")         \
-                                                                            \
-  product(bool, UseNewFeature3, false,                                      \
-          "Enable new feature for testing.  This is a dummy flag.")         \
-                                                                            \
-  product(bool, UseNewFeature4, false,                                      \
-          "Enable new feature for testing.  This is a dummy flag.")         \
-                                                                            \
   develop(bool, ComputeExactFPURegisterUsage, true,                         \
           "Compute additional live set for fpu registers to simplify fpu stack merge (Intel only)") \
                                                                             \
-  product(bool, Tier1ProfileCalls, true,                                    \
+  product(bool, C1ProfileCalls, true,                                       \
           "Profile calls when generating code for updating MDOs")           \
                                                                             \
-  product(bool, Tier1ProfileVirtualCalls, true,                             \
+  product(bool, C1ProfileVirtualCalls, true,                                \
           "Profile virtual calls when generating code for updating MDOs")   \
                                                                             \
-  product(bool, Tier1ProfileInlinedCalls, true,                             \
+  product(bool, C1ProfileInlinedCalls, true,                                \
           "Profile inlined calls when generating code for updating MDOs")   \
                                                                             \
-  product(bool, Tier1ProfileBranches, true,                                 \
+  product(bool, C1ProfileBranches, true,                                    \
           "Profile branches when generating code for updating MDOs")        \
                                                                             \
-  product(bool, Tier1ProfileCheckcasts, true,                               \
+  product(bool, C1ProfileCheckcasts, true,                                  \
           "Profile checkcasts when generating code for updating MDOs")      \
                                                                             \
-  product(bool, Tier1OptimizeVirtualCallProfiling, true,                    \
-          "Use CHA and exact type results at call sites when updating MDOs") \
+  product(bool, C1OptimizeVirtualCallProfiling, true,                       \
+          "Use CHA and exact type results at call sites when updating MDOs")\
                                                                             \
-  develop(bool, Tier1CountOnly, false,                                      \
-          "Don't schedule tier 2 compiles. Enter VM only")                  \
+  product(bool, C1UpdateMethodData, trueInTiered,                           \
+          "Update methodDataOops in Tier1-generated code")                  \
                                                                             \
   develop(bool, PrintCFGToFile, false,                                      \
           "print control flow graph to a separate file during compilation") \

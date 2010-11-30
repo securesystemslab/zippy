@@ -1,5 +1,5 @@
 /*
- * Copyright 2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2005, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -61,7 +61,7 @@ double copysign(double x, double y) {
 
 /*
  * ====================================================
- * Copyright (C) 1998 by Sun Microsystems, Inc. All rights reserved.
+ * Copyright (c) 1998 Oracle and/or its affiliates. All rights reserved.
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
@@ -572,7 +572,11 @@ double __ieee754_pow(double x, double y) {
       if(hy<0) z = one/z;       /* z = (1/|x|) */
       if(hx<0) {
         if(((ix-0x3ff00000)|yisint)==0) {
+#ifdef CAN_USE_NAN_DEFINE
+          z = NAN;
+#else
           z = (z-z)/(z-z); /* (-1)**non-int is NaN */
+#endif
         } else if(yisint==1)
           z = -1.0*z;           /* (x<0)**odd = -(|x|**odd) */
       }
@@ -583,7 +587,12 @@ double __ieee754_pow(double x, double y) {
   n = (hx>>31)+1;
 
   /* (x<0)**(non-int) is NaN */
-  if((n|yisint)==0) return (x-x)/(x-x);
+  if((n|yisint)==0)
+#ifdef CAN_USE_NAN_DEFINE
+    return NAN;
+#else
+    return (x-x)/(x-x);
+#endif
 
   s = one; /* s (sign of result -ve**odd) = -1 else = 1 */
   if((n|(yisint-1))==0) s = -one;/* (-ve)**(odd int) */

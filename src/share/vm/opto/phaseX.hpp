@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -310,7 +310,7 @@ public:
   void dump_nodes_and_types_recur( const Node *n, uint depth, bool only_ctrl, VectorSet &visited);
 
   uint   _count_progress;       // For profiling, count transforms that make progress
-  void   set_progress()        { ++_count_progress; assert( allow_progress(),"No progress allowed during verification") }
+  void   set_progress()        { ++_count_progress; assert( allow_progress(),"No progress allowed during verification"); }
   void   clear_progress()      { _count_progress = 0; }
   uint   made_progress() const { return _count_progress; }
 
@@ -393,6 +393,10 @@ class PhaseIterGVN : public PhaseGVN {
 
   // Idealize old Node 'n' with respect to its inputs and its value
   virtual Node *transform_old( Node *a_node );
+
+  // Subsume users of node 'old' into node 'nn'
+  void subsume_node( Node *old, Node *nn );
+
 protected:
 
   // Idealize new Node 'n' with respect to its inputs and its value
@@ -439,10 +443,6 @@ public:
     remove_globally_dead_node(dead);
   }
 
-  // Subsume users of node 'old' into node 'nn'
-  // If no Def-Use info existed for 'nn' it will after call.
-  void subsume_node( Node *old, Node *nn );
-
   // Add users of 'n' to worklist
   void add_users_to_worklist0( Node *n );
   void add_users_to_worklist ( Node *n );
@@ -450,7 +450,7 @@ public:
   // Replace old node with new one.
   void replace_node( Node *old, Node *nn ) {
     add_users_to_worklist(old);
-    hash_delete(old);
+    hash_delete(old); // Yank from hash before hacking edges
     subsume_node(old, nn);
   }
 

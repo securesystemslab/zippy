@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -52,7 +52,6 @@ bool   Arguments::_AlwaysCompileLoopMethods     = AlwaysCompileLoopMethods;
 bool   Arguments::_UseOnStackReplacement        = UseOnStackReplacement;
 bool   Arguments::_BackgroundCompilation        = BackgroundCompilation;
 bool   Arguments::_ClipInlining                 = ClipInlining;
-intx   Arguments::_Tier2CompileThreshold        = Tier2CompileThreshold;
 
 char*  Arguments::SharedArchivePath             = NULL;
 
@@ -122,11 +121,8 @@ void Arguments::init_system_properties() {
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.specification.version", "1.0", false));
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.specification.name",
                                                                  "Java Virtual Machine Specification",  false));
-  PropertyList_add(&_system_properties, new SystemProperty("java.vm.specification.vendor",
-                                                                 "Sun Microsystems Inc.",  false));
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.version", VM_Version::vm_release(),  false));
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.name", VM_Version::vm_name(),  false));
-  PropertyList_add(&_system_properties, new SystemProperty("java.vm.vendor", VM_Version::vm_vendor(),  false));
   PropertyList_add(&_system_properties, new SystemProperty("java.vm.info", VM_Version::vm_info_string(),  true));
 
   // following are JVMTI agent writeable properties.
@@ -152,6 +148,14 @@ void Arguments::init_system_properties() {
 
   // Set OS specific system properties values
   os::init_system_properties_values();
+}
+
+
+  // Update/Initialize System properties after JDK version number is known
+void Arguments::init_version_specific_system_properties() {
+  PropertyList_add(&_system_properties, new SystemProperty("java.vm.specification.vendor",
+        JDK_Version::is_gte_jdk17x_version() ? "Oracle Corporation" : "Sun Microsystems Inc.", false));
+  PropertyList_add(&_system_properties, new SystemProperty("java.vm.vendor", VM_Version::vm_vendor(),  false));
 }
 
 /**
@@ -186,6 +190,12 @@ static ObsoleteFlag obsolete_jvm_flags[] = {
   { "DefaultMaxRAM",       JDK_Version::jdk_update(6,18), JDK_Version::jdk(7) },
   { "DefaultInitialRAMFraction",
                            JDK_Version::jdk_update(6,18), JDK_Version::jdk(7) },
+  { "UseDepthFirstScavengeOrder",
+                           JDK_Version::jdk_update(6,22), JDK_Version::jdk(7) },
+  { "HandlePromotionFailure",
+                           JDK_Version::jdk_update(6,24), JDK_Version::jdk(8) },
+  { "MaxLiveObjectEvacuationRatio",
+                           JDK_Version::jdk_update(6,24), JDK_Version::jdk(8) },
   { NULL, JDK_Version(0), JDK_Version(0) }
 };
 
@@ -917,7 +927,6 @@ void Arguments::set_mode_flags(Mode mode) {
   AlwaysCompileLoopMethods   = Arguments::_AlwaysCompileLoopMethods;
   UseOnStackReplacement      = Arguments::_UseOnStackReplacement;
   BackgroundCompilation      = Arguments::_BackgroundCompilation;
-  Tier2CompileThreshold      = Arguments::_Tier2CompileThreshold;
 
   // Change from defaults based on mode
   switch (mode) {
@@ -951,6 +960,59 @@ static void no_shared_spaces() {
     vm_exit_during_initialization("Unable to use shared archive.", NULL);
   } else {
     FLAG_SET_DEFAULT(UseSharedSpaces, false);
+  }
+}
+
+void Arguments::check_compressed_oops_compat() {
+#ifdef _LP64
+  assert(UseCompressedOops, "Precondition");
+#  if defined(COMPILER1) && !defined(TIERED)
+  // Until c1 supports compressed oops turn them off.
+  FLAG_SET_DEFAULT(UseCompressedOops, false);
+#  else
+  // Is it on by default or set on ergonomically
+  bool is_on_by_default = FLAG_IS_DEFAULT(UseCompressedOops) || FLAG_IS_ERGO(UseCompressedOops);
+
+  // Tiered currently doesn't work with compressed oops
+  if (TieredCompilation) {
+    if (is_on_by_default) {
+      FLAG_SET_DEFAULT(UseCompressedOops, false);
+      return;
+    } else {
+      vm_exit_during_initialization(
+        "Tiered compilation is not supported with compressed oops yet", NULL);
+    }
+  }
+
+  // If dumping an archive or forcing its use, disable compressed oops if possible
+  if (DumpSharedSpaces || RequireSharedSpaces) {
+    if (is_on_by_default) {
+      FLAG_SET_DEFAULT(UseCompressedOops, false);
+      return;
+    } else {
+      vm_exit_during_initialization(
+        "Class Data Sharing is not supported with compressed oops yet", NULL);
+    }
+  } else if (UseSharedSpaces) {
+    // UseSharedSpaces is on by default. With compressed oops, we turn it off.
+    FLAG_SET_DEFAULT(UseSharedSpaces, false);
+  }
+
+#  endif // defined(COMPILER1) && !defined(TIERED)
+#endif // _LP64
+}
+
+void Arguments::set_tiered_flags() {
+  if (FLAG_IS_DEFAULT(CompilationPolicyChoice)) {
+    FLAG_SET_DEFAULT(CompilationPolicyChoice, 2);
+  }
+  if (CompilationPolicyChoice < 2) {
+    vm_exit_during_initialization(
+      "Incompatible compilation policy selected", NULL);
+  }
+  // Increase the code cache size - tiered compiles a lot more.
+  if (FLAG_IS_DEFAULT(ReservedCodeCacheSize)) {
+    FLAG_SET_DEFAULT(ReservedCodeCacheSize, ReservedCodeCacheSize * 2);
   }
 }
 
@@ -1217,8 +1279,63 @@ void Arguments::set_cms_and_parnew_gc_flags() {
 }
 #endif // KERNEL
 
+void set_object_alignment() {
+  // Object alignment.
+  assert(is_power_of_2(ObjectAlignmentInBytes), "ObjectAlignmentInBytes must be power of 2");
+  MinObjAlignmentInBytes     = ObjectAlignmentInBytes;
+  assert(MinObjAlignmentInBytes >= HeapWordsPerLong * HeapWordSize, "ObjectAlignmentInBytes value is too small");
+  MinObjAlignment            = MinObjAlignmentInBytes / HeapWordSize;
+  assert(MinObjAlignmentInBytes == MinObjAlignment * HeapWordSize, "ObjectAlignmentInBytes value is incorrect");
+  MinObjAlignmentInBytesMask = MinObjAlignmentInBytes - 1;
+
+  LogMinObjAlignmentInBytes  = exact_log2(ObjectAlignmentInBytes);
+  LogMinObjAlignment         = LogMinObjAlignmentInBytes - LogHeapWordSize;
+
+  // Oop encoding heap max
+  OopEncodingHeapMax = (uint64_t(max_juint) + 1) << LogMinObjAlignmentInBytes;
+
+#ifndef KERNEL
+  // Set CMS global values
+  CompactibleFreeListSpace::set_cms_values();
+#endif // KERNEL
+}
+
+bool verify_object_alignment() {
+  // Object alignment.
+  if (!is_power_of_2(ObjectAlignmentInBytes)) {
+    jio_fprintf(defaultStream::error_stream(),
+                "error: ObjectAlignmentInBytes=%d must be power of 2\n",
+                (int)ObjectAlignmentInBytes);
+    return false;
+  }
+  if ((int)ObjectAlignmentInBytes < BytesPerLong) {
+    jio_fprintf(defaultStream::error_stream(),
+                "error: ObjectAlignmentInBytes=%d must be greater or equal %d\n",
+                (int)ObjectAlignmentInBytes, BytesPerLong);
+    return false;
+  }
+  // It does not make sense to have big object alignment
+  // since a space lost due to alignment will be greater
+  // then a saved space from compressed oops.
+  if ((int)ObjectAlignmentInBytes > 256) {
+    jio_fprintf(defaultStream::error_stream(),
+                "error: ObjectAlignmentInBytes=%d must not be greater then 256\n",
+                (int)ObjectAlignmentInBytes);
+    return false;
+  }
+  // In case page size is very small.
+  if ((int)ObjectAlignmentInBytes >= os::vm_page_size()) {
+    jio_fprintf(defaultStream::error_stream(),
+                "error: ObjectAlignmentInBytes=%d must be less then page size %d\n",
+                (int)ObjectAlignmentInBytes, os::vm_page_size());
+    return false;
+  }
+  return true;
+}
+
 inline uintx max_heap_for_compressed_oops() {
-  LP64_ONLY(return oopDesc::OopEncodingHeapMax - MaxPermSize - os::vm_page_size());
+  // Heap should be above HeapBaseMinAddress to get zero based compressed oops.
+  LP64_ONLY(return OopEncodingHeapMax - MaxPermSize - os::vm_page_size() - HeapBaseMinAddress);
   NOT_LP64(ShouldNotReachHere(); return 0);
 }
 
@@ -1267,7 +1384,7 @@ void Arguments::set_ergonomics_flags() {
   // Check that UseCompressedOops can be set with the max heap size allocated
   // by ergonomics.
   if (MaxHeapSize <= max_heap_for_compressed_oops()) {
-#ifndef COMPILER1
+#if !defined(COMPILER1) || defined(TIERED)
     if (FLAG_IS_DEFAULT(UseCompressedOops) && !UseG1GC) {
       FLAG_SET_ERGO(bool, UseCompressedOops, true);
     }
@@ -1345,11 +1462,6 @@ void Arguments::set_g1_gc_flags() {
                      Abstract_VM_Version::parallel_worker_threads());
   }
   no_shared_spaces();
-
-  // Set the maximum pause time goal to be a reasonable default.
-  if (FLAG_IS_DEFAULT(MaxGCPauseMillis)) {
-    FLAG_SET_DEFAULT(MaxGCPauseMillis, 200);
-  }
 
   if (FLAG_IS_DEFAULT(MarkStackSize)) {
     FLAG_SET_DEFAULT(MarkStackSize, 128 * TASKQUEUE_SIZE);
@@ -1483,6 +1595,12 @@ void Arguments::set_aggressive_opts_flags() {
   if (AggressiveOpts && FLAG_IS_DEFAULT(BiasedLockingStartupDelay)) {
     FLAG_SET_DEFAULT(BiasedLockingStartupDelay, 500);
   }
+  if (AggressiveOpts && FLAG_IS_DEFAULT(OptimizeStringConcat)) {
+    FLAG_SET_DEFAULT(OptimizeStringConcat, true);
+  }
+  if (AggressiveOpts && FLAG_IS_DEFAULT(OptimizeFill)) {
+    FLAG_SET_DEFAULT(OptimizeFill, true);
+  }
 #endif
 
   if (AggressiveOpts) {
@@ -1528,6 +1646,18 @@ bool Arguments::verify_interval(uintx val, uintx min,
               "%s of " UINTX_FORMAT " is invalid; must be between " UINTX_FORMAT
               " and " UINTX_FORMAT "\n",
               name, val, min, max);
+  return false;
+}
+
+bool Arguments::verify_min_value(intx val, intx min, const char* name) {
+  // Returns true if given value is greater than specified min threshold
+  // false, otherwise.
+  if (val >= min ) {
+      return true;
+  }
+  jio_fprintf(defaultStream::error_stream(),
+              "%s of " INTX_FORMAT " is invalid; must be greater than " INTX_FORMAT "\n",
+              name, val, min);
   return false;
 }
 
@@ -1583,6 +1713,17 @@ bool Arguments::check_gc_consistency() {
   return status;
 }
 
+// Check stack pages settings
+bool Arguments::check_stack_pages()
+{
+  bool status = true;
+  status = status && verify_min_value(StackYellowPages, 1, "StackYellowPages");
+  status = status && verify_min_value(StackRedPages, 1, "StackRedPages");
+  // greater stack shadow pages can't generate instruction to bang stack
+  status = status && verify_interval(StackShadowPages, 1, 50, "StackShadowPages");
+  return status;
+}
+
 // Check the consistency of vm_init_args
 bool Arguments::check_vm_args_consistency() {
   // Method for adding checks for flag consistency.
@@ -1625,8 +1766,6 @@ bool Arguments::check_vm_args_consistency() {
     status = false;
   }
 
-  status = status && verify_percentage(MaxLiveObjectEvacuationRatio,
-                              "MaxLiveObjectEvacuationRatio");
   status = status && verify_percentage(AdaptiveSizePolicyWeight,
                               "AdaptiveSizePolicyWeight");
   status = status && verify_percentage(AdaptivePermSizeWeight, "AdaptivePermSizeWeight");
@@ -1667,20 +1806,21 @@ bool Arguments::check_vm_args_consistency() {
 
   status = status && verify_percentage(GCHeapFreeLimit, "GCHeapFreeLimit");
 
-  // Check user specified sharing option conflict with Parallel GC
-  bool cannot_share = ((UseConcMarkSweepGC || CMSIncrementalMode) || UseG1GC || UseParNewGC ||
-                       UseParallelGC || UseParallelOldGC ||
-                       SOLARIS_ONLY(UseISM) NOT_SOLARIS(UseLargePages));
-
+  // Check whether user-specified sharing option conflicts with GC or page size.
+  // Both sharing and large pages are enabled by default on some platforms;
+  // large pages override sharing only if explicitly set on the command line.
+  const bool cannot_share = UseConcMarkSweepGC || CMSIncrementalMode ||
+          UseG1GC || UseParNewGC || UseParallelGC || UseParallelOldGC ||
+          UseLargePages && FLAG_IS_CMDLINE(UseLargePages);
   if (cannot_share) {
     // Either force sharing on by forcing the other options off, or
     // force sharing off.
     if (DumpSharedSpaces || ForceSharedSpaces) {
       jio_fprintf(defaultStream::error_stream(),
-                  "Reverting to Serial GC because of %s\n",
-                  ForceSharedSpaces ? " -Xshare:on" : "-Xshare:dump");
+                  "Using Serial GC and default page size because of %s\n",
+                  ForceSharedSpaces ? "-Xshare:on" : "-Xshare:dump");
       force_serial_gc();
-      FLAG_SET_DEFAULT(SOLARIS_ONLY(UseISM) NOT_SOLARIS(UseLargePages), false);
+      FLAG_SET_DEFAULT(UseLargePages, false);
     } else {
       if (UseSharedSpaces && Verbose) {
         jio_fprintf(defaultStream::error_stream(),
@@ -1689,9 +1829,12 @@ bool Arguments::check_vm_args_consistency() {
       }
       no_shared_spaces();
     }
+  } else if (UseLargePages && (UseSharedSpaces || DumpSharedSpaces)) {
+    FLAG_SET_DEFAULT(UseLargePages, false);
   }
 
   status = status && check_gc_consistency();
+  status = status && check_stack_pages();
 
   if (_has_alloc_profile) {
     if (UseParallelGC || UseParallelOldGC) {
@@ -1781,6 +1924,8 @@ bool Arguments::check_vm_args_consistency() {
   // expression.
   status = status && verify_interval(TLABWasteTargetPercent,
                                      1, 100, "TLABWasteTargetPercent");
+
+  status = status && verify_object_alignment();
 
   return status;
 }
@@ -1872,7 +2017,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
   Arguments::_UseOnStackReplacement    = UseOnStackReplacement;
   Arguments::_ClipInlining             = ClipInlining;
   Arguments::_BackgroundCompilation    = BackgroundCompilation;
-  Arguments::_Tier2CompileThreshold    = Tier2CompileThreshold;
 
   // Parse JAVA_TOOL_OPTIONS environment variable (if present)
   jint result = parse_java_tool_options_environment_variable(&scp, &scp_assembly_required);
@@ -2596,6 +2740,12 @@ SOLARIS_ONLY(
       FLAG_IS_DEFAULT(UseVMInterruptibleIO)) {
     FLAG_SET_DEFAULT(UseVMInterruptibleIO, true);
   }
+#ifdef LINUX
+ if (JDK_Version::current().compare_major(6) <= 0 &&
+      FLAG_IS_DEFAULT(UseLinuxPosixThreadCPUClocks)) {
+    FLAG_SET_DEFAULT(UseLinuxPosixThreadCPUClocks, false);
+  }
+#endif // LINUX
   return JNI_OK;
 }
 
@@ -2620,23 +2770,6 @@ jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_req
     set_mode_flags(_int);
   }
 
-#ifdef TIERED
-  // If we are using tiered compilation in the tiered vm then c1 will
-  // do the profiling and we don't want to waste that time in the
-  // interpreter.
-  if (TieredCompilation) {
-    ProfileInterpreter = false;
-  } else {
-    // Since we are running vanilla server we must adjust the compile threshold
-    // unless the user has already adjusted it because the default threshold assumes
-    // we will run tiered.
-
-    if (FLAG_IS_DEFAULT(CompileThreshold)) {
-      CompileThreshold = Tier2CompileThreshold;
-    }
-  }
-#endif // TIERED
-
 #ifndef COMPILER2
   // Don't degrade server performance for footprint
   if (FLAG_IS_DEFAULT(UseLargePages) &&
@@ -2651,7 +2784,6 @@ jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_req
 
   // Tiered compilation is undefined with C1.
   TieredCompilation = false;
-
 #else
   if (!FLAG_IS_DEFAULT(OptoLoopAlignment) && FLAG_IS_DEFAULT(MaxLoopPad)) {
     FLAG_SET_DEFAULT(MaxLoopPad, OptoLoopAlignment-1);
@@ -2661,6 +2793,28 @@ jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_req
     FLAG_SET_DEFAULT(ReduceBulkZeroing, false);
   }
 #endif
+
+  // If we are running in a headless jre, force java.awt.headless property
+  // to be true unless the property has already been set.
+  // Also allow the OS environment variable JAVA_AWT_HEADLESS to set headless state.
+  if (os::is_headless_jre()) {
+    const char* headless = Arguments::get_property("java.awt.headless");
+    if (headless == NULL) {
+      char envbuffer[128];
+      if (!os::getenv("JAVA_AWT_HEADLESS", envbuffer, sizeof(envbuffer))) {
+        if (!add_property("java.awt.headless=true")) {
+          return JNI_ENOMEM;
+        }
+      } else {
+        char buffer[256];
+        strcpy(buffer, "java.awt.headless=");
+        strcat(buffer, envbuffer);
+        if (!add_property(buffer)) {
+          return JNI_ENOMEM;
+        }
+      }
+    }
+  }
 
   if (!check_vm_args_consistency()) {
     return JNI_ERR;
@@ -2751,6 +2905,7 @@ jint Arguments::parse_options_environment_variable(const char* name, SysClassPat
   return JNI_OK;
 }
 
+
 // Parse entry point called from JNI_CreateJavaVM
 
 jint Arguments::parse(const JavaVMInitArgs* args) {
@@ -2805,6 +2960,13 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
       CommandLineFlags::printFlags();
       vm_exit(0);
     }
+
+#ifndef PRODUCT
+    if (match_option(option, "-XX:+PrintFlagsWithComments", &tail)) {
+      CommandLineFlags::printFlags(true);
+      vm_exit(0);
+    }
+#endif
   }
 
   if (IgnoreUnrecognizedVMOptions) {
@@ -2886,9 +3048,8 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
     PrintGC = true;
   }
 
-#if defined(_LP64) && defined(COMPILER1)
-  UseCompressedOops = false;
-#endif
+  // Set object alignment values.
+  set_object_alignment();
 
 #ifdef SERIALGC
   force_serial_gc();
@@ -2901,23 +3062,24 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   set_ergonomics_flags();
 
 #ifdef _LP64
-  // XXX JSR 292 currently does not support compressed oops.
-  if (EnableMethodHandles && UseCompressedOops) {
-    if (FLAG_IS_DEFAULT(UseCompressedOops) || FLAG_IS_ERGO(UseCompressedOops)) {
-      UseCompressedOops = false;
-    }
+  if (UseCompressedOops) {
+    check_compressed_oops_compat();
   }
-#endif // _LP64
-
-  // MethodHandles code does not support TaggedStackInterpreter.
-  if (EnableMethodHandles && TaggedStackInterpreter) {
-    warning("TaggedStackInterpreter is not supported by MethodHandles code.  Disabling TaggedStackInterpreter.");
-    TaggedStackInterpreter = false;
-  }
+#endif
 
   // Check the GC selections again.
   if (!check_gc_consistency()) {
     return JNI_EINVAL;
+  }
+
+  if (TieredCompilation) {
+    set_tiered_flags();
+  } else {
+    // Check if the policy is valid. Policies 0 and 1 are valid for non-tiered setup.
+    if (CompilationPolicyChoice >= 2) {
+      vm_exit_during_initialization(
+        "Incompatible compilation policy selected", NULL);
+    }
   }
 
 #ifndef KERNEL
@@ -2957,11 +3119,6 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   LP64_ONLY(FLAG_SET_DEFAULT(UseCompressedOops, false));
 #endif // CC_INTERP
 
-#ifdef ZERO
-  // Clear flags not supported by Zero
-  FLAG_SET_DEFAULT(TaggedStackInterpreter, false);
-#endif // ZERO
-
 #ifdef COMPILER2
   if (!UseBiasedLocking || EmitSync != 0) {
     UseOptoBiasInlining = false;
@@ -2986,8 +3143,12 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
     CommandLineFlags::printSetFlags();
   }
 
-  if (PrintFlagsFinal) {
-    CommandLineFlags::printFlags();
+  // Apply CPU specific policy for the BiasedLocking
+  if (UseBiasedLocking) {
+    if (!VM_Version::use_biased_locking() &&
+        !(FLAG_IS_CMDLINE(UseBiasedLocking))) {
+      UseBiasedLocking = false;
+    }
   }
 
   return JNI_OK;

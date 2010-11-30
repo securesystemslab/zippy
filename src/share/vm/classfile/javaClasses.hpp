@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -1048,6 +1048,7 @@ class java_dyn_MethodTypeForm: AllStatic {
  private:
   static int _vmslots_offset;           // number of argument slots needed
   static int _erasedType_offset;        // erasedType = canonical MethodType
+  static int _genericInvoker_offset;    // genericInvoker = adapter for invokeGeneric
 
   static void compute_offsets();
 
@@ -1055,10 +1056,12 @@ class java_dyn_MethodTypeForm: AllStatic {
   // Accessors
   static int            vmslots(oop mtform);
   static oop            erasedType(oop mtform);
+  static oop            genericInvoker(oop mtform);
 
   // Accessors for code generation:
   static int vmslots_offset_in_bytes()          { return _vmslots_offset; }
   static int erasedType_offset_in_bytes()       { return _erasedType_offset; }
+  static int genericInvoker_offset_in_bytes()   { return _genericInvoker_offset; }
 };
 
 
@@ -1068,21 +1071,22 @@ class java_dyn_CallSite: AllStatic {
   friend class JavaClasses;
 
 private:
-  static int _type_offset;
   static int _target_offset;
-  static int _vmmethod_offset;
+  static int _caller_method_offset;
+  static int _caller_bci_offset;
 
   static void compute_offsets();
 
 public:
   // Accessors
-  static oop            type(oop site);
-
   static oop            target(oop site);
   static void       set_target(oop site, oop target);
 
-  static oop            vmmethod(oop site);
-  static void       set_vmmethod(oop site, oop ref);
+  static oop            caller_method(oop site);
+  static void       set_caller_method(oop site, oop ref);
+
+  static jint           caller_bci(oop site);
+  static void       set_caller_bci(oop site, jint bci);
 
   // Testers
   static bool is_subclass(klassOop klass) {
@@ -1094,8 +1098,8 @@ public:
 
   // Accessors for code generation:
   static int target_offset_in_bytes()           { return _target_offset; }
-  static int type_offset_in_bytes()             { return _type_offset; }
-  static int vmmethod_offset_in_bytes()         { return _vmmethod_offset; }
+  static int caller_method_offset_in_bytes()    { return _caller_method_offset; }
+  static int caller_bci_offset_in_bytes()       { return _caller_bci_offset; }
 };
 
 

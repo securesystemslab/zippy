@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -139,7 +139,7 @@ class StubGenerator: public StubCodeGenerator {
     // stub code
     __ enter();
     __ movptr(rcx, parameter_size);              // parameter counter
-    __ shlptr(rcx, Interpreter::logStackElementSize()); // convert parameter count to bytes
+    __ shlptr(rcx, Interpreter::logStackElementSize); // convert parameter count to bytes
     __ addptr(rcx, locals_count_in_bytes);       // reserve space for register saves
     __ subptr(rsp, rcx);
     __ andptr(rsp, -(StackAlignmentInBytes));    // Align stack
@@ -194,12 +194,6 @@ class StubGenerator: public StubCodeGenerator {
     __ xorptr(rbx, rbx);
 
     __ BIND(loop);
-    if (TaggedStackInterpreter) {
-      __ movptr(rax, Address(rdx, rcx, Interpreter::stackElementScale(),
-                      -2*wordSize));                          // get tag
-      __ movptr(Address(rsp, rbx, Interpreter::stackElementScale(),
-                      Interpreter::expr_tag_offset_in_bytes(0)), rax);     // store tag
-    }
 
     // get parameter
     __ movptr(rax, Address(rdx, rcx, Interpreter::stackElementScale(), -wordSize));
@@ -1044,6 +1038,33 @@ class StubGenerator: public StubCodeGenerator {
     return start;
   }
 
+
+  address generate_fill(BasicType t, bool aligned, const char *name) {
+    __ align(CodeEntryAlignment);
+    StubCodeMark mark(this, "StubRoutines", name);
+    address start = __ pc();
+
+    BLOCK_COMMENT("Entry:");
+
+    const Register to       = rdi;  // source array address
+    const Register value    = rdx;  // value
+    const Register count    = rsi;  // elements count
+
+    __ enter(); // required for proper stackwalking of RuntimeStub frame
+    __ push(rsi);
+    __ push(rdi);
+    __ movptr(to   , Address(rsp, 12+ 4));
+    __ movl(value, Address(rsp, 12+ 8));
+    __ movl(count, Address(rsp, 12+ 12));
+
+    __ generate_fill(t, aligned, to, value, count, rax, xmm0);
+
+    __ pop(rdi);
+    __ pop(rsi);
+    __ leave(); // required for proper stackwalking of RuntimeStub frame
+    __ ret(0);
+    return start;
+  }
 
   address generate_conjoint_copy(BasicType t, bool aligned,
                                  Address::ScaleFactor sf,
@@ -2006,6 +2027,13 @@ class StubGenerator: public StubCodeGenerator {
     StubRoutines::_jlong_arraycopy =
         generate_conjoint_long_copy(entry, &entry_jlong_arraycopy,
                                     "jlong_arraycopy");
+
+    StubRoutines::_jbyte_fill = generate_fill(T_BYTE, false, "jbyte_fill");
+    StubRoutines::_jshort_fill = generate_fill(T_SHORT, false, "jshort_fill");
+    StubRoutines::_jint_fill = generate_fill(T_INT, false, "jint_fill");
+    StubRoutines::_arrayof_jbyte_fill = generate_fill(T_BYTE, true, "arrayof_jbyte_fill");
+    StubRoutines::_arrayof_jshort_fill = generate_fill(T_SHORT, true, "arrayof_jshort_fill");
+    StubRoutines::_arrayof_jint_fill = generate_fill(T_INT, true, "arrayof_jint_fill");
 
     StubRoutines::_arrayof_jint_disjoint_arraycopy  =
         StubRoutines::_jint_disjoint_arraycopy;

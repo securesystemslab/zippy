@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2006, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -252,7 +252,7 @@ ciMethodBlocks::ciMethodBlocks(Arena *arena, ciMethod *meth): _method(meth),
                           _arena(arena), _num_blocks(0), _code_size(meth->code_size()) {
   int block_estimate = _code_size / 8;
 
-  _blocks =  new(_arena) GrowableArray<ciBlock *>(block_estimate);
+  _blocks =  new(_arena) GrowableArray<ciBlock *>(_arena, block_estimate, 0, NULL);
   int b2bsize = _code_size * sizeof(ciBlock **);
   _bci_to_block = (ciBlock **) arena->Amalloc(b2bsize);
   Copy::zero_to_words((HeapWord*) _bci_to_block, b2bsize / sizeof(HeapWord));

@@ -1,5 +1,5 @@
 # 
-# Copyright 2004-2007 Sun Microsystems, Inc.  All Rights Reserved.
+# Copyright (c) 2004, 2007, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-# CA 95054 USA or visit www.sun.com if you need additional information or
-# have any questions.
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
 # 
 
 	
@@ -121,10 +121,10 @@ cb_CopyRight:
         jnz      3b
         addl     %esi,%edi
 4:      movl     %eax,%ecx            # byte count less prefix
-        andl     $3,%ecx              # suffix byte count
+5:      andl     $3,%ecx              # suffix byte count
         jz       7f                   # no suffix
         # copy suffix
-5:      xorl     %eax,%eax
+        xorl     %eax,%eax
 6:      movb     (%esi,%eax,1),%dl
         movb     %dl,(%edi,%eax,1)
         addl     $1,%eax
@@ -159,10 +159,10 @@ cb_CopyLeft:
         # copy dwords, aligned or not
 3:      rep;     smovl
 4:      movl     %eax,%ecx            # byte count
-        andl     $3,%ecx              # suffix byte count
+5:      andl     $3,%ecx              # suffix byte count
         jz       7f                   # no suffix
         # copy suffix
-5:      subl     %esi,%edi
+        subl     %esi,%edi
         addl     $3,%esi
 6:      movb     (%esi),%dl
         movb     %dl,(%edi,%esi,1)
@@ -214,10 +214,10 @@ acb_CopyRight:
         # copy aligned dwords
 3:      rep;     smovl
 4:      movl     %eax,%ecx
-        andl     $3,%ecx
+5:      andl     $3,%ecx
         jz       7f
         # copy suffix
-5:      xorl     %eax,%eax
+        xorl     %eax,%eax
 6:      movb     (%esi,%eax,1),%dl
         movb     %dl,(%edi,%eax,1)
         addl     $1,%eax
@@ -250,9 +250,9 @@ acb_CopyLeft:
         jnz      3b
         addl     %esi,%edi
 4:      movl     %eax,%ecx
-        andl     $3,%ecx
+5:      andl     $3,%ecx
         jz       7f
-5:      subl     %esi,%edi
+        subl     %esi,%edi
         addl     $3,%esi
 6:      movb     (%esi),%dl
         movb     %dl,(%edi,%esi,1)
@@ -287,11 +287,12 @@ cs_CopyRight:
         andl     $3,%eax              # either 0 or 2
         jz       1f                   # no prefix
         # copy prefix
+        subl     $1,%ecx
+        jl       5f                   # zero count
         movw     (%esi),%dx
         movw     %dx,(%edi)
         addl     %eax,%esi            # %eax == 2
         addl     %eax,%edi
-        subl     $1,%ecx
 1:      movl     %ecx,%eax            # word count less prefix
         sarl     %ecx                 # dword count
         jz       4f                   # no dwords to move
@@ -454,12 +455,13 @@ ci_CopyRight:
         ret
         .=.+10
 2:      subl     %esi,%edi
+        jmp      4f
         .p2align 4,,15
 3:      movl     (%esi),%edx
         movl     %edx,(%edi,%esi,1)
         addl     $4,%esi
-        subl     $1,%ecx
-        jnz      3b
+4:      subl     $1,%ecx
+        jge      3b
         popl     %edi
         popl     %esi
         ret
@@ -467,19 +469,20 @@ ci_CopyLeft:
         std
         leal     -4(%edi,%ecx,4),%edi # to + count*4 - 4
         cmpl     $32,%ecx
-        ja       3f                   # > 32 dwords
+        ja       4f                   # > 32 dwords
         subl     %eax,%edi            # eax == from + count*4 - 4
+        jmp      3f
         .p2align 4,,15
 2:      movl     (%eax),%edx
         movl     %edx,(%edi,%eax,1)
         subl     $4,%eax
-        subl     $1,%ecx
-        jnz      2b
+3:      subl     $1,%ecx
+        jge      2b
         cld
         popl     %edi
         popl     %esi
         ret
-3:      movl     %eax,%esi            # from + count*4 - 4
+4:      movl     %eax,%esi            # from + count*4 - 4
         rep;     smovl
         cld
         popl     %edi

@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -92,6 +92,60 @@ CallGenerator* Compile::call_generator(ciMethod* call_method, int vtable_index, 
   if (allow_inline) {
     cg = find_intrinsic(call_method, call_is_virtual);
     if (cg != NULL)  return cg;
+  }
+
+  // Do MethodHandle calls.
+  // NOTE: This must happen before normal inlining logic below since
+  // MethodHandle.invoke* are native methods which obviously don't
+  // have bytecodes and so normal inlining fails.
+  if (call_method->is_method_handle_invoke()) {
+    if (jvms->method()->java_code_at_bci(jvms->bci()) != Bytecodes::_invokedynamic) {
+      GraphKit kit(jvms);
+      Node* n = kit.argument(0);
+
+      if (n->Opcode() == Op_ConP) {
+        const TypeOopPtr* oop_ptr = n->bottom_type()->is_oopptr();
+        ciObject* const_oop = oop_ptr->const_oop();
+        ciMethodHandle* method_handle = const_oop->as_method_handle();
+
+        // Set the actually called method to have access to the class
+        // and signature in the MethodHandleCompiler.
+        method_handle->set_callee(call_method);
+
+        // Get an adapter for the MethodHandle.
+        ciMethod* target_method = method_handle->get_method_handle_adapter();
+
+        CallGenerator* hit_cg = this->call_generator(target_method, vtable_index, false, jvms, true, prof_factor);
+        if (hit_cg != NULL && hit_cg->is_inline())
+          return hit_cg;
+      }
+
+      return CallGenerator::for_direct_call(call_method);
+    }
+    else {
+      // Get the MethodHandle from the CallSite.
+      ciMethod* caller_method = jvms->method();
+      ciBytecodeStream str(caller_method);
+      str.force_bci(jvms->bci());  // Set the stream to the invokedynamic bci.
+      ciCallSite*     call_site     = str.get_call_site();
+      ciMethodHandle* method_handle = call_site->get_target();
+
+      // Set the actually called method to have access to the class
+      // and signature in the MethodHandleCompiler.
+      method_handle->set_callee(call_method);
+
+      // Get an adapter for the MethodHandle.
+      ciMethod* target_method = method_handle->get_invokedynamic_adapter();
+
+      CallGenerator* hit_cg = this->call_generator(target_method, vtable_index, false, jvms, true, prof_factor);
+      if (hit_cg != NULL && hit_cg->is_inline()) {
+        CallGenerator* miss_cg = CallGenerator::for_dynamic_call(call_method);
+        return CallGenerator::for_predicted_dynamic_call(method_handle, miss_cg, hit_cg, prof_factor);
+      }
+
+      // If something failed, generate a normal dynamic call.
+      return CallGenerator::for_dynamic_call(call_method);
+    }
   }
 
   // Do not inline strict fp into non-strict code, or the reverse
@@ -216,57 +270,6 @@ CallGenerator* Compile::call_generator(ciMethod* call_method, int vtable_index, 
     }
   }
 
-  // Do MethodHandle calls.
-  if (call_method->is_method_handle_invoke()) {
-    if (jvms->method()->java_code_at_bci(jvms->bci()) != Bytecodes::_invokedynamic) {
-      GraphKit kit(jvms);
-      Node* n = kit.argument(0);
-
-      if (n->Opcode() == Op_ConP) {
-        const TypeOopPtr* oop_ptr = n->bottom_type()->is_oopptr();
-        ciObject* const_oop = oop_ptr->const_oop();
-        ciMethodHandle* method_handle = const_oop->as_method_handle();
-
-        // Set the actually called method to have access to the class
-        // and signature in the MethodHandleCompiler.
-        method_handle->set_callee(call_method);
-
-        // Get an adapter for the MethodHandle.
-        ciMethod* target_method = method_handle->get_method_handle_adapter();
-
-        CallGenerator* hit_cg = this->call_generator(target_method, vtable_index, false, jvms, true, prof_factor);
-        if (hit_cg != NULL && hit_cg->is_inline())
-          return hit_cg;
-      }
-
-      return CallGenerator::for_direct_call(call_method);
-    }
-    else {
-      // Get the MethodHandle from the CallSite.
-      ciMethod* caller_method = jvms->method();
-      ciBytecodeStream str(caller_method);
-      str.force_bci(jvms->bci());  // Set the stream to the invokedynamic bci.
-      ciCallSite*     call_site     = str.get_call_site();
-      ciMethodHandle* method_handle = call_site->get_target();
-
-      // Set the actually called method to have access to the class
-      // and signature in the MethodHandleCompiler.
-      method_handle->set_callee(call_method);
-
-      // Get an adapter for the MethodHandle.
-      ciMethod* target_method = method_handle->get_invokedynamic_adapter();
-
-      CallGenerator* hit_cg = this->call_generator(target_method, vtable_index, false, jvms, true, prof_factor);
-      if (hit_cg != NULL && hit_cg->is_inline()) {
-        CallGenerator* miss_cg = CallGenerator::for_dynamic_call(call_method);
-        return CallGenerator::for_predicted_dynamic_call(method_handle, miss_cg, hit_cg, prof_factor);
-      }
-
-      // If something failed, generate a normal dynamic call.
-      return CallGenerator::for_dynamic_call(call_method);
-    }
-  }
-
   // There was no special inlining tactic, or it bailed out.
   // Use a more generic tactic, like a simple call.
   if (call_is_virtual) {
@@ -343,7 +346,8 @@ bool Parse::can_not_compile_call_site(ciMethod *dest_method, ciInstanceKlass* kl
   // being initialized.  Uncommon-trap for not-initialized static or
   // v-calls.  Let interface calls happen.
   ciInstanceKlass* holder_klass = dest_method->holder();
-  if (!holder_klass->is_initialized() &&
+  if (!holder_klass->is_being_initialized() &&
+      !holder_klass->is_initialized() &&
       !holder_klass->is_interface()) {
     uncommon_trap(Deoptimization::Reason_uninitialized,
                   Deoptimization::Action_reinterpret,

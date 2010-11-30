@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -644,6 +644,24 @@ const TypeFunc* OptoRuntime::generic_arraycopy_Type() {
   return make_arraycopy_Type(ac_generic);
 }
 
+
+const TypeFunc* OptoRuntime::array_fill_Type() {
+  // create input type (domain): pointer, int, size_t
+  const Type** fields = TypeTuple::fields(3 LP64_ONLY( + 1));
+  int argp = TypeFunc::Parms;
+  fields[argp++] = TypePtr::NOTNULL;
+  fields[argp++] = TypeInt::INT;
+  fields[argp++] = TypeX_X;               // size in whatevers (size_t)
+  LP64_ONLY(fields[argp++] = Type::HALF); // other half of long length
+  const TypeTuple *domain = TypeTuple::make(argp, fields);
+
+  // create result type
+  fields = TypeTuple::fields(1);
+  fields[TypeFunc::Parms+0] = NULL; // void
+  const TypeTuple *range = TypeTuple::make(TypeFunc::Parms, fields);
+
+  return TypeFunc::make(domain, range);
+}
 
 //------------- Interpreter state access for on stack replacement
 const TypeFunc* OptoRuntime::osr_end_Type() {

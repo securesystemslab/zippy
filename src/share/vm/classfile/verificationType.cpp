@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2006, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -54,10 +54,12 @@ bool VerificationType::is_reference_assignable_from(
       // any object or array is assignable to java.lang.Object
       return true;
     }
-    klassOop this_class = SystemDictionary::resolve_or_fail(
+    klassOop obj = SystemDictionary::resolve_or_fail(
         name_handle(), Handle(THREAD, context->class_loader()),
         Handle(THREAD, context->protection_domain()), true, CHECK_false);
-    if (this_class->klass_part()->is_interface()) {
+    KlassHandle this_class(THREAD, obj);
+
+    if (this_class->is_interface()) {
       // We treat interfaces as java.lang.Object, including
       // java.lang.Cloneable and java.io.Serializable
       return true;
@@ -65,12 +67,14 @@ bool VerificationType::is_reference_assignable_from(
       klassOop from_class = SystemDictionary::resolve_or_fail(
           from.name_handle(), Handle(THREAD, context->class_loader()),
           Handle(THREAD, context->protection_domain()), true, CHECK_false);
-      return instanceKlass::cast(from_class)->is_subclass_of(this_class);
+      return instanceKlass::cast(from_class)->is_subclass_of(this_class());
     }
   } else if (is_array() && from.is_array()) {
     VerificationType comp_this = get_component(CHECK_false);
     VerificationType comp_from = from.get_component(CHECK_false);
-    return comp_this.is_assignable_from(comp_from, context, CHECK_false);
+    if (!comp_this.is_bogus() && !comp_from.is_bogus()) {
+      return comp_this.is_assignable_from(comp_from, context, CHECK_false);
+    }
   }
   return false;
 }
@@ -98,7 +102,7 @@ VerificationType VerificationType::get_component(TRAPS) const {
         CHECK_(VerificationType::bogus_type()));
       return VerificationType::reference_type(component);
     default:
-      ShouldNotReachHere();
+      // Met an invalid type signature, e.g. [X
       return VerificationType::bogus_type();
   }
 }

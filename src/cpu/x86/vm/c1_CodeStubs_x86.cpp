@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -68,26 +68,23 @@ void ConversionStub::emit_code(LIR_Assembler* ce) {
   __ jmp(_continuation);
 }
 
-#ifdef TIERED
 void CounterOverflowStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
+  ce->store_parameter(_method->as_register(), 1);
   ce->store_parameter(_bci, 0);
   __ call(RuntimeAddress(Runtime1::entry_for(Runtime1::counter_overflow_id)));
   ce->add_call_info_here(_info);
   ce->verify_oop_map(_info);
-
   __ jmp(_continuation);
 }
-#endif // TIERED
-
-
 
 RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index,
                                bool throw_index_out_of_bounds_exception)
   : _throw_index_out_of_bounds_exception(throw_index_out_of_bounds_exception)
   , _index(index)
 {
-  _info = info == NULL ? NULL : new CodeEmitInfo(info);
+  assert(info != NULL, "must have info");
+  _info = new CodeEmitInfo(info);
 }
 
 
@@ -502,7 +499,7 @@ void G1PostBarrierStub::emit_code(LIR_Assembler* ce) {
   Register new_val_reg = new_val()->as_register();
   __ cmpptr(new_val_reg, (int32_t) NULL_WORD);
   __ jcc(Assembler::equal, _continuation);
-  ce->store_parameter(addr()->as_register(), 0);
+  ce->store_parameter(addr()->as_pointer_register(), 0);
   __ call(RuntimeAddress(Runtime1::entry_for(Runtime1::g1_post_barrier_slow_id)));
   __ jmp(_continuation);
 }

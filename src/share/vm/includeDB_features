@@ -1,5 +1,5 @@
 //
-// Copyright 2007-2009 Sun Microsystems, Inc.  All Rights Reserved.
+// Copyright (c) 2007, 2009, Oracle and/or its affiliates. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 // 2 along with this work; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-// Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-// CA 95054 USA or visit www.sun.com if you need additional information or
-// have any questions.
+// Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+// or visit www.oracle.com if you need additional information or have any
+// questions.
 //  
 //
 
@@ -154,6 +154,7 @@ jvmtiExtensions.hpp                     allocation.hpp
 jvmtiExtensions.hpp                     jvmti.h
 jvmtiExtensions.hpp                     jvmtiEnv.hpp
 
+jvmtiImpl.cpp                           deoptimization.hpp
 jvmtiImpl.cpp                           exceptions.hpp
 jvmtiImpl.cpp                           handles.hpp
 jvmtiImpl.cpp                           handles.inline.hpp
@@ -183,6 +184,13 @@ jvmtiImpl.hpp                           objArrayOop.hpp
 jvmtiImpl.hpp                           stackValueCollection.hpp
 jvmtiImpl.hpp                           systemDictionary.hpp
 jvmtiImpl.hpp                           vm_operations.hpp
+
+jvmtiRawMonitor.cpp                     interfaceSupport.hpp
+jvmtiRawMonitor.cpp                     jvmtiRawMonitor.hpp
+jvmtiRawMonitor.cpp                     thread.hpp
+
+jvmtiRawMonitor.hpp                     growableArray.hpp
+jvmtiRawMonitor.hpp                     objectMonitor.hpp
 
 jvmtiTagMap.cpp                         biasedLocking.hpp
 jvmtiTagMap.cpp                         javaCalls.hpp

@@ -1,5 +1,5 @@
 #
-# Copyright 2006-2008 Sun Microsystems, Inc.  All Rights Reserved.
+# Copyright (c) 2006, 2008, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-# CA 95054 USA or visit www.sun.com if you need additional information or
-# have any questions.
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
 #  
 #
 
@@ -70,21 +70,23 @@ EXPORT_LIST += $(EXPORT_DOCS_DIR)/platform/jvmti/jvmti.html
 EXPORT_LIST += $(EXPORT_JRE_LIB_ARCH_DIR)/libjsig.so
 
 EXPORT_SERVER_DIR = $(EXPORT_JRE_LIB_ARCH_DIR)/server
+ifneq ($(BUILD_CLIENT_ONLY),true)
 EXPORT_LIST += $(EXPORT_SERVER_DIR)/Xusage.txt
 EXPORT_LIST += $(EXPORT_SERVER_DIR)/libjvm.so
 EXPORT_LIST += $(EXPORT_SERVER_DIR)/libjvm_db.so
 EXPORT_LIST += $(EXPORT_SERVER_DIR)/libjvm_dtrace.so
+endif
 ifeq ($(ARCH_DATA_MODEL), 32)
   EXPORT_CLIENT_DIR = $(EXPORT_JRE_LIB_ARCH_DIR)/client
   EXPORT_LIST += $(EXPORT_CLIENT_DIR)/Xusage.txt
   EXPORT_LIST += $(EXPORT_CLIENT_DIR)/libjvm.so 
   EXPORT_LIST += $(EXPORT_CLIENT_DIR)/libjvm_db.so 
-  EXPORT_LIST += $(EXPORT_CLIENT_DIR)/libjvm_dtrace.so 
-  ifeq ($(ARCH),sparc)
+  EXPORT_LIST += $(EXPORT_CLIENT_DIR)/libjvm_dtrace.so
+  EXPORT_LIST += $(EXPORT_CLIENT_DIR)/64/libjvm_db.so
+  EXPORT_LIST += $(EXPORT_CLIENT_DIR)/64/libjvm_dtrace.so
+  ifneq ($(BUILD_CLIENT_ONLY), true)
     EXPORT_LIST += $(EXPORT_SERVER_DIR)/64/libjvm_db.so
-    EXPORT_LIST += $(EXPORT_CLIENT_DIR)/64/libjvm_db.so
     EXPORT_LIST += $(EXPORT_SERVER_DIR)/64/libjvm_dtrace.so
-    EXPORT_LIST += $(EXPORT_CLIENT_DIR)/64/libjvm_dtrace.so
   endif
 endif
 

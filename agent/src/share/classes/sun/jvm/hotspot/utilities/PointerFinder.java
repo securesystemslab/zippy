@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -96,10 +96,15 @@ public class PointerFinder {
         if (Assert.ASSERTS_ENABLED) {
           Assert.that(loc.blob != null, "Should have found CodeBlob");
         }
-        loc.inBlobInstructions = loc.blob.instructionsContains(a);
-        loc.inBlobData         = loc.blob.dataContains(a);
-        loc.inBlobOops         = loc.blob.oopsContains(a);
-        loc.inBlobUnknownLocation = (!(loc.inBlobInstructions ||
+        loc.inBlobCode = loc.blob.codeContains(a);
+        loc.inBlobData = loc.blob.dataContains(a);
+
+        if (loc.blob.isNMethod()) {
+            NMethod nm = (NMethod) loc.blob;
+            loc.inBlobOops = nm.oopsContains(a);
+        }
+
+        loc.inBlobUnknownLocation = (!(loc.inBlobCode ||
                                        loc.inBlobData ||
                                        loc.inBlobOops));
         return loc;

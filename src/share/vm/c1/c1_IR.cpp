@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -116,24 +116,6 @@ bool XHandler::equals(XHandler* other) const {
 
 
 // Implementation of IRScope
-
-BlockBegin* IRScope::header_block(BlockBegin* entry, BlockBegin::Flag f, ValueStack* state) {
-  if (entry == NULL) return NULL;
-  assert(entry->is_set(f), "entry/flag mismatch");
-  // create header block
-  BlockBegin* h = new BlockBegin(entry->bci());
-  BlockEnd* g = new Goto(entry, false);
-  h->set_next(g, entry->bci());
-  h->set_end(g);
-  h->set(f);
-  // setup header block end state
-  ValueStack* s = state->copy(); // can use copy since stack is empty (=> no phis)
-  assert(s->stack_is_empty(), "must have empty stack at entry point");
-  g->set_state(s);
-  return h;
-}
-
-
 BlockBegin* IRScope::build_graph(Compilation* compilation, int osr_bci) {
   GraphBuilder gm(compilation, this);
   NOT_PRODUCT(if (PrintValueNumbering && Verbose) gm.print_stats());
@@ -145,12 +127,9 @@ BlockBegin* IRScope::build_graph(Compilation* compilation, int osr_bci) {
 IRScope::IRScope(Compilation* compilation, IRScope* caller, int caller_bci, ciMethod* method, int osr_bci, bool create_graph)
 : _callees(2)
 , _compilation(compilation)
-, _lock_stack_size(-1)
 , _requires_phi_function(method->max_locals())
 {
   _caller             = caller;
-  _caller_bci         = caller == NULL ? -1 : caller_bci;
-  _caller_state       = NULL; // Must be set later if needed
   _level              = caller == NULL ?  0 : caller->level() + 1;
   _method             = method;
   _xhandlers          = new XHandlers(method);
@@ -182,32 +161,6 @@ int IRScope::max_stack() const {
 }
 
 
-void IRScope::compute_lock_stack_size() {
-  if (!InlineMethodsWithExceptionHandlers) {
-    _lock_stack_size = 0;
-    return;
-  }
-
-  // Figure out whether we have to preserve expression stack elements
-  // for parent scopes, and if so, how many
-  IRScope* cur_scope = this;
-  while (cur_scope != NULL && !cur_scope->xhandlers()->has_handlers()) {
-    cur_scope = cur_scope->caller();
-  }
-  _lock_stack_size = (cur_scope == NULL ? 0 :
-                      (cur_scope->caller_state() == NULL ? 0 :
-                       cur_scope->caller_state()->stack_size()));
-}
-
-int IRScope::top_scope_bci() const {
-  assert(!is_top_scope(), "no correct answer for top scope possible");
-  const IRScope* scope = this;
-  while (!scope->caller()->is_top_scope()) {
-    scope = scope->caller();
-  }
-  return scope->caller_bci();
-}
-
 bool IRScopeDebugInfo::should_reexecute() {
   ciMethod* cur_method = scope()->method();
   int       cur_bci    = bci();
@@ -222,35 +175,24 @@ bool IRScopeDebugInfo::should_reexecute() {
 // Implementation of CodeEmitInfo
 
 // Stack must be NON-null
-CodeEmitInfo::CodeEmitInfo(int bci, ValueStack* stack, XHandlers* exception_handlers)
+CodeEmitInfo::CodeEmitInfo(ValueStack* stack, XHandlers* exception_handlers)
   : _scope(stack->scope())
-  , _bci(bci)
   , _scope_debug_info(NULL)
   , _oop_map(NULL)
   , _stack(stack)
   , _exception_handlers(exception_handlers)
-  , _next(NULL)
-  , _id(-1) {
+  , _is_method_handle_invoke(false) {
   assert(_stack != NULL, "must be non null");
-  assert(_bci == SynchronizationEntryBCI || Bytecodes::is_defined(scope()->method()->java_code_at_bci(_bci)), "make sure bci points at a real bytecode");
 }
 
 
-CodeEmitInfo::CodeEmitInfo(CodeEmitInfo* info, bool lock_stack_only)
+CodeEmitInfo::CodeEmitInfo(CodeEmitInfo* info, ValueStack* stack)
   : _scope(info->_scope)
   , _exception_handlers(NULL)
-  , _bci(info->_bci)
   , _scope_debug_info(NULL)
-  , _oop_map(NULL) {
-  if (lock_stack_only) {
-    if (info->_stack != NULL) {
-      _stack = info->_stack->copy_locks();
-    } else {
-      _stack = NULL;
-    }
-  } else {
-    _stack = info->_stack;
-  }
+  , _oop_map(NULL)
+  , _stack(stack == NULL ? info->_stack : stack)
+  , _is_method_handle_invoke(info->_is_method_handle_invoke) {
 
   // deep copy of exception handlers
   if (info->_exception_handlers != NULL) {
@@ -259,10 +201,10 @@ CodeEmitInfo::CodeEmitInfo(CodeEmitInfo* info, bool lock_stack_only)
 }
 
 
-void CodeEmitInfo::record_debug_info(DebugInformationRecorder* recorder, int pc_offset, bool is_method_handle_invoke) {
+void CodeEmitInfo::record_debug_info(DebugInformationRecorder* recorder, int pc_offset) {
   // record the safepoint before recording the debug info for enclosing scopes
   recorder->add_safepoint(pc_offset, _oop_map->deep_copy());
-  _scope_debug_info->record_debug_info(recorder, pc_offset, true/*topmost*/, is_method_handle_invoke);
+  _scope_debug_info->record_debug_info(recorder, pc_offset, true/*topmost*/, _is_method_handle_invoke);
   recorder->end_safepoint(pc_offset);
 }
 
@@ -271,8 +213,6 @@ void CodeEmitInfo::add_register_oop(LIR_Opr opr) {
   assert(_oop_map != NULL, "oop map must already exist");
   assert(opr->is_single_cpu(), "should not call otherwise");
 
-  int frame_size = frame_map()->framesize();
-  int arg_count = frame_map()->oop_map_arg_count();
   VMReg name = frame_map()->regname(opr);
   _oop_map->set_oop(name);
 }
@@ -285,11 +225,6 @@ void CodeEmitInfo::add_register_oop(LIR_Opr opr) {
 IR::IR(Compilation* compilation, ciMethod* method, int osr_bci) :
     _locals_size(in_WordSize(-1))
   , _num_loops(0) {
-  // initialize data structures
-  ValueType::initialize();
-  Instruction::initialize();
-  BlockBegin::initialize();
-  GraphBuilder::initialize();
   // setup IR fields
   _compilation = compilation;
   _top_scope   = new IRScope(compilation, NULL, -1, method, osr_bci, true);
@@ -299,19 +234,21 @@ IR::IR(Compilation* compilation, ciMethod* method, int osr_bci) :
 
 void IR::optimize() {
   Optimizer opt(this);
-  if (DoCEE) {
-    opt.eliminate_conditional_expressions();
+  if (!compilation()->profile_branches()) {
+    if (DoCEE) {
+      opt.eliminate_conditional_expressions();
 #ifndef PRODUCT
-    if (PrintCFG || PrintCFG1) { tty->print_cr("CFG after CEE"); print(true); }
-    if (PrintIR  || PrintIR1 ) { tty->print_cr("IR after CEE"); print(false); }
+      if (PrintCFG || PrintCFG1) { tty->print_cr("CFG after CEE"); print(true); }
+      if (PrintIR  || PrintIR1 ) { tty->print_cr("IR after CEE"); print(false); }
 #endif
-  }
-  if (EliminateBlocks) {
-    opt.eliminate_blocks();
+    }
+    if (EliminateBlocks) {
+      opt.eliminate_blocks();
 #ifndef PRODUCT
-    if (PrintCFG || PrintCFG1) { tty->print_cr("CFG after block elimination"); print(true); }
-    if (PrintIR  || PrintIR1 ) { tty->print_cr("IR after block elimination"); print(false); }
+      if (PrintCFG || PrintCFG1) { tty->print_cr("CFG after block elimination"); print(true); }
+      if (PrintIR  || PrintIR1 ) { tty->print_cr("IR after block elimination"); print(false); }
 #endif
+    }
   }
   if (EliminateNullChecks) {
     opt.eliminate_null_checks();
@@ -379,15 +316,14 @@ void IR::split_critical_edges() {
 }
 
 
-class UseCountComputer: public AllStatic {
+class UseCountComputer: public ValueVisitor, BlockClosure {
  private:
-  static void update_use_count(Value* n) {
+  void visit(Value* n) {
     // Local instructions and Phis for expression stack values at the
     // start of basic blocks are not added to the instruction list
-    if ((*n)->bci() == -99 && (*n)->as_Local() == NULL &&
-        (*n)->as_Phi() == NULL) {
+    if (!(*n)->is_linked() && (*n)->can_be_linked()) {
       assert(false, "a node was not appended to the graph");
-      Compilation::current_compilation()->bailout("a node was not appended to the graph");
+      Compilation::current()->bailout("a node was not appended to the graph");
     }
     // use n's input if not visited before
     if (!(*n)->is_pinned() && !(*n)->has_uses()) {
@@ -400,31 +336,31 @@ class UseCountComputer: public AllStatic {
     (*n)->_use_count++;
   }
 
-  static Values* worklist;
-  static int depth;
+  Values* worklist;
+  int depth;
   enum {
     max_recurse_depth = 20
   };
 
-  static void uses_do(Value* n) {
+  void uses_do(Value* n) {
     depth++;
     if (depth > max_recurse_depth) {
       // don't allow the traversal to recurse too deeply
       worklist->push(*n);
     } else {
-      (*n)->input_values_do(update_use_count);
+      (*n)->input_values_do(this);
       // special handling for some instructions
       if ((*n)->as_BlockEnd() != NULL) {
         // note on BlockEnd:
         //   must 'use' the stack only if the method doesn't
         //   terminate, however, in those cases stack is empty
-        (*n)->state_values_do(update_use_count);
+        (*n)->state_values_do(this);
       }
     }
     depth--;
   }
 
-  static void basic_compute_use_count(BlockBegin* b) {
+  void block_do(BlockBegin* b) {
     depth = 0;
     // process all pinned nodes as the roots of expression trees
     for (Instruction* n = b; n != NULL; n = n->next()) {
@@ -447,17 +383,18 @@ class UseCountComputer: public AllStatic {
     assert(depth == 0, "should have counted back down");
   }
 
+  UseCountComputer() {
+    worklist = new Values();
+    depth = 0;
+  }
+
  public:
   static void compute(BlockList* blocks) {
-    worklist = new Values();
-    blocks->blocks_do(basic_compute_use_count);
-    worklist = NULL;
+    UseCountComputer ucc;
+    blocks->iterate_backward(&ucc);
   }
 };
 
-
-Values* UseCountComputer::worklist = NULL;
-int UseCountComputer::depth = 0;
 
 // helper macro for short definition of trace-output inside code
 #ifndef PRODUCT
@@ -485,6 +422,8 @@ class ComputeLinearScanOrder : public StackObj {
   BlockList  _loop_end_blocks;     // list of all loop end blocks collected during count_edges
   BitMap2D   _loop_map;            // two-dimensional bit set: a bit is set if a block is contained in a loop
   BlockList  _work_list;           // temporary list (used in mark_loops and compute_order)
+
+  Compilation* _compilation;
 
   // accessors for _visited_blocks and _active_blocks
   void init_visited()                     { _active_blocks.clear(); _visited_blocks.clear(); }
@@ -528,8 +467,9 @@ class ComputeLinearScanOrder : public StackObj {
   NOT_PRODUCT(void print_blocks();)
   DEBUG_ONLY(void verify();)
 
+  Compilation* compilation() const { return _compilation; }
  public:
-  ComputeLinearScanOrder(BlockBegin* start_block);
+  ComputeLinearScanOrder(Compilation* c, BlockBegin* start_block);
 
   // accessors for final result
   BlockList* linear_scan_order() const    { return _linear_scan_order; }
@@ -537,7 +477,7 @@ class ComputeLinearScanOrder : public StackObj {
 };
 
 
-ComputeLinearScanOrder::ComputeLinearScanOrder(BlockBegin* start_block) :
+ComputeLinearScanOrder::ComputeLinearScanOrder(Compilation* c, BlockBegin* start_block) :
   _max_block_id(BlockBegin::number_of_blocks()),
   _num_blocks(0),
   _num_loops(0),
@@ -549,12 +489,17 @@ ComputeLinearScanOrder::ComputeLinearScanOrder(BlockBegin* start_block) :
   _loop_end_blocks(8),
   _work_list(8),
   _linear_scan_order(NULL), // initialized later with correct size
-  _loop_map(0, 0)           // initialized later with correct size
+  _loop_map(0, 0),          // initialized later with correct size
+  _compilation(c)
 {
   TRACE_LINEAR_SCAN(2, "***** computing linear-scan block order");
 
   init_visited();
   count_edges(start_block, NULL);
+
+  if (compilation()->is_profiling()) {
+    compilation()->method()->method_data()->set_compilation_stats(_num_loops, _num_blocks);
+  }
 
   if (_num_loops > 0) {
     mark_loops();
@@ -1132,7 +1077,7 @@ void ComputeLinearScanOrder::verify() {
 void IR::compute_code() {
   assert(is_valid(), "IR must be valid");
 
-  ComputeLinearScanOrder compute_order(start());
+  ComputeLinearScanOrder compute_order(compilation(), start());
   _num_loops = compute_order.num_loops();
   _code = compute_order.linear_scan_order();
 }
@@ -1300,7 +1245,7 @@ void IR::verify() {
 
 #endif // PRODUCT
 
-void SubstitutionResolver::substitute(Value* v) {
+void SubstitutionResolver::visit(Value* v) {
   Value v0 = *v;
   if (v0) {
     Value vs = v0->subst();
@@ -1311,24 +1256,26 @@ void SubstitutionResolver::substitute(Value* v) {
 }
 
 #ifdef ASSERT
-void check_substitute(Value* v) {
-  Value v0 = *v;
-  if (v0) {
-    Value vs = v0->subst();
-    assert(vs == v0, "missed substitution");
+class SubstitutionChecker: public ValueVisitor {
+  void visit(Value* v) {
+    Value v0 = *v;
+    if (v0) {
+      Value vs = v0->subst();
+      assert(vs == v0, "missed substitution");
+    }
   }
-}
+};
 #endif
 
 
 void SubstitutionResolver::block_do(BlockBegin* block) {
   Instruction* last = NULL;
   for (Instruction* n = block; n != NULL;) {
-    n->values_do(substitute);
+    n->values_do(this);
     // need to remove this instruction from the instruction stream
     if (n->subst() != n) {
       assert(last != NULL, "must have last");
-      last->set_next(n->next(), n->next()->bci());
+      last->set_next(n->next());
     } else {
       last = n;
     }
@@ -1336,8 +1283,9 @@ void SubstitutionResolver::block_do(BlockBegin* block) {
   }
 
 #ifdef ASSERT
-  if (block->state()) block->state()->values_do(check_substitute);
-  block->block_values_do(check_substitute);
-  if (block->end() && block->end()->state()) block->end()->state()->values_do(check_substitute);
+  SubstitutionChecker check_substitute;
+  if (block->state()) block->state()->values_do(&check_substitute);
+  block->block_values_do(&check_substitute);
+  if (block->end() && block->end()->state()) block->end()->state()->values_do(&check_substitute);
 #endif
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -39,11 +39,10 @@ public class CodeBlob extends VMObject {
   private static CIntegerField sizeField;
   private static CIntegerField headerSizeField;
   private static CIntegerField relocationSizeField;
-  private static CIntegerField instructionsOffsetField;
+  private static CIntegerField contentOffsetField;
+  private static CIntegerField codeOffsetField;
   private static CIntegerField frameCompleteOffsetField;
   private static CIntegerField dataOffsetField;
-  private static CIntegerField oopsOffsetField;
-  private static CIntegerField oopsLengthField;
   private static CIntegerField frameSizeField;
   private static AddressField  oopMapsField;
 
@@ -70,10 +69,9 @@ public class CodeBlob extends VMObject {
     headerSizeField          = type.getCIntegerField("_header_size");
     relocationSizeField      = type.getCIntegerField("_relocation_size");
     frameCompleteOffsetField = type.getCIntegerField("_frame_complete_offset");
-    instructionsOffsetField  = type.getCIntegerField("_instructions_offset");
+    contentOffsetField       = type.getCIntegerField("_content_offset");
+    codeOffsetField          = type.getCIntegerField("_code_offset");
     dataOffsetField          = type.getCIntegerField("_data_offset");
-    oopsOffsetField          = type.getCIntegerField("_oops_offset");
-    oopsLengthField          = type.getCIntegerField("_oops_length");
     frameSizeField           = type.getCIntegerField("_frame_size");
     oopMapsField             = type.getAddressField("_oop_maps");
 
@@ -115,11 +113,19 @@ public class CodeBlob extends VMObject {
   //  public RelocInfo relocationBegin();
   //  public RelocInfo relocationEnd();
 
-  public Address instructionsBegin() {
-    return headerBegin().addOffsetTo(instructionsOffsetField.getValue(addr));
+  public Address contentBegin() {
+    return headerBegin().addOffsetTo(contentOffsetField.getValue(addr));
   }
 
-  public Address instructionsEnd() {
+  public Address contentEnd() {
+    return headerBegin().addOffsetTo(dataOffsetField.getValue(addr));
+  }
+
+  public Address codeBegin() {
+    return headerBegin().addOffsetTo(contentOffsetField.getValue(addr));
+  }
+
+  public Address codeEnd() {
     return headerBegin().addOffsetTo(dataOffsetField.getValue(addr));
   }
 
@@ -131,44 +137,28 @@ public class CodeBlob extends VMObject {
     return headerBegin().addOffsetTo(sizeField.getValue(addr));
   }
 
-  public Address oopsBegin() {
-    return headerBegin().addOffsetTo(oopsOffsetField.getValue(addr));
-  }
-
-  public Address oopsEnd() {
-    return oopsBegin().addOffsetTo(getOopsLength());
-  }
-
   // Offsets
-  public int getRelocationOffset()   { return (int) headerSizeField.getValue(addr);         }
-  public int getInstructionsOffset() { return (int) instructionsOffsetField.getValue(addr); }
-  public int getDataOffset()         { return (int) dataOffsetField.getValue(addr);         }
-  public int getOopsOffset()         { return (int) oopsOffsetField.getValue(addr);         }
+  public int getRelocationOffset() { return (int) headerSizeField   .getValue(addr); }
+  public int getContentOffset()    { return (int) contentOffsetField.getValue(addr); }
+  public int getCodeOffset()       { return (int) codeOffsetField   .getValue(addr); }
+  public int getDataOffset()       { return (int) dataOffsetField   .getValue(addr); }
 
   // Sizes
-  public int getSize()             { return (int) sizeField.getValue(addr);                     }
-  public int getHeaderSize()       { return (int) headerSizeField.getValue(addr);               }
+  public int getSize()             { return (int) sizeField      .getValue(addr);     }
+  public int getHeaderSize()       { return (int) headerSizeField.getValue(addr);     }
   // FIXME: add getRelocationSize()
-  public int getInstructionsSize() { return (int) instructionsEnd().minus(instructionsBegin()); }
-  public int getDataSize()         { return (int) dataEnd().minus(dataBegin());                 }
+  public int getContentSize()      { return (int) contentEnd().minus(contentBegin()); }
+  public int getCodeSize()         { return (int) codeEnd()   .minus(codeBegin());    }
+  public int getDataSize()         { return (int) dataEnd()   .minus(dataBegin());    }
 
   // Containment
-  public boolean blobContains(Address addr)         { return headerBegin().lessThanOrEqual(addr) && dataEnd().greaterThan(addr);               }
+  public boolean blobContains(Address addr)    { return headerBegin() .lessThanOrEqual(addr) && dataEnd()   .greaterThan(addr); }
   // FIXME: add relocationContains
-  public boolean instructionsContains(Address addr) { return instructionsBegin().lessThanOrEqual(addr) && instructionsEnd().greaterThan(addr); }
-  public boolean dataContains(Address addr)         { return dataBegin().lessThanOrEqual(addr) && dataEnd().greaterThan(addr);                 }
-  public boolean oopsContains(Address addr)         { return oopsBegin().lessThanOrEqual(addr) && oopsEnd().greaterThan(addr);                 }
-  public boolean contains(Address addr)             { return instructionsContains(addr);                                                       }
-  public boolean isFrameCompleteAt(Address a)       { return instructionsContains(a) && a.minus(instructionsBegin()) >= frameCompleteOffsetField.getValue(addr); }
-
-  /** Support for oops in scopes and relocs. Note: index 0 is reserved for null. */
-  public OopHandle getOopAt(int index) {
-    if (index == 0) return null;
-    if (Assert.ASSERTS_ENABLED) {
-      Assert.that(index > 0 && index <= getOopsLength(), "must be a valid non-zero index");
-    }
-    return oopsBegin().getOopHandleAt((index - 1) * VM.getVM().getOopSize());
-  }
+  public boolean contentContains(Address addr) { return contentBegin().lessThanOrEqual(addr) && contentEnd().greaterThan(addr); }
+  public boolean codeContains(Address addr)    { return codeBegin()   .lessThanOrEqual(addr) && codeEnd()   .greaterThan(addr); }
+  public boolean dataContains(Address addr)    { return dataBegin()   .lessThanOrEqual(addr) && dataEnd()   .greaterThan(addr); }
+  public boolean contains(Address addr)        { return contentContains(addr);                                                  }
+  public boolean isFrameCompleteAt(Address a)  { return codeContains(a) && a.minus(codeBegin()) >= frameCompleteOffsetField.getValue(addr); }
 
   // Reclamation support (really only used by the nmethods, but in order to get asserts to work
   // in the CodeCache they are defined virtual here)
@@ -191,7 +181,7 @@ public class CodeBlob extends VMObject {
     if (Assert.ASSERTS_ENABLED) {
       Assert.that(getOopMaps() != null, "nope");
     }
-    return getOopMaps().findMapAtOffset(pc.minus(instructionsBegin()), debugging);
+    return getOopMaps().findMapAtOffset(pc.minus(codeBegin()), debugging);
   }
 
   //  virtual void preserve_callee_argument_oops(frame fr, const RegisterMap* reg_map, void f(oop*)) { ShouldNotReachHere(); }
@@ -223,18 +213,9 @@ public class CodeBlob extends VMObject {
   }
 
   protected void printComponentsOn(PrintStream tty) {
-    // FIXME: add relocation information
-    tty.println(" instructions: [" + instructionsBegin() + ", " + instructionsEnd() + "), " +
+    tty.println(" content: [" + contentBegin() + ", " + contentEnd() + "), " +
+                " code: [" + codeBegin() + ", " + codeEnd() + "), " +
                 " data: [" + dataBegin() + ", " + dataEnd() + "), " +
-                " oops: [" + oopsBegin() + ", " + oopsEnd() + "), " +
                 " frame size: " + getFrameSize());
-  }
-
-  //--------------------------------------------------------------------------------
-  // Internals only below this point
-  //
-
-  private int getOopsLength() {
-    return (int) oopsLengthField.getValue(addr);
   }
 }

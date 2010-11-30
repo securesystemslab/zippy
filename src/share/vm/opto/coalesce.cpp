@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -779,6 +779,14 @@ bool PhaseConservativeCoalesce::copy_copy( Node *dst_copy, Node *src_copy, Block
   rm.AND(lrgs(lr2).mask());
   // Number of bits free
   uint rm_size = rm.Size();
+
+  if (UseFPUForSpilling && rm.is_AllStack() ) {
+    // Don't coalesce when frequency difference is large
+    Block *dst_b = _phc._cfg._bbs[dst_copy->_idx];
+    Block *src_def_b = _phc._cfg._bbs[src_def->_idx];
+    if (src_def_b->_freq > 10*dst_b->_freq )
+      return false;
+  }
 
   // If we can use any stack slot, then effective size is infinite
   if( rm.is_AllStack() ) rm_size += 1000000;

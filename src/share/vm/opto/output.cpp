@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -382,6 +382,10 @@ void Compile::Shorten_branches(Label *labels, int& code_size, int& reloc_size, i
           if (min_offset_from_last_call == 0) {
             blk_size += nop_size;
           }
+        } else if (mach->ideal_Opcode() == Op_Jump) {
+          const_size += b->_num_succs; // Address table size
+          // The size is valid even for 64 bit since it is
+          // multiplied by 2*jintSize on this method exit.
         }
       }
       min_offset_from_last_call += inst_size;
@@ -1180,7 +1184,7 @@ void Compile::Fill_buffer() {
       MacroAssembler(cb).bind( blk_labels[b->_pre_order] );
 
     else
-      assert( blk_labels[b->_pre_order].loc_pos() == cb->code_size(),
+      assert( blk_labels[b->_pre_order].loc_pos() == cb->insts_size(),
               "label position does not match code offset" );
 
     uint last_inst = b->_nodes.size();
@@ -1221,7 +1225,7 @@ void Compile::Fill_buffer() {
         // If this requires all previous instructions be flushed, then do so
         if( is_sfn || is_mcall || mach->alignment_required() != 1) {
           cb->flush_bundle(true);
-          current_offset = cb->code_size();
+          current_offset = cb->insts_size();
         }
 
         // align the instruction if necessary
@@ -1231,7 +1235,7 @@ void Compile::Fill_buffer() {
         if (is_sfn && !is_mcall && padding == 0 && current_offset == last_call_offset ) {
           padding = nop_size;
         }
-        assert( labels_not_set || padding == 0, "instruction should already be aligned")
+        assert( labels_not_set || padding == 0, "instruction should already be aligned");
 
         if(padding > 0) {
           assert((padding % nop_size) == 0, "padding is not a multiple of NOP size");
@@ -1242,7 +1246,7 @@ void Compile::Fill_buffer() {
           _cfg->_bbs.map( nop->_idx, b );
           nop->emit(*cb, _regalloc);
           cb->flush_bundle(true);
-          current_offset = cb->code_size();
+          current_offset = cb->insts_size();
         }
 
         // Remember the start of the last call in a basic block
@@ -1344,12 +1348,12 @@ void Compile::Fill_buffer() {
       // Save the offset for the listing
 #ifndef PRODUCT
       if( node_offsets && n->_idx < node_offset_limit )
-        node_offsets[n->_idx] = cb->code_size();
+        node_offsets[n->_idx] = cb->insts_size();
 #endif
 
       // "Normal" instruction case
       n->emit(*cb, _regalloc);
-      current_offset  = cb->code_size();
+      current_offset  = cb->insts_size();
       non_safepoints.observe_instruction(n, current_offset);
 
       // mcall is last "call" that can be a safepoint
@@ -1368,13 +1372,12 @@ void Compile::Fill_buffer() {
         assert(delay_slot != NULL, "expecting delay slot node");
 
         // Back up 1 instruction
-        cb->set_code_end(
-          cb->code_end()-Pipeline::instr_unit_size());
+        cb->set_insts_end(cb->insts_end() - Pipeline::instr_unit_size());
 
         // Save the offset for the listing
 #ifndef PRODUCT
         if( node_offsets && delay_slot->_idx < node_offset_limit )
-          node_offsets[delay_slot->_idx] = cb->code_size();
+          node_offsets[delay_slot->_idx] = cb->insts_size();
 #endif
 
         // Support a SafePoint in the delay slot
@@ -1416,7 +1419,7 @@ void Compile::Fill_buffer() {
         b->_nodes.insert( b->_nodes.size(), nop );
         _cfg->_bbs.map( nop->_idx, b );
         nop->emit(*cb, _regalloc);
-        current_offset = cb->code_size();
+        current_offset = cb->insts_size();
       }
     }
 
@@ -1433,13 +1436,13 @@ void Compile::Fill_buffer() {
   // Compute the size of the first block
   _first_block_size = blk_labels[1].loc_pos() - blk_labels[0].loc_pos();
 
-  assert(cb->code_size() < 500000, "method is unreasonably large");
+  assert(cb->insts_size() < 500000, "method is unreasonably large");
 
   // ------------------
 
 #ifndef PRODUCT
   // Information on the size of the method, without the extraneous code
-  Scheduling::increment_method_size(cb->code_size());
+  Scheduling::increment_method_size(cb->insts_size());
 #endif
 
   // ------------------
@@ -2407,7 +2410,7 @@ void Scheduling::verify_do_def( Node *n, OptoReg::Name def, const char *msg ) {
       n->dump();
       tty->print_cr("...");
       prior_use->dump();
-      assert_msg(edge_from_to(prior_use,n),msg);
+      assert(edge_from_to(prior_use,n),msg);
     }
     _reg_node.map(def,NULL); // Kill live USEs
   }
@@ -2446,11 +2449,11 @@ void Scheduling::verify_good_schedule( Block *b, const char *msg ) {
       OptoReg::Name reg_lo = _regalloc->get_reg_first(def);
       OptoReg::Name reg_hi = _regalloc->get_reg_second(def);
       if( OptoReg::is_valid(reg_lo) ) {
-        assert_msg(!_reg_node[reg_lo] || edge_from_to(_reg_node[reg_lo],def), msg );
+        assert(!_reg_node[reg_lo] || edge_from_to(_reg_node[reg_lo],def), msg);
         _reg_node.map(reg_lo,n);
       }
       if( OptoReg::is_valid(reg_hi) ) {
-        assert_msg(!_reg_node[reg_hi] || edge_from_to(_reg_node[reg_hi],def), msg );
+        assert(!_reg_node[reg_hi] || edge_from_to(_reg_node[reg_hi],def), msg);
         _reg_node.map(reg_hi,n);
       }
     }

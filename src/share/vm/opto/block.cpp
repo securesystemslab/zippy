@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -353,7 +353,8 @@ void Block::dump( const Block_Array *bbs ) const {
 PhaseCFG::PhaseCFG( Arena *a, RootNode *r, Matcher &m ) :
   Phase(CFG),
   _bbs(a),
-  _root(r)
+  _root(r),
+  _node_latency(NULL)
 #ifndef PRODUCT
   , _trace_opto_pipelining(TraceOptoPipelining || C->method_has_option("TraceOptoPipelining"))
 #endif

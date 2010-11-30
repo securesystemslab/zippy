@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -406,8 +406,10 @@ char *os::strdup(const char *str) {
 #ifdef ASSERT
 inline size_t get_size(void* obj) {
   size_t size = *size_addr_from_obj(obj);
-  if (size < 0 )
-    fatal2("free: size field of object #%p was overwritten (%lu)", obj, size);
+  if (size < 0) {
+    fatal(err_msg("free: size field of object #" PTR_FORMAT " was overwritten ("
+                  SIZE_FORMAT ")", obj, size));
+  }
   return size;
 }
 
@@ -733,6 +735,159 @@ void os::print_date_and_time(outputStream *st) {
   st->print_cr("elapsed time: %d seconds", (int)t);
 }
 
+// moved from debug.cpp (used to be find()) but still called from there
+// The verbose parameter is only set by the debug code in one case
+void os::print_location(outputStream* st, intptr_t x, bool verbose) {
+  address addr = (address)x;
+  CodeBlob* b = CodeCache::find_blob_unsafe(addr);
+  if (b != NULL) {
+    if (b->is_buffer_blob()) {
+      // the interpreter is generated into a buffer blob
+      InterpreterCodelet* i = Interpreter::codelet_containing(addr);
+      if (i != NULL) {
+        st->print_cr(INTPTR_FORMAT " is an Interpreter codelet", addr);
+        i->print_on(st);
+        return;
+      }
+      if (Interpreter::contains(addr)) {
+        st->print_cr(INTPTR_FORMAT " is pointing into interpreter code"
+                     " (not bytecode specific)", addr);
+        return;
+      }
+      //
+      if (AdapterHandlerLibrary::contains(b)) {
+        st->print_cr(INTPTR_FORMAT " is an AdapterHandler", addr);
+        AdapterHandlerLibrary::print_handler_on(st, b);
+      }
+      // the stubroutines are generated into a buffer blob
+      StubCodeDesc* d = StubCodeDesc::desc_for(addr);
+      if (d != NULL) {
+        d->print_on(st);
+        if (verbose) st->cr();
+        return;
+      }
+      if (StubRoutines::contains(addr)) {
+        st->print_cr(INTPTR_FORMAT " is pointing to an (unnamed) "
+                     "stub routine", addr);
+        return;
+      }
+      // the InlineCacheBuffer is using stubs generated into a buffer blob
+      if (InlineCacheBuffer::contains(addr)) {
+        st->print_cr(INTPTR_FORMAT " is pointing into InlineCacheBuffer", addr);
+        return;
+      }
+      VtableStub* v = VtableStubs::stub_containing(addr);
+      if (v != NULL) {
+        v->print_on(st);
+        return;
+      }
+    }
+    if (verbose && b->is_nmethod()) {
+      ResourceMark rm;
+      st->print("%#p: Compiled ", addr);
+      ((nmethod*)b)->method()->print_value_on(st);
+      st->print("  = (CodeBlob*)" INTPTR_FORMAT, b);
+      st->cr();
+      return;
+    }
+    st->print(INTPTR_FORMAT " ", b);
+    if ( b->is_nmethod()) {
+      if (b->is_zombie()) {
+        st->print_cr("is zombie nmethod");
+      } else if (b->is_not_entrant()) {
+        st->print_cr("is non-entrant nmethod");
+      }
+    }
+    b->print_on(st);
+    return;
+  }
+
+  if (Universe::heap()->is_in(addr)) {
+    HeapWord* p = Universe::heap()->block_start(addr);
+    bool print = false;
+    // If we couldn't find it it just may mean that heap wasn't parseable
+    // See if we were just given an oop directly
+    if (p != NULL && Universe::heap()->block_is_obj(p)) {
+      print = true;
+    } else if (p == NULL && ((oopDesc*)addr)->is_oop()) {
+      p = (HeapWord*) addr;
+      print = true;
+    }
+    if (print) {
+      st->print_cr(INTPTR_FORMAT " is an oop", addr);
+      oop(p)->print_on(st);
+      if (p != (HeapWord*)x && oop(p)->is_constMethod() &&
+          constMethodOop(p)->contains(addr)) {
+        Thread *thread = Thread::current();
+        HandleMark hm(thread);
+        methodHandle mh (thread, constMethodOop(p)->method());
+        if (!mh->is_native()) {
+          st->print_cr("bci_from(%p) = %d; print_codes():",
+                        addr, mh->bci_from(address(x)));
+          mh->print_codes_on(st);
+        }
+      }
+      return;
+    }
+  } else {
+    if (Universe::heap()->is_in_reserved(addr)) {
+      st->print_cr(INTPTR_FORMAT " is an unallocated location "
+                   "in the heap", addr);
+      return;
+    }
+  }
+  if (JNIHandles::is_global_handle((jobject) addr)) {
+    st->print_cr(INTPTR_FORMAT " is a global jni handle", addr);
+    return;
+  }
+  if (JNIHandles::is_weak_global_handle((jobject) addr)) {
+    st->print_cr(INTPTR_FORMAT " is a weak global jni handle", addr);
+    return;
+  }
+#ifndef PRODUCT
+  // we don't keep the block list in product mode
+  if (JNIHandleBlock::any_contains((jobject) addr)) {
+    st->print_cr(INTPTR_FORMAT " is a local jni handle", addr);
+    return;
+  }
+#endif
+
+  for(JavaThread *thread = Threads::first(); thread; thread = thread->next()) {
+    // Check for privilege stack
+    if (thread->privileged_stack_top() != NULL &&
+        thread->privileged_stack_top()->contains(addr)) {
+      st->print_cr(INTPTR_FORMAT " is pointing into the privilege stack "
+                   "for thread: " INTPTR_FORMAT, addr, thread);
+      if (verbose) thread->print_on(st);
+      return;
+    }
+    // If the addr is a java thread print information about that.
+    if (addr == (address)thread) {
+      if (verbose) {
+        thread->print_on(st);
+      } else {
+        st->print_cr(INTPTR_FORMAT " is a thread", addr);
+      }
+      return;
+    }
+    // If the addr is in the stack region for this thread then report that
+    // and print thread info
+    if (thread->stack_base() >= addr &&
+        addr > (thread->stack_base() - thread->stack_size())) {
+      st->print_cr(INTPTR_FORMAT " is pointing into the stack for thread: "
+                   INTPTR_FORMAT, addr, thread);
+      if (verbose) thread->print_on(st);
+      return;
+    }
+
+  }
+  // Try an OS specific find
+  if (os::find(addr, st)) {
+    return;
+  }
+
+  st->print_cr(INTPTR_FORMAT " is an unknown value", addr);
+}
 
 // Looks like all platforms except IA64 can use the same function to check
 // if C stack is walkable beyond current frame. The check for fp() is not
@@ -884,6 +1039,11 @@ bool os::set_boot_path(char fileSep, char pathSep) {
         "%/lib/jsse.jar:"
         "%/lib/jce.jar:"
         "%/lib/charsets.jar:"
+
+        // ## TEMPORARY hack to keep the legacy launcher working when
+        // ## only the boot module is installed (cf. j.l.ClassLoader)
+        "%/lib/modules/jdk.boot.jar:"
+
         "%/classes";
     char* sysclasspath = format_boot_path(classpath_format, home, home_len, fileSep, pathSep);
     if (sysclasspath == NULL) return false;

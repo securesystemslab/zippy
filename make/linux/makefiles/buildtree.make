@@ -1,5 +1,5 @@
 #
-# Copyright 2005-2008 Sun Microsystems, Inc.  All Rights Reserved.
+# Copyright (c) 2005, 2008, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-# CA 95054 USA or visit www.sun.com if you need additional information or
-# have any questions.
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
 #  
 #
 
@@ -339,12 +339,16 @@ JAVA_FLAG/64 = -d64
 WRONG_DATA_MODE_MSG = \
 	echo "JAVA_HOME must point to $(DATA_MODE)bit JDK."
 
+CROSS_COMPILING_MSG = \
+	echo "Cross compiling for ARCH $(CROSS_COMPILE_ARCH), skipping gamma run."
+
 test_gamma:  $(BUILDTREE_MAKE) $(GAMMADIR)/make/test/Queens.java
 	@echo Creating $@ ...
 	$(QUIETLY) ( \
 	echo '#!/bin/sh'; \
 	$(BUILDTREE_COMMENT); \
 	echo '. ./env.sh'; \
+	echo "if [ \"$(CROSS_COMPILE_ARCH)\" != \"\" ]; then { $(CROSS_COMPILING_MSG); exit 0; }; fi"; \
 	echo "if [ -z \$$JAVA_HOME ]; then { $(NO_JAVA_HOME_MSG); exit 0; }; fi"; \
 	echo "if ! \$${JAVA_HOME}/bin/java $(JAVA_FLAG) -fullversion 2>&1 > /dev/null"; \
 	echo "then"; \

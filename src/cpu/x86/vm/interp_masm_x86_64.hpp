@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -95,10 +95,10 @@ class InterpreterMacroAssembler: public MacroAssembler {
 
   void get_unsigned_2_byte_index_at_bcp(Register reg, int bcp_offset);
   void get_cache_and_index_at_bcp(Register cache, Register index,
-                                  int bcp_offset, bool giant_index = false);
+                                  int bcp_offset, size_t index_size = sizeof(u2));
   void get_cache_entry_pointer_at_bcp(Register cache, Register tmp,
-                                      int bcp_offset, bool giant_index = false);
-  void get_cache_index_at_bcp(Register index, int bcp_offset, bool giant_index = false);
+                                      int bcp_offset, size_t index_size = sizeof(u2));
+  void get_cache_index_at_bcp(Register index, int bcp_offset, size_t index_size = sizeof(u2));
 
 
   void pop_ptr(Register r = rax);
@@ -120,37 +120,15 @@ class InterpreterMacroAssembler: public MacroAssembler {
   void pop(TosState state); // transition vtos -> state
   void push(TosState state); // transition state -> vtos
 
-  // Tagged stack support, pop and push both tag and value.
-  void pop_ptr(Register r, Register tag);
-  void push_ptr(Register r, Register tag);
-#endif // CC_INTERP
-
-  DEBUG_ONLY(void verify_stack_tag(frame::Tag t);)
-
-#ifndef CC_INTERP
-
-  // Tagged stack helpers for swap and dup
-  void load_ptr_and_tag(int n, Register val, Register tag);
-  void store_ptr_and_tag(int n, Register val, Register tag);
-
-  // Tagged Local support
-  void tag_local(frame::Tag tag, int n);
-  void tag_local(Register tag, int n);
-  void tag_local(frame::Tag tag, Register idx);
-  void tag_local(Register tag, Register idx);
-
-#ifdef ASSERT
-  void verify_local_tag(frame::Tag tag, int n);
-  void verify_local_tag(frame::Tag tag, Register idx);
-#endif // ASSERT
-
-
-  void empty_expression_stack()
-  {
+  void empty_expression_stack() {
     movptr(rsp, Address(rbp, frame::interpreter_frame_monitor_block_top_offset * wordSize));
     // NULL last_sp until next java call
     movptr(Address(rbp, frame::interpreter_frame_last_sp_offset * wordSize), (int32_t)NULL_WORD);
   }
+
+  // Helpers for swap and dup
+  void load_ptr(int n, Register val);
+  void store_ptr(int n, Register val);
 
   // Super call_VM calls - correspond to MacroAssembler::call_VM(_leaf) calls
   void super_call_VM_leaf(address entry_point);
@@ -216,6 +194,10 @@ class InterpreterMacroAssembler: public MacroAssembler {
                              bool decrement = false);
   void increment_mdp_data_at(Register mdp_in, Register reg, int constant,
                              bool decrement = false);
+  void increment_mask_and_jump(Address counter_addr,
+                               int increment, int mask,
+                               Register scratch, bool preloaded,
+                               Condition cond, Label* where);
   void set_mdp_flag_at(Register mdp_in, int flag_constant);
   void test_mdp_data_at(Register mdp_in, int offset, Register value,
                         Register test_value_out,

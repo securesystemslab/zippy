@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -712,10 +712,8 @@ void ciTypeFlow::StateVector::do_ldc(ciBytecodeStream* str) {
     ciObject* obj = con.as_object();
     if (obj->is_null_object()) {
       push_null();
-    } else if (obj->is_klass()) {
-      // The type of ldc <class> is java.lang.Class
-      push_object(outer()->env()->Class_klass());
     } else {
+      assert(!obj->is_klass(), "must be java_mirror of klass");
       push_object(obj->klass());
     }
   } else {
@@ -1947,7 +1945,7 @@ ciTypeFlow::ciTypeFlow(ciEnv* env, ciMethod* method, int osr_bci) {
   _has_irreducible_entry = false;
   _osr_bci = osr_bci;
   _failure_reason = NULL;
-  assert(start_bci() >= 0 && start_bci() < code_size() , "correct osr_bci argument");
+  assert(0 <= start_bci() && start_bci() < code_size() , err_msg("correct osr_bci argument: 0 <= %d < %d", start_bci(), code_size()));
   _work_list = NULL;
 
   _ciblock_count = _methodBlocks->num_blocks();
@@ -2132,6 +2130,7 @@ bool ciTypeFlow::can_trap(ciBytecodeStream& str) {
   if (!Bytecodes::can_trap(str.cur_bc()))  return false;
 
   switch (str.cur_bc()) {
+    // %%% FIXME: ldc of Class can generate an exception
     case Bytecodes::_ldc:
     case Bytecodes::_ldc_w:
     case Bytecodes::_ldc2_w:
@@ -2592,7 +2591,7 @@ void ciTypeFlow::df_flow_types(Block* start,
                                StateVector* temp_vector,
                                JsrSet* temp_set) {
   int dft_len = 100;
-  GrowableArray<Block*> stk(arena(), dft_len, 0, NULL);
+  GrowableArray<Block*> stk(dft_len);
 
   ciBlock* dummy = _methodBlocks->make_dummy_block();
   JsrSet* root_set = new JsrSet(NULL, 0);

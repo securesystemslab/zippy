@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -110,15 +110,21 @@ class FreeChunk VALUE_OBJ_CLASS_SPEC {
   }
   void linkNext(FreeChunk* ptr) { _next = ptr; }
   void linkPrev(FreeChunk* ptr) {
-     LP64_ONLY(if (UseCompressedOops) _prev = ptr; else)
-     _prev = (FreeChunk*)((intptr_t)ptr | 0x1);
+    LP64_ONLY(if (UseCompressedOops) _prev = ptr; else)
+    _prev = (FreeChunk*)((intptr_t)ptr | 0x1);
   }
   void clearPrev()              { _prev = NULL; }
   void clearNext()              { _next = NULL; }
   void markNotFree() {
-   LP64_ONLY(if (UseCompressedOops) set_mark(markOopDesc::prototype());)
-   // Also set _prev to null
-   _prev = NULL;
+    // Set _prev (klass) to null before (if) clearing the mark word below
+    _prev = NULL;
+#ifdef _LP64
+    if (UseCompressedOops) {
+      OrderAccess::storestore();
+      set_mark(markOopDesc::prototype());
+    }
+#endif
+    assert(!isFree(), "Error");
   }
 
   // Return the address past the end of this chunk
@@ -133,9 +139,5 @@ class FreeChunk VALUE_OBJ_CLASS_SPEC {
   void print_on(outputStream* st);
 };
 
-// Alignment helpers etc.
-#define numQuanta(x,y) ((x+y-1)/y)
-enum AlignmentConstants {
-  MinChunkSize = numQuanta(sizeof(FreeChunk), MinObjAlignmentInBytes) * MinObjAlignment
-};
+extern size_t MinChunkSize;
 

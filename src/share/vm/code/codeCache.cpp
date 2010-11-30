@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -74,16 +74,16 @@ class CodeBlob_sizes {
     total_size       += cb->size();
     header_size      += cb->header_size();
     relocation_size  += cb->relocation_size();
-    scopes_oop_size  += cb->oops_size();
     if (cb->is_nmethod()) {
-      nmethod *nm = (nmethod*)cb;
-      code_size        += nm->code_size();
+      nmethod* nm = cb->as_nmethod_or_null();
+      code_size        += nm->insts_size();
       stub_size        += nm->stub_size();
 
+      scopes_oop_size  += nm->oops_size();
       scopes_data_size += nm->scopes_data_size();
       scopes_pcs_size  += nm->scopes_pcs_size();
     } else {
-      code_size        += cb->instructions_size();
+      code_size        += cb->code_size();
     }
   }
 };
@@ -93,6 +93,8 @@ class CodeBlob_sizes {
 
 CodeHeap * CodeCache::_heap = new CodeHeap();
 int CodeCache::_number_of_blobs = 0;
+int CodeCache::_number_of_adapters = 0;
+int CodeCache::_number_of_nmethods = 0;
 int CodeCache::_number_of_nmethods_with_dependencies = 0;
 bool CodeCache::_needs_cache_clean = false;
 nmethod* CodeCache::_scavenge_root_nmethods = NULL;
@@ -124,6 +126,23 @@ nmethod* CodeCache::alive_nmethod(CodeBlob* cb) {
   return (nmethod*)cb;
 }
 
+nmethod* CodeCache::first_nmethod() {
+  assert_locked_or_safepoint(CodeCache_lock);
+  CodeBlob* cb = first();
+  while (cb != NULL && !cb->is_nmethod()) {
+    cb = next(cb);
+  }
+  return (nmethod*)cb;
+}
+
+nmethod* CodeCache::next_nmethod (CodeBlob* cb) {
+  assert_locked_or_safepoint(CodeCache_lock);
+  cb = next(cb);
+  while (cb != NULL && !cb->is_nmethod()) {
+    cb = next(cb);
+  }
+  return (nmethod*)cb;
+}
 
 CodeBlob* CodeCache::allocate(int size) {
   // Do not seize the CodeCache lock here--if the caller has not
@@ -159,8 +178,14 @@ void CodeCache::free(CodeBlob* cb) {
   verify_if_often();
 
   print_trace("free", cb);
-  if (cb->is_nmethod() && ((nmethod *)cb)->has_dependencies()) {
-    _number_of_nmethods_with_dependencies--;
+  if (cb->is_nmethod()) {
+    _number_of_nmethods--;
+    if (((nmethod *)cb)->has_dependencies()) {
+      _number_of_nmethods_with_dependencies--;
+    }
+  }
+  if (cb->is_adapter_blob()) {
+    _number_of_adapters--;
   }
   _number_of_blobs--;
 
@@ -174,11 +199,18 @@ void CodeCache::free(CodeBlob* cb) {
 void CodeCache::commit(CodeBlob* cb) {
   // this is called by nmethod::nmethod, which must already own CodeCache_lock
   assert_locked_or_safepoint(CodeCache_lock);
-  if (cb->is_nmethod() && ((nmethod *)cb)->has_dependencies()) {
-    _number_of_nmethods_with_dependencies++;
+  if (cb->is_nmethod()) {
+    _number_of_nmethods++;
+    if (((nmethod *)cb)->has_dependencies()) {
+      _number_of_nmethods_with_dependencies++;
+    }
   }
+  if (cb->is_adapter_blob()) {
+    _number_of_adapters++;
+  }
+
   // flush the hardware I-cache
-  ICache::invalidate_range(cb->instructions_begin(), cb->instructions_size());
+  ICache::invalidate_range(cb->content_begin(), cb->content_size());
 }
 
 
@@ -245,14 +277,14 @@ int CodeCache::alignment_offset() {
 }
 
 
-// Mark code blobs for unloading if they contain otherwise
-// unreachable oops.
+// Mark nmethods for unloading if they contain otherwise unreachable
+// oops.
 void CodeCache::do_unloading(BoolObjectClosure* is_alive,
                              OopClosure* keep_alive,
                              bool unloading_occurred) {
   assert_locked_or_safepoint(CodeCache_lock);
-  FOR_ALL_ALIVE_BLOBS(cb) {
-    cb->do_unloading(is_alive, keep_alive, unloading_occurred);
+  FOR_ALL_ALIVE_NMETHODS(nm) {
+    nm->do_unloading(is_alive, keep_alive, unloading_occurred);
   }
 }
 
@@ -414,7 +446,7 @@ nmethod* CodeCache::find_and_remove_saved_code(methodOop m) {
       saved->set_speculatively_disconnected(false);
       saved->set_saved_nmethod_link(NULL);
       if (PrintMethodFlushing) {
-        saved->print_on(tty, " ### nmethod is reconnected");
+        saved->print_on(tty, " ### nmethod is reconnected\n");
       }
       if (LogCompilation && (xtty != NULL)) {
         ttyLocker ttyl;
@@ -432,7 +464,8 @@ nmethod* CodeCache::find_and_remove_saved_code(methodOop m) {
 }
 
 void CodeCache::remove_saved_code(nmethod* nm) {
-  MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+  // For conc swpr this will be called with CodeCache_lock taken by caller
+  assert_locked_or_safepoint(CodeCache_lock);
   assert(nm->is_speculatively_disconnected(), "shouldn't call for other nmethods");
   nmethod* saved = _saved_nmethods;
   nmethod* prev = NULL;
@@ -463,7 +496,7 @@ void CodeCache::speculatively_disconnect(nmethod* nm) {
   nm->set_saved_nmethod_link(_saved_nmethods);
   _saved_nmethods = nm;
   if (PrintMethodFlushing) {
-    nm->print_on(tty, " ### nmethod is speculatively disconnected");
+    nm->print_on(tty, " ### nmethod is speculatively disconnected\n");
   }
   if (LogCompilation && (xtty != NULL)) {
     ttyLocker ttyl;
@@ -491,9 +524,9 @@ void CodeCache::gc_epilogue() {
       if (needs_cache_clean()) {
         nm->cleanup_inline_caches();
       }
-      debug_only(nm->verify();)
+      DEBUG_ONLY(nm->verify());
+      nm->fix_oop_relocations();
     }
-    cb->fix_oop_relocations();
   }
   set_needs_cache_clean(false);
   prune_scavenge_root_nmethods();
@@ -771,8 +804,8 @@ void CodeCache::print_internals() {
 
       if(nm->method() != NULL && nm->is_java_method()) {
         nmethodJava++;
-        if(nm->code_size() > maxCodeSize) {
-          maxCodeSize = nm->code_size();
+        if (nm->insts_size() > maxCodeSize) {
+          maxCodeSize = nm->insts_size();
         }
       }
     } else if (cb->is_runtime_stub()) {
@@ -797,7 +830,7 @@ void CodeCache::print_internals() {
     if (cb->is_nmethod()) {
       nmethod* nm = (nmethod*)cb;
       if(nm->is_java_method()) {
-        buckets[nm->code_size() / bucketSize]++;
+        buckets[nm->insts_size() / bucketSize]++;
       }
     }
   }
@@ -863,11 +896,11 @@ void CodeCache::print() {
     FOR_ALL_BLOBS(p) {
       if (p->is_alive()) {
         number_of_blobs++;
-        code_size += p->instructions_size();
+        code_size += p->code_size();
         OopMapSet* set = p->oop_maps();
         if (set != NULL) {
           number_of_oop_maps += set->size();
-          map_size   += set->heap_size();
+          map_size           += set->heap_size();
         }
       }
     }
@@ -881,3 +914,14 @@ void CodeCache::print() {
 }
 
 #endif // PRODUCT
+
+void CodeCache::print_bounds(outputStream* st) {
+  st->print_cr("Code Cache  [" INTPTR_FORMAT ", " INTPTR_FORMAT ", " INTPTR_FORMAT ")",
+               _heap->low_boundary(),
+               _heap->high(),
+               _heap->high_boundary());
+  st->print_cr(" total_blobs=" UINT32_FORMAT " nmethods=" UINT32_FORMAT
+               " adapters=" UINT32_FORMAT " free_code_cache=" SIZE_FORMAT,
+               CodeCache::nof_blobs(), CodeCache::nof_nmethods(),
+               CodeCache::nof_adapters(), CodeCache::unallocated_capacity());
+}

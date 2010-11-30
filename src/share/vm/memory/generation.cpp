@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -165,15 +165,16 @@ size_t Generation::max_contiguous_available() const {
   return max;
 }
 
-bool Generation::promotion_attempt_is_safe(size_t promotion_in_bytes,
-                                           bool not_used) const {
+bool Generation::promotion_attempt_is_safe(size_t max_promotion_in_bytes) const {
+  size_t available = max_contiguous_available();
+  bool   res = (available >= max_promotion_in_bytes);
   if (PrintGC && Verbose) {
-    gclog_or_tty->print_cr("Generation::promotion_attempt_is_safe"
-                " contiguous_available: " SIZE_FORMAT
-                " promotion_in_bytes: " SIZE_FORMAT,
-                max_contiguous_available(), promotion_in_bytes);
+    gclog_or_tty->print_cr(
+      "Generation: promo attempt is%s safe: available("SIZE_FORMAT") %s max_promo("SIZE_FORMAT")",
+      res? "":" not", available, res? ">=":"<",
+      max_promotion_in_bytes);
   }
-  return max_contiguous_available() >= promotion_in_bytes;
+  return res;
 }
 
 // Ignores "ref" and calls allocate().

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -831,10 +831,29 @@ class TypeInstPtr : public TypeOopPtr {
 //------------------------------TypeAryPtr-------------------------------------
 // Class of Java array pointers
 class TypeAryPtr : public TypeOopPtr {
-  TypeAryPtr( PTR ptr, ciObject* o, const TypeAry *ary, ciKlass* k, bool xk, int offset, int instance_id ) : TypeOopPtr(AryPtr,ptr,k,xk,o,offset, instance_id), _ary(ary) {};
+  TypeAryPtr( PTR ptr, ciObject* o, const TypeAry *ary, ciKlass* k, bool xk, int offset, int instance_id ) : TypeOopPtr(AryPtr,ptr,k,xk,o,offset, instance_id), _ary(ary) {
+#ifdef ASSERT
+    if (k != NULL) {
+      // Verify that specified klass and TypeAryPtr::klass() follow the same rules.
+      ciKlass* ck = compute_klass(true);
+      if (k != ck) {
+        this->dump(); tty->cr();
+        tty->print(" k: ");
+        k->print(); tty->cr();
+        tty->print("ck: ");
+        if (ck != NULL) ck->print();
+        else tty->print("<NULL>");
+        tty->cr();
+        assert(false, "unexpected TypeAryPtr::_klass");
+      }
+    }
+#endif
+  }
   virtual bool eq( const Type *t ) const;
   virtual int hash() const;     // Type specific hashing
   const TypeAry *_ary;          // Array we point into
+
+  ciKlass* compute_klass(DEBUG_ONLY(bool verify = false)) const;
 
 public:
   // Accessors

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -38,6 +38,7 @@ class OopsInGenClosure;
 class ObjectClosure;
 class SubTasksDone;
 class WorkGang;
+class FlexibleWorkGang;
 class CollectorPolicy;
 class KlassHandle;
 
@@ -74,7 +75,7 @@ protected:
   int _strong_roots_parity;
 
   // If we're doing parallel GC, use this gang of threads.
-  WorkGang* _workers;
+  FlexibleWorkGang* _workers;
 
   // Number of parallel threads currently working on GC tasks.
   // O indicates use sequential code; 1 means use parallel code even with
@@ -189,7 +190,7 @@ public:
     SO_CodeCache           = 0x10
   };
 
-  WorkGang* workers() const { return _workers; }
+  FlexibleWorkGang* workers() const { return _workers; }
 
   // Sets the number of parallel threads that will be doing tasks
   // (such as process strong roots) subsequently.

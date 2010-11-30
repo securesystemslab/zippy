@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -34,7 +34,9 @@ size_t CollectedHeap::_filler_array_max_size = 0;
 
 // Memory state functions.
 
-CollectedHeap::CollectedHeap()
+
+CollectedHeap::CollectedHeap() : _n_par_threads(0)
+
 {
   const size_t max_len = size_t(arrayOopDesc::max_array_length(T_INT));
   const size_t elements_per_word = HeapWordSize / sizeof(jint);
@@ -65,7 +67,7 @@ CollectedHeap::CollectedHeap()
 void CollectedHeap::pre_initialize() {
   // Used for ReduceInitialCardMarks (when COMPILER2 is used);
   // otherwise remains unused.
-#ifdef COMPLER2
+#ifdef COMPILER2
   _defer_initial_card_mark =    ReduceInitialCardMarks && can_elide_tlab_store_barriers()
                              && (DeferInitialCardMark || card_mark_must_follow_store());
 #else
@@ -239,11 +241,11 @@ oop CollectedHeap::new_store_pre_barrier(JavaThread* thread, oop new_obj) {
 }
 
 size_t CollectedHeap::filler_array_hdr_size() {
-  return size_t(arrayOopDesc::header_size(T_INT));
+  return size_t(align_object_offset(arrayOopDesc::header_size(T_INT))); // align to Long
 }
 
 size_t CollectedHeap::filler_array_min_size() {
-  return align_object_size(filler_array_hdr_size());
+  return align_object_size(filler_array_hdr_size()); // align to MinObjAlignment
 }
 
 size_t CollectedHeap::filler_array_max_size() {
@@ -309,7 +311,7 @@ void CollectedHeap::fill_with_objects(HeapWord* start, size_t words, bool zap)
   DEBUG_ONLY(fill_args_check(start, words);)
   HandleMark hm;  // Free handles before leaving.
 
-#ifdef LP64
+#ifdef _LP64
   // A single array can fill ~8G, so multiple objects are needed only in 64-bit.
   // First fill with arrays, ensuring that any remaining space is big enough to
   // fill.  The remainder is filled with a single object.

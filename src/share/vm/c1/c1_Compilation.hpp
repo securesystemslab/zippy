@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,13 +16,12 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
-class BlockBegin;
 class CompilationResourceObj;
 class XHandlers;
 class ExceptionInfo;
@@ -54,14 +53,10 @@ define_stack(ExceptionInfoList,  ExceptionInfoArray)
 class Compilation: public StackObj {
   friend class CompilationResourceObj;
  private:
-
-  static Arena* _arena;
-  static Arena* arena() { return _arena; }
-
-  static Compilation* _compilation;
-
- private:
   // compilation specifics
+  Arena* _arena;
+  int _next_id;
+  int _next_block_id;
   AbstractCompiler*  _compiler;
   ciEnv*             _env;
   ciMethod*          _method;
@@ -73,6 +68,8 @@ class Compilation: public StackObj {
   bool               _has_exception_handlers;
   bool               _has_fpu_code;
   bool               _has_unsafe_access;
+  bool               _would_profile;
+  bool               _has_method_handle_invokes;  // True if this method has MethodHandle invokes.
   const char*        _bailout_msg;
   ExceptionInfoList* _exception_info_list;
   ExceptionHandlerTable _exception_handler_table;
@@ -108,10 +105,14 @@ class Compilation: public StackObj {
 
  public:
   // creation
-  Compilation(AbstractCompiler* compiler, ciEnv* env, ciMethod* method, int osr_bci);
+  Compilation(AbstractCompiler* compiler, ciEnv* env, ciMethod* method,
+              int osr_bci, BufferBlob* buffer_blob);
   ~Compilation();
 
-  static Compilation* current_compilation()      { return _compilation; }
+
+  static Compilation* current() {
+    return (Compilation*) ciEnv::current()->compiler_data();
+  }
 
   // accessors
   ciEnv* env() const                             { return _env; }
@@ -128,15 +129,29 @@ class Compilation: public StackObj {
   CodeBuffer* code()                             { return &_code; }
   C1_MacroAssembler* masm() const                { return _masm; }
   CodeOffsets* offsets()                         { return &_offsets; }
+  Arena* arena()                                 { return _arena; }
+
+  // Instruction ids
+  int get_next_id()                              { return _next_id++; }
+  int number_of_instructions() const             { return _next_id; }
+
+  // BlockBegin ids
+  int get_next_block_id()                        { return _next_block_id++; }
+  int number_of_blocks() const                   { return _next_block_id; }
 
   // setters
   void set_has_exception_handlers(bool f)        { _has_exception_handlers = f; }
   void set_has_fpu_code(bool f)                  { _has_fpu_code = f; }
   void set_has_unsafe_access(bool f)             { _has_unsafe_access = f; }
+  void set_would_profile(bool f)                 { _would_profile = f; }
   // Add a set of exception handlers covering the given PC offset
   void add_exception_handlers_for_pco(int pco, XHandlers* exception_handlers);
   // Statistics gathering
   void notice_inlined_method(ciMethod* method);
+
+  // JSR 292
+  bool     has_method_handle_invokes() const { return _has_method_handle_invokes;     }
+  void set_has_method_handle_invokes(bool z) {        _has_method_handle_invokes = z; }
 
   DebugInformationRecorder* debug_info_recorder() const; // = _env->debug_info();
   Dependencies* dependency_recorder() const; // = _env->dependencies()
@@ -158,6 +173,20 @@ class Compilation: public StackObj {
   bool bailed_out() const                        { return _bailout_msg != NULL; }
   const char* bailout_msg() const                { return _bailout_msg; }
 
+  static int desired_max_code_buffer_size() {
+#ifndef PPC
+    return (int) NMethodSizeLimit;  // default 256K or 512K
+#else
+    // conditional branches on PPC are restricted to 16 bit signed
+    return MIN2((unsigned int)NMethodSizeLimit,32*K);
+#endif
+  }
+  static int desired_max_constant_size() {
+    return desired_max_code_buffer_size() / 10;
+  }
+
+  static void setup_code_buffer(CodeBuffer* cb, int call_stub_estimate);
+
   // timers
   static void print_timers();
 
@@ -170,6 +199,30 @@ class Compilation: public StackObj {
   void compile_only_this_scope(outputStream* st, IRScope* scope);
   void exclude_this_method();
 #endif // PRODUCT
+
+  bool is_profiling() {
+    return env()->comp_level() == CompLevel_full_profile ||
+           env()->comp_level() == CompLevel_limited_profile;
+  }
+  bool count_invocations() { return is_profiling(); }
+  bool count_backedges()   { return is_profiling(); }
+
+  // Helpers for generation of profile information
+  bool profile_branches() {
+    return env()->comp_level() == CompLevel_full_profile &&
+      C1UpdateMethodData && C1ProfileBranches;
+  }
+  bool profile_calls() {
+    return env()->comp_level() == CompLevel_full_profile &&
+      C1UpdateMethodData && C1ProfileCalls;
+  }
+  bool profile_inlined_calls() {
+    return profile_calls() && C1ProfileInlinedCalls;
+  }
+  bool profile_checkcasts() {
+    return env()->comp_level() == CompLevel_full_profile &&
+      C1UpdateMethodData && C1ProfileCheckcasts;
+  }
 };
 
 
@@ -203,7 +256,10 @@ class InstructionMark: public StackObj {
 // Base class for objects allocated by the compiler in the compilation arena
 class CompilationResourceObj ALLOCATION_SUPER_CLASS_SPEC {
  public:
-  void* operator new(size_t size) { return Compilation::arena()->Amalloc(size); }
+  void* operator new(size_t size) { return Compilation::current()->arena()->Amalloc(size); }
+  void* operator new(size_t size, Arena* arena) {
+    return arena->Amalloc(size);
+  }
   void  operator delete(void* p) {} // nothing to do
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -809,8 +809,7 @@ Node* LibraryCallKit::make_string_method_node(int opcode, Node* str1, Node* cnt1
   Node* no_ctrl = NULL;
 
   ciInstanceKlass* klass = env()->String_klass();
-  const TypeInstPtr* string_type =
-        TypeInstPtr::make(TypePtr::BotPTR, klass, false, NULL, 0);
+  const TypeOopPtr* string_type = TypeOopPtr::make_from_klass(klass);
 
   const TypeAryPtr* value_type =
         TypeAryPtr::make(TypePtr::NotNull,
@@ -883,8 +882,7 @@ bool LibraryCallKit::inline_string_compareTo() {
   }
 
   ciInstanceKlass* klass = env()->String_klass();
-  const TypeInstPtr* string_type =
-    TypeInstPtr::make(TypePtr::BotPTR, klass, false, NULL, 0);
+  const TypeOopPtr* string_type = TypeOopPtr::make_from_klass(klass);
   Node* no_ctrl = NULL;
 
   // Get counts for string and argument
@@ -908,7 +906,8 @@ bool LibraryCallKit::inline_string_equals() {
   const int count_offset = java_lang_String::count_offset_in_bytes();
   const int offset_offset = java_lang_String::offset_offset_in_bytes();
 
-  _sp += 2;
+  int nargs = 2;
+  _sp += nargs;
   Node* argument = pop();  // pop non-receiver first:  it was pushed second
   Node* receiver = pop();
 
@@ -916,11 +915,11 @@ bool LibraryCallKit::inline_string_equals() {
   // null check technically happens in the wrong place, which can lead to
   // invalid stack traces when string compare is inlined into a method
   // which handles NullPointerExceptions.
-  _sp += 2;
+  _sp += nargs;
   receiver = do_null_check(receiver, T_OBJECT);
   //should not do null check for argument for String.equals(), because spec
   //allows to specify NULL as argument.
-  _sp -= 2;
+  _sp -= nargs;
 
   if (stopped()) {
     return true;
@@ -945,7 +944,9 @@ bool LibraryCallKit::inline_string_equals() {
   ciInstanceKlass* klass = env()->String_klass();
 
   if (!stopped()) {
+    _sp += nargs;          // gen_instanceof might do an uncommon trap
     Node* inst = gen_instanceof(argument, makecon(TypeKlassPtr::make(klass)));
+    _sp -= nargs;
     Node* cmp  = _gvn.transform(new (C, 3) CmpINode(inst, intcon(1)));
     Node* bol  = _gvn.transform(new (C, 2) BoolNode(cmp, BoolTest::ne));
 
@@ -958,14 +959,16 @@ bool LibraryCallKit::inline_string_equals() {
     }
   }
 
-  const TypeInstPtr* string_type =
-    TypeInstPtr::make(TypePtr::BotPTR, klass, false, NULL, 0);
+  const TypeOopPtr* string_type = TypeOopPtr::make_from_klass(klass);
 
   Node* no_ctrl = NULL;
   Node* receiver_cnt;
   Node* argument_cnt;
 
   if (!stopped()) {
+    // Properly cast the argument to String
+    argument = _gvn.transform(new (C, 2) CheckCastPPNode(control(), argument, string_type));
+
     // Get counts for string and argument
     Node* receiver_cnta = basic_plus_adr(receiver, receiver, count_offset);
     receiver_cnt  = make_load(no_ctrl, receiver_cnta, TypeInt::INT, T_INT, string_type->add_offset(count_offset));
@@ -1090,7 +1093,7 @@ Node* LibraryCallKit::string_indexOf(Node* string_object, ciTypeArray* target_ar
   const int offset_offset = java_lang_String::offset_offset_in_bytes();
 
   ciInstanceKlass* klass = env()->String_klass();
-  const TypeInstPtr* string_type = TypeInstPtr::make(TypePtr::BotPTR, klass, false, NULL, 0);
+  const TypeOopPtr* string_type = TypeOopPtr::make_from_klass(klass);
   const TypeAryPtr*  source_type = TypeAryPtr::make(TypePtr::NotNull, TypeAry::make(TypeInt::CHAR,TypeInt::POS), ciTypeArrayKlass::make(T_CHAR), true, 0);
 
   Node* sourceOffseta = basic_plus_adr(string_object, string_object, offset_offset);
@@ -1175,7 +1178,9 @@ bool LibraryCallKit::inline_string_indexOf() {
   Node *receiver = pop();
 
   Node* result;
-  if (Matcher::has_match_rule(Op_StrIndexOf) &&
+  // Disable the use of pcmpestri until it can be guaranteed that
+  // the load doesn't cross into the uncommited space.
+  if (false && Matcher::has_match_rule(Op_StrIndexOf) &&
       UseSSE42Intrinsics) {
     // Generate SSE4.2 version of indexOf
     // We currently only have match rules that use SSE4.2
@@ -1199,8 +1204,7 @@ bool LibraryCallKit::inline_string_indexOf() {
     Node* no_ctrl  = NULL;
 
     ciInstanceKlass* klass = env()->String_klass();
-    const TypeInstPtr* string_type =
-      TypeInstPtr::make(TypePtr::BotPTR, klass, false, NULL, 0);
+    const TypeOopPtr* string_type = TypeOopPtr::make_from_klass(klass);
 
     // Get counts for string and substr
     Node* source_cnta = basic_plus_adr(receiver, receiver, count_offset);
@@ -2934,7 +2938,9 @@ bool LibraryCallKit::inline_native_Class_query(vmIntrinsics::ID id) {
   switch (id) {
   case vmIntrinsics::_isInstance:
     // nothing is an instance of a primitive type
+    _sp += nargs;          // gen_instanceof might do an uncommon trap
     query_value = gen_instanceof(obj, kls);
+    _sp -= nargs;
     break;
 
   case vmIntrinsics::_getModifiers:
@@ -3511,8 +3517,7 @@ bool LibraryCallKit::inline_native_hashcode(bool is_virtual, bool is_static) {
 
   // Get the header out of the object, use LoadMarkNode when available
   Node* header_addr = basic_plus_adr(obj, oopDesc::mark_offset_in_bytes());
-  Node* header = make_load(NULL, header_addr, TypeRawPtr::BOTTOM, T_ADDRESS);
-  header = _gvn.transform( new (C, 2) CastP2XNode(NULL, header) );
+  Node* header = make_load(control(), header_addr, TypeX_X, TypeX_X->basic_type());
 
   // Test the header to see if it is unlocked.
   Node *lock_mask      = _gvn.MakeConX(markOopDesc::biased_lock_mask_in_place);
@@ -4756,7 +4761,7 @@ LibraryCallKit::generate_arraycopy(const TypePtr* adr_type,
       Node* cv = generate_checkcast_arraycopy(adr_type,
                                               dest_elem_klass,
                                               src, src_offset, dest, dest_offset,
-                                              copy_length);
+                                              ConvI2X(copy_length));
       if (cv == NULL)  cv = intcon(-1);  // failure (no stub available)
       checked_control = control();
       checked_i_o     = i_o();
@@ -4957,8 +4962,7 @@ LibraryCallKit::tightly_coupled_allocation(Node* ptr,
       for (DUIterator_Fast jmax, j = not_ctl->fast_outs(jmax); j < jmax; j++) {
         Node* obs = not_ctl->fast_out(j);
         if (obs->in(0) == not_ctl && obs->is_Call() &&
-            (obs->as_Call()->entry_point() ==
-             SharedRuntime::uncommon_trap_blob()->instructions_begin())) {
+            (obs->as_Call()->entry_point() == SharedRuntime::uncommon_trap_blob()->entry_point())) {
           found_trap = true; break;
         }
       }
@@ -5201,8 +5205,8 @@ LibraryCallKit::generate_checkcast_arraycopy(const TypePtr* adr_type,
   // super_check_offset, for the desired klass.
   int sco_offset = Klass::super_check_offset_offset_in_bytes() + sizeof(oopDesc);
   Node* p3 = basic_plus_adr(dest_elem_klass, sco_offset);
-  Node* n3 = new(C, 3) LoadINode(NULL, immutable_memory(), p3, TypeRawPtr::BOTTOM);
-  Node* check_offset = _gvn.transform(n3);
+  Node* n3 = new(C, 3) LoadINode(NULL, memory(p3), p3, _gvn.type(p3)->is_ptr());
+  Node* check_offset = ConvI2X(_gvn.transform(n3));
   Node* check_value  = dest_elem_klass;
 
   Node* src_start  = array_element_address(src,  src_offset,  T_OBJECT);

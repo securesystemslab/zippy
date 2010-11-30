@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -65,13 +65,6 @@ void VM_Version::initialize() {
       FLAG_SET_DEFAULT(UseInlineCaches, false);
     }
 #ifdef _LP64
-    // Single issue niagara1 is slower for CompressedOops
-    // but niagaras after that it's fine.
-    if (!is_niagara1_plus()) {
-      if (FLAG_IS_DEFAULT(UseCompressedOops)) {
-        FLAG_SET_ERGO(bool, UseCompressedOops, false);
-      }
-    }
     // 32-bit oops don't make sense for the 64-bit VM on sparc
     // since the 32-bit VM has the same registers and smaller objects.
     Universe::set_narrow_oop_shift(LogMinObjAlignmentInBytes);
@@ -87,7 +80,8 @@ void VM_Version::initialize() {
       FLAG_SET_DEFAULT(InteriorEntryAlignment, 4);
     }
     if (is_niagara1_plus()) {
-      if (AllocatePrefetchStyle > 0 && FLAG_IS_DEFAULT(AllocatePrefetchStyle)) {
+      if (has_blk_init() && AllocatePrefetchStyle > 0 &&
+          FLAG_IS_DEFAULT(AllocatePrefetchStyle)) {
         // Use BIS instruction for allocation prefetch.
         FLAG_SET_DEFAULT(AllocatePrefetchStyle, 3);
         if (FLAG_IS_DEFAULT(AllocatePrefetchDistance)) {
@@ -104,6 +98,12 @@ void VM_Version::initialize() {
     if (FLAG_IS_DEFAULT(OptoLoopAlignment)) {
       FLAG_SET_DEFAULT(OptoLoopAlignment, 4);
     }
+    // When using CMS, we cannot use memset() in BOT updates because
+    // the sun4v/CMT version in libc_psr uses BIS which exposes
+    // "phantom zeros" to concurrent readers. See 6948537.
+    if (FLAG_IS_DEFAULT(UseMemSetInBOT) && UseConcMarkSweepGC) {
+      FLAG_SET_DEFAULT(UseMemSetInBOT, false);
+    }
   }
 
   // Use hardware population count instruction if available.
@@ -113,17 +113,24 @@ void VM_Version::initialize() {
     }
   }
 
+#ifdef COMPILER2
+  // Currently not supported anywhere.
+  FLAG_SET_DEFAULT(UseFPUForSpilling, false);
+#endif
+
   char buf[512];
-  jio_snprintf(buf, sizeof(buf), "%s%s%s%s%s%s%s%s%s%s%s%s",
+  jio_snprintf(buf, sizeof(buf), "%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
                (has_v8() ? ", has_v8" : ""),
                (has_v9() ? ", has_v9" : ""),
                (has_hardware_popc() ? ", popc" : ""),
                (has_vis1() ? ", has_vis1" : ""),
                (has_vis2() ? ", has_vis2" : ""),
+               (has_blk_init() ? ", has_blk_init" : ""),
                (is_ultra3() ? ", is_ultra3" : ""),
                (is_sun4v() ? ", is_sun4v" : ""),
                (is_niagara1() ? ", is_niagara1" : ""),
                (is_niagara1_plus() ? ", is_niagara1_plus" : ""),
+               (is_sparc64() ? ", is_sparc64" : ""),
                (!has_hardware_mul32() ? ", no-mul32" : ""),
                (!has_hardware_div32() ? ", no-div32" : ""),
                (!has_hardware_fsmuld() ? ", no-fsmuld" : ""));

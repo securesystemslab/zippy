@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -124,6 +124,9 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   RegisterMap dummy_map(thread, false);
   // Now get the deoptee with a valid map
   frame deoptee = stub_frame.sender(&map);
+  // Set the deoptee nmethod
+  assert(thread->deopt_nmethod() == NULL, "Pending deopt!");
+  thread->set_deopt_nmethod(deoptee.cb()->as_nmethod_or_null());
 
   // Create a growable array of VFrames where each VFrame represents an inlined
   // Java frame.  This storage is allocated with the usual system arena.
@@ -254,6 +257,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 
   }
 
+#ifndef SHARK
   // Compute the caller frame based on the sender sp of stub_frame and stored frame sizes info.
   CodeBlob* cb = stub_frame.cb();
   // Verify we have the right vframeArray
@@ -270,6 +274,10 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   assert(cb->is_deoptimization_stub() || cb->is_uncommon_trap_stub(), "just checking");
   Events::log("fetch unroll sp " INTPTR_FORMAT, unpack_sp);
 #endif
+#else
+  intptr_t* unpack_sp = stub_frame.sender(&dummy_map).unextended_sp();
+#endif // !SHARK
+
   // This is a guarantee instead of an assert because if vframe doesn't match
   // we will unpack the wrong deoptimized frame and wind up in strange places
   // where it will be very difficult to figure out what went wrong. Better
@@ -380,7 +388,9 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 
   frame_pcs[0] = deopt_sender.raw_pc();
 
+#ifndef SHARK
   assert(CodeCache::find_blob_unsafe(frame_pcs[0]) != NULL, "bad pc");
+#endif // SHARK
 
   UnrollBlock* info = new UnrollBlock(array->frame_size() * BytesPerWord,
                                       caller_adjustment * BytesPerWord,
@@ -438,6 +448,7 @@ void Deoptimization::cleanup_deopt_info(JavaThread *thread,
 
   delete thread->deopt_mark();
   thread->set_deopt_mark(NULL);
+  thread->set_deopt_nmethod(NULL);
 
 
   if (JvmtiExport::can_pop_frame()) {
@@ -1054,7 +1065,9 @@ void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map) 
 }
 
 
-void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
+void Deoptimization::deoptimize_frame_internal(JavaThread* thread, intptr_t* id) {
+  assert(thread == Thread::current() || SafepointSynchronize::is_at_safepoint(),
+         "can only deoptimize other thread at a safepoint");
   // Compute frame and register map based on thread and sp.
   RegisterMap reg_map(thread, UseBiasedLocking);
   frame fr = thread->last_frame();
@@ -1062,6 +1075,16 @@ void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
     fr = fr.sender(&reg_map);
   }
   deoptimize(thread, fr, &reg_map);
+}
+
+
+void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
+  if (thread == Thread::current()) {
+    Deoptimization::deoptimize_frame_internal(thread, id);
+  } else {
+    VM_DeoptimizeFrame deopt(thread, id);
+    VMThread::execute(&deopt);
+  }
 }
 
 
@@ -1073,7 +1096,7 @@ JRT_LEAF(void, Deoptimization::popframe_preserve_args(JavaThread* thread, int by
 JRT_END
 
 
-#ifdef COMPILER2
+#if defined(COMPILER2) || defined(SHARK)
 void Deoptimization::load_class_by_index(constantPoolHandle constant_pool, int index, TRAPS) {
   // in case of an unresolved klass entry, load the class.
   if (constant_pool->tag_at(index).is_unresolved_klass()) {
@@ -1294,7 +1317,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     bool update_trap_state = true;
     bool make_not_entrant = false;
     bool make_not_compilable = false;
-    bool reset_counters = false;
+    bool reprofile = false;
     switch (action) {
     case Action_none:
       // Keep the old code.
@@ -1321,7 +1344,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       // had been traps taken from compiled code.  This will update
       // the MDO trap history so that the next compilation will
       // properly detect hot trap sites.
-      reset_counters = true;
+      reprofile = true;
       break;
     case Action_make_not_entrant:
       // Request immediate recompilation, and get rid of the old code.
@@ -1415,7 +1438,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       // this trap point already, run the method in the interpreter
       // for a while to exercise it more thoroughly.
       if (make_not_entrant && maybe_prior_recompile && maybe_prior_trap) {
-        reset_counters = true;
+        reprofile = true;
       }
 
     }
@@ -1445,24 +1468,21 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
         if (trap_method() == nm->method()) {
           make_not_compilable = true;
         } else {
-          trap_method->set_not_compilable();
+          trap_method->set_not_compilable(CompLevel_full_optimization);
           // But give grace to the enclosing nm->method().
         }
       }
     }
 
-    // Reset invocation counters
-    if (reset_counters) {
-      if (nm->is_osr_method())
-        reset_invocation_counter(trap_scope, CompileThreshold);
-      else
-        reset_invocation_counter(trap_scope);
+    // Reprofile
+    if (reprofile) {
+      CompilationPolicy::policy()->reprofile(trap_scope, nm->is_osr_method());
     }
 
     // Give up compiling
-    if (make_not_compilable && !nm->method()->is_not_compilable()) {
+    if (make_not_compilable && !nm->method()->is_not_compilable(CompLevel_full_optimization)) {
       assert(make_not_entrant, "consistent");
-      nm->method()->set_not_compilable();
+      nm->method()->set_not_compilable(CompLevel_full_optimization);
     }
 
   } // Free marked resources
@@ -1560,22 +1580,6 @@ Deoptimization::update_method_data_from_interpreter(methodDataHandle trap_mdo, i
                            ignore_this_trap_count,
                            ignore_maybe_prior_trap,
                            ignore_maybe_prior_recompile);
-}
-
-void Deoptimization::reset_invocation_counter(ScopeDesc* trap_scope, jint top_count) {
-  ScopeDesc* sd = trap_scope;
-  for (; !sd->is_top(); sd = sd->sender()) {
-    // Reset ICs of inlined methods, since they can trigger compilations also.
-    sd->method()->invocation_counter()->reset();
-  }
-  InvocationCounter* c = sd->method()->invocation_counter();
-  if (top_count != _no_count) {
-    // It was an OSR method, so bump the count higher.
-    c->set(c->state(), top_count);
-  } else {
-    c->reset();
-  }
-  sd->method()->backedge_counter()->reset();
 }
 
 Deoptimization::UnrollBlock* Deoptimization::uncommon_trap(JavaThread* thread, jint trap_request) {
@@ -1835,7 +1839,7 @@ void Deoptimization::print_statistics() {
     if (xtty != NULL)  xtty->tail("statistics");
   }
 }
-#else // COMPILER2
+#else // COMPILER2 || SHARK
 
 
 // Stubs for C1 only system.
@@ -1871,4 +1875,4 @@ const char* Deoptimization::format_trap_state(char* buf, size_t buflen,
   return buf;
 }
 
-#endif // COMPILER2
+#endif // COMPILER2 || SHARK

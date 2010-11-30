@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -28,15 +28,6 @@
 
 // Implementation of Instruction
 
-
-int Instruction::_next_id = 0;
-
-#ifdef ASSERT
-void Instruction::create_hi_word() {
-  assert(type()->is_double_word() && _hi_word == NULL, "only double word has high word");
-  _hi_word = new HiWord(this);
-}
-#endif
 
 Instruction::Condition Instruction::mirror(Condition cond) {
   switch (cond) {
@@ -65,6 +56,15 @@ Instruction::Condition Instruction::negate(Condition cond) {
   return eql;
 }
 
+void Instruction::update_exception_state(ValueStack* state) {
+  if (state != NULL && (state->kind() == ValueStack::EmptyExceptionState || state->kind() == ValueStack::ExceptionState)) {
+    assert(state->kind() == ValueStack::EmptyExceptionState || Compilation::current()->env()->jvmti_can_access_local_variables(), "unexpected state kind");
+    _exception_state = state;
+  } else {
+    _exception_state = NULL;
+  }
+}
+
 
 Instruction* Instruction::prev(BlockBegin* block) {
   Instruction* p = NULL;
@@ -77,7 +77,24 @@ Instruction* Instruction::prev(BlockBegin* block) {
 }
 
 
+void Instruction::state_values_do(ValueVisitor* f) {
+  if (state_before() != NULL) {
+    state_before()->values_do(f);
+  }
+  if (exception_state() != NULL){
+    exception_state()->values_do(f);
+  }
+}
+
+
 #ifndef PRODUCT
+void Instruction::check_state(ValueStack* state) {
+  if (state != NULL) {
+    state->verify();
+  }
+}
+
+
 void Instruction::print() {
   InstructionPrinter ip;
   print(ip);
@@ -192,35 +209,6 @@ ciType* CheckCast::exact_type() const {
   return NULL;
 }
 
-
-void ArithmeticOp::other_values_do(void f(Value*)) {
-  if (lock_stack() != NULL) lock_stack()->values_do(f);
-}
-
-void NullCheck::other_values_do(void f(Value*)) {
-  lock_stack()->values_do(f);
-}
-
-void AccessArray::other_values_do(void f(Value*)) {
-  if (lock_stack() != NULL) lock_stack()->values_do(f);
-}
-
-
-// Implementation of AccessField
-
-void AccessField::other_values_do(void f(Value*)) {
-  if (state_before() != NULL) state_before()->values_do(f);
-  if (lock_stack() != NULL) lock_stack()->values_do(f);
-}
-
-
-// Implementation of StoreIndexed
-
-IRScope* StoreIndexed::scope() const {
-  return lock_stack()->scope();
-}
-
-
 // Implementation of ArithmeticOp
 
 bool ArithmeticOp::is_commutative() const {
@@ -268,13 +256,6 @@ bool LogicOp::is_commutative() const {
 }
 
 
-// Implementation of CompareOp
-
-void CompareOp::other_values_do(void f(Value*)) {
-  if (state_before() != NULL) state_before()->values_do(f);
-}
-
-
 // Implementation of IfOp
 
 bool IfOp::is_commutative() const {
@@ -302,12 +283,13 @@ IRScope* StateSplit::scope() const {
 }
 
 
-void StateSplit::state_values_do(void f(Value*)) {
+void StateSplit::state_values_do(ValueVisitor* f) {
+  Instruction::state_values_do(f);
   if (state() != NULL) state()->values_do(f);
 }
 
 
-void BlockBegin::state_values_do(void f(Value*)) {
+void BlockBegin::state_values_do(ValueVisitor* f) {
   StateSplit::state_values_do(f);
 
   if (is_set(BlockBegin::exception_entry_flag)) {
@@ -318,30 +300,17 @@ void BlockBegin::state_values_do(void f(Value*)) {
 }
 
 
-void MonitorEnter::state_values_do(void f(Value*)) {
-  StateSplit::state_values_do(f);
-  _lock_stack_before->values_do(f);
-}
-
-
-void Intrinsic::state_values_do(void f(Value*)) {
-  StateSplit::state_values_do(f);
-  if (lock_stack() != NULL) lock_stack()->values_do(f);
-}
-
-
 // Implementation of Invoke
 
 
 Invoke::Invoke(Bytecodes::Code code, ValueType* result_type, Value recv, Values* args,
                int vtable_index, ciMethod* target, ValueStack* state_before)
-  : StateSplit(result_type)
+  : StateSplit(result_type, state_before)
   , _code(code)
   , _recv(recv)
   , _args(args)
   , _vtable_index(vtable_index)
   , _target(target)
-  , _state_before(state_before)
 {
   set_flag(TargetIsLoadedFlag,   target->is_loaded());
   set_flag(TargetIsFinalFlag,    target_is_loaded() && target->is_final_method());
@@ -349,8 +318,9 @@ Invoke::Invoke(Bytecodes::Code code, ValueType* result_type, Value recv, Values*
 
   assert(args != NULL, "args must exist");
 #ifdef ASSERT
-  values_do(assert_value);
-#endif // ASSERT
+  AssertValues assert_value;
+  values_do(&assert_value);
+#endif
 
   // provide an initial guess of signature size.
   _signature = new BasicTypeList(number_of_arguments() + (has_receiver() ? 1 : 0));
@@ -368,7 +338,7 @@ Invoke::Invoke(Bytecodes::Code code, ValueType* result_type, Value recv, Values*
 }
 
 
-void Invoke::state_values_do(void f(Value*)) {
+void Invoke::state_values_do(ValueVisitor* f) {
   StateSplit::state_values_do(f);
   if (state_before() != NULL) state_before()->values_do(f);
   if (state()        != NULL) state()->values_do(f);
@@ -377,7 +347,7 @@ void Invoke::state_values_do(void f(Value*)) {
 
 // Implementation of Contant
 intx Constant::hash() const {
-  if (_state == NULL) {
+  if (state_before() == NULL) {
     switch (type()->tag()) {
     case intTag:
       return HASH2(name(), type()->as_IntConstant()->value());
@@ -445,28 +415,26 @@ bool Constant::is_equal(Value v) const {
   return false;
 }
 
-
-BlockBegin* Constant::compare(Instruction::Condition cond, Value right,
-                              BlockBegin* true_sux, BlockBegin* false_sux) {
+Constant::CompareResult Constant::compare(Instruction::Condition cond, Value right) const {
   Constant* rc = right->as_Constant();
   // other is not a constant
-  if (rc == NULL) return NULL;
+  if (rc == NULL) return not_comparable;
 
   ValueType* lt = type();
   ValueType* rt = rc->type();
   // different types
-  if (lt->base() != rt->base()) return NULL;
+  if (lt->base() != rt->base()) return not_comparable;
   switch (lt->tag()) {
   case intTag: {
     int x = lt->as_IntConstant()->value();
     int y = rt->as_IntConstant()->value();
     switch (cond) {
-    case If::eql: return x == y ? true_sux : false_sux;
-    case If::neq: return x != y ? true_sux : false_sux;
-    case If::lss: return x <  y ? true_sux : false_sux;
-    case If::leq: return x <= y ? true_sux : false_sux;
-    case If::gtr: return x >  y ? true_sux : false_sux;
-    case If::geq: return x >= y ? true_sux : false_sux;
+    case If::eql: return x == y ? cond_true : cond_false;
+    case If::neq: return x != y ? cond_true : cond_false;
+    case If::lss: return x <  y ? cond_true : cond_false;
+    case If::leq: return x <= y ? cond_true : cond_false;
+    case If::gtr: return x >  y ? cond_true : cond_false;
+    case If::geq: return x >= y ? cond_true : cond_false;
     }
     break;
   }
@@ -474,12 +442,12 @@ BlockBegin* Constant::compare(Instruction::Condition cond, Value right,
     jlong x = lt->as_LongConstant()->value();
     jlong y = rt->as_LongConstant()->value();
     switch (cond) {
-    case If::eql: return x == y ? true_sux : false_sux;
-    case If::neq: return x != y ? true_sux : false_sux;
-    case If::lss: return x <  y ? true_sux : false_sux;
-    case If::leq: return x <= y ? true_sux : false_sux;
-    case If::gtr: return x >  y ? true_sux : false_sux;
-    case If::geq: return x >= y ? true_sux : false_sux;
+    case If::eql: return x == y ? cond_true : cond_false;
+    case If::neq: return x != y ? cond_true : cond_false;
+    case If::lss: return x <  y ? cond_true : cond_false;
+    case If::leq: return x <= y ? cond_true : cond_false;
+    case If::gtr: return x >  y ? cond_true : cond_false;
+    case If::geq: return x >= y ? cond_true : cond_false;
     }
     break;
   }
@@ -489,40 +457,18 @@ BlockBegin* Constant::compare(Instruction::Condition cond, Value right,
     assert(xvalue != NULL && yvalue != NULL, "not constants");
     if (xvalue->is_loaded() && yvalue->is_loaded()) {
       switch (cond) {
-      case If::eql: return xvalue == yvalue ? true_sux : false_sux;
-      case If::neq: return xvalue != yvalue ? true_sux : false_sux;
+      case If::eql: return xvalue == yvalue ? cond_true : cond_false;
+      case If::neq: return xvalue != yvalue ? cond_true : cond_false;
       }
     }
     break;
   }
   }
-  return NULL;
-}
-
-
-void Constant::other_values_do(void f(Value*)) {
-  if (state() != NULL) state()->values_do(f);
-}
-
-
-// Implementation of NewArray
-
-void NewArray::other_values_do(void f(Value*)) {
-  if (state_before() != NULL) state_before()->values_do(f);
-}
-
-
-// Implementation of TypeCheck
-
-void TypeCheck::other_values_do(void f(Value*)) {
-  if (state_before() != NULL) state_before()->values_do(f);
+  return not_comparable;
 }
 
 
 // Implementation of BlockBegin
-
-int BlockBegin::_next_block_id = 0;
-
 
 void BlockBegin::set_end(BlockEnd* end) {
   assert(end != NULL, "should not reset block end to NULL");
@@ -608,23 +554,14 @@ void BlockBegin::substitute_sux(BlockBegin* old_sux, BlockBegin* new_sux) {
 // of the inserted block, without recomputing the values of the other blocks
 // in the CFG. Therefore the value of "depth_first_number" in BlockBegin becomes meaningless.
 BlockBegin* BlockBegin::insert_block_between(BlockBegin* sux) {
-  // Try to make the bci close to a block with a single pred or sux,
-  // since this make the block layout algorithm work better.
-  int bci = -1;
-  if (sux->number_of_preds() == 1) {
-    bci = sux->bci();
-  } else {
-    bci = end()->bci();
-  }
-
-  BlockBegin* new_sux = new BlockBegin(bci);
+  BlockBegin* new_sux = new BlockBegin(-99);
 
   // mark this block (special treatment when block order is computed)
   new_sux->set(critical_edge_split_flag);
 
   // This goto is not a safepoint.
   Goto* e = new Goto(sux, false);
-  new_sux->set_next(e, bci);
+  new_sux->set_next(e, end()->state()->bci());
   new_sux->set_end(e);
   // setup states
   ValueStack* s = end()->state();
@@ -738,15 +675,15 @@ void BlockBegin::iterate_postorder(BlockClosure* closure) {
 }
 
 
-void BlockBegin::block_values_do(void f(Value*)) {
+void BlockBegin::block_values_do(ValueVisitor* f) {
   for (Instruction* n = this; n != NULL; n = n->next()) n->values_do(f);
 }
 
 
 #ifndef PRODUCT
-  #define TRACE_PHI(code) if (PrintPhiFunctions) { code; }
+   #define TRACE_PHI(code) if (PrintPhiFunctions) { code; }
 #else
-  #define TRACE_PHI(coce)
+   #define TRACE_PHI(coce)
 #endif
 
 
@@ -767,7 +704,7 @@ bool BlockBegin::try_merge(ValueStack* new_state) {
     }
 
     // copy state because it is altered
-    new_state = new_state->copy();
+    new_state = new_state->copy(ValueStack::BlockBeginState, bci());
 
     // Use method liveness to invalidate dead locals
     MethodLivenessResult liveness = new_state->scope()->method()->liveness_at_bci(bci());
@@ -804,18 +741,8 @@ bool BlockBegin::try_merge(ValueStack* new_state) {
     // initialize state of block
     set_state(new_state);
 
-  } else if (existing_state->is_same_across_scopes(new_state)) {
+  } else if (existing_state->is_same(new_state)) {
     TRACE_PHI(tty->print_cr("exisiting state found"));
-
-    // Inlining may cause the local state not to match up, so walk up
-    // the new state until we get to the same scope as the
-    // existing and then start processing from there.
-    while (existing_state->scope() != new_state->scope()) {
-      new_state = new_state->caller_state();
-      assert(new_state != NULL, "could not match up scopes");
-
-      assert(false, "check if this is necessary");
-    }
 
     assert(existing_state->scope() == new_state->scope(), "not matching");
     assert(existing_state->locals_size() == new_state->locals_size(), "not matching");
@@ -930,7 +857,7 @@ void BlockList::blocks_do(void f(BlockBegin*)) {
 }
 
 
-void BlockList::values_do(void f(Value*)) {
+void BlockList::values_do(ValueVisitor* f) {
   for (int i = length() - 1; i >= 0; i--) at(i)->block_values_do(f);
 }
 
@@ -973,11 +900,6 @@ void BlockEnd::substitute_sux(BlockBegin* old_sux, BlockBegin* new_sux) {
 }
 
 
-void BlockEnd::other_values_do(void f(Value*)) {
-  if (state_before() != NULL) state_before()->values_do(f);
-}
-
-
 // Implementation of Phi
 
 // Normal phi functions take their operands from the last instruction of the
@@ -1010,8 +932,7 @@ int Phi::operand_count() const {
 }
 
 
-// Implementation of Throw
 
-void Throw::state_values_do(void f(Value*)) {
-  BlockEnd::state_values_do(f);
+void ProfileInvoke::state_values_do(ValueVisitor* f) {
+  if (state() != NULL) state()->values_do(f);
 }

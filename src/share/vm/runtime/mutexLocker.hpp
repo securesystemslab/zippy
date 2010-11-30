@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -84,9 +84,6 @@ extern Mutex*   ParGCRareEvent_lock;             // Synchronizes various (rare) 
 extern Mutex*   EvacFailureStack_lock;           // guards the evac failure scan stack
 extern Mutex*   Compile_lock;                    // a lock held when Compilation is updating code (used to block CodeCache traversal, CHA updates, etc)
 extern Monitor* MethodCompileQueue_lock;         // a lock held when method compilations are enqueued, dequeued
-#ifdef TIERED
-extern Monitor* C1_lock;                         // a lock to ensure on single c1 compile is ever active
-#endif // TIERED
 extern Monitor* CompileThread_lock;              // a lock held by compile threads during compilation system initialization
 extern Mutex*   CompileTaskAlloc_lock;           // a lock held when CompileTasks are allocated
 extern Mutex*   CompileStatistics_lock;          // a lock held when updating compilation statistics

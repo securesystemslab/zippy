@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2005, 2008, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -219,6 +219,9 @@ private:
                                        // is still being collected. If false,
                                        // no new nodes will be processed.
 
+  bool                    _progress;   // Indicates whether new Graph's edges
+                                       // were created.
+
   uint                _phantom_object; // Index of globally escaping object
                                        // that pointer values loaded from
                                        // a field which has not been set
@@ -227,6 +230,7 @@ private:
   uint                     _noop_null; // ConN(#NULL)
 
   Compile *                  _compile; // Compile object for current compilation
+  PhaseIterGVN *                _igvn; // Value numbering
 
   // Address of an element in _nodes.  Used when the element is to be modified
   PointsToNode *ptnode_adr(uint idx) const {
@@ -257,7 +261,7 @@ private:
   // walk the connection graph starting at the node corresponding to "n" and
   // add the index of everything it could point to, to "ptset".  This may cause
   // Phi's encountered to get (re)processed  (which requires "phase".)
-  void PointsTo(VectorSet &ptset, Node * n, PhaseTransform *phase);
+  void PointsTo(VectorSet &ptset, Node * n);
 
   //  Edge manipulation.  The "from_i" and "to_i" arguments are the
   //  node indices of the source and destination of the edge
@@ -265,6 +269,13 @@ private:
   void add_deferred_edge(uint from_i, uint to_i);
   void add_field_edge(uint from_i, uint to_i, int offs);
 
+  // Add an edge of the specified type pointing to the specified target.
+  // Set _progress if new edge is added.
+  void add_edge(PointsToNode *f, uint to_i, PointsToNode::EdgeType et) {
+    uint e_cnt = f->edge_count();
+    f->add_edge(to_i, et);
+    _progress |= (f->edge_count() != e_cnt);
+  }
 
   // Add an edge to node given by "to_i" from any field of adr_i whose offset
   // matches "offset"  A deferred edge is added if to_i is a LocalVar, and
@@ -310,7 +321,7 @@ private:
   // Node:  This assumes that escape analysis is run before
   //        PhaseIterGVN creation
   void record_for_optimizer(Node *n) {
-    _compile->record_for_igvn(n);
+    _igvn->_worklist.push(n);
   }
 
   // Set the escape state of a node
@@ -320,16 +331,20 @@ private:
   void verify_escape_state(int nidx, VectorSet& ptset, PhaseTransform* phase);
 
 public:
-  ConnectionGraph(Compile *C);
+  ConnectionGraph(Compile *C, PhaseIterGVN *igvn);
 
   // Check for non-escaping candidates
   static bool has_candidates(Compile *C);
+
+  // Perform escape analysis
+  static void do_analysis(Compile *C, PhaseIterGVN *igvn);
 
   // Compute the escape information
   bool compute_escape();
 
   // escape state of a node
-  PointsToNode::EscapeState escape_state(Node *n, PhaseTransform *phase);
+  PointsToNode::EscapeState escape_state(Node *n);
+
   // other information we have collected
   bool is_scalar_replaceable(Node *n) {
     if (_collecting || (n->_idx >= nodes_size()))

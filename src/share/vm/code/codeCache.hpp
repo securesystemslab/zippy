@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -43,6 +43,8 @@ class CodeCache : AllStatic {
   // 4422213 or 4436291 for details.
   static CodeHeap * _heap;
   static int _number_of_blobs;
+  static int _number_of_adapters;
+  static int _number_of_nmethods;
   static int _number_of_nmethods_with_dependencies;
   static bool _needs_cache_clean;
   static nmethod* _scavenge_root_nmethods;  // linked via nm->scavenge_root_link()
@@ -102,7 +104,11 @@ class CodeCache : AllStatic {
   static CodeBlob* next (CodeBlob* cb);
   static CodeBlob* alive(CodeBlob *cb);
   static nmethod* alive_nmethod(CodeBlob *cb);
+  static nmethod* first_nmethod();
+  static nmethod* next_nmethod (CodeBlob* cb);
   static int       nof_blobs()                 { return _number_of_blobs; }
+  static int       nof_adapters()              { return _number_of_adapters; }
+  static int       nof_nmethods()              { return _number_of_nmethods; }
 
   // GC support
   static void gc_epilogue();
@@ -131,6 +137,7 @@ class CodeCache : AllStatic {
   static void print_internals();
   static void verify();                          // verifies the code cache
   static void print_trace(const char* event, CodeBlob* cb, int size = 0) PRODUCT_RETURN;
+  static void print_bounds(outputStream* st);    // Prints a summary of the bounds of the code cache
 
   // The full limits of the codeCache
   static address  low_bound()                    { return (address) _heap->low_boundary(); }

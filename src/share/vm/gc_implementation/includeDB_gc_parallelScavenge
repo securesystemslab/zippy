@@ -1,5 +1,5 @@
 //
-// Copyright 2001-2010 Sun Microsystems, Inc.  All Rights Reserved.
+// Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 // 2 along with this work; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-// Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-// CA 95054 USA or visit www.sun.com if you need additional information or
-// have any questions.
+// Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+// or visit www.oracle.com if you need additional information or have any
+// questions.
 //
 //
 
@@ -133,6 +133,7 @@ parallelScavengeHeap.cpp                psMarkSweep.hpp
 parallelScavengeHeap.cpp                psParallelCompact.hpp
 parallelScavengeHeap.cpp                psPromotionManager.hpp
 parallelScavengeHeap.cpp                psScavenge.hpp
+parallelScavengeHeap.cpp                vmError.hpp
 parallelScavengeHeap.cpp                vmThread.hpp
 parallelScavengeHeap.cpp                vmPSOperations.hpp
 
@@ -187,9 +188,11 @@ psCompactionManager.cpp                 parMarkBitMap.hpp
 psCompactionManager.cpp                 psParallelCompact.hpp
 psCompactionManager.cpp                 psCompactionManager.hpp
 psCompactionManager.cpp                 psOldGen.hpp
+psCompactionManager.cpp                 stack.inline.hpp
 psCompactionManager.cpp                 systemDictionary.hpp
 
 psCompactionManager.hpp                 allocation.hpp
+psCompactionManager.hpp                 stack.hpp
 psCompactionManager.hpp                 taskqueue.hpp
 
 psCompactionManager.inline.hpp		psCompactionManager.hpp
@@ -233,12 +236,14 @@ psMarkSweep.cpp                         referencePolicy.hpp
 psMarkSweep.cpp                         referenceProcessor.hpp
 psMarkSweep.cpp                         safepoint.hpp
 psMarkSweep.cpp                         spaceDecorator.hpp
+psMarkSweep.cpp                         stack.inline.hpp
 psMarkSweep.cpp                         symbolTable.hpp
 psMarkSweep.cpp                         systemDictionary.hpp
 psMarkSweep.cpp                         vmThread.hpp
 
 psMarkSweep.hpp                         markSweep.inline.hpp
 psMarkSweep.hpp                         collectorCounters.hpp
+psMarkSweep.hpp                         stack.hpp
 
 psMarkSweepDecorator.cpp                liveRange.hpp
 psMarkSweepDecorator.cpp                markSweep.inline.hpp
@@ -270,7 +275,7 @@ psParallelCompact.cpp			parallelScavengeHeap.inline.hpp
 psParallelCompact.cpp			pcTasks.hpp
 psParallelCompact.cpp			psMarkSweep.hpp
 psParallelCompact.cpp			psMarkSweepDecorator.hpp
-psParallelCompact.cpp			psCompactionManager.hpp
+psParallelCompact.cpp			psCompactionManager.inline.hpp
 psParallelCompact.cpp                   psPromotionManager.inline.hpp
 psParallelCompact.cpp			psOldGen.hpp
 psParallelCompact.cpp			psParallelCompact.hpp
@@ -280,6 +285,7 @@ psParallelCompact.cpp			psYoungGen.hpp
 psParallelCompact.cpp			referencePolicy.hpp
 psParallelCompact.cpp			referenceProcessor.hpp
 psParallelCompact.cpp			safepoint.hpp
+psParallelCompact.cpp			stack.inline.hpp
 psParallelCompact.cpp			symbolTable.hpp
 psParallelCompact.cpp			systemDictionary.hpp
 psParallelCompact.cpp			vmThread.hpp
@@ -330,7 +336,6 @@ psPromotionManager.cpp                  psPromotionManager.inline.hpp
 psPromotionManager.cpp                  psScavenge.inline.hpp
 
 psPromotionManager.hpp                  allocation.hpp
-psPromotionManager.hpp                  prefetchQueue.hpp
 psPromotionManager.hpp                  psPromotionLAB.hpp
 psPromotionManager.hpp                  taskqueue.hpp
 
@@ -368,6 +373,7 @@ psScavenge.cpp                          referencePolicy.hpp
 psScavenge.cpp                          referenceProcessor.hpp
 psScavenge.cpp                          resourceArea.hpp
 psScavenge.cpp                          spaceDecorator.hpp
+psScavenge.cpp                          stack.inline.hpp
 psScavenge.cpp                          threadCritical.hpp
 psScavenge.cpp                          vmThread.hpp
 psScavenge.cpp                          vm_operations.hpp
@@ -377,6 +383,7 @@ psScavenge.hpp                          cardTableExtension.hpp
 psScavenge.hpp                          collectorCounters.hpp
 psScavenge.hpp                          oop.hpp
 psScavenge.hpp                          psVirtualspace.hpp
+psScavenge.hpp                          stack.hpp
 
 psScavenge.inline.hpp                   cardTableExtension.hpp
 psScavenge.inline.hpp                   parallelScavengeHeap.hpp

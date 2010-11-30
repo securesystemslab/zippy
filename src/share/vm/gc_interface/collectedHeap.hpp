@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -59,6 +59,8 @@ class CollectedHeap : public CHeapObj {
   MemRegion _reserved;
   BarrierSet* _barrier_set;
   bool _is_gc_active;
+  int _n_par_threads;
+
   unsigned int _total_collections;          // ... started
   unsigned int _total_full_collections;     // ... started
   NOT_PRODUCT(volatile size_t _promotion_failure_alot_count;)
@@ -292,6 +294,12 @@ class CollectedHeap : public CHeapObj {
     _gc_cause = v;
   }
   GCCause::Cause gc_cause() { return _gc_cause; }
+
+  // Number of threads currently working on GC tasks.
+  int n_par_threads() { return _n_par_threads; }
+
+  // May be overridden to set additional parallelism.
+  virtual void set_par_threads(int t) { _n_par_threads = t; };
 
   // Preload classes into the shared portion of the heap, and then dump
   // that data to a file so that it can be loaded directly by another
@@ -606,6 +614,14 @@ class CollectedHeap : public CHeapObj {
     return (CIFireOOMAt > 1 && _fire_out_of_memory_count >= CIFireOOMAt);
   }
 #endif
+
+ public:
+  // This is a convenience method that is used in cases where
+  // the actual number of GC worker threads is not pertinent but
+  // only whether there more than 0.  Use of this method helps
+  // reduce the occurrence of ParallelGCThreads to uses where the
+  // actual number may be germane.
+  static bool use_parallel_gc_threads() { return ParallelGCThreads > 0; }
 };
 
 // Class to set and reset the GC cause for a CollectedHeap.

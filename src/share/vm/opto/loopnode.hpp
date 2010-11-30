@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -626,8 +626,7 @@ public:
     _nodes.map( old_node->_idx, (Node*)((intptr_t)new_node + 1) );
   }
   void lazy_replace( Node *old_node, Node *new_node ) {
-    _igvn.hash_delete(old_node);
-    _igvn.subsume_node( old_node, new_node );
+    _igvn.replace_node( old_node, new_node );
     lazy_update( old_node, new_node );
   }
   void lazy_replace_proj( Node *old_node, Node *new_node ) {
@@ -937,6 +936,12 @@ public:
   // Found an If getting its condition-code input from a Phi in the
   // same block.  Split thru the Region.
   void do_split_if( Node *iff );
+
+  // Conversion of fill/copy patterns into intrisic versions
+  bool do_intrinsify_fill();
+  bool intrinsify_fill(IdealLoopTree* lpt);
+  bool match_fill_loop(IdealLoopTree* lpt, Node*& store, Node*& store_value,
+                       Node*& shift, Node*& offset);
 
 private:
   // Return a type based on condition control flow

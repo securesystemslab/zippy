@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -71,9 +71,16 @@
 
   static bool is_single_instruction(LIR_Op* op);
 
+  // Record the type of the receiver in ReceiverTypeData
+  void type_profile_helper(Register mdo, int mdo_offset_bias,
+                           ciMethodData *md, ciProfileData *data,
+                           Register recv, Register tmp1, Label* update_done);
+  // Setup pointers to MDO, MDO slot, also compute offset bias to access the slot.
+  void setup_md_access(ciMethod* method, int bci,
+                       ciMethodData*& md, ciProfileData*& data, int& mdo_offset_bias);
  public:
-  void pack64( Register rs, Register rd );
-  void unpack64( Register rd );
+  void   pack64(LIR_Opr src, LIR_Opr dst);
+  void unpack64(LIR_Opr src, LIR_Opr dst);
 
 enum {
 #ifdef _LP64

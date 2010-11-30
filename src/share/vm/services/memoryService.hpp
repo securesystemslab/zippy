@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2006, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -149,8 +149,13 @@ public:
   }
   static void track_memory_pool_usage(MemoryPool* pool);
 
-  static void gc_begin(bool fullGC);
-  static void gc_end(bool fullGC);
+  static void gc_begin(bool fullGC, bool recordGCBeginTime,
+                       bool recordAccumulatedGCTime,
+                       bool recordPreGCUsage, bool recordPeakUsage);
+  static void gc_end(bool fullGC, bool recordPostGCUsage,
+                     bool recordAccumulatedGCTime,
+                     bool recordGCEndTime, bool countCollection);
+
 
   static void oops_do(OopClosure* f);
 
@@ -164,8 +169,34 @@ public:
 class TraceMemoryManagerStats : public StackObj {
 private:
   bool         _fullGC;
+  bool         _recordGCBeginTime;
+  bool         _recordPreGCUsage;
+  bool         _recordPeakUsage;
+  bool         _recordPostGCUsage;
+  bool         _recordAccumulatedGCTime;
+  bool         _recordGCEndTime;
+  bool         _countCollection;
+
 public:
-  TraceMemoryManagerStats(bool fullGC);
+  TraceMemoryManagerStats() {}
+  TraceMemoryManagerStats(bool fullGC,
+                          bool recordGCBeginTime = true,
+                          bool recordPreGCUsage = true,
+                          bool recordPeakUsage = true,
+                          bool recordPostGCUsage = true,
+                          bool recordAccumulatedGCTime = true,
+                          bool recordGCEndTime = true,
+                          bool countCollection = true);
+
+  void initialize(bool fullGC,
+                  bool recordGCBeginTime,
+                  bool recordPreGCUsage,
+                  bool recordPeakUsage,
+                  bool recordPostGCUsage,
+                  bool recordAccumulatedGCTime,
+                  bool recordGCEndTime,
+                  bool countCollection);
+
   TraceMemoryManagerStats(Generation::Name kind);
   ~TraceMemoryManagerStats();
 };

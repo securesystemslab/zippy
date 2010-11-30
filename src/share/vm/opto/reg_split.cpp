@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -271,6 +271,32 @@ uint PhaseChaitin::split_USE( Node *def, Block *b, Node *use, uint useidx, uint 
   return maxlrg;
 }
 
+//------------------------------clone_node----------------------------
+// Clone node with anti dependence check.
+Node* clone_node(Node* def, Block *b, Compile* C) {
+  if (def->needs_anti_dependence_check()) {
+#ifdef ASSERT
+    if (Verbose) {
+      tty->print_cr("RA attempts to clone node with anti_dependence:");
+      def->dump(-1); tty->cr();
+      tty->print_cr("into block:");
+      b->dump();
+    }
+#endif
+    if (C->subsume_loads() == true && !C->failing()) {
+      // Retry with subsume_loads == false
+      // If this is the first failure, the sentinel string will "stick"
+      // to the Compile object, and the C2Compiler will see it and retry.
+      C->record_failure(C2Compiler::retry_no_subsuming_loads());
+    } else {
+      // Bailout without retry
+      C->record_method_not_compilable("RA Split failed: attempt to clone node with anti_dependence");
+    }
+    return 0;
+  }
+  return def->clone();
+}
+
 //------------------------------split_Rematerialize----------------------------
 // Clone a local copy of the def.
 Node *PhaseChaitin::split_Rematerialize( Node *def, Block *b, uint insidx, uint &maxlrg, GrowableArray<uint> splits, int slidx, uint *lrg2reach, Node **Reachblock, bool walkThru ) {
@@ -298,8 +324,8 @@ Node *PhaseChaitin::split_Rematerialize( Node *def, Block *b, uint insidx, uint 
     }
   }
 
-  Node *spill = def->clone();
-  if (C->check_node_count(NodeLimitFudgeFactor, out_of_nodes)) {
+  Node *spill = clone_node(def, b, C);
+  if (spill == NULL || C->check_node_count(NodeLimitFudgeFactor, out_of_nodes)) {
     // Check when generating nodes
     return 0;
   }
@@ -834,13 +860,13 @@ uint PhaseChaitin::Split( uint maxlrg ) {
               // The effect of this clone is to drop the node out of the block,
               // so that the allocator does not see it anymore, and therefore
               // does not attempt to assign it a register.
-              def = def->clone();
+              def = clone_node(def, b, C);
+              if (def == NULL || C->check_node_count(NodeLimitFudgeFactor, out_of_nodes)) {
+                return 0;
+              }
               _names.extend(def->_idx,0);
               _cfg._bbs.map(def->_idx,b);
               n->set_req(inpidx, def);
-              if (C->check_node_count(NodeLimitFudgeFactor, out_of_nodes)) {
-                return 0;
-              }
               continue;
             }
 
@@ -949,6 +975,19 @@ uint PhaseChaitin::Split( uint maxlrg ) {
               insidx++;  // Reset iterator to skip USE side split
               continue;
             }
+
+            if (UseFPUForSpilling && n->is_Call() && !uup && !dup ) {
+              // The use at the call can force the def down so insert
+              // a split before the use to allow the def more freedom.
+              maxlrg = split_USE(def,b,n,inpidx,maxlrg,dup,false, splits,slidx);
+              // If it wasn't split bail
+              if (!maxlrg) {
+                return 0;
+              }
+              insidx++;  // Reset iterator to skip USE side split
+              continue;
+            }
+
             // Here is the logic chart which describes USE Splitting:
             // 0 = false or DOWN, 1 = true or UP
             //

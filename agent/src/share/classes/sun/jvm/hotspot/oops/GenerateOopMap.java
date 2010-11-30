@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2005, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -566,6 +566,7 @@ public class GenerateOopMap {
       case Bytecodes._invokespecial:
       case Bytecodes._invokestatic:
       case Bytecodes._invokeinterface:
+      case Bytecodes._invokedynamic:
         // FIXME: print signature of referenced method (need more
         // accessors in ConstantPool and ConstantPoolCache)
         int idx = currentBC.getIndexBig();
@@ -605,6 +606,7 @@ public class GenerateOopMap {
       case Bytecodes._invokespecial:
       case Bytecodes._invokestatic:
       case Bytecodes._invokeinterface:
+      case Bytecodes._invokedynamic:
         // FIXME: print signature of referenced method (need more
         // accessors in ConstantPool and ConstantPoolCache)
         int idx = currentBC.getIndexBig();
@@ -1134,6 +1136,7 @@ public class GenerateOopMap {
       case Bytecodes._invokespecial:
       case Bytecodes._invokestatic:
       case Bytecodes._invokeinterface:
+      case Bytecodes._invokedynamic:
         _itr_send = itr;
         _report_result_for_send = true;
         break;
@@ -1379,6 +1382,7 @@ public class GenerateOopMap {
     case Bytecodes._invokevirtual:
     case Bytecodes._invokespecial:     doMethod(false, false, itr.getIndexBig(), itr.bci()); break;
     case Bytecodes._invokestatic:      doMethod(true,  false, itr.getIndexBig(), itr.bci()); break;
+    case Bytecodes._invokedynamic:     doMethod(false, true,  itr.getIndexBig(), itr.bci()); break;
     case Bytecodes._invokeinterface:   doMethod(false, true,  itr.getIndexBig(), itr.bci()); break;
     case Bytecodes._newarray:
     case Bytecodes._anewarray:         ppNewRef(vCTS, itr.bci()); break;
@@ -1725,7 +1729,7 @@ public class GenerateOopMap {
   void  doMethod                            (boolean is_static, boolean is_interface, int idx, int bci) {
     // Dig up signature for field in constant pool
     ConstantPool cp       = _method.getConstants();
-    int nameAndTypeIdx    = cp.getNameAndTypeRefIndexAt(idx);
+    int nameAndTypeIdx    = cp.getTagAt(idx).isNameAndType() ? idx : cp.getNameAndTypeRefIndexAt(idx);
     int signatureIdx      = cp.getSignatureRefIndexAt(nameAndTypeIdx);
     Symbol signature      = cp.getSymbolAt(signatureIdx);
 

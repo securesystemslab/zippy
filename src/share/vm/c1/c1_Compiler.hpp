@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2007, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -31,10 +31,6 @@ class Compiler: public AbstractCompiler {
  // Tracks whether runtime has been initialized
  static volatile int _runtimes;
 
- // In tiered it is possible for multiple threads to want to do compilation
- // only one can enter c1 at a time
- static volatile bool _compiling;
-
  public:
   // Creation
   Compiler();
@@ -43,10 +39,9 @@ class Compiler: public AbstractCompiler {
   // Name of this compiler
   virtual const char* name()                     { return "C1"; }
 
-#ifdef TIERED
-  virtual bool is_c1() { return true; };
-#endif // TIERED
+  virtual bool is_c1()                           { return true; };
 
+  BufferBlob* build_buffer_blob();
 
   // Missing feature tests
   virtual bool supports_native()                 { return true; }
@@ -58,6 +53,7 @@ class Compiler: public AbstractCompiler {
 
   // Initialization
   virtual void initialize();
+  static  void initialize_all();
 
   // Compilation entry point for methods
   virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2006, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -275,11 +275,7 @@ class NativeSignatureIterator: public SignatureIterator {
 
   void do_bool  ()                     { pass_int();    _jni_offset++; _offset++;       }
   void do_char  ()                     { pass_int();    _jni_offset++; _offset++;       }
-#if defined(_LP64) || defined(ZERO)
   void do_float ()                     { pass_float();  _jni_offset++; _offset++;       }
-#else
-  void do_float ()                     { pass_int();    _jni_offset++; _offset++;       }
-#endif
 #ifdef _LP64
   void do_double()                     { pass_double(); _jni_offset++; _offset += 2;    }
 #else
@@ -306,9 +302,7 @@ class NativeSignatureIterator: public SignatureIterator {
   virtual void pass_int()              = 0;
   virtual void pass_long()             = 0;
   virtual void pass_object()           = 0;
-#if defined(_LP64) || defined(ZERO)
   virtual void pass_float()            = 0;
-#endif
 #ifdef _LP64
   virtual void pass_double()           = 0;
 #else
@@ -402,6 +396,9 @@ class SignatureStream : public StackObj {
   bool is_array() const;                         // True if this argument is an array
   BasicType type() const                         { return _type; }
   symbolOop as_symbol(TRAPS);
+  enum FailureMode { ReturnNull, CNFException, NCDFError };
+  klassOop as_klass(Handle class_loader, Handle protection_domain, FailureMode failure_mode, TRAPS);
+  oop as_java_mirror(Handle class_loader, Handle protection_domain, FailureMode failure_mode, TRAPS);
 
   // return same as_symbol except allocation of new symbols is avoided.
   symbolOop as_symbol_or_null();

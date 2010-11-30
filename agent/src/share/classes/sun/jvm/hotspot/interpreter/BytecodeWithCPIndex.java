@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2003 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2003, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -37,12 +37,19 @@ public abstract class BytecodeWithCPIndex extends Bytecode {
   // the constant pool index for this bytecode
   public int index() { return 0xFFFF & javaShortAt(1); }
 
+  public int getSecondaryIndex() {
+     throw new IllegalArgumentException("must be invokedynamic");
+  }
+
   protected int indexForFieldOrMethod() {
      ConstantPoolCache cpCache = method().getConstants().getCache();
      // get ConstantPool index from ConstantPoolCacheIndex at given bci
      int cpCacheIndex = index();
      if (cpCache == null) {
         return cpCacheIndex;
+     } else if (code() == Bytecodes._invokedynamic) {
+        int secondaryIndex = getSecondaryIndex();
+        return cpCache.getMainEntryAt(secondaryIndex).getConstantPoolIndex();
      } else {
         // change byte-ordering and go via cache
         return cpCache.getEntryAt((int) (0xFFFF & VM.getVM().getBytes().swapShort((short) cpCacheIndex))).getConstantPoolIndex();

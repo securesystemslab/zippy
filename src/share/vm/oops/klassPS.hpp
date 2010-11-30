@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2007, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 #ifndef KLASS_PS_H
@@ -28,7 +28,6 @@
 
 #ifndef SERIALGC
 #define PARALLEL_GC_DECLS \
-  virtual void oop_copy_contents(PSPromotionManager* pm, oop obj);          \
   virtual void oop_push_contents(PSPromotionManager* pm, oop obj);          \
   /* Parallel Old GC support                                                \
                                                                             \
@@ -43,7 +42,6 @@
 
 // Pure virtual version for klass.hpp
 #define PARALLEL_GC_DECLS_PV \
-  virtual void oop_copy_contents(PSPromotionManager* pm, oop obj) = 0;      \
   virtual void oop_push_contents(PSPromotionManager* pm, oop obj) = 0;      \
   virtual void oop_follow_contents(ParCompactionManager* cm, oop obj) = 0;  \
   virtual int  oop_update_pointers(ParCompactionManager* cm, oop obj) = 0;  \

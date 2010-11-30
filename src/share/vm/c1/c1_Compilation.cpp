@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -65,9 +65,6 @@ class PhaseTraceTime: public TraceTime {
     TraceTime("", &timers[timer], CITime || CITimeEach, Verbose) {
   }
 };
-
-Arena* Compilation::_arena = NULL;
-Compilation* Compilation::_compilation = NULL;
 
 // Implementation of Compilation
 
@@ -223,11 +220,13 @@ void Compilation::emit_code_epilog(LIR_Assembler* assembler) {
   code_offsets->set_value(CodeOffsets::Deopt, assembler->emit_deopt_handler());
   CHECK_BAILOUT();
 
-  // Generate code for MethodHandle deopt handler.  We can use the
-  // same code as for the normal deopt handler, we just need a
-  // different entry point address.
-  code_offsets->set_value(CodeOffsets::DeoptMH, assembler->emit_deopt_handler());
-  CHECK_BAILOUT();
+  // Emit the MethodHandle deopt handler code (if required).
+  if (has_method_handle_invokes()) {
+    // We can use the same code as for the normal deopt handler, we
+    // just need a different entry point address.
+    code_offsets->set_value(CodeOffsets::DeoptMH, assembler->emit_deopt_handler());
+    CHECK_BAILOUT();
+  }
 
   // Emit the handler to remove the activation from the stack and
   // dispatch to the caller.
@@ -238,9 +237,23 @@ void Compilation::emit_code_epilog(LIR_Assembler* assembler) {
 }
 
 
+void Compilation::setup_code_buffer(CodeBuffer* code, int call_stub_estimate) {
+  // Preinitialize the consts section to some large size:
+  int locs_buffer_size = 20 * (relocInfo::length_limit + sizeof(relocInfo));
+  char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
+  code->insts()->initialize_shared_locs((relocInfo*)locs_buffer,
+                                        locs_buffer_size / sizeof(relocInfo));
+  code->initialize_consts_size(Compilation::desired_max_constant_size());
+  // Call stubs + two deopt handlers (regular and MH) + exception handler
+  code->initialize_stubs_size((call_stub_estimate * LIR_Assembler::call_stub_size) +
+                              LIR_Assembler::exception_handler_size +
+                              2 * LIR_Assembler::deopt_handler_size);
+}
+
+
 int Compilation::emit_code_body() {
   // emit code
-  Runtime1::setup_code_buffer(code(), allocator()->num_calls());
+  setup_code_buffer(code(), allocator()->num_calls());
   code()->initialize_oop_recorder(env()->oop_recorder());
 
   _masm = new C1_MacroAssembler(code());
@@ -277,9 +290,13 @@ int Compilation::compile_java_method() {
 
   CHECK_BAILOUT_(no_frame_size);
 
+  if (is_profiling()) {
+    method()->build_method_data();
+  }
+
   {
     PhaseTraceTime timeit(_t_buildIR);
-  build_hir();
+    build_hir();
   }
   if (BailoutAfterHIR) {
     BAILOUT_("Bailing out because of -XX:+BailoutAfterHIR", no_frame_size);
@@ -422,7 +439,8 @@ void Compilation::generate_exception_handler_table() {
 }
 
 
-Compilation::Compilation(AbstractCompiler* compiler, ciEnv* env, ciMethod* method, int osr_bci)
+Compilation::Compilation(AbstractCompiler* compiler, ciEnv* env, ciMethod* method,
+                         int osr_bci, BufferBlob* buffer_blob)
 : _compiler(compiler)
 , _env(env)
 , _method(method)
@@ -433,30 +451,35 @@ Compilation::Compilation(AbstractCompiler* compiler, ciEnv* env, ciMethod* metho
 , _masm(NULL)
 , _has_exception_handlers(false)
 , _has_fpu_code(true)   // pessimistic assumption
+, _would_profile(false)
 , _has_unsafe_access(false)
+, _has_method_handle_invokes(false)
 , _bailout_msg(NULL)
 , _exception_info_list(NULL)
 , _allocator(NULL)
-, _code(Runtime1::get_buffer_blob()->instructions_begin(),
-        Runtime1::get_buffer_blob()->instructions_size())
+, _next_id(0)
+, _next_block_id(0)
+, _code(buffer_blob)
 , _current_instruction(NULL)
 #ifndef PRODUCT
 , _last_instruction_printed(NULL)
 #endif // PRODUCT
 {
   PhaseTraceTime timeit(_t_compile);
-
-  assert(_arena == NULL, "shouldn't only one instance of Compilation in existence at a time");
   _arena = Thread::current()->resource_area();
-  _compilation = this;
+  _env->set_compiler_data(this);
   _exception_info_list = new ExceptionInfoList();
   _implicit_exception_table.set_size(0);
   compile_method();
+  if (is_profiling() && _would_profile) {
+    ciMethodData *md = method->method_data();
+    assert (md != NULL, "Should have MDO");
+    md->set_would_profile(_would_profile);
+  }
 }
 
 Compilation::~Compilation() {
-  _arena = NULL;
-  _compilation = NULL;
+  _env->set_compiler_data(NULL);
 }
 
 

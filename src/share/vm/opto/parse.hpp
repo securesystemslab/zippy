@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -480,6 +480,7 @@ class Parse : public GraphKit {
   bool push_constant(ciConstant con, bool require_constant = false);
 
   // implementation of object creation bytecodes
+  void emit_guard_for_new(ciInstanceKlass* klass);
   void do_new();
   void do_newarray(BasicType elemtype);
   void do_anewarray();
@@ -493,6 +494,7 @@ class Parse : public GraphKit {
   float   dynamic_branch_prediction(float &cnt);
   float   branch_prediction(float &cnt, BoolTest::mask btest, int target_bci);
   bool    seems_never_taken(float prob);
+  bool    seems_stable_comparison(BoolTest::mask btest, Node* c);
 
   void    do_ifnull(BoolTest::mask btest, Node* c);
   void    do_if(BoolTest::mask btest, Node* c);

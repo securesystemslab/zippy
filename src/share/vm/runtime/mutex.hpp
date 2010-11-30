@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2008, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -265,48 +265,3 @@ class Mutex : public Monitor {      // degenerate Monitor
    }
 };
 
-/*
- * Per-thread blocking support for JSR166. See the Java-level
- * Documentation for rationale. Basically, park acts like wait, unpark
- * like notify.
- *
- * 6271289 --
- * To avoid errors where an os thread expires but the JavaThread still
- * exists, Parkers are immortal (type-stable) and are recycled across
- * new threads.  This parallels the ParkEvent implementation.
- * Because park-unpark allow spurious wakeups it is harmless if an
- * unpark call unparks a new thread using the old Parker reference.
- *
- * In the future we'll want to think about eliminating Parker and using
- * ParkEvent instead.  There's considerable duplication between the two
- * services.
- *
- */
-
-class Parker : public os::PlatformParker {
-private:
-  volatile int _counter ;
-  Parker * FreeNext ;
-  JavaThread * AssociatedWith ; // Current association
-
-public:
-  Parker() : PlatformParker() {
-    _counter       = 0 ;
-    FreeNext       = NULL ;
-    AssociatedWith = NULL ;
-  }
-protected:
-  ~Parker() { ShouldNotReachHere(); }
-public:
-  // For simplicity of interface with Java, all forms of park (indefinite,
-  // relative, and absolute) are multiplexed into one call.
-  void park(bool isAbsolute, jlong time);
-  void unpark();
-
-  // Lifecycle operators
-  static Parker * Allocate (JavaThread * t) ;
-  static void Release (Parker * e) ;
-private:
-  static Parker * volatile FreeList ;
-  static volatile int ListLock ;
-};

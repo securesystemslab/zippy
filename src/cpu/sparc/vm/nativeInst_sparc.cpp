@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -193,17 +193,17 @@ void NativeCall::test() {
 
   a->call( a->pc(), relocInfo::none );
   a->delayed()->nop();
-  nc = nativeCall_at( cb.code_begin() );
+  nc = nativeCall_at( cb.insts_begin() );
   nc->print();
 
   nc = nativeCall_overwriting_at( nc->next_instruction_address() );
   for (idx = 0; idx < ARRAY_SIZE(offsets); idx++) {
-    nc->set_destination( cb.code_begin() + offsets[idx] );
-    assert(nc->destination() == (cb.code_begin() + offsets[idx]), "check unit test");
+    nc->set_destination( cb.insts_begin() + offsets[idx] );
+    assert(nc->destination() == (cb.insts_begin() + offsets[idx]), "check unit test");
     nc->print();
   }
 
-  nc = nativeCall_before( cb.code_begin() + 8 );
+  nc = nativeCall_before( cb.insts_begin() + 8 );
   nc->print();
 
   VM_Version::revert();
@@ -321,7 +321,8 @@ void NativeMovConstReg::set_data(intptr_t x) {
   set_long_at(add_offset,   set_data32_simm13( long_at(add_offset),   x));
 
   // also store the value into an oop_Relocation cell, if any
-  CodeBlob* nm = CodeCache::find_blob(instruction_address());
+  CodeBlob* cb = CodeCache::find_blob(instruction_address());
+  nmethod*  nm = cb ? cb->as_nmethod_or_null() : NULL;
   if (nm != NULL) {
     RelocIterator iter(nm, instruction_address(), next_instruction_address());
     oop* oop_addr = NULL;
@@ -367,7 +368,7 @@ void NativeMovConstReg::test() {
   a->sethi(al2, O2);
   a->add(O2, al2.low10(), O2);
 
-  nm = nativeMovConstReg_at( cb.code_begin() );
+  nm = nativeMovConstReg_at( cb.insts_begin() );
   nm->print();
 
   nm = nativeMovConstReg_at( nm->next_instruction_address() );
@@ -430,7 +431,8 @@ void NativeMovConstRegPatching::set_data(int x) {
   set_long_at(add_offset, set_data32_simm13(long_at(add_offset), x));
 
   // also store the value into an oop_Relocation cell, if any
-  CodeBlob* nm = CodeCache::find_blob(instruction_address());
+  CodeBlob* cb = CodeCache::find_blob(instruction_address());
+  nmethod*  nm = cb ? cb->as_nmethod_or_null() : NULL;
   if (nm != NULL) {
     RelocIterator iter(nm, instruction_address(), next_instruction_address());
     oop* oop_addr = NULL;
@@ -478,7 +480,7 @@ void NativeMovConstRegPatching::test() {
   a->nop();
   a->add(O2, al2.low10(), O2);
 
-  nm = nativeMovConstRegPatching_at( cb.code_begin() );
+  nm = nativeMovConstRegPatching_at( cb.insts_begin() );
   nm->print();
 
   nm = nativeMovConstRegPatching_at( nm->next_instruction_address() );
@@ -614,7 +616,7 @@ void NativeMovRegMem::test() {
   a->sethi(al2, I3); a->add(I3, al2.low10(), I3);
   a->stf( FloatRegisterImpl::S, F15, O0, I3 ); idx++;
 
-  nm = nativeMovRegMem_at( cb.code_begin() );
+  nm = nativeMovRegMem_at( cb.insts_begin() );
   nm->print();
   nm->set_offset( low10(0) );
   nm->print();
@@ -758,7 +760,7 @@ void NativeMovRegMemPatching::test() {
   a->sethi(al, I3); a->nop(); a->add(I3, al.low10(), I3);
   a->stf( FloatRegisterImpl::S, F15, O0, I3 ); idx++;
 
-  nm = nativeMovRegMemPatching_at( cb.code_begin() );
+  nm = nativeMovRegMemPatching_at( cb.insts_begin() );
   nm->print();
   nm->set_offset( low10(0) );
   nm->print();
@@ -847,7 +849,7 @@ void NativeJump::test() {
   a->jmpl(I3, al.low10(), L3, RelocationHolder::none);
   a->delayed()->nop();
 
-  nj = nativeJump_at( cb.code_begin() );
+  nj = nativeJump_at( cb.insts_begin() );
   nj->print();
 
   nj = nativeJump_at( nj->next_instruction_address() );

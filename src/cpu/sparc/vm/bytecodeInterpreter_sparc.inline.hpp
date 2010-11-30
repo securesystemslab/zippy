@@ -1,5 +1,5 @@
 /*
- * Copyright 2002 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -236,19 +236,19 @@ inline jint BytecodeInterpreter::VMintRem(jint op1, jint op2) {
 }
 
 inline jint BytecodeInterpreter::VMintShl(jint op1, jint op2) {
-  return op1 <<  op2;
+  return op1 << (op2 & 0x1f);
 }
 
 inline jint BytecodeInterpreter::VMintShr(jint op1, jint op2) {
-  return op1 >>  op2; // QQ op2 & 0x1f??
+  return op1 >> (op2 & 0x1f);
 }
 
 inline jint BytecodeInterpreter::VMintSub(jint op1, jint op2) {
   return op1 - op2;
 }
 
-inline jint BytecodeInterpreter::VMintUshr(jint op1, jint op2) {
-  return ((juint) op1) >> op2; // QQ op2 & 0x1f??
+inline juint BytecodeInterpreter::VMintUshr(jint op1, jint op2) {
+  return ((juint) op1) >> (op2 & 0x1f);
 }
 
 inline jint BytecodeInterpreter::VMintXor(jint op1, jint op2) {

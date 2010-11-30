@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 /**
@@ -108,8 +108,10 @@ public class Test implements Runnable {
 
     if (quo != quo0 || rem != rem0) {
       if (VERBOSE) {
-        System.out.println("  " + dividend + " / " + divisor() + " = " +
-                           quo + ", " + dividend + " % " + divisor() + " = " + rem);
+        System.out.println("Computed: " + dividend + " / " + divisor() + " = " +
+                           quo  + ", " + dividend + " % " + divisor() + " = " + rem );
+        System.out.println("expected: " + dividend + " / " + divisor() + " = " +
+                           quo0 + ", " + dividend + " % " + divisor() + " = " + rem0);
         // Report sign of rem failure
         if (rem != 0 && (rem ^ dividend) < 0) {
           System.out.println("  rem & dividend have different signs");
@@ -168,7 +170,7 @@ public class Test implements Runnable {
     for (int i = start; i <= end; i++) {
       for (int s = 0; s < 64; s += 4) {
         total++;
-        long dividend = i << s;
+        long dividend = ((long)i) << s;
         if (!checkL(dividend)) {
           wrong++;
           // Stop on the first failure

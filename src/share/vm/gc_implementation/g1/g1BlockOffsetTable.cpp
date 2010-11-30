@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2008, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -175,7 +175,7 @@ G1BlockOffsetArray::set_remainder_to_point_to_start_incl(size_t start_card, size
   }
   assert(start_card > _array->index_for(_bottom), "Cannot be first card");
   assert(_array->offset_array(start_card-1) <= N_words,
-    "Offset card has an unexpected value");
+         "Offset card has an unexpected value");
   size_t start_card_for_region = start_card;
   u_char offset = max_jubyte;
   for (int i = 0; i < BlockOffsetArray::N_powers; i++) {
@@ -517,7 +517,7 @@ void G1BlockOffsetArray::alloc_block_work2(HeapWord** threshold_, size_t* index_
   assert(blk_start != NULL && blk_end > blk_start,
          "phantom block");
   assert(blk_end > threshold, "should be past threshold");
-  assert(blk_start <= threshold, "blk_start should be at or before threshold")
+  assert(blk_start <= threshold, "blk_start should be at or before threshold");
   assert(pointer_delta(threshold, blk_start) <= N_words,
          "offset should be <= BlockOffsetSharedArray::N");
   assert(Universe::heap()->is_in_reserved(blk_start),
@@ -577,6 +577,16 @@ void G1BlockOffsetArray::alloc_block_work2(HeapWord** threshold_, size_t* index_
 #endif
 }
 
+void
+G1BlockOffsetArray::set_for_starts_humongous(HeapWord* new_end) {
+  assert(_end ==  new_end, "_end should have already been updated");
+
+  // The first BOT entry should have offset 0.
+  _array->set_offset_array(_array->index_for(_bottom), 0);
+  // The rest should point to the first one.
+  set_remainder_to_point_to_start(_bottom + N_words, new_end);
+}
+
 //////////////////////////////////////////////////////////////////////
 // G1BlockOffsetArrayContigSpace
 //////////////////////////////////////////////////////////////////////
@@ -625,4 +635,13 @@ void G1BlockOffsetArrayContigSpace::zero_bottom_entry() {
   assert(_array->address_for_index(bottom_index) == _bottom,
          "Precondition of call");
   _array->set_offset_array(bottom_index, 0);
+}
+
+void
+G1BlockOffsetArrayContigSpace::set_for_starts_humongous(HeapWord* new_end) {
+  G1BlockOffsetArray::set_for_starts_humongous(new_end);
+
+  // Make sure _next_offset_threshold and _next_offset_index point to new_end.
+  _next_offset_threshold = new_end;
+  _next_offset_index     = _array->index_for(new_end);
 }

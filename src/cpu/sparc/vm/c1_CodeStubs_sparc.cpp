@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -32,6 +32,7 @@ RangeCheckStub::RangeCheckStub(CodeEmitInfo* info, LIR_Opr index,
   : _throw_index_out_of_bounds_exception(throw_index_out_of_bounds_exception)
   , _index(index)
 {
+  assert(info != NULL, "must have info");
   _info = new CodeEmitInfo(info);
 }
 
@@ -57,13 +58,12 @@ void RangeCheckStub::emit_code(LIR_Assembler* ce) {
 #endif
 }
 
-#ifdef TIERED
 
 void CounterOverflowStub::emit_code(LIR_Assembler* ce) {
   __ bind(_entry);
   __ set(_bci, G4);
   __ call(Runtime1::entry_for(Runtime1::counter_overflow_id), relocInfo::runtime_call_type);
-  __ delayed()->nop();
+  __ delayed()->mov_or_nop(_method->as_register(), G5);
   ce->add_call_info_here(_info);
   ce->verify_oop_map(_info);
 
@@ -71,7 +71,6 @@ void CounterOverflowStub::emit_code(LIR_Assembler* ce) {
   __ delayed()->nop();
 }
 
-#endif // TIERED
 
 void DivByZeroStub::emit_code(LIR_Assembler* ce) {
   if (_offset != -1) {
@@ -426,8 +425,13 @@ void G1PreBarrierStub::emit_code(LIR_Assembler* ce) {
   Register pre_val_reg = pre_val()->as_register();
 
   ce->mem2reg(addr(), pre_val(), T_OBJECT, patch_code(), info(), false);
-  __ br_on_reg_cond(Assembler::rc_z, /*annul*/false, Assembler::pt,
-                    pre_val_reg, _continuation);
+  if (__ is_in_wdisp16_range(_continuation)) {
+    __ br_on_reg_cond(Assembler::rc_z, /*annul*/false, Assembler::pt,
+                      pre_val_reg, _continuation);
+  } else {
+    __ cmp(pre_val_reg, G0);
+    __ brx(Assembler::equal, false, Assembler::pn, _continuation);
+  }
   __ delayed()->nop();
 
   __ call(Runtime1::entry_for(Runtime1::Runtime1::g1_pre_barrier_slow_id));
@@ -453,8 +457,13 @@ void G1PostBarrierStub::emit_code(LIR_Assembler* ce) {
   assert(new_val()->is_register(), "Precondition.");
   Register addr_reg = addr()->as_pointer_register();
   Register new_val_reg = new_val()->as_register();
-  __ br_on_reg_cond(Assembler::rc_z, /*annul*/false, Assembler::pt,
-                    new_val_reg, _continuation);
+  if (__ is_in_wdisp16_range(_continuation)) {
+    __ br_on_reg_cond(Assembler::rc_z, /*annul*/false, Assembler::pt,
+                      new_val_reg, _continuation);
+  } else {
+    __ cmp(new_val_reg, G0);
+    __ brx(Assembler::equal, false, Assembler::pn, _continuation);
+  }
   __ delayed()->nop();
 
   __ call(Runtime1::entry_for(Runtime1::Runtime1::g1_post_barrier_slow_id));

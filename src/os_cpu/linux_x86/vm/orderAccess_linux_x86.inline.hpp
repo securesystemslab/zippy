@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -30,16 +30,18 @@ inline void OrderAccess::loadstore()  { acquire(); }
 inline void OrderAccess::storeload()  { fence(); }
 
 inline void OrderAccess::acquire() {
-  volatile intptr_t dummy;
+  volatile intptr_t local_dummy;
 #ifdef AMD64
-  __asm__ volatile ("movq 0(%%rsp), %0" : "=r" (dummy) : : "memory");
+  __asm__ volatile ("movq 0(%%rsp), %0" : "=r" (local_dummy) : : "memory");
 #else
-  __asm__ volatile ("movl 0(%%esp),%0" : "=r" (dummy) : : "memory");
+  __asm__ volatile ("movl 0(%%esp),%0" : "=r" (local_dummy) : : "memory");
 #endif // AMD64
 }
 
 inline void OrderAccess::release() {
-  dummy = 0;
+  // Avoid hitting the same cache-line from
+  // different threads.
+  volatile jint local_dummy = 0;
 }
 
 inline void OrderAccess::fence() {

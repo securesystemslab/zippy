@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -39,19 +39,8 @@ define_pd_global(bool, ProfileInterpreter,           false);
 define_pd_global(bool, ProfileInterpreter,           true);
 #endif // CC_INTERP
 define_pd_global(bool, TieredCompilation,            false);
-#ifdef TIERED
-define_pd_global(intx, CompileThreshold,             1000);
-#else
 define_pd_global(intx, CompileThreshold,             10000);
-#endif // TIERED
-define_pd_global(intx, Tier2CompileThreshold,        10000);
-define_pd_global(intx, Tier3CompileThreshold,        20000);
-define_pd_global(intx, Tier4CompileThreshold,        40000);
-
 define_pd_global(intx, BackEdgeThreshold,            100000);
-define_pd_global(intx, Tier2BackEdgeThreshold,       100000);
-define_pd_global(intx, Tier3BackEdgeThreshold,       100000);
-define_pd_global(intx, Tier4BackEdgeThreshold,       100000);
 
 define_pd_global(intx, OnStackReplacePercentage,     140);
 define_pd_global(intx, ConditionalMoveLimit,         3);

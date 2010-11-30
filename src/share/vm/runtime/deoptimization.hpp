@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2008, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -216,6 +216,10 @@ class Deoptimization : AllStatic {
   // Only called from VMDeoptimizeFrame
   // @argument thread.     Thread where stub_frame resides.
   // @argument id.         id of frame that should be deoptimized.
+  static void deoptimize_frame_internal(JavaThread* thread, intptr_t* id);
+
+  // If thread is not the current thread then execute
+  // VM_DeoptimizeFrame otherwise deoptimize directly.
   static void deoptimize_frame(JavaThread* thread, intptr_t* id);
 
   // Statistics
@@ -311,12 +315,6 @@ class Deoptimization : AllStatic {
   static void popframe_preserve_args(JavaThread* thread, int bytes_to_save, void* start_address);
 
  private:
-  enum {
-    _no_count = -1
-  };
-
-  static void reset_invocation_counter(ScopeDesc* trap_scope, jint count = _no_count);
-
   static methodDataOop get_method_data(JavaThread* thread, methodHandle m, bool create_if_missing);
   // Update the mdo's count and per-BCI reason bits, returning previous state:
   static ProfileData* query_update_method_data(methodDataHandle trap_mdo,

@@ -1,5 +1,5 @@
 #
-# Copyright 1999-2008 Sun Microsystems, Inc.  All Rights Reserved.
+# Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-# CA 95054 USA or visit www.sun.com if you need additional information or
-# have any questions.
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
 #  
 #
 
@@ -75,6 +75,7 @@ Include_DBs/COMPILER1   = $(Include_DBs/CORE) $(VM)/includeDB_compiler1
 Include_DBs/COMPILER2   = $(Include_DBs/CORE) $(VM)/includeDB_compiler2
 Include_DBs/TIERED      = $(Include_DBs/CORE) $(VM)/includeDB_compiler1 $(VM)/includeDB_compiler2
 Include_DBs/ZERO        = $(Include_DBs/CORE) $(VM)/includeDB_zero
+Include_DBs/SHARK       = $(Include_DBs/ZERO) $(VM)/includeDB_shark
 Include_DBs = $(Include_DBs/$(TYPE))
 
 Cached_plat = $(GENERATED)/platform.current

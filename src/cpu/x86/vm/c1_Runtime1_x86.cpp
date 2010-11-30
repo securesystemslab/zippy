@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -870,7 +870,7 @@ void Runtime1::generate_unwind_exception(StubAssembler *sasm) {
   // Restore SP from BP if the exception PC is a MethodHandle call site.
   NOT_LP64(__ get_thread(thread);)
   __ cmpl(Address(thread, JavaThread::is_method_handle_return_offset()), 0);
-  __ cmovptr(Assembler::notEqual, rsp, rbp);
+  __ cmovptr(Assembler::notEqual, rsp, rbp_mh_SP_save);
 
   // continue at exception handler (return address removed)
   // note: do *not* remove arguments when unwinding the
@@ -1162,15 +1162,16 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
       break;
 
-#ifdef TIERED
     case counter_overflow_id:
       {
-        Register bci = rax;
+        Register bci = rax, method = rbx;
         __ enter();
-        OopMap* map = save_live_registers(sasm, 2);
+        OopMap* map = save_live_registers(sasm, 3);
         // Retrieve bci
         __ movl(bci, Address(rbp, 2*BytesPerWord));
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, counter_overflow), bci);
+        // And a pointer to the methodOop
+        __ movptr(method, Address(rbp, 3*BytesPerWord));
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, counter_overflow), bci, method);
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
         restore_live_registers(sasm);
@@ -1178,7 +1179,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ ret(0);
       }
       break;
-#endif // TIERED
 
     case new_type_array_id:
     case new_object_array_id:
@@ -1683,7 +1683,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           __ should_not_reach_here();
           break;
         }
-
         __ push(rax);
         __ push(rdx);
 
@@ -1707,8 +1706,8 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
         // Can we store original value in the thread's buffer?
 
-        LP64_ONLY(__ movslq(tmp, queue_index);)
 #ifdef _LP64
+        __ movslq(tmp, queue_index);
         __ cmpq(tmp, 0);
 #else
         __ cmpl(queue_index, 0);
@@ -1730,13 +1729,33 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ jmp(done);
 
         __ bind(runtime);
-        // load the pre-value
         __ push(rcx);
+#ifdef _LP64
+        __ push(r8);
+        __ push(r9);
+        __ push(r10);
+        __ push(r11);
+#  ifndef _WIN64
+        __ push(rdi);
+        __ push(rsi);
+#  endif
+#endif
+        // load the pre-value
         f.load_argument(0, rcx);
         __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), rcx, thread);
+#ifdef _LP64
+#  ifndef _WIN64
+        __ pop(rsi);
+        __ pop(rdi);
+#  endif
+        __ pop(r11);
+        __ pop(r10);
+        __ pop(r9);
+        __ pop(r8);
+#endif
         __ pop(rcx);
-
         __ bind(done);
+
         __ pop(rdx);
         __ pop(rax);
       }
@@ -1766,13 +1785,13 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
                                         PtrQueue::byte_offset_of_buf()));
 
         __ push(rax);
-        __ push(rdx);
+        __ push(rcx);
 
         NOT_LP64(__ get_thread(thread);)
         ExternalAddress cardtable((address)ct->byte_map_base);
         assert(sizeof(*ct->byte_map_base) == sizeof(jbyte), "adjust this code");
 
-        const Register card_addr = rdx;
+        const Register card_addr = rcx;
 #ifdef _LP64
         const Register tmp = rscratch1;
         f.load_argument(0, card_addr);
@@ -1781,7 +1800,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         // get the address of the card
         __ addq(card_addr, tmp);
 #else
-        const Register card_index = rdx;
+        const Register card_index = rcx;
         f.load_argument(0, card_index);
         __ shrl(card_index, CardTableModRefBS::card_shift);
 
@@ -1818,12 +1837,32 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ jmp(done);
 
         __ bind(runtime);
-        NOT_LP64(__ push(rcx);)
-        //__ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_post), card_addr, thread);
-        NOT_LP64(__ pop(rcx);)
-
-        __ bind(done);
+        __ push(rdx);
+#ifdef _LP64
+        __ push(r8);
+        __ push(r9);
+        __ push(r10);
+        __ push(r11);
+#  ifndef _WIN64
+        __ push(rdi);
+        __ push(rsi);
+#  endif
+#endif
+        __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_post), card_addr, thread);
+#ifdef _LP64
+#  ifndef _WIN64
+        __ pop(rsi);
+        __ pop(rdi);
+#  endif
+        __ pop(r11);
+        __ pop(r10);
+        __ pop(r9);
+        __ pop(r8);
+#endif
         __ pop(rdx);
+        __ bind(done);
+
+        __ pop(rcx);
         __ pop(rax);
 
       }
@@ -2045,3 +2084,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 }
 
 #undef __
+
+const char *Runtime1::pd_name_for_address(address entry) {
+  return "<unknown function>";
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -2424,12 +2424,15 @@ int java_dyn_MethodType::ptype_count(oop mt) {
 
 int java_dyn_MethodTypeForm::_vmslots_offset;
 int java_dyn_MethodTypeForm::_erasedType_offset;
+int java_dyn_MethodTypeForm::_genericInvoker_offset;
 
 void java_dyn_MethodTypeForm::compute_offsets() {
   klassOop k = SystemDictionary::MethodTypeForm_klass();
   if (k != NULL) {
     compute_optional_offset(_vmslots_offset,    k, vmSymbols::vmslots_name(),    vmSymbols::int_signature(), true);
     compute_optional_offset(_erasedType_offset, k, vmSymbols::erasedType_name(), vmSymbols::java_dyn_MethodType_signature(), true);
+    compute_optional_offset(_genericInvoker_offset, k, vmSymbols::genericInvoker_name(), vmSymbols::java_dyn_MethodHandle_signature(), true);
+    if (_genericInvoker_offset == 0)  _genericInvoker_offset = -1;  // set to explicit "empty" value
   }
 }
 
@@ -2443,25 +2446,26 @@ oop java_dyn_MethodTypeForm::erasedType(oop mtform) {
   return mtform->obj_field(_erasedType_offset);
 }
 
+oop java_dyn_MethodTypeForm::genericInvoker(oop mtform) {
+  assert(mtform->klass() == SystemDictionary::MethodTypeForm_klass(), "MTForm only");
+  return mtform->obj_field(_genericInvoker_offset);
+}
+
 
 // Support for java_dyn_CallSite
 
-int java_dyn_CallSite::_type_offset;
 int java_dyn_CallSite::_target_offset;
-int java_dyn_CallSite::_vmmethod_offset;
+int java_dyn_CallSite::_caller_method_offset;
+int java_dyn_CallSite::_caller_bci_offset;
 
 void java_dyn_CallSite::compute_offsets() {
   if (!EnableInvokeDynamic)  return;
   klassOop k = SystemDictionary::CallSite_klass();
   if (k != NULL) {
-    compute_offset(_type_offset,   k, vmSymbols::type_name(),   vmSymbols::java_dyn_MethodType_signature(), true);
-    compute_offset(_target_offset, k, vmSymbols::target_name(), vmSymbols::java_dyn_MethodHandle_signature(), true);
-    compute_offset(_vmmethod_offset, k, vmSymbols::vmmethod_name(), vmSymbols::object_signature(), true);
+    compute_offset(_target_offset, k, vmSymbols::target_name(), vmSymbols::java_dyn_MethodHandle_signature());
+    compute_offset(_caller_method_offset, k, vmSymbols::vmmethod_name(), vmSymbols::sun_dyn_MemberName_signature());
+    compute_offset(_caller_bci_offset, k, vmSymbols::vmindex_name(), vmSymbols::int_signature());
   }
-}
-
-oop java_dyn_CallSite::type(oop site) {
-  return site->obj_field(_type_offset);
 }
 
 oop java_dyn_CallSite::target(oop site) {
@@ -2472,12 +2476,20 @@ void java_dyn_CallSite::set_target(oop site, oop target) {
   site->obj_field_put(_target_offset, target);
 }
 
-oop java_dyn_CallSite::vmmethod(oop site) {
-  return site->obj_field(_vmmethod_offset);
+oop java_dyn_CallSite::caller_method(oop site) {
+  return site->obj_field(_caller_method_offset);
 }
 
-void java_dyn_CallSite::set_vmmethod(oop site, oop ref) {
-  site->obj_field_put(_vmmethod_offset, ref);
+void java_dyn_CallSite::set_caller_method(oop site, oop ref) {
+  site->obj_field_put(_caller_method_offset, ref);
+}
+
+jint java_dyn_CallSite::caller_bci(oop site) {
+  return site->int_field(_caller_bci_offset);
+}
+
+void java_dyn_CallSite::set_caller_bci(oop site, jint bci) {
+  site->int_field_put(_caller_bci_offset, bci);
 }
 
 

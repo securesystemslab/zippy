@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -711,6 +711,7 @@ HeapWord* ParallelCompactData::calc_new_pointer(HeapWord* addr) {
   // object in the region.
   if (region_ptr->data_size() == RegionSize) {
     result += pointer_delta(addr, region_addr);
+    DEBUG_ONLY(PSParallelCompact::check_new_location(addr, result);)
     return result;
   }
 
@@ -1487,13 +1488,14 @@ PSParallelCompact::provoke_split_fill_survivor(SpaceId id)
       space->set_top_for_allocations();
     }
 
-    size_t obj_len = 8;
+    size_t min_size = CollectedHeap::min_fill_size();
+    size_t obj_len = min_size;
     while (b + obj_len <= t) {
       CollectedHeap::fill_with_object(b, obj_len);
       mark_bitmap()->mark_obj(b, obj_len);
       summary_data().add_obj(b, obj_len);
       b += obj_len;
-      obj_len = (obj_len & 0x18) + 8; // 8 16 24 32 8 16 24 32 ...
+      obj_len = (obj_len & (min_size*3)) + min_size; // 8 16 24 32 8 16 24 32 ...
     }
     if (b < t) {
       // The loop didn't completely fill to t (top); adjust top downward.
@@ -1680,11 +1682,13 @@ void PSParallelCompact::fill_dense_prefix_end(SpaceId id)
     //                          +-------+
 
     // Initially assume case a, c or e will apply.
-    size_t obj_len = (size_t)oopDesc::header_size();
+    size_t obj_len = CollectedHeap::min_fill_size();
     HeapWord* obj_beg = dense_prefix_end - obj_len;
 
 #ifdef  _LP64
-    if (_mark_bitmap.is_obj_end(dense_prefix_bit - 2)) {
+    if (MinObjAlignment > 1) { // object alignment > heap word size
+      // Cases a, c or e.
+    } else if (_mark_bitmap.is_obj_end(dense_prefix_bit - 2)) {
       // Case b above.
       obj_beg = dense_prefix_end - 1;
     } else if (!_mark_bitmap.is_obj_end(dense_prefix_bit - 3) &&
@@ -2166,6 +2170,16 @@ void PSParallelCompact::invoke_no_policy(bool maximum_heap_compaction) {
     heap->update_counters();
   }
 
+#ifdef ASSERT
+  for (size_t i = 0; i < ParallelGCThreads + 1; ++i) {
+    ParCompactionManager* const cm =
+      ParCompactionManager::manager_array(int(i));
+    assert(cm->marking_stack()->is_empty(),       "should be empty");
+    assert(cm->region_stack()->is_empty(),        "should be empty");
+    assert(cm->revisit_klass_stack()->is_empty(), "should be empty");
+  }
+#endif // ASSERT
+
   if (VerifyAfterGC && heap->total_collections() >= VerifyGCStartAt) {
     HandleMark hm;  // Discard invalid handles created during verification
     gclog_or_tty->print(" VerifyAfterGC:");
@@ -2445,7 +2459,7 @@ void PSParallelCompact::enqueue_region_draining_tasks(GCTaskQueue* q,
 
   const unsigned int task_count = MAX2(parallel_gc_threads, 1U);
   for (unsigned int j = 0; j < task_count; j++) {
-    q->enqueue(new DrainStacksCompactionTask());
+    q->enqueue(new DrainStacksCompactionTask(j));
   }
 
   // Find all regions that are available (can be filled immediately) and
@@ -2470,7 +2484,7 @@ void PSParallelCompact::enqueue_region_draining_tasks(GCTaskQueue* q,
     for (size_t cur = end_region - 1; cur >= beg_region; --cur) {
       if (sd.region(cur)->claim_unsafe()) {
         ParCompactionManager* cm = ParCompactionManager::manager_array(which);
-        cm->save_for_processing(cur);
+        cm->push_region(cur);
 
         if (TraceParallelOldGCCompactionPhase && Verbose) {
           const size_t count_mod_8 = fillable_regions & 7;
@@ -2707,21 +2721,22 @@ PSParallelCompact::follow_weak_klass_links() {
   // All klasses on the revisit stack are marked at this point.
   // Update and follow all subklass, sibling and implementor links.
   if (PrintRevisitStats) {
-    gclog_or_tty->print_cr("#classes in system dictionary = %d", SystemDictionary::number_of_classes());
+    gclog_or_tty->print_cr("#classes in system dictionary = %d",
+                           SystemDictionary::number_of_classes());
   }
   for (uint i = 0; i < ParallelGCThreads + 1; i++) {
     ParCompactionManager* cm = ParCompactionManager::manager_array(i);
     KeepAliveClosure keep_alive_closure(cm);
-    int length = cm->revisit_klass_stack()->length();
+    Stack<Klass*>* const rks = cm->revisit_klass_stack();
     if (PrintRevisitStats) {
-      gclog_or_tty->print_cr("Revisit klass stack[%d] length = %d", i, length);
+      gclog_or_tty->print_cr("Revisit klass stack[%u] length = " SIZE_FORMAT,
+                             i, rks->size());
     }
-    for (int j = 0; j < length; j++) {
-      cm->revisit_klass_stack()->at(j)->follow_weak_klass_links(
-        is_alive_closure(),
-        &keep_alive_closure);
+    while (!rks->is_empty()) {
+      Klass* const k = rks->pop();
+      k->follow_weak_klass_links(is_alive_closure(), &keep_alive_closure);
     }
-    // revisit_klass_stack is cleared in reset()
+
     cm->follow_marking_stacks();
   }
 }
@@ -2740,19 +2755,20 @@ void PSParallelCompact::follow_mdo_weak_refs() {
   // we can visit and clear any weak references from MDO's which
   // we memoized during the strong marking phase.
   if (PrintRevisitStats) {
-    gclog_or_tty->print_cr("#classes in system dictionary = %d", SystemDictionary::number_of_classes());
+    gclog_or_tty->print_cr("#classes in system dictionary = %d",
+                           SystemDictionary::number_of_classes());
   }
   for (uint i = 0; i < ParallelGCThreads + 1; i++) {
     ParCompactionManager* cm = ParCompactionManager::manager_array(i);
-    GrowableArray<DataLayout*>* rms = cm->revisit_mdo_stack();
-    int length = rms->length();
+    Stack<DataLayout*>* rms = cm->revisit_mdo_stack();
     if (PrintRevisitStats) {
-      gclog_or_tty->print_cr("Revisit MDO stack[%d] length = %d", i, length);
+      gclog_or_tty->print_cr("Revisit MDO stack[%u] size = " SIZE_FORMAT,
+                             i, rms->size());
     }
-    for (int j = 0; j < length; j++) {
-      rms->at(j)->follow_weak_refs(is_alive_closure());
+    while (!rms->is_empty()) {
+      rms->pop()->follow_weak_refs(is_alive_closure());
     }
-    // revisit_mdo_stack is cleared in reset()
+
     cm->follow_marking_stacks();
   }
 }
@@ -3134,7 +3150,7 @@ void PSParallelCompact::decrement_destination_counts(ParCompactionManager* cm,
     assert(cur->data_size() > 0, "region must have live data");
     cur->decrement_destination_count();
     if (cur < enqueue_end && cur->available() && cur->claim()) {
-      cm->save_for_processing(sd.region(cur));
+      cm->push_region(sd.region(cur));
     }
   }
 }
@@ -3277,7 +3293,7 @@ void PSParallelCompact::fill_region(ParCompactionManager* cm, size_t region_idx)
     if (status == ParMarkBitMap::incomplete) {
       // The last obj that starts in the source region does not end in the
       // region.
-      assert(closure.source() < end_addr, "sanity")
+      assert(closure.source() < end_addr, "sanity");
       HeapWord* const obj_beg = closure.source();
       HeapWord* const range_end = MIN2(obj_beg + closure.words_remaining(),
                                        src_space_top);

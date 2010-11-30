@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -807,7 +807,7 @@ void GenerateOopMap::set_var(int localNo, CellTypeState cts) {
 }
 
 CellTypeState GenerateOopMap::get_var(int localNo) {
-  assert(localNo < _max_locals + _nof_refval_conflicts, "variable read error")
+  assert(localNo < _max_locals + _nof_refval_conflicts, "variable read error");
   if (localNo < 0 || localNo > _max_locals) {
     verify_error("variable read error: r%d", localNo);
     return valCTS; // just to pick something;
@@ -1254,7 +1254,7 @@ void GenerateOopMap::print_current_state(outputStream   *os,
       case Bytecodes::_invokestatic:
       case Bytecodes::_invokedynamic:
       case Bytecodes::_invokeinterface:
-        int idx = currentBC->get_index_int();
+        int idx = currentBC->has_index_u4() ? currentBC->get_index_u4() : currentBC->get_index_u2_cpcache();
         constantPoolOop cp    = method()->constants();
         int nameAndTypeIdx    = cp->name_and_type_ref_index_at(idx);
         int signatureIdx      = cp->signature_ref_index_at(nameAndTypeIdx);
@@ -1286,7 +1286,7 @@ void GenerateOopMap::print_current_state(outputStream   *os,
       case Bytecodes::_invokestatic:
       case Bytecodes::_invokedynamic:
       case Bytecodes::_invokeinterface:
-        int idx = currentBC->get_index_int();
+        int idx = currentBC->has_index_u4() ? currentBC->get_index_u4() : currentBC->get_index_u2_cpcache();
         constantPoolOop cp    = method()->constants();
         int nameAndTypeIdx    = cp->name_and_type_ref_index_at(idx);
         int signatureIdx      = cp->signature_ref_index_at(nameAndTypeIdx);
@@ -1356,8 +1356,8 @@ void GenerateOopMap::interp1(BytecodeStream *itr) {
 
     case Bytecodes::_ldc2_w:            ppush(vvCTS);               break;
 
-    case Bytecodes::_ldc:               do_ldc(itr->get_index(), itr->bci());    break;
-    case Bytecodes::_ldc_w:             do_ldc(itr->get_index_big(), itr->bci());break;
+    case Bytecodes::_ldc:               // fall through:
+    case Bytecodes::_ldc_w:             do_ldc(itr->bci());         break;
 
     case Bytecodes::_iload:
     case Bytecodes::_fload:             ppload(vCTS, itr->get_index()); break;
@@ -1550,17 +1550,17 @@ void GenerateOopMap::interp1(BytecodeStream *itr) {
     case Bytecodes::_jsr_w:             do_jsr(itr->dest_w());       break;
 
     case Bytecodes::_getstatic:         do_field(true,  true,
-                                                 itr->get_index_big(),
+                                                 itr->get_index_u2_cpcache(),
                                                  itr->bci()); break;
-    case Bytecodes::_putstatic:         do_field(false, true,  itr->get_index_big(), itr->bci()); break;
-    case Bytecodes::_getfield:          do_field(true,  false, itr->get_index_big(), itr->bci()); break;
-    case Bytecodes::_putfield:          do_field(false, false, itr->get_index_big(), itr->bci()); break;
+    case Bytecodes::_putstatic:         do_field(false, true,  itr->get_index_u2_cpcache(), itr->bci()); break;
+    case Bytecodes::_getfield:          do_field(true,  false, itr->get_index_u2_cpcache(), itr->bci()); break;
+    case Bytecodes::_putfield:          do_field(false, false, itr->get_index_u2_cpcache(), itr->bci()); break;
 
     case Bytecodes::_invokevirtual:
-    case Bytecodes::_invokespecial:     do_method(false, false, itr->get_index_big(), itr->bci()); break;
-    case Bytecodes::_invokestatic:      do_method(true,  false, itr->get_index_big(), itr->bci()); break;
-    case Bytecodes::_invokedynamic:     do_method(true,  false, itr->get_index_int(), itr->bci()); break;
-    case Bytecodes::_invokeinterface:   do_method(false, true,  itr->get_index_big(), itr->bci()); break;
+    case Bytecodes::_invokespecial:     do_method(false, false, itr->get_index_u2_cpcache(), itr->bci()); break;
+    case Bytecodes::_invokestatic:      do_method(true,  false, itr->get_index_u2_cpcache(), itr->bci()); break;
+    case Bytecodes::_invokedynamic:     do_method(true,  false, itr->get_index_u4(),         itr->bci()); break;
+    case Bytecodes::_invokeinterface:   do_method(false, true,  itr->get_index_u2_cpcache(), itr->bci()); break;
     case Bytecodes::_newarray:
     case Bytecodes::_anewarray:         pp_new_ref(vCTS, itr->bci()); break;
     case Bytecodes::_checkcast:         do_checkcast(); break;
@@ -1829,9 +1829,16 @@ void GenerateOopMap::do_jsr(int targ_bci) {
 
 
 
-void GenerateOopMap::do_ldc(int idx, int bci) {
+void GenerateOopMap::do_ldc(int bci) {
+  Bytecode_loadconstant* ldc = Bytecode_loadconstant_at(method(), bci);
   constantPoolOop cp  = method()->constants();
-  CellTypeState   cts = cp->is_pointer_entry(idx) ? CellTypeState::make_line_ref(bci) : valCTS;
+  BasicType       bt  = ldc->result_type();
+  CellTypeState   cts = (bt == T_OBJECT) ? CellTypeState::make_line_ref(bci) : valCTS;
+  // Make sure bt==T_OBJECT is the same as old code (is_pointer_entry).
+  // Note that CONSTANT_MethodHandle entries are u2 index pairs, not pointer-entries,
+  // and they are processed by _fast_aldc and the CP cache.
+  assert((ldc->has_cache_index() || cp->is_pointer_entry(ldc->pool_index()))
+         ? (bt == T_OBJECT) : true, "expected object type");
   ppush1(cts);
 }
 
@@ -2111,7 +2118,13 @@ void GenerateOopMap::verify_error(const char *format, ...) {
   // We do not distinguish between different types of errors for verification
   // errors.  Let the verifier give a better message.
   const char *msg = "Illegal class file encountered. Try running with -Xverify:all";
-  error_work(msg, NULL);
+  _got_error = true;
+  // Append method name
+  char msg_buffer2[512];
+  jio_snprintf(msg_buffer2, sizeof(msg_buffer2), "%s in method %s", msg,
+               method()->name()->as_C_string());
+  _exception = Exceptions::new_exception(Thread::current(),
+                vmSymbols::java_lang_LinkageError(), msg_buffer2);
 }
 
 //

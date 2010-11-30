@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -308,7 +308,7 @@ void RSHashTable::add_entry(SparsePRTEntry* e) {
   assert(e2->num_valid_cards() > 0, "Postcondition.");
 }
 
-CardIdx_t /* RSHashTable:: */ RSHashTableIter::find_first_card_in_list() {
+CardIdx_t RSHashTableIter::find_first_card_in_list() {
   CardIdx_t res;
   while (_bl_ind != RSHashTable::NullEntry) {
     res = _rsht->entry(_bl_ind)->card(0);
@@ -322,14 +322,11 @@ CardIdx_t /* RSHashTable:: */ RSHashTableIter::find_first_card_in_list() {
   return SparsePRTEntry::NullEntry;
 }
 
-size_t /* RSHashTable:: */ RSHashTableIter::compute_card_ind(CardIdx_t ci) {
-  return
-    _heap_bot_card_ind
-    + (_rsht->entry(_bl_ind)->r_ind() * HeapRegion::CardsPerRegion)
-    + ci;
+size_t RSHashTableIter::compute_card_ind(CardIdx_t ci) {
+  return (_rsht->entry(_bl_ind)->r_ind() * HeapRegion::CardsPerRegion) + ci;
 }
 
-bool /* RSHashTable:: */ RSHashTableIter::has_next(size_t& card_index) {
+bool RSHashTableIter::has_next(size_t& card_index) {
   _card_ind++;
   CardIdx_t ci;
   if (_card_ind < SparsePRTEntry::cards_num() &&
@@ -424,7 +421,7 @@ void SparsePRT::cleanup_all() {
 
 
 SparsePRT::SparsePRT(HeapRegion* hr) :
-  _expanded(false), _next_expanded(NULL)
+  _hr(hr), _expanded(false), _next_expanded(NULL)
 {
   _cur = new RSHashTable(InitialCapacity);
   _next = _cur;

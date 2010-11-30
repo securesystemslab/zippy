@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -39,9 +39,6 @@
                                                                             \
   develop(intx, G1PolicyVerbose, 0,                                         \
           "The verbosity level on G1 policy decisions")                     \
-                                                                            \
-  develop(bool, G1UseHRIntoRS, true,                                        \
-          "Determines whether the 'advanced' HR Into rem set is used.")     \
                                                                             \
   develop(intx, G1MarkingVerboseLevel, 0,                                   \
           "Level (0-4) of verboseness of the marking code")                 \
@@ -253,9 +250,6 @@
   develop(uintx, G1FixedSurvivorSpaceSize, 0,                               \
           "If non-0 is the size of the G1 survivor space, "                 \
           "otherwise SurvivorRatio is used to determine the size")          \
-                                                                            \
-  product(bool, G1UseFixedWindowMMUTracker, false,                          \
-          "If the MMU tracker's memory is full, forget the oldest entry")   \
                                                                             \
   product(uintx, G1HeapRegionSize, 0,                                       \
           "Size of the G1 regions.")                                        \

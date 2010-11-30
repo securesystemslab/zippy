@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -30,6 +30,7 @@ class JvmtiGetLoadedClassesClosure;
 class ThreadStatistics;
 class ConcurrentLocksDump;
 class ParkEvent ;
+class Parker;
 
 class ciEnv;
 class CompileThread;
@@ -225,6 +226,8 @@ class Thread: public ThreadShadow {
   ObjectMonitor * omFreeList ;
   int omFreeCount ;                             // length of omFreeList
   int omFreeProvision ;                         // reload chunk size
+  ObjectMonitor * omInUseList;                  // SLL to track monitors in circulation
+  int omInUseCount;                             // length of omInUseList
 
  public:
   enum {
@@ -268,6 +271,7 @@ class Thread: public ThreadShadow {
   static void interrupt(Thread* thr);
   static bool is_interrupted(Thread* thr, bool clear_interrupted);
 
+  ObjectMonitor** omInUseList_addr()             { return (ObjectMonitor **)&omInUseList; }
   Monitor* SR_lock() const                       { return _SR_lock; }
 
   bool has_async_exception() const { return (_suspend_flags & _has_async_exception) != 0; }
@@ -407,9 +411,6 @@ public:
   // Sweeper support
   void nmethods_do(CodeBlobClosure* cf);
 
-  // Tells if adr belong to this thread. This is used
-  // for checking if a lock is owned by the running thread.
-
   // Used by fast lock support
   virtual bool is_lock_owned(address adr) const;
 
@@ -445,6 +446,11 @@ public:
   size_t  stack_size() const           { return _stack_size; }
   void    set_stack_size(size_t size)  { _stack_size = size; }
   void    record_stack_base_and_size();
+
+  bool    on_local_stack(address adr) const {
+    /* QQQ this has knowledge of direction, ought to be a stack method */
+    return (_stack_base >= adr && adr >= (_stack_base - _stack_size));
+  }
 
   int     lgrp_id() const                 { return _lgrp_id; }
   void    set_lgrp_id(int value)          { _lgrp_id = value; }
@@ -493,7 +499,6 @@ public:
 
   static ByteSize stack_base_offset()            { return byte_offset_of(Thread, _stack_base ); }
   static ByteSize stack_size_offset()            { return byte_offset_of(Thread, _stack_size ); }
-  static ByteSize omFreeList_offset()            { return byte_offset_of(Thread, omFreeList); }
 
 #define TLAB_FIELD_OFFSET(name) \
   static ByteSize tlab_##name##_offset()            { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::name##_offset(); }
@@ -540,7 +545,6 @@ public:
   static void muxAcquire  (volatile intptr_t * Lock, const char * Name) ;
   static void muxAcquireW (volatile intptr_t * Lock, ParkEvent * ev) ;
   static void muxRelease  (volatile intptr_t * Lock) ;
-
 };
 
 // Inline implementation of Thread::current()
@@ -607,7 +611,7 @@ class WatcherThread: public Thread {
  private:
   static WatcherThread* _watcher_thread;
 
-  static bool _should_terminate;
+  volatile static bool _should_terminate; // updated without holding lock
  public:
   enum SomeConstants {
     delay_interval = 10                          // interrupt delay in milliseconds
@@ -676,7 +680,7 @@ class JavaThread: public Thread {
 
   intptr_t*      _must_deopt_id;                 // id of frame that needs to be deopted once we
                                                  // transition out of native
-
+  nmethod*       _deopt_nmethod;                 // nmethod that is currently being deoptimized
   vframeArray*  _vframe_array_head;              // Holds the heap of the active vframeArrays
   vframeArray*  _vframe_array_last;              // Holds last vFrameArray we popped
   // Because deoptimization is lazy we must save jvmti requests to set locals
@@ -839,6 +843,10 @@ class JavaThread: public Thread {
   struct JNINativeInterface_* get_jni_functions() {
     return (struct JNINativeInterface_ *)_jni_environment.functions;
   }
+
+  // This function is called at thread creation to allow
+  // platform specific thread variables to be initialized.
+  void cache_global_variables();
 
   // Executes Shutdown.shutdown()
   void invoke_shutdown_hooks();
@@ -1092,6 +1100,9 @@ class JavaThread: public Thread {
   intptr_t* must_deopt_id()                      { return _must_deopt_id; }
   void     set_must_deopt_id(intptr_t* id)       { _must_deopt_id = id; }
   void     clear_must_deopt_id()                 { _must_deopt_id = NULL; }
+
+  void set_deopt_nmethod(nmethod* nm)            { _deopt_nmethod = nm;   }
+  nmethod* deopt_nmethod()                       { return _deopt_nmethod; }
 
   methodOop  callee_target() const               { return _callee_target; }
   void set_callee_target  (methodOop x)          { _callee_target   = x; }
@@ -1483,6 +1494,29 @@ public:
   }
 #endif // !SERIALGC
 
+  // This method initializes the SATB and dirty card queues before a
+  // JavaThread is added to the Java thread list. Right now, we don't
+  // have to do anything to the dirty card queue (it should have been
+  // activated when the thread was created), but we have to activate
+  // the SATB queue if the thread is created while a marking cycle is
+  // in progress. The activation / de-activation of the SATB queues at
+  // the beginning / end of a marking cycle is done during safepoints
+  // so we have to make sure this method is called outside one to be
+  // able to safely read the active field of the SATB queue set. Right
+  // now, it is called just before the thread is added to the Java
+  // thread list in the Threads::add() method. That method is holding
+  // the Threads_lock which ensures we are outside a safepoint. We
+  // cannot do the obvious and set the active field of the SATB queue
+  // when the thread is created given that, in some cases, safepoints
+  // might happen between the JavaThread constructor being called and the
+  // thread being added to the Java thread list (an example of this is
+  // when the structure for the DestroyJavaVM thread is created).
+#ifndef SERIALGC
+  void initialize_queues();
+#else // !SERIALGC
+  void initialize_queues() { }
+#endif // !SERIALGC
+
   // Machine dependent stuff
   #include "incls/_thread_pd.hpp.incl"
 
@@ -1581,6 +1615,7 @@ class CompilerThread : public JavaThread {
   CompileTask*  _task;
   CompileQueue* _queue;
   bool          _is_compiling;
+  BufferBlob*   _buffer_blob;
 
  public:
 
@@ -1600,6 +1635,9 @@ class CompilerThread : public JavaThread {
   // Get/set the thread's compilation environment.
   ciEnv*        env()                            { return _env; }
   void          set_env(ciEnv* env)              { _env = env; }
+
+  BufferBlob*   get_buffer_blob()                { return _buffer_blob; }
+  void          set_buffer_blob(BufferBlob* b)   { _buffer_blob = b; };
 
   // Get/set the thread's logging information
   CompileLog*   log()                            { return _log; }
@@ -1738,100 +1776,3 @@ public:
   }
 };
 
-// ParkEvents are type-stable and immortal.
-//
-// Lifecycle: Once a ParkEvent is associated with a thread that ParkEvent remains
-// associated with the thread for the thread's entire lifetime - the relationship is
-// stable. A thread will be associated at most one ParkEvent.  When the thread
-// expires, the ParkEvent moves to the EventFreeList.  New threads attempt to allocate from
-// the EventFreeList before creating a new Event.  Type-stability frees us from
-// worrying about stale Event or Thread references in the objectMonitor subsystem.
-// (A reference to ParkEvent is always valid, even though the event may no longer be associated
-// with the desired or expected thread.  A key aspect of this design is that the callers of
-// park, unpark, etc must tolerate stale references and spurious wakeups).
-//
-// Only the "associated" thread can block (park) on the ParkEvent, although
-// any other thread can unpark a reachable parkevent.  Park() is allowed to
-// return spuriously.  In fact park-unpark a really just an optimization to
-// avoid unbounded spinning and surrender the CPU to be a polite system citizen.
-// A degenerate albeit "impolite" park-unpark implementation could simply return.
-// See http://blogs.sun.com/dave for more details.
-//
-// Eventually I'd like to eliminate Events and ObjectWaiters, both of which serve as
-// thread proxies, and simply make the THREAD structure type-stable and persistent.
-// Currently, we unpark events associated with threads, but ideally we'd just
-// unpark threads.
-//
-// The base-class, PlatformEvent, is platform-specific while the ParkEvent is
-// platform-independent.  PlatformEvent provides park(), unpark(), etc., and
-// is abstract -- that is, a PlatformEvent should never be instantiated except
-// as part of a ParkEvent.
-// Equivalently we could have defined a platform-independent base-class that
-// exported Allocate(), Release(), etc.  The platform-specific class would extend
-// that base-class, adding park(), unpark(), etc.
-//
-// A word of caution: The JVM uses 2 very similar constructs:
-// 1. ParkEvent are used for Java-level "monitor" synchronization.
-// 2. Parkers are used by JSR166-JUC park-unpark.
-//
-// We'll want to eventually merge these redundant facilities and use ParkEvent.
-
-
-class ParkEvent : public os::PlatformEvent {
-  private:
-    ParkEvent * FreeNext ;
-
-    // Current association
-    Thread * AssociatedWith ;
-    intptr_t RawThreadIdentity ;        // LWPID etc
-    volatile int Incarnation ;
-
-    // diagnostic : keep track of last thread to wake this thread.
-    // this is useful for construction of dependency graphs.
-    void * LastWaker ;
-
-  public:
-    // MCS-CLH list linkage and Native Mutex/Monitor
-    ParkEvent * volatile ListNext ;
-    ParkEvent * volatile ListPrev ;
-    volatile intptr_t OnList ;
-    volatile int TState ;
-    volatile int Notified ;             // for native monitor construct
-    volatile int IsWaiting ;            // Enqueued on WaitSet
-
-
-  private:
-    static ParkEvent * volatile FreeList ;
-    static volatile int ListLock ;
-
-    // It's prudent to mark the dtor as "private"
-    // ensuring that it's not visible outside the package.
-    // Unfortunately gcc warns about such usage, so
-    // we revert to the less desirable "protected" visibility.
-    // The other compilers accept private dtors.
-
-  protected:        // Ensure dtor is never invoked
-    ~ParkEvent() { guarantee (0, "invariant") ; }
-
-    ParkEvent() : PlatformEvent() {
-       AssociatedWith = NULL ;
-       FreeNext       = NULL ;
-       ListNext       = NULL ;
-       ListPrev       = NULL ;
-       OnList         = 0 ;
-       TState         = 0 ;
-       Notified       = 0 ;
-       IsWaiting      = 0 ;
-    }
-
-    // We use placement-new to force ParkEvent instances to be
-    // aligned on 256-byte address boundaries.  This ensures that the least
-    // significant byte of a ParkEvent address is always 0.
-
-    void * operator new (size_t sz) ;
-    void operator delete (void * a) ;
-
-  public:
-    static ParkEvent * Allocate (Thread * t) ;
-    static void Release (ParkEvent * e) ;
-} ;

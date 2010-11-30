@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2005, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -131,6 +131,9 @@ public:
     return _after_gc_usage_array[pool_index];
   }
 
+  MemoryUsage* before_gc_usage_array() { return _before_gc_usage_array; }
+  MemoryUsage* after_gc_usage_array()  { return _after_gc_usage_array; }
+
   void set_index(size_t index)    { _index = index; }
   void set_start_time(jlong time) { _start_time = time; }
   void set_end_time(jlong time)   { _end_time = time; }
@@ -143,7 +146,7 @@ public:
     set_gc_usage(pool_index, usage, false /* after gc */);
   }
 
-  void copy_stat(GCStatInfo* stat);
+  void clear();
 };
 
 class GCMemoryManager : public MemoryManager {
@@ -153,6 +156,8 @@ private:
   elapsedTimer _accumulated_timer;
   elapsedTimer _gc_timer;         // for measuring every GC duration
   GCStatInfo*  _last_gc_stat;
+  Mutex*       _last_gc_lock;
+  GCStatInfo*  _current_gc_stat;
   int          _num_gc_threads;
 public:
   GCMemoryManager();
@@ -166,11 +171,16 @@ public:
   int    num_gc_threads()               { return _num_gc_threads; }
   void   set_num_gc_threads(int count)  { _num_gc_threads = count; }
 
-  void   gc_begin();
-  void   gc_end();
+  void   gc_begin(bool recordGCBeginTime, bool recordPreGCUsage,
+                  bool recordAccumulatedGCTime);
+  void   gc_end(bool recordPostGCUsage, bool recordAccumulatedGCTime,
+                bool recordGCEndTime, bool countCollection);
 
   void        reset_gc_stat()   { _num_collections = 0; _accumulated_timer.reset(); }
-  GCStatInfo* last_gc_stat()    { return _last_gc_stat; }
+
+  // Copy out _last_gc_stat to the given destination, returning
+  // the collection count. Zero signifies no gc has taken place.
+  size_t get_last_gc_stat(GCStatInfo* dest);
 
   virtual MemoryManager::Name kind() = 0;
 };

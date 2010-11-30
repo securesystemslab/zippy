@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -266,6 +266,12 @@ void ConcurrentMarkThread::run() {
       _cm->clearNextBitmap();
       _sts.leave();
     }
+
+    // Update the number of full collections that have been
+    // completed. This will also notify the FullGCCount_lock in case a
+    // Java thread is waiting for a full GC to happen (e.g., it
+    // called System.gc() with +ExplicitGCInvokesConcurrent).
+    g1->increment_full_collections_completed(true /* outer */);
   }
   assert(_should_terminate, "just checking");
 
@@ -297,9 +303,10 @@ void ConcurrentMarkThread::print_on(outputStream* st) const {
 }
 
 void ConcurrentMarkThread::sleepBeforeNextCycle() {
-  clear_in_progress();
   // We join here because we don't want to do the "shouldConcurrentMark()"
   // below while the world is otherwise stopped.
+  assert(!in_progress(), "should have been cleared");
+
   MutexLockerEx x(CGC_lock, Mutex::_no_safepoint_check_flag);
   while (!started()) {
     CGC_lock->wait(Mutex::_no_safepoint_check_flag);

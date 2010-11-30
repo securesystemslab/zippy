@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -43,7 +43,6 @@ class InvocationCounter VALUE_OBJ_CLASS_SPEC {
     number_of_count_bits = BitsPerInt - number_of_noncount_bits,
     state_limit          = nth_bit(number_of_state_bits),
     count_grain          = nth_bit(number_of_state_bits + number_of_carry_bits),
-    count_limit          = nth_bit(number_of_count_bits - 1),
     carry_mask           = right_n_bits(number_of_carry_bits) << number_of_state_bits,
     state_mask           = right_n_bits(number_of_state_bits),
     status_mask          = right_n_bits(number_of_state_bits + number_of_carry_bits),
@@ -52,18 +51,16 @@ class InvocationCounter VALUE_OBJ_CLASS_SPEC {
 
  public:
   static int InterpreterInvocationLimit;        // CompileThreshold scaled for interpreter use
-  static int Tier1InvocationLimit;              // CompileThreshold scaled for tier1 use
-  static int Tier1BackEdgeLimit;                // BackEdgeThreshold scaled for tier1 use
-
   static int InterpreterBackwardBranchLimit;    // A separate threshold for on stack replacement
-
   static int InterpreterProfileLimit;           // Profiling threshold scaled for interpreter use
 
   typedef address (*Action)(methodHandle method, TRAPS);
 
   enum PublicConstants {
     count_increment      = count_grain,          // use this value to increment the 32bit _counter word
-    count_mask_value     = count_mask            // use this value to mask the backedge counter
+    count_mask_value     = count_mask,           // use this value to mask the backedge counter
+    count_shift          = number_of_noncount_bits,
+    count_limit          = nth_bit(number_of_count_bits - 1)
   };
 
   enum State {
@@ -79,6 +76,7 @@ class InvocationCounter VALUE_OBJ_CLASS_SPEC {
   inline void set(State state, int count);       // sets state and counter
   inline void decay();                           // decay counter (divide by two)
   void set_carry();                              // set the sticky carry bit
+  void set_carry_flag()                          {  _counter |= carry_mask; }
 
   // Accessors
   State  state() const                           { return (State)(_counter & state_mask); }
@@ -135,3 +133,4 @@ inline void InvocationCounter::decay() {
   if (c > 0 && new_count == 0) new_count = 1;
   set(state(), new_count);
 }
+

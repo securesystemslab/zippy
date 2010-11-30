@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -65,7 +65,8 @@ VMError::VMError(Thread* thread, int sig, address pc, void* siginfo, void* conte
     _current_step = 0;
     _current_step_info = NULL;
 
-    _message = "";
+    _message = NULL;
+    _detail_msg = NULL;
     _filename = NULL;
     _lineno = 0;
 
@@ -73,31 +74,36 @@ VMError::VMError(Thread* thread, int sig, address pc, void* siginfo, void* conte
 }
 
 // Constructor for internal errors
-VMError::VMError(Thread* thread, const char* message, const char* filename, int lineno) {
-    _thread = thread;
-    _id = internal_error;     // set it to a value that's not an OS exception/signal
-    _filename = filename;
-    _lineno = lineno;
-    _message = message;
+VMError::VMError(Thread* thread, const char* filename, int lineno,
+                 const char* message, const char * detail_msg)
+{
+  _thread = thread;
+  _id = internal_error;     // Value that's not an OS exception/signal
+  _filename = filename;
+  _lineno = lineno;
+  _message = message;
+  _detail_msg = detail_msg;
 
-    _verbose = false;
-    _current_step = 0;
-    _current_step_info = NULL;
+  _verbose = false;
+  _current_step = 0;
+  _current_step_info = NULL;
 
-    _pc = NULL;
-    _siginfo = NULL;
-    _context = NULL;
+  _pc = NULL;
+  _siginfo = NULL;
+  _context = NULL;
 
-    _size = 0;
+  _size = 0;
 }
 
 // Constructor for OOM errors
-VMError::VMError(Thread* thread, size_t size, const char* message, const char* filename, int lineno) {
+VMError::VMError(Thread* thread, const char* filename, int lineno, size_t size,
+                 const char* message) {
     _thread = thread;
-    _id = oom_error;     // set it to a value that's not an OS exception/signal
+    _id = oom_error;     // Value that's not an OS exception/signal
     _filename = filename;
     _lineno = lineno;
     _message = message;
+    _detail_msg = NULL;
 
     _verbose = false;
     _current_step = 0;
@@ -114,10 +120,11 @@ VMError::VMError(Thread* thread, size_t size, const char* message, const char* f
 // Constructor for non-fatal errors
 VMError::VMError(const char* message) {
     _thread = NULL;
-    _id = internal_error;     // set it to a value that's not an OS exception/signal
+    _id = internal_error;     // Value that's not an OS exception/signal
     _filename = NULL;
     _lineno = 0;
     _message = message;
+    _detail_msg = NULL;
 
     _verbose = false;
     _current_step = 0;
@@ -191,22 +198,27 @@ char* VMError::error_string(char* buf, int buflen) {
                  "%s (0x%x) at pc=" PTR_FORMAT ", pid=%d, tid=" UINTX_FORMAT,
                  signame, _id, _pc,
                  os::current_process_id(), os::current_thread_id());
-  } else {
-    if (_filename != NULL && _lineno > 0) {
-      // skip directory names
-      char separator = os::file_separator()[0];
-      const char *p = strrchr(_filename, separator);
-
-      jio_snprintf(buf, buflen,
-        "Internal Error at %s:%d, pid=%d, tid=" UINTX_FORMAT " \nError: %s",
-        p ? p + 1 : _filename, _lineno,
-        os::current_process_id(), os::current_thread_id(),
-        _message ? _message : "");
-    } else {
-      jio_snprintf(buf, buflen,
-        "Internal Error (0x%x), pid=%d, tid=" UINTX_FORMAT,
-        _id, os::current_process_id(), os::current_thread_id());
+  } else if (_filename != NULL && _lineno > 0) {
+    // skip directory names
+    char separator = os::file_separator()[0];
+    const char *p = strrchr(_filename, separator);
+    int n = jio_snprintf(buf, buflen,
+                         "Internal Error at %s:%d, pid=%d, tid=" UINTX_FORMAT,
+                         p ? p + 1 : _filename, _lineno,
+                         os::current_process_id(), os::current_thread_id());
+    if (n >= 0 && n < buflen && _message) {
+      if (_detail_msg) {
+        jio_snprintf(buf + n, buflen - n, "%s%s: %s",
+                     os::line_separator(), _message, _detail_msg);
+      } else {
+        jio_snprintf(buf + n, buflen - n, "%sError: %s",
+                     os::line_separator(), _message);
+      }
     }
+  } else {
+    jio_snprintf(buf, buflen,
+                 "Internal Error (0x%x), pid=%d, tid=" UINTX_FORMAT,
+                 _id, os::current_process_id(), os::current_thread_id());
   }
 
   return buf;
@@ -369,7 +381,9 @@ void VMError::report(outputStream* st) {
   STEP(40, "(printing error message)")
 
      // error message
-     if (_message && _message[0] != '\0') {
+     if (_detail_msg) {
+       st->print_cr("#  %s: %s", _message ? _message : "Error", _detail_msg);
+     } else if (_message) {
        st->print_cr("#  Error: %s", _message);
      }
 
@@ -441,6 +455,14 @@ void VMError::report(outputStream* st) {
        st->cr();
      }
 
+  STEP(105, "(printing register info)")
+
+     // decode register contents if possible
+     if (_verbose && _context && Universe::is_fully_initialized()) {
+       os::print_register_info(st, _context);
+       st->cr();
+     }
+
   STEP(110, "(printing stack bounds)" )
 
      if (_verbose) {
@@ -465,8 +487,8 @@ void VMError::report(outputStream* st) {
 
        if (fr.sp()) {
          st->print(",  sp=" PTR_FORMAT, fr.sp());
-         st->print(",  free space=%" INTPTR_FORMAT "k",
-                     ((intptr_t)fr.sp() - (intptr_t)stack_bottom) >> 10);
+         size_t free_stack_size = pointer_delta(fr.sp(), stack_bottom, 1024);
+         st->print(",  free space=" SIZE_FORMAT "k", free_stack_size);
        }
 
        st->cr();
@@ -508,7 +530,7 @@ void VMError::report(outputStream* st) {
   STEP(135, "(printing target Java thread stack)" )
 
      // printing Java thread stack trace if it is involved in GC crash
-     if (_verbose && (_thread->is_Named_thread())) {
+     if (_verbose && _thread && (_thread->is_Named_thread())) {
        JavaThread*  jt = ((NamedThread *)_thread)->processed_thread();
        if (jt != NULL) {
          st->print_cr("JavaThread " PTR_FORMAT " (nid = " UINTX_FORMAT ") was being processed", jt, jt->osthread()->thread_id());
@@ -594,6 +616,14 @@ void VMError::report(outputStream* st) {
        st->cr();
      }
 
+  STEP(195, "(printing code cache information)" )
+
+     if (_verbose && Universe::is_fully_initialized()) {
+       // print code cache information before vm abort
+       CodeCache::print_bounds(st);
+       st->cr();
+     }
+
   STEP(200, "(printing dynamic libraries)" )
 
      if (_verbose) {
@@ -673,15 +703,12 @@ void VMError::report(outputStream* st) {
 # undef END
 }
 
+VMError* volatile VMError::first_error = NULL;
+volatile jlong VMError::first_error_tid = -1;
 
 void VMError::report_and_die() {
   // Don't allocate large buffer on stack
   static char buffer[O_BUFLEN];
-
-  // First error, and its thread id. We must be able to handle native thread,
-  // so use thread id instead of Thread* to identify thread.
-  static VMError* first_error;
-  static jlong    first_error_tid;
 
   // An error could happen before tty is initialized or after it has been
   // destroyed. Here we use a very simple unbuffered fdStream for printing.

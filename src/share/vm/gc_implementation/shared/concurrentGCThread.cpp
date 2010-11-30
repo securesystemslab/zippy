@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -185,7 +185,7 @@ SurrogateLockerThread* SurrogateLockerThread::make(TRAPS) {
   instanceKlassHandle klass (THREAD, k);
   instanceHandle thread_oop = klass->allocate_instance_handle(CHECK_NULL);
 
-  const char thread_name[] = "Surrogate Locker Thread (CMS)";
+  const char thread_name[] = "Surrogate Locker Thread (Concurrent GC)";
   Handle string = java_lang_String::create_from_str(thread_name, CHECK_NULL);
 
   // Initialize thread_oop to put it into the system threadGroup

@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2007, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -39,6 +39,7 @@ private:
   GrowableArray<ciObject*>* _ci_objects;
   GrowableArray<ciMethod*>* _unloaded_methods;
   GrowableArray<ciKlass*>* _unloaded_klasses;
+  GrowableArray<ciInstance*>* _unloaded_instances;
   GrowableArray<ciReturnAddress*>* _return_addresses;
   int                       _next_ident;
 
@@ -73,6 +74,8 @@ private:
 
   void print_contents_impl();
 
+  ciInstance* get_unloaded_instance(ciInstanceKlass* klass);
+
 public:
   static bool is_initialized() { return _initialized; }
 
@@ -98,6 +101,18 @@ public:
   ciKlass* get_unloaded_klass(ciKlass* accessing_klass,
                               ciSymbol* name,
                               bool create_if_not_found);
+
+  // Get a ciInstance representing an unresolved klass mirror.
+  ciInstance* get_unloaded_klass_mirror(ciKlass* type);
+
+  // Get a ciInstance representing an unresolved method handle constant.
+  ciInstance* get_unloaded_method_handle_constant(ciKlass*  holder,
+                                                  ciSymbol* name,
+                                                  ciSymbol* signature,
+                                                  int       ref_kind);
+
+  // Get a ciInstance representing an unresolved method type constant.
+  ciInstance* get_unloaded_method_type_constant(ciSymbol* signature);
 
 
   // Get the ciMethodData representing the methodData for a method

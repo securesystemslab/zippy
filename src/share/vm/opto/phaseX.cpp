@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -844,10 +844,33 @@ void PhaseIterGVN::optimize() {
   }
 #endif
 
+#ifdef ASSERT
+  Node* prev = NULL;
+  uint rep_cnt = 0;
+#endif
+  uint loop_count = 0;
+
   // Pull from worklist; transform node;
   // If node has changed: update edge info and put uses on worklist.
   while( _worklist.size() ) {
     Node *n  = _worklist.pop();
+    if (++loop_count >= K * C->unique()) {
+      debug_only(n->dump(4);)
+      assert(false, "infinite loop in PhaseIterGVN::optimize");
+      C->record_method_not_compilable("infinite loop in PhaseIterGVN::optimize");
+      return;
+    }
+#ifdef ASSERT
+    if (n == prev) {
+      if (++rep_cnt > 3) {
+        n->dump(4);
+        assert(false, "loop in Ideal transformation");
+      }
+    } else {
+      rep_cnt = 0;
+    }
+    prev = n;
+#endif
     if (TraceIterativeGVN && Verbose) {
       tty->print("  Pop ");
       NOT_PRODUCT( n->dump(); )
@@ -1447,16 +1470,12 @@ Node *PhaseCCP::transform_once( Node *n ) {
           Node* m = n->out(i);
           if( m->is_Phi() ) {
             assert(type(m) == Type::TOP, "Unreachable region should not have live phis.");
-            add_users_to_worklist(m);
-            hash_delete(m); // Yank from hash before hacking edges
-            subsume_node(m, nn);
+            replace_node(m, nn);
             --i; // deleted this phi; rescan starting with next position
           }
         }
       }
-      add_users_to_worklist(n); // Users of about-to-be-constant 'n'
-      hash_delete(n);           // Removed 'n' from table before subsuming it
-      subsume_node(n,nn);       // Update DefUse edges for new constant
+      replace_node(n,nn);       // Update DefUse edges for new constant
     }
     return nn;
   }

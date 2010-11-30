@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -34,7 +34,6 @@ void perfMemory_init();
 
 // Initialization done by Java thread in init_globals()
 void management_init();
-void vtune_init();
 void bytecodes_init();
 void classLoader_init();
 void codeCache_init();
@@ -82,7 +81,6 @@ void vm_init_globals() {
 jint init_globals() {
   HandleMark hm;
   management_init();
-  vtune_init();
   bytecodes_init();
   classLoader_init();
   codeCache_init();
@@ -128,6 +126,12 @@ jint init_globals() {
       Universe::heap()->total_collections() >= VerifyGCStartAt) {
     Universe::heap()->prepare_for_verify();
     Universe::verify();   // make sure we're starting with a clean slate
+  }
+
+  // All the flags that get adjusted by VM_Version_init and os::init_2
+  // have been set so dump the flags now.
+  if (PrintFlagsFinal) {
+    CommandLineFlags::printFlags();
   }
 
   return JNI_OK;

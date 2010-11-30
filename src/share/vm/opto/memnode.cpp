@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -193,14 +193,15 @@ static Node *step_through_mergemem(PhaseGVN *phase, MergeMemNode *mmem,  const T
     }
   }
 #endif
-  // TypeInstPtr::NOTNULL+any is an OOP with unknown offset - generally
+  // TypeOopPtr::NOTNULL+any is an OOP with unknown offset - generally
   // means an array I have not precisely typed yet.  Do not do any
   // alias stuff with it any time soon.
-  const TypeOopPtr *tinst = tp->isa_oopptr();
+  const TypeOopPtr *toop = tp->isa_oopptr();
   if( tp->base() != Type::AnyPtr &&
-      !(tinst &&
-        tinst->klass()->is_java_lang_Object() &&
-        tinst->offset() == Type::OffsetBot) ) {
+      !(toop &&
+        toop->klass() != NULL &&
+        toop->klass()->is_java_lang_Object() &&
+        toop->offset() == Type::OffsetBot) ) {
     // compress paths and change unreachable cycles to TOP
     // If not, we can update the input infinitely along a MergeMem cycle
     // Equivalent code in PhiNode::Ideal
@@ -255,7 +256,8 @@ Node *MemNode::Ideal_common(PhaseGVN *phase, bool can_reshape) {
   if( t_adr == Type::TOP )              return NodeSentinel; // caller will return NULL
 
   if( can_reshape && igvn != NULL &&
-      (igvn->_worklist.member(address) || phase->type(address) != adr_type()) ) {
+      (igvn->_worklist.member(address) ||
+       igvn->_worklist.size() > 0 && (phase->type(address) != adr_type())) ) {
     // The address's base and type may change when the address is processed.
     // Delay this mem node transformation until the address is processed.
     phase->is_IterGVN()->_worklist.push(this);
@@ -815,6 +817,16 @@ void LoadNode::dump_spec(outputStream *st) const {
 }
 #endif
 
+#ifdef ASSERT
+//----------------------------is_immutable_value-------------------------------
+// Helper function to allow a raw load without control edge for some cases
+bool LoadNode::is_immutable_value(Node* adr) {
+  return (adr->is_AddP() && adr->in(AddPNode::Base)->is_top() &&
+          adr->in(AddPNode::Address)->Opcode() == Op_ThreadLocal &&
+          (adr->in(AddPNode::Offset)->find_intptr_t_con(-1) ==
+           in_bytes(JavaThread::osthread_offset())));
+}
+#endif
 
 //----------------------------LoadNode::make-----------------------------------
 // Polymorphic factory method:
@@ -828,6 +840,11 @@ Node *LoadNode::make( PhaseGVN& gvn, Node *ctl, Node *mem, Node *adr, const Type
   assert(!(adr_type->isa_aryptr() &&
            adr_type->offset() == arrayOopDesc::length_offset_in_bytes()),
          "use LoadRangeNode instead");
+  // Check control edge of raw loads
+  assert( ctl != NULL || C->get_alias_index(adr_type) != Compile::AliasIdxRaw ||
+          // oop will be recorded in oop map if load crosses safepoint
+          rt->isa_oopptr() || is_immutable_value(adr),
+          "raw memory operations should have control edge");
   switch (bt) {
   case T_BOOLEAN: return new (C, 3) LoadUBNode(ctl, mem, adr, adr_type, rt->is_int()    );
   case T_BYTE:    return new (C, 3) LoadBNode (ctl, mem, adr, adr_type, rt->is_int()    );
@@ -1532,8 +1549,8 @@ const Type *LoadNode::Value( PhaseTransform *phase ) const {
         adr->is_AddP() && off != Type::OffsetBot) {
       // For constant Strings treat the fields as compile time constants.
       Node* base = adr->in(AddPNode::Base);
-      if (base->Opcode() == Op_ConP) {
-        const TypeOopPtr* t = phase->type(base)->isa_oopptr();
+      const TypeOopPtr* t = phase->type(base)->isa_oopptr();
+      if (t != NULL && t->singleton()) {
         ciObject* string = t->const_oop();
         ciConstant constant = string->as_instance()->field_value_by_offset(off);
         if (constant.basic_type() == T_INT) {
@@ -2064,6 +2081,8 @@ Node* LoadRangeNode::Identity( PhaseTransform *phase ) {
 // Polymorphic factory method:
 StoreNode* StoreNode::make( PhaseGVN& gvn, Node* ctl, Node* mem, Node* adr, const TypePtr* adr_type, Node* val, BasicType bt ) {
   Compile* C = gvn.C;
+  assert( C->get_alias_index(adr_type) != Compile::AliasIdxRaw ||
+          ctl != NULL, "raw memory operations should have control edge");
 
   switch (bt) {
   case T_BOOLEAN:

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -430,29 +430,7 @@ bool SafepointSynchronize::is_cleanup_needed() {
   return false;
 }
 
-jlong CounterDecay::_last_timestamp = 0;
 
-static void do_method(methodOop m) {
-  m->invocation_counter()->decay();
-}
-
-void CounterDecay::decay() {
-  _last_timestamp = os::javaTimeMillis();
-
-  // This operation is going to be performed only at the end of a safepoint
-  // and hence GC's will not be going on, all Java mutators are suspended
-  // at this point and hence SystemDictionary_lock is also not needed.
-  assert(SafepointSynchronize::is_at_safepoint(), "can only be executed at a safepoint");
-  int nclasses = SystemDictionary::number_of_classes();
-  double classes_per_tick = nclasses * (CounterDecayMinIntervalLength * 1e-3 /
-                                        CounterHalfLifeTime);
-  for (int i = 0; i < classes_per_tick; i++) {
-    klassOop k = SystemDictionary::try_get_next_class();
-    if (k != NULL && k->klass_part()->oop_is_instance()) {
-      instanceKlass::cast(k)->methods_do(do_method);
-    }
-  }
-}
 
 // Various cleaning tasks that should be done periodically at safepoints
 void SafepointSynchronize::do_cleanup_tasks() {
@@ -465,14 +443,13 @@ void SafepointSynchronize::do_cleanup_tasks() {
     TraceTime t2("updating inline caches", TraceSafepointCleanupTime);
     InlineCacheBuffer::update_inline_caches();
   }
-
-  if(UseCounterDecay && CounterDecay::is_decay_needed()) {
-    TraceTime t3("decaying counter", TraceSafepointCleanupTime);
-    CounterDecay::decay();
+  {
+    TraceTime t3("compilation policy safepoint handler", TraceSafepointCleanupTime);
+    CompilationPolicy::policy()->do_safepoint_work();
   }
 
   TraceTime t4("sweeping nmethods", TraceSafepointCleanupTime);
-  NMethodSweeper::sweep();
+  NMethodSweeper::scan_stacks();
 }
 
 
@@ -594,7 +571,7 @@ void SafepointSynchronize::block(JavaThread *thread) {
       break;
 
     default:
-     fatal1("Illegal threadstate encountered: %d", state);
+     fatal(err_msg("Illegal threadstate encountered: %d", state));
   }
 
   // Check for pending. async. exceptions or suspends - except if the
@@ -782,6 +759,9 @@ void ThreadSafepointState::examine_state_of_thread() {
 
   JavaThreadState state = _thread->thread_state();
 
+  // Save the state at the start of safepoint processing.
+  _orig_thread_state = state;
+
   // Check for a thread that is suspended. Note that thread resume tries
   // to grab the Threads_lock which we own here, so a thread cannot be
   // resumed during safepoint synchronization.
@@ -960,8 +940,7 @@ void ThreadSafepointState::handle_polling_page_exception() {
     // as otherwise we may never deliver it.
     if (thread()->has_async_condition()) {
       ThreadInVMfromJavaNoAsyncException __tiv(thread());
-      VM_DeoptimizeFrame deopt(thread(), caller_fr.id());
-      VMThread::execute(&deopt);
+      Deoptimization::deoptimize_frame(thread(), caller_fr.id());
     }
 
     // If an exception has been installed we must check for a pending deoptimization

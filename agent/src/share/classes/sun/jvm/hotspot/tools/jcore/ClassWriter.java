@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -61,10 +61,12 @@ public class ClassWriter implements /* imports */ ClassConstants
     protected short  _signatureIndex;
 
     protected static int extractHighShortFromInt(int val) {
+        // must stay in sync with constantPoolOopDesc::name_and_type_at_put, method_at_put, etc.
         return (val >> 16) & 0xFFFF;
     }
 
     protected static int extractLowShortFromInt(int val) {
+        // must stay in sync with constantPoolOopDesc::name_and_type_at_put, method_at_put, etc.
         return val & 0xFFFF;
     }
 
@@ -297,6 +299,38 @@ public class ClassWriter implements /* imports */ ClassConstants
                                         + ", type = " + signatureIndex);
                      break;
                 }
+
+                case JVM_CONSTANT_MethodHandle: {
+                     dos.writeByte(cpConstType);
+                     int value = cpool.getIntAt(ci);
+                     byte refKind = (byte) extractLowShortFromInt(value);
+                     short memberIndex = (short) extractHighShortFromInt(value);
+                     dos.writeByte(refKind);
+                     dos.writeShort(memberIndex);
+                     if (DEBUG) debugMessage("CP[" + ci + "] = MH kind = " +
+                           refKind + ", mem = " + memberIndex);
+                     break;
+                }
+
+                case JVM_CONSTANT_MethodType: {
+                     dos.writeByte(cpConstType);
+                     int value = cpool.getIntAt(ci);
+                     short refIndex = (short) value;
+                     dos.writeShort(refIndex);
+                     if (DEBUG) debugMessage("CP[" + ci + "] = MT index = " + refIndex);
+                     break;
+                }
+
+                case JVM_CONSTANT_InvokeDynamic: {
+                     dos.writeByte(cpConstType);
+                     int[] values = cpool.getMultiOperandsAt(ci);
+                     for (int vn = 0; vn < values.length; vn++) {
+                         dos.writeShort(values[vn]);
+                     }
+                     if (DEBUG) debugMessage("CP[" + ci + "] = INDY indexes = " + Arrays.toString(values));
+                     break;
+                }
+
                 default:
                   throw new InternalError("Unknown tag: " + cpConstType);
             } // switch

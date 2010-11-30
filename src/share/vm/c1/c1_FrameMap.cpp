@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2008, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -90,7 +90,7 @@ CallingConvention* FrameMap::java_calling_convention(const BasicTypeArray* signa
 
   if (outgoing) {
     // update the space reserved for arguments.
-    update_reserved_argument_area_size(out_preserve);
+    update_reserved_argument_area_size(out_preserve * BytesPerWord);
   }
   return new CallingConvention(args, out_preserve);
 }
@@ -138,7 +138,7 @@ CallingConvention* FrameMap::c_calling_convention(const BasicTypeArray* signatur
   }
   assert(args->length() == signature->length(), "size mismatch");
   out_preserve += SharedRuntime::out_preserve_stack_slots();
-  update_reserved_argument_area_size(out_preserve);
+  update_reserved_argument_area_size(out_preserve * BytesPerWord);
   return new CallingConvention(args, out_preserve);
 }
 
@@ -153,7 +153,7 @@ int       FrameMap::_cpu_reg2rnr [FrameMap::nof_cpu_regs];
 
 
 FrameMap::FrameMap(ciMethod* method, int monitors, int reserved_argument_area_size) {
-  if (!_init_done) init();
+  assert(_init_done, "should already be completed");
 
   _framesize = -1;
   _num_spills = -1;

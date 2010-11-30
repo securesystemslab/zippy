@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -465,12 +465,10 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
       break;
 
-#ifdef TIERED
     case counter_overflow_id:
-        // G4 contains bci
-      oop_maps = generate_stub_call(sasm, noreg, CAST_FROM_FN_PTR(address, counter_overflow), G4);
+        // G4 contains bci, G5 contains method
+      oop_maps = generate_stub_call(sasm, noreg, CAST_FROM_FN_PTR(address, counter_overflow), G4, G5);
       break;
-#endif // TIERED
 
     case new_type_array_id:
     case new_object_array_id:
@@ -679,8 +677,15 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ call_VM_leaf(L7_thread_cache, CAST_FROM_FN_PTR(address, SharedRuntime::exception_handler_for_return_address),
                         G2_thread, Oissuing_pc->after_save());
         __ verify_not_null_oop(Oexception->after_save());
-        __ jmp(O0, 0);
-        __ delayed()->restore();
+
+        // Restore SP from L7 if the exception PC is a MethodHandle call site.
+        __ mov(O0, G5);  // Save the target address.
+        __ lduw(Address(G2_thread, JavaThread::is_method_handle_return_offset()), L0);
+        __ tst(L0);  // Condition codes are preserved over the restore.
+        __ restore();
+
+        __ jmp(G5, 0);
+        __ delayed()->movcc(Assembler::notZero, false, Assembler::icc, L7_mh_SP_save, SP);  // Restore SP if required.
       }
       break;
 
@@ -1024,3 +1029,7 @@ void Runtime1::generate_handle_exception(StubAssembler* sasm, OopMapSet* oop_map
 #undef __
 
 #define __ masm->
+
+const char *Runtime1::pd_name_for_address(address entry) {
+  return "<unknown function>";
+}

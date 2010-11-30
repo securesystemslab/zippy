@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -139,6 +139,8 @@ Thread::Thread() {
   omFreeList = NULL ;
   omFreeCount = 0 ;
   omFreeProvision = 32 ;
+  omInUseList = NULL ;
+  omInUseCount = 0 ;
 
   _SR_lock = new Monitor(Mutex::suspend_resume, "SR_lock", true);
   _suspend_flags = 0;
@@ -805,7 +807,7 @@ bool Thread::is_in_stack(address adr) const {
 // should be revisited, and they should be removed if possible.
 
 bool Thread::is_lock_owned(address adr) const {
-  return (_stack_base >= adr && adr >= (_stack_base - _stack_size));
+  return on_local_stack(adr);
 }
 
 bool Thread::set_as_starting_thread() {
@@ -1018,7 +1020,7 @@ void NamedThread::set_name(const char* format, ...) {
 // timer interrupts exists on the platform.
 
 WatcherThread* WatcherThread::_watcher_thread   = NULL;
-bool           WatcherThread::_should_terminate = false;
+volatile bool  WatcherThread::_should_terminate = false;
 
 WatcherThread::WatcherThread() : Thread() {
   assert(watcher_thread() == NULL, "we can only allocate one WatcherThread");
@@ -1050,8 +1052,26 @@ void WatcherThread::run() {
 
     // Calculate how long it'll be until the next PeriodicTask work
     // should be done, and sleep that amount of time.
-    const size_t time_to_wait = PeriodicTask::time_to_wait();
-    os::sleep(this, time_to_wait, false);
+    size_t time_to_wait = PeriodicTask::time_to_wait();
+
+    // we expect this to timeout - we only ever get unparked when
+    // we should terminate
+    {
+      OSThreadWaitState osts(this->osthread(), false /* not Object.wait() */);
+
+      jlong prev_time = os::javaTimeNanos();
+      for (;;) {
+        int res= _SleepEvent->park(time_to_wait);
+        if (res == OS_TIMEOUT || _should_terminate)
+          break;
+        // spurious wakeup of some kind
+        jlong now = os::javaTimeNanos();
+        time_to_wait -= (now - prev_time) / 1000000;
+        if (time_to_wait <= 0)
+          break;
+        prev_time = now;
+      }
+    }
 
     if (is_error_reported()) {
       // A fatal error has happened, the error handler(VMError::report_and_die)
@@ -1113,6 +1133,12 @@ void WatcherThread::stop() {
   // it is ok to take late safepoints here, if needed
   MutexLocker mu(Terminator_lock);
   _should_terminate = true;
+  OrderAccess::fence();  // ensure WatcherThread sees update in main loop
+
+  Thread* watcher = watcher_thread();
+  if (watcher != NULL)
+    watcher->_SleepEvent->unpark();
+
   while(watcher_thread() != NULL) {
     // This wait should make safepoint checks, wait without a timeout,
     // and wait as a suspend-equivalent condition.
@@ -1157,6 +1183,7 @@ void JavaThread::initialize() {
   set_vframe_array_last(NULL);
   set_deferred_locals(NULL);
   set_deopt_mark(NULL);
+  set_deopt_nmethod(NULL);
   clear_must_deopt_id();
   set_monitor_chunks(NULL);
   set_next(NULL);
@@ -1172,6 +1199,7 @@ void JavaThread::initialize() {
   _exception_pc  = 0;
   _exception_handler_pc = 0;
   _exception_stack_size = 0;
+  _is_method_handle_return = 0;
   _jvmti_thread_state= NULL;
   _should_post_on_exceptions_flag = JNI_FALSE;
   _jvmti_get_loaded_classes_closure = NULL;
@@ -1361,6 +1389,8 @@ void JavaThread::run() {
   this->initialize_thread_local_storage();
 
   this->create_stack_guard_pages();
+
+  this->cache_global_variables();
 
   // Thread is now sufficient initialized to be handled by the safepoint code as being
   // in the VM. Change thread state from _thread_new to _thread_in_vm
@@ -1616,7 +1646,29 @@ void JavaThread::flush_barrier_queues() {
   satb_mark_queue().flush();
   dirty_card_queue().flush();
 }
-#endif
+
+void JavaThread::initialize_queues() {
+  assert(!SafepointSynchronize::is_at_safepoint(),
+         "we should not be at a safepoint");
+
+  ObjPtrQueue& satb_queue = satb_mark_queue();
+  SATBMarkQueueSet& satb_queue_set = satb_mark_queue_set();
+  // The SATB queue should have been constructed with its active
+  // field set to false.
+  assert(!satb_queue.is_active(), "SATB queue should not be active");
+  assert(satb_queue.is_empty(), "SATB queue should be empty");
+  // If we are creating the thread during a marking cycle, we should
+  // set the active field of the SATB queue to true.
+  if (satb_queue_set.is_active()) {
+    satb_queue.set_active(true);
+  }
+
+  DirtyCardQueue& dirty_queue = dirty_card_queue();
+  // The dirty card queue should have been constructed with its
+  // active field set to true.
+  assert(dirty_queue.is_active(), "dirty card queue should be active");
+}
+#endif // !SERIALGC
 
 void JavaThread::cleanup_failed_attach_current_thread() {
   if (get_thread_profiler() != NULL) {
@@ -2084,8 +2136,7 @@ void JavaThread::check_safepoint_and_suspend_for_native_trans(JavaThread *thread
     }
     if (f.id() == thread->must_deopt_id()) {
       thread->clear_must_deopt_id();
-      // Since we know we're safe to deopt the current state is a safe state
-      f.deoptimize(thread, true);
+      f.deoptimize(thread);
     } else {
       fatal("missed deoptimization!");
     }
@@ -2700,7 +2751,7 @@ void JavaThread::popframe_preserve_args(ByteSize size_in_bytes, void* start) {
   if (in_bytes(size_in_bytes) != 0) {
     _popframe_preserved_args = NEW_C_HEAP_ARRAY(char, in_bytes(size_in_bytes));
     _popframe_preserved_args_size = in_bytes(size_in_bytes);
-    Copy::conjoint_bytes(start, _popframe_preserved_args, _popframe_preserved_args_size);
+    Copy::conjoint_jbytes(start, _popframe_preserved_args, _popframe_preserved_args_size);
   }
 }
 
@@ -2800,6 +2851,7 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
   _queue = queue;
   _counters = counters;
   _is_compiling = false;
+  _buffer_blob = NULL;
 
 #ifndef PRODUCT
   _ideal_graph_printer = NULL;
@@ -2873,6 +2925,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // So that JDK version can be used as a discrimintor when parsing arguments
   JDK_Version_init();
 
+  // Update/Initialize System properties after JDK version number is known
+  Arguments::init_version_specific_system_properties();
+
   // Parse arguments
   jint parse_result = Arguments::parse(args);
   if (parse_result != JNI_OK) return parse_result;
@@ -2944,8 +2999,8 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // crash Linux VM, see notes in os_linux.cpp.
   main_thread->create_stack_guard_pages();
 
-  // Initialize Java-Leve synchronization subsystem
-  ObjectSynchronizer::Initialize() ;
+  // Initialize Java-Level synchronization subsystem
+  ObjectMonitor::Initialize() ;
 
   // Initialize global modules
   jint status = init_globals();
@@ -2954,6 +3009,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     *canTryAgain = false; // don't let caller call JNI_CreateJavaVM again
     return status;
   }
+
+  // Should be done after the heap is fully created
+  main_thread->cache_global_variables();
 
   HandleMark hm;
 
@@ -3230,6 +3288,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     WatcherThread::start();
   }
 
+  // Give os specific code one last chance to start
+  os::init_3();
+
   create_vm_timer.end();
   return JNI_OK;
 }
@@ -3249,12 +3310,18 @@ static OnLoadEntry_t lookup_on_load(AgentLibrary* agent, const char *on_load_sym
     char buffer[JVM_MAXPATHLEN];
     char ebuf[1024];
     const char *name = agent->name();
+    const char *msg = "Could not find agent library ";
 
     if (agent->is_absolute_path()) {
       library = hpi::dll_load(name, ebuf, sizeof ebuf);
       if (library == NULL) {
+        const char *sub_msg = " in absolute path, with error: ";
+        size_t len = strlen(msg) + strlen(name) + strlen(sub_msg) + strlen(ebuf) + 1;
+        char *buf = NEW_C_HEAP_ARRAY(char, len);
+        jio_snprintf(buf, len, "%s%s%s%s", msg, name, sub_msg, ebuf);
         // If we can't find the agent, exit.
-        vm_exit_during_initialization("Could not find agent library in absolute path", name);
+        vm_exit_during_initialization(buf, NULL);
+        FREE_C_HEAP_ARRAY(char, buf);
       }
     } else {
       // Try to load the agent from the standard dll directory
@@ -3267,17 +3334,17 @@ static OnLoadEntry_t lookup_on_load(AgentLibrary* agent, const char *on_load_sym
         char *home  = Arguments::get_java_home();
         const char *fmt   = "%s/bin/java %s -Dkernel.background.download=false"
                       " sun.jkernel.DownloadManager -download client_jvm";
-        int length = strlen(props) + strlen(home) + strlen(fmt) + 1;
-        char *cmd = AllocateHeap(length);
+        size_t length = strlen(props) + strlen(home) + strlen(fmt) + 1;
+        char *cmd = NEW_C_HEAP_ARRAY(char, length);
         jio_snprintf(cmd, length, fmt, home, props);
         int status = os::fork_and_exec(cmd);
         FreeHeap(props);
-        FreeHeap(cmd);
         if (status == -1) {
           warning(cmd);
           vm_exit_during_initialization("fork_and_exec failed: %s",
                                          strerror(errno));
         }
+        FREE_C_HEAP_ARRAY(char, cmd);
         // when this comes back the instrument.dll should be where it belongs.
         library = hpi::dll_load(buffer, ebuf, sizeof ebuf);
       }
@@ -3287,8 +3354,13 @@ static OnLoadEntry_t lookup_on_load(AgentLibrary* agent, const char *on_load_sym
         hpi::dll_build_name(buffer, sizeof(buffer), ns, name);
         library = hpi::dll_load(buffer, ebuf, sizeof ebuf);
         if (library == NULL) {
+          const char *sub_msg = " on the library path, with error: ";
+          size_t len = strlen(msg) + strlen(name) + strlen(sub_msg) + strlen(ebuf) + 1;
+          char *buf = NEW_C_HEAP_ARRAY(char, len);
+          jio_snprintf(buf, len, "%s%s%s%s", msg, name, sub_msg, ebuf);
           // If we can't find the agent, exit.
-          vm_exit_during_initialization("Could not find agent library on the library path or in the local directory", name);
+          vm_exit_during_initialization(buf, NULL);
+          FREE_C_HEAP_ARRAY(char, buf);
         }
       }
     }
@@ -3584,6 +3656,10 @@ jboolean Threads::is_supported_jni_version(jint version) {
 void Threads::add(JavaThread* p, bool force_daemon) {
   // The threads lock must be owned at this point
   assert_locked_or_safepoint(Threads_lock);
+
+  // See the comment for this method in thread.hpp for its purpose and
+  // why it is called here.
+  p->initialize_queues();
   p->set_next(_thread_list);
   _thread_list = p;
   _number_of_threads++;
@@ -3895,214 +3971,271 @@ void Threads::print_on_error(outputStream* st, Thread* current, char* buf, int b
   }
 }
 
+// Internal SpinLock and Mutex
+// Based on ParkEvent
 
-// Lifecycle management for TSM ParkEvents.
-// ParkEvents are type-stable (TSM).
-// In our particular implementation they happen to be immortal.
+// Ad-hoc mutual exclusion primitives: SpinLock and Mux
 //
-// We manage concurrency on the FreeList with a CAS-based
-// detach-modify-reattach idiom that avoids the ABA problems
-// that would otherwise be present in a simple CAS-based
-// push-pop implementation.   (push-one and pop-all)
+// We employ SpinLocks _only for low-contention, fixed-length
+// short-duration critical sections where we're concerned
+// about native mutex_t or HotSpot Mutex:: latency.
+// The mux construct provides a spin-then-block mutual exclusion
+// mechanism.
 //
-// Caveat: Allocate() and Release() may be called from threads
-// other than the thread associated with the Event!
-// If we need to call Allocate() when running as the thread in
-// question then look for the PD calls to initialize native TLS.
-// Native TLS (Win32/Linux/Solaris) can only be initialized or
-// accessed by the associated thread.
-// See also pd_initialize().
+// Testing has shown that contention on the ListLock guarding gFreeList
+// is common.  If we implement ListLock as a simple SpinLock it's common
+// for the JVM to devolve to yielding with little progress.  This is true
+// despite the fact that the critical sections protected by ListLock are
+// extremely short.
 //
-// Note that we could defer associating a ParkEvent with a thread
-// until the 1st time the thread calls park().  unpark() calls to
-// an unprovisioned thread would be ignored.  The first park() call
-// for a thread would allocate and associate a ParkEvent and return
-// immediately.
+// TODO-FIXME: ListLock should be of type SpinLock.
+// We should make this a 1st-class type, integrated into the lock
+// hierarchy as leaf-locks.  Critically, the SpinLock structure
+// should have sufficient padding to avoid false-sharing and excessive
+// cache-coherency traffic.
 
-volatile int ParkEvent::ListLock = 0 ;
-ParkEvent * volatile ParkEvent::FreeList = NULL ;
 
-ParkEvent * ParkEvent::Allocate (Thread * t) {
-  // In rare cases -- JVM_RawMonitor* operations -- we can find t == null.
-  ParkEvent * ev ;
+typedef volatile int SpinLockT ;
 
-  // Start by trying to recycle an existing but unassociated
-  // ParkEvent from the global free list.
+void Thread::SpinAcquire (volatile int * adr, const char * LockName) {
+  if (Atomic::cmpxchg (1, adr, 0) == 0) {
+     return ;   // normal fast-path return
+  }
+
+  // Slow-path : We've encountered contention -- Spin/Yield/Block strategy.
+  TEVENT (SpinAcquire - ctx) ;
+  int ctr = 0 ;
+  int Yields = 0 ;
   for (;;) {
-    ev = FreeList ;
-    if (ev == NULL) break ;
-    // 1: Detach - sequester or privatize the list
-    // Tantamount to ev = Swap (&FreeList, NULL)
-    if (Atomic::cmpxchg_ptr (NULL, &FreeList, ev) != ev) {
-       continue ;
-    }
-
-    // We've detached the list.  The list in-hand is now
-    // local to this thread.   This thread can operate on the
-    // list without risk of interference from other threads.
-    // 2: Extract -- pop the 1st element from the list.
-    ParkEvent * List = ev->FreeNext ;
-    if (List == NULL) break ;
-    for (;;) {
-        // 3: Try to reattach the residual list
-        guarantee (List != NULL, "invariant") ;
-        ParkEvent * Arv =  (ParkEvent *) Atomic::cmpxchg_ptr (List, &FreeList, NULL) ;
-        if (Arv == NULL) break ;
-
-        // New nodes arrived.  Try to detach the recent arrivals.
-        if (Atomic::cmpxchg_ptr (NULL, &FreeList, Arv) != Arv) {
-            continue ;
+     while (*adr != 0) {
+        ++ctr ;
+        if ((ctr & 0xFFF) == 0 || !os::is_MP()) {
+           if (Yields > 5) {
+             // Consider using a simple NakedSleep() instead.
+             // Then SpinAcquire could be called by non-JVM threads
+             Thread::current()->_ParkEvent->park(1) ;
+           } else {
+             os::NakedYield() ;
+             ++Yields ;
+           }
+        } else {
+           SpinPause() ;
         }
-        guarantee (Arv != NULL, "invariant") ;
-        // 4: Merge Arv into List
-        ParkEvent * Tail = List ;
-        while (Tail->FreeNext != NULL) Tail = Tail->FreeNext ;
-        Tail->FreeNext = Arv ;
-    }
-    break ;
+     }
+     if (Atomic::cmpxchg (1, adr, 0) == 0) return ;
   }
-
-  if (ev != NULL) {
-    guarantee (ev->AssociatedWith == NULL, "invariant") ;
-  } else {
-    // Do this the hard way -- materialize a new ParkEvent.
-    // In rare cases an allocating thread might detach a long list --
-    // installing null into FreeList -- and then stall or be obstructed.
-    // A 2nd thread calling Allocate() would see FreeList == null.
-    // The list held privately by the 1st thread is unavailable to the 2nd thread.
-    // In that case the 2nd thread would have to materialize a new ParkEvent,
-    // even though free ParkEvents existed in the system.  In this case we end up
-    // with more ParkEvents in circulation than we need, but the race is
-    // rare and the outcome is benign.  Ideally, the # of extant ParkEvents
-    // is equal to the maximum # of threads that existed at any one time.
-    // Because of the race mentioned above, segments of the freelist
-    // can be transiently inaccessible.  At worst we may end up with the
-    // # of ParkEvents in circulation slightly above the ideal.
-    // Note that if we didn't have the TSM/immortal constraint, then
-    // when reattaching, above, we could trim the list.
-    ev = new ParkEvent () ;
-    guarantee ((intptr_t(ev) & 0xFF) == 0, "invariant") ;
-  }
-  ev->reset() ;                     // courtesy to caller
-  ev->AssociatedWith = t ;          // Associate ev with t
-  ev->FreeNext       = NULL ;
-  return ev ;
 }
 
-void ParkEvent::Release (ParkEvent * ev) {
-  if (ev == NULL) return ;
-  guarantee (ev->FreeNext == NULL      , "invariant") ;
-  ev->AssociatedWith = NULL ;
+void Thread::SpinRelease (volatile int * adr) {
+  assert (*adr != 0, "invariant") ;
+  OrderAccess::fence() ;      // guarantee at least release consistency.
+  // Roach-motel semantics.
+  // It's safe if subsequent LDs and STs float "up" into the critical section,
+  // but prior LDs and STs within the critical section can't be allowed
+  // to reorder or float past the ST that releases the lock.
+  *adr = 0 ;
+}
+
+// muxAcquire and muxRelease:
+//
+// *  muxAcquire and muxRelease support a single-word lock-word construct.
+//    The LSB of the word is set IFF the lock is held.
+//    The remainder of the word points to the head of a singly-linked list
+//    of threads blocked on the lock.
+//
+// *  The current implementation of muxAcquire-muxRelease uses its own
+//    dedicated Thread._MuxEvent instance.  If we're interested in
+//    minimizing the peak number of extant ParkEvent instances then
+//    we could eliminate _MuxEvent and "borrow" _ParkEvent as long
+//    as certain invariants were satisfied.  Specifically, care would need
+//    to be taken with regards to consuming unpark() "permits".
+//    A safe rule of thumb is that a thread would never call muxAcquire()
+//    if it's enqueued (cxq, EntryList, WaitList, etc) and will subsequently
+//    park().  Otherwise the _ParkEvent park() operation in muxAcquire() could
+//    consume an unpark() permit intended for monitorenter, for instance.
+//    One way around this would be to widen the restricted-range semaphore
+//    implemented in park().  Another alternative would be to provide
+//    multiple instances of the PlatformEvent() for each thread.  One
+//    instance would be dedicated to muxAcquire-muxRelease, for instance.
+//
+// *  Usage:
+//    -- Only as leaf locks
+//    -- for short-term locking only as muxAcquire does not perform
+//       thread state transitions.
+//
+// Alternatives:
+// *  We could implement muxAcquire and muxRelease with MCS or CLH locks
+//    but with parking or spin-then-park instead of pure spinning.
+// *  Use Taura-Oyama-Yonenzawa locks.
+// *  It's possible to construct a 1-0 lock if we encode the lockword as
+//    (List,LockByte).  Acquire will CAS the full lockword while Release
+//    will STB 0 into the LockByte.  The 1-0 scheme admits stranding, so
+//    acquiring threads use timers (ParkTimed) to detect and recover from
+//    the stranding window.  Thread/Node structures must be aligned on 256-byte
+//    boundaries by using placement-new.
+// *  Augment MCS with advisory back-link fields maintained with CAS().
+//    Pictorially:  LockWord -> T1 <-> T2 <-> T3 <-> ... <-> Tn <-> Owner.
+//    The validity of the backlinks must be ratified before we trust the value.
+//    If the backlinks are invalid the exiting thread must back-track through the
+//    the forward links, which are always trustworthy.
+// *  Add a successor indication.  The LockWord is currently encoded as
+//    (List, LOCKBIT:1).  We could also add a SUCCBIT or an explicit _succ variable
+//    to provide the usual futile-wakeup optimization.
+//    See RTStt for details.
+// *  Consider schedctl.sc_nopreempt to cover the critical section.
+//
+
+
+typedef volatile intptr_t MutexT ;      // Mux Lock-word
+enum MuxBits { LOCKBIT = 1 } ;
+
+void Thread::muxAcquire (volatile intptr_t * Lock, const char * LockName) {
+  intptr_t w = Atomic::cmpxchg_ptr (LOCKBIT, Lock, 0) ;
+  if (w == 0) return ;
+  if ((w & LOCKBIT) == 0 && Atomic::cmpxchg_ptr (w|LOCKBIT, Lock, w) == w) {
+     return ;
+  }
+
+  TEVENT (muxAcquire - Contention) ;
+  ParkEvent * const Self = Thread::current()->_MuxEvent ;
+  assert ((intptr_t(Self) & LOCKBIT) == 0, "invariant") ;
   for (;;) {
-    // Push ev onto FreeList
-    // The mechanism is "half" lock-free.
-    ParkEvent * List = FreeList ;
-    ev->FreeNext = List ;
-    if (Atomic::cmpxchg_ptr (ev, &FreeList, List) == List) break ;
-  }
-}
+     int its = (os::is_MP() ? 100 : 0) + 1 ;
 
-// Override operator new and delete so we can ensure that the
-// least significant byte of ParkEvent addresses is 0.
-// Beware that excessive address alignment is undesirable
-// as it can result in D$ index usage imbalance as
-// well as bank access imbalance on Niagara-like platforms,
-// although Niagara's hash function should help.
+     // Optional spin phase: spin-then-park strategy
+     while (--its >= 0) {
+       w = *Lock ;
+       if ((w & LOCKBIT) == 0 && Atomic::cmpxchg_ptr (w|LOCKBIT, Lock, w) == w) {
+          return ;
+       }
+     }
 
-void * ParkEvent::operator new (size_t sz) {
-  return (void *) ((intptr_t (CHeapObj::operator new (sz + 256)) + 256) & -256) ;
-}
-
-void ParkEvent::operator delete (void * a) {
-  // ParkEvents are type-stable and immortal ...
-  ShouldNotReachHere();
-}
-
-
-// 6399321 As a temporary measure we copied & modified the ParkEvent::
-// allocate() and release() code for use by Parkers.  The Parker:: forms
-// will eventually be removed as we consolide and shift over to ParkEvents
-// for both builtin synchronization and JSR166 operations.
-
-volatile int Parker::ListLock = 0 ;
-Parker * volatile Parker::FreeList = NULL ;
-
-Parker * Parker::Allocate (JavaThread * t) {
-  guarantee (t != NULL, "invariant") ;
-  Parker * p ;
-
-  // Start by trying to recycle an existing but unassociated
-  // Parker from the global free list.
-  for (;;) {
-    p = FreeList ;
-    if (p  == NULL) break ;
-    // 1: Detach
-    // Tantamount to p = Swap (&FreeList, NULL)
-    if (Atomic::cmpxchg_ptr (NULL, &FreeList, p) != p) {
-       continue ;
-    }
-
-    // We've detached the list.  The list in-hand is now
-    // local to this thread.   This thread can operate on the
-    // list without risk of interference from other threads.
-    // 2: Extract -- pop the 1st element from the list.
-    Parker * List = p->FreeNext ;
-    if (List == NULL) break ;
-    for (;;) {
-        // 3: Try to reattach the residual list
-        guarantee (List != NULL, "invariant") ;
-        Parker * Arv =  (Parker *) Atomic::cmpxchg_ptr (List, &FreeList, NULL) ;
-        if (Arv == NULL) break ;
-
-        // New nodes arrived.  Try to detach the recent arrivals.
-        if (Atomic::cmpxchg_ptr (NULL, &FreeList, Arv) != Arv) {
-            continue ;
+     Self->reset() ;
+     Self->OnList = intptr_t(Lock) ;
+     // The following fence() isn't _strictly necessary as the subsequent
+     // CAS() both serializes execution and ratifies the fetched *Lock value.
+     OrderAccess::fence();
+     for (;;) {
+        w = *Lock ;
+        if ((w & LOCKBIT) == 0) {
+            if (Atomic::cmpxchg_ptr (w|LOCKBIT, Lock, w) == w) {
+                Self->OnList = 0 ;   // hygiene - allows stronger asserts
+                return ;
+            }
+            continue ;      // Interference -- *Lock changed -- Just retry
         }
-        guarantee (Arv != NULL, "invariant") ;
-        // 4: Merge Arv into List
-        Parker * Tail = List ;
-        while (Tail->FreeNext != NULL) Tail = Tail->FreeNext ;
-        Tail->FreeNext = Arv ;
-    }
-    break ;
-  }
+        assert (w & LOCKBIT, "invariant") ;
+        Self->ListNext = (ParkEvent *) (w & ~LOCKBIT );
+        if (Atomic::cmpxchg_ptr (intptr_t(Self)|LOCKBIT, Lock, w) == w) break ;
+     }
 
-  if (p != NULL) {
-    guarantee (p->AssociatedWith == NULL, "invariant") ;
-  } else {
-    // Do this the hard way -- materialize a new Parker..
-    // In rare cases an allocating thread might detach
-    // a long list -- installing null into FreeList --and
-    // then stall.  Another thread calling Allocate() would see
-    // FreeList == null and then invoke the ctor.  In this case we
-    // end up with more Parkers in circulation than we need, but
-    // the race is rare and the outcome is benign.
-    // Ideally, the # of extant Parkers is equal to the
-    // maximum # of threads that existed at any one time.
-    // Because of the race mentioned above, segments of the
-    // freelist can be transiently inaccessible.  At worst
-    // we may end up with the # of Parkers in circulation
-    // slightly above the ideal.
-    p = new Parker() ;
+     while (Self->OnList != 0) {
+        Self->park() ;
+     }
   }
-  p->AssociatedWith = t ;          // Associate p with t
-  p->FreeNext       = NULL ;
-  return p ;
 }
 
+void Thread::muxAcquireW (volatile intptr_t * Lock, ParkEvent * ev) {
+  intptr_t w = Atomic::cmpxchg_ptr (LOCKBIT, Lock, 0) ;
+  if (w == 0) return ;
+  if ((w & LOCKBIT) == 0 && Atomic::cmpxchg_ptr (w|LOCKBIT, Lock, w) == w) {
+    return ;
+  }
 
-void Parker::Release (Parker * p) {
-  if (p == NULL) return ;
-  guarantee (p->AssociatedWith != NULL, "invariant") ;
-  guarantee (p->FreeNext == NULL      , "invariant") ;
-  p->AssociatedWith = NULL ;
+  TEVENT (muxAcquire - Contention) ;
+  ParkEvent * ReleaseAfter = NULL ;
+  if (ev == NULL) {
+    ev = ReleaseAfter = ParkEvent::Allocate (NULL) ;
+  }
+  assert ((intptr_t(ev) & LOCKBIT) == 0, "invariant") ;
   for (;;) {
-    // Push p onto FreeList
-    Parker * List = FreeList ;
-    p->FreeNext = List ;
-    if (Atomic::cmpxchg_ptr (p, &FreeList, List) == List) break ;
+    guarantee (ev->OnList == 0, "invariant") ;
+    int its = (os::is_MP() ? 100 : 0) + 1 ;
+
+    // Optional spin phase: spin-then-park strategy
+    while (--its >= 0) {
+      w = *Lock ;
+      if ((w & LOCKBIT) == 0 && Atomic::cmpxchg_ptr (w|LOCKBIT, Lock, w) == w) {
+        if (ReleaseAfter != NULL) {
+          ParkEvent::Release (ReleaseAfter) ;
+        }
+        return ;
+      }
+    }
+
+    ev->reset() ;
+    ev->OnList = intptr_t(Lock) ;
+    // The following fence() isn't _strictly necessary as the subsequent
+    // CAS() both serializes execution and ratifies the fetched *Lock value.
+    OrderAccess::fence();
+    for (;;) {
+      w = *Lock ;
+      if ((w & LOCKBIT) == 0) {
+        if (Atomic::cmpxchg_ptr (w|LOCKBIT, Lock, w) == w) {
+          ev->OnList = 0 ;
+          // We call ::Release while holding the outer lock, thus
+          // artificially lengthening the critical section.
+          // Consider deferring the ::Release() until the subsequent unlock(),
+          // after we've dropped the outer lock.
+          if (ReleaseAfter != NULL) {
+            ParkEvent::Release (ReleaseAfter) ;
+          }
+          return ;
+        }
+        continue ;      // Interference -- *Lock changed -- Just retry
+      }
+      assert (w & LOCKBIT, "invariant") ;
+      ev->ListNext = (ParkEvent *) (w & ~LOCKBIT );
+      if (Atomic::cmpxchg_ptr (intptr_t(ev)|LOCKBIT, Lock, w) == w) break ;
+    }
+
+    while (ev->OnList != 0) {
+      ev->park() ;
+    }
   }
 }
+
+// Release() must extract a successor from the list and then wake that thread.
+// It can "pop" the front of the list or use a detach-modify-reattach (DMR) scheme
+// similar to that used by ParkEvent::Allocate() and ::Release().  DMR-based
+// Release() would :
+// (A) CAS() or swap() null to *Lock, releasing the lock and detaching the list.
+// (B) Extract a successor from the private list "in-hand"
+// (C) attempt to CAS() the residual back into *Lock over null.
+//     If there were any newly arrived threads and the CAS() would fail.
+//     In that case Release() would detach the RATs, re-merge the list in-hand
+//     with the RATs and repeat as needed.  Alternately, Release() might
+//     detach and extract a successor, but then pass the residual list to the wakee.
+//     The wakee would be responsible for reattaching and remerging before it
+//     competed for the lock.
+//
+// Both "pop" and DMR are immune from ABA corruption -- there can be
+// multiple concurrent pushers, but only one popper or detacher.
+// This implementation pops from the head of the list.  This is unfair,
+// but tends to provide excellent throughput as hot threads remain hot.
+// (We wake recently run threads first).
+
+void Thread::muxRelease (volatile intptr_t * Lock)  {
+  for (;;) {
+    const intptr_t w = Atomic::cmpxchg_ptr (0, Lock, LOCKBIT) ;
+    assert (w & LOCKBIT, "invariant") ;
+    if (w == LOCKBIT) return ;
+    ParkEvent * List = (ParkEvent *) (w & ~LOCKBIT) ;
+    assert (List != NULL, "invariant") ;
+    assert (List->OnList == intptr_t(Lock), "invariant") ;
+    ParkEvent * nxt = List->ListNext ;
+
+    // The following CAS() releases the lock and pops the head element.
+    if (Atomic::cmpxchg_ptr (intptr_t(nxt), Lock, w) != w) {
+      continue ;
+    }
+    List->OnList = 0 ;
+    OrderAccess::fence() ;
+    List->unpark () ;
+    return ;
+  }
+}
+
 
 void Threads::verify() {
   ALL_JAVA_THREADS(p) {

@@ -1,5 +1,5 @@
 //
-// Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+// Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This code is free software; you can redistribute it and/or modify it
@@ -16,10 +16,9 @@
 // 2 along with this work; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-// Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-// CA 95054 USA or visit www.sun.com if you need additional information or
-// have any questions.
-//  
+// Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+// or visit www.oracle.com if you need additional information or have any
+// questions.
 //
 
 // NOTE: DO NOT CHANGE THIS COPYRIGHT TO NEW STYLE - IT WILL BREAK makeDeps!
@@ -71,8 +70,8 @@ c1_Compilation.cpp                      c1_LinearScan.hpp
 c1_Compilation.cpp                      c1_MacroAssembler.hpp
 c1_Compilation.cpp                      c1_ValueMap.hpp
 c1_Compilation.cpp                      c1_ValueStack.hpp
-c1_Compilation.cpp                      ciEnv.hpp
 c1_Compilation.cpp                      debugInfoRec.hpp
+c1_Compilation.hpp                      ciEnv.hpp
 c1_Compilation.hpp                      exceptionHandlerTable.hpp
 c1_Compilation.hpp                      resourceArea.hpp
 
@@ -82,6 +81,8 @@ c1_Compiler.cpp                         arguments.hpp
 c1_Compiler.cpp                         c1_Compilation.hpp
 c1_Compiler.cpp                         c1_Compiler.hpp
 c1_Compiler.cpp                         c1_FrameMap.hpp
+c1_Compiler.cpp                         c1_GraphBuilder.hpp
+c1_Compiler.cpp                         c1_LinearScan.hpp
 c1_Compiler.cpp                         c1_MacroAssembler.hpp
 c1_Compiler.cpp                         c1_Runtime1.hpp
 c1_Compiler.cpp                         c1_ValueType.hpp
@@ -250,6 +251,7 @@ c1_LIRGenerator.cpp                     ciCPCache.hpp
 c1_LIRGenerator.cpp                     ciInstance.hpp
 c1_LIRGenerator.cpp                     heapRegion.hpp
 c1_LIRGenerator.cpp                     sharedRuntime.hpp
+c1_LIRGenerator.cpp                     stubRoutines.hpp
 
 c1_LIRGenerator.hpp                     c1_Instruction.hpp
 c1_LIRGenerator.hpp                     c1_LIR.hpp
@@ -268,6 +270,8 @@ c1_LIRGenerator_<arch>.cpp             ciObjArrayKlass.hpp
 c1_LIRGenerator_<arch>.cpp             ciTypeArrayKlass.hpp
 c1_LIRGenerator_<arch>.cpp             sharedRuntime.hpp
 c1_LIRGenerator_<arch>.cpp             vmreg_<arch>.inline.hpp
+c1_LIRGenerator_<arch>.cpp             stubRoutines.hpp
+
 
 c1_LinearScan.cpp                       bitMap.inline.hpp
 c1_LinearScan.cpp                       c1_CFGPrinter.hpp
@@ -297,6 +301,7 @@ c1_MacroAssembler.hpp                   assembler.hpp
 c1_MacroAssembler.hpp                   assembler_<arch>.inline.hpp
 
 c1_MacroAssembler_<arch>.cpp            arrayOop.hpp
+c1_MacroAssembler_<arch>.cpp            basicLock.hpp
 c1_MacroAssembler_<arch>.cpp            biasedLocking.hpp
 c1_MacroAssembler_<arch>.cpp            c1_MacroAssembler.hpp
 c1_MacroAssembler_<arch>.cpp            c1_Runtime1.hpp
@@ -305,7 +310,6 @@ c1_MacroAssembler_<arch>.cpp            interpreter.hpp
 c1_MacroAssembler_<arch>.cpp            markOop.hpp
 c1_MacroAssembler_<arch>.cpp            os.hpp
 c1_MacroAssembler_<arch>.cpp            stubRoutines.hpp
-c1_MacroAssembler_<arch>.cpp            synchronizer.hpp
 c1_MacroAssembler_<arch>.cpp            systemDictionary.hpp
 
 c1_MacroAssembler_<arch>.hpp            generate_platform_dependent_include
@@ -411,6 +415,7 @@ codeBlob.cpp                            c1_Runtime1.hpp
 compileBroker.cpp                       c1_Compiler.hpp
 
 frame_<arch>.cpp                        c1_Runtime1.hpp
+frame_<arch>.cpp                        vframeArray.hpp
 
 globals.cpp                             c1_globals.hpp
 
@@ -445,6 +450,7 @@ top.hpp                                 c1_globals.hpp
 vmStructs.hpp                           c1_Runtime1.hpp
 
 compileBroker.cpp                       c1x_Compiler.hpp
+c1_Canonicalizer.cpp                    c1_ValueStack.hpp
 
 c1x_CodeInstaller.hpp                   c1x_Compiler.hpp
 
@@ -481,4 +487,4 @@ c1x_VMExits.cpp                         c1x_VMExits.hpp
 
 c1x_VmIds.cpp                           c1x_VmIds.hpp
 
-
+c1_LIR.cpp                              c1_ValueStack.hpp

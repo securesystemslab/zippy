@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -110,6 +110,7 @@
 class ConstantPoolCacheEntry VALUE_OBJ_CLASS_SPEC {
   friend class VMStructs;
   friend class constantPoolCacheKlass;
+  friend class constantPoolOopDesc;  //resolve_constant_at_impl => set_f1
 
  private:
   volatile intx     _indices;  // constant pool index & rewrite bytecodes
@@ -129,6 +130,7 @@ class ConstantPoolCacheEntry VALUE_OBJ_CLASS_SPEC {
     assert(existing_f1 == NULL || existing_f1 == f1, "illegal field change");
     oop_store(&_f1, f1);
   }
+  void set_f1_if_null_atomic(oop f1);
   void set_f2(intx f2)                           { assert(_f2 == 0    || _f2 == f2, "illegal field change"); _f2 = f2; }
   int as_flags(TosState state, bool is_final, bool is_vfinal, bool is_volatile,
                bool is_method_interface, bool is_method);
@@ -181,8 +183,12 @@ class ConstantPoolCacheEntry VALUE_OBJ_CLASS_SPEC {
 
   void set_dynamic_call(
     Handle call_site,                            // Resolved java.dyn.CallSite (f1)
-    int extra_data                               // (f2)
+    methodHandle signature_invoker               // determines signature information
   );
+
+  // For JVM_CONSTANT_InvokeDynamic cache entries:
+  void initialize_bootstrap_method_index_in_cache(int bsm_cache_index);
+  int  bootstrap_method_index_in_cache();
 
   void set_parameter_size(int value) {
     assert(parameter_size() == 0 || parameter_size() == value,
@@ -206,6 +212,7 @@ class ConstantPoolCacheEntry VALUE_OBJ_CLASS_SPEC {
       case Bytecodes::_getfield        :    // fall through
       case Bytecodes::_invokespecial   :    // fall through
       case Bytecodes::_invokestatic    :    // fall through
+      case Bytecodes::_invokedynamic   :    // fall through
       case Bytecodes::_invokeinterface : return 1;
       case Bytecodes::_putstatic       :    // fall through
       case Bytecodes::_putfield        :    // fall through
@@ -233,6 +240,7 @@ class ConstantPoolCacheEntry VALUE_OBJ_CLASS_SPEC {
   Bytecodes::Code bytecode_1() const             { return Bytecodes::cast((_indices >> 16) & 0xFF); }
   Bytecodes::Code bytecode_2() const             { return Bytecodes::cast((_indices >> 24) & 0xFF); }
   volatile oop  f1() const                       { return _f1; }
+  bool is_f1_null() const                        { return (oop)_f1 == NULL; }  // classifies a CPC entry as unbound
   intx f2() const                                { return _f2; }
   int  field_index() const;
   int  parameter_size() const                    { return _flags & 0xFF; }
@@ -311,7 +319,9 @@ class constantPoolCacheOopDesc: public oopDesc {
 
   // Sizing
   debug_only(friend class ClassVerifier;)
+ public:
   int length() const                             { return _length; }
+ private:
   void set_length(int length)                    { _length = length; }
 
   static int header_size()                       { return sizeof(constantPoolCacheOopDesc) / HeapWordSize; }

@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -149,8 +149,8 @@ bool os::register_code_area(char *low, char *high) {
   // If we are using Vectored Exceptions we don't need this registration
   if (UseVectoredExceptions) return true;
 
-  BufferBlob* b = BufferBlob::create("CodeCache Exception Handler", sizeof (DynamicCodeData));
-  CodeBuffer cb(b->instructions_begin(), b->instructions_size());
+  BufferBlob* blob = BufferBlob::create("CodeCache Exception Handler", sizeof(DynamicCodeData));
+  CodeBuffer cb(blob);
   MacroAssembler* masm = new MacroAssembler(&cb);
   pDCD = (pDynamicCodeData) masm->pc();
 
@@ -377,17 +377,27 @@ void os::print_context(outputStream *st, void *context) {
 
   st->print_cr("Registers:");
 #ifdef AMD64
-  st->print(  "EAX=" INTPTR_FORMAT, uc->Rax);
-  st->print(", EBX=" INTPTR_FORMAT, uc->Rbx);
-  st->print(", ECX=" INTPTR_FORMAT, uc->Rcx);
-  st->print(", EDX=" INTPTR_FORMAT, uc->Rdx);
+  st->print(  "RAX=" INTPTR_FORMAT, uc->Rax);
+  st->print(", RBX=" INTPTR_FORMAT, uc->Rbx);
+  st->print(", RCX=" INTPTR_FORMAT, uc->Rcx);
+  st->print(", RDX=" INTPTR_FORMAT, uc->Rdx);
   st->cr();
-  st->print(  "ESP=" INTPTR_FORMAT, uc->Rsp);
-  st->print(", EBP=" INTPTR_FORMAT, uc->Rbp);
-  st->print(", ESI=" INTPTR_FORMAT, uc->Rsi);
-  st->print(", EDI=" INTPTR_FORMAT, uc->Rdi);
+  st->print(  "RSP=" INTPTR_FORMAT, uc->Rsp);
+  st->print(", RBP=" INTPTR_FORMAT, uc->Rbp);
+  st->print(", RSI=" INTPTR_FORMAT, uc->Rsi);
+  st->print(", RDI=" INTPTR_FORMAT, uc->Rdi);
   st->cr();
-  st->print(  "EIP=" INTPTR_FORMAT, uc->Rip);
+  st->print(  "R8 =" INTPTR_FORMAT, uc->R8);
+  st->print(", R9 =" INTPTR_FORMAT, uc->R9);
+  st->print(", R10=" INTPTR_FORMAT, uc->R10);
+  st->print(", R11=" INTPTR_FORMAT, uc->R11);
+  st->cr();
+  st->print(  "R12=" INTPTR_FORMAT, uc->R12);
+  st->print(", R13=" INTPTR_FORMAT, uc->R13);
+  st->print(", R14=" INTPTR_FORMAT, uc->R14);
+  st->print(", R15=" INTPTR_FORMAT, uc->R15);
+  st->cr();
+  st->print(  "RIP=" INTPTR_FORMAT, uc->Rip);
   st->print(", EFLAGS=" INTPTR_FORMAT, uc->EFlags);
 #else
   st->print(  "EAX=" INTPTR_FORMAT, uc->Eax);
@@ -416,7 +426,49 @@ void os::print_context(outputStream *st, void *context) {
   // this at the end, and hope for the best.
   address pc = (address)uc->REG_PC;
   st->print_cr("Instructions: (pc=" PTR_FORMAT ")", pc);
-  print_hex_dump(st, pc - 16, pc + 16, sizeof(char));
+  print_hex_dump(st, pc - 32, pc + 32, sizeof(char));
+  st->cr();
+}
+
+
+void os::print_register_info(outputStream *st, void *context) {
+  if (context == NULL) return;
+
+  CONTEXT* uc = (CONTEXT*)context;
+
+  st->print_cr("Register to memory mapping:");
+  st->cr();
+
+  // this is only for the "general purpose" registers
+
+#ifdef AMD64
+  st->print("RAX="); print_location(st, uc->Rax);
+  st->print("RBX="); print_location(st, uc->Rbx);
+  st->print("RCX="); print_location(st, uc->Rcx);
+  st->print("RDX="); print_location(st, uc->Rdx);
+  st->print("RSP="); print_location(st, uc->Rsp);
+  st->print("RBP="); print_location(st, uc->Rbp);
+  st->print("RSI="); print_location(st, uc->Rsi);
+  st->print("RDI="); print_location(st, uc->Rdi);
+  st->print("R8 ="); print_location(st, uc->R8);
+  st->print("R9 ="); print_location(st, uc->R9);
+  st->print("R10="); print_location(st, uc->R10);
+  st->print("R11="); print_location(st, uc->R11);
+  st->print("R12="); print_location(st, uc->R12);
+  st->print("R13="); print_location(st, uc->R13);
+  st->print("R14="); print_location(st, uc->R14);
+  st->print("R15="); print_location(st, uc->R15);
+#else
+  st->print("EAX="); print_location(st, uc->Eax);
+  st->print("EBX="); print_location(st, uc->Ebx);
+  st->print("ECX="); print_location(st, uc->Ecx);
+  st->print("EDX="); print_location(st, uc->Edx);
+  st->print("ESP="); print_location(st, uc->Esp);
+  st->print("EBP="); print_location(st, uc->Ebp);
+  st->print("ESI="); print_location(st, uc->Esi);
+  st->print("EDI="); print_location(st, uc->Edi);
+#endif
+
   st->cr();
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -39,7 +39,11 @@ class HeapDumper : public StackObj {
   char* _error;
   bool _print_to_tty;
   bool _gc_before_heap_dump;
+  bool _oome;
   elapsedTimer _t;
+
+  HeapDumper(bool gc_before_heap_dump, bool print_to_tty, bool oome) :
+    _gc_before_heap_dump(gc_before_heap_dump), _error(NULL), _print_to_tty(print_to_tty), _oome(oome) { }
 
   // string representation of error
   char* error() const                   { return _error; }
@@ -51,11 +55,11 @@ class HeapDumper : public StackObj {
   // internal timer.
   elapsedTimer* timer()                 { return &_t; }
 
+  static void dump_heap(bool oome);
+
  public:
   HeapDumper(bool gc_before_heap_dump) :
-    _gc_before_heap_dump(gc_before_heap_dump), _error(NULL), _print_to_tty(false) { }
-  HeapDumper(bool gc_before_heap_dump, bool print_to_tty) :
-    _gc_before_heap_dump(gc_before_heap_dump), _error(NULL), _print_to_tty(print_to_tty) { }
+    _gc_before_heap_dump(gc_before_heap_dump), _error(NULL), _print_to_tty(false), _oome(false) { }
 
   ~HeapDumper();
 
@@ -66,4 +70,6 @@ class HeapDumper : public StackObj {
   char* error_as_C_string() const;
 
   static void dump_heap()    KERNEL_RETURN;
+
+  static void dump_heap_from_oome()    KERNEL_RETURN;
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2005 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -62,11 +62,13 @@ StubQueue::StubQueue(StubInterface* stub_interface, int buffer_size,
                      Mutex* lock, const char* name) : _mutex(lock) {
   intptr_t size = round_to(buffer_size, 2*BytesPerWord);
   BufferBlob* blob = BufferBlob::create(name, size);
-  if( blob == NULL ) vm_exit_out_of_memory1(size, "CodeCache: no room for %s", name);
+  if( blob == NULL) {
+    vm_exit_out_of_memory(size, err_msg("CodeCache: no room for %s", name));
+  }
   _stub_interface  = stub_interface;
-  _buffer_size     = blob->instructions_size();
-  _buffer_limit    = blob->instructions_size();
-  _stub_buffer     = blob->instructions_begin();
+  _buffer_size     = blob->content_size();
+  _buffer_limit    = blob->content_size();
+  _stub_buffer     = blob->content_begin();
   _queue_begin     = 0;
   _queue_end       = 0;
   _number_of_stubs = 0;

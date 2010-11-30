@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -730,8 +730,8 @@ void os::print_context(outputStream *st, void *context) {
   st->print(", RSI=" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_RSI]);
   st->print(", RDI=" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_RDI]);
   st->cr();
-  st->print(  "R8=" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_R8]);
-  st->print(", R9=" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_R9]);
+  st->print(  "R8 =" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_R8]);
+  st->print(", R9 =" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_R9]);
   st->print(", R10=" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_R10]);
   st->print(", R11=" INTPTR_FORMAT, uc->uc_mcontext.gregs[REG_R11]);
   st->cr();
@@ -770,8 +770,54 @@ void os::print_context(outputStream *st, void *context) {
   ExtendedPC epc = os::Solaris::ucontext_get_ExtendedPC(uc);
   address pc = epc.pc();
   st->print_cr("Instructions: (pc=" PTR_FORMAT ")", pc);
-  print_hex_dump(st, pc - 16, pc + 16, sizeof(char));
+  print_hex_dump(st, pc - 32, pc + 32, sizeof(char));
 }
+
+void os::print_register_info(outputStream *st, void *context) {
+  if (context == NULL) return;
+
+  ucontext_t *uc = (ucontext_t*)context;
+
+  st->print_cr("Register to memory mapping:");
+  st->cr();
+
+  // this is horrendously verbose but the layout of the registers in the
+  // context does not match how we defined our abstract Register set, so
+  // we can't just iterate through the gregs area
+
+  // this is only for the "general purpose" registers
+
+#ifdef AMD64
+  st->print("RAX="); print_location(st, uc->uc_mcontext.gregs[REG_RAX]);
+  st->print("RBX="); print_location(st, uc->uc_mcontext.gregs[REG_RBX]);
+  st->print("RCX="); print_location(st, uc->uc_mcontext.gregs[REG_RCX]);
+  st->print("RDX="); print_location(st, uc->uc_mcontext.gregs[REG_RDX]);
+  st->print("RSP="); print_location(st, uc->uc_mcontext.gregs[REG_RSP]);
+  st->print("RBP="); print_location(st, uc->uc_mcontext.gregs[REG_RBP]);
+  st->print("RSI="); print_location(st, uc->uc_mcontext.gregs[REG_RSI]);
+  st->print("RDI="); print_location(st, uc->uc_mcontext.gregs[REG_RDI]);
+  st->print("R8 ="); print_location(st, uc->uc_mcontext.gregs[REG_R8]);
+  st->print("R9 ="); print_location(st, uc->uc_mcontext.gregs[REG_R9]);
+  st->print("R10="); print_location(st, uc->uc_mcontext.gregs[REG_R10]);
+  st->print("R11="); print_location(st, uc->uc_mcontext.gregs[REG_R11]);
+  st->print("R12="); print_location(st, uc->uc_mcontext.gregs[REG_R12]);
+  st->print("R13="); print_location(st, uc->uc_mcontext.gregs[REG_R13]);
+  st->print("R14="); print_location(st, uc->uc_mcontext.gregs[REG_R14]);
+  st->print("R15="); print_location(st, uc->uc_mcontext.gregs[REG_R15]);
+#else
+  st->print("EAX="); print_location(st, uc->uc_mcontext.gregs[EAX]);
+  st->print("EBX="); print_location(st, uc->uc_mcontext.gregs[EBX]);
+  st->print("ECX="); print_location(st, uc->uc_mcontext.gregs[ECX]);
+  st->print("EDX="); print_location(st, uc->uc_mcontext.gregs[EDX]);
+  st->print("ESP="); print_location(st, uc->uc_mcontext.gregs[UESP]);
+  st->print("EBP="); print_location(st, uc->uc_mcontext.gregs[EBP]);
+  st->print("ESI="); print_location(st, uc->uc_mcontext.gregs[ESI]);
+  st->print("EDI="); print_location(st, uc->uc_mcontext.gregs[EDI]);
+#endif
+
+  st->cr();
+}
+
 
 #ifdef AMD64
 void os::Solaris::init_thread_fpu_state(void) {
@@ -861,7 +907,7 @@ cmpxchg_func_t*      os::atomic_cmpxchg_func      = os::atomic_cmpxchg_bootstrap
 cmpxchg_long_func_t* os::atomic_cmpxchg_long_func = os::atomic_cmpxchg_long_bootstrap;
 add_func_t*          os::atomic_add_func          = os::atomic_add_bootstrap;
 
-extern "C" _solaris_raw_setup_fpu(address ptr);
+extern "C" void _solaris_raw_setup_fpu(address ptr);
 void os::setup_fpu() {
   address fpu_cntrl = StubRoutines::addr_fpu_cntrl_wrd_std();
   _solaris_raw_setup_fpu(fpu_cntrl);

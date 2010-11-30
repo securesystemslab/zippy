@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -35,7 +35,7 @@ void LIR_Assembler::patching_epilog(PatchingStub* patch, LIR_PatchCode patch_cod
   append_patching_stub(patch);
 
 #ifdef ASSERT
-  Bytecodes::Code code = info->scope()->method()->java_code_at_bci(info->bci());
+  Bytecodes::Code code = info->scope()->method()->java_code_at_bci(info->stack()->bci());
   if (patch->id() == PatchingStub::access_field_id) {
     switch (code) {
       case Bytecodes::_putstatic:
@@ -221,7 +221,7 @@ void LIR_Assembler::emit_block(BlockBegin* block) {
 #ifndef PRODUCT
   if (CommentedAssembly) {
     stringStream st;
-    st.print_cr(" block B%d [%d, %d]", block->block_id(), block->bci(), block->end()->bci());
+    st.print_cr(" block B%d [%d, %d]", block->block_id(), block->bci(), block->end()->printable_bci());
     _masm->block_comment(st.as_string());
   }
 #endif
@@ -301,9 +301,9 @@ void LIR_Assembler::add_debug_info_for_branch(CodeEmitInfo* info) {
 }
 
 
-void LIR_Assembler::add_call_info(int pc_offset, CodeEmitInfo* cinfo, bool is_method_handle_invoke) {
+void LIR_Assembler::add_call_info(int pc_offset, CodeEmitInfo* cinfo) {
   flush_debug_info(pc_offset);
-  cinfo->record_debug_info(compilation()->debug_info_recorder(), pc_offset, is_method_handle_invoke);
+  cinfo->record_debug_info(compilation()->debug_info_recorder(), pc_offset);
   if (cinfo->exception_handlers() != NULL) {
     compilation()->add_exception_handlers_for_pco(pc_offset, cinfo->exception_handlers());
   }
@@ -312,7 +312,7 @@ void LIR_Assembler::add_call_info(int pc_offset, CodeEmitInfo* cinfo, bool is_me
 static ValueStack* debug_info(Instruction* ins) {
   StateSplit* ss = ins->as_StateSplit();
   if (ss != NULL) return ss->state();
-  return ins->lock_stack();
+  return ins->state_before();
 }
 
 void LIR_Assembler::process_debug_info(LIR_Op* op) {
@@ -327,8 +327,7 @@ void LIR_Assembler::process_debug_info(LIR_Op* op) {
   if (vstack == NULL)  return;
   if (_pending_non_safepoint != NULL) {
     // Got some old debug info.  Get rid of it.
-    if (_pending_non_safepoint->bci() == src->bci() &&
-        debug_info(_pending_non_safepoint) == vstack) {
+    if (debug_info(_pending_non_safepoint) == vstack) {
       _pending_non_safepoint_offset = pc_offset;
       return;
     }
@@ -358,7 +357,7 @@ static ValueStack* nth_oldest(ValueStack* s, int n, int& bci_result) {
     ValueStack* tc = t->caller_state();
     if (tc == NULL)  return s;
     t = tc;
-    bci_result = s->scope()->caller_bci();
+    bci_result = tc->bci();
     s = s->caller_state();
   }
 }
@@ -366,7 +365,7 @@ static ValueStack* nth_oldest(ValueStack* s, int n, int& bci_result) {
 void LIR_Assembler::record_non_safepoint_debug_info() {
   int         pc_offset = _pending_non_safepoint_offset;
   ValueStack* vstack    = debug_info(_pending_non_safepoint);
-  int         bci       = _pending_non_safepoint->bci();
+  int         bci       = vstack->bci();
 
   DebugInformationRecorder* debug_info = compilation()->debug_info_recorder();
   assert(debug_info->recording_non_safepoints(), "sanity");
@@ -380,7 +379,7 @@ void LIR_Assembler::record_non_safepoint_debug_info() {
     if (s == NULL)  break;
     IRScope* scope = s->scope();
     //Always pass false for reexecute since these ScopeDescs are never used for deopt
-    debug_info->describe_scope(pc_offset, scope->method(), s_bci, false/*reexecute*/);
+    debug_info->describe_scope(pc_offset, scope->method(), s->bci(), false/*reexecute*/);
   }
 
   debug_info->end_non_safepoint(pc_offset);
@@ -413,12 +412,6 @@ void LIR_Assembler::emit_rtcall(LIR_OpRTCall* op) {
 void LIR_Assembler::emit_call(LIR_OpJavaCall* op) {
   verify_oop_map(op->info());
 
-  // JSR 292
-  // Preserve the SP over MethodHandle call sites.
-  if (op->is_method_handle_invoke()) {
-    preserve_SP(op);
-  }
-
   if (os::is_MP()) {
     // must align calls sites, otherwise they can't be updated atomically on MP hardware
     align_call(op->code());
@@ -444,8 +437,10 @@ void LIR_Assembler::emit_call(LIR_OpJavaCall* op) {
   default: ShouldNotReachHere();
   }
 
+  // JSR 292
+  // Record if this method has MethodHandle invokes.
   if (op->is_method_handle_invoke()) {
-    restore_SP(op);
+    compilation()->set_has_method_handle_invokes(true);
   }
 
 #if defined(X86) && defined(TIERED)
@@ -551,6 +546,16 @@ void LIR_Assembler::emit_op1(LIR_Op1* op) {
     case lir_monaddr:
       monitor_address(op->in_opr()->as_constant_ptr()->as_jint(), op->result_opr());
       break;
+
+#ifdef SPARC
+    case lir_pack64:
+      pack64(op->in_opr(), op->result_opr());
+      break;
+
+    case lir_unpack64:
+      unpack64(op->in_opr(), op->result_opr());
+      break;
+#endif
 
     case lir_unwind:
       unwind_op(op->in_opr());

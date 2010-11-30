@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2005, 2006, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -64,7 +64,7 @@ inline bool LinearScanWalker::pd_init_regs_for_alloc(Interval* cur) {
     _first_reg = pd_first_callee_saved_reg;
     _last_reg = pd_last_callee_saved_reg;
     return true;
-  } else if (cur->type() == T_INT || cur->type() == T_LONG || cur->type() == T_OBJECT) {
+  } else if (cur->type() == T_INT || cur->type() == T_LONG || cur->type() == T_OBJECT || cur->type() == T_ADDRESS) {
     _first_reg = pd_first_cpu_reg;
     _last_reg = pd_last_allocatable_cpu_reg;
     return true;

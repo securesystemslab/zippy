@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2007 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2007, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -259,6 +259,8 @@ private:
   static const TypeFunc* checkcast_arraycopy_Type();
   static const TypeFunc* generic_arraycopy_Type();
   static const TypeFunc* slow_arraycopy_Type();   // the full routine
+
+  static const TypeFunc* array_fill_Type();
 
   // leaf on stack replacement interpreter accessor types
   static const TypeFunc* osr_end_Type();

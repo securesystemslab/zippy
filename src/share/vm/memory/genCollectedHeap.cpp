@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -142,8 +142,7 @@ jint GenCollectedHeap::initialize() {
   }
   _perm_gen = perm_gen_spec->init(heap_rs, PermSize, rem_set());
 
-  clear_incremental_collection_will_fail();
-  clear_last_incremental_collection_failed();
+  clear_incremental_collection_failed();
 
 #ifndef SERIALGC
   // If we are running CMS, create the collector responsible
@@ -179,9 +178,14 @@ char* GenCollectedHeap::allocate(size_t alignment,
     }
     n_covered_regions += _gen_specs[i]->n_covered_regions();
   }
-  assert(total_reserved % pageSize == 0, "Gen size");
+  assert(total_reserved % pageSize == 0,
+         err_msg("Gen size; total_reserved=" SIZE_FORMAT ", pageSize="
+                 SIZE_FORMAT, total_reserved, pageSize));
   total_reserved += perm_gen_spec->max_size();
-  assert(total_reserved % pageSize == 0, "Perm Gen size");
+  assert(total_reserved % pageSize == 0,
+         err_msg("Perm size; total_reserved=" SIZE_FORMAT ", pageSize="
+                 SIZE_FORMAT ", perm gen max=" SIZE_FORMAT, total_reserved,
+                 pageSize, perm_gen_spec->max_size()));
 
   if (total_reserved < perm_gen_spec->max_size()) {
     vm_exit_during_initialization(overflow_msg);
@@ -410,9 +414,9 @@ bool GenCollectedHeap::must_clear_all_soft_refs() {
 }
 
 bool GenCollectedHeap::should_do_concurrent_full_gc(GCCause::Cause cause) {
-  return (cause == GCCause::_java_lang_system_gc ||
-          cause == GCCause::_gc_locker) &&
-         UseConcMarkSweepGC && ExplicitGCInvokesConcurrent;
+  return UseConcMarkSweepGC &&
+         ((cause == GCCause::_gc_locker && GCLockerInvokesConcurrent) ||
+          (cause == GCCause::_java_lang_system_gc && ExplicitGCInvokesConcurrent));
 }
 
 void GenCollectedHeap::do_collection(bool  full,
@@ -671,7 +675,7 @@ HeapWord* GenCollectedHeap::satisfy_failed_allocation(size_t size, bool is_tlab)
 
 void GenCollectedHeap::set_par_threads(int t) {
   SharedHeap::set_par_threads(t);
-  _gen_process_strong_tasks->set_par_threads(t);
+  _gen_process_strong_tasks->set_n_threads(t);
 }
 
 class AssertIsPermClosure: public OopClosure {
@@ -936,7 +940,9 @@ bool GenCollectedHeap::is_in(const void* p) const {
             VerifyBeforeExit ||
             PrintAssembly    ||
             tty->count() != 0 ||   // already printing
-            VerifyAfterGC, "too expensive");
+            VerifyAfterGC    ||
+    VMError::fatal_error_in_progress(), "too expensive");
+
   #endif
   // This might be sped up with a cache of the last generation that
   // answered yes.
@@ -1340,17 +1346,6 @@ class GenGCEpilogueClosure: public GenCollectedHeap::GenClosure {
 };
 
 void GenCollectedHeap::gc_epilogue(bool full) {
-  // Remember if a partial collection of the heap failed, and
-  // we did a complete collection.
-  if (full && incremental_collection_will_fail()) {
-    set_last_incremental_collection_failed();
-  } else {
-    clear_last_incremental_collection_failed();
-  }
-  // Clear the flag, if set; the generation gc_epilogues will set the
-  // flag again if the condition persists despite the collection.
-  clear_incremental_collection_will_fail();
-
 #ifdef COMPILER2
   assert(DerivedPointerTable::is_empty(), "derived pointer present");
   size_t actual_gap = pointer_delta((HeapWord*) (max_uintx-3), *(end_addr()));

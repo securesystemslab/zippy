@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2009 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -82,9 +82,6 @@ Mutex*   EvacFailureStack_lock        = NULL;
 Mutex*   DerivedPointerTableGC_lock   = NULL;
 Mutex*   Compile_lock                 = NULL;
 Monitor* MethodCompileQueue_lock      = NULL;
-#ifdef TIERED
-Monitor* C1_lock                      = NULL;
-#endif // TIERED
 Monitor* CompileThread_lock           = NULL;
 Mutex*   CompileTaskAlloc_lock        = NULL;
 Mutex*   CompileStatistics_lock       = NULL;
@@ -136,7 +133,7 @@ void assert_locked_or_safepoint(const Monitor * lock) {
   // see if invoker of VM operation owns it
   VM_Operation* op = VMThread::vm_operation();
   if (op != NULL && op->calling_thread() == lock->owner()) return;
-  fatal1("must own lock %s", lock->name());
+  fatal(err_msg("must own lock %s", lock->name()));
 }
 
 // a stronger assertion than the above
@@ -144,7 +141,7 @@ void assert_lock_strong(const Monitor * lock) {
   if (IgnoreLockingAssertions) return;
   assert(lock != NULL, "Need non-NULL lock");
   if (lock->owned_by_self()) return;
-  fatal1("must own lock %s", lock->name());
+  fatal(err_msg("must own lock %s", lock->name()));
 }
 #endif
 
@@ -162,6 +159,8 @@ void mutex_init() {
   def(STS_init_lock              , Mutex,   leaf,        true );
   if (UseConcMarkSweepGC) {
     def(iCMS_lock                  , Monitor, special,     true ); // CMS incremental mode start/stop notification
+  }
+  if (UseConcMarkSweepGC || UseG1GC) {
     def(FullGCCount_lock           , Monitor, leaf,        true ); // in support of ExplicitGCInvokesConcurrent
   }
   if (UseG1GC) {
@@ -255,11 +254,6 @@ void mutex_init() {
   def(Debug3_lock                  , Mutex  , nonleaf+4,   true );
   def(ProfileVM_lock               , Monitor, nonleaf+4,   false); // used for profiling of the VMThread
   def(CompileThread_lock           , Monitor, nonleaf+5,   false );
-#ifdef TIERED
-  def(C1_lock                      , Monitor, nonleaf+5,   false );
-#endif // TIERED
-
-
 }
 
 GCMutexLocker::GCMutexLocker(Monitor * mutex) {

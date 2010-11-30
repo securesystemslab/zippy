@@ -1,5 +1,5 @@
 #
-# Copyright 1999-2009 Sun Microsystems, Inc.  All Rights Reserved.
+# Copyright (c) 1999, 2009, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-# CA 95054 USA or visit www.sun.com if you need additional information or
-# have any questions.
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
 #  
 #
 
@@ -138,7 +138,11 @@ ADLCFLAGS += -q -T
 
 # Normally, debugging is done directly on the ad_<arch>*.cpp files.
 # But -g will put #line directives in those files pointing back to <arch>.ad.
+# Some builds of gcc 3.2 have a bug that gets tickled by the extra #line directives
+# so skip it for 3.2 and ealier.
+ifneq "$(shell expr \( $(CC_VER_MAJOR) \> 3 \) \| \( \( $(CC_VER_MAJOR) = 3 \) \& \( $(CC_VER_MINOR) \>= 3 \) \))" "0"
 ADLCFLAGS += -g
+endif
 
 ifdef LP64
 ADLCFLAGS += -D_LP64

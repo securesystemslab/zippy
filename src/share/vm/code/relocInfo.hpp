@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2008 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -502,8 +502,7 @@ class RelocationHolder VALUE_OBJ_CLASS_SPEC {
 //   }
 
 class RelocIterator : public StackObj {
-  enum { SECT_CONSTS = 2,
-         SECT_LIMIT = 3 };  // must be equal to CodeBuffer::SECT_LIMIT
+  enum { SECT_LIMIT = 3 };  // must be equal to CodeBuffer::SECT_LIMIT, checked in ctor
   friend class Relocation;
   friend class relocInfo;       // for change_reloc_info_for_address only
   typedef relocInfo::relocType relocType;
@@ -512,7 +511,7 @@ class RelocIterator : public StackObj {
   address    _limit;   // stop producing relocations after this _addr
   relocInfo* _current; // the current relocation information
   relocInfo* _end;     // end marker; we're done iterating when _current == _end
-  CodeBlob*  _code;    // compiled method containing _addr
+  nmethod*   _code;    // compiled method containing _addr
   address    _addr;    // instruction to which the relocation applies
   short      _databuf; // spare buffer for compressed data
   short*     _data;    // pointer to the relocation's data
@@ -521,6 +520,7 @@ class RelocIterator : public StackObj {
 
   // Base addresses needed to compute targets of section_word_type relocs.
   address    _section_start[SECT_LIMIT];
+  address    _section_end  [SECT_LIMIT];
 
   void set_has_current(bool b) {
     _datalen = !b ? -1 : 0;
@@ -540,16 +540,9 @@ class RelocIterator : public StackObj {
 
   void advance_over_prefix();    // helper method
 
-  void initialize_misc() {
-    set_has_current(false);
-    for (int i = 0; i < SECT_LIMIT; i++) {
-      _section_start[i] = NULL;  // these will be lazily computed, if needed
-    }
-  }
+  void initialize_misc();
 
-  address compute_section_start(int n) const;  // out-of-line helper
-
-  void initialize(CodeBlob* nm, address begin, address limit);
+  void initialize(nmethod* nm, address begin, address limit);
 
   friend class PatchingRelocIterator;
   // make an uninitialized one, for PatchingRelocIterator:
@@ -557,7 +550,7 @@ class RelocIterator : public StackObj {
 
  public:
   // constructor
-  RelocIterator(CodeBlob* cb,    address begin = NULL, address limit = NULL);
+  RelocIterator(nmethod* nm,     address begin = NULL, address limit = NULL);
   RelocIterator(CodeSection* cb, address begin = NULL, address limit = NULL);
 
   // get next reloc info, return !eos
@@ -592,17 +585,21 @@ class RelocIterator : public StackObj {
   relocType    type()         const { return current()->type(); }
   int          format()       const { return (relocInfo::have_format) ? current()->format() : 0; }
   address      addr()         const { return _addr; }
-  CodeBlob*    code()         const { return _code; }
+  nmethod*     code()         const { return _code; }
   short*       data()         const { return _data; }
   int          datalen()      const { return _datalen; }
   bool     has_current()      const { return _datalen >= 0; }
 
   void       set_addr(address addr) { _addr = addr; }
-  bool   addr_in_const()      const { return addr() >= section_start(SECT_CONSTS); }
+  bool   addr_in_const()      const;
 
   address section_start(int n) const {
-    address res = _section_start[n];
-    return (res != NULL) ? res : compute_section_start(n);
+    assert(_section_start[n], "must be initialized");
+    return _section_start[n];
+  }
+  address section_end(int n) const {
+    assert(_section_end[n], "must be initialized");
+    return _section_end[n];
   }
 
   // The address points to the affected displacement part of the instruction.
@@ -790,9 +787,9 @@ class Relocation VALUE_OBJ_CLASS_SPEC {
 
  public:
   // accessors which only make sense for a bound Relocation
-  address   addr()         const { return binding()->addr(); }
-  CodeBlob* code()         const { return binding()->code(); }
-  bool      addr_in_const() const { return binding()->addr_in_const(); }
+  address  addr()         const { return binding()->addr(); }
+  nmethod* code()         const { return binding()->code(); }
+  bool     addr_in_const() const { return binding()->addr_in_const(); }
  protected:
   short*   data()         const { return binding()->data(); }
   int      datalen()      const { return binding()->datalen(); }
@@ -982,12 +979,12 @@ class virtual_call_Relocation : public CallRelocation {
 
   // Figure out where an ic_call is hiding, given a set-oop or call.
   // Either ic_call or first_oop must be non-null; the other is deduced.
-  // Code if non-NULL must be the CodeBlob, else it is deduced.
+  // Code if non-NULL must be the nmethod, else it is deduced.
   // The address of the patchable oop is also deduced.
   // The returned iterator will enumerate over the oops and the ic_call,
   // as well as any other relocations that happen to be in that span of code.
   // Recognize relevant set_oops with:  oop_reloc()->oop_addr() == oop_addr.
-  static RelocIterator parse_ic(CodeBlob* &code, address &ic_call, address &first_oop, oop* &oop_addr, bool *is_optimized);
+  static RelocIterator parse_ic(nmethod* &nm, address &ic_call, address &first_oop, oop* &oop_addr, bool *is_optimized);
 };
 
 
@@ -1304,8 +1301,8 @@ inline name##_Relocation* RelocIterator::name##_reloc() {       \
 APPLY_TO_RELOCATIONS(EACH_CASE);
 #undef EACH_CASE
 
-inline RelocIterator::RelocIterator(CodeBlob* cb, address begin, address limit) {
-  initialize(cb, begin, limit);
+inline RelocIterator::RelocIterator(nmethod* nm, address begin, address limit) {
+  initialize(nm, begin, limit);
 }
 
 // if you are going to patch code, you should use this subclass of
@@ -1323,8 +1320,8 @@ class PatchingRelocIterator : public RelocIterator {
   void        operator=(const RelocIterator&);
 
  public:
-  PatchingRelocIterator(CodeBlob* cb, address begin =NULL, address limit =NULL)
-    : RelocIterator(cb, begin, limit)                { prepass();  }
+  PatchingRelocIterator(nmethod* nm, address begin = NULL, address limit = NULL)
+    : RelocIterator(nm, begin, limit)                { prepass();  }
 
   ~PatchingRelocIterator()                           { postpass(); }
 };

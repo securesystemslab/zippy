@@ -1,5 +1,5 @@
 /*
- * Copyright 1997-2010 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -16,9 +16,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  *
  */
 
@@ -214,7 +214,7 @@ address TemplateInterpreterGenerator::generate_return_entry_for(TosState state, 
     __ cmpb(Address(rsi, 0), Bytecodes::_invokedynamic);
     __ jcc(Assembler::equal, L_giant_index);
   }
-  __ get_cache_and_index_at_bcp(rbx, rcx, 1, false);
+  __ get_cache_and_index_at_bcp(rbx, rcx, 1, sizeof(u2));
   __ bind(L_got_cache);
   __ movl(rbx, Address(rbx, rcx,
                     Address::times_ptr, constantPoolCacheOopDesc::base_offset() +
@@ -226,7 +226,7 @@ address TemplateInterpreterGenerator::generate_return_entry_for(TosState state, 
   // out of the main line of code...
   if (EnableInvokeDynamic) {
     __ bind(L_giant_index);
-    __ get_cache_and_index_at_bcp(rbx, rcx, 1, true);
+    __ get_cache_and_index_at_bcp(rbx, rcx, 1, sizeof(u4));
     __ jmp(L_got_cache);
   }
 
@@ -305,7 +305,6 @@ address TemplateInterpreterGenerator::generate_result_handler_for(BasicType type
     case T_FLOAT  :
       { const Register t = InterpreterRuntime::SignatureHandlerGenerator::temp();
         __ pop(t);                            // remove return address first
-        __ pop_dtos_to_rsp();
         // Must return a result for interpreter or compiler. In SSE
         // mode, results are returned in xmm0 and the FPU stack must
         // be empty.
@@ -360,40 +359,62 @@ address TemplateInterpreterGenerator::generate_safept_entry_for(TosState state, 
 // rcx: invocation counter
 //
 void InterpreterGenerator::generate_counter_incr(Label* overflow, Label* profile_method, Label* profile_method_continue) {
+  const Address invocation_counter(rbx, in_bytes(methodOopDesc::invocation_counter_offset()) +
+                                        in_bytes(InvocationCounter::counter_offset()));
+  // Note: In tiered we increment either counters in methodOop or in MDO depending if we're profiling or not.
+  if (TieredCompilation) {
+    int increment = InvocationCounter::count_increment;
+    int mask = ((1 << Tier0InvokeNotifyFreqLog)  - 1) << InvocationCounter::count_shift;
+    Label no_mdo, done;
+    if (ProfileInterpreter) {
+      // Are we profiling?
+      __ movptr(rax, Address(rbx, methodOopDesc::method_data_offset()));
+      __ testptr(rax, rax);
+      __ jccb(Assembler::zero, no_mdo);
+      // Increment counter in the MDO
+      const Address mdo_invocation_counter(rax, in_bytes(methodDataOopDesc::invocation_counter_offset()) +
+                                                in_bytes(InvocationCounter::counter_offset()));
+      __ increment_mask_and_jump(mdo_invocation_counter, increment, mask, rcx, false, Assembler::zero, overflow);
+      __ jmpb(done);
+    }
+    __ bind(no_mdo);
+    // Increment counter in methodOop (we don't need to load it, it's in rcx).
+    __ increment_mask_and_jump(invocation_counter, increment, mask, rcx, true, Assembler::zero, overflow);
+    __ bind(done);
+  } else {
+    const Address backedge_counter  (rbx, methodOopDesc::backedge_counter_offset() +
+                                          InvocationCounter::counter_offset());
 
-  const Address invocation_counter(rbx, methodOopDesc::invocation_counter_offset() + InvocationCounter::counter_offset());
-  const Address backedge_counter  (rbx, methodOopDesc::backedge_counter_offset() + InvocationCounter::counter_offset());
+    if (ProfileInterpreter) { // %%% Merge this into methodDataOop
+      __ incrementl(Address(rbx,methodOopDesc::interpreter_invocation_counter_offset()));
+    }
+    // Update standard invocation counters
+    __ movl(rax, backedge_counter);               // load backedge counter
 
-  if (ProfileInterpreter) { // %%% Merge this into methodDataOop
-    __ incrementl(Address(rbx,methodOopDesc::interpreter_invocation_counter_offset()));
-  }
-  // Update standard invocation counters
-  __ movl(rax, backedge_counter);               // load backedge counter
+    __ incrementl(rcx, InvocationCounter::count_increment);
+    __ andl(rax, InvocationCounter::count_mask_value);  // mask out the status bits
 
-  __ incrementl(rcx, InvocationCounter::count_increment);
-  __ andl(rax, InvocationCounter::count_mask_value);  // mask out the status bits
+    __ movl(invocation_counter, rcx);             // save invocation count
+    __ addl(rcx, rax);                            // add both counters
 
-  __ movl(invocation_counter, rcx);             // save invocation count
-  __ addl(rcx, rax);                            // add both counters
+    // profile_method is non-null only for interpreted method so
+    // profile_method != NULL == !native_call
+    // BytecodeInterpreter only calls for native so code is elided.
 
-  // profile_method is non-null only for interpreted method so
-  // profile_method != NULL == !native_call
-  // BytecodeInterpreter only calls for native so code is elided.
+    if (ProfileInterpreter && profile_method != NULL) {
+      // Test to see if we should create a method data oop
+      __ cmp32(rcx,
+               ExternalAddress((address)&InvocationCounter::InterpreterProfileLimit));
+      __ jcc(Assembler::less, *profile_method_continue);
 
-  if (ProfileInterpreter && profile_method != NULL) {
-    // Test to see if we should create a method data oop
+      // if no method data exists, go to profile_method
+      __ test_method_data_pointer(rax, *profile_method);
+    }
+
     __ cmp32(rcx,
-             ExternalAddress((address)&InvocationCounter::InterpreterProfileLimit));
-    __ jcc(Assembler::less, *profile_method_continue);
-
-    // if no method data exists, go to profile_method
-    __ test_method_data_pointer(rax, *profile_method);
+             ExternalAddress((address)&InvocationCounter::InterpreterInvocationLimit));
+    __ jcc(Assembler::aboveEqual, *overflow);
   }
-
-  __ cmp32(rcx,
-           ExternalAddress((address)&InvocationCounter::InterpreterInvocationLimit));
-  __ jcc(Assembler::aboveEqual, *overflow);
-
 }
 
 void InterpreterGenerator::generate_counter_overflow(Label* do_continue) {
@@ -468,7 +489,7 @@ void InterpreterGenerator::generate_stack_overflow_check(void) {
   // see if the frame is greater than one page in size. If so,
   // then we need to verify there is enough stack space remaining
   // for the additional locals.
-  __ cmpl(rdx, (page_size - overhead_size)/Interpreter::stackElementSize());
+  __ cmpl(rdx, (page_size - overhead_size)/Interpreter::stackElementSize);
   __ jcc(Assembler::belowEqual, after_frame_check);
 
   // compute rsp as if this were going to be the last frame on
@@ -882,7 +903,7 @@ address InterpreterGenerator::generate_native_entry(bool synchronized) {
   __ get_method(method);
   __ verify_oop(method);
   __ load_unsigned_short(t, Address(method, methodOopDesc::size_of_parameters_offset()));
-  __ shlptr(t, Interpreter::logStackElementSize());
+  __ shlptr(t, Interpreter::logStackElementSize);
   __ addptr(t, 2*wordSize);     // allocate two more slots for JNIEnv and possible mirror
   __ subptr(rsp, t);
   __ andptr(rsp, -(StackAlignmentInBytes)); // gcc needs 16 byte aligned stacks to do XMM intrinsics
@@ -1225,9 +1246,6 @@ address InterpreterGenerator::generate_normal_entry(bool synchronized) {
     __ testl(rdx, rdx);
     __ jcc(Assembler::lessEqual, exit);               // do nothing if rdx <= 0
     __ bind(loop);
-    if (TaggedStackInterpreter) {
-      __ push((int32_t)NULL_WORD);                    // push tag
-    }
     __ push((int32_t)NULL_WORD);                      // initialize local variables
     __ decrement(rdx);                                // until everything initialized
     __ jcc(Assembler::greater, loop);
@@ -1463,7 +1481,7 @@ int AbstractInterpreter::size_top_interpreter_activation(methodOop method) {
 
   const int extra_stack = methodOopDesc::extra_stack_entries();
   const int method_stack = (method->max_locals() + method->max_stack() + extra_stack) *
-                           Interpreter::stackElementWords();
+                           Interpreter::stackElementWords;
   return overhead_size + method_stack + stub_code;
 }
 
@@ -1487,9 +1505,9 @@ int AbstractInterpreter::layout_activation(methodOop method,
   // NOTE: return size is in words not bytes
 
   // fixed size of an interpreter frame:
-  int max_locals = method->max_locals() * Interpreter::stackElementWords();
+  int max_locals = method->max_locals() * Interpreter::stackElementWords;
   int extra_locals = (method->max_locals() - method->size_of_parameters()) *
-                     Interpreter::stackElementWords();
+                     Interpreter::stackElementWords;
 
   int overhead = frame::sender_sp_offset - frame::interpreter_frame_initial_sp_offset;
 
@@ -1499,9 +1517,9 @@ int AbstractInterpreter::layout_activation(methodOop method,
 
 
   int size = overhead +
-         ((callee_locals - callee_param_count)*Interpreter::stackElementWords()) +
+         ((callee_locals - callee_param_count)*Interpreter::stackElementWords) +
          (moncount*frame::interpreter_frame_monitor_size()) +
-         tempcount*Interpreter::stackElementWords() + popframe_extra_args;
+         tempcount*Interpreter::stackElementWords + popframe_extra_args;
 
   if (interpreter_frame != NULL) {
 #ifdef ASSERT
@@ -1525,7 +1543,7 @@ int AbstractInterpreter::layout_activation(methodOop method,
 
     // Set last_sp
     intptr_t*  rsp = (intptr_t*) monbot  -
-                     tempcount*Interpreter::stackElementWords() -
+                     tempcount*Interpreter::stackElementWords -
                      popframe_extra_args;
     interpreter_frame->interpreter_frame_set_last_sp(rsp);
 
@@ -1625,7 +1643,7 @@ void TemplateInterpreterGenerator::generate_throw_exception() {
     __ get_method(rax);
     __ verify_oop(rax);
     __ load_unsigned_short(rax, Address(rax, in_bytes(methodOopDesc::size_of_parameters_offset())));
-    __ shlptr(rax, Interpreter::logStackElementSize());
+    __ shlptr(rax, Interpreter::logStackElementSize);
     __ restore_locals();
     __ subptr(rdi, rax);
     __ addptr(rdi, wordSize);
