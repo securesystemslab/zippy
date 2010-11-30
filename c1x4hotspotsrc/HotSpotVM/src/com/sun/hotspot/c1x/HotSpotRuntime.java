@@ -29,7 +29,6 @@ import com.sun.cri.ci.CiTargetMethod.Call;
 import com.sun.cri.ci.CiTargetMethod.DataPatch;
 import com.sun.cri.ci.CiTargetMethod.Safepoint;
 import com.sun.cri.ri.*;
-import com.sun.max.asm.*;
 import com.sun.max.asm.dis.*;
 import com.sun.max.lang.*;
 

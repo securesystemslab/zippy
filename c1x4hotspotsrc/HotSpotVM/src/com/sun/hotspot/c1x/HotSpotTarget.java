@@ -29,9 +29,8 @@ import com.sun.cri.ci.*;
  */
 public class HotSpotTarget extends CiTarget {
 
-    public HotSpotTarget(CiArchitecture arch, boolean isMP, int spillSlotSize, int wordSize, int referenceSize, int stackAlignment, int pageSize, int cacheAlignment,
-                    int heapAlignment, int codeAlignment, boolean inlineObjects) {
-        super(arch, isMP, spillSlotSize, wordSize, referenceSize, stackAlignment, pageSize, cacheAlignment, heapAlignment, codeAlignment, inlineObjects, true);
+    public HotSpotTarget(CiArchitecture arch, boolean isMP, int spillSlotSize, int stackAlignment, int pageSize, int cacheAlignment, boolean inlineObjects) {
+        super(arch, isMP, spillSlotSize, stackAlignment, pageSize, cacheAlignment, inlineObjects, true);
     }
 
     @Override

@@ -85,7 +85,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
         }
 
         if (globalStubConfig) {
-            registerSaveArea = new CiCalleeSaveArea(-1, rsaRegs, 8);
+            registerSaveArea = new CiCalleeSaveArea(-1, 8, rsaRegs);
         } else {
             registerSaveArea = CiCalleeSaveArea.EMPTY;
         }
@@ -101,7 +101,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
     }
 
     @Override
-    public CiRegister getRegister(int index) {
+    public CiRegister getRegisterForRole(int index) {
         throw new UnsupportedOperationException();
     }
 
@@ -113,7 +113,7 @@ public class HotSpotRegisterConfig implements RiRegisterConfig {
         return callingConvention(parameters, type, target);
     }
 
-    public CiRegister[] getCallingConventionRegisters(Type type) {
+    public CiRegister[] getCallingConventionRegisters(Type type, RegisterFlag flag) {
         return allParameterRegisters;
     }
 
