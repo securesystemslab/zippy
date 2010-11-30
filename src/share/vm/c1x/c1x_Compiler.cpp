@@ -36,9 +36,12 @@ C1XCompiler::C1XCompiler() {
 // Initialization
 void C1XCompiler::initialize() {
   if (_initialized) return;
-  Thread* THREAD = Thread::current();
+  CompilerThread* THREAD = CompilerThread::current();
   _initialized = true;
   TRACE_C1X_1("C1XCompiler::initialize");
+
+  initialize_buffer_blob();
+  Runtime1::initialize(THREAD->get_buffer_blob());
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntriesNative");
@@ -66,6 +69,21 @@ void C1XCompiler::initialize() {
   }
 }
 
+void C1XCompiler::initialize_buffer_blob() {
+
+  CompilerThread* THREAD = CompilerThread::current();
+  if (THREAD->get_buffer_blob() == NULL) {
+    // setup CodeBuffer.  Preallocate a BufferBlob of size
+    // NMethodSizeLimit plus some extra space for constants.
+    int code_buffer_size = Compilation::desired_max_code_buffer_size() +
+      Compilation::desired_max_constant_size();
+    BufferBlob* blob = BufferBlob::create("C1X temporary CodeBuffer",
+                                          code_buffer_size);
+    guarantee(blob != NULL, "must create code buffer");
+    THREAD->set_buffer_blob(blob);
+  }
+}
+
 // Compilation entry point for methods
 void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   initialize();
@@ -73,6 +91,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   ResourceMark rm;
   HandleMark hm;
 
+  initialize_buffer_blob();
   VmIds::initializeObjects();
 
   CompilerThread::current()->set_compiling(true);
@@ -156,7 +175,7 @@ BasicType C1XCompiler::kindToBasicType(jchar ch) {
     case 'r': return T_ADDRESS;
     case '-': return T_ILLEGAL;
     default:
-      fatal1("unexpected CiKind: %c", ch);
+      fatal(err_msg("unexpected CiKind: %c", ch));
       break;
   }
 }

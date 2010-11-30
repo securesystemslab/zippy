@@ -795,10 +795,10 @@ nmethod::nmethod(
     // Exception handler and deopt handler are in the stub section
     if (UseC1X) {
       // c1x produces no stub section
-      _exception_offset        = instructions_offset() + offsets->value(CodeOffsets::Exceptions);
-      _deoptimize_offset       = instructions_offset() + offsets->value(CodeOffsets::Deopt);
+      _exception_offset        = _stub_offset          + offsets->value(CodeOffsets::Exceptions);
+      _deoptimize_offset       = _stub_offset          + offsets->value(CodeOffsets::Deopt);
       if (has_method_handle_invokes()) {
-        _deoptimize_mh_offset    = instructions_offset() + offsets->value(CodeOffsets::DeoptMH);
+        _deoptimize_mh_offset  = _stub_offset          + offsets->value(CodeOffsets::DeoptMH);
       } else {
         _deoptimize_mh_offset  = -1;
       }

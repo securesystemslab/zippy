@@ -213,6 +213,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jlong vmId, jint index, jbyte byteCode) {
   VM_ENTRY_MARK;
 
+  index = C1XCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = VmIds::get<constantPoolOop>(vmId);
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) byteCode) & 0xFF);
@@ -252,6 +253,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jlong vmId, jint index, jbyte byteCode) {
   VM_ENTRY_MARK;
 
+  index = C1XCompiler::to_cp_index_u2(index);
   constantPoolOop cp = VmIds::get<constantPoolOop>(vmId);
 
   ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());

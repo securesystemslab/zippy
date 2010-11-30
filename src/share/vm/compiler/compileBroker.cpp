@@ -531,7 +531,7 @@ void CompileBroker::bootstrap_c1x() {
 
   instanceKlass* klass = (instanceKlass*)SystemDictionary::Object_klass()->klass_part();
   methodOop method = klass->find_method(vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
-  CompileBroker::compile_method(method, -1, method, 0, "initial compile of object initializer", THREAD);
+  CompileBroker::compile_method(method, -1, 0, method, 0, "initial compile of object initializer", THREAD);
   if (HAS_PENDING_EXCEPTION) {
     CLEAR_PENDING_EXCEPTION;
     fatal("error inserting object initializer into compile queue");
@@ -542,8 +542,8 @@ void CompileBroker::bootstrap_c1x() {
     {
       HandleMark hm;
       ResourceMark rm;
-      MutexLocker locker(_method_queue->lock(), Thread::current());
-      if (_method_queue->is_empty()) {
+      MutexLocker locker(_c1_method_queue->lock(), Thread::current());
+      if (_c1_method_queue->is_empty()) {
         MutexLocker mu(Threads_lock); // grab Threads_lock
         JavaThread* current = Threads::first();
         bool compiling = false;
@@ -565,7 +565,7 @@ void CompileBroker::bootstrap_c1x() {
         }
       }
       if (TraceC1X >= 4) {
-        _method_queue->print();
+        _c1_method_queue->print();
       }
     }
 

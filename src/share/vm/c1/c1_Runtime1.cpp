@@ -148,8 +148,6 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case counter_overflow_id: // Not generated outside the tiered world
 #endif
 #ifdef SPARC
-    case counter_overflow_id:
-#if defined(SPARC) || defined(PPC)
     case handle_exception_nofpu_id:  // Unused on sparc
 #endif
       break;

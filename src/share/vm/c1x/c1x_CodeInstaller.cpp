@@ -172,7 +172,8 @@ CodeInstaller::CodeInstaller(oop target_method) {
   }
 
   // (very) conservative estimate: each site needs a relocation
-  CodeBuffer buffer("temp c1x method", _total_size, _sites->length() * relocInfo::length_limit);
+  //CodeBuffer buffer("temp c1x method", _total_size, _sites->length() * relocInfo::length_limit);
+  CodeBuffer buffer(CompilerThread::current()->get_buffer_blob());
   initialize_buffer(buffer);
   process_exception_handlers();
 
@@ -192,13 +193,13 @@ CodeInstaller::CodeInstaller(oop target_method, jlong& id) {
   assert(_hotspot_method == NULL && _name != NULL, "installMethod needs NON-NULL name and NULL method");
 
   // (very) conservative estimate: each site needs a relocation
-  CodeBuffer buffer("temp c1x stub", _total_size, _sites->length() * relocInfo::length_limit);
+  CodeBuffer buffer(CompilerThread::current()->get_buffer_blob());
   initialize_buffer(buffer);
 
   const char* cname = java_lang_String::as_utf8_string(_name);
   BufferBlob* blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
   IF_TRACE_C1X_3 Disassembler::decode((CodeBlob*) blob);
-  id = VmIds::addStub(blob->instructions_begin());
+  id = VmIds::addStub(blob->code_begin());
 }
 
 void CodeInstaller::initialize_fields(oop target_method) {
@@ -221,6 +222,12 @@ void CodeInstaller::initialize_fields(oop target_method) {
 
 // perform data and call relocation on the CodeBuffer
 void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
+  int locs_buffer_size = _sites->length() * (relocInfo::length_limit + sizeof(relocInfo));
+  char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
+  buffer.insts()->initialize_shared_locs((relocInfo*)locs_buffer, locs_buffer_size / sizeof(relocInfo));
+  buffer.initialize_stubs_size(256);
+  buffer.initialize_consts_size(_constants_size);
+
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
   _debug_recorder = new DebugInformationRecorder(_env->oop_recorder());
@@ -232,7 +239,6 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   _env->set_dependencies(_dependencies);
   buffer.initialize_oop_recorder(_oop_recorder);
 
-  buffer.initialize_consts_size(_constants_size);
   _instructions = buffer.insts();
   _constants = buffer.consts();
 
@@ -498,7 +504,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       }
       case MARK_INVOKE_INVALID:
       default:
-        fatal("invalid _next_call_type value")
+        fatal("invalid _next_call_type value");
         break;
     }
   }
@@ -563,7 +569,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       break;
     }
     default:
-      fatal("unexpected CiKind in DataPatch")
+      fatal("unexpected CiKind in DataPatch");
       break;
   }
 }
@@ -645,7 +651,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         break;
       }
       default:
-        ShouldNotReachHere()
+        ShouldNotReachHere();
         break;
     }
   }

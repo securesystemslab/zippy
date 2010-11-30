@@ -62,6 +62,18 @@ public:
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
 
   static BasicType kindToBasicType(jchar ch);
+
+  static int to_cp_index_u2(int index) {
+    // Swap.
+    index = ((index & 0xFF) << 8) | (index >> 8);
+    // Tag.
+    index = index + constantPoolOopDesc::CPCACHE_INDEX_TAG;
+    return index;
+  }
+
+private:
+
+  void initialize_buffer_blob();
 };
 
 // Tracing macros
