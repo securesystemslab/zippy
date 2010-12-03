@@ -143,6 +143,10 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
         return "HotSpotMethod<" + holder.name() + ". " + name + ", unresolved>";
     }
 
+    public boolean hasCompiledCode() {
+        return false;
+    }
+
     @Override
     public Class<?> accessor() {
         return null;

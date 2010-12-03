@@ -173,6 +173,12 @@ public class HotSpotMethodResolved implements HotSpotMethod {
         return "HotSpotMethod<" + holder().name() + ". " + name + ">";
     }
 
+    public boolean hasCompiledCode() {
+        // TODO: needs a VMEntries to go cache the result of that method.
+        // This isn't used by GRAAL for now, so this is enough.
+        return false;
+    }
+
     @Override
     public Class<?> accessor() {
         return null;
