@@ -56,14 +56,14 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public String disassemble(byte[] code) {
-        return disassemble(code, new DisassemblyPrinter(false));
+    public String disassemble(byte[] code, long address) {
+        return disassemble(code, new DisassemblyPrinter(false), address);
     }
 
-    private String disassemble(byte[] code, DisassemblyPrinter disassemblyPrinter) {
+    private String disassemble(byte[] code, DisassemblyPrinter disassemblyPrinter, long address) {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ISA instructionSet = ISA.AMD64;
-        Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, WordWidth.BITS_64, 0, null, disassemblyPrinter);
+        Disassembler.disassemble(byteArrayOutputStream, code, instructionSet, WordWidth.BITS_64, address, null, disassemblyPrinter);
         return byteArrayOutputStream.toString();
     }
 
@@ -120,7 +120,7 @@ public class HotSpotRuntime implements RiRuntime {
             }
         };
         final byte[] code = Arrays.copyOf(targetMethod.targetCode(), targetMethod.targetCodeSize());
-        return disassemble(code, disassemblyPrinter);
+        return disassemble(code, disassemblyPrinter, 0L);
     }
 
     @Override
