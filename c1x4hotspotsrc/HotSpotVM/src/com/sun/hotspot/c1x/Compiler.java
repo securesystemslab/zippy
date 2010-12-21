@@ -148,7 +148,7 @@ public final class Compiler {
         final int wordSize = 8;
         final int stackFrameAlignment = 16;
         registerConfig = runtime.globalStubRegConfig;
-        target = new HotSpotTarget(new AMD64(), true, wordSize, wordSize, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, wordSize, config.codeEntryAlignment, true);
+        target = new HotSpotTarget(new AMD64(), true, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, true);
 
         if (Logger.ENABLED) {
             generator = LoggingProxy.getProxy(RiXirGenerator.class, new HotSpotXirGenerator(config, target, registerConfig));
