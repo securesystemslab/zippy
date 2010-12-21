@@ -937,7 +937,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genArrayLoad(XirSite site, XirArgument array, XirArgument index, XirArgument length, CiKind elementKind, RiType elementType) {
-        if (length == null) {
+        if (length == null || !site.requiresBoundsCheck()) {
             return new XirSnippet(arrayLoadTemplates.get(site, elementKind), array, index);
         }
         return new XirSnippet(arrayLoadTemplates.get(site, elementKind, GIVEN_LENGTH), array, index, length);
@@ -945,7 +945,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
     @Override
     public XirSnippet genArrayStore(XirSite site, XirArgument array, XirArgument index, XirArgument length, XirArgument value, CiKind elementKind, RiType elementType) {
-        if (length == null) {
+        if (length == null || !site.requiresBoundsCheck()) {
             return new XirSnippet(arrayStoreTemplates.get(site, elementKind), array, index, value);
         }
         return new XirSnippet(arrayStoreTemplates.get(site, elementKind, GIVEN_LENGTH), array, index, value, length);
