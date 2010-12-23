@@ -51,6 +51,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     private static final Integer MARK_OSR_ENTRY                 = 0x0003;
     private static final Integer MARK_UNWIND_ENTRY              = 0x0004;
     private static final Integer MARK_EXCEPTION_HANDLER_ENTRY   = 0x0005;
+    private static final Integer MARK_DEOPT_HANDLER_ENTRY       = 0x0006;
 
     private static final Integer MARK_STATIC_CALL_STUB          = 0x1000;
 
@@ -126,6 +127,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
             asm.mark(MARK_EXCEPTION_HANDLER_ENTRY);
             asm.callRuntime(config.handleExceptionStub, null);
+            asm.shouldNotReachHere();
+
+            asm.nop(1);
+            asm.mark(MARK_DEOPT_HANDLER_ENTRY);
+            asm.callRuntime(config.handleDeoptStub, null);
             asm.shouldNotReachHere();
 
             if (!is(STATIC_METHOD, flags)) {
@@ -663,11 +669,10 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 } else {
                     length = asm.createTemp("length", CiKind.Int);
                     if (implicitNullException) {
-                        asm.nop(1);
+                        //asm.nop(1);
                         asm.mark(MARK_IMPLICIT_NULL);
                     }
                     asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), implicitNullException);
-                    implicitNullException = false;
                 }
                 asm.jugteq(failBoundsCheck, index, length);
                 implicitNullException = false;
@@ -1087,6 +1092,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.bindOutOfLine(patchStub);
             asm.callRuntime(config.accessFieldStub, null);
             asm.jmp(patchSite);
+
+            // Check if we need NOP instructions like in C1 to "not destroy the world".
 
             state = State.Finished;
         }

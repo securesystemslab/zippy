@@ -33,6 +33,8 @@
           "Bootstrap C1X before running Java main method")                  \
   product(intx, TraceC1X, 0,                                                \
           "Trace level for C1X")                                            \
+  product(bool, TraceSignals, false,                                        \
+          "Trace signals and implicit exception handling")                  \
   /* Printing */                                                            \
   notproduct(bool, PrintC1Statistics, false,                                \
           "Print Compiler1 statistics" )                                    \

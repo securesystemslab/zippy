@@ -255,6 +255,17 @@ JVM_handle_linux_signal(int sig,
     }
 #endif // AMD64
 
+    if (TraceSignals) {
+    CodeBlob* cb = CodeCache::find_blob(pc);
+      if (cb != NULL && cb->is_nmethod()) {
+        nmethod* nm = (nmethod*)cb;
+        int rel = pc - nm->code_begin();
+        tty->print_cr("Implicit exception at %d of method %s", rel, nm->method()->name()->as_C_string());
+      } else {
+        tty->print_cr("No code blob found for %x", pc);
+      }
+    }
+
     // Handle ALL stack overflow variations here
     if (sig == SIGSEGV) {
       address addr = (address) info->si_addr;
@@ -354,8 +365,15 @@ JVM_handle_linux_signal(int sig,
 #endif // AMD64
       } else if (sig == SIGSEGV &&
                !MacroAssembler::needs_explicit_null_check((intptr_t)info->si_addr)) {
+          if (TraceSignals) {
+            tty->print_cr("Implicit exception continuation");
+          }
           // Determination of interpreter/vtable stub/compiled code null exception
           stub = SharedRuntime::continuation_for_implicit_exception(thread, pc, SharedRuntime::IMPLICIT_NULL);
+      } else if (sig == SIGSEGV) {
+        if (TraceSignals) {
+          tty->print_cr("would have needed explicit null check %d", (intptr_t)info->si_addr);
+        }
       }
     } else if (thread->thread_state() == _thread_in_vm &&
                sig == SIGBUS && /* info->si_code == BUS_OBJERR && */

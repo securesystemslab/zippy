@@ -67,6 +67,7 @@ public class HotSpotVMConfig implements CompilerObject {
     public long inlineCacheMissStub;
     public long unwindExceptionStub;
     public long handleExceptionStub;
+    public long handleDeoptStub;
     public long throwClassCastException;
     public long throwArrayStoreException;
     public long throwArrayIndexException;

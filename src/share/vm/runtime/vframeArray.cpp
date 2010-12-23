@@ -300,9 +300,25 @@ void vframeArrayElement::unpack_on_stack(int callee_parameters,
     switch(value->type()) {
       case T_INT:
         *addr = value->get_int();
+#ifndef PRODUCT
+        if (TraceDeoptimization) {
+          tty->print_cr("Reconstructed expression %d (INT): %d", i, (int)(*addr));
+        }
+#endif
         break;
       case T_OBJECT:
         *addr = value->get_int(T_OBJECT);
+#ifndef PRODUCT
+        if (TraceDeoptimization) {
+          tty->print("Reconstructed expression %d (OBJECT): ", i);
+          oop o = (oop)(*addr);
+          if (o == NULL) {
+            tty->print_cr("NULL");
+          } else {
+            tty->print_cr(err_msg("%s", o->blueprint()->name()->as_C_string()));
+          }
+        }
+#endif
         break;
       case T_CONFLICT:
         // A dead stack slot.  Initialize to null in case it is an oop.
@@ -321,9 +337,25 @@ void vframeArrayElement::unpack_on_stack(int callee_parameters,
     switch(value->type()) {
       case T_INT:
         *addr = value->get_int();
+#ifndef PRODUCT
+        if (TraceDeoptimization) {
+          tty->print_cr("Reconstructed local %d (INT): %d", i, (int)(*addr));
+        }
+#endif
         break;
       case T_OBJECT:
         *addr = value->get_int(T_OBJECT);
+#ifndef PRODUCT
+        if (TraceDeoptimization) {
+          tty->print("Reconstructed local %d (OBJECT): ", i);
+          oop o = (oop)(*addr);
+          if (o == NULL) {
+            tty->print_cr("NULL");
+          } else {
+            tty->print_cr(err_msg("%s", o->blueprint()->name()->as_C_string()));
+          }
+        }
+#endif
         break;
       case T_CONFLICT:
         // A dead location. If it is an oop then we need a NULL to prevent GC from following it

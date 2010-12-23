@@ -162,10 +162,6 @@ CodeInstaller::CodeInstaller(oop target_method) {
     assert(_hotspot_method != NULL && _name == NULL, "installMethod needs NON-NULL method and NULL name");
     assert(_hotspot_method->is_a(HotSpotMethodResolved::klass()), "installMethod needs a HotSpotMethodResolved");
 
-    // TODO: This is a hack.. Produce correct entries.
-    _offsets.set_value(CodeOffsets::Exceptions, 0);
-    _offsets.set_value(CodeOffsets::Deopt, 0);
-
     methodOop method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(_hotspot_method));
     ciMethodObject = (ciMethod *) _env->get_object(method);
     _parameter_count = method->size_of_parameters();
@@ -365,6 +361,11 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
     GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
     GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
+
+    if (TraceC1X >= 2) {
+      tty->print_cr("Scope at bci %d with %d values", bci, values->length());
+      tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
+    }
 
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size);
@@ -599,6 +600,9 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         break;
       case MARK_EXCEPTION_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Exceptions, pc_offset);
+        break;
+      case MARK_DEOPT_HANDLER_ENTRY:
+        _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
       case MARK_STATIC_CALL_STUB: {
         assert(references->length() == 1, "static call stub needs one reference");

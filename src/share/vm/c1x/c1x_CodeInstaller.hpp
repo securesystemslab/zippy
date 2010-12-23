@@ -34,6 +34,7 @@ private:
     MARK_OSR_ENTRY                  = 0x0003,
     MARK_UNWIND_ENTRY               = 0x0004,
     MARK_EXCEPTION_HANDLER_ENTRY    = 0x0005,
+    MARK_DEOPT_HANDLER_ENTRY        = 0x0006,
     MARK_STATIC_CALL_STUB           = 0x1000,
     MARK_INVOKE_INVALID             = 0x2000,
     MARK_INVOKEINTERFACE            = 0x2001,
