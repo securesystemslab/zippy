@@ -114,6 +114,10 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // the vframeArray is created.
   //
 
+  if (TraceDeoptimization) {
+    tty->print_cr("fetching unroll info");
+  }
+
   // Allocate our special deoptimization ResourceMark
   DeoptResourceMark* dmark = new DeoptResourceMark(thread);
   assert(thread->deopt_mark() == NULL, "Pending deopt!");

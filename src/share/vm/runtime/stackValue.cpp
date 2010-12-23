@@ -114,6 +114,14 @@ StackValue* StackValue::create_stack_value(const frame* fr, const RegisterMap* r
          val = (oop)NULL;
       }
 #endif
+#ifndef PRODUCT
+      if (!val->is_oop()) {
+        tty->print_cr("found wrong oop %x at location:", val);
+        sv->print();
+        tty->print_cr("");
+        tty->print_cr("one less %d; one more %d", (*(((oop *)value_addr) - 1))->is_oop(), (*(((oop *)value_addr) + 1))->is_oop());
+      }
+#endif
       Handle h(val); // Wrap a handle around the oop
       return new StackValue(h);
     }

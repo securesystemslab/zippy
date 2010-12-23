@@ -52,6 +52,12 @@ StackValueCollection* compiledVFrame::locals() const {
     }
   }
 
+  if (TraceDeoptimization) {
+    tty->print_cr("bci=%d length=%d", this->bci(), length);
+    tty->print_cr(err_msg("method name = %s", this->method()->name()->as_C_string()));
+    tty->print_cr("relative pc=%d", this->fr().pc() - this->nm()->code_begin());
+  }
+
   for( int i = 0; i < length; i++ ) {
     result->add( create_stack_value(scv_list->at(i)) );
   }

@@ -350,6 +350,10 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 
+  if (TraceC1X >= 2) {
+    tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
+  }
+
   if (frame != NULL) {
     jint local_count = CiDebugInfo_Frame::numLocals(frame);
     jint expression_count = CiDebugInfo_Frame::numStack(frame);

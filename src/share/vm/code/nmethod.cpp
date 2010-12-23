@@ -1099,6 +1099,12 @@ void nmethod::fix_oop_relocations(address begin, address end, bool initialize_im
 
 ScopeDesc* nmethod::scope_desc_at(address pc) {
   PcDesc* pd = pc_desc_at(pc);
+#ifdef ASSERT
+  if (pd == NULL) {
+    tty->print_cr(err_msg("Missing scope at relative pc %d of method %s", pc - code_begin(), this->method()->name()->as_C_string()));
+    print_pcs();
+  }
+#endif
   guarantee(pd != NULL, "scope must be present");
   return new ScopeDesc(this, pd->scope_decode_offset(),
                        pd->obj_decode_offset(), pd->should_reexecute(),
