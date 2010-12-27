@@ -1585,8 +1585,9 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
   // Allocate a new set of JNI handles.
   push_jni_handle_block();
   jobject target_handle = JNIHandles::make_local(thread, JNIHandles::resolve(task->method_handle()));
-  int compilable = ciEnv::MethodCompilable;
-  {
+  int compilable = ciEnv::MethodCompilable_never;
+  if (MaxCompilationID == -1 || compile_id <= (uint)MaxCompilationID) {
+    compilable = ciEnv::MethodCompilable;
     int system_dictionary_modification_counter;
     {
       MutexLocker locker(Compile_lock, thread);

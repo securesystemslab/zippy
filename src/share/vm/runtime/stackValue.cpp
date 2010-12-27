@@ -115,7 +115,7 @@ StackValue* StackValue::create_stack_value(const frame* fr, const RegisterMap* r
       }
 #endif
 #ifndef PRODUCT
-      if (!val->is_oop()) {
+      if (val != NULL && !val->is_oop()) {
         tty->print_cr("found wrong oop " INTPTR_FORMAT " at location:", val);
         sv->print();
         tty->print_cr("");

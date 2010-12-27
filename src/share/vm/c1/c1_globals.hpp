@@ -29,6 +29,8 @@
                                                                             \
   product(bool, UseC1X, false,                                              \
           "Use C1X instead of C1")                                          \
+  product(bool, C1XBailoutIsFatal, true,                                    \
+          "Abort the VM on C1X bailout")                                    \
   product(bool, BootstrapC1X, false,                                        \
           "Bootstrap C1X before running Java main method")                  \
   product(intx, TraceC1X, 0,                                                \

@@ -52,8 +52,7 @@ public class VMExitsNative implements VMExits {
         C1XOptions.IRChecking = false;
         C1XOptions.DetailedAsserts = false;
         C1XOptions.CommentedAssembly = true;
-        C1XOptions.MethodEndBreakpointGuards = 10;
-        C1XOptions.ZapStackOnMethodEntry = true;
+        C1XOptions.MethodEndBreakpointGuards = 2;
     }
 
     @Override

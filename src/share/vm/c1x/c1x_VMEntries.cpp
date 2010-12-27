@@ -517,7 +517,7 @@ JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_installStub(JNIEnv *j
 
 // public void recordBailout(String reason);
 JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_recordBailout(JNIEnv *jniEnv, jobject) {
-  //fatal("Bailout in C1X");
+  if (C1XBailoutIsFatal) fatal("Bailout in C1X");
 }
 
 
