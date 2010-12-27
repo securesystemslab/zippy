@@ -83,6 +83,7 @@ void c1x_compute_offsets();
   end_class                                                                             \
   start_class(CiTargetMethod)                                                           \
     int_field(CiTargetMethod, frameSize)                                                \
+    int_field(CiTargetMethod, customStackAreaOffset)                                    \
     oop_field(CiTargetMethod, targetCode, "[B")                                         \
     int_field(CiTargetMethod, targetCodeSize)                                           \
   end_class                                                                             \

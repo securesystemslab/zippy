@@ -59,6 +59,7 @@ private:
   arrayOop      _code;
   jint          _code_size;
   jint          _frame_size;
+  jint          _custom_stack_area_offset;
   jint          _parameter_count;
   jint          _constants_size;
   jint          _total_size;
@@ -78,14 +79,14 @@ private:
 public:
 
   // constructor used to create a method
-  CodeInstaller(oop target_method);
+  CodeInstaller(Handle target_method);
 
   // constructor used to create a stub
-  CodeInstaller(oop target_method, jlong& id);
+  CodeInstaller(Handle target_method, jlong& id);
 
 private:
   // extract the fields of the CiTargetMethod
-  void initialize_fields(oop target_method);
+  void initialize_fields(Handle target_method);
 
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);

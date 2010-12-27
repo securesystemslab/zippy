@@ -218,4 +218,12 @@ public class HotSpotRuntime implements RiRuntime {
     public RiRegisterConfig getRegisterConfig(RiMethod method) {
         return regConfig;
     }
+
+    /**
+     * HotSpots needs an area suitable for storing a program counter for temporary use during the deoptimization process.
+     */
+    @Override
+    public int getCustomStackAreaSize() {
+        return 8;
+    }
 }

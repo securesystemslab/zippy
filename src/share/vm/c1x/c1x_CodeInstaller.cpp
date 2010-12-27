@@ -152,7 +152,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(oop target_method) {
+CodeInstaller::CodeInstaller(Handle target_method) {
   ciMethod *ciMethodObject = NULL;
   {
     No_Safepoint_Verifier no_safepoint;
@@ -175,13 +175,13 @@ CodeInstaller::CodeInstaller(oop target_method) {
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
-  _env->register_method(ciMethodObject, -1, &_offsets, 0, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+  _env->register_method(ciMethodObject, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
       &_implicit_exception_table, C1XCompiler::instance(), _env->comp_level(), false, false);
 
 }
 
 // constructor used to create a stub
-CodeInstaller::CodeInstaller(oop target_method, jlong& id) {
+CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
   No_Safepoint_Verifier no_safepoint;
   _env = CURRENT_ENV;
 
@@ -198,7 +198,7 @@ CodeInstaller::CodeInstaller(oop target_method, jlong& id) {
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(oop target_method) {
+void CodeInstaller::initialize_fields(Handle target_method) {
   _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
   _hotspot_method = HotSpotTargetMethod::method(target_method);
   _name = HotSpotTargetMethod::name(target_method);
@@ -208,6 +208,8 @@ void CodeInstaller::initialize_fields(oop target_method) {
   _code = (arrayOop) CiTargetMethod::targetCode(_citarget_method);
   _code_size = CiTargetMethod::targetCodeSize(_citarget_method);
   _frame_size = CiTargetMethod::frameSize(_citarget_method);
+  _custom_stack_area_offset = CiTargetMethod::customStackAreaOffset(_citarget_method);
+
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * BytesPerLong;

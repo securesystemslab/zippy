@@ -219,6 +219,9 @@ void frame::patch_pc(Thread* thread, address pc) {
   if (TracePcPatching) {
     tty->print_cr("patch_pc at address" INTPTR_FORMAT " [" INTPTR_FORMAT " -> " INTPTR_FORMAT "] ",
                   &((address *)sp())[-1], ((address *)sp())[-1], pc);
+    tty->print_cr("sp[0]: " INTPTR_FORMAT, ((intptr_t*)sp())[0]);
+    tty->print_cr("sp[1]: " INTPTR_FORMAT, ((intptr_t*)sp())[1]);
+    tty->print_cr("sp[2]: " INTPTR_FORMAT, ((intptr_t*)sp())[2]);
   }
   ((address *)sp())[-1] = pc;
   _cb = CodeCache::find_blob(pc);
