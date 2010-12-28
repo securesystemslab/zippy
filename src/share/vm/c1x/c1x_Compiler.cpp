@@ -117,7 +117,7 @@ oop C1XCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
     return createHotSpotTypeResolved(klass, name, CHECK_NULL);
   } else {
     symbolOop name = ((ciKlass *) type)->name()->get_symbolOop();
-    return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), VmIds::add<klassOop>(accessor()), THREAD);
+    return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), THREAD);
   }
 }
 
@@ -133,10 +133,13 @@ oop C1XCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Kl
 }
 
 oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
+  if (klass->c1x_mirror() != NULL) {
+    return klass->c1x_mirror();
+  }
+
   instanceKlass::cast(HotSpotTypeResolved::klass())->initialize(CHECK_NULL);
   oop obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
 
-  HotSpotTypeResolved::set_vmId(obj, VmIds::add(klass, VmIds::CLASS));
   HotSpotTypeResolved::set_javaMirror(obj, klass->java_mirror());
   HotSpotTypeResolved::set_name(obj, name());
   HotSpotTypeResolved::set_accessFlags(obj, klass->access_flags().as_int());
@@ -157,6 +160,8 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   // TODO replace these with correct values
   HotSpotTypeResolved::set_hasSubclass(obj, false);
   HotSpotTypeResolved::set_hasFinalizableSubclass(obj, false);
+
+  klass->set_c1x_mirror(obj);
 
   return obj;
 }

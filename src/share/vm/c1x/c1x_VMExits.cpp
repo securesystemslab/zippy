@@ -144,13 +144,12 @@ oop VMExits::createRiTypePrimitive(int basic_type, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiTypeUnresolved(Handle name, jlong accessingClassVmId, TRAPS) {
+oop VMExits::createRiTypeUnresolved(Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(name);
-  args.push_long(accessingClassVmId);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypeUnresolved");
   return (oop) result.get_jobject();

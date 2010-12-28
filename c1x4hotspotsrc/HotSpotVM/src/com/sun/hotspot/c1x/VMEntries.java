@@ -45,7 +45,7 @@ public interface VMEntries {
 
     int RiMethod_accessFlags(long vmId);
 
-    RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
+    RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
 
     Object RiConstantPool_lookupConstant(long vmId, int cpi);
 
@@ -57,7 +57,7 @@ public interface VMEntries {
 
     RiField RiConstantPool_lookupField(long vmId, int cpi, byte byteCode);
 
-    RiConstantPool RiType_constantPool(long vmId);
+    RiConstantPool RiType_constantPool(HotSpotTypeResolved klass);
 
     void installMethod(HotSpotTargetMethod targetMethod);
 
@@ -67,15 +67,15 @@ public interface VMEntries {
 
     RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
 
-    RiMethod RiType_resolveMethodImpl(long vmId, String name, String signature);
+    RiMethod RiType_resolveMethodImpl(HotSpotTypeResolved klass, String name, String signature);
 
-    boolean RiType_isSubtypeOf(long vmId, RiType other);
+    boolean RiType_isSubtypeOf(HotSpotTypeResolved klass, RiType other);
 
     RiType getPrimitiveArrayType(CiKind kind);
 
     RiType RiType_arrayOf(long vmId);
 
-    RiType RiType_componentType(long vmId);
+    RiType RiType_componentType(HotSpotTypeResolved klass);
 
     RiType getType(Class<?> javaClass);
 

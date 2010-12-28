@@ -559,7 +559,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       Handle obj = CiConstant::object(constant);
 
       if (obj->is_a(HotSpotTypeResolved::klass())) {
-        *((jobject*) operand) = JNIHandles::make_local(VmIds::get<klassOop>(HotSpotTypeResolved::vmId(obj)));
+        *((jobject*) operand) = JNIHandles::make_local(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(obj)));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_C1X_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
       } else {

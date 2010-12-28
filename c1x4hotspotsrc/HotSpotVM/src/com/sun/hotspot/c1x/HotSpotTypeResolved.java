@@ -21,6 +21,7 @@
 package com.sun.hotspot.c1x;
 
 import java.lang.reflect.*;
+import java.util.*;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
@@ -33,7 +34,6 @@ import com.sun.hotspot.c1x.logging.*;
  */
 public class HotSpotTypeResolved implements HotSpotType {
 
-    private long vmId;
     private Class javaMirror;
     private String name;
     private int accessFlags;
@@ -46,6 +46,7 @@ public class HotSpotTypeResolved implements HotSpotType {
     private boolean isInterface;
     private int instanceSize;
     private RiType componentType;
+    private HashMap<Integer, RiField> fieldCache;
 
     @Override
     public int accessFlags() {
@@ -61,7 +62,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public RiType componentType() {
-        return Compiler.getVMEntries().RiType_componentType(vmId);
+        return Compiler.getVMEntries().RiType_componentType(this);
     }
 
     @Override
@@ -141,7 +142,7 @@ public class HotSpotTypeResolved implements HotSpotType {
     @Override
     public boolean isSubtypeOf(RiType other) {
         if (other instanceof HotSpotTypeResolved) {
-            return Compiler.getVMEntries().RiType_isSubtypeOf(vmId, other);
+            return Compiler.getVMEntries().RiType_isSubtypeOf(this, other);
         }
         // No resolved type is a subtype of an unresolved type.
         return false;
@@ -170,7 +171,7 @@ public class HotSpotTypeResolved implements HotSpotType {
     @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
         assert method instanceof HotSpotMethod;
-        return Compiler.getVMEntries().RiType_resolveMethodImpl(vmId, method.name(), method.signature().asString());
+        return Compiler.getVMEntries().RiType_resolveMethodImpl(this, method.name(), method.signature().asString());
     }
 
     @Override
@@ -179,15 +180,29 @@ public class HotSpotTypeResolved implements HotSpotType {
     }
 
     public RiConstantPool constantPool() {
-        return Compiler.getVMEntries().RiType_constantPool(vmId);
-    }
-
-    public long getVmId() {
-        return vmId;
+        return Compiler.getVMEntries().RiType_constantPool(this);
     }
 
     public int instanceSize() {
         return instanceSize;
+    }
+
+    public RiField createRiField(String name, RiType type, int offset) {
+        RiField result = null;
+
+        // (tw) Must cache the fields, because the local load elimination only works if the objects from two field lookups are equal.
+        if (fieldCache == null) {
+            fieldCache = new HashMap<Integer, RiField>(8);
+        } else {
+            result = fieldCache.get(offset);
+        }
+
+        if (result == null) {
+            result = new HotSpotField(this, name, type, offset);
+            fieldCache.put(offset, result);
+        }
+
+        return result;
     }
 
 }

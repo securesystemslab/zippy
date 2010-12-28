@@ -182,6 +182,10 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public RiField createRiField(RiType holder, String name, RiType type, int offset) {
+        if (offset != -1) {
+            HotSpotTypeResolved resolved = (HotSpotTypeResolved) holder;
+            return resolved.createRiField(name, type, offset);
+        }
         return new HotSpotField(holder, name, type, offset);
     }
 
@@ -192,44 +196,33 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public RiType createRiTypePrimitive(int basicType) {
-        CiKind kind = null;
         switch (basicType) {
             case 4:
-                kind = CiKind.Boolean;
-                break;
+                return HotSpotTypePrimitive.Boolean;
             case 5:
-                kind = CiKind.Char;
-                break;
+                return HotSpotTypePrimitive.Char;
             case 6:
-                kind = CiKind.Float;
-                break;
+                return HotSpotTypePrimitive.Float;
             case 7:
-                kind = CiKind.Double;
-                break;
+                return HotSpotTypePrimitive.Double;
             case 8:
-                kind = CiKind.Byte;
-                break;
+                return HotSpotTypePrimitive.Byte;
             case 9:
-                kind = CiKind.Short;
-                break;
+                return HotSpotTypePrimitive.Short;
             case 10:
-                kind = CiKind.Int;
-                break;
+                return HotSpotTypePrimitive.Int;
             case 11:
-                kind = CiKind.Long;
-                break;
+                return HotSpotTypePrimitive.Long;
             case 14:
-                kind = CiKind.Void;
-                break;
+                return HotSpotTypePrimitive.Void;
             default:
                 throw new IllegalArgumentException("Unknown basic type: " + basicType);
         }
-        return new HotSpotTypePrimitive(kind);
     }
 
     @Override
-    public RiType createRiTypeUnresolved(String name, long accessingClassVmId) {
-        return new HotSpotTypeUnresolved(name, accessingClassVmId);
+    public RiType createRiTypeUnresolved(String name) {
+        return new HotSpotTypeUnresolved(name);
     }
 
     @Override

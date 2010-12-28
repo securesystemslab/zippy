@@ -51,8 +51,8 @@ public:
   // public abstract RiType createRiType(long vmId, String name);
   static oop createRiType(jlong vmId, Handle name, TRAPS);
 
-  // public abstract RiType createRiTypeUnresolved(String name, long accessingClassVmId);
-  static oop createRiTypeUnresolved(Handle name, jlong accessingClassVmId, TRAPS);
+  // public abstract RiType createRiTypeUnresolved(String name);
+  static oop createRiTypeUnresolved(Handle name, TRAPS);
 
   // public abstract RiConstantPool createRiConstantPool(long vmId);
   static oop createRiConstantPool(jlong vmId, TRAPS);

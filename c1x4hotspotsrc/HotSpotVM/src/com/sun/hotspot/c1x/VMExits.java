@@ -47,7 +47,7 @@ public interface VMExits {
 
     RiType createRiTypePrimitive(int basicType);
 
-    RiType createRiTypeUnresolved(String name, long accessingClassVmId);
+    RiType createRiTypeUnresolved(String name);
 
     RiConstantPool createRiConstantPool(long vmId);
 

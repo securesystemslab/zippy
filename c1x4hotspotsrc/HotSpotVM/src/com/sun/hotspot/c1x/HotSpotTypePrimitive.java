@@ -28,11 +28,21 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotTypePrimitive implements HotSpotType {
+public final class HotSpotTypePrimitive implements HotSpotType {
 
     private CiKind kind;
 
-    public HotSpotTypePrimitive(CiKind kind) {
+    public static final HotSpotTypePrimitive Boolean = new HotSpotTypePrimitive(CiKind.Boolean);
+    public static final HotSpotTypePrimitive Char = new HotSpotTypePrimitive(CiKind.Char);
+    public static final HotSpotTypePrimitive Float = new HotSpotTypePrimitive(CiKind.Float);
+    public static final HotSpotTypePrimitive Double = new HotSpotTypePrimitive(CiKind.Double);
+    public static final HotSpotTypePrimitive Byte = new HotSpotTypePrimitive(CiKind.Byte);
+    public static final HotSpotTypePrimitive Short = new HotSpotTypePrimitive(CiKind.Short);
+    public static final HotSpotTypePrimitive Int = new HotSpotTypePrimitive(CiKind.Int);
+    public static final HotSpotTypePrimitive Long = new HotSpotTypePrimitive(CiKind.Long);
+    public static final HotSpotTypePrimitive Void = new HotSpotTypePrimitive(CiKind.Void);
+
+    private HotSpotTypePrimitive(CiKind kind) {
         this.kind = kind;
     }
 

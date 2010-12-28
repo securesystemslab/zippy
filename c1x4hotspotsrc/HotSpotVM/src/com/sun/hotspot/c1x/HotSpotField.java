@@ -67,6 +67,15 @@ public class HotSpotField implements RiField, CompilerObject {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof HotSpotField) {
+            HotSpotField other = (HotSpotField) obj;
+            return other.offset == offset && other.holder.equals(holder());
+        }
+        return false;
+    }
+
+    @Override
     public boolean isResolved() {
         return offset != -1;
     }

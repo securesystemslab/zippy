@@ -51,7 +51,7 @@ public class VMEntriesNative implements VMEntries {
     public native int RiMethod_accessFlags(long vmId);
 
     @Override
-    public native RiType RiSignature_lookupType(String returnType, long accessingClassVmId);
+    public native RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
 
     @Override
     public native Object RiConstantPool_lookupConstant(long vmId, int cpi);
@@ -69,7 +69,7 @@ public class VMEntriesNative implements VMEntries {
     public native RiField RiConstantPool_lookupField(long vmId, int cpi, byte byteCode);
 
     @Override
-    public native RiConstantPool RiType_constantPool(long vmId);
+    public native RiConstantPool RiType_constantPool(HotSpotTypeResolved klass);
 
     @Override
     public native void installMethod(HotSpotTargetMethod targetMethod);
@@ -84,10 +84,10 @@ public class VMEntriesNative implements VMEntries {
     public native RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
 
     @Override
-    public native RiMethod RiType_resolveMethodImpl(long vmId, String name, String signature);
+    public native RiMethod RiType_resolveMethodImpl(HotSpotTypeResolved klass, String name, String signature);
 
     @Override
-    public native boolean RiType_isSubtypeOf(long vmId, RiType other);
+    public native boolean RiType_isSubtypeOf(HotSpotTypeResolved klass, RiType other);
 
     @Override
     public native RiType getPrimitiveArrayType(CiKind kind);
@@ -96,7 +96,7 @@ public class VMEntriesNative implements VMEntries {
     public native RiType RiType_arrayOf(long vmId);
 
     @Override
-    public native RiType RiType_componentType(long vmId);
+    public native RiType RiType_componentType(HotSpotTypeResolved klass);
 
     @Override
     public native RiType getType(Class<?> javaClass);

@@ -116,11 +116,7 @@ public class HotSpotSignature implements RiSignature, CompilerObject {
         }
         RiType type = argumentTypes[index];
         if (type == null) {
-            long accessor = 0;
-            if (accessingClass instanceof HotSpotTypeResolved) {
-                accessor = (Long) ((HotSpotTypeResolved) accessingClass).getVmId();
-            }
-            type = Compiler.getVMEntries().RiSignature_lookupType(arguments.get(index), accessor);
+            type = Compiler.getVMEntries().RiSignature_lookupType(arguments.get(index), (HotSpotTypeResolved) accessingClass);
             argumentTypes[index] = type;
         }
         return type;
@@ -139,11 +135,7 @@ public class HotSpotSignature implements RiSignature, CompilerObject {
     @Override
     public RiType returnType(RiType accessingClass) {
         if (returnTypeCache == null) {
-            long accessor = 0;
-            if (accessingClass instanceof HotSpotTypeResolved) {
-                accessor = (Long) ((HotSpotTypeResolved) accessingClass).getVmId();
-            }
-            returnTypeCache = Compiler.getVMEntries().RiSignature_lookupType(returnType, accessor);
+            returnTypeCache = Compiler.getVMEntries().RiSignature_lookupType(returnType, (HotSpotTypeResolved) accessingClass);
         }
         return returnTypeCache;
     }

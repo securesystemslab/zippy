@@ -50,6 +50,7 @@ void klassKlass::oop_follow_contents(oop obj) {
   MarkSweep::mark_and_push(k->adr_secondary_super_cache());
   MarkSweep::mark_and_push(k->adr_secondary_supers());
   MarkSweep::mark_and_push(k->adr_java_mirror());
+  MarkSweep::mark_and_push(k->adr_c1x_mirror());
   MarkSweep::mark_and_push(k->adr_name());
   // We follow the subklass and sibling links at the end of the
   // marking phase, since otherwise following them will prevent
@@ -70,6 +71,7 @@ void klassKlass::oop_follow_contents(ParCompactionManager* cm,
   PSParallelCompact::mark_and_push(cm, k->adr_secondary_super_cache());
   PSParallelCompact::mark_and_push(cm, k->adr_secondary_supers());
   PSParallelCompact::mark_and_push(cm, k->adr_java_mirror());
+  PSParallelCompact::mark_and_push(cm, k->adr_c1x_mirror());
   PSParallelCompact::mark_and_push(cm, k->adr_name());
   // We follow the subklass and sibling links at the end of the
   // marking phase, since otherwise following them will prevent
@@ -90,6 +92,7 @@ int klassKlass::oop_oop_iterate(oop obj, OopClosure* blk) {
   blk->do_oop(k->adr_secondary_super_cache());
   blk->do_oop(k->adr_secondary_supers());
   blk->do_oop(k->adr_java_mirror());
+  blk->do_oop(k->adr_c1x_mirror());
   blk->do_oop(k->adr_name());
   // The following are in the perm gen and are treated
   // specially in a later phase of a perm gen collection; ...
@@ -124,6 +127,8 @@ int klassKlass::oop_oop_iterate_m(oop obj, OopClosure* blk, MemRegion mr) {
   if (mr.contains(adr)) blk->do_oop(adr);
   adr = k->adr_java_mirror();
   if (mr.contains(adr)) blk->do_oop(adr);
+  adr = k->adr_c1x_mirror();
+  if (mr.contains(adr)) blk->do_oop(adr);
   adr = k->adr_name();
   if (mr.contains(adr)) blk->do_oop(adr);
   // The following are "weak links" in the perm gen and are
@@ -154,6 +159,7 @@ int klassKlass::oop_adjust_pointers(oop obj) {
   MarkSweep::adjust_pointer(k->adr_secondary_super_cache());
   MarkSweep::adjust_pointer(k->adr_secondary_supers());
   MarkSweep::adjust_pointer(k->adr_java_mirror());
+  MarkSweep::adjust_pointer(k->adr_c1x_mirror());
   MarkSweep::adjust_pointer(k->adr_name());
   MarkSweep::adjust_pointer(k->adr_subklass());
   MarkSweep::adjust_pointer(k->adr_next_sibling());

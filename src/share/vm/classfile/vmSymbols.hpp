@@ -304,7 +304,7 @@
   template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \
   template(createRiTypePrimitive_signature,           "(I)Lcom/sun/cri/ri/RiType;")                                     \
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
-  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;J)Lcom/sun/cri/ri/RiType;")                   \
+  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/sun/cri/ri/RiType;")                   \
   template(createRiConstantPool_name,                 "createRiConstantPool")                                           \
   template(createRiConstantPool_signature,            "(J)Lcom/sun/cri/ri/RiConstantPool;")                             \
   template(createCiConstant_name,                     "createCiConstant")                                               \
