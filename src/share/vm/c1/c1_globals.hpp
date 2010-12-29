@@ -217,7 +217,7 @@
   develop(bool, UseFastNewObjectArray, true,                                \
           "Use fast inlined object array allocation")                       \
                                                                             \
-  develop(bool, UseFastLocking, true,                                       \
+  product(bool, UseFastLocking, true,                                       \
           "Use fast inlined locking code")                                  \
                                                                             \
   develop(bool, UseSlowPath, false,                                         \

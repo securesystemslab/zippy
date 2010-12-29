@@ -2010,6 +2010,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
       Register scratch1 = rax;
       Register scratch2 = rbx;
+      assert_different_registers(obj, lock, scratch1, scratch2);
 
       // copied from LIR_Assembler::emit_lock
       if (UseFastLocking) {
@@ -2043,6 +2044,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       Register lock2 = rax;
       __ mov(lock2, lock);
       Register scratch1 = rbx;
+      assert_different_registers(obj, lock, scratch1, lock2);
 
       // copied from LIR_Assembler::emit_lock
       if (UseFastLocking) {

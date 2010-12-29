@@ -731,7 +731,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #endif
           if (UseC1X) {
             if (TraceSignals) {
-              tty->print_cr("calling implicit call stub relative pc=%d method name = %s", pc - nm->entry_point(), nm->method()->name()->as_C_string());
+              tty->print_cr(err_msg("calling implicit call stub relative pc=%d method name = %s", pc - nm->entry_point(), nm->method()->name()->as_C_string()));
             }
             target_pc = Runtime1::entry_for(Runtime1::c1x_global_implicit_null_id);
           } else {

@@ -33,6 +33,7 @@ public class HotSpotVMConfig implements CompilerObject {
     public boolean windowsOs;
     public int codeEntryAlignment;
     public boolean verifyPointers;
+    public boolean useFastLocking;
 
     // offsets, ...
     public int vmPageSize;
@@ -73,6 +74,8 @@ public class HotSpotVMConfig implements CompilerObject {
     public long throwArrayIndexException;
     public long monitorEnterStub;
     public long monitorExitStub;
+    public long fastMonitorEnterStub;
+    public long fastMonitorExitStub;
     public long verifyPointerStub;
 
     public void check() {

@@ -116,7 +116,15 @@ StackValue* StackValue::create_stack_value(const frame* fr, const RegisterMap* r
 #endif
 #ifndef PRODUCT
       if (val != NULL && !val->is_oop()) {
-        tty->print_cr("found wrong oop " INTPTR_FORMAT " at location:", val);
+        ResourceMark rm;
+        tty->print_cr("found wrong oop " INTPTR_FORMAT " at location " INTPTR_FORMAT " (%d):", val, value_addr, val->is_oop());
+        if (fr->cb() != NULL) {
+          CodeBlob* cb = fr->cb();
+          if (cb->is_nmethod()) {
+            nmethod* nm = (nmethod*)cb;
+            tty->print_cr("method is %s", nm->method()->name()->as_C_string());
+          }
+        }
         sv->print();
         tty->print_cr("");
         tty->print_cr("one less %d; one more %d", (*(((oop *)value_addr) - 1))->is_oop(), (*(((oop *)value_addr) + 1))->is_oop());

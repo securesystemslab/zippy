@@ -3408,6 +3408,7 @@ JVM_handle_linux_signal(int signo, siginfo_t* siginfo,
 
 void signalHandler(int sig, siginfo_t* info, void* uc) {
   assert(info != NULL && uc != NULL, "it must be old kernel");
+  ResourceMark rm;
   if (TraceSignals) {
     tty->print_cr(err_msg("signal received: code=%d errno=%d signo=%d thread=%s address=%x", info->si_code, info->si_errno, info->si_signo, Thread::current()->name(), info->si_addr));
   }

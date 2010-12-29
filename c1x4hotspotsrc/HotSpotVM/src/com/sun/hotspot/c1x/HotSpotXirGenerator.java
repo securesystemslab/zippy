@@ -314,9 +314,20 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.pload(CiKind.Word, asm.createTemp("temp", CiKind.Word), object, true);
             }
 
-            useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
-            useRegisters(asm, AMD64.rax);
-            asm.callRuntime(config.monitorEnterStub, null, object, lock);
+
+            // (tw) It is important to use for this runtime call the debug info AFTER the monitor enter. Otherwise the monitor object
+            // is not correctly garbage collected.
+            final boolean useInfoAfter = true;
+
+            if (config.useFastLocking) {
+                useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx, AMD64.rax);
+                asm.callRuntime(config.fastMonitorEnterStub, null, useInfoAfter, object, lock);
+            } else {
+                asm.reserveOutgoingStack(target.wordSize * 2);
+                asm.pstore(CiKind.Object, asm.createRegister("rsp", CiKind.Word, AMD64.RSP.asRegister()), asm.i(target.wordSize), object, false);
+                asm.pstore(CiKind.Word, asm.createRegister("rsp", CiKind.Word, AMD64.RSP.asRegister()), asm.i(0), lock, false);
+                asm.callRuntime(config.monitorEnterStub, null, useInfoAfter);
+            }
 
             return asm.finishTemplate("monitorEnter");
         }
@@ -330,9 +341,14 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             XirParameter lock = asm.createInputParameter("lock", CiKind.Word);
 
-            useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx);
-            useRegisters(asm, AMD64.rax);
-            asm.callRuntime(config.monitorExitStub, null, object, lock);
+            if (config.useFastLocking) {
+                useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx, AMD64.rax);
+                asm.callRuntime(config.fastMonitorExitStub, null, object, lock);
+            } else {
+                asm.reserveOutgoingStack(target.wordSize);
+                asm.pstore(CiKind.Word, asm.createRegister("rsp", CiKind.Word, AMD64.RSP.asRegister()), asm.i(0), lock, false);
+                asm.callRuntime(config.monitorExitStub, null);
+            }
 
             return asm.finishTemplate("monitorExit");
         }

@@ -260,7 +260,7 @@ JVM_handle_linux_signal(int sig,
       if (cb != NULL && cb->is_nmethod()) {
         nmethod* nm = (nmethod*)cb;
         int rel = pc - nm->code_begin();
-        tty->print_cr("Implicit exception at %d of method %s", rel, nm->method()->name()->as_C_string());
+        tty->print_cr(err_msg("Implicit exception at %d of method %s", rel, nm->method()->name()->as_C_string()));
       } else {
         tty->print_cr("No code blob found for %x", pc);
       }

@@ -190,7 +190,7 @@ void c1x_compute_offsets();
   class name : AllStatic {                      \
   private:                                      \
     friend class C1XCompiler;                   \
-    static void check(oop obj) { assert(obj != NULL, "NULL field access"); assert(obj->is_a(SystemDictionary::name##_klass()), "wrong class, " #name " expected"); } \
+    static void check(oop obj) { assert(obj != NULL, "NULL field access of class " #name); assert(obj->is_a(SystemDictionary::name##_klass()), "wrong class, " #name " expected"); } \
     static void compute_offsets();              \
   public:                                       \
     static klassOop klass() { return SystemDictionary::name##_klass(); }

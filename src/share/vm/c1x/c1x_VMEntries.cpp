@@ -141,8 +141,12 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookup
     klassOop resolved_type = NULL;
     // if the name isn't in the symbol table then the class isn't loaded anyway...
     if (nameSymbol != NULL) {
-      Handle classloader = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(accessingClass))->klass_part()->class_loader();
-      Handle protectionDomain = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(accessingClass))->klass_part()->protection_domain();
+      Handle classloader;
+      Handle protectionDomain;
+      if (JNIHandles::resolve(accessingClass) != NULL) {
+        classloader = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(accessingClass))->klass_part()->class_loader();
+        protectionDomain = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(accessingClass))->klass_part()->protection_domain();
+      }
       resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
       if (HAS_PENDING_EXCEPTION) {
         CLEAR_PENDING_EXCEPTION;
@@ -310,6 +314,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPool(JNIEnv *, jobject, jobject klass) {
   VM_ENTRY_MARK;
 
+  assert(JNIHandles::resolve(klass) != NULL, "");
   constantPoolOop constantPool = ((instanceKlass*)java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass))->klass_part())->constants();
   return JNIHandles::make_local(VMExits::createRiConstantPool(VmIds::add<constantPoolOop>(constantPool), THREAD));
 }
@@ -318,6 +323,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPoo
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMethodImpl(JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature) {
   VM_ENTRY_MARK;
 
+  assert(JNIHandles::resolve(resolved_type) != NULL, "");
   klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(resolved_type));
   symbolOop name_symbol = VmIds::toSymbol(name);
   symbolOop signature_symbol = VmIds::toSymbol(signature);
@@ -336,6 +342,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMeth
 JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf(JNIEnv *, jobject, jobject klass, jobject jother) {
   oop other = JNIHandles::resolve(jother);
   assert(other->is_a(HotSpotTypeResolved::klass()), "resolved hotspot type expected");
+  assert(JNIHandles::resolve(klass) != NULL, "");
   klassOop thisKlass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
   klassOop otherKlass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(other));
   if (thisKlass->klass_part()->oop_is_instance_slow()) {
@@ -352,11 +359,13 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentTy
   ciArrayKlass* array_klass;
   {
     VM_ENTRY_MARK;
+    assert(JNIHandles::resolve(klass) != NULL, "");
     array_klass = (ciArrayKlass *) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
   }
   ciType* element_type = array_klass->element_type();
 
   VM_ENTRY_MARK;
+  assert(JNIHandles::resolve(klass) != NULL, "");
   return JNIHandles::make_local(C1XCompiler::get_RiType(element_type, java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)), THREAD));
 }
 
@@ -427,6 +436,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_boolean(env, config, "windowsOs", false);
 #endif
   set_boolean(env, config, "verifyPointers", VerifyOops);
+  set_boolean(env, config, "useFastLocking", UseFastLocking);
   set_int(env, config, "codeEntryAlignment", CodeEntryAlignment);
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);
@@ -459,8 +469,10 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_long(env, config, "throwClassCastException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_class_cast_exception_id)));
   set_long(env, config, "throwArrayStoreException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_array_store_exception_id)));
   set_long(env, config, "throwArrayIndexException", VmIds::addStub(Runtime1::entry_for(Runtime1::throw_range_check_failed_id)));
-  set_long(env, config, "monitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_monitorenter_id)));
-  set_long(env, config, "monitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_monitorexit_id)));
+  set_long(env, config, "monitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorenter_id)));
+  set_long(env, config, "monitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorexit_id)));
+  set_long(env, config, "fastMonitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_monitorenter_id)));
+  set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::c1x_monitorexit_id)));
   set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
 
   BarrierSet* bs = Universe::heap()->barrier_set();

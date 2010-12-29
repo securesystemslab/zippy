@@ -139,6 +139,7 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
 
   instanceKlass::cast(HotSpotTypeResolved::klass())->initialize(CHECK_NULL);
   oop obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
+  assert(obj != NULL, "must succeed in allocating instance");
 
   HotSpotTypeResolved::set_javaMirror(obj, klass->java_mirror());
   HotSpotTypeResolved::set_name(obj, name());
