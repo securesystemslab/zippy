@@ -23,7 +23,7 @@
  */
 
 #include "precompiled.hpp"
-#include "c1x/c1x_TargetMethod.hpp"
+#include "c1x/c1x_JavaAccess.hpp"
 
 // This function is similar to javaClasses.cpp, it computes the field offset of a (static or instance) field.
 // It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.

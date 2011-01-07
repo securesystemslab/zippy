@@ -25,7 +25,7 @@
 #include "precompiled.hpp"
 #include "c1x/c1x_VMEntries.hpp"
 #include "c1x/c1x_Compiler.hpp"
-#include "c1x/c1x_TargetMethod.hpp"
+#include "c1x/c1x_JavaAccess.hpp"
 #include "c1x/c1x_CodeInstaller.hpp"
 #include "c1x/c1x_VMExits.hpp"
 #include "c1x/c1x_VmIds.hpp"
