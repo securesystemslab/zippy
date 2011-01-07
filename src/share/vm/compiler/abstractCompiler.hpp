@@ -22,6 +22,11 @@
  *
  */
 
+#ifndef SHARE_VM_COMPILER_ABSTRACTCOMPILER_HPP
+#define SHARE_VM_COMPILER_ABSTRACTCOMPILER_HPP
+
+#include "ci/compilerInterface.hpp"
+
 typedef void (*initializer)(void);
 
 class AbstractCompiler : public CHeapObj {
@@ -85,3 +90,5 @@ class AbstractCompiler : public CHeapObj {
     ShouldNotReachHere();
   }
 };
+
+#endif // SHARE_VM_COMPILER_ABSTRACTCOMPILER_HPP

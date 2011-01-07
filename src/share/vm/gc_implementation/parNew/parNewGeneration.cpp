@@ -22,8 +22,33 @@
  *
  */
 
-# include "incls/_precompiled.incl"
-# include "incls/_parNewGeneration.cpp.incl"
+#include "precompiled.hpp"
+#include "gc_implementation/concurrentMarkSweep/concurrentMarkSweepGeneration.hpp"
+#include "gc_implementation/parNew/parGCAllocBuffer.hpp"
+#include "gc_implementation/parNew/parNewGeneration.hpp"
+#include "gc_implementation/parNew/parOopClosures.inline.hpp"
+#include "gc_implementation/shared/adaptiveSizePolicy.hpp"
+#include "gc_implementation/shared/ageTable.hpp"
+#include "gc_implementation/shared/spaceDecorator.hpp"
+#include "memory/defNewGeneration.inline.hpp"
+#include "memory/genCollectedHeap.hpp"
+#include "memory/genOopClosures.inline.hpp"
+#include "memory/generation.hpp"
+#include "memory/generation.inline.hpp"
+#include "memory/referencePolicy.hpp"
+#include "memory/resourceArea.hpp"
+#include "memory/sharedHeap.hpp"
+#include "memory/space.hpp"
+#include "oops/objArrayOop.hpp"
+#include "oops/oop.inline.hpp"
+#include "oops/oop.pcgc.inline.hpp"
+#include "runtime/handles.hpp"
+#include "runtime/handles.inline.hpp"
+#include "runtime/java.hpp"
+#include "runtime/thread.hpp"
+#include "utilities/copy.hpp"
+#include "utilities/globalDefinitions.hpp"
+#include "utilities/workgroup.hpp"
 
 #ifdef _MSC_VER
 #pragma warning( push )
@@ -1033,10 +1058,11 @@ bool ParNewGeneration::is_legal_forward_ptr(oop p) {
 #endif
 
 void ParNewGeneration::preserve_mark_if_necessary(oop obj, markOop m) {
-  if ((m != markOopDesc::prototype()) &&
-      (!UseBiasedLocking || (m != markOopDesc::biased_locking_prototype()))) {
+  if (m->must_be_preserved_for_promotion_failure(obj)) {
+    // We should really have separate per-worker stacks, rather
+    // than use locking of a common pair of stacks.
     MutexLocker ml(ParGCRareEvent_lock);
-    DefNewGeneration::preserve_mark_if_necessary(obj, m);
+    preserve_mark(obj, m);
   }
 }
 

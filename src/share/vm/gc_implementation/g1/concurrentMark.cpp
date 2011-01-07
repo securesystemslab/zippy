@@ -22,8 +22,21 @@
  *
  */
 
-#include "incls/_precompiled.incl"
-#include "incls/_concurrentMark.cpp.incl"
+#include "precompiled.hpp"
+#include "classfile/symbolTable.hpp"
+#include "gc_implementation/g1/concurrentMark.hpp"
+#include "gc_implementation/g1/concurrentMarkThread.inline.hpp"
+#include "gc_implementation/g1/g1CollectedHeap.inline.hpp"
+#include "gc_implementation/g1/g1CollectorPolicy.hpp"
+#include "gc_implementation/g1/g1RemSet.hpp"
+#include "gc_implementation/g1/heapRegionRemSet.hpp"
+#include "gc_implementation/g1/heapRegionSeq.inline.hpp"
+#include "memory/genOopClosures.inline.hpp"
+#include "memory/referencePolicy.hpp"
+#include "memory/resourceArea.hpp"
+#include "oops/oop.inline.hpp"
+#include "runtime/handles.inline.hpp"
+#include "runtime/java.hpp"
 
 //
 // CMS Bit Map Wrapper
@@ -1038,6 +1051,7 @@ public:
   void work(int worker_i) {
     assert(Thread::current()->is_ConcurrentGC_thread(),
            "this should only be done by a conc GC thread");
+    ResourceMark rm;
 
     double start_vtime = os::elapsedVTime();
 
@@ -1811,23 +1825,11 @@ void ConcurrentMark::completeCleanup() {
   }
 }
 
-
-class G1CMIsAliveClosure: public BoolObjectClosure {
-  G1CollectedHeap* _g1;
- public:
-  G1CMIsAliveClosure(G1CollectedHeap* g1) :
-    _g1(g1)
-  {}
-
-  void do_object(oop obj) {
-    assert(false, "not to be invoked");
-  }
-  bool do_object_b(oop obj) {
-    HeapWord* addr = (HeapWord*)obj;
-    return addr != NULL &&
-           (!_g1->is_in_g1_reserved(addr) || !_g1->is_obj_ill(obj));
-  }
-};
+bool G1CMIsAliveClosure::do_object_b(oop obj) {
+  HeapWord* addr = (HeapWord*)obj;
+  return addr != NULL &&
+         (!_g1->is_in_g1_reserved(addr) || !_g1->is_obj_ill(obj));
+}
 
 class G1CMKeepAliveClosure: public OopClosure {
   G1CollectedHeap* _g1;
@@ -1875,20 +1877,22 @@ void ConcurrentMark::weakRefsWork(bool clear_all_soft_refs) {
   G1CollectedHeap* g1h   = G1CollectedHeap::heap();
   ReferenceProcessor* rp = g1h->ref_processor();
 
+  // See the comment in G1CollectedHeap::ref_processing_init()
+  // about how reference processing currently works in G1.
+
   // Process weak references.
   rp->setup_policy(clear_all_soft_refs);
   assert(_markStack.isEmpty(), "mark stack should be empty");
 
-  G1CMIsAliveClosure   g1IsAliveClosure  (g1h);
-  G1CMKeepAliveClosure g1KeepAliveClosure(g1h, this, nextMarkBitMap());
+  G1CMIsAliveClosure   g1_is_alive(g1h);
+  G1CMKeepAliveClosure g1_keep_alive(g1h, this, nextMarkBitMap());
   G1CMDrainMarkingStackClosure
-    g1DrainMarkingStackClosure(nextMarkBitMap(), &_markStack,
-                               &g1KeepAliveClosure);
+    g1_drain_mark_stack(nextMarkBitMap(), &_markStack, &g1_keep_alive);
 
   // XXXYYY  Also: copy the parallel ref processing code from CMS.
-  rp->process_discovered_references(&g1IsAliveClosure,
-                                    &g1KeepAliveClosure,
-                                    &g1DrainMarkingStackClosure,
+  rp->process_discovered_references(&g1_is_alive,
+                                    &g1_keep_alive,
+                                    &g1_drain_mark_stack,
                                     NULL);
   assert(_markStack.overflow() || _markStack.isEmpty(),
          "mark stack should be empty (unless it overflowed)");
@@ -1901,8 +1905,8 @@ void ConcurrentMark::weakRefsWork(bool clear_all_soft_refs) {
   assert(!rp->discovery_enabled(), "should have been disabled");
 
   // Now clean up stale oops in SymbolTable and StringTable
-  SymbolTable::unlink(&g1IsAliveClosure);
-  StringTable::unlink(&g1IsAliveClosure);
+  SymbolTable::unlink(&g1_is_alive);
+  StringTable::unlink(&g1_is_alive);
 }
 
 void ConcurrentMark::swapMarkBitMaps() {
@@ -2905,7 +2909,11 @@ public:
   CMOopClosure(G1CollectedHeap* g1h,
                ConcurrentMark* cm,
                CMTask* task)
-    : _g1h(g1h), _cm(cm), _task(task) { }
+    : _g1h(g1h), _cm(cm), _task(task)
+  {
+    _ref_processor = g1h->ref_processor();
+    assert(_ref_processor != NULL, "should not be NULL");
+  }
 };
 
 void CMTask::setup_for_region(HeapRegion* hr) {
