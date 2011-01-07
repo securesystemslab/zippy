@@ -306,7 +306,7 @@ ciType* ciField::compute_type_impl() {
 bool ciField::will_link(ciInstanceKlass* accessing_klass,
                         Bytecodes::Code bc) {
   VM_ENTRY_MARK;
-  will_link_from_vm(accessing_klass, bc);
+  return will_link_from_vm(accessing_klass, bc);
 }
 
 // ------------------------------------------------------------------
