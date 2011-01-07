@@ -22,8 +22,13 @@
  *
  */
 
-# include "incls/_precompiled.incl"
-# include "incls/_c1x_CodeInstaller.cpp.incl"
+#include "precompiled.hpp"
+#include "c1x/c1x_Compiler.hpp"
+#include "c1x/c1x_CodeInstaller.hpp"
+#include "c1x/c1x_TargetMethod.hpp"
+#include "c1x/c1x_VmIds.hpp"
+#include "c1/c1_Runtime1.hpp"
+#include "vmreg_x86.inline.hpp"
 
 
 // TODO this should be handled in a more robust way - not hard coded...

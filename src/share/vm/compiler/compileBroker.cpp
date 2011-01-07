@@ -44,6 +44,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/sweeper.hpp"
 #include "utilities/dtrace.hpp"
+#include "c1x/c1x_Compiler.hpp"
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"
 #endif

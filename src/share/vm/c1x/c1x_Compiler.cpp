@@ -22,8 +22,13 @@
  *
  */
 
-# include "incls/_precompiled.incl"
-# include "incls/_c1x_Compiler.cpp.incl"
+#include "precompiled.hpp"
+#include "c1x/c1x_Compiler.hpp"
+#include "c1x/c1x_TargetMethod.hpp"
+#include "c1x/c1x_VMExits.hpp"
+#include "c1x/c1x_VMEntries.hpp"
+#include "c1x/c1x_VmIds.hpp"
+#include "c1/c1_Runtime1.hpp"
 
 C1XCompiler* C1XCompiler::_instance = NULL;
 

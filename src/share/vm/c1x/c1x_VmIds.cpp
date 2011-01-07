@@ -22,8 +22,8 @@
  *
  */
 
-# include "incls/_precompiled.incl"
-# include "incls/_c1x_VmIds.cpp.incl"
+#include "precompiled.hpp"
+#include "c1x/c1x_VmIds.hpp"
 
 // VmIds implementation
 

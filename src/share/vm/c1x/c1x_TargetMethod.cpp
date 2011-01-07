@@ -22,8 +22,8 @@
  *
  */
 
-# include "incls/_precompiled.incl"
-# include "incls/_c1x_TargetMethod.cpp.incl"
+#include "precompiled.hpp"
+#include "c1x/c1x_TargetMethod.hpp"
 
 // This function is similar to javaClasses.cpp, it computes the field offset of a (static or instance) field.
 // It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.
@@ -43,7 +43,7 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
   fieldDescriptor fd;
   if (!ik->find_field(name_symbol, signature_symbol, &fd)) {
     ResourceMark rm;
-    tty->print_cr("Invalid layout of %s at %s", ik->external_name(), name_symbol->as_C_string());
+    tty->print_cr("Invalid layout of %s at %s", name_symbol->as_C_string(), ik->external_name());
     fatal("Invalid layout of preloaded class");
   }
   assert(fd.is_static() == static_field, "static/instance mismatch");

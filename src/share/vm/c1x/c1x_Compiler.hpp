@@ -22,6 +22,8 @@
  *
  */
 
+#include "compiler/abstractCompiler.hpp"
+
 class C1XCompiler : public AbstractCompiler {
 
 private:
