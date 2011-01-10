@@ -90,6 +90,11 @@ public class HotSpotMethodUnresolved implements HotSpotMethod {
     }
 
     @Override
+    public RiMethod uniqueConcreteMethod() {
+        throw unresolved("uniqueConcreteMethod()");
+    }
+
+    @Override
     public int accessFlags() {
         throw unresolved("accessFlags");
     }

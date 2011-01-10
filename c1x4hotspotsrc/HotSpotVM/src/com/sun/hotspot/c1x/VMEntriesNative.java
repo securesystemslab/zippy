@@ -110,5 +110,8 @@ public class VMEntriesNative implements VMEntries {
     @Override
     public native void recordBailout(String reason);
 
+    @Override
+    public native RiMethod RiMethod_uniqueConcreteMethod(long vmId);
+
     // Checkstyle: resume
 }

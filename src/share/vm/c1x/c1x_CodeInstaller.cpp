@@ -313,7 +313,17 @@ void CodeInstaller::assumption_ConcreteSubtype(oop assumption) {
 }
 
 void CodeInstaller::assumption_ConcreteMethod(oop assumption) {
-  fatal("unimplemented");
+  oop context_oop = CiAssumptions_ConcreteMethod::context(assumption);
+  oop method_oop = CiAssumptions_ConcreteMethod::method(assumption);
+  jlong context_oop_id = HotSpotMethodResolved::vmId(context_oop);
+  jlong method_oop_id = HotSpotMethodResolved::vmId(method_oop);
+  methodOop method = VmIds::get<methodOop>(method_oop_id);
+  methodOop context = VmIds::get<methodOop>(context_oop_id);
+
+  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method);
+  ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context);
+  ciKlass* context_klass = c->holder();
+  _dependencies->assert_unique_concrete_method(context_klass, m);
 }
 
 void CodeInstaller::process_exception_handlers() {

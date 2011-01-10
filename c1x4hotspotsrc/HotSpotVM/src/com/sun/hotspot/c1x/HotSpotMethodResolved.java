@@ -161,6 +161,11 @@ public class HotSpotMethodResolved implements HotSpotMethod {
     }
 
     @Override
+    public RiMethod uniqueConcreteMethod() {
+        return Compiler.getVMEntries().RiMethod_uniqueConcreteMethod(vmId);
+    }
+
+    @Override
     public RiSignature signature() {
         if (signature == null) {
             signature = new HotSpotSignature(Compiler.getVMEntries().RiMethod_signature(vmId));

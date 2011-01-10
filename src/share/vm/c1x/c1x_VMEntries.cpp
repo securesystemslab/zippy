@@ -119,6 +119,28 @@ JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1hasBalancedM
   return cimethod->has_balanced_monitors();
 }
 
+// public boolean RiMethod_uniqueConcreteMethod(long vmId);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jlong vmId) {
+  Thread* THREAD = Thread::current();
+  ciMethod* cimethod;
+  {
+    VM_ENTRY_MARK;
+    cimethod = (ciMethod*)CURRENT_ENV->get_object(VmIds::get<methodOop>(vmId));
+  }
+
+
+  klassOop klass = (klassOop)cimethod->holder()->get_oop();
+  methodOop method = (methodOop)cimethod->get_oop();
+  methodOop unique_concrete = Dependencies::find_unique_concrete_method(klass, method);
+  if (unique_concrete == NULL) {
+    return NULL;
+  }
+
+  Handle name = VmIds::toString<Handle>(unique_concrete->name(), CHECK_NULL);
+  oop method_resolved = VMExits::createRiMethodResolved(VmIds::add<methodOop>(unique_concrete), name, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, method_resolved);
+}
+
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
   VM_ENTRY_MARK;
@@ -592,6 +614,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_accessFlags",            CC"("PROXY")I",                             FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1accessFlags)},
   {CC"RiMethod_exceptionHandlers",      CC"("PROXY")"EXCEPTION_HANDLERS,            FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1exceptionHandlers)},
   {CC"RiMethod_hasBalancedMonitors",    CC"("PROXY")Z",                             FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1hasBalancedMonitors)},
+  {CC"RiMethod_uniqueConcreteMethod",   CC"("PROXY")"METHOD,                        FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1uniqueConcreteMethod)},
   {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupMethod)},

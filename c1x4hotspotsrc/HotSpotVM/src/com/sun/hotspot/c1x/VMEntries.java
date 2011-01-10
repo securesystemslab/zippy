@@ -81,9 +81,10 @@ public interface VMEntries {
 
     boolean RiMethod_hasBalancedMonitors(long vmId);
 
+    RiMethod RiMethod_uniqueConcreteMethod(long vmId);
+
     void recordBailout(String reason);
 
     RiType RiType_uniqueConcreteSubtype(HotSpotTypeResolved hotSpotTypeResolved);
-
     // Checkstyle: resume
 }
