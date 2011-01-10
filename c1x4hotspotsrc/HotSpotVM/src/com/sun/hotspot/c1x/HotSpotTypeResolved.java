@@ -66,6 +66,11 @@ public class HotSpotTypeResolved implements HotSpotType {
     }
 
     @Override
+    public RiType uniqueConcreteSubtype() {
+        return Compiler.getVMEntries().RiType_uniqueConcreteSubtype(this);
+    }
+
+    @Override
     public RiType exactType() {
         if (Modifier.isFinal(accessFlags)) {
             return this;

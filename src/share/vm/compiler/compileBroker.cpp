@@ -594,7 +594,7 @@ void CompileBroker::bootstrap_c1x() {
           break;
         }
       }
-      if (TraceC1X >= 4) {
+      if (TraceC1X >= 5) {
         _c1_method_queue->print();
       }
     }

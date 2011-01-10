@@ -48,11 +48,12 @@ public class VMExitsNative implements VMExits {
         C1XOptions.setOptimizationLevel(3);
         C1XOptions.OptInlineExcept = false;
         C1XOptions.OptInlineSynchronized = false;
-        C1XOptions.UseDeopt = false;
         C1XOptions.IRChecking = false;
         C1XOptions.DetailedAsserts = false;
         C1XOptions.CommentedAssembly = false;
         C1XOptions.MethodEndBreakpointGuards = 2;
+        C1XOptions.PrintAssumptions = false;
+        C1XOptions.UseAssumptions = true;
     }
 
     @Override

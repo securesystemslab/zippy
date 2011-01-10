@@ -28,6 +28,7 @@
 #include "c1x/c1x_JavaAccess.hpp"
 #include "c1x/c1x_VmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "classfile/vmSymbols.hpp"
 #include "vmreg_x86.inline.hpp"
 
 
@@ -208,6 +209,12 @@ void CodeInstaller::initialize_fields(Handle target_method) {
   _hotspot_method = HotSpotTargetMethod::method(target_method);
   _name = HotSpotTargetMethod::name(target_method);
   _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
+  oop assumptions = CiTargetMethod::assumptions(_citarget_method);
+  if (assumptions != NULL) {
+    _assumptions = (arrayOop) CiAssumptions::list(assumptions);
+  } else {
+    _assumptions = NULL;
+  }
   _exception_handlers = (arrayOop) HotSpotTargetMethod::exceptionHandlers(target_method);
 
   _code = (arrayOop) CiTargetMethod::targetCode(_citarget_method);
@@ -270,6 +277,43 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       fatal("unexpected Site subclass");
     }
   }
+
+
+  if (_assumptions != NULL) {
+    oop* assumptions = (oop*) _assumptions->base(T_OBJECT);
+    for (int i = 0; i < _assumptions->length(); ++i) {
+      oop assumption = assumptions[i];
+      if (assumption != NULL) {
+        if (assumption->is_a(CiAssumptions_ConcreteSubtype::klass())) {
+          assumption_ConcreteSubtype(assumption);
+        } else if (assumption->is_a(CiAssumptions_ConcreteMethod::klass())) {
+          assumption_ConcreteMethod(assumption);
+        } else {
+          fatal("unexpected Assumption subclass");
+        }
+      }
+    }
+  }
+}
+
+void CodeInstaller::assumption_ConcreteSubtype(oop assumption) {
+  oop context_oop = CiAssumptions_ConcreteSubtype::context(assumption);
+  oop type_oop = CiAssumptions_ConcreteSubtype::subtype(assumption);
+
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_oop)));
+  ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_oop)));
+
+  if (context == type) {
+    _dependencies->assert_leaf_type(type);
+  } else {
+    assert(context->is_abstract(), "");
+    ThreadToNativeFromVM trans(JavaThread::current());
+    _dependencies->assert_abstract_with_unique_concrete_subtype(context, type);
+  }
+}
+
+void CodeInstaller::assumption_ConcreteMethod(oop assumption) {
+  fatal("unimplemented");
 }
 
 void CodeInstaller::process_exception_handlers() {

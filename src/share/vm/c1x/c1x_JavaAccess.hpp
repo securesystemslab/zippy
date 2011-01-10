@@ -84,7 +84,19 @@ void c1x_compute_offsets();
     int_field(CiTargetMethod, frameSize)                                                \
     int_field(CiTargetMethod, customStackAreaOffset)                                    \
     oop_field(CiTargetMethod, targetCode, "[B")                                         \
+    oop_field(CiTargetMethod, assumptions, "Lcom/sun/cri/ci/CiAssumptions;")            \
     int_field(CiTargetMethod, targetCodeSize)                                           \
+  end_class                                                                             \
+  start_class(CiAssumptions)                                                            \
+    oop_field(CiAssumptions, list, "[Lcom/sun/cri/ci/CiAssumptions$Assumption;")        \
+  end_class                                                                             \
+  start_class(CiAssumptions_ConcreteSubtype)                                            \
+    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/sun/cri/ri/RiType;")        \
+    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/sun/cri/ri/RiType;")        \
+  end_class                                                                             \
+  start_class(CiAssumptions_ConcreteMethod)                                             \
+    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/sun/cri/ri/RiMethod;")       \
+    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/sun/cri/ri/RiMethod;")        \
   end_class                                                                             \
   start_class(CiTargetMethod_Site)                                                      \
     int_field(CiTargetMethod_Site, pcOffset)                                            \

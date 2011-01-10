@@ -211,6 +211,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public boolean recordLeafMethodAssumption(RiMethod method) {
+        System.out.println("Trying to record leaf method assumption: " + method.toString());
         return false;
     }
 

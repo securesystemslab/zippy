@@ -188,6 +188,9 @@ class SymbolPropertyTable;
   template(HotSpotTargetMethod_klass,    com_sun_hotspot_c1x_HotSpotTargetMethod,                   Opt) \
   template(HotSpotExceptionHandler_klass,com_sun_hotspot_c1x_HotSpotExceptionHandler,               Opt) \
   template(HotSpotProxy_klass,           com_sun_hotspot_c1x_HotSpotProxy,                          Opt) \
+  template(CiAssumptions_klass,          com_sun_cri_ci_CiAssumptions,                              Opt) \
+  template(CiAssumptions_ConcreteSubtype_klass, com_sun_cri_ci_CiAssumptions_ConcreteSubtype,       Opt) \
+  template(CiAssumptions_ConcreteMethod_klass,  com_sun_cri_ci_CiAssumptions_ConcreteMethod,        Opt) \
   template(CiTargetMethod_klass,         com_sun_cri_ci_CiTargetMethod,                             Opt) \
   template(CiTargetMethod_Site_klass,    com_sun_cri_ci_CiTargetMethod_Site,                        Opt) \
   template(CiTargetMethod_Call_klass,    com_sun_cri_ci_CiTargetMethod_Call,                        Opt) \

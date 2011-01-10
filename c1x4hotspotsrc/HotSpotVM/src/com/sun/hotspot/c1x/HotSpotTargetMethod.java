@@ -46,6 +46,9 @@ public final class HotSpotTargetMethod implements CompilerObject {
         this.name = null;
 
         sites = getSortedSites(targetMethod);
+        for (int i = 1; i < sites.length; ++i) {
+            assert sites[i - 1].pcOffset <= sites[i].pcOffset : sites[i-1].pcOffset + "<=" + sites[i].pcOffset;
+        }
         if (targetMethod.exceptionHandlers == null) {
             exceptionHandlers = null;
         } else {

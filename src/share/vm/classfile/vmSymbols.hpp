@@ -275,6 +275,9 @@
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
   template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                                  \
   template(com_sun_cri_ri_RiExceptionHandler,         "com/sun/cri/ri/RiExceptionHandler")                              \
+  template(com_sun_cri_ci_CiAssumptions,              "com/sun/cri/ci/CiAssumptions")                                   \
+  template(com_sun_cri_ci_CiAssumptions_ConcreteSubtype, "com/sun/cri/ci/CiAssumptions$ConcreteSubtype")                \
+  template(com_sun_cri_ci_CiAssumptions_ConcreteMethod,  "com/sun/cri/ci/CiAssumptions$ConcreteMethod")                 \
   template(com_sun_cri_ci_CiTargetMethod,             "com/sun/cri/ci/CiTargetMethod")                                  \
   template(com_sun_cri_ci_CiTargetMethod_Site,        "com/sun/cri/ci/CiTargetMethod$Site")                             \
   template(com_sun_cri_ci_CiTargetMethod_Call,        "com/sun/cri/ci/CiTargetMethod$Call")                             \

@@ -99,6 +99,9 @@ public class VMEntriesNative implements VMEntries {
     public native RiType RiType_componentType(HotSpotTypeResolved klass);
 
     @Override
+    public native RiType RiType_uniqueConcreteSubtype(HotSpotTypeResolved klass);
+
+    @Override
     public native RiType getType(Class<?> javaClass);
 
     @Override

@@ -160,4 +160,9 @@ public final class HotSpotTypePrimitive implements HotSpotType {
         return "HotSpotTypePrimitive<" + kind + ">";
     }
 
+    @Override
+    public RiType uniqueConcreteSubtype() {
+        return this;
+    }
+
 }

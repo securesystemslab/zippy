@@ -53,6 +53,7 @@ private:
   oop           _hotspot_method;
   oop           _name;
   arrayOop      _sites;
+  arrayOop      _assumptions;
   arrayOop      _exception_handlers;
   CodeOffsets   _offsets;
 
@@ -90,6 +91,9 @@ private:
 
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);
+
+  void assumption_ConcreteSubtype(oop assumption);
+  void assumption_ConcreteMethod(oop assumption);
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);

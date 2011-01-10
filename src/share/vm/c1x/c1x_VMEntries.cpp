@@ -375,6 +375,32 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentTy
   return JNIHandles::make_local(C1XCompiler::get_RiType(element_type, java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)), THREAD));
 }
 
+
+// public RiType RiType_uniqueConcreteSubtype(HotSpotResolvedType klass);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcreteSubtype(JNIEnv *, jobject, jobject klass) {
+
+  Thread* THREAD = Thread::current();
+  KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
+  ciInstanceKlass* k = NULL;
+  {
+    VM_ENTRY_MARK;
+    k = (ciInstanceKlass *) CURRENT_ENV->get_object(klass_handle());
+  }
+
+  if (k->is_abstract()) {
+    ciInstanceKlass* sub = k->unique_concrete_subklass();
+    if (sub != NULL) {
+      VM_ENTRY_MARK;
+      return JNIHandles::make_local(C1XCompiler::get_RiType(sub, klass_handle, THREAD));
+    }
+  } else if (k->is_leaf_type()) {
+    assert(!k->is_interface(), "");
+    return klass;
+  }
+
+  return NULL;
+}
+
 // public RiType RiType_arrayOf(long vmId);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf(JNIEnv *, jobject, jlong vmId) {
   VM_ENTRY_MARK;
@@ -574,8 +600,9 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiConstantPool_lookupField",      CC"("PROXY"IB)"FIELD,                       FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1lookupField)},
   {CC"RiType_constantPool",             CC"("RESOLVED_TYPE")"CONSTANT_POOL,         FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1constantPool)},
   {CC"RiType_resolveMethodImpl",        CC"("RESOLVED_TYPE STRING STRING")"METHOD,  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMethodImpl)},
-  {CC"RiType_isSubtypeOf",              CC"("RESOLVED_TYPE TYPE")Z",                        FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf)},
+  {CC"RiType_isSubtypeOf",              CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf)},
   {CC"RiType_componentType",            CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentType)},
+  {CC"RiType_uniqueConcreteSubtype",    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcreteSubtype)},
   {CC"RiType_arrayOf",                  CC"("PROXY")"TYPE,                          FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf)},
   {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayType)},
   {CC"getType",                         CC"("CLASS")"TYPE,                          FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getType)},

@@ -77,6 +77,11 @@ public class HotSpotTypeUnresolved implements HotSpotType {
     }
 
     @Override
+    public RiType uniqueConcreteSubtype() {
+        throw unresolved("uniqueConcreteSubtype");
+    }
+
+    @Override
     public Class<?> javaClass() {
         throw unresolved("javaClass");
     }
