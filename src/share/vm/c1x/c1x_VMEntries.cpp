@@ -121,17 +121,25 @@ JNIEXPORT jint JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1hasBalancedM
 
 // public boolean RiMethod_uniqueConcreteMethod(long vmId);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jlong vmId) {
-  Thread* THREAD = Thread::current();
-  ciMethod* cimethod;
-  {
-    VM_ENTRY_MARK;
-    cimethod = (ciMethod*)CURRENT_ENV->get_object(VmIds::get<methodOop>(vmId));
+  VM_ENTRY_MARK;
+  ciMethod* cimethod = (ciMethod*)CURRENT_ENV->get_object(VmIds::get<methodOop>(vmId));
+  if (cimethod->holder()->is_interface()) {
+    // Cannot trust interfaces. Because of:
+    // interface I { void foo(); }
+    // class A { public void foo() {} }
+    // class B extends A implements I { }
+    // class C extends B { public void foo() { } }
+    // class D extends B { }
+    // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
+    return false;
   }
-
-
   klassOop klass = (klassOop)cimethod->holder()->get_oop();
   methodOop method = (methodOop)cimethod->get_oop();
-  methodOop unique_concrete = Dependencies::find_unique_concrete_method(klass, method);
+  methodOop unique_concrete = NULL;
+  {
+    MutexLocker locker(Compile_lock);
+    unique_concrete = Dependencies::find_unique_concrete_method(klass, method);
+  }
   if (unique_concrete == NULL) {
     return NULL;
   }
@@ -411,7 +419,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcr
 
   if (k->is_abstract()) {
     ciInstanceKlass* sub = k->unique_concrete_subklass();
-    if (sub != NULL) {
+    if (sub != NULL && sub->is_leaf_type()) {
       VM_ENTRY_MARK;
       return JNIHandles::make_local(C1XCompiler::get_RiType(sub, klass_handle, THREAD));
     }

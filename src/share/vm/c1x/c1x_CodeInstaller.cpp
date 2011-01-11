@@ -303,9 +303,8 @@ void CodeInstaller::assumption_ConcreteSubtype(oop assumption) {
   ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_oop)));
   ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_oop)));
 
-  if (context == type) {
-    _dependencies->assert_leaf_type(type);
-  } else {
+  _dependencies->assert_leaf_type(type);
+  if (context != type) {
     assert(context->is_abstract(), "");
     ThreadToNativeFromVM trans(JavaThread::current());
     _dependencies->assert_abstract_with_unique_concrete_subtype(context, type);
@@ -323,7 +322,10 @@ void CodeInstaller::assumption_ConcreteMethod(oop assumption) {
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method);
   ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context);
   ciKlass* context_klass = c->holder();
-  _dependencies->assert_unique_concrete_method(context_klass, m);
+  {
+    ThreadToNativeFromVM trans(JavaThread::current());
+    _dependencies->assert_unique_concrete_method(context_klass, m);
+  }
 }
 
 void CodeInstaller::process_exception_handlers() {
