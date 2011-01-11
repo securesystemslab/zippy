@@ -11,6 +11,7 @@
 output.txt$
 output.cfg$
 /nbproject/private/
+^scratch/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
 ^src/share/tools/IdealGraphVisualizer/build/
