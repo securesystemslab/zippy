@@ -20,6 +20,7 @@
  */
 package com.sun.hotspot.c1x;
 
+import java.lang.management.*;
 import java.lang.reflect.Proxy;
 import java.net.*;
 
@@ -40,6 +41,7 @@ import com.sun.hotspot.c1x.server.CompilationServer.ReplacingOutputStream;
 public final class Compiler {
 
     private static Compiler theInstance;
+    private static boolean PrintGCStats = false;
 
     public static Compiler getInstance() {
         if (theInstance == null) {
@@ -62,7 +64,31 @@ public final class Compiler {
             if (C1XOptions.PrintTimers) {
                 C1XTimers.print();
             }
+
+            if (PrintGCStats) {
+                printGCStats();
+            }
         }
+    }
+
+    public static void printGCStats() {
+        long totalGarbageCollections = 0;
+        long garbageCollectionTime = 0;
+
+        for (GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+            long count = gc.getCollectionCount();
+            if (count >= 0) {
+                totalGarbageCollections += count;
+            }
+
+            long time = gc.getCollectionTime();
+            if (time >= 0) {
+                garbageCollectionTime += time;
+            }
+        }
+
+        System.out.println("Total Garbage Collections: " + totalGarbageCollections);
+        System.out.println("Total Garbage Collection Time (ms): " + garbageCollectionTime);
     }
 
     public static VMExits initializeServer(VMEntries entries) {

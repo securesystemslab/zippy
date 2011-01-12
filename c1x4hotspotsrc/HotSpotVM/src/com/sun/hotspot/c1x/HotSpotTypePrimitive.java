@@ -28,7 +28,7 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public final class HotSpotTypePrimitive implements HotSpotType {
+public final class HotSpotTypePrimitive extends CompilerObject implements HotSpotType {
 
     private CiKind kind;
 

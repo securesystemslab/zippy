@@ -30,7 +30,7 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotMethodResolved implements HotSpotMethod {
+public class HotSpotMethodResolved extends CompilerObject implements HotSpotMethod {
 
     private final long vmId;
     private final String name;

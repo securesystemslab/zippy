@@ -27,7 +27,7 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotConstantPool implements RiConstantPool, CompilerObject {
+public class HotSpotConstantPool extends CompilerObject implements RiConstantPool {
 
     private final long vmId;
 

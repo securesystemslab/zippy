@@ -31,7 +31,7 @@ import com.sun.cri.ri.RiType;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotField implements RiField, CompilerObject {
+public class HotSpotField extends CompilerObject implements RiField {
 
     private final RiType holder;
     private final String name;

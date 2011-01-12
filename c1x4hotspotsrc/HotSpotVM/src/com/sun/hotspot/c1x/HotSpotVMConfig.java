@@ -27,7 +27,7 @@ import com.sun.cri.ci.*;
  *
  * @author Lukas Stadler
  */
-public class HotSpotVMConfig implements CompilerObject {
+public class HotSpotVMConfig extends CompilerObject {
 
     // os information, register layout, code generation, ...
     public boolean windowsOs;

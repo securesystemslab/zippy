@@ -1343,8 +1343,8 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         // will be place in C abi locations
 
 #ifdef _LP64
-        __ verify_oop(c_rarg0);
-        __ mov(rax, c_rarg0);
+        __ verify_oop((UseC1X) ? j_rarg0 : c_rarg0);
+        __ mov(rax, (UseC1X) ? j_rarg0 : c_rarg0);
 #else
         // The object is passed on the stack and we haven't pushed a
         // frame yet so it's one work away from top of stack.

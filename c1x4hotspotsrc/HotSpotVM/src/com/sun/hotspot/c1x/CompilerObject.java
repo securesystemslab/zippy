@@ -28,5 +28,26 @@ import java.io.*;
  *
  * @author Lukas Stadler
  */
-public interface CompilerObject extends Serializable {
+public abstract class CompilerObject implements Serializable {
+
+
+    private static final boolean PrintStats = false;
+    private static int AllocatedCount;
+    private static int FinalizeCount;
+
+    public CompilerObject() {
+        AllocatedCount++;
+        if (PrintStats && AllocatedCount % 1000 == 0) {
+            System.out.println("Allocated " + AllocatedCount);
+        }
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        FinalizeCount++;
+        if (PrintStats && FinalizeCount % 1000 == 0) {
+            System.out.println("Finalized " + FinalizeCount);
+        }
+        super.finalize();
+    }
 }

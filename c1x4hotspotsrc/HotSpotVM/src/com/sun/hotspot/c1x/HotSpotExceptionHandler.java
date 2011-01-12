@@ -23,7 +23,7 @@ package com.sun.hotspot.c1x;
 import com.sun.cri.ri.*;
 
 
-public class HotSpotExceptionHandler implements RiExceptionHandler, CompilerObject {
+public class HotSpotExceptionHandler extends CompilerObject implements RiExceptionHandler {
     private int startBci;
     private int endBci;
     private int handlerBci;

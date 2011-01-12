@@ -520,9 +520,12 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       call->set_destination(Runtime1::entry_for(Runtime1::c1x_arithmetic_drem_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_C1X_3("CiRuntimeCall::ArithmeticDrem()");
+    } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
+      call->set_destination(Runtime1::entry_for(Runtime1::register_finalizer_id));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
     } else {
-      TRACE_C1X_1("runtime_call not implemented: ");
-      IF_TRACE_C1X_1 runtime_call->print();
+      runtime_call->print();
+      fatal("runtime_call not implemented");
     }
   } else if (global_stub != NULL) {
     NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);

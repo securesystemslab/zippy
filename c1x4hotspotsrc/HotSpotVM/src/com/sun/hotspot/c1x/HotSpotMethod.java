@@ -23,6 +23,6 @@ package com.sun.hotspot.c1x;
 import com.sun.cri.ri.*;
 
 
-public interface HotSpotMethod extends RiMethod, CompilerObject {
+public interface HotSpotMethod extends RiMethod {
 
 }

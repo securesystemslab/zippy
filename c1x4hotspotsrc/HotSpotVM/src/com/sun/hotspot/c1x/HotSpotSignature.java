@@ -30,7 +30,7 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotSignature implements RiSignature, CompilerObject {
+public class HotSpotSignature extends CompilerObject implements RiSignature {
 
     private final List<String> arguments = new ArrayList<String>();
     private final String returnType;

@@ -31,7 +31,7 @@ import com.sun.hotspot.c1x.logging.*;
  *
  * @author Lukas Stadler
  */
-public final class HotSpotTargetMethod implements CompilerObject {
+public final class HotSpotTargetMethod extends CompilerObject {
 
     public final CiTargetMethod targetMethod;
     public final HotSpotMethodResolved method; // used only for methods
