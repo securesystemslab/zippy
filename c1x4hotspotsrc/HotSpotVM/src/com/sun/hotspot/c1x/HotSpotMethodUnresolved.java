@@ -28,25 +28,13 @@ import com.sun.cri.ri.*;
  *
  * @author Lukas Stadler
  */
-public class HotSpotMethodUnresolved implements HotSpotMethod {
-    private final String name;
-    private final RiType holder;
+public final class HotSpotMethodUnresolved extends HotSpotMethod {
     private final RiSignature signature;
 
     public HotSpotMethodUnresolved(String name, String signature, RiType holder) {
         this.name = name;
         this.holder = holder;
         this.signature = new HotSpotSignature(signature);
-    }
-
-    @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
-    public RiType holder() {
-        return holder;
     }
 
     @Override

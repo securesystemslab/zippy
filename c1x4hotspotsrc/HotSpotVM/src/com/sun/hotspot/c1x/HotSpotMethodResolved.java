@@ -30,10 +30,9 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotMethodResolved extends CompilerObject implements HotSpotMethod {
+public final class HotSpotMethodResolved extends HotSpotMethod {
 
     private final long vmId;
-    private final String name;
 
     // cached values
     private byte[] code;
@@ -42,12 +41,12 @@ public class HotSpotMethodResolved extends CompilerObject implements HotSpotMeth
     private int maxStackSize = -1;
     private RiExceptionHandler[] exceptionHandlers;
     private RiSignature signature;
-    private RiType holder;
     private Boolean hasBalancedMonitors;
 
     public HotSpotMethodResolved(long vmId, String name) {
         this.vmId = vmId;
         this.name = name;
+        this.holder = Compiler.getVMEntries().RiMethod_holder(vmId);
     }
 
     @Override
@@ -85,14 +84,6 @@ public class HotSpotMethodResolved extends CompilerObject implements HotSpotMeth
             hasBalancedMonitors = Compiler.getVMEntries().RiMethod_hasBalancedMonitors(vmId);
         }
         return hasBalancedMonitors;
-    }
-
-    @Override
-    public RiType holder() {
-        if (holder == null) {
-            holder = Compiler.getVMEntries().RiMethod_holder(vmId);
-        }
-        return holder;
     }
 
     @Override
@@ -148,11 +139,6 @@ public class HotSpotMethodResolved extends CompilerObject implements HotSpotMeth
     @Override
     public RiMethodProfile methodData() {
         return null;
-    }
-
-    @Override
-    public String name() {
-        return name;
     }
 
     @Override

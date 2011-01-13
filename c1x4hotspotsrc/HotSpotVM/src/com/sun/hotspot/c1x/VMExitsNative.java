@@ -152,6 +152,7 @@ public class VMExitsNative implements VMExits {
                         Logger.info(String.format("%-10s %3d %s", type, e.getLineNumber(), current));
                     }
                 }
+                System.out.println("BAILOUT:" + result.bailout().getMessage());
                 Compiler.getVMEntries().recordBailout(result.bailout().getMessage());
             } else {
                 HotSpotTargetMethod.installMethod(riMethod, result.targetMethod());

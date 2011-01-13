@@ -23,6 +23,18 @@ package com.sun.hotspot.c1x;
 import com.sun.cri.ri.*;
 
 
-public interface HotSpotMethod extends RiMethod {
+public abstract class HotSpotMethod extends CompilerObject implements RiMethod {
 
+    protected RiType holder;
+    protected String name;
+
+    @Override
+    public final RiType holder() {
+        return holder;
+    }
+
+    @Override
+    public final String name() {
+        return name;
+    }
 }

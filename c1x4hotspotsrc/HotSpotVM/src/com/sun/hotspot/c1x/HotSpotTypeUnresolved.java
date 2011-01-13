@@ -28,9 +28,9 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotTypeUnresolved implements HotSpotType {
+public class HotSpotTypeUnresolved extends HotSpotType {
 
-    public final String name;
+    public final String simpleName;
     public final int dimensions;
 
     /**
@@ -48,32 +48,30 @@ public class HotSpotTypeUnresolved implements HotSpotType {
                 dimensions++;
             }
             assert name.charAt(startIndex) == 'L';
-            name = name.substring(startIndex + 1, name.length() - 1);
+            this.simpleName = name.substring(startIndex + 1, name.length() - 1);
+            this.name = name;
+        } else {
+            this.simpleName = name;
+            this.name = getFullName(name, dimensions);
         }
 
-        this.name = name;
         this.dimensions = dimensions;
     }
 
     public HotSpotTypeUnresolved(String name, int dimensions) {
         assert dimensions >= 0;
-        this.name = name;
+        this.simpleName = name;
         this.dimensions = dimensions;
+        this.name = getFullName(name, dimensions);
     }
 
-    @Override
-    public String name() {
+    private String getFullName(String name, int dimensions) {
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < dimensions; i++) {
             str.append('[');
         }
-        str.append('L').append(name).append(';');
+        str.append('L').append(simpleName).append(';');
         return str.toString();
-    }
-
-    @Override
-    public String simpleName() {
-        return name;
     }
 
     @Override
@@ -144,7 +142,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
     @Override
     public RiType componentType() {
         assert isArrayClass() : "no array class" + name();
-        return new HotSpotTypeUnresolved(name, dimensions - 1);
+        return new HotSpotTypeUnresolved(simpleName, dimensions - 1);
     }
 
     @Override
@@ -154,7 +152,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        return new HotSpotTypeUnresolved(name, dimensions + 1);
+        return new HotSpotTypeUnresolved(simpleName, dimensions + 1);
     }
 
     @Override
@@ -168,12 +166,12 @@ public class HotSpotTypeUnresolved implements HotSpotType {
     }
 
     private CiUnresolvedException unresolved(String operation) {
-        throw new CiUnresolvedException(operation + " not defined for unresolved class " + name);
+        throw new CiUnresolvedException(operation + " not defined for unresolved class " + simpleName);
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return simpleName.hashCode();
     }
 
     @Override
@@ -183,7 +181,7 @@ public class HotSpotTypeUnresolved implements HotSpotType {
 
     @Override
     public String toString() {
-        return "HotSpotType<" + name + ", unresolved>";
+        return "HotSpotType<" + simpleName + ", unresolved>";
     }
 
     @Override

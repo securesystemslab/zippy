@@ -28,7 +28,7 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public final class HotSpotTypePrimitive extends CompilerObject implements HotSpotType {
+public final class HotSpotTypePrimitive extends HotSpotType {
 
     private CiKind kind;
 
@@ -44,6 +44,7 @@ public final class HotSpotTypePrimitive extends CompilerObject implements HotSpo
 
     private HotSpotTypePrimitive(CiKind kind) {
         this.kind = kind;
+        this.name = kind.toString();
     }
 
     @Override
@@ -138,16 +139,6 @@ public final class HotSpotTypePrimitive extends CompilerObject implements HotSpo
     @Override
     public CiKind kind() {
         return kind;
-    }
-
-    @Override
-    public String name() {
-        return kind.toString();
-    }
-
-    @Override
-    public String simpleName() {
-        return kind.toString();
     }
 
     @Override

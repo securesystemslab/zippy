@@ -143,11 +143,20 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   }
 
   instanceKlass::cast(HotSpotTypeResolved::klass())->initialize(CHECK_NULL);
-  oop obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
-  assert(obj != NULL, "must succeed in allocating instance");
+  Handle obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
+  assert(obj() != NULL, "must succeed in allocating instance");
+
+
+  if (klass->oop_is_instance()) {
+    instanceKlass* ik = (instanceKlass*)klass()->klass_part();
+    Handle full_name = java_lang_String::create_from_str(ik->signature_name(), CHECK_NULL);
+    HotSpotType::set_name(obj, full_name());
+  } else {
+    HotSpotType::set_name(obj, name());
+  }
 
   HotSpotTypeResolved::set_javaMirror(obj, klass->java_mirror());
-  HotSpotTypeResolved::set_name(obj, name());
+  HotSpotTypeResolved::set_simpleName(obj, name());
   HotSpotTypeResolved::set_accessFlags(obj, klass->access_flags().as_int());
   HotSpotTypeResolved::set_isInterface(obj, klass->is_interface());
   HotSpotTypeResolved::set_isInstanceClass(obj, klass->oop_is_instance());
@@ -167,9 +176,9 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   HotSpotTypeResolved::set_hasSubclass(obj, false);
   HotSpotTypeResolved::set_hasFinalizableSubclass(obj, false);
 
-  klass->set_c1x_mirror(obj);
+  klass->set_c1x_mirror(obj());
 
-  return obj;
+  return obj();
 }
 
 BasicType C1XCompiler::kindToBasicType(jchar ch) {

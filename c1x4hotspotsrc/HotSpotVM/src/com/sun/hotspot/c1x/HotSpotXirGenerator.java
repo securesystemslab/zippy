@@ -37,6 +37,7 @@ import com.sun.cri.xir.CiXirAssembler.XirLabel;
 import com.sun.cri.xir.CiXirAssembler.XirMark;
 import com.sun.cri.xir.CiXirAssembler.XirOperand;
 import com.sun.cri.xir.CiXirAssembler.XirParameter;
+import com.sun.cri.xir.CiXirAssembler.XirTemp;
 
 /**
  *
@@ -375,6 +376,22 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             }
             asm.pload(kind, result, object, fieldOffset, is(NULL_CHECK, flags));
             return asm.finishTemplate("getfield<" + kind + ">");
+        }
+    };
+
+    private KindTemplates writeBarrierTemplate = new KindTemplates() {
+
+        @Override
+        protected XirTemplate create(CiXirAssembler asm, long flags, CiKind kind) {
+            asm.restart(CiKind.Void);
+            XirParameter object = asm.createInputParameter("object", CiKind.Object);
+
+            // Need temp operand, because the write barrier destroys the object pointer.
+            XirOperand temp = asm.createTemp("temp", CiKind.Object);
+            asm.mov(temp, object);
+
+            writeBarrier(asm, temp);
+            return asm.finishTemplate("writeBarrier");
         }
     };
 
@@ -882,6 +899,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             return new XirSnippet(getFieldTemplates.get(site, field.kind()), object, XirArgument.forInt(((HotSpotField) field).offset()));
         }
         return new XirSnippet(getFieldTemplates.get(site, field.kind(), UNRESOLVED), object);
+    }
+
+    @Override
+    public XirSnippet genWriteBarrier(XirArgument object) {
+        return new XirSnippet(writeBarrierTemplate.get(null, CiKind.Void), object);
     }
 
     @Override

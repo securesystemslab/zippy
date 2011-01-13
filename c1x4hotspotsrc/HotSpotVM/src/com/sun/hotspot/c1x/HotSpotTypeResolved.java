@@ -32,10 +32,10 @@ import com.sun.hotspot.c1x.logging.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotTypeResolved implements HotSpotType {
+public class HotSpotTypeResolved extends HotSpotType {
 
     private Class javaMirror;
-    private String name;
+    private String simpleName;
     private int accessFlags;
     private boolean hasFinalizer;
     private boolean hasSubclass;
@@ -55,7 +55,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        Logger.log("arrayOf " + name);
+        Logger.log("arrayOf " + simpleName);
         return null;
         //return Compiler.getVMEntries().RiType_arrayOf(vmId);
     }
@@ -164,16 +164,6 @@ public class HotSpotTypeResolved implements HotSpotType {
     }
 
     @Override
-    public String name() {
-        return "L" + name + ";";
-    }
-
-    @Override
-    public String simpleName() {
-        return name;
-    }
-
-    @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
         assert method instanceof HotSpotMethod;
         return Compiler.getVMEntries().RiType_resolveMethodImpl(this, method.name(), method.signature().asString());
@@ -181,7 +171,7 @@ public class HotSpotTypeResolved implements HotSpotType {
 
     @Override
     public String toString() {
-        return "HotSpotType<" + name + ", resolved>";
+        return "HotSpotType<" + simpleName + ", resolved>";
     }
 
     public RiConstantPool constantPool() {

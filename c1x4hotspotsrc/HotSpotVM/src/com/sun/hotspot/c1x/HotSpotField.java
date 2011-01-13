@@ -101,7 +101,7 @@ public class HotSpotField extends CompilerObject implements RiField {
 
     @Override
     public String toString() {
-        return "HotSpotField<" + ((HotSpotType) holder).simpleName() + "." + name + ">";
+        return "HotSpotField<" + holder.name() + "." + name + ">";
     }
 
 }
