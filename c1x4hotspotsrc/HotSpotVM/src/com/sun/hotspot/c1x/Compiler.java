@@ -186,7 +186,7 @@ public final class Compiler {
         // these options are important - c1x4hotspot will not generate correct code without them
         C1XOptions.GenSpecialDivChecks = true;
         C1XOptions.NullCheckUniquePc = true;
-        C1XOptions.invokeinterfaceTemplatePos = true;
+        C1XOptions.InvokeSnippetAfterArguments = true;
         C1XOptions.StackShadowPages = config.stackShadowPages;
     }
 

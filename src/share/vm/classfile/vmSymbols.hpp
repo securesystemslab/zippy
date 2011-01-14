@@ -266,6 +266,7 @@
   template(com_sun_hotspot_c1x_HotSpotMethodResolved, "com/sun/hotspot/c1x/HotSpotMethodResolved")                      \
   template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/sun/hotspot/c1x/HotSpotTargetMethod")                        \
   template(com_sun_hotspot_c1x_HotSpotField,          "com/sun/hotspot/c1x/HotSpotField")                               \
+  template(com_sun_c1x_C1XOptions,                    "com/sun/c1x/C1XOptions")                                         \
   template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolved")                        \
   template(com_sun_hotspot_c1x_HotSpotType,           "com/sun/hotspot/c1x/HotSpotType")                                \
   template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/sun/hotspot/c1x/HotSpotExceptionHandler")                   \

@@ -21,6 +21,9 @@
 
 package com.sun.hotspot.c1x;
 
+import java.lang.reflect.*;
+
+import com.sun.c1x.*;
 import com.sun.cri.ci.CiConstant;
 import com.sun.cri.ci.CiKind;
 import com.sun.cri.ri.RiField;
@@ -55,6 +58,30 @@ public class HotSpotField extends CompilerObject implements RiField {
     @Override
     public CiConstant constantValue(Object object) {
         if (object == null) {
+            if (constant == null && holder.isResolved() && holder.javaClass() == C1XOptions.class) {
+                Field f;
+                try {
+                    f = C1XOptions.class.getField(name);
+                } catch (SecurityException e1) {
+                    return null;
+                } catch (NoSuchFieldException e1) {
+                    return null;
+                }
+                f.setAccessible(true);
+                if (Modifier.isStatic(f.getModifiers())) {
+                    CiKind kind = CiKind.fromJavaClass(f.getType());
+                    Object value;
+                    try {
+                        value = f.get(null);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    } catch (IllegalAccessException e) {
+                        return null;
+                    }
+                    constant = CiConstant.forBoxed(kind, value);
+                }
+            }
+
             // Constant part only valid for static fields.
             return constant;
         }

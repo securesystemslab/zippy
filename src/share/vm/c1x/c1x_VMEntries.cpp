@@ -296,7 +296,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
   Bytecodes::Code code = (Bytecodes::Code)(((int) byteCode) & 0xFF);
   Handle field_handle = C1XCompiler::get_RiField(field, loading_klass, cp->pool_holder(), code, THREAD);
-  if (field->is_constant() && field->is_static()) {
+  bool is_constant = field->is_constant();
+  if (is_constant && field->is_static()) {
     ciConstant constant = field->constant_value();
     oop constant_object = NULL;
     switch (constant.basic_type()) {
