@@ -140,6 +140,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public RiType getRiType(Class<?> javaClass) {
+        assert javaClass != null;
         return Compiler.getVMEntries().getType(javaClass);
     }
 

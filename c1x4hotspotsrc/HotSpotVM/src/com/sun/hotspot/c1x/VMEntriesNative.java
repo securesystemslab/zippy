@@ -93,7 +93,7 @@ public class VMEntriesNative implements VMEntries {
     public native RiType getPrimitiveArrayType(CiKind kind);
 
     @Override
-    public native RiType RiType_arrayOf(long vmId);
+    public native RiType RiType_arrayOf(HotSpotTypeResolved klass);
 
     @Override
     public native RiType RiType_componentType(HotSpotTypeResolved klass);

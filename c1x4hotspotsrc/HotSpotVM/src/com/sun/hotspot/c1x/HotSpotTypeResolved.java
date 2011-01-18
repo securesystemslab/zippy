@@ -55,9 +55,7 @@ public class HotSpotTypeResolved extends HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        Logger.log("arrayOf " + simpleName);
-        return null;
-        //return Compiler.getVMEntries().RiType_arrayOf(vmId);
+        return Compiler.getVMEntries().RiType_arrayOf(this);
     }
 
     @Override
@@ -82,7 +80,7 @@ public class HotSpotTypeResolved extends HotSpotType {
     public CiConstant getEncoding(Representation r) {
         switch (r) {
             case JavaClass:
-                return CiConstant.forObject(javaMirror);
+                return CiConstant.forObject(javaClass());
             case ObjectHub:
                 return CiConstant.forObject(this);
             case StaticFields:

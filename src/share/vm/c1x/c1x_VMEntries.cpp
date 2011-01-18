@@ -432,13 +432,13 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcr
   return NULL;
 }
 
-// public RiType RiType_arrayOf(long vmId);
-JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf(JNIEnv *, jobject, jlong vmId) {
+// public RiType RiType_arrayOf(HotSpotTypeResolved klass);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf(JNIEnv *, jobject, jobject klass) {
   VM_ENTRY_MARK;
 
-  instanceKlass* klass = instanceKlass::cast(VmIds::get<klassOop>(vmId));
-  KlassHandle array = klass->array_klass(THREAD);
-  Handle name = array->name();
+  KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
+  KlassHandle array = klass_handle->array_klass(THREAD);
+  Handle name = VmIds::toString<Handle>(array->name(), CHECK_NULL);
   return JNIHandles::make_local(THREAD, C1XCompiler::createHotSpotTypeResolved(array, name, THREAD));
 }
 
@@ -454,11 +454,19 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayTy
 // public RiType getType(Class<?> javaClass);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getType(JNIEnv *env, jobject, jobject javaClass) {
   VM_ENTRY_MARK;
-  KlassHandle klass = java_lang_Class::as_klassOop(JNIHandles::resolve(javaClass));
-  Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
+  oop javaClassOop = JNIHandles::resolve(javaClass);
+  if (javaClassOop == NULL) {
+    fatal("argument to VMEntries.getType must not be NULL");
+  } else if (java_lang_Class::is_primitive(javaClassOop)) {
+    BasicType basicType = java_lang_Class::primitive_type(javaClassOop);
+    return JNIHandles::make_local(THREAD, VMExits::createRiTypePrimitive((int) basicType, THREAD));
+  } else {
+    KlassHandle klass = java_lang_Class::as_klassOop(javaClassOop);
+    Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
 
-  oop type = C1XCompiler::createHotSpotTypeResolved(klass, name, CHECK_NULL);
-  return JNIHandles::make_local(THREAD, type);
+    oop type = C1XCompiler::createHotSpotTypeResolved(klass, name, CHECK_NULL);
+    return JNIHandles::make_local(THREAD, type);
+  }
 }
 
 
@@ -635,7 +643,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_isSubtypeOf",              CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf)},
   {CC"RiType_componentType",            CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentType)},
   {CC"RiType_uniqueConcreteSubtype",    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcreteSubtype)},
-  {CC"RiType_arrayOf",                  CC"("PROXY")"TYPE,                          FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf)},
+  {CC"RiType_arrayOf",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf)},
   {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayType)},
   {CC"getType",                         CC"("CLASS")"TYPE,                          FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getType)},
   {CC"getConfiguration",                CC"()"CONFIG,                               FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getConfiguration)},

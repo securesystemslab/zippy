@@ -73,7 +73,7 @@ public interface VMEntries {
 
     RiType getPrimitiveArrayType(CiKind kind);
 
-    RiType RiType_arrayOf(long vmId);
+    RiType RiType_arrayOf(HotSpotTypeResolved klass);
 
     RiType RiType_componentType(HotSpotTypeResolved klass);
 

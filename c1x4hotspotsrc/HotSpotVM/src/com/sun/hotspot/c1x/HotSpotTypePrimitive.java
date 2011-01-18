@@ -20,6 +20,7 @@
  */
 package com.sun.hotspot.c1x;
 
+import com.sun.c1x.util.*;
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
@@ -49,14 +50,12 @@ public final class HotSpotTypePrimitive extends HotSpotType {
 
     @Override
     public int accessFlags() {
-        // TODO Auto-generated method stub
-        return 0;
+        return javaClass().getModifiers();
     }
 
     @Override
     public RiType arrayOf() {
-        // TODO Auto-generated method stub
-        return null;
+        return Compiler.getVMEntries().getPrimitiveArrayType(kind);
     }
 
     @Override
@@ -71,9 +70,7 @@ public final class HotSpotTypePrimitive extends HotSpotType {
 
     @Override
     public CiConstant getEncoding(Representation r) {
-        // TODO Auto-generated method stub
-
-        return null;
+        throw Util.unimplemented("HotSpotTypePrimitive.getEncoding");
     }
 
     @Override
