@@ -733,6 +733,17 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         }
     };
 
+    private SimpleTemplates getClassTemplates = new SimpleTemplates() {
+       @Override
+       protected XirTemplate create(CiXirAssembler asm, long flags) {
+           XirOperand result = asm.restart(CiKind.Object);
+           XirOperand object = asm.createInputParameter("object", CiKind.Object);
+           asm.pload(CiKind.Object, result, object, asm.i(config.hubOffset), is(NULL_CHECK, flags));
+           asm.pload(CiKind.Object, result, result, asm.i(config.classMirrorOffset), false);
+           return asm.finishTemplate("currentThread");
+       }
+    };
+
     private SimpleTemplates currentThreadTemplates = new SimpleTemplates() {
        @Override
        protected XirTemplate create(CiXirAssembler asm, long flags) {
@@ -746,6 +757,11 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     @Override
     public XirSnippet genCurrentThread(XirSite site) {
         return new XirSnippet(currentThreadTemplates.get(site));
+    }
+
+    @Override
+    public XirSnippet genGetClass(XirSite site, XirArgument object) {
+        return new XirSnippet(getClassTemplates.get(site), object);
     }
 
     private KindTemplates arrayCopyTemplates = new KindTemplates() {

@@ -54,6 +54,7 @@ public class HotSpotVMConfig extends CompilerObject {
     public long cardtableStartAddress;
     public int cardtableShift;
     public long safepointPollingAddress;
+    public int classMirrorOffset;
 
     // runtime stubs
     public long debugStub;
