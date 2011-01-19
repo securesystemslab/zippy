@@ -681,6 +681,20 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         }
     };
 
+    private XirOperand genArrayLength(XirOperand array, boolean implicitNullException) {
+        XirOperand length = asm.createTemp("length", CiKind.Int);
+        genArrayLength(asm, length, array, implicitNullException);
+        return length;
+    }
+
+    private void genArrayLength(CiXirAssembler asm, XirOperand length, XirOperand array, boolean implicitNullException) {
+        if (implicitNullException) {
+            // asm.nop(1);
+            asm.mark(MARK_IMPLICIT_NULL);
+        }
+        asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), implicitNullException);
+    }
+
     private KindTemplates arrayLoadTemplates = new KindTemplates(NULL_CHECK, READ_BARRIER, BOUNDS_CHECK, GIVEN_LENGTH) {
 
         @Override
@@ -699,12 +713,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 if (is(GIVEN_LENGTH, flags)) {
                     length = asm.createInputParameter("length", CiKind.Int);
                 } else {
-                    length = asm.createTemp("length", CiKind.Int);
-                    if (implicitNullException) {
-                        //asm.nop(1);
-                        asm.mark(MARK_IMPLICIT_NULL);
-                    }
-                    asm.pload(CiKind.Int, length, array, asm.i(config.arrayLengthOffset), implicitNullException);
+                    length = genArrayLength(array, implicitNullException);
                 }
                 asm.jugteq(failBoundsCheck, index, length);
                 implicitNullException = false;
@@ -721,6 +730,135 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.shouldNotReachHere();
             }
             return asm.finishTemplate("arrayload<" + kind + ">");
+        }
+    };
+
+    private SimpleTemplates currentThreadTemplates = new SimpleTemplates() {
+       @Override
+       protected XirTemplate create(CiXirAssembler asm, long flags) {
+           XirOperand result = asm.restart(CiKind.Object);
+           XirOperand thread = asm.createRegisterTemp("thread", CiKind.Word, AMD64.r15);
+           asm.pload(CiKind.Object, result, thread, asm.i(config.threadObjectOffset), false);
+           return asm.finishTemplate("currentThread");
+       }
+    };
+
+    @Override
+    public XirSnippet genCurrentThread(XirSite site) {
+        return new XirSnippet(currentThreadTemplates.get(site));
+    }
+
+    private KindTemplates arrayCopyTemplates = new KindTemplates() {
+
+        @Override
+        protected XirTemplate create(CiXirAssembler asm, long flags, CiKind kind) {
+            asm.restart(CiKind.Void);
+            XirParameter src = asm.createInputParameter("src", CiKind.Object);
+            XirParameter srcPos = asm.createInputParameter("srcPos", CiKind.Int);
+            XirParameter dest = asm.createInputParameter("dest", CiKind.Object);
+            XirParameter destPos = asm.createInputParameter("destPos", CiKind.Int);
+            XirParameter length = asm.createInputParameter("length", CiKind.Int);
+
+            XirOperand tempSrc = asm.createTemp("tempSrc", CiKind.Word);
+            XirOperand tempDest = asm.createTemp("tempDest", CiKind.Word);
+            XirOperand lengthOperand = asm.createTemp("lengthOperand", CiKind.Int);
+
+            // Calculate the factor for the repeat move instruction.
+            int elementSize = kind.sizeInBytes(target.wordSize);
+            int factor;
+            boolean wordSize;
+            if (elementSize >= target.wordSize) {
+                assert elementSize % target.wordSize == 0;
+                wordSize = true;
+                factor = elementSize / target.wordSize;
+            } else {
+                factor = elementSize;
+                wordSize = false;
+            }
+
+            // Adjust the length if the factor is not 1.
+            if (factor != 1) {
+                asm.shl(lengthOperand, length, asm.i(CiUtil.log2(factor)));
+            } else {
+                asm.mov(lengthOperand, length);
+            }
+
+            // Set the start and the end pointer.
+            asm.lea(tempSrc, src, srcPos, config.getArrayOffset(kind), Scale.fromInt(elementSize));
+            asm.lea(tempDest, dest, destPos, config.getArrayOffset(kind), Scale.fromInt(elementSize));
+
+            XirLabel reverse = null;
+            XirLabel normal = null;
+
+            if (!is(INPUTS_DIFFERENT, flags) && !is(INPUTS_SAME, flags)) {
+                normal = asm.createInlineLabel("reverse");
+                asm.jneq(normal, src, dest);
+            }
+
+            if (!is(INPUTS_DIFFERENT, flags)) {
+                reverse = asm.createInlineLabel("reverse");
+                asm.jlt(reverse, srcPos, destPos);
+            }
+
+            if (!is(INPUTS_DIFFERENT, flags) && !is(INPUTS_SAME, flags)) {
+                asm.bindInline(normal);
+            }
+
+            // Everything set up => repeat mov.
+            if (wordSize) {
+                asm.repmov(tempSrc, tempDest, lengthOperand);
+            } else {
+                asm.repmovb(tempSrc, tempDest, lengthOperand);
+            }
+
+            if (!is(INPUTS_DIFFERENT, flags)) {
+
+                XirLabel end = asm.createInlineLabel("end");
+                asm.jmp(end);
+
+                // Implement reverse copy, because srcPos < destPos and src == dest.
+                asm.bindInline(reverse);
+
+                CiKind copyKind = wordSize ? CiKind.Word : CiKind.Byte;
+                XirOperand tempValue = asm.createTemp("tempValue", copyKind);
+                XirLabel start = asm.createInlineLabel("start");
+                asm.bindInline(start);
+                asm.sub(lengthOperand, lengthOperand, asm.i(1));
+                asm.jlt(end, lengthOperand, asm.i(0));
+
+                Scale scale = wordSize ? Scale.fromInt(target.wordSize) : Scale.Times1;
+                asm.pload(copyKind, tempValue, tempSrc, lengthOperand, 0, scale, false);
+                asm.pstore(copyKind, tempDest, lengthOperand, tempValue, 0, scale, false);
+
+                asm.jmp(start);
+                asm.bindInline(end);
+            }
+
+            if (kind == CiKind.Object) {
+                // Do write barriers
+                asm.lea(tempDest, dest, destPos, config.getArrayOffset(kind), Scale.fromInt(elementSize));
+                asm.shr(tempDest, tempDest, asm.i(config.cardtableShift));
+                asm.pstore(CiKind.Boolean, asm.w(config.cardtableStartAddress), tempDest, asm.b(false), false);
+
+                XirOperand tempDestEnd = tempSrc; // Reuse src temp
+                asm.lea(tempDestEnd, dest, destPos, config.getArrayOffset(kind), Scale.fromInt(elementSize));
+                asm.add(tempDestEnd, tempDestEnd, length);
+                asm.shr(tempDestEnd, tempDestEnd, asm.i(config.cardtableShift));
+
+                // Jump to out-of-line write barrier loop if the array is big.
+                XirLabel writeBarrierLoop = asm.createOutOfLineLabel("writeBarrierLoop");
+                asm.jneq(writeBarrierLoop, tempDest, tempSrc);
+                XirLabel back = asm.createInlineLabel("back");
+                asm.bindInline(back);
+
+                asm.bindOutOfLine(writeBarrierLoop);
+                asm.pstore(CiKind.Boolean, asm.w(config.cardtableStartAddress), tempDestEnd, asm.b(false), false);
+                asm.sub(tempDestEnd, tempDestEnd, asm.i(1));
+                asm.jneq(writeBarrierLoop, tempDestEnd, tempDest);
+                asm.jmp(back);
+            }
+
+            return asm.finishTemplate("arraycopy<" + kind + ">");
         }
     };
 
@@ -991,6 +1129,23 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             return new XirSnippet(arrayStoreTemplates.get(site, elementKind), array, index, value);
         }
         return new XirSnippet(arrayStoreTemplates.get(site, elementKind, GIVEN_LENGTH), array, index, value, length);
+    }
+
+    @Override
+    public XirSnippet genArrayCopy(XirSite site, XirArgument src, XirArgument srcPos, XirArgument dest, XirArgument destPos, XirArgument length, RiType elementType, boolean inputsSame, boolean inputsDifferent) {
+        if (elementType == null) {
+            return null;
+        }
+        assert !inputsDifferent || !inputsSame;
+        XirTemplate template = null;
+        if (inputsDifferent) {
+            template = arrayCopyTemplates.get(site, elementType.kind(), INPUTS_DIFFERENT);
+        } else if (inputsSame) {
+            template = arrayCopyTemplates.get(site, elementType.kind(), INPUTS_SAME);
+        } else {
+            template = arrayCopyTemplates.get(site, elementType.kind());
+        }
+        return new XirSnippet(template, src, srcPos, dest, destPos, length);
     }
 
     @Override

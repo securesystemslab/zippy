@@ -352,6 +352,10 @@ class DeoptimizationBlob: public SingletonBlob {
 
   int _unpack_with_exception_in_tls;
 
+  // (tw) Offset when C1X calls uncommon_trap.
+  int _uncommon_trap_offset;
+
+
   // Creation support
   DeoptimizationBlob(
     CodeBuffer* cb,
@@ -407,6 +411,14 @@ class DeoptimizationBlob: public SingletonBlob {
     assert(code_contains(code_begin() + _unpack_with_exception_in_tls), "must be PC inside codeblob");
   }
   address unpack_with_exception_in_tls() const   { return code_begin() + _unpack_with_exception_in_tls; }
+
+  // (tw) Offset when C1X calls uncommon_trap.
+  void set_uncommon_trap_offset(int offset) {
+    _uncommon_trap_offset = offset;
+    assert(contains(code_begin() + _uncommon_trap_offset), "must be PC inside codeblob");
+  }
+  address uncommon_trap() const                  { return code_begin() + _uncommon_trap_offset;     }
+
 };
 
 

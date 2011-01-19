@@ -25,7 +25,6 @@ import java.util.*;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
-import com.sun.hotspot.c1x.logging.*;
 
 /**
  * Implementation of RiType for resolved non-primitive HotSpot classes.

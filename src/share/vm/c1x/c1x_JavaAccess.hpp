@@ -180,6 +180,7 @@ void c1x_compute_offsets();
     static_oop_field(CiRuntimeCall, ArithmeticLog, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
     static_oop_field(CiRuntimeCall, ArithmeticLog10, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, ArithmeticSin, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, Deoptimize, "Lcom/sun/cri/ci/CiRuntimeCall;");      \
   end_class                                                                             \
   start_class(RiMethod)                                                                 \
   end_class                                                                             \

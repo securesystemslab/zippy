@@ -523,6 +523,9 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
       call->set_destination(Runtime1::entry_for(Runtime1::register_finalizer_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+    } else if (runtime_call == CiRuntimeCall::Deoptimize()) {
+      call->set_destination(SharedRuntime::deopt_blob()->uncommon_trap());
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
     } else {
       runtime_call->print();
       fatal("runtime_call not implemented");

@@ -517,6 +517,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
   set_int(env, config, "klassStateFullyInitialized", (int)instanceKlass::fully_initialized);
   set_int(env, config, "threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int(env, config, "threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
+  set_int(env, config, "threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
   set_int(env, config, "instanceHeaderPrototypeOffset", Klass::prototype_header_offset_in_bytes() + klassOopDesc::klass_part_offset_in_bytes());
   set_int(env, config, "threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));

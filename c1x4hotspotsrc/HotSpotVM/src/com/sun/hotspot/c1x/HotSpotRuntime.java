@@ -228,4 +228,9 @@ public class HotSpotRuntime implements RiRuntime {
     public int getCustomStackAreaSize() {
         return 8;
     }
+
+    @Override
+    public boolean supportsArrayCopyIntrinsic() {
+        return true;
+    }
 }

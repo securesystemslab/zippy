@@ -46,6 +46,7 @@ public class HotSpotVMConfig extends CompilerObject {
     public int arrayClassElementOffset;
     public int threadTlabTopOffset;
     public int threadTlabEndOffset;
+    public int threadObjectOffset;
     public int instanceHeaderPrototypeOffset;
     public int threadExceptionOopOffset;
     public int threadExceptionPcOffset;
