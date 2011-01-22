@@ -230,7 +230,7 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public boolean supportsArrayCopyIntrinsic() {
+    public boolean supportsArrayIntrinsics() {
         return true;
     }
 }

@@ -34,6 +34,8 @@ public class HotSpotVMConfig extends CompilerObject {
     public int codeEntryAlignment;
     public boolean verifyPointers;
     public boolean useFastLocking;
+    public boolean useFastNewObjectArray;
+    public boolean useFastNewTypeArray;
 
     // offsets, ...
     public int vmPageSize;

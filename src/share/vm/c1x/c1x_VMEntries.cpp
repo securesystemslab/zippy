@@ -134,18 +134,19 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1uniqueCon
     return false;
   }
   klassOop klass = (klassOop)cimethod->holder()->get_oop();
-  methodOop method = (methodOop)cimethod->get_oop();
-  methodOop unique_concrete = NULL;
+  methodHandle method((methodOop)cimethod->get_oop());
+  methodHandle unique_concrete;
   {
+    ResourceMark rm;
     MutexLocker locker(Compile_lock);
-    unique_concrete = Dependencies::find_unique_concrete_method(klass, method);
+    unique_concrete = methodHandle(Dependencies::find_unique_concrete_method(klass, method()));
   }
-  if (unique_concrete == NULL) {
+  if (unique_concrete.is_null()) {
     return NULL;
   }
 
   Handle name = VmIds::toString<Handle>(unique_concrete->name(), CHECK_NULL);
-  oop method_resolved = VMExits::createRiMethodResolved(VmIds::add<methodOop>(unique_concrete), name, CHECK_NULL);
+  oop method_resolved = VMExits::createRiMethodResolved(VmIds::add<methodOop>(unique_concrete()), name, CHECK_NULL);
   return JNIHandles::make_local(THREAD, method_resolved);
 }
 
@@ -508,6 +509,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getConfiguration(JN
 #endif
   set_boolean(env, config, "verifyPointers", VerifyOops);
   set_boolean(env, config, "useFastLocking", UseFastLocking);
+  set_boolean(env, config, "useFastNewObjectArray", UseFastNewObjectArray);
+  set_boolean(env, config, "useFastNewTypeArray", UseFastNewTypeArray);
   set_int(env, config, "codeEntryAlignment", CodeEntryAlignment);
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);
@@ -597,8 +600,14 @@ JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_installStub(JNIEnv *j
 }
 
 // public void recordBailout(String reason);
-JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_recordBailout(JNIEnv *jniEnv, jobject) {
-  if (C1XBailoutIsFatal) fatal("Bailout in C1X");
+JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_recordBailout(JNIEnv *jniEnv, jobject message) {
+  if (C1XBailoutIsFatal) {
+    Handle msg = JNIHandles::resolve(message);
+    if (msg.is_null()) {
+      java_lang_String::print(msg, tty);
+    }
+    fatal("Bailout in C1X");
+  }
 }
 
 
