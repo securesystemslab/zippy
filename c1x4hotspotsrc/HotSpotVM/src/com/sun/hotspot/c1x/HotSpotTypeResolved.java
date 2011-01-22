@@ -46,6 +46,7 @@ public class HotSpotTypeResolved extends HotSpotType {
     private int instanceSize;
     private RiType componentType;
     private HashMap<Integer, RiField> fieldCache;
+    private RiConstantPool pool;
 
     @Override
     public int accessFlags() {
@@ -172,6 +173,7 @@ public class HotSpotTypeResolved extends HotSpotType {
     }
 
     public RiConstantPool constantPool() {
+        // TODO: Implement constant pool without the need for VmId and cache the constant pool.
         return Compiler.getVMEntries().RiType_constantPool(this);
     }
 
