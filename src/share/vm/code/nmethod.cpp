@@ -811,11 +811,13 @@ nmethod::nmethod(
     _stub_offset             = content_offset()      + code_buffer->total_offset_of(code_buffer->stubs());
 
     // Exception handler and deopt handler are in the stub section
+    assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
+    assert(offsets->value(CodeOffsets::Deopt     ) != -1, "must be set");
     if (UseC1X) {
       // c1x produces no (!) stub section
       _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
       _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
-      if (has_method_handle_invokes()) {
+      if (offsets->value(CodeOffsets::DeoptMH) != -1) {
         _deoptimize_mh_offset  = code_offset()          + offsets->value(CodeOffsets::DeoptMH);
       } else {
         _deoptimize_mh_offset  = -1;
@@ -823,7 +825,7 @@ nmethod::nmethod(
     } else {
       _exception_offset        = _stub_offset          + offsets->value(CodeOffsets::Exceptions);
       _deoptimize_offset       = _stub_offset          + offsets->value(CodeOffsets::Deopt);
-      if (has_method_handle_invokes()) {
+      if (offsets->value(CodeOffsets::DeoptMH) != -1) {
         _deoptimize_mh_offset  = _stub_offset          + offsets->value(CodeOffsets::DeoptMH);
       } else {
         _deoptimize_mh_offset  = -1;
@@ -1926,6 +1928,7 @@ void nmethod::copy_scopes_pcs(PcDesc* pcs, int count) {
       break;
     }
   }
+  assert(has_method_handle_invokes() == (_deoptimize_mh_offset != -1), "must have deopt mh handler");
 
   int size = count * sizeof(PcDesc);
   assert(scopes_pcs_size() >= size, "oob");
