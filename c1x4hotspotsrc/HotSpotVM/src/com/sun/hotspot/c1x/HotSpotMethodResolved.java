@@ -107,6 +107,11 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     }
 
     @Override
+    public boolean noSafepoints() {
+        return false;
+    }
+
+    @Override
     public boolean isResolved() {
         return true;
     }

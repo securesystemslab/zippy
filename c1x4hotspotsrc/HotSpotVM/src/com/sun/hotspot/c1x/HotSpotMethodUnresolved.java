@@ -108,6 +108,11 @@ public final class HotSpotMethodUnresolved extends HotSpotMethod {
     }
 
     @Override
+    public boolean noSafepoints() {
+        return false;
+    }
+
+    @Override
     public CiBitMap[] livenessMap() {
         return null;
     }
