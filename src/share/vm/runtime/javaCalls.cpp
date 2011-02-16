@@ -201,7 +201,7 @@ void JavaCalls::call_default_constructor(JavaThread* thread, methodHandle method
 
 // ============ Interface calls ============
 
-void JavaCalls::call_interface(JavaValue* result, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS) {
+void JavaCalls::call_interface(JavaValue* result, KlassHandle spec_klass, Symbol* name, Symbol* signature, JavaCallArguments* args, TRAPS) {
   CallInfo callinfo;
   Handle receiver = args->receiver();
   KlassHandle recvrKlass(THREAD, receiver.is_null() ? (klassOop)NULL : receiver->klass());

@@ -199,7 +199,7 @@ class JavaCalls: AllStatic {
   // ------------
 
   // The receiver must be first oop in argument list
-  static void call_interface(JavaValue* result, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS);
+  static void call_interface(JavaValue* result, KlassHandle spec_klass, Symbol* name, Symbol* signature, JavaCallArguments* args, TRAPS);
 
   // virtual call
   // ------------

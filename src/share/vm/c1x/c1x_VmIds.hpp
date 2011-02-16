@@ -22,6 +22,8 @@
  *
  */
 
+class Thread;
+
 class VmIds : public AllStatic {
 
 private:
@@ -36,7 +38,6 @@ public:
     STUB           = 0x100000000000000l,        // address
     METHOD         = 0x200000000000000l,        // methodOop
     CLASS          = 0x300000000000000l,        // klassOop
-    SYMBOL         = 0x400000000000000l,        // symbolOop
     CONSTANT_POOL  = 0x500000000000000l,        // constantPoolOop
     CONSTANT       = 0x600000000000000l,        // oop
     TYPE_MASK      = 0xf00000000000000l,
@@ -67,11 +68,11 @@ public:
   template <typename T> static T get(jlong id);
 
 
-  // Helper function to convert a symbolOop to a java.lang.String object
-  template <typename T> static T toString(symbolOop symbol, TRAPS);
+  // Helper function to convert a symbol to a java.lang.String object
+  template <typename T> static T toString(Symbol* symbol, TRAPS);
 
-  // Helper function to convert a java.lang.String object to a symbolOop (this will return NULL if the symbol doesn't exist in the system)
-  static symbolOop toSymbol(jstring string);
+  // Helper function to convert a java.lang.String object to a symbol (this will return NULL if the symbol doesn't exist in the system)
+  static Symbol* toSymbol(jstring string);
 
   // Helper function to get the contents of a java.lang.Long
   static jlong getBoxedLong(oop obj);
@@ -87,11 +88,6 @@ template <> inline jlong VmIds::add<klassOop>(klassOop obj) {
   assert(obj != NULL, "trying to add NULL<klassOop>");
   assert(obj->is_klass(), "trying to add mistyped object");
   return add(Handle(obj), CLASS);
-}
-template <> inline jlong VmIds::add<symbolOop>(symbolOop obj) {
-  assert(obj != NULL, "trying to add NULL<symbolOop>");
-  assert(obj->is_symbol(), "trying to add mistyped object");
-  return add(Handle(obj), SYMBOL);
 }
 template <> inline jlong VmIds::add<constantPoolOop>(constantPoolOop obj) {
   assert(obj != NULL, "trying to add NULL<constantPoolOop>");
@@ -115,11 +111,6 @@ template <> inline klassOop VmIds::get<klassOop>(jlong id) {
   assert(getObject(id)->is_klass(), "klassOop expected");
   return (klassOop)getObject(id);
 }
-template <> inline symbolOop VmIds::get<symbolOop>(jlong id) {
-  assert((id & TYPE_MASK) == SYMBOL, "SYMBOL expected");
-  assert(getObject(id)->is_symbol(), "symbolOop expected");
-  return (symbolOop)getObject(id);
-}
 template <> inline constantPoolOop VmIds::get<constantPoolOop>(jlong id) {
   assert((id & TYPE_MASK) == CONSTANT_POOL, "CONSTANT_POOL expected");
   assert(getObject(id)->is_constantPool(), "constantPoolOop expected");
@@ -135,20 +126,20 @@ inline address VmIds::getStub(oop obj) {
   return getStub(getBoxedLong(obj));
 }
 
-template <> inline Handle VmIds::toString<Handle>(symbolOop symbol, TRAPS) {
+template <> inline Handle VmIds::toString<Handle>(Symbol* symbol, TRAPS) {
   return java_lang_String::create_from_symbol(symbol, THREAD);
 }
-template <> inline oop VmIds::toString<oop>(symbolOop symbol, TRAPS) {
+template <> inline oop VmIds::toString<oop>(Symbol* symbol, TRAPS) {
   return toString<Handle>(symbol, THREAD)();
 }
-template <> inline jstring VmIds::toString<jstring>(symbolOop symbol, TRAPS) {
+template <> inline jstring VmIds::toString<jstring>(Symbol* symbol, TRAPS) {
   return (jstring)JNIHandles::make_local(toString<oop>(symbol, THREAD));
 }
-template <> inline jobject VmIds::toString<jobject>(symbolOop symbol, TRAPS) {
+template <> inline jobject VmIds::toString<jobject>(Symbol* symbol, TRAPS) {
   return JNIHandles::make_local(toString<oop>(symbol, THREAD));
 }
 
-inline symbolOop VmIds::toSymbol(jstring string) {
+inline Symbol* VmIds::toSymbol(jstring string) {
   return java_lang_String::as_symbol_or_null(JNIHandles::resolve(string));
 }
 

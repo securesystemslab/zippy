@@ -409,7 +409,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
   if (bci == -1) {
      reexecute = false;
   } else {
-    Bytecodes::Code code = Bytecodes::java_code_at(method->bcp_from(bci));
+    Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 

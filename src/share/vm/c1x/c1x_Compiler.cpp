@@ -121,7 +121,7 @@ oop C1XCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
     Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
     return createHotSpotTypeResolved(klass, name, CHECK_NULL);
   } else {
-    symbolOop name = ((ciKlass *) type)->name()->get_symbolOop();
+    Symbol* name = ((ciKlass *) type)->name()->get_symbol();
     return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), THREAD);
   }
 }
@@ -129,7 +129,7 @@ oop C1XCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
 oop C1XCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
   bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
   int offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
-  Handle field_name = VmIds::toString<Handle>(field->name()->get_symbolOop(), CHECK_0);
+  Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
   Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
   Handle field_type = get_RiType(field->type(), accessor, CHECK_0);
 

@@ -154,7 +154,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiMethod_1uniqueCon
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
   VM_ENTRY_MARK;
 
-  symbolOop nameSymbol = VmIds::toSymbol(jname);
+  Symbol* nameSymbol = VmIds::toSymbol(jname);
   Handle name = JNIHandles::resolve(jname);
 
   oop result;
@@ -261,8 +261,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
     Handle name = VmIds::toString<Handle>(method->name(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMExits::createRiMethodResolved(VmIds::add<methodOop>(method), name, THREAD));
   } else {
-    Handle name = VmIds::toString<Handle>((symbolOop) cimethod->name()->get_oop(), CHECK_NULL);
-    Handle signature = VmIds::toString<Handle>((symbolOop) cimethod->signature()->as_symbol()->get_oop(), CHECK_NULL);
+    Handle name = VmIds::toString<Handle>(cimethod->name()->get_symbol(), CHECK_NULL);
+    Handle signature = VmIds::toString<Handle>(cimethod->signature()->as_symbol()->get_symbol(), CHECK_NULL);
     Handle holder = C1XCompiler::get_RiType(cimethod->holder(), cp->klass(), THREAD);
     return JNIHandles::make_local(THREAD, VMExits::createRiMethodUnresolved(name, signature, holder, THREAD));
   }
@@ -363,8 +363,8 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMeth
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(resolved_type));
-  symbolOop name_symbol = VmIds::toSymbol(name);
-  symbolOop signature_symbol = VmIds::toSymbol(signature);
+  Symbol* name_symbol = VmIds::toSymbol(name);
+  Symbol* signature_symbol = VmIds::toSymbol(signature);
   methodOop method = klass->klass_part()->lookup_method(name_symbol, signature_symbol);
   if (method == NULL) {
     if (TraceC1X >= 3) {

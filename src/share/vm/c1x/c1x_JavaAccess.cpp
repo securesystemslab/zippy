@@ -29,8 +29,8 @@
 // It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.
 
 static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
-  symbolOop name_symbol = SymbolTable::probe(name, strlen(name));
-  symbolOop signature_symbol = SymbolTable::probe(signature, strlen(signature));
+  Symbol* name_symbol = SymbolTable::probe(name, strlen(name));
+  Symbol* signature_symbol = SymbolTable::probe(signature, strlen(signature));
 #ifdef DEBUG
   if (name_symbol == NULL) {
     tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass_oop->klass_part()->name()->as_C_string());

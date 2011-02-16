@@ -53,10 +53,8 @@ private:
   ciSymbol(Symbol* s);  // normal case, for symbols not mentioned in vmSymbols
   ciSymbol(Symbol* s, vmSymbols::SID sid);   // for use with vmSymbols
 
-  Symbol* get_symbol() const { return _symbol; }
-
 public:
-  symbolOop get_symbolOop() const { return (symbolOop)get_oop(); }
+  Symbol* get_symbol() const { return _symbol; }
 
 private:
   const char* type_string() { return "ciSymbol"; }
