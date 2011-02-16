@@ -817,6 +817,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
        protected XirTemplate create(CiXirAssembler asm, long flags) {
            XirOperand result = asm.restart(CiKind.Object);
            XirOperand object = asm.createInputParameter("object", CiKind.Object);
+           if (is(NULL_CHECK, flags)) {
+               asm.nop(1);
+           }
            asm.pload(CiKind.Object, result, object, asm.i(config.hubOffset), is(NULL_CHECK, flags));
            asm.pload(CiKind.Object, result, result, asm.i(config.classMirrorOffset), false);
            return asm.finishTemplate("currentThread");
