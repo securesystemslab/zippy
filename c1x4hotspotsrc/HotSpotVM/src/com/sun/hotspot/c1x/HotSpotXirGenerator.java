@@ -996,6 +996,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.bindOutOfLine(slowStoreCheck);
                 checkSubtype(asm, temp, valueHub, compHub);
                 asm.jneq(store, temp, asm.w(0));
+                XirOperand scratch = asm.createRegisterTemp("scratch", CiKind.Object, AMD64.r10);
+                asm.mov(scratch, valueHub);
                 asm.callRuntime(config.throwArrayStoreException, null);
                 asm.jmp(store);
             }
@@ -1084,6 +1086,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 asm.bindOutOfLine(slowStoreCheck);
                 checkSubtype(asm, temp, valueHub, compHub);
                 asm.jneq(store, temp, asm.w(0));
+                XirOperand scratch = asm.createRegisterTemp("scratch", CiKind.Object, AMD64.r10);
+                asm.mov(scratch, valueHub);
                 asm.callRuntime(config.throwArrayStoreException, null);
                 asm.jmp(store);
             }
