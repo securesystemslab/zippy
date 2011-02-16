@@ -218,7 +218,7 @@ void JavaCalls::call_interface(JavaValue* result, KlassHandle spec_klass, symbol
 
 // ============ Virtual calls ============
 
-void JavaCalls::call_virtual(JavaValue* result, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS) {
+void JavaCalls::call_virtual(JavaValue* result, KlassHandle spec_klass, Symbol* name, Symbol* signature, JavaCallArguments* args, TRAPS) {
   CallInfo callinfo;
   Handle receiver = args->receiver();
   KlassHandle recvrKlass(THREAD, receiver.is_null() ? (klassOop)NULL : receiver->klass());
@@ -233,13 +233,13 @@ void JavaCalls::call_virtual(JavaValue* result, KlassHandle spec_klass, symbolHa
 }
 
 
-void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, TRAPS) {
+void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spec_klass, Symbol* name, Symbol* signature, TRAPS) {
   JavaCallArguments args(receiver); // One oop argument
   call_virtual(result, spec_klass, name, signature, &args, CHECK);
 }
 
 
-void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, Handle arg1, TRAPS) {
+void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spec_klass, Symbol* name, Symbol* signature, Handle arg1, TRAPS) {
   JavaCallArguments args(receiver); // One oop argument
   args.push_oop(arg1);
   call_virtual(result, spec_klass, name, signature, &args, CHECK);
@@ -247,7 +247,7 @@ void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spe
 
 
 
-void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spec_klass, symbolHandle name, symbolHandle signature, Handle arg1, Handle arg2, TRAPS) {
+void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spec_klass, Symbol* name, Symbol* signature, Handle arg1, Handle arg2, TRAPS) {
   JavaCallArguments args(receiver); // One oop argument
   args.push_oop(arg1);
   args.push_oop(arg2);
@@ -257,7 +257,7 @@ void JavaCalls::call_virtual(JavaValue* result, Handle receiver, KlassHandle spe
 
 // ============ Special calls ============
 
-void JavaCalls::call_special(JavaValue* result, KlassHandle klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS) {
+void JavaCalls::call_special(JavaValue* result, KlassHandle klass, Symbol* name, Symbol* signature, JavaCallArguments* args, TRAPS) {
   CallInfo callinfo;
   LinkResolver::resolve_special_call(callinfo, klass, name, signature, KlassHandle(), false, CHECK);
   methodHandle method = callinfo.selected_method();
@@ -268,20 +268,20 @@ void JavaCalls::call_special(JavaValue* result, KlassHandle klass, symbolHandle 
 }
 
 
-void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS) {
+void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle klass, Symbol* name, Symbol* signature, TRAPS) {
   JavaCallArguments args(receiver); // One oop argument
   call_special(result, klass, name, signature, &args, CHECK);
 }
 
 
-void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle klass, symbolHandle name, symbolHandle signature, Handle arg1, TRAPS) {
+void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle klass, Symbol* name, Symbol* signature, Handle arg1, TRAPS) {
   JavaCallArguments args(receiver); // One oop argument
   args.push_oop(arg1);
   call_special(result, klass, name, signature, &args, CHECK);
 }
 
 
-void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle klass, symbolHandle name, symbolHandle signature, Handle arg1, Handle arg2, TRAPS) {
+void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle klass, Symbol* name, Symbol* signature, Handle arg1, Handle arg2, TRAPS) {
   JavaCallArguments args(receiver); // One oop argument
   args.push_oop(arg1);
   args.push_oop(arg2);
@@ -291,7 +291,7 @@ void JavaCalls::call_special(JavaValue* result, Handle receiver, KlassHandle kla
 
 // ============ Static calls ============
 
-void JavaCalls::call_static(JavaValue* result, KlassHandle klass, symbolHandle name, symbolHandle signature, JavaCallArguments* args, TRAPS) {
+void JavaCalls::call_static(JavaValue* result, KlassHandle klass, Symbol* name, Symbol* signature, JavaCallArguments* args, TRAPS) {
   CallInfo callinfo;
   LinkResolver::resolve_static_call(callinfo, klass, name, signature, KlassHandle(), false, true, CHECK);
   methodHandle method = callinfo.selected_method();
@@ -302,19 +302,19 @@ void JavaCalls::call_static(JavaValue* result, KlassHandle klass, symbolHandle n
 }
 
 
-void JavaCalls::call_static(JavaValue* result, KlassHandle klass, symbolHandle name, symbolHandle signature, TRAPS) {
+void JavaCalls::call_static(JavaValue* result, KlassHandle klass, Symbol* name, Symbol* signature, TRAPS) {
   JavaCallArguments args; // No argument
   call_static(result, klass, name, signature, &args, CHECK);
 }
 
 
-void JavaCalls::call_static(JavaValue* result, KlassHandle klass, symbolHandle name, symbolHandle signature, Handle arg1, TRAPS) {
+void JavaCalls::call_static(JavaValue* result, KlassHandle klass, Symbol* name, Symbol* signature, Handle arg1, TRAPS) {
   JavaCallArguments args(arg1); // One oop argument
   call_static(result, klass, name, signature, &args, CHECK);
 }
 
 
-void JavaCalls::call_static(JavaValue* result, KlassHandle klass, symbolHandle name, symbolHandle signature, Handle arg1, Handle arg2, TRAPS) {
+void JavaCalls::call_static(JavaValue* result, KlassHandle klass, Symbol* name, Symbol* signature, Handle arg1, Handle arg2, TRAPS) {
   JavaCallArguments args; // One oop argument
   args.push_oop(arg1);
   args.push_oop(arg2);
@@ -478,7 +478,7 @@ class SignatureChekker : public SignatureIterator {
  public:
   bool _is_return;
 
-  SignatureChekker(symbolHandle signature, BasicType return_type, bool is_static, bool* is_oop, intptr_t* value, Thread* thread) : SignatureIterator(signature) {
+  SignatureChekker(Symbol* signature, BasicType return_type, bool is_static, bool* is_oop, intptr_t* value, Thread* thread) : SignatureIterator(signature) {
     _is_oop = is_oop;
     _is_return = false;
     _return_type = return_type;
@@ -569,7 +569,7 @@ void JavaCallArguments::verify(methodHandle method, BasicType return_type,
   if (return_type == T_ARRAY) return_type = T_OBJECT;
 
   // Check that oop information is correct
-  symbolHandle signature (thread,  method->signature());
+  Symbol* signature = method->signature();
 
   SignatureChekker sc(signature, return_type, method->is_static(),_is_oop, _value, thread);
   sc.iterate_parameters();
