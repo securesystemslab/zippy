@@ -23,7 +23,6 @@
  */
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.io.File;
 
 public class Util {
@@ -85,7 +84,7 @@ public class Util {
     }
 
     static String sep = File.separator;
-    
+
     private static String _os;
     
     static String os() {
@@ -106,4 +105,5 @@ public class Util {
     	}
     	return _os;
     }
+    
 }

@@ -61,7 +61,20 @@ class BuildConfig {
         // ones mentioned above were needed to expand format
         String buildBase = expandFormat(getFieldString(null, "BuildBase"));
         String sourceBase = getFieldString(null, "SourceBase");
-        String outDir = buildBase;
+        String outDir = sourceBase + Util.sep + "java";
+	if (Util.os().equals("x64")) {
+		outDir += "64";
+	}
+	if (!build.equals("product")) {
+		outDir += Util.sep + "fastdebug";
+	}
+	outDir += Util.sep + "jre" + Util.sep + "bin";
+	if (flavour.equals("compiler1")) {
+		outDir += Util.sep + "client";
+	} else {
+		outDir += Util.sep + "server";
+	}
+	buildBase = outDir;
 
         put("Id", flavourBuild);
         put("OutputDir", outDir);
@@ -252,22 +265,25 @@ class BuildConfig {
 
     void initDefaultDefines(Vector defines) {
         Vector sysDefines = new Vector();
+
         if( Util.os().equals("Win32")) {
-        	sysDefines.add("WIN32");
+            sysDefines.add("WIN32");
             sysDefines.add("HOTSPOT_LIB_ARCH=\\\"i386\\\"");
         } else {
-        	sysDefines.add("_AMD64_");
-        	sysDefines.add("AMD64");
-        	sysDefines.add("_WIN64");
-        	sysDefines.add("_LP64");
-        	if (System.getenv("MSC_VER") != null)
-        		sysDefines.add("MSC_VER=" + System.getenv("MSC_VER"));
+            sysDefines.add("_AMD64_");
+            sysDefines.add("AMD64");
+            sysDefines.add("_WIN64");
+            sysDefines.add("_LP64");
+            if (System.getenv("MSC_VER") != null)
+               sysDefines.add("MSC_VER=" + System.getenv("MSC_VER"));
             sysDefines.add("HOTSPOT_LIB_ARCH=\\\"amd64\\\"");
         }
+	
         sysDefines.add("_WINDOWS");
-        sysDefines.add("HOTSPOT_BUILD_USER="+System.getProperty("user.name"));
+        sysDefines.add("HOTSPOT_BUILD_USER=\\\""+System.getProperty("user.name")+"\\\"");
         sysDefines.add("HOTSPOT_BUILD_TARGET=\\\""+get("Build")+"\\\"");
         sysDefines.add("_JNI_IMPLEMENTATION_");
+        sysDefines.add("HOTSPOT_LIB_ARCH=\\\"i386\\\"");
 
         sysDefines.addAll(defines);
 
@@ -331,6 +347,10 @@ class BuildConfig {
 
     String build() {
         return get("Build");
+    }
+
+    String outputDir() {
+        return get("OutputDir");
     }
 
     Object getSpecificField(String field) {
@@ -521,6 +541,9 @@ class BuildConfig {
                 case 'f':
                     sb.append(flavour());
                     break;
+		case 'o':
+		    sb.append(outputDir());
+		    break;
                 default:
                     sb.append(ch);
                     sb.append(ch1);

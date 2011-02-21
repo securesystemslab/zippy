@@ -40,8 +40,6 @@ class CompilerInterfaceVC8 extends CompilerInterfaceVC7 {
         addAttr(rv, "UsePrecompiledHeader", "2");
         // Set /EHsc- option. 0 is cppExceptionHandlingNo
         addAttr(rv, "ExceptionHandling", "0");
-        // Parallel compilation
-        addAttr(rv, "AdditionalOptions", "/MP");
 
         // enable multi process builds
         extAttr(rv, "AdditionalOptions", "/MP");

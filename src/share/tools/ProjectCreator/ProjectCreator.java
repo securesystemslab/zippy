@@ -1,6 +1,3 @@
-import java.util.Map;
-import java.util.Map.Entry;
-
 /*
  * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.

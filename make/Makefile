@@ -73,6 +73,7 @@ else
   include defs.make
 endif
 
+include $(GAMMADIR)/make/altsrc.make
 
 ifneq ($(ALT_OUTPUTDIR),)
   ALT_OUT=ALT_OUTPUTDIR=$(ALT_OUTPUTDIR)
@@ -164,13 +165,13 @@ ifeq ($(OSNAME),windows)
 	@$(ECHO) "No compiler1 ($(VM_TARGET)) for ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
   endif
 else
-#  ifeq ($(ARCH_DATA_MODEL), 32)
+  ifeq ($(ARCH_DATA_MODEL), 32)
 	$(CD) $(OUTPUTDIR); \
 	    $(MAKE) -f $(ABS_OS_MAKEFILE) \
 		      $(MAKE_ARGS) $(VM_TARGET)
-#  else
-#	@$(ECHO) "No compiler1 ($(VM_TARGET)) for ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
-#  endif
+  else
+	@$(ECHO) "No compiler1 ($(VM_TARGET)) for ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
+  endif
 endif
 
 # Build compiler2 (server) rule, different for platforms
@@ -361,7 +362,8 @@ $(EXPORT_INCLUDE_DIR)/%: $(HS_SRC_DIR)/share/vm/code/%
 $(EXPORT_INCLUDE_DIR)/%: $(HS_SRC_DIR)/share/vm/prims/%
 	$(install-file)
 
-$(EXPORT_INCLUDE_DIR)/$(JDK_INCLUDE_SUBDIR)/jni_md.h:  $(HS_SRC_DIR)/cpu/$(HS_ARCH)/vm/jni_$(HS_ARCH).h
+HS_JNI_ARCH_SRC=$(call altsrc-replace,$(HS_COMMON_SRC)/cpu/$(HS_ARCH)/vm/jni_$(HS_ARCH).h)
+$(EXPORT_INCLUDE_DIR)/$(JDK_INCLUDE_SUBDIR)/jni_md.h: $(HS_JNI_ARCH_SRC)
 	$(install-file)
 
 $(EXPORT_INCLUDE_DIR)/%: $(HS_SRC_DIR)/share/vm/services/%
@@ -372,11 +374,11 @@ $(EXPORT_DOCS_DIR)/platform/jvmti/%: $(DOCS_DIR)/%
 	$(install-file)
 
 # Xusage file
-#$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt: $(XUSAGE)
-#	$(prep-target)
-#	$(RM) $@.temp
-#	$(SED) 's/\(separated by \)[;:]/\1$(PATH_SEP)/g' $< > $@.temp
-#	$(MV) $@.temp $@
+$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt: $(XUSAGE)
+	$(prep-target)
+	$(RM) $@.temp
+	$(SED) 's/\(separated by \)[;:]/\1$(PATH_SEP)/g' $< > $@.temp
+	$(MV) $@.temp $@
 
 #
 # Clean rules
