@@ -7,7 +7,7 @@ set OrigPath=%cd%
 cd make\windows
 
 mkdir %OrigPath%\work
-call create.bat %OrigPath% %OrigPath%\work %OrigPath%\java
+call create.bat %OrigPath%
 
 set PATH=%ORIG_PATH%
 cd %OrigPath%
