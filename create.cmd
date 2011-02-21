@@ -4,8 +4,6 @@ call "%VS_VCVARS%\vsvars32.bat"
 
 set OrigPath=%cd%
 cd make\windows
-
-mkdir %OrigPath%\work
 call create.bat %OrigPath%
 
 cd %OrigPath%

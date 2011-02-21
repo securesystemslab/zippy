@@ -99,6 +99,7 @@ public class Util {
         				_os = "x64";
         			else
         				throw new RuntimeException("Unsupported PLATFORM_ARCH_MODEL " + archModel);
+				System.out.println("Found OS configuration: " + _os);
         			return _os;
         		}
         	throw new RuntimeException("PLATFORM_ARCH_MODEL not specified");
