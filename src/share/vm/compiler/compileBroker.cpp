@@ -600,8 +600,8 @@ void CompileBroker::bootstrap_c1x() {
     }
 
     {
-      ThreadToNativeFromVM trans(JavaThread::current());
-      usleep(1000);
+      //ThreadToNativeFromVM trans(JavaThread::current());
+      os::sleep(THREAD, 10, true);
     }
     ++z;
   }

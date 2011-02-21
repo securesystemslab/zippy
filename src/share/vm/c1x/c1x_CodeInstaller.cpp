@@ -56,13 +56,13 @@ static bool is_bit_set(oop bit_map, int i) {
   const int MapWordBits = 64;
   if (i < MapWordBits) {
     jlong low = CiBitMap::low(bit_map);
-    return (low & (1L << i)) != 0;
+    return (low & (1LL << i)) != 0;
   } else {
     jint extra_idx = (i - MapWordBits) / MapWordBits;
     arrayOop extra = (arrayOop) CiBitMap::extra(bit_map);
     assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
     jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
-    return (word & (1L << (i % MapWordBits))) != 0;
+    return (word & (1LL << (i % MapWordBits))) != 0;
   }
 }
 
@@ -143,18 +143,17 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
         return new ConstantOopWriteValue(NULL);
       } else {
         obj->print();
-        ShouldNotReachHere();
       }
     } else if (type == T_ADDRESS) {
       return new ConstantLongValue(prim);
     }
     tty->print("%i", type);
-    ShouldNotReachHere();
   } else {
     value->klass()->print();
     value->print();
-    ShouldNotReachHere();
   }
+  ShouldNotReachHere();
+  return NULL;
 }
 
 // constructor used to create a method

@@ -52,7 +52,7 @@ jlong VmIds::addStub(address stub) {
   return _stubs->append(stub) | STUB;
 }
 
-jlong VmIds::add(Handle obj, CompilerObjectType type) {
+jlong VmIds::add(Handle obj, jlong type) {
   assert(!obj.is_null(), "cannot add NULL handle");
   int idx = -1;
   for (int i = 0; i < _localHandles->length(); i++)

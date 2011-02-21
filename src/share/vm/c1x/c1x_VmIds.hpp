@@ -33,16 +33,14 @@ private:
   static oop getObject(jlong id);
 
 public:
-  // this enum needs to have the same values as the one in HotSpotProxy.java
-  enum CompilerObjectType {
-    STUB           = 0x100000000000000l,        // address
-    METHOD         = 0x200000000000000l,        // methodOop
-    CLASS          = 0x300000000000000l,        // klassOop
-    CONSTANT_POOL  = 0x500000000000000l,        // constantPoolOop
-    CONSTANT       = 0x600000000000000l,        // oop
-    TYPE_MASK      = 0xf00000000000000l,
-    DUMMY_CONSTANT = 0x6ffffffffffffffl
-  };
+  // these constants needs to have the same values as the one in HotSpotProxy.java
+  static const jlong STUB           = 0x100000000000000LL;        // address
+  static const jlong METHOD         = 0x200000000000000LL;        // methodOop
+  static const jlong CLASS          = 0x300000000000000LL;        // klassOop
+  static const jlong CONSTANT_POOL  = 0x500000000000000LL;        // constantPoolOop
+  static const jlong CONSTANT       = 0x600000000000000LL;        // oop
+  static const jlong TYPE_MASK      = 0xf00000000000000LL;
+  static const jlong DUMMY_CONSTANT = 0x6ffffffffffffffLL;
 
   // Initializes the VmIds for a compilation, by creating the arrays
   static void initializeObjects();
@@ -53,7 +51,7 @@ public:
   static jlong addStub(address stub);
 
   // Adds an object, and returns the corresponding vmId (with the given type)
-  static jlong add(Handle obj, CompilerObjectType type);
+  static jlong add(Handle obj, jlong type);
 
   // Adds an object, and returns the corresponding vmId (the type of which is determined by the template parameter)
   template <typename T> static jlong add(T obj);

@@ -389,6 +389,7 @@ JNIEXPORT jboolean JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeO
     return arrayKlass::cast(thisKlass)->is_subtype_of(otherKlass);
   } else {
     fatal("unexpected class type");
+    return false;
   }
 }
 
@@ -449,7 +450,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayTy
   BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(kind));
   assert(type != T_OBJECT, "primitive type expecteds");
   ciKlass* klass = ciTypeArrayKlass::make(type);
-  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, KlassHandle(NULL, THREAD), THREAD));
+  return JNIHandles::make_local(THREAD, C1XCompiler::get_RiType(klass, KlassHandle(), THREAD));
 }
 
 // public RiType getType(Class<?> javaClass);
@@ -458,6 +459,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_getType(JNIEnv *env
   oop javaClassOop = JNIHandles::resolve(javaClass);
   if (javaClassOop == NULL) {
     fatal("argument to VMEntries.getType must not be NULL");
+    return NULL;
   } else if (java_lang_Class::is_primitive(javaClassOop)) {
     BasicType basicType = java_lang_Class::primitive_type(javaClassOop);
     return JNIHandles::make_local(THREAD, VMExits::createRiTypePrimitive((int) basicType, THREAD));
