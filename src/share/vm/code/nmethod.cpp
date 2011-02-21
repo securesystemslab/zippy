@@ -2592,7 +2592,6 @@ void nmethod::print_nmethod_labels(outputStream* stream, address block_begin) {
   if (block_begin == entry_point())             stream->print_cr("[Entry Point]");
   if (block_begin == verified_entry_point())    stream->print_cr("[Verified Entry Point]");
   if (block_begin == exception_begin())         stream->print_cr("[Exception Handler]");
-  if (block_begin == unwind_handler_begin())    stream->print_cr("[Unwind Handler]");
   if (block_begin == stub_begin())              stream->print_cr("[Stub Code]");
   if (block_begin == deopt_handler_begin())     stream->print_cr("[Deopt Handler Code]");
 

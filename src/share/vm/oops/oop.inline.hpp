@@ -569,8 +569,8 @@ inline bool oopDesc::has_bias_pattern() const {
 // used only for asserts
 inline bool oopDesc::is_oop(bool ignore_mark_word) const {
   oop obj = (oop) this;
-  if (!check_obj_alignment(obj)) { tty->print_cr("unaligned"); return false; }
-  if (!Universe::heap()->is_in_reserved(obj)) { tty->print_cr("not in reserved"); return false; }
+  if (!check_obj_alignment(obj)) return false;
+  if (!Universe::heap()->is_in_reserved(obj)) return false;
   // obj is aligned and accessible in heap
   // try to find metaclass cycle safely without seg faulting on bad input
   // we should reach klassKlassObj by following klass link at most 3 times

@@ -44,7 +44,7 @@ address PcDesc::real_pc(const nmethod* code) const {
 void PcDesc::print(nmethod* code) {
 #ifndef PRODUCT
   ResourceMark rm;
-  tty->print_cr("PcDesc(pc=0x%lx offset=%d):", real_pc(code), pc_offset());
+  tty->print_cr("PcDesc(pc=0x%lx offset=%x):", real_pc(code), pc_offset());
 
   if (scope_decode_offset() == DebugInformationRecorder::serialized_null) {
     return;

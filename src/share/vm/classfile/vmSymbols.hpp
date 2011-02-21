@@ -421,7 +421,6 @@
   template(erasedType_name,                           "erasedType")                               \
   template(genericInvoker_name,                       "genericInvoker")                           \
   template(append_name,                               "append")                                   \
-  template(id_name,                                   "id")                                       \
                                                                                                   \
   /* non-intrinsic name/signature pairs: */                                                       \
   template(register_method_name,                      "register")                                 \
