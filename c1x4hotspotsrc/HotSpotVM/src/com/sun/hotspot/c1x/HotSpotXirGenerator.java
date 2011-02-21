@@ -29,6 +29,7 @@ import java.util.concurrent.*;
 
 import com.sun.c1x.target.amd64.*;
 import com.sun.cri.ci.CiAddress.Scale;
+import com.sun.cri.ci.CiRegister.*;
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 import com.sun.cri.ri.RiType.Representation;
@@ -320,7 +321,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             final boolean useInfoAfter = true;
 
             if (config.useFastLocking) {
-                useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx, AMD64.rax);
+                useRegisters(asm, AMD64.rax, AMD64.rbx);
+                useRegisters(asm, getGeneralParameterRegister(0));
+                useRegisters(asm, getGeneralParameterRegister(1));
                 asm.callRuntime(config.fastMonitorEnterStub, null, useInfoAfter, object, lock);
             } else {
                 asm.reserveOutgoingStack(target.wordSize * 2);
@@ -333,6 +336,10 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         }
     };
 
+    private static CiRegister getGeneralParameterRegister(int index) {
+        return Compiler.getInstance().getRegisterConfig().getCallingConventionRegisters(CiCallingConvention.Type.RuntimeCall, RegisterFlag.CPU)[index];
+    }
+
     private SimpleTemplates monitorExitTemplates = new SimpleTemplates(NULL_CHECK) {
 
         @Override
@@ -342,7 +349,9 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             XirParameter lock = asm.createInputParameter("lock", CiKind.Word);
 
             if (config.useFastLocking) {
-                useRegisters(asm, AMD64.rbx, AMD64.rsi, AMD64.rdx, AMD64.rax);
+                useRegisters(asm, AMD64.rax, AMD64.rbx);
+                useRegisters(asm, getGeneralParameterRegister(0));
+                useRegisters(asm, getGeneralParameterRegister(1));
                 asm.callRuntime(config.fastMonitorExitStub, null, object, lock);
             } else {
                 asm.reserveOutgoingStack(target.wordSize);
