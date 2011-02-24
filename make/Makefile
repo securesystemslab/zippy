@@ -165,13 +165,9 @@ ifeq ($(OSNAME),windows)
 	@$(ECHO) "No compiler1 ($(VM_TARGET)) for ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
   endif
 else
-  ifeq ($(ARCH_DATA_MODEL), 32)
 	$(CD) $(OUTPUTDIR); \
 	    $(MAKE) -f $(ABS_OS_MAKEFILE) \
 		      $(MAKE_ARGS) $(VM_TARGET)
-  else
-	@$(ECHO) "No compiler1 ($(VM_TARGET)) for ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
-  endif
 endif
 
 # Build compiler2 (server) rule, different for platforms
