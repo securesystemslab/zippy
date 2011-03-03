@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,7 @@ public class Util {
         return sb.toString();
     }
 
-     static String join(String padder, String v[]) {
+    static String join(String padder, String v[]) {
         StringBuffer sb = new StringBuffer();
 
         for (int i=0; i<v.length; i++) {
@@ -80,31 +80,16 @@ public class Util {
 
 
     static String normalize(String file) {
-        return file.replace('\\', '/');
+        file = file.replace('\\', '/');
+        if (file.length() > 2) {
+            if (file.charAt(1) == ':' && file.charAt(2) == '/') {
+                // convert drive letter to uppercase
+                String drive = file.substring(0, 1).toUpperCase();
+                return drive + file.substring(1);
+            }
+        }
+        return file;
     }
 
     static String sep = File.separator;
-
-    private static String _os;
-    
-    static String os() {
-    	if( _os==null) {
-
-        	for(Map.Entry<String, String> entry: System.getenv().entrySet())
-        		if("PLATFORM_ARCH_MODEL".equals(entry.getKey().toUpperCase())) {
-        			String archModel = entry.getValue();
-        			if("x86_32".equals(archModel))
-        				_os = "Win32";
-        			else if("x86_64".equals(archModel))
-        				_os = "x64";
-        			else
-        				throw new RuntimeException("Unsupported PLATFORM_ARCH_MODEL " + archModel);
-				System.out.println("Found OS configuration: " + _os);
-        			return _os;
-        		}
-        	throw new RuntimeException("PLATFORM_ARCH_MODEL not specified");
-    	}
-    	return _os;
-    }
-    
 }
