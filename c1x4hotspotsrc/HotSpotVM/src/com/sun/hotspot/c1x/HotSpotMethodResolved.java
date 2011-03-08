@@ -184,4 +184,9 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     public int intrinsic() {
         return 0;
     }
+
+    @Override
+    public boolean minimalDebugInfo() {
+        return false;
+    }
 }

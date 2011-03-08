@@ -132,6 +132,11 @@ public final class HotSpotMethodUnresolved extends HotSpotMethod {
         throw unresolved("exceptionHandlers");
     }
 
+    @Override
+    public boolean minimalDebugInfo() {
+        throw unresolved("minimalDebugInfo");
+    }
+
     private CiUnresolvedException unresolved(String operation) {
         return new CiUnresolvedException(operation + " not defined for unresolved method " + name);
     }
