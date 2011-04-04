@@ -46,7 +46,7 @@ public class HotSpotExceptionHandler extends CompilerObject implements RiExcepti
     }
 
     @Override
-    public int catchClassIndex() {
+    public int catchTypeCPI() {
         return catchClassIndex;
     }
 
@@ -56,7 +56,7 @@ public class HotSpotExceptionHandler extends CompilerObject implements RiExcepti
     }
 
     @Override
-    public RiType catchKlass() {
+    public RiType catchType() {
         return catchClass;
     }
 

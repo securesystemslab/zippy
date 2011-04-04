@@ -34,6 +34,18 @@ if [ ! -e $java_link ]; then
     ln -s $JDK7/jre/bin/java $java_link
 fi
 
+client_dir=$JDK7/jre/lib/amd64/client
+if [ ! -e $client_dir ]; then
+    echo "Creating client compiler dir: $client_dir"
+    mkdir $client_dir
+fi
+
+client_dir=$JDK7G/jre/lib/amd64/client
+if [ ! -e $client_dir ]; then
+    echo "Creating debug client compiler dir: $client_dir"
+    mkdir $client_dir
+fi
+
 pushd $graal_home/make
 
 ARCH_DATA_MODEL=64 LANG=C HOTSPOT_BUILD_JOBS=4 ALT_BOOTDIR=$JDK7G INSTALL=$JDK7G/jre make jvmg1

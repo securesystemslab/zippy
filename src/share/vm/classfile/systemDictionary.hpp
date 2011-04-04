@@ -204,7 +204,7 @@ class SymbolPropertyTable;
   template(CiTargetMethod_Mark_klass,    com_sun_cri_ci_CiTargetMethod_Mark,                        Opt) \
   template(CiBitMap_klass,               com_sun_cri_ci_CiBitMap,                                   Opt) \
   template(CiDebugInfo_klass,            com_sun_cri_ci_CiDebugInfo,                                Opt) \
-  template(CiDebugInfo_Frame_klass,      com_sun_cri_ci_CiDebugInfo_Frame,                          Opt) \
+  template(CiFrame_klass,                com_sun_cri_ci_CiFrame,                                    Opt) \
   template(CiValue_klass,                com_sun_cri_ci_CiValue,                                    Opt) \
   template(CiStackSlot_klass,            com_sun_cri_ci_CiStackSlot,                                Opt) \
   template(CiRegisterValue_klass,        com_sun_cri_ci_CiRegisterValue,                            Opt) \

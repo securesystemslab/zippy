@@ -159,7 +159,7 @@ public final class Compiler {
         return vmExits;
     }
 
-    private final CiCompiler compiler;
+    private final C1XCompiler compiler;
     private final HotSpotVMConfig config;
     private final HotSpotRuntime runtime;
     private final HotSpotRegisterConfig registerConfig;
@@ -190,7 +190,7 @@ public final class Compiler {
         C1XOptions.StackShadowPages = config.stackShadowPages;
     }
 
-    public CiCompiler getCompiler() {
+    public C1XCompiler getCompiler() {
         return compiler;
     }
 

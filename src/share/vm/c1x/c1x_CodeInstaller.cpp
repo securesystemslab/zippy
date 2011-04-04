@@ -395,7 +395,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     record_scope(pc_offset, caller_pos);
   }
   oop frame = NULL;
-  if (code_pos->klass()->klass_part()->name() == vmSymbols::com_sun_cri_ci_CiDebugInfo_Frame()) {
+  if (code_pos->klass()->klass_part()->name() == vmSymbols::com_sun_cri_ci_CiFrame()) {
     frame = code_pos;
   }
 
@@ -417,10 +417,10 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
   }
 
   if (frame != NULL) {
-    jint local_count = CiDebugInfo_Frame::numLocals(frame);
-    jint expression_count = CiDebugInfo_Frame::numStack(frame);
-    jint monitor_count = CiDebugInfo_Frame::numLocks(frame);
-    arrayOop values = (arrayOop) CiDebugInfo_Frame::values(frame);
+    jint local_count = CiFrame::numLocals(frame);
+    jint expression_count = CiFrame::numStack(frame);
+    jint monitor_count = CiFrame::numLocks(frame);
+    arrayOop values = (arrayOop) CiFrame::values(frame);
 
     assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
 
