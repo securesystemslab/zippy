@@ -52,7 +52,7 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
 
 // This piece of macro magic creates the contents of the c1x_compute_offsets method that initializes the field indices of all the access classes.
 
-#define START_CLASS(name) { klassOop k = SystemDictionary::name##_klass();
+#define START_CLASS(name) { klassOop k = SystemDictionary::name##_klass(); assert(k != NULL, "Could not find class " #name "");
 
 #define END_CLASS }
 

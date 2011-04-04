@@ -142,7 +142,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
       if (obj == NULL) {
         return new ConstantOopWriteValue(NULL);
       } else {
-        obj->print();
+        return new ConstantOopWriteValue(JNIHandles::make_global(obj));
       }
     } else if (type == T_ADDRESS) {
       return new ConstantLongValue(prim);

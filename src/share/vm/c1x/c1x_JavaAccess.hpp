@@ -138,11 +138,11 @@ void c1x_compute_offsets();
     long_field(CiBitMap, low)                                                           \
     oop_field(CiBitMap, extra, "[J")                                                    \
   end_class                                                                             \
-  start_class(CiFrame)                                                        \
-    oop_field(CiFrame, values, "[Lcom/sun/cri/ci/CiValue;")                   \
-    int_field(CiFrame, numLocals)                                             \
-    int_field(CiFrame, numStack)                                              \
-    int_field(CiFrame, numLocks)                                              \
+  start_class(CiFrame)                                                                  \
+    oop_field(CiFrame, values, "[Lcom/sun/cri/ci/CiValue;")                             \
+    int_field(CiFrame, numLocals)                                                       \
+    int_field(CiFrame, numStack)                                                        \
+    int_field(CiFrame, numLocks)                                                        \
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
     oop_field(CiCodePos, caller, "Lcom/sun/cri/ci/CiCodePos;")                          \
