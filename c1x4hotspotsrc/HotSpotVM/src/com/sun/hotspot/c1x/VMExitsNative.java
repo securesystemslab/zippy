@@ -41,6 +41,32 @@ public class VMExitsNative implements VMExits {
     public static final boolean LogCompiledMethods = false;
     public static boolean compileMethods = true;
 
+    private final Compiler compiler;
+
+    public final HotSpotTypePrimitive TypeBoolean;
+    public final HotSpotTypePrimitive TypeChar;
+    public final HotSpotTypePrimitive TypeFloat;
+    public final HotSpotTypePrimitive TypeDouble;
+    public final HotSpotTypePrimitive TypeByte;
+    public final HotSpotTypePrimitive TypeShort;
+    public final HotSpotTypePrimitive TypeInt;
+    public final HotSpotTypePrimitive TypeLong;
+    public final HotSpotTypePrimitive TypeVoid;
+
+    public VMExitsNative(Compiler compiler) {
+        this.compiler = compiler;
+
+        TypeBoolean = new HotSpotTypePrimitive(compiler, CiKind.Boolean);
+        TypeChar = new HotSpotTypePrimitive(compiler, CiKind.Char);
+        TypeFloat = new HotSpotTypePrimitive(compiler, CiKind.Float);
+        TypeDouble = new HotSpotTypePrimitive(compiler, CiKind.Double);
+        TypeByte = new HotSpotTypePrimitive(compiler, CiKind.Byte);
+        TypeShort = new HotSpotTypePrimitive(compiler, CiKind.Short);
+        TypeInt = new HotSpotTypePrimitive(compiler, CiKind.Int);
+        TypeLong = new HotSpotTypePrimitive(compiler, CiKind.Long);
+        TypeVoid = new HotSpotTypePrimitive(compiler, CiKind.Void);
+    }
+
     /**
      * Default option configuration for C1X.
      */
@@ -127,8 +153,7 @@ public class VMExitsNative implements VMExits {
         }
 
         try {
-            Compiler compiler = Compiler.getInstance();
-            HotSpotMethodResolved riMethod = new HotSpotMethodResolved(methodVmId, name);
+            HotSpotMethodResolved riMethod = new HotSpotMethodResolved(compiler, methodVmId, name);
             CiResult result = compiler.getCompiler().compileMethod(riMethod, -1, null, null);
             if (LogCompiledMethods) {
                 String qualifiedName = CiUtil.toJavaName(riMethod.holder()) + "::" + riMethod.name();
@@ -156,9 +181,9 @@ public class VMExitsNative implements VMExits {
                 if (cause != null) {
                     s = cause.getMessage();
                 }
-                Compiler.getVMEntries().recordBailout(s);
+                compiler.getVMEntries().recordBailout(s);
             } else {
-                HotSpotTargetMethod.installMethod(riMethod, result.targetMethod());
+                HotSpotTargetMethod.installMethod(compiler, riMethod, result.targetMethod());
             }
         } catch (Throwable t) {
             StringWriter out = new StringWriter();
@@ -170,17 +195,17 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public RiMethod createRiMethodResolved(long vmId, String name) {
-        return new HotSpotMethodResolved(vmId, name);
+        return new HotSpotMethodResolved(compiler, vmId, name);
     }
 
     @Override
     public RiMethod createRiMethodUnresolved(String name, String signature, RiType holder) {
-        return new HotSpotMethodUnresolved(name, signature, holder);
+        return new HotSpotMethodUnresolved(compiler, name, signature, holder);
     }
 
     @Override
     public RiSignature createRiSignature(String signature) {
-        return new HotSpotSignature(signature);
+        return new HotSpotSignature(compiler, signature);
     }
 
     @Override
@@ -189,7 +214,7 @@ public class VMExitsNative implements VMExits {
             HotSpotTypeResolved resolved = (HotSpotTypeResolved) holder;
             return resolved.createRiField(name, type, offset);
         }
-        return new HotSpotField(holder, name, type, offset);
+        return new HotSpotField(compiler, holder, name, type, offset);
     }
 
     @Override
@@ -201,23 +226,23 @@ public class VMExitsNative implements VMExits {
     public RiType createRiTypePrimitive(int basicType) {
         switch (basicType) {
             case 4:
-                return HotSpotTypePrimitive.Boolean;
+                return TypeBoolean;
             case 5:
-                return HotSpotTypePrimitive.Char;
+                return TypeChar;
             case 6:
-                return HotSpotTypePrimitive.Float;
+                return TypeFloat;
             case 7:
-                return HotSpotTypePrimitive.Double;
+                return TypeDouble;
             case 8:
-                return HotSpotTypePrimitive.Byte;
+                return TypeByte;
             case 9:
-                return HotSpotTypePrimitive.Short;
+                return TypeShort;
             case 10:
-                return HotSpotTypePrimitive.Int;
+                return TypeInt;
             case 11:
-                return HotSpotTypePrimitive.Long;
+                return TypeLong;
             case 14:
-                return HotSpotTypePrimitive.Void;
+                return TypeVoid;
             default:
                 throw new IllegalArgumentException("Unknown basic type: " + basicType);
         }
@@ -225,12 +250,12 @@ public class VMExitsNative implements VMExits {
 
     @Override
     public RiType createRiTypeUnresolved(String name) {
-        return new HotSpotTypeUnresolved(name);
+        return new HotSpotTypeUnresolved(compiler, name);
     }
 
     @Override
     public RiConstantPool createRiConstantPool(long vmId) {
-        return new HotSpotConstantPool(vmId);
+        return new HotSpotConstantPool(compiler, vmId);
     }
 
     @Override

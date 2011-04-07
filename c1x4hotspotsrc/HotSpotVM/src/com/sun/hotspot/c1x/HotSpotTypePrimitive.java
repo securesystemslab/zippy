@@ -33,17 +33,9 @@ public final class HotSpotTypePrimitive extends HotSpotType {
 
     private CiKind kind;
 
-    public static final HotSpotTypePrimitive Boolean = new HotSpotTypePrimitive(CiKind.Boolean);
-    public static final HotSpotTypePrimitive Char = new HotSpotTypePrimitive(CiKind.Char);
-    public static final HotSpotTypePrimitive Float = new HotSpotTypePrimitive(CiKind.Float);
-    public static final HotSpotTypePrimitive Double = new HotSpotTypePrimitive(CiKind.Double);
-    public static final HotSpotTypePrimitive Byte = new HotSpotTypePrimitive(CiKind.Byte);
-    public static final HotSpotTypePrimitive Short = new HotSpotTypePrimitive(CiKind.Short);
-    public static final HotSpotTypePrimitive Int = new HotSpotTypePrimitive(CiKind.Int);
-    public static final HotSpotTypePrimitive Long = new HotSpotTypePrimitive(CiKind.Long);
-    public static final HotSpotTypePrimitive Void = new HotSpotTypePrimitive(CiKind.Void);
 
-    private HotSpotTypePrimitive(CiKind kind) {
+    HotSpotTypePrimitive(Compiler compiler, CiKind kind) {
+        super(compiler);
         this.kind = kind;
         this.name = kind.toString();
     }
@@ -55,7 +47,7 @@ public final class HotSpotTypePrimitive extends HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        return Compiler.getVMEntries().getPrimitiveArrayType(kind);
+        return compiler.getVMEntries().getPrimitiveArrayType(kind);
     }
 
     @Override

@@ -40,7 +40,8 @@ public final class HotSpotTargetMethod extends CompilerObject {
     public final Site[] sites;
     public final ExceptionHandler[] exceptionHandlers;
 
-    private HotSpotTargetMethod(HotSpotMethodResolved method, CiTargetMethod targetMethod) {
+    private HotSpotTargetMethod(Compiler compiler, HotSpotMethodResolved method, CiTargetMethod targetMethod) {
+        super(compiler);
         this.method = method;
         this.targetMethod = targetMethod;
         this.name = null;
@@ -53,7 +54,8 @@ public final class HotSpotTargetMethod extends CompilerObject {
         }
     }
 
-    private HotSpotTargetMethod(CiTargetMethod targetMethod, String name) {
+    private HotSpotTargetMethod(Compiler compiler, CiTargetMethod targetMethod, String name) {
+        super(compiler);
         this.method = null;
         this.targetMethod = targetMethod;
         this.name = name;
@@ -93,12 +95,12 @@ public final class HotSpotTargetMethod extends CompilerObject {
         return result;
     }
 
-    public static void installMethod(HotSpotMethodResolved method, CiTargetMethod targetMethod) {
-        Compiler.getVMEntries().installMethod(new HotSpotTargetMethod(method, targetMethod));
+    public static void installMethod(Compiler compiler, HotSpotMethodResolved method, CiTargetMethod targetMethod) {
+        compiler.getVMEntries().installMethod(new HotSpotTargetMethod(compiler, method, targetMethod));
     }
 
-    public static Object installStub(CiTargetMethod targetMethod, String name) {
-        return Compiler.getVMEntries().installStub(new HotSpotTargetMethod(targetMethod, name));
+    public static Object installStub(Compiler compiler, CiTargetMethod targetMethod, String name) {
+        return compiler.getVMEntries().installStub(new HotSpotTargetMethod(compiler, targetMethod, name));
     }
 
 }

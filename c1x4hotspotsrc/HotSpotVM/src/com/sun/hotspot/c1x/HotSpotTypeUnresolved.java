@@ -36,7 +36,8 @@ public class HotSpotTypeUnresolved extends HotSpotType {
     /**
      * Creates a new unresolved type for a specified type descriptor.
      */
-    public HotSpotTypeUnresolved(String name) {
+    public HotSpotTypeUnresolved(Compiler compiler, String name) {
+        super(compiler);
         assert name.length() > 0 : "name cannot be empty";
 
         int dimensions = 0;
@@ -58,7 +59,8 @@ public class HotSpotTypeUnresolved extends HotSpotType {
         this.dimensions = dimensions;
     }
 
-    public HotSpotTypeUnresolved(String name, int dimensions) {
+    public HotSpotTypeUnresolved(Compiler compiler, String name, int dimensions) {
+        super(compiler);
         assert dimensions >= 0;
         this.simpleName = name;
         this.dimensions = dimensions;
@@ -142,7 +144,7 @@ public class HotSpotTypeUnresolved extends HotSpotType {
     @Override
     public RiType componentType() {
         assert isArrayClass() : "no array class" + name();
-        return new HotSpotTypeUnresolved(simpleName, dimensions - 1);
+        return new HotSpotTypeUnresolved(compiler, simpleName, dimensions - 1);
     }
 
     @Override
@@ -152,7 +154,7 @@ public class HotSpotTypeUnresolved extends HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        return new HotSpotTypeUnresolved(simpleName, dimensions + 1);
+        return new HotSpotTypeUnresolved(compiler, simpleName, dimensions + 1);
     }
 
     @Override

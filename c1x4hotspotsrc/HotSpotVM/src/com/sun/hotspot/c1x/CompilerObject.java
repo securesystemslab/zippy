@@ -29,4 +29,10 @@ import java.io.*;
  * @author Lukas Stadler
  */
 public abstract class CompilerObject implements Serializable {
+    protected final Compiler compiler;
+
+    protected CompilerObject(Compiler compiler) {
+        this.compiler = compiler;
+    }
+
 }

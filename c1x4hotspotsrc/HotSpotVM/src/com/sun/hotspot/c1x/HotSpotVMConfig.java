@@ -29,6 +29,10 @@ import com.sun.cri.ci.*;
  */
 public class HotSpotVMConfig extends CompilerObject {
 
+    private HotSpotVMConfig() {
+        super(null);
+    }
+
     // os information, register layout, code generation, ...
     public boolean windowsOs;
     public int codeEntryAlignment;

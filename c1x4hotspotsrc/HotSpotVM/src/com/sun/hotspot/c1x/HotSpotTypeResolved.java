@@ -48,6 +48,10 @@ public class HotSpotTypeResolved extends HotSpotType {
     private HashMap<Integer, RiField> fieldCache;
     private RiConstantPool pool;
 
+    private HotSpotTypeResolved() {
+        super(null);
+    }
+
     @Override
     public int accessFlags() {
         return accessFlags;
@@ -55,17 +59,17 @@ public class HotSpotTypeResolved extends HotSpotType {
 
     @Override
     public RiType arrayOf() {
-        return Compiler.getVMEntries().RiType_arrayOf(this);
+        return compiler.getVMEntries().RiType_arrayOf(this);
     }
 
     @Override
     public RiType componentType() {
-        return Compiler.getVMEntries().RiType_componentType(this);
+        return compiler.getVMEntries().RiType_componentType(this);
     }
 
     @Override
     public RiType uniqueConcreteSubtype() {
-        return Compiler.getVMEntries().RiType_uniqueConcreteSubtype(this);
+        return compiler.getVMEntries().RiType_uniqueConcreteSubtype(this);
     }
 
     @Override
@@ -145,7 +149,7 @@ public class HotSpotTypeResolved extends HotSpotType {
     @Override
     public boolean isSubtypeOf(RiType other) {
         if (other instanceof HotSpotTypeResolved) {
-            return Compiler.getVMEntries().RiType_isSubtypeOf(this, other);
+            return compiler.getVMEntries().RiType_isSubtypeOf(this, other);
         }
         // No resolved type is a subtype of an unresolved type.
         return false;
@@ -164,7 +168,7 @@ public class HotSpotTypeResolved extends HotSpotType {
     @Override
     public RiMethod resolveMethodImpl(RiMethod method) {
         assert method instanceof HotSpotMethod;
-        return Compiler.getVMEntries().RiType_resolveMethodImpl(this, method.name(), method.signature().asString());
+        return compiler.getVMEntries().RiType_resolveMethodImpl(this, method.name(), method.signature().asString());
     }
 
     @Override
@@ -174,7 +178,7 @@ public class HotSpotTypeResolved extends HotSpotType {
 
     public RiConstantPool constantPool() {
         // TODO: Implement constant pool without the need for VmId and cache the constant pool.
-        return Compiler.getVMEntries().RiType_constantPool(this);
+        return compiler.getVMEntries().RiType_constantPool(this);
     }
 
     public int instanceSize() {
@@ -192,7 +196,7 @@ public class HotSpotTypeResolved extends HotSpotType {
         }
 
         if (result == null) {
-            result = new HotSpotField(this, name, type, offset);
+            result = new HotSpotField(compiler, this, name, type, offset);
             fieldCache.put(offset, result);
         }
 

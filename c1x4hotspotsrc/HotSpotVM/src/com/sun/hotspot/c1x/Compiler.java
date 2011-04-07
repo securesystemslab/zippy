@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
+ * Copyright (c) 2011 Sun Microsystems, Inc.  All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
  * that is described in this document. In particular, and without limitation, these intellectual property
@@ -20,14 +20,13 @@
  */
 package com.sun.hotspot.c1x;
 
+import java.io.*;
 import java.lang.management.*;
 import java.lang.reflect.Proxy;
 import java.net.*;
 
 import com.sun.c1x.*;
 import com.sun.c1x.target.amd64.*;
-import com.sun.cri.ci.*;
-import com.sun.cri.ri.*;
 import com.sun.cri.xir.*;
 import com.sun.hotspot.c1x.logging.*;
 import com.sun.hotspot.c1x.server.CompilationServer.ReplacingInputStream;
@@ -43,18 +42,19 @@ public final class Compiler {
     private static Compiler theInstance;
     private static boolean PrintGCStats = false;
 
+    private final VMEntries vmEntries;
+    private final VMExits vmExits;
+
     public static Compiler getInstance() {
         if (theInstance == null) {
-            theInstance = new Compiler();
+            theInstance = new Compiler(null);
             Runtime.getRuntime().addShutdownHook(new ShutdownThread());
         }
         return theInstance;
     }
 
-    private static VMEntries vmEntries;
-
-
     public static class ShutdownThread extends Thread {
+
         @Override
         public void run() {
             VMExitsNative.compileMethods = false;
@@ -64,7 +64,6 @@ public final class Compiler {
             if (C1XOptions.PrintTimers) {
                 C1XTimers.print();
             }
-
             if (PrintGCStats) {
                 printGCStats();
             }
@@ -91,127 +90,95 @@ public final class Compiler {
         System.out.println("Total Garbage Collection Time (ms): " + garbageCollectionTime);
     }
 
-    public static VMExits initializeServer(VMEntries entries) {
-        if (Logger.ENABLED) {
-            vmEntries = LoggingProxy.getProxy(VMEntries.class, entries);
-            vmExits = LoggingProxy.getProxy(VMExits.class, new VMExitsNative());
-        } else {
-            vmEntries = entries;
-            vmExits = new VMExitsNative();
-        }
-        return vmExits;
+    public static Compiler initializeServer(VMEntries entries) {
+        assert theInstance == null;
+        theInstance = new Compiler(entries);
+        return theInstance;
     }
 
-    private static VMEntries initializeClient(VMExits exits) {
-        vmEntries = new VMEntriesNative();
-        vmExits = exits;
+    public VMEntries getVMEntries() {
         return vmEntries;
     }
 
-    public static VMEntries getVMEntries() {
-        if (vmEntries == null) {
-            try {
-                vmEntries = new VMEntriesNative();
-                if (CountingProxy.ENABLED) {
-                    vmEntries = CountingProxy.getProxy(VMEntries.class, vmEntries);
-                }
-                if (Logger.ENABLED) {
-                    vmEntries = LoggingProxy.getProxy(VMEntries.class, vmEntries);
-                }
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        }
-        return vmEntries;
-    }
-
-    private static VMExits vmExits;
-
-    public static VMExits getVMExits() {
-        if (vmExits == null) {
-            String remote = System.getProperty("c1x.remote");
-            assert theInstance == null;
-            assert vmEntries == null;
-            try {
-                if (remote != null) {
-                    System.out.println("C1X compiler started in client/server mode, connection to server " + remote);
-                    Socket socket = new Socket(remote, 1199);
-                    ReplacingOutputStream output = new ReplacingOutputStream(socket.getOutputStream());
-                    ReplacingInputStream input = new ReplacingInputStream(socket.getInputStream());
-
-                    InvocationSocket invocation = new InvocationSocket(output, input);
-                    VMExits exits = (VMExits) Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] {VMExits.class}, invocation);
-                    VMEntries entries = Compiler.initializeClient(exits);
-                    invocation.setDelegate(entries);
-                } else {
-                    vmExits = new VMExitsNative();
-                    if (CountingProxy.ENABLED) {
-                        vmExits = CountingProxy.getProxy(VMExits.class, vmExits);
-                    }
-                    if (Logger.ENABLED) {
-                        vmExits = LoggingProxy.getProxy(VMExits.class, vmExits);
-                    }
-                }
-            } catch (Throwable t) {
-                t.printStackTrace();
-            }
-        }
+    public VMExits getVMExits() {
         return vmExits;
     }
 
     private final C1XCompiler compiler;
-    private final HotSpotVMConfig config;
-    private final HotSpotRuntime runtime;
-    private final HotSpotRegisterConfig registerConfig;
-    private final CiTarget target;
-    private final RiXirGenerator generator;
 
-    private Compiler() {
-        config = getVMEntries().getConfiguration();
-        config.check();
+    private Compiler(VMEntries entries) {
+        // remote compilation (will not create a C1XCompiler)
+        String remote = System.getProperty("c1x.remote");
+        if (remote != null) {
+            try {
+                System.out.println("C1X compiler started in client/server mode, server: " + remote);
+                Socket socket = new Socket(remote, 1199);
 
-        runtime = new HotSpotRuntime(config);
-        final int wordSize = 8;
-        final int stackFrameAlignment = 16;
-        registerConfig = runtime.globalStubRegConfig;
-        target = new HotSpotTarget(new AMD64(), true, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, true);
+                ReplacingOutputStream output = new ReplacingOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                // required, because creating an ObjectOutputStream writes a header, but doesn't flush the stream
+                output.flush();
+                ReplacingInputStream input = new ReplacingInputStream(new BufferedInputStream(socket.getInputStream()));
+                input.setCompiler(this);
 
-        if (Logger.ENABLED) {
-            generator = LoggingProxy.getProxy(RiXirGenerator.class, new HotSpotXirGenerator(config, target, registerConfig));
-        } else {
-            generator = new HotSpotXirGenerator(config, target, registerConfig);
+                InvocationSocket invocation = new InvocationSocket(output, input);
+                vmEntries = new VMEntriesNative();
+                vmExits = (VMExits) Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] { VMExits.class}, invocation);
+                invocation.setDelegate(vmEntries);
+                compiler = null;
+                return;
+            } catch (IOException t) {
+                System.out.println("Connection to compilation server FAILED.");
+                throw new RuntimeException(t);
+            }
         }
-        compiler = new C1XCompiler(runtime, target, generator, registerConfig);
+
+        // initialize VMEntries
+        if (entries == null)
+            entries = new VMEntriesNative();
+
+        // initialize VMExits
+        VMExits exits = new VMExitsNative(this);
+
+        // logging, etc.
+        if (CountingProxy.ENABLED) {
+            exits = CountingProxy.getProxy(VMExits.class, exits);
+            entries = CountingProxy.getProxy(VMEntries.class, entries);
+        }
+        if (Logger.ENABLED) {
+            exits = LoggingProxy.getProxy(VMExits.class, exits);
+            entries = LoggingProxy.getProxy(VMEntries.class, entries);
+        }
+
+        // set the final fields
+        vmEntries = entries;
+        vmExits = exits;
+
+        // initialize compiler and C1XOptions
+        HotSpotVMConfig config = vmEntries.getConfiguration();
+        config.check();
 
         // these options are important - c1x4hotspot will not generate correct code without them
         C1XOptions.GenSpecialDivChecks = true;
         C1XOptions.NullCheckUniquePc = true;
         C1XOptions.InvokeSnippetAfterArguments = true;
         C1XOptions.StackShadowPages = config.stackShadowPages;
+
+        HotSpotRuntime runtime = new HotSpotRuntime(config, this);
+        HotSpotRegisterConfig registerConfig = runtime.globalStubRegConfig;
+
+        final int wordSize = 8;
+        final int stackFrameAlignment = 16;
+        HotSpotTarget target = new HotSpotTarget(new AMD64(), true, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, true);
+
+        RiXirGenerator generator = new HotSpotXirGenerator(config, target, registerConfig, this);
+        if (Logger.ENABLED) {
+            generator = LoggingProxy.getProxy(RiXirGenerator.class, generator);
+        }
+        compiler = new C1XCompiler(runtime, target, generator, registerConfig);
     }
 
     public C1XCompiler getCompiler() {
         return compiler;
-    }
-
-    public HotSpotVMConfig getConfig() {
-        return config;
-    }
-
-    public HotSpotRuntime getRuntime() {
-        return runtime;
-    }
-
-    public RiRegisterConfig getRegisterConfig() {
-        return registerConfig;
-    }
-
-    public CiTarget getTarget() {
-        return target;
-    }
-
-    public RiXirGenerator getGenerator() {
-        return generator;
     }
 
 }

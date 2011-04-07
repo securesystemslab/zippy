@@ -39,6 +39,7 @@ public class InvocationSocket implements InvocationHandler {
     private final ObjectOutputStream output;
     private final ObjectInputStream input;
     private Object delegate;
+    private DelegateCallback callback;
 
     public InvocationSocket(ObjectOutputStream output, ObjectInputStream input) {
         this.output = output;
@@ -47,6 +48,14 @@ public class InvocationSocket implements InvocationHandler {
 
     public void setDelegate(Object delegate) {
         this.delegate = delegate;
+    }
+
+    public static interface DelegateCallback {
+        public Object getDelegate();
+    }
+
+    public void setDelegateCallback(DelegateCallback callback) {
+        this.callback = callback;
     }
 
     private static class Invocation implements Serializable {
@@ -93,6 +102,11 @@ public class InvocationSocket implements InvocationHandler {
                 throw (RuntimeException) in;
             } else if (in instanceof Throwable) {
                 throw new RuntimeException((Throwable) in);
+            }
+
+            if (delegate == null) {
+                delegate = callback.getDelegate();
+                callback = null;
             }
 
             Invocation invoke = (Invocation) in;

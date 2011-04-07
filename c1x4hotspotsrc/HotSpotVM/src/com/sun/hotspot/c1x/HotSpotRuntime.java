@@ -42,10 +42,12 @@ public class HotSpotRuntime implements RiRuntime {
     final HotSpotVMConfig config;
     final HotSpotRegisterConfig regConfig;
     final HotSpotRegisterConfig globalStubRegConfig;
+    private final Compiler compiler;
 
 
-    public HotSpotRuntime(HotSpotVMConfig config) {
+    public HotSpotRuntime(HotSpotVMConfig config, Compiler compiler) {
         this.config = config;
+        this.compiler = compiler;
         regConfig = new HotSpotRegisterConfig(config, false);
         globalStubRegConfig = new HotSpotRegisterConfig(config, true);
     }
@@ -141,7 +143,7 @@ public class HotSpotRuntime implements RiRuntime {
     @Override
     public RiType getRiType(Class<?> javaClass) {
         assert javaClass != null;
-        return Compiler.getVMEntries().getType(javaClass);
+        return compiler.getVMEntries().getType(javaClass);
     }
 
     @Override
@@ -166,7 +168,7 @@ public class HotSpotRuntime implements RiRuntime {
 
     @Override
     public Object registerGlobalStub(CiTargetMethod targetMethod, String name) {
-        return HotSpotTargetMethod.installStub(targetMethod, name);
+        return HotSpotTargetMethod.installStub(compiler, targetMethod, name);
     }
 
     @Override

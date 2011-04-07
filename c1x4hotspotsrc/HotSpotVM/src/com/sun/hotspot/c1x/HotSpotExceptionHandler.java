@@ -30,6 +30,10 @@ public class HotSpotExceptionHandler extends CompilerObject implements RiExcepti
     private int catchClassIndex;
     private RiType catchClass;
 
+    public HotSpotExceptionHandler() {
+        super(null);
+    }
+
     @Override
     public int startBCI() {
         return startBci;

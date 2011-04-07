@@ -28,9 +28,9 @@ import java.rmi.registry.*;
 import javax.net.*;
 
 import com.sun.cri.ci.*;
-import com.sun.cri.ri.*;
 import com.sun.hotspot.c1x.*;
 import com.sun.hotspot.c1x.Compiler;
+import com.sun.hotspot.c1x.InvocationSocket.DelegateCallback;
 import com.sun.hotspot.c1x.logging.*;
 
 /**
@@ -43,8 +43,10 @@ public class CompilationServer {
     private Registry registry;
     private ServerSocket serverSocket;
     private Socket socket;
-    private ObjectOutputStream output;
-    private ObjectInputStream input;
+
+    private ReplacingOutputStream output;
+    private ReplacingInputStream input;
+
 
     public static void main(String[] args) throws Exception {
         new CompilationServer().run();
@@ -77,12 +79,10 @@ public class CompilationServer {
             if (clazz == CiConstant.class) {
                 CiConstant o = (CiConstant) obj;
                 return new Container(clazz, o.kind, o.boxedValue());
-            } else if (clazz == CiDebugInfo.class) {
-                CiDebugInfo o = (CiDebugInfo) obj;
-                return new Container(clazz, o.codePos, o.registerRefMap, o.frameRefMap);
-            } else if (clazz == CiCodePos.class) {
-                CiCodePos o = (CiCodePos) obj;
-                return new Container(clazz, o.caller, o.method, o.bci);
+            } else if (obj == CiValue.IllegalValue) {
+                return new Container(CiValue.class);
+            } else if (obj instanceof Compiler) {
+                return new Container(Compiler.class);
             }
             return obj;
         }
@@ -92,10 +92,15 @@ public class CompilationServer {
      * Replaces certain cir objects that cannot easily be made Serializable.
      */
     public static class ReplacingInputStream extends ObjectInputStream {
+        private Compiler compiler;
 
         public ReplacingInputStream(InputStream in) throws IOException {
             super(in);
             enableResolveObject(true);
+        }
+
+        public void setCompiler(Compiler compiler) {
+            this.compiler = compiler;
         }
 
         @Override
@@ -104,12 +109,13 @@ public class CompilationServer {
                 Container c = (Container) obj;
                 if (c.clazz == CiConstant.class) {
                     return CiConstant.forBoxed((CiKind) c.values[0], c.values[1]);
-                } else if (c.clazz == CiDebugInfo.class) {
-                    return new CiDebugInfo((CiCodePos) c.values[0], (CiBitMap) c.values[2], (CiBitMap) c.values[3]);
-                } else if (c.clazz == CiCodePos.class) {
-                    return new CiCodePos((CiCodePos) c.values[0], (RiMethod) c.values[1], (Integer) c.values[2]);
+                } else if (c.clazz == CiValue.class) {
+                    return CiValue.IllegalValue;
+                } else if (c.clazz == Compiler.class) {
+                    assert compiler != null;
+                    return compiler;
                 }
-                throw new RuntimeException("unexpected container class");
+                throw new RuntimeException("unexpected container class: " + c.clazz);
             }
             return obj;
         }
@@ -117,24 +123,32 @@ public class CompilationServer {
 
     private void run() throws IOException, ClassNotFoundException {
         serverSocket = ServerSocketFactory.getDefault().createServerSocket(1199);
-        while (true) {
+        do {
             try {
                 Logger.log("Compilation server ready, waiting for client to connect...");
                 socket = serverSocket.accept();
                 Logger.log("Connected to " + socket.getRemoteSocketAddress());
-                output = new ReplacingOutputStream(socket.getOutputStream());
-                input = new ReplacingInputStream(socket.getInputStream());
 
-                InvocationSocket invocation = new InvocationSocket(output, input);
-                VMEntries entries = (VMEntries) Proxy.newProxyInstance(VMEntries.class.getClassLoader(), new Class<?>[] {VMEntries.class}, invocation);
-                VMExits exits = Compiler.initializeServer(entries);
-                invocation.setDelegate(exits);
+                output = new ReplacingOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                // required, because creating an ObjectOutputStream writes a header, but doesn't flush the stream
+                output.flush();
+                input = new ReplacingInputStream(new BufferedInputStream(socket.getInputStream()));
+
+                final InvocationSocket invocation = new InvocationSocket(output, input);
+                invocation.setDelegateCallback( new DelegateCallback() {
+                    public Object getDelegate() {
+                        VMEntries entries = (VMEntries) Proxy.newProxyInstance(VMEntries.class.getClassLoader(), new Class<?>[] {VMEntries.class}, invocation);
+                        Compiler compiler = Compiler.initializeServer(entries);
+                        input.setCompiler(compiler);
+                        return compiler.getVMExits();
+                    }
+                });
 
                 invocation.waitForResult();
             } catch (IOException e) {
                 e.printStackTrace();
                 socket.close();
             }
-        }
+        } while (false);
     }
 }

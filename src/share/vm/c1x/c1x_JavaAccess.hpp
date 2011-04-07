@@ -44,6 +44,7 @@ void c1x_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
+    oop_field(HotSpotTypeResolved, compiler, "Lcom/sun/hotspot/c1x/Compiler;")          \
     oop_field(HotSpotTypeResolved, javaMirror, "Ljava/lang/Class;")                     \
     oop_field(HotSpotTypeResolved, simpleName, "Ljava/lang/String;")                    \
     int_field(HotSpotTypeResolved, accessFlags)                                         \

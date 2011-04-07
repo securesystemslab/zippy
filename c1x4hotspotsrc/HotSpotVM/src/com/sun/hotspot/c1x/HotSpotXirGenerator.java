@@ -72,13 +72,15 @@ public class HotSpotXirGenerator implements RiXirGenerator {
     private final HotSpotVMConfig config;
     private final CiTarget target;
     private final RiRegisterConfig registerConfig;
+    private final Compiler compiler;
 
     private CiXirAssembler asm;
 
-    public HotSpotXirGenerator(HotSpotVMConfig config, CiTarget target, RiRegisterConfig registerConfig) {
+    public HotSpotXirGenerator(HotSpotVMConfig config, CiTarget target, RiRegisterConfig registerConfig, Compiler compiler) {
         this.config = config;
         this.target = target;
         this.registerConfig = registerConfig;
+        this.compiler = compiler;
     }
 
     private SimpleTemplates prologueTemplates = new SimpleTemplates(STATIC_METHOD) {
@@ -336,8 +338,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         }
     };
 
-    private static CiRegister getGeneralParameterRegister(int index) {
-        return Compiler.getInstance().getRegisterConfig().getCallingConventionRegisters(CiCallingConvention.Type.RuntimeCall, RegisterFlag.CPU)[index];
+    private CiRegister getGeneralParameterRegister(int index) {
+        return registerConfig.getCallingConventionRegisters(CiCallingConvention.Type.RuntimeCall, RegisterFlag.CPU)[index];
     }
 
     private SimpleTemplates monitorExitTemplates = new SimpleTemplates(NULL_CHECK) {
@@ -1240,7 +1242,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             return new XirSnippet(newObjectArrayTemplates.get(site, UNRESOLVED), length);
         }
         assert arrayType == null;
-        arrayType = Compiler.getVMEntries().getPrimitiveArrayType(elementKind);
+        arrayType = compiler.getVMEntries().getPrimitiveArrayType(elementKind);
         return new XirSnippet(newTypeArrayTemplates.get(site, elementKind), length, XirArgument.forObject(arrayType));
     }
 

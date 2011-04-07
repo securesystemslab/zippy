@@ -43,16 +43,17 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     private RiSignature signature;
     private Boolean hasBalancedMonitors;
 
-    public HotSpotMethodResolved(long vmId, String name) {
+    public HotSpotMethodResolved(Compiler compiler, long vmId, String name) {
+        super(compiler);
         this.vmId = vmId;
         this.name = name;
-        this.holder = Compiler.getVMEntries().RiMethod_holder(vmId);
+        this.holder = compiler.getVMEntries().RiMethod_holder(vmId);
     }
 
     @Override
     public int accessFlags() {
         if (accessFlags == -1) {
-            accessFlags = Compiler.getVMEntries().RiMethod_accessFlags(vmId);
+            accessFlags = compiler.getVMEntries().RiMethod_accessFlags(vmId);
         }
         return accessFlags;
     }
@@ -65,7 +66,7 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     @Override
     public byte[] code() {
         if (code == null) {
-            code = Compiler.getVMEntries().RiMethod_code(vmId);
+            code = compiler.getVMEntries().RiMethod_code(vmId);
         }
         return code;
     }
@@ -73,7 +74,7 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     @Override
     public RiExceptionHandler[] exceptionHandlers() {
         if (exceptionHandlers == null) {
-            exceptionHandlers = Compiler.getVMEntries().RiMethod_exceptionHandlers(vmId);
+            exceptionHandlers = compiler.getVMEntries().RiMethod_exceptionHandlers(vmId);
         }
         return exceptionHandlers;
     }
@@ -81,7 +82,7 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     @Override
     public boolean hasBalancedMonitors() {
         if (hasBalancedMonitors == null) {
-            hasBalancedMonitors = Compiler.getVMEntries().RiMethod_hasBalancedMonitors(vmId);
+            hasBalancedMonitors = compiler.getVMEntries().RiMethod_hasBalancedMonitors(vmId);
         }
         return hasBalancedMonitors;
     }
@@ -128,7 +129,7 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     @Override
     public int maxLocals() {
         if (maxLocals == -1) {
-            maxLocals = Compiler.getVMEntries().RiMethod_maxLocals(vmId);
+            maxLocals = compiler.getVMEntries().RiMethod_maxLocals(vmId);
         }
         return maxLocals;
     }
@@ -136,7 +137,7 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
     @Override
     public int maxStackSize() {
         if (maxStackSize == -1) {
-            maxStackSize = Compiler.getVMEntries().RiMethod_maxStackSize(vmId);
+            maxStackSize = compiler.getVMEntries().RiMethod_maxStackSize(vmId);
         }
         return maxStackSize;
     }
@@ -153,13 +154,13 @@ public final class HotSpotMethodResolved extends HotSpotMethod {
 
     @Override
     public RiMethod uniqueConcreteMethod() {
-        return Compiler.getVMEntries().RiMethod_uniqueConcreteMethod(vmId);
+        return compiler.getVMEntries().RiMethod_uniqueConcreteMethod(vmId);
     }
 
     @Override
     public RiSignature signature() {
         if (signature == null) {
-            signature = new HotSpotSignature(Compiler.getVMEntries().RiMethod_signature(vmId));
+            signature = new HotSpotSignature(compiler, compiler.getVMEntries().RiMethod_signature(vmId));
         }
         return signature;
     }

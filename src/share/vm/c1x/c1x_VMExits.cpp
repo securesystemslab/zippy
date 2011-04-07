@@ -26,32 +26,49 @@
 #include "c1x/c1x_VMExits.hpp"
 
 // this is a *global* handle
+jobject VMExits::_compilerPermObject;
+jobject VMExits::_compilerPermKlass;
 jobject VMExits::_vmExitsPermObject;
 jobject VMExits::_vmExitsPermKlass;
+
+KlassHandle VMExits::compilerKlass() {
+  if (JNIHandles::resolve(_compilerPermKlass) == NULL) {
+    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    if (result == NULL) {
+      fatal("Couldn't find class com.sun.hotspot.c1x.Compiler");
+    }
+    _compilerPermKlass = JNIHandles::make_global(result);
+  }
+  return KlassHandle((klassOop)JNIHandles::resolve_non_null(_compilerPermKlass));
+}
 
 KlassHandle VMExits::vmExitsKlass() {
   if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
     klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     if (result == NULL) {
-      fatal("Could not find class com.sun.hotspot.c1x.VMExits");
+      fatal("Couldn't find class com.sun.hotspot.c1x.VMExits");
     }
     _vmExitsPermKlass = JNIHandles::make_global(result);
   }
   return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmExitsPermKlass));
 }
 
+Handle VMExits::compilerInstance() {
+  if (JNIHandles::resolve(_compilerPermObject) == NULL) {
+    JavaValue result(T_OBJECT);
+    JavaCalls::call_static(&result, compilerKlass(), vmSymbols::getInstance_name(), vmSymbols::getInstance_signature(), Thread::current());
+    check_pending_exception("Couldn't get Compiler");
+    _compilerPermObject = JNIHandles::make_global((oop) result.get_jobject());
+  }
+  return Handle(JNIHandles::resolve_non_null(_compilerPermObject));
+}
+
 Handle VMExits::instance() {
   if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
-    KlassHandle compiler_klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    if (compiler_klass.is_null()) {
-      fatal("Could not find class com.sun.hotspot.c1x.Compiler");
-    }
     JavaValue result(T_OBJECT);
-    JavaCallArguments args;
-    JavaCalls::call_static(&result, compiler_klass(), vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), &args, Thread::current());
+    JavaCalls::call_virtual(&result, compilerInstance(), compilerKlass(), vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), Thread::current());
     check_pending_exception("Couldn't get VMExits");
-    oop res = (oop) result.get_jobject();
-    _vmExitsPermObject = JNIHandles::make_global(res);
+    _vmExitsPermObject = JNIHandles::make_global((oop) result.get_jobject());
   }
   return Handle(JNIHandles::resolve_non_null(_vmExitsPermObject));
 }

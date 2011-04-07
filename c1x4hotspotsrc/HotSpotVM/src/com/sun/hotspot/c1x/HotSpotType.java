@@ -30,6 +30,10 @@ import com.sun.cri.ri.*;
 public abstract class HotSpotType extends CompilerObject implements RiType {
     protected String name;
 
+    protected HotSpotType(Compiler compiler) {
+        super(compiler);
+    }
+
     @Override
     public final String name() {
         return name;

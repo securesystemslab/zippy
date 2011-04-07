@@ -42,7 +42,8 @@ public class HotSpotField extends CompilerObject implements RiField {
     private final int offset;
     private CiConstant constant;
 
-    public HotSpotField(RiType holder, String name, RiType type, int offset) {
+    public HotSpotField(Compiler compiler, RiType holder, String name, RiType type, int offset) {
+        super(compiler);
         this.holder = holder;
         this.name = name;
         this.type = type;

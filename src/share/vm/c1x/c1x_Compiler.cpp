@@ -146,6 +146,7 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   Handle obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
   assert(obj() != NULL, "must succeed in allocating instance");
 
+  HotSpotTypeResolved::set_compiler(obj, VMExits::compilerInstance()());
 
   if (klass->oop_is_instance()) {
     instanceKlass* ik = (instanceKlass*)klass()->klass_part();

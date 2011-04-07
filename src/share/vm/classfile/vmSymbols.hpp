@@ -313,7 +313,7 @@
   template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \
   template(createRiTypePrimitive_signature,           "(I)Lcom/sun/cri/ri/RiType;")                                     \
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
-  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/sun/cri/ri/RiType;")                   \
+  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/sun/cri/ri/RiType;")                    \
   template(createRiConstantPool_name,                 "createRiConstantPool")                                           \
   template(createRiConstantPool_signature,            "(J)Lcom/sun/cri/ri/RiConstantPool;")                             \
   template(createCiConstant_name,                     "createCiConstant")                                               \
@@ -326,6 +326,8 @@
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
   template(getVMExits_name,                           "getVMExits")                                                     \
   template(getVMExits_signature,                      "()Lcom/sun/hotspot/c1x/VMExits;")                                \
+  template(getInstance_name,                          "getInstance")                                                    \
+  template(getInstance_signature,                     "()Lcom/sun/hotspot/c1x/Compiler;")                               \
                                                                                                                         \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \

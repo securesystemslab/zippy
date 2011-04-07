@@ -20,6 +20,7 @@
  */
 package com.sun.hotspot.c1x;
 
+import java.io.*;
 import java.util.*;
 
 import com.sun.cri.ri.*;
@@ -37,7 +38,7 @@ public class HotSpotConstantPool extends CompilerObject implements RiConstantPoo
     private final FastLRUIntCache<RiField> fieldCache = new FastLRUIntCache<RiField>();
     private final FastLRUIntCache<RiType> typeCache = new FastLRUIntCache<RiType>();
 
-    public static class FastLRUIntCache<T> {
+    public static class FastLRUIntCache<T> implements Serializable {
 
         private static final int InitialCapacity = 4;
         private int lastKey;
@@ -96,26 +97,27 @@ public class HotSpotConstantPool extends CompilerObject implements RiConstantPoo
         }
     }
 
-    public HotSpotConstantPool(long vmId) {
+    public HotSpotConstantPool(Compiler compiler, long vmId) {
+        super(compiler);
         this.vmId = vmId;
     }
 
     @Override
     public Object lookupConstant(int cpi) {
-        Object constant = Compiler.getVMEntries().RiConstantPool_lookupConstant(vmId, cpi);
+        Object constant = compiler.getVMEntries().RiConstantPool_lookupConstant(vmId, cpi);
         return constant;
     }
 
     @Override
     public RiSignature lookupSignature(int cpi) {
-        return Compiler.getVMEntries().RiConstantPool_lookupSignature(vmId, cpi);
+        return compiler.getVMEntries().RiConstantPool_lookupSignature(vmId, cpi);
     }
 
     @Override
     public RiMethod lookupMethod(int cpi, int byteCode) {
         RiMethod result = methodCache.get(cpi);
         if (result == null) {
-            result = Compiler.getVMEntries().RiConstantPool_lookupMethod(vmId, cpi, (byte) byteCode);
+            result = compiler.getVMEntries().RiConstantPool_lookupMethod(vmId, cpi, (byte) byteCode);
             methodCache.add(cpi, result);
         }
         return result;
@@ -125,7 +127,7 @@ public class HotSpotConstantPool extends CompilerObject implements RiConstantPoo
     public RiType lookupType(int cpi, int opcode) {
         RiType result = typeCache.get(cpi);
         if (result == null) {
-            result = Compiler.getVMEntries().RiConstantPool_lookupType(vmId, cpi);
+            result = compiler.getVMEntries().RiConstantPool_lookupType(vmId, cpi);
             typeCache.add(cpi, result);
         }
         return result;
@@ -135,7 +137,7 @@ public class HotSpotConstantPool extends CompilerObject implements RiConstantPoo
     public RiField lookupField(int cpi, int opcode) {
         RiField result = fieldCache.get(cpi);
         if (result == null) {
-            result = Compiler.getVMEntries().RiConstantPool_lookupField(vmId, cpi, (byte) opcode);
+            result = compiler.getVMEntries().RiConstantPool_lookupField(vmId, cpi, (byte) opcode);
             fieldCache.add(cpi, result);
         }
         return result;

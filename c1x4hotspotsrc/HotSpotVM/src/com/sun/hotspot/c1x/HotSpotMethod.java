@@ -28,6 +28,10 @@ public abstract class HotSpotMethod extends CompilerObject implements RiMethod {
     protected RiType holder;
     protected String name;
 
+    protected HotSpotMethod(Compiler compiler) {
+        super(compiler);
+    }
+
     @Override
     public final RiType holder() {
         return holder;

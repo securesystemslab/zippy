@@ -31,10 +31,11 @@ import com.sun.cri.ri.*;
 public final class HotSpotMethodUnresolved extends HotSpotMethod {
     private final RiSignature signature;
 
-    public HotSpotMethodUnresolved(String name, String signature, RiType holder) {
+    public HotSpotMethodUnresolved(Compiler compiler, String name, String signature, RiType holder) {
+        super(compiler);
         this.name = name;
         this.holder = holder;
-        this.signature = new HotSpotSignature(signature);
+        this.signature = new HotSpotSignature(compiler, signature);
     }
 
     @Override
