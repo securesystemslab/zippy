@@ -48,8 +48,9 @@ fi
 
 pushd $graal_home/make
 
-ARCH_DATA_MODEL=64 LANG=C HOTSPOT_BUILD_JOBS=4 ALT_BOOTDIR=$JDK7G INSTALL=$JDK7G/jre make jvmg1
-ARCH_DATA_MODEL=64 LANG=C HOTSPOT_BUILD_JOBS=4 ALT_BOOTDIR=$JDK7 INSTALL=$JDK7/jre make product1
+# the piping magic runs stderr through grep and removes the complaints about Xusage.txt files
+ARCH_DATA_MODEL=64 LANG=C HOTSPOT_BUILD_JOBS=4 ALT_BOOTDIR=$JDK7G INSTALL=y make jvmg1 3>&1 1>&2 2>&3 | grep -v Xusage[.]txt
+ARCH_DATA_MODEL=64 LANG=C HOTSPOT_BUILD_JOBS=4 ALT_BOOTDIR=$JDK7 INSTALL=y make product1 3>&1 1>&2 2>&3 | grep -v Xusage[.]txt
 
 popd
 
