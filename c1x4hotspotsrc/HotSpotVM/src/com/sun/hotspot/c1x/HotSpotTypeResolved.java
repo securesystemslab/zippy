@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Sun Microsystems, Inc.  All rights reserved.
+ * Copyright (c) 2011 Sun Microsystems, Inc.  All rights reserved.
  *
  * Sun Microsystems, Inc. has intellectual property rights relating to technology embodied in the product
  * that is described in this document. In particular, and without limitation, these intellectual property
@@ -20,187 +20,57 @@
  */
 package com.sun.hotspot.c1x;
 
-import java.lang.reflect.*;
-import java.util.*;
-
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 
-/**
- * Implementation of RiType for resolved non-primitive HotSpot classes.
- *
- * @author Thomas Wuerthinger, Lukas Stadler
- */
-public class HotSpotTypeResolved extends HotSpotType {
+public interface HotSpotTypeResolved extends RiType {
 
-    private Class javaMirror;
-    private String simpleName;
-    private int accessFlags;
-    private boolean hasFinalizer;
-    private boolean hasSubclass;
-    private boolean hasFinalizableSubclass;
-    private boolean isInitialized;
-    private boolean isArrayClass;
-    private boolean isInstanceClass;
-    private boolean isInterface;
-    private int instanceSize;
-    private RiType componentType;
-    private HashMap<Integer, RiField> fieldCache;
-    private RiConstantPool pool;
+    public int accessFlags();
 
-    private HotSpotTypeResolved() {
-        super(null);
-    }
+    public RiType arrayOf();
 
-    @Override
-    public int accessFlags() {
-        return accessFlags;
-    }
+    public RiType componentType();
 
-    @Override
-    public RiType arrayOf() {
-        return compiler.getVMEntries().RiType_arrayOf(this);
-    }
+    public RiType uniqueConcreteSubtype();
 
-    @Override
-    public RiType componentType() {
-        return compiler.getVMEntries().RiType_componentType(this);
-    }
+    public RiType exactType();
 
-    @Override
-    public RiType uniqueConcreteSubtype() {
-        return compiler.getVMEntries().RiType_uniqueConcreteSubtype(this);
-    }
+    public CiConstant getEncoding(Representation r);
 
-    @Override
-    public RiType exactType() {
-        if (Modifier.isFinal(accessFlags)) {
-            return this;
-        }
-        return null;
-    }
+    public CiKind getRepresentationKind(Representation r);
 
-    @Override
-    public CiConstant getEncoding(Representation r) {
-        switch (r) {
-            case JavaClass:
-                return CiConstant.forObject(javaClass());
-            case ObjectHub:
-                return CiConstant.forObject(this);
-            case StaticFields:
-                return CiConstant.forObject(this);
-            case TypeInfo:
-                return CiConstant.forObject(this);
-            default:
-                return null;
-        }
-    }
+    public boolean hasFinalizableSubclass();
 
-    @Override
-    public CiKind getRepresentationKind(Representation r) {
-        return CiKind.Object;
-    }
+    public boolean hasFinalizer();
 
-    @Override
-    public boolean hasFinalizableSubclass() {
-        return hasFinalizableSubclass;
-    }
+    public boolean hasSubclass();
 
-    @Override
-    public boolean hasFinalizer() {
-        return hasFinalizer;
-    }
+    public boolean isArrayClass();
 
-    @Override
-    public boolean hasSubclass() {
-        return hasSubclass;
-    }
+    public boolean isInitialized();
 
-    @Override
-    public boolean isArrayClass() {
-        return isArrayClass;
-    }
+    public boolean isInstance(Object obj);
 
-    @Override
-    public boolean isInitialized() {
-        return isInitialized;
-    }
+    public boolean isInstanceClass();
 
-    @Override
-    public boolean isInstance(Object obj) {
-        return javaMirror.isInstance(obj);
-    }
+    public boolean isInterface();
 
-    @Override
-    public boolean isInstanceClass() {
-        return isInstanceClass;
-    }
+    public boolean isResolved();
 
-    @Override
-    public boolean isInterface() {
-        return isInterface;
-    }
+    public boolean isSubtypeOf(RiType other);
 
-    @Override
-    public boolean isResolved() {
-        return true;
-    }
+    public Class<?> javaClass();
 
-    @Override
-    public boolean isSubtypeOf(RiType other) {
-        if (other instanceof HotSpotTypeResolved) {
-            return compiler.getVMEntries().RiType_isSubtypeOf(this, other);
-        }
-        // No resolved type is a subtype of an unresolved type.
-        return false;
-    }
+    public CiKind kind();
 
-    @Override
-    public Class<?> javaClass() {
-        return javaMirror;
-    }
+    public RiMethod resolveMethodImpl(RiMethod method);
 
-    @Override
-    public CiKind kind() {
-        return CiKind.Object;
-    }
+    public String toString();
 
-    @Override
-    public RiMethod resolveMethodImpl(RiMethod method) {
-        assert method instanceof HotSpotMethod;
-        return compiler.getVMEntries().RiType_resolveMethodImpl(this, method.name(), method.signature().asString());
-    }
+    public RiConstantPool constantPool();
 
-    @Override
-    public String toString() {
-        return "HotSpotType<" + simpleName + ", resolved>";
-    }
+    public int instanceSize();
 
-    public RiConstantPool constantPool() {
-        // TODO: Implement constant pool without the need for VmId and cache the constant pool.
-        return compiler.getVMEntries().RiType_constantPool(this);
-    }
-
-    public int instanceSize() {
-        return instanceSize;
-    }
-
-    public RiField createRiField(String name, RiType type, int offset) {
-        RiField result = null;
-
-        // (tw) Must cache the fields, because the local load elimination only works if the objects from two field lookups are equal.
-        if (fieldCache == null) {
-            fieldCache = new HashMap<Integer, RiField>(8);
-        } else {
-            result = fieldCache.get(offset);
-        }
-
-        if (result == null) {
-            result = new HotSpotField(compiler, this, name, type, offset);
-            fieldCache.put(offset, result);
-        }
-
-        return result;
-    }
+    public RiField createRiField(String name, RiType type, int offset);
 
 }

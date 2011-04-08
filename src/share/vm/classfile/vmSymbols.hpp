@@ -265,11 +265,12 @@
   template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/sun/hotspot/c1x/HotSpotTargetMethod")                        \
   template(com_sun_hotspot_c1x_HotSpotField,          "com/sun/hotspot/c1x/HotSpotField")                               \
   template(com_sun_c1x_C1XOptions,                    "com/sun/c1x/C1XOptions")                                         \
-  template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolved")                        \
+  template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolvedImpl")                    \
   template(com_sun_hotspot_c1x_HotSpotType,           "com/sun/hotspot/c1x/HotSpotType")                                \
   template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/sun/hotspot/c1x/HotSpotExceptionHandler")                   \
   template(com_sun_hotspot_c1x_HotSpotProxy,          "com/sun/hotspot/c1x/HotSpotProxy")                               \
   template(com_sun_hotspot_c1x_Compiler,              "com/sun/hotspot/c1x/Compiler")                                   \
+  template(com_sun_hotspot_c1x_CompilerImpl,          "com/sun/hotspot/c1x/CompilerImpl")                               \
   template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
   template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \

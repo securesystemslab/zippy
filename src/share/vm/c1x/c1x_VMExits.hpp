@@ -25,12 +25,10 @@
 class VMExits : public AllStatic {
 
 private:
-  static jobject _vmExitsPermObject;
-  static jobject _compilerPermKlass;
   static jobject _compilerPermObject;
+  static jobject _vmExitsPermObject;
   static jobject _vmExitsPermKlass;
 
-  static KlassHandle compilerKlass();
   static KlassHandle vmExitsKlass();
   static Handle instance();
 
@@ -85,9 +83,17 @@ inline void check_pending_exception(const char* message, bool dump_core = false)
   if (THREAD->has_pending_exception()) {
     Handle exception = PENDING_EXCEPTION;
     CLEAR_PENDING_EXCEPTION;
+    tty->print_cr("%s", message);
     java_lang_Throwable::print(exception, tty);
     tty->cr();
     java_lang_Throwable::print_stack_trace(exception(), tty);
+    vm_abort(dump_core);
+  }
+}
+
+inline void check_not_null(void* value, const char* message, bool dump_core = false) {
+  if (value == NULL) {
+    tty->print_cr("%s", message);
     vm_abort(dump_core);
   }
 }
