@@ -20,14 +20,14 @@
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881.305678577" name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.1866612258" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.2075405295" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
-							<builder arguments="${workspace_loc:/hotspot}/../../domake" autoBuildTarget="jvmg1" buildPath="${workspace_loc:/hotspot}/../../make" cleanBuildTarget="clean" command="bash" enableAutoBuild="true" enableCleanBuild="false" enabledIncrementalBuild="true" id="cdt.managedbuild.target.gnu.builder.base.81453037" incrementalBuildTarget="jvmg1" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base">
+							<builder arguments="${workspace_loc:/hotspot}/../../domake" autoBuildTarget="jvmg1" buildPath="${workspace_loc:/hotspot}/../../make" cleanBuildTarget="clean" command="bash" enableAutoBuild="true" enableCleanBuild="false" enabledIncrementalBuild="false" id="cdt.managedbuild.target.gnu.builder.base.81453037" incrementalBuildTarget="jvmg1" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base">
 								<outputEntries>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name=""/>
 								</outputEntries>
 							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1094883386" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1342888057" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
-								<option id="gnu.cpp.compiler.option.include.paths.801956928" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath"/>
+								<option id="gnu.cpp.compiler.option.include.paths.801956928" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.634868600" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="_LP64=1"/>
 									<listOptionValue builtIn="false" value="COMPILER1=1"/>

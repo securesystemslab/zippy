@@ -7,7 +7,7 @@
 	<buildSpec>
 		<buildCommand>
 			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
-			<triggers>auto,full,incremental,</triggers>
+			<triggers>auto,</triggers>
 			<arguments>
 				<dictionary>
 					<key>?children?</key>
@@ -55,7 +55,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.enableFullBuild</key>
-					<value>true</value>
+					<value>false</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.fullBuildTarget</key>
@@ -104,11 +104,6 @@
 			<name>os_cpu</name>
 			<type>2</type>
 			<locationURI>PARENT-2-PROJECT_LOC/src/os_cpu/linux_x86</locationURI>
-		</link>
-		<link>
-			<name>src</name>
-			<type>2</type>
-			<locationURI>PARENT-2-PROJECT_LOC/src</locationURI>
 		</link>
 		<link>
 			<name>vm</name>
