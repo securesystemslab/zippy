@@ -45,6 +45,8 @@ void C1XCompiler::initialize() {
   _initialized = true;
   TRACE_C1X_1("C1XCompiler::initialize");
 
+  VmIds::initializeObjects();
+
   initialize_buffer_blob();
   Runtime1::initialize(THREAD->get_buffer_blob());
 
