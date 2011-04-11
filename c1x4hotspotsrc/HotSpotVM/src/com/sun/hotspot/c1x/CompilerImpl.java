@@ -133,8 +133,9 @@ public final class CompilerImpl implements Compiler, Remote {
     private CompilerImpl(VMEntries entries) {
 
         // initialize VMEntries
-        if (entries == null)
+        if (entries == null) {
             entries = new VMEntriesNative();
+        }
 
         // initialize VMExits
         VMExits exits = new VMExitsNative(this);

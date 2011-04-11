@@ -31,7 +31,7 @@ import com.sun.cri.ri.*;
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class HotSpotTypeResolvedImpl extends HotSpotType implements HotSpotTypeResolved {
+public final class HotSpotTypeResolvedImpl extends HotSpotType implements HotSpotTypeResolved {
 
     private Class javaMirror;
     private String simpleName;
@@ -70,6 +70,11 @@ public class HotSpotTypeResolvedImpl extends HotSpotType implements HotSpotTypeR
     @Override
     public RiType uniqueConcreteSubtype() {
         return compiler.getVMEntries().RiType_uniqueConcreteSubtype(this);
+    }
+
+    @Override
+    public RiType superType() {
+        return compiler.getVMEntries().RiType_superType(this);
     }
 
     @Override

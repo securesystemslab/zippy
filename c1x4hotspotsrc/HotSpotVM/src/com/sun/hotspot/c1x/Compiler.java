@@ -24,10 +24,8 @@ import com.sun.c1x.*;
 
 public interface Compiler {
 
-    public VMEntries getVMEntries();
-
-    public VMExits getVMExits();
-
-    public C1XCompiler getCompiler();
+    VMEntries getVMEntries();
+    VMExits getVMExits();
+    C1XCompiler getCompiler();
 
 }

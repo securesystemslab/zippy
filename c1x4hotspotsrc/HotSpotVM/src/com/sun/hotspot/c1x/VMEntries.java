@@ -86,5 +86,7 @@ public interface VMEntries {
     void recordBailout(String reason);
 
     RiType RiType_uniqueConcreteSubtype(HotSpotTypeResolved hotSpotTypeResolved);
+
+    RiType RiType_superType(HotSpotTypeResolved hotSpotTypeResolved);
     // Checkstyle: resume
 }

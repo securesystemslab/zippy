@@ -61,6 +61,11 @@ public final class HotSpotTypePrimitive extends HotSpotType {
     }
 
     @Override
+    public RiType superType() {
+        return null;
+    }
+
+    @Override
     public CiConstant getEncoding(Representation r) {
         throw Util.unimplemented("HotSpotTypePrimitive.getEncoding");
     }

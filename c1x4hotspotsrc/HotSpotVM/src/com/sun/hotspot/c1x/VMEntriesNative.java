@@ -103,6 +103,9 @@ public class VMEntriesNative implements VMEntries, Remote {
     public native RiType RiType_uniqueConcreteSubtype(HotSpotTypeResolved klass);
 
     @Override
+    public native RiType RiType_superType(HotSpotTypeResolved klass);
+
+    @Override
     public native RiType getType(Class<?> javaClass);
 
     @Override

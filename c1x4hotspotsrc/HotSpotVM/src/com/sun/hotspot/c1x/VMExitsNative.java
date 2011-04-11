@@ -44,28 +44,28 @@ public class VMExitsNative implements VMExits, Remote {
 
     private final Compiler compiler;
 
-    public final HotSpotTypePrimitive TypeBoolean;
-    public final HotSpotTypePrimitive TypeChar;
-    public final HotSpotTypePrimitive TypeFloat;
-    public final HotSpotTypePrimitive TypeDouble;
-    public final HotSpotTypePrimitive TypeByte;
-    public final HotSpotTypePrimitive TypeShort;
-    public final HotSpotTypePrimitive TypeInt;
-    public final HotSpotTypePrimitive TypeLong;
-    public final HotSpotTypePrimitive TypeVoid;
+    public final HotSpotTypePrimitive typeBoolean;
+    public final HotSpotTypePrimitive typeChar;
+    public final HotSpotTypePrimitive typeFloat;
+    public final HotSpotTypePrimitive typeDouble;
+    public final HotSpotTypePrimitive typeByte;
+    public final HotSpotTypePrimitive typeShort;
+    public final HotSpotTypePrimitive typeInt;
+    public final HotSpotTypePrimitive typeLong;
+    public final HotSpotTypePrimitive typeVoid;
 
     public VMExitsNative(Compiler compiler) {
         this.compiler = compiler;
 
-        TypeBoolean = new HotSpotTypePrimitive(compiler, CiKind.Boolean);
-        TypeChar = new HotSpotTypePrimitive(compiler, CiKind.Char);
-        TypeFloat = new HotSpotTypePrimitive(compiler, CiKind.Float);
-        TypeDouble = new HotSpotTypePrimitive(compiler, CiKind.Double);
-        TypeByte = new HotSpotTypePrimitive(compiler, CiKind.Byte);
-        TypeShort = new HotSpotTypePrimitive(compiler, CiKind.Short);
-        TypeInt = new HotSpotTypePrimitive(compiler, CiKind.Int);
-        TypeLong = new HotSpotTypePrimitive(compiler, CiKind.Long);
-        TypeVoid = new HotSpotTypePrimitive(compiler, CiKind.Void);
+        typeBoolean = new HotSpotTypePrimitive(compiler, CiKind.Boolean);
+        typeChar = new HotSpotTypePrimitive(compiler, CiKind.Char);
+        typeFloat = new HotSpotTypePrimitive(compiler, CiKind.Float);
+        typeDouble = new HotSpotTypePrimitive(compiler, CiKind.Double);
+        typeByte = new HotSpotTypePrimitive(compiler, CiKind.Byte);
+        typeShort = new HotSpotTypePrimitive(compiler, CiKind.Short);
+        typeInt = new HotSpotTypePrimitive(compiler, CiKind.Int);
+        typeLong = new HotSpotTypePrimitive(compiler, CiKind.Long);
+        typeVoid = new HotSpotTypePrimitive(compiler, CiKind.Void);
     }
 
     /**
@@ -227,23 +227,23 @@ public class VMExitsNative implements VMExits, Remote {
     public RiType createRiTypePrimitive(int basicType) {
         switch (basicType) {
             case 4:
-                return TypeBoolean;
+                return typeBoolean;
             case 5:
-                return TypeChar;
+                return typeChar;
             case 6:
-                return TypeFloat;
+                return typeFloat;
             case 7:
-                return TypeDouble;
+                return typeDouble;
             case 8:
-                return TypeByte;
+                return typeByte;
             case 9:
-                return TypeShort;
+                return typeShort;
             case 10:
-                return TypeInt;
+                return typeInt;
             case 11:
-                return TypeLong;
+                return typeLong;
             case 14:
-                return TypeVoid;
+                return typeVoid;
             default:
                 throw new IllegalArgumentException("Unknown basic type: " + basicType);
         }

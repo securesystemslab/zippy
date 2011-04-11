@@ -146,6 +146,10 @@ public class HotSpotRuntime implements RiRuntime {
         return compiler.getVMEntries().getType(javaClass);
     }
 
+    public Class<?> getJavaClass(CiConstant c) {
+        return null;
+    }
+
     @Override
     public RiType getRiType(CiKind kind) {
         return getRiType(kind.toJavaClass());
@@ -154,7 +158,9 @@ public class HotSpotRuntime implements RiRuntime {
     @Override
     public RiType getRiType(CiConstant constant) {
         Object o = constant.asObject();
-        if (o == null) return null;
+        if (o == null) {
+            return null;
+        }
         return getRiType(o.getClass());
     }
 

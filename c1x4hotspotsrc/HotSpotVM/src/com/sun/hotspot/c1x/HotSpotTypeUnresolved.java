@@ -153,6 +153,11 @@ public class HotSpotTypeUnresolved extends HotSpotType {
     }
 
     @Override
+    public RiType superType() {
+        throw unresolved("superType()");
+    }
+
+    @Override
     public RiType arrayOf() {
         return new HotSpotTypeUnresolved(compiler, simpleName, dimensions + 1);
     }

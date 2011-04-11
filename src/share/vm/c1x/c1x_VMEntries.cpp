@@ -408,10 +408,22 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentTy
   return JNIHandles::make_local(C1XCompiler::get_RiType(element_type, java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)), THREAD));
 }
 
+// public RiType RiType_superType(HotSpotResolvedType klass);
+JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1superType(JNIEnv *, jobject, jobject klass) {
+  Thread* THREAD = Thread::current();
+  KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
+  ciInstanceKlass* k = NULL;
+  {
+    VM_ENTRY_MARK;
+    k = (ciInstanceKlass *) CURRENT_ENV->get_object(klass_handle());
+    if (k->super() == NULL) return NULL;
+    return JNIHandles::make_local(C1XCompiler::get_RiType(k->super(), klass_handle, THREAD));
+  }
+}
 
 // public RiType RiType_uniqueConcreteSubtype(HotSpotResolvedType klass);
 JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcreteSubtype(JNIEnv *, jobject, jobject klass) {
-
+  
   Thread* THREAD = Thread::current();
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
   ciInstanceKlass* k = NULL;
@@ -656,6 +668,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_isSubtypeOf",              CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_2isSubtypeOf)},
   {CC"RiType_componentType",            CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1componentType)},
   {CC"RiType_uniqueConcreteSubtype",    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1uniqueConcreteSubtype)},
+  {CC"RiType_superType",                CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1superType)},
   {CC"RiType_arrayOf",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_RiType_1arrayOf)},
   {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getPrimitiveArrayType)},
   {CC"getType",                         CC"("CLASS")"TYPE,                          FN_PTR(Java_com_sun_hotspot_c1x_VMEntries_getType)},
