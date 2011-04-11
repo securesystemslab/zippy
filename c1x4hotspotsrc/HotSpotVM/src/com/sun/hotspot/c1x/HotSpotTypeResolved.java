@@ -25,12 +25,12 @@ import com.sun.hotspot.c1x.server.*;
 
 public interface HotSpotTypeResolved extends RiType, Remote {
 
-    public String toString();
+    String toString();
 
-    public RiConstantPool constantPool();
+    RiConstantPool constantPool();
 
-    public int instanceSize();
+    int instanceSize();
 
-    public RiField createRiField(String name, RiType type, int offset);
+    RiField createRiField(String name, RiType type, int offset);
 
 }

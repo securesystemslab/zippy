@@ -27,7 +27,7 @@ import com.sun.cri.ci.*;
  *
  * @author Lukas Stadler
  */
-public class HotSpotVMConfig extends CompilerObject {
+public final class HotSpotVMConfig extends CompilerObject {
 
     private HotSpotVMConfig() {
         super(null);
