@@ -43,7 +43,11 @@ public final class CompilerImpl implements Compiler, Remote {
     private final VMEntries vmEntries;
     private final VMExits vmExits;
 
-    private final C1XCompiler compiler;
+    private C1XCompiler compiler;
+    private final HotSpotRuntime runtime;
+    private final RiXirGenerator generator;
+    private final HotSpotTarget target;
+    private final HotSpotRegisterConfig registerConfig;
 
     public static Compiler getInstance() {
         if (theInstance == null) {
@@ -159,22 +163,25 @@ public final class CompilerImpl implements Compiler, Remote {
         C1XOptions.InvokeSnippetAfterArguments = true;
         C1XOptions.StackShadowPages = config.stackShadowPages;
 
-        HotSpotRuntime runtime = new HotSpotRuntime(config, this);
-        HotSpotRegisterConfig registerConfig = runtime.globalStubRegConfig;
+        runtime = new HotSpotRuntime(config, this);
+        registerConfig = runtime.globalStubRegConfig;
 
         final int wordSize = 8;
         final int stackFrameAlignment = 16;
-        HotSpotTarget target = new HotSpotTarget(new AMD64(), true, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, true);
+        target = new HotSpotTarget(new AMD64(), true, wordSize, stackFrameAlignment, config.vmPageSize, wordSize, true);
 
         RiXirGenerator generator = new HotSpotXirGenerator(config, target, registerConfig, this);
         if (Logger.ENABLED) {
             generator = LoggingProxy.getProxy(RiXirGenerator.class, generator);
         }
-        compiler = new C1XCompiler(runtime, target, generator, registerConfig);
+        this.generator = generator;
     }
 
     @Override
     public C1XCompiler getCompiler() {
+        if (compiler == null) {
+            compiler = new C1XCompiler(runtime, target, generator, registerConfig);
+        }
         return compiler;
     }
 
