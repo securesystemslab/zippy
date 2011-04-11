@@ -330,7 +330,6 @@
   template(getInstance_name,                          "getInstance")                                                    \
   template(getInstance_signature,                     "()Lcom/sun/hotspot/c1x/Compiler;")                               \
   template(forObject_name,                            "forObject")                                                      \
-  template(forObject_signature,                       "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
                                                                                                                         \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \

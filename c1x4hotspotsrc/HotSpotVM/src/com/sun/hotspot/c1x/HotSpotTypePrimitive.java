@@ -96,7 +96,7 @@ public final class HotSpotTypePrimitive extends HotSpotType {
     }
 
     @Override
-    public boolean isInstance(Object obj) {
+    public boolean isInstance(CiConstant obj) {
         return false;
     }
 

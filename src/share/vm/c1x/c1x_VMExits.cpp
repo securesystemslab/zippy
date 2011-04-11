@@ -232,7 +232,7 @@ oop VMExits::createCiConstantObject(Handle object, TRAPS) {
 
 
   KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_cri_ci_CiConstant(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  JavaCalls::call_static(&result, klass(), vmSymbols::forObject_name(), vmSymbols::forObject_signature(), object, THREAD);
+  JavaCalls::call_static(&result, klass(), vmSymbols::forObject_name(), vmSymbols::createCiConstantObject_signature(), object, THREAD);
   check_pending_exception("Error while calling CiConstant.forObject");
   return (oop) result.get_jobject();
 }

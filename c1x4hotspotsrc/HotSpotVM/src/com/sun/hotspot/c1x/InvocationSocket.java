@@ -79,7 +79,7 @@ public class InvocationSocket {
                 return method.invoke(receiver, args);
             }
             try {
-                //Logger.startScope("invoking remote " + method.getName());
+                Logger.startScope("invoking remote " + method.getName());
                 output.writeObject(new Invocation(receiver, method.getName(), args));
                 output.flush();
                 return waitForResult();
@@ -87,7 +87,7 @@ public class InvocationSocket {
                 t.printStackTrace();
                 throw t;
             } finally {
-                //Logger.endScope("");
+                Logger.endScope("");
             }
         }
     }
@@ -122,18 +122,19 @@ public class InvocationSocket {
                 Object result;
                 try {
                     if (invoke.args == null) {
-                        //Logger.startScope("invoking local " + invoke.methodName);
+                        Logger.startScope("invoking local " + invoke.methodName);
                         result = method.invoke(invoke.receiver);
                     } else {
-                        /*
-                        StringBuilder str = new StringBuilder();
-                        str.append("invoking local " + invoke.methodName + "(");
-                        for (int i = 0; i < invoke.args.length; i++) {
-                            str.append(i == 0 ? "" : ", ");
-                            str.append(Logger.pretty(invoke.args[i]));
+                        if (Logger.ENABLED) {
+                            StringBuilder str = new StringBuilder();
+                            str.append("invoking local " + invoke.methodName + "(");
+                            for (int i = 0; i < invoke.args.length; i++) {
+                                str.append(i == 0 ? "" : ", ");
+                                str.append(Logger.pretty(invoke.args[i]));
+                            }
+                            str.append(")");
+                            Logger.startScope(str.toString());
                         }
-                        str.append(")");
-                        Logger.startScope(str.toString());*/
                         result = method.invoke(invoke.receiver, invoke.args);
                     }
                     result = new Result(result);
@@ -150,7 +151,7 @@ public class InvocationSocket {
                     e.getCause().printStackTrace();
                     result = e.getCause();
                 } finally {
-                    //Logger.endScope("");
+                    Logger.endScope("");
                 }
                 output.writeObject(result);
                 output.flush();

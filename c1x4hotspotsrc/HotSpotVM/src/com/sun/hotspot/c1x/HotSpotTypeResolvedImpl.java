@@ -127,7 +127,7 @@ public class HotSpotTypeResolvedImpl extends HotSpotType implements HotSpotTypeR
     }
 
     @Override
-    public boolean isInstance(Object obj) {
+    public boolean isInstance(CiConstant obj) {
         return javaMirror.isInstance(obj);
     }
 
@@ -148,7 +148,7 @@ public class HotSpotTypeResolvedImpl extends HotSpotType implements HotSpotTypeR
 
     @Override
     public boolean isSubtypeOf(RiType other) {
-        if (other.isResolved()) {
+        if (other instanceof HotSpotTypeResolved) {
             return compiler.getVMEntries().RiType_isSubtypeOf(this, other);
         }
         // No resolved type is a subtype of an unresolved type.
