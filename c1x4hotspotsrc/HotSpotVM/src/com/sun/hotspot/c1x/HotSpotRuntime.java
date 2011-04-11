@@ -145,6 +145,23 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
+    public RiType getRiType(CiKind kind) {
+        return getRiType(kind.toJavaClass());
+    }
+
+    @Override
+    public RiType getRiType(CiConstant constant) {
+        Object o = constant.asObject();
+        if (o == null) return null;
+        return getRiType(o.getClass());
+    }
+
+    @Override
+    public boolean isExceptionType(RiType type) {
+        return type.isSubtypeOf(getRiType(Throwable.class));
+    }
+
+    @Override
     public RiSnippets getSnippets() {
         throw new UnsupportedOperationException("getSnippets");
     }
@@ -206,8 +223,8 @@ public class HotSpotRuntime implements RiRuntime {
     }
 
     @Override
-    public boolean compareConstantObjects(Object x, Object y) {
-        return x == y;
+    public boolean compareConstantObjects(CiConstant x, CiConstant y) {
+        return x.asObject() == y.asObject();
     }
 
     @Override
@@ -226,5 +243,10 @@ public class HotSpotRuntime implements RiRuntime {
     @Override
     public boolean supportsArrayIntrinsics() {
         return true;
+    }
+
+    @Override
+    public int getArrayLength(CiConstant array) {
+        return Array.getLength(array.asObject());
     }
 }

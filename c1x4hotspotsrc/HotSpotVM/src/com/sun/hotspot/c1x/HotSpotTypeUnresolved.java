@@ -135,7 +135,7 @@ public class HotSpotTypeUnresolved extends HotSpotType {
     }
 
     @Override
-    public boolean isInstance(Object obj) {
+    public boolean isInstance(CiConstant obj) {
         throw unresolved("isInstance()");
     }
 
