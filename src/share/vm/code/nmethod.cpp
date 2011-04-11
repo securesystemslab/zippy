@@ -1903,7 +1903,7 @@ void nmethod::preserve_callee_argument_oops(frame fr, const RegisterMap *reg_map
 
 
 oop nmethod::embeddedOop_at(u_char* p) {
-  RelocIterator iter(this, p, p + oopSize);
+  RelocIterator iter(this, p, MIN2(p + oopSize, code_end()));
   while (iter.next())
     if (iter.type() == relocInfo::oop_type) {
       return iter.oop_reloc()->oop_value();
