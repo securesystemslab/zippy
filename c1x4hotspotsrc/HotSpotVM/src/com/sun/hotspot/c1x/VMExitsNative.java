@@ -30,13 +30,14 @@ import com.sun.c1x.debug.*;
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 import com.sun.hotspot.c1x.logging.*;
+import com.sun.hotspot.c1x.server.*;
 
 /**
  * Exits from the HotSpot VM into Java code.
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class VMExitsNative implements VMExits {
+public class VMExitsNative implements VMExits, Remote {
 
     public static final boolean LogCompiledMethods = false;
     public static boolean compileMethods = true;

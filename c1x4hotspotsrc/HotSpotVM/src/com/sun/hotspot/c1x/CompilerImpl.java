@@ -22,7 +22,6 @@ package com.sun.hotspot.c1x;
 
 import java.io.*;
 import java.lang.management.*;
-import java.lang.reflect.Proxy;
 import java.net.*;
 
 import com.sun.c1x.*;
@@ -30,15 +29,13 @@ import com.sun.c1x.target.amd64.*;
 import com.sun.cri.xir.*;
 import com.sun.hotspot.c1x.logging.*;
 import com.sun.hotspot.c1x.server.*;
-import com.sun.hotspot.c1x.server.ReplacingStreams.ReplacingInputStream;
-import com.sun.hotspot.c1x.server.ReplacingStreams.ReplacingOutputStream;
 
 /**
  * Singleton class holding the instance of the C1XCompiler.
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public final class CompilerImpl implements Compiler {
+public final class CompilerImpl implements Compiler, Remote {
 
     private static Compiler theInstance;
     private static boolean PrintGCStats = false;
@@ -50,8 +47,27 @@ public final class CompilerImpl implements Compiler {
 
     public static Compiler getInstance() {
         if (theInstance == null) {
-            theInstance = new CompilerImpl(null);
-            Runtime.getRuntime().addShutdownHook(new ShutdownThread());
+            // remote compilation (will not create a C1XCompiler)
+            String remote = System.getProperty("c1x.remote");
+            if (remote != null) {
+                try {
+                    System.out.println("C1X compiler started in client/server mode, server: " + remote);
+                    Socket socket = new Socket(remote, 1199);
+                    ReplacingStreams streams = new ReplacingStreams(socket.getOutputStream(), socket.getInputStream());
+                    streams.getInvocation().sendResult(new VMEntriesNative());
+
+                    theInstance = (Compiler) streams.getInvocation().waitForResult();
+                } catch (IOException e1) {
+                    System.out.println("Connection to compilation server FAILED.");
+                    throw new RuntimeException(e1);
+                } catch (ClassNotFoundException e2) {
+                    System.out.println("Connection to compilation server FAILED.");
+                    throw new RuntimeException(e2);
+                }
+            } else {
+                theInstance = new CompilerImpl(null);
+                Runtime.getRuntime().addShutdownHook(new ShutdownThread());
+            }
         }
         return theInstance;
     }
@@ -96,6 +112,7 @@ public final class CompilerImpl implements Compiler {
     public static Compiler initializeServer(VMEntries entries) {
         assert theInstance == null;
         theInstance = new CompilerImpl(entries);
+        Runtime.getRuntime().addShutdownHook(new ShutdownThread());
         return theInstance;
     }
 
@@ -110,31 +127,6 @@ public final class CompilerImpl implements Compiler {
     }
 
     private CompilerImpl(VMEntries entries) {
-        // remote compilation (will not create a C1XCompiler)
-        String remote = System.getProperty("c1x.remote");
-        if (remote != null) {
-            try {
-                System.out.println("C1X compiler started in client/server mode, server: " + remote);
-                Socket socket = new Socket(remote, 1199);
-                ReplacingStreams streams = new ReplacingStreams();
-
-                ReplacingOutputStream output = streams.new ReplacingOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                // required, because creating an ObjectOutputStream writes a header, but doesn't flush the stream
-                output.flush();
-                ReplacingInputStream input = streams.new ReplacingInputStream(new BufferedInputStream(socket.getInputStream()));
-                input.setCompiler(this);
-
-                InvocationSocket invocation = new InvocationSocket(output, input);
-                vmEntries = new VMEntriesNative();
-                vmExits = (VMExits) Proxy.newProxyInstance(VMExits.class.getClassLoader(), new Class<?>[] { VMExits.class}, invocation);
-                invocation.setDelegate(vmEntries);
-                compiler = null;
-                return;
-            } catch (IOException t) {
-                System.out.println("Connection to compilation server FAILED.");
-                throw new RuntimeException(t);
-            }
-        }
 
         // initialize VMEntries
         if (entries == null)

@@ -23,6 +23,8 @@ package com.sun.hotspot.c1x.logging;
 import java.lang.reflect.*;
 import java.util.*;
 
+import com.sun.hotspot.c1x.server.*;
+
 /**
  * A java.lang.reflect proxy that hierarchically logs all method invocations along with their parameters and return
  * values.
@@ -66,7 +68,8 @@ public class CountingProxy<T> implements InvocationHandler {
     }
 
     public static <T> T getProxy(Class<T> interf, T delegate) {
-        Object obj = Proxy.newProxyInstance(interf.getClassLoader(), new Class[] {interf}, new CountingProxy<T>(delegate));
+        Class<?>[] interfaces = ReplacingStreams.getAllInterfaces(delegate.getClass());
+        Object obj = Proxy.newProxyInstance(interf.getClassLoader(), interfaces, new CountingProxy<T>(delegate));
         return interf.cast(obj);
     }
 

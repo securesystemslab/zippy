@@ -23,13 +23,14 @@ package com.sun.hotspot.c1x;
 
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
+import com.sun.hotspot.c1x.server.*;
 
 /**
  * Entries into the HotSpot VM from Java code.
  *
  * @author Thomas Wuerthinger, Lukas Stadler
  */
-public class VMEntriesNative implements VMEntries {
+public class VMEntriesNative implements VMEntries, Remote {
 
     // Checkstyle: stop
     @Override

@@ -34,36 +34,24 @@ import com.sun.hotspot.c1x.logging.*;
  *
  * @author Lukas Stadler
  */
-public class InvocationSocket implements InvocationHandler {
+public class InvocationSocket {
 
     private final ObjectOutputStream output;
     private final ObjectInputStream input;
-    private Object delegate;
-    private DelegateCallback callback;
 
     public InvocationSocket(ObjectOutputStream output, ObjectInputStream input) {
         this.output = output;
         this.input = input;
     }
 
-    public void setDelegate(Object delegate) {
-        this.delegate = delegate;
-    }
-
-    public static interface DelegateCallback {
-        public Object getDelegate();
-    }
-
-    public void setDelegateCallback(DelegateCallback callback) {
-        this.callback = callback;
-    }
-
     private static class Invocation implements Serializable {
 
+        public Object receiver;
         public String methodName;
         public Object[] args;
 
-        public Invocation(String methodName, Object[] args) {
+        public Invocation(Object receiver, String methodName, Object[] args) {
+            this.receiver = receiver;
             this.methodName = methodName;
             this.args = args;
         }
@@ -78,18 +66,29 @@ public class InvocationSocket implements InvocationHandler {
         }
     }
 
-    @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        try {
-            Logger.startScope("invoking remote " + method.getName());
-            output.writeObject(new Invocation(method.getName(), args));
-            output.flush();
-            return waitForResult();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            throw t;
-        } finally {
-            Logger.endScope("");
+    public class Handler implements InvocationHandler {
+        private Object receiver;
+
+        public Handler(Object receiver) {
+            this.receiver = receiver;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (!method.getDeclaringClass().isInterface()) {
+                return method.invoke(receiver, args);
+            }
+            try {
+                //Logger.startScope("invoking remote " + method.getName());
+                output.writeObject(new Invocation(receiver, method.getName(), args));
+                output.flush();
+                return waitForResult();
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw t;
+            } finally {
+                //Logger.endScope("");
+            }
         }
     }
 
@@ -104,17 +103,14 @@ public class InvocationSocket implements InvocationHandler {
                 throw new RuntimeException((Throwable) in);
             }
 
-            if (delegate == null) {
-                delegate = callback.getDelegate();
-                callback = null;
-            }
-
             Invocation invoke = (Invocation) in;
             Method method = null;
-            for (Method m : delegate.getClass().getDeclaredMethods()) {
-                if (invoke.methodName.equals(m.getName())) {
-                    method = m;
-                    break;
+            for (Class<?> clazz = invoke.receiver.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
+                for (Method m : clazz.getDeclaredMethods()) {
+                    if (invoke.methodName.equals(m.getName())) {
+                        method = m;
+                        break;
+                    }
                 }
             }
             if (method == null) {
@@ -125,11 +121,20 @@ public class InvocationSocket implements InvocationHandler {
             } else {
                 Object result;
                 try {
-                    Logger.startScope("invoking local " + invoke.methodName);
                     if (invoke.args == null) {
-                        result = method.invoke(delegate);
+                        //Logger.startScope("invoking local " + invoke.methodName);
+                        result = method.invoke(invoke.receiver);
                     } else {
-                        result = method.invoke(delegate, invoke.args);
+                        /*
+                        StringBuilder str = new StringBuilder();
+                        str.append("invoking local " + invoke.methodName + "(");
+                        for (int i = 0; i < invoke.args.length; i++) {
+                            str.append(i == 0 ? "" : ", ");
+                            str.append(Logger.pretty(invoke.args[i]));
+                        }
+                        str.append(")");
+                        Logger.startScope(str.toString());*/
+                        result = method.invoke(invoke.receiver, invoke.args);
                     }
                     result = new Result(result);
                 } catch (IllegalArgumentException e) {
@@ -145,12 +150,17 @@ public class InvocationSocket implements InvocationHandler {
                     e.getCause().printStackTrace();
                     result = e.getCause();
                 } finally {
-                    Logger.endScope("");
+                    //Logger.endScope("");
                 }
                 output.writeObject(result);
                 output.flush();
             }
         }
+    }
+
+    public void sendResult(Object obj) throws IOException {
+        output.writeObject(new Result(obj));
+        output.flush();
     }
 
 }

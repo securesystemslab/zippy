@@ -21,40 +21,79 @@
 package com.sun.hotspot.c1x.server;
 
 import java.io.*;
+import java.lang.reflect.*;
 import java.util.*;
 
 import com.sun.cri.ci.*;
+import com.sun.hotspot.c1x.*;
 import com.sun.hotspot.c1x.Compiler;
 
 public class ReplacingStreams {
-    IdentityHashMap<Object, Long> objectMap = new IdentityHashMap<Object, Long>();
-    ArrayList<Object> objectList = new ArrayList<Object>();
 
-    public static class Container implements Serializable {
+    private IdentityHashMap<Object, Placeholder> objectMap = new IdentityHashMap<Object, Placeholder>();
+    private ArrayList<Object> objectList = new ArrayList<Object>();
 
-        public final Class<?> clazz;
-        public final Object[] values;
+    private ReplacingOutputStream output;
+    private ReplacingInputStream input;
 
-        public Container(Class<?> clazz, Object... values) {
-            this.clazz = clazz;
-            this.values = values;
-        }
+    private InvocationSocket invocation;
+
+    public ReplacingStreams(OutputStream outputStream, InputStream inputStream) throws IOException {
+        output = new ReplacingOutputStream(new BufferedOutputStream(outputStream));
+        // required, because creating an ObjectOutputStream writes a header, but doesn't flush the stream
+        output.flush();
+        input = new ReplacingInputStream(new BufferedInputStream(inputStream));
+        invocation = new InvocationSocket(output, input);
+
+        addStaticObject(CiValue.IllegalValue);
     }
 
-    public static enum PlaceholderType {
-        CI_CONSTANT_CONTENTS, RI_TYPE
+    public void setInvocationSocket(InvocationSocket invocation) {
+        this.invocation = invocation;
+    }
+
+    public ReplacingOutputStream getOutput() {
+        return output;
+    }
+
+    public ReplacingInputStream getInput() {
+        return input;
+    }
+
+    public InvocationSocket getInvocation() {
+        return invocation;
+    }
+
+    private void addStaticObject(Object obj) {
+        int id = objectList.size();
+        objectList.add(obj);
+        objectMap.put(obj, new Placeholder(id));
     }
 
     public static class Placeholder implements Serializable {
 
         public final int id;
-        public final PlaceholderType type;
 
-        public Placeholder(int id, PlaceholderType type) {
+        public Placeholder(int id) {
             this.id = id;
-            this.type = type;
         }
 
+        @Override
+        public String toString() {
+            return "#<" + id + ">";
+        }
+    }
+
+    public static class NewRemoteCallPlaceholder implements Serializable {
+
+        public final Class<?>[] interfaces;
+
+        public NewRemoteCallPlaceholder(Class<?>[] interfaces) {
+            this.interfaces = interfaces;
+        }
+    }
+
+    public static class NewDummyPlaceholder implements Serializable {
     }
 
     /**
@@ -75,33 +114,30 @@ public class ReplacingStreams {
 
         @Override
         protected Object resolveObject(Object obj) throws IOException {
-            if (obj instanceof Container) {
-                Container c = (Container) obj;
-                if (c.clazz == CiConstant.class) {
-                    return CiConstant.forBoxed((CiKind) c.values[0], c.values[1]);
-                } else if (c.clazz == CiValue.class) {
-                    return CiValue.IllegalValue;
-                } else if (c.clazz == Compiler.class) {
-                    assert compiler != null;
-                    return compiler;
-                }
-                throw new RuntimeException("unexpected container class: " + c.clazz);
-            } /*else if (obj instanceof Placeholder) {
-                Placeholder ph = (Placeholder)obj;
-                if (ph.id >= objectList.size()) {
-                    assert ph.id == objectList.size();
-                    switch (ph.type) {
-                        case CI_CONSTANT_CONTENTS:
-                            objectList.add(ph);
-                            break;
-                        case RI_TYPE:
-                            objectList.add(e)
-                            break;
-                    }
-                }
-                return objectList.get(ph.id);
+            // see ReplacingInputStream.replaceObject for details on when these types of objects are created
 
-            }*/
+            if (obj instanceof Placeholder) {
+                Placeholder placeholder = (Placeholder) obj;
+                obj = objectList.get(placeholder.id);
+                return obj;
+            }
+
+            if (obj instanceof NewRemoteCallPlaceholder) {
+                NewRemoteCallPlaceholder newPlaceholder = (NewRemoteCallPlaceholder) obj;
+                Placeholder placeholder = new Placeholder(objectList.size());
+                obj = Proxy.newProxyInstance(getClass().getClassLoader(), newPlaceholder.interfaces, invocation.new Handler(placeholder));
+                objectMap.put(obj, placeholder);
+                objectList.add(obj);
+                return obj;
+            }
+
+            if (obj instanceof NewDummyPlaceholder) {
+                obj = new Placeholder(objectList.size());
+                objectMap.put(obj, (Placeholder) obj);
+                objectList.add(obj);
+                return obj;
+            }
+
             return obj;
         }
     }
@@ -118,17 +154,58 @@ public class ReplacingStreams {
 
         @Override
         protected Object replaceObject(Object obj) throws IOException {
-            Class<? extends Object> clazz = obj.getClass();
-            if (clazz == CiConstant.class) {
-                CiConstant o = (CiConstant) obj;
-                return new Container(clazz, o.kind, o.boxedValue());
-            } else if (obj == CiValue.IllegalValue) {
-                return new Container(CiValue.class);
-            } else if (obj instanceof Compiler) {
-                return new Container(Compiler.class);
+            // is the object a known instance?
+            Placeholder placeholder = objectMap.get(obj);
+            if (placeholder != null) {
+                return placeholder;
+            }
+
+            // is the object an instance of a class that will always be executed remotely?
+            if (obj instanceof Remote) {
+                return createRemoteCallPlaceholder(obj);
+            }
+
+            // is the object a constant of object type?
+            if (obj.getClass() == CiConstant.class) {
+                System.out.println("CiConstant " + obj);
+                CiConstant constant = (CiConstant) obj;
+                // don't replace if the object already is a placeholder
+                if (constant.kind == CiKind.Object && !(constant.asObject() instanceof Placeholder) && constant.asObject() != null) {
+                    return CiConstant.forObject(createDummyPlaceholder(constant.asObject()));
+                }
             }
             return obj;
         }
     }
 
+    public static Class<?>[] getAllInterfaces(Class<?> clazz) {
+        HashSet<Class< ? >> interfaces = new HashSet<Class<?>>();
+        getAllInterfaces(clazz, interfaces);
+        return interfaces.toArray(new Class<?>[interfaces.size()]);
+    }
+
+    private static void getAllInterfaces(Class<?> clazz, HashSet<Class<?>> interfaces) {
+        for (Class< ? > iface : clazz.getInterfaces()) {
+            if (!interfaces.contains(iface)) {
+                interfaces.add(iface);
+                getAllInterfaces(iface, interfaces);
+            }
+        }
+        if (clazz.getSuperclass() != null) {
+            getAllInterfaces(clazz.getSuperclass(), interfaces);
+        }
+    }
+
+    private Object createRemoteCallPlaceholder(Object obj) {
+        // collect all interfaces that this object's class implements (proxies only support interfaces)
+        objectMap.put(obj, new Placeholder(objectList.size()));
+        objectList.add(obj);
+        return new NewRemoteCallPlaceholder(getAllInterfaces(obj.getClass()));
+    }
+
+    public Object createDummyPlaceholder(Object obj) {
+        objectMap.put(obj, new Placeholder(objectList.size()));
+        objectList.add(obj);
+        return new NewDummyPlaceholder();
+    }
 }

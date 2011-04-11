@@ -21,18 +21,13 @@
 package com.sun.hotspot.c1x.server;
 
 import java.io.*;
-import java.lang.reflect.Proxy;
 import java.net.*;
-import java.rmi.registry.*;
 
 import javax.net.*;
 
 import com.sun.hotspot.c1x.*;
 import com.sun.hotspot.c1x.Compiler;
-import com.sun.hotspot.c1x.InvocationSocket.DelegateCallback;
 import com.sun.hotspot.c1x.logging.*;
-import com.sun.hotspot.c1x.server.ReplacingStreams.ReplacingInputStream;
-import com.sun.hotspot.c1x.server.ReplacingStreams.ReplacingOutputStream;
 
 /**
  * Server side of the client/server compilation model.
@@ -40,9 +35,6 @@ import com.sun.hotspot.c1x.server.ReplacingStreams.ReplacingOutputStream;
  * @author Lukas Stadler
  */
 public class CompilationServer {
-
-    private ReplacingOutputStream output;
-    private ReplacingInputStream input;
 
     public static void main(String[] args) throws Exception {
         new CompilationServer().run();
@@ -52,28 +44,19 @@ public class CompilationServer {
         ServerSocket serverSocket = ServerSocketFactory.getDefault().createServerSocket(1199);
         do {
             Socket socket = null;
-            ReplacingStreams streams = new ReplacingStreams();
             try {
                 Logger.log("Compilation server ready, waiting for client to connect...");
                 socket = serverSocket.accept();
                 Logger.log("Connected to " + socket.getRemoteSocketAddress());
 
-                output = streams.new ReplacingOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                // required, because creating an ObjectOutputStream writes a header, but doesn't flush the stream
-                output.flush();
-                input = streams.new ReplacingInputStream(new BufferedInputStream(socket.getInputStream()));
+                ReplacingStreams streams = new ReplacingStreams(socket.getOutputStream(), socket.getInputStream());
 
-                final InvocationSocket invocation = new InvocationSocket(output, input);
-                invocation.setDelegateCallback(new DelegateCallback() {
-                    public Object getDelegate() {
-                        VMEntries entries = (VMEntries) Proxy.newProxyInstance(VMEntries.class.getClassLoader(), new Class<?>[] { VMEntries.class}, invocation);
-                        Compiler compiler = CompilerImpl.initializeServer(entries);
-                        input.setCompiler(compiler);
-                        return compiler.getVMExits();
-                    }
-                });
+                VMEntries entries = (VMEntries) streams.getInvocation().waitForResult();
+                Compiler compiler = CompilerImpl.initializeServer(entries);
 
-                invocation.waitForResult();
+                streams.getInvocation().sendResult(compiler);
+
+                streams.getInvocation().waitForResult();
             } catch (IOException e) {
                 e.printStackTrace();
                 if (socket != null) {

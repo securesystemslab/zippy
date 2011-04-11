@@ -20,50 +20,10 @@
  */
 package com.sun.hotspot.c1x;
 
-import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
+import com.sun.hotspot.c1x.server.*;
 
-public interface HotSpotTypeResolved extends RiType {
-
-    public int accessFlags();
-
-    public RiType arrayOf();
-
-    public RiType componentType();
-
-    public RiType uniqueConcreteSubtype();
-
-    public RiType exactType();
-
-    public CiConstant getEncoding(Representation r);
-
-    public CiKind getRepresentationKind(Representation r);
-
-    public boolean hasFinalizableSubclass();
-
-    public boolean hasFinalizer();
-
-    public boolean hasSubclass();
-
-    public boolean isArrayClass();
-
-    public boolean isInitialized();
-
-    public boolean isInstance(Object obj);
-
-    public boolean isInstanceClass();
-
-    public boolean isInterface();
-
-    public boolean isResolved();
-
-    public boolean isSubtypeOf(RiType other);
-
-    public Class<?> javaClass();
-
-    public CiKind kind();
-
-    public RiMethod resolveMethodImpl(RiMethod method);
+public interface HotSpotTypeResolved extends RiType, Remote {
 
     public String toString();
 
