@@ -59,7 +59,7 @@ public class HotSpotField extends CompilerObject implements RiField {
     @Override
     public CiConstant constantValue(CiConstant receiver) {
         if (receiver == null) {
-            if (constant == null && holder.isResolved() && holder.javaClass() == C1XOptions.class) {
+            if (constant == null && holder.isResolved() && holder.isSubtypeOf(compiler.getVMEntries().getType(C1XOptions.class))) {
                 Field f;
                 try {
                     f = C1XOptions.class.getField(name);

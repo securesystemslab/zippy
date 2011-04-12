@@ -21,6 +21,8 @@
 
 package com.sun.hotspot.c1x;
 
+import java.lang.reflect.*;
+
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
 import com.sun.hotspot.c1x.server.*;
@@ -116,6 +118,25 @@ public class VMEntriesNative implements VMEntries, Remote {
 
     @Override
     public native RiMethod RiMethod_uniqueConcreteMethod(long vmId);
+
+    @Override
+    public int getArrayLength(CiConstant array) {
+        return Array.getLength(array.asObject());
+    }
+
+    @Override
+    public boolean compareConstantObjects(CiConstant x, CiConstant y) {
+        return x.asObject() == y.asObject();
+    }
+
+    @Override
+    public RiType getRiType(CiConstant constant) {
+        Object o = constant.asObject();
+        if (o == null) {
+            return null;
+        }
+        return getType(o.getClass());
+    }
 
     // Checkstyle: resume
 }

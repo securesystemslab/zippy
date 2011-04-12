@@ -46,6 +46,7 @@ public class ReplacingStreams {
         invocation = new InvocationSocket(output, input);
 
         addStaticObject(CiValue.IllegalValue);
+        addStaticObject(HotSpotProxy.DUMMY_CONSTANT_OBJ);
     }
 
     public void setInvocationSocket(InvocationSocket invocation) {
@@ -167,12 +168,26 @@ public class ReplacingStreams {
 
             // is the object a constant of object type?
             if (obj.getClass() == CiConstant.class) {
-                System.out.println("CiConstant " + obj);
                 CiConstant constant = (CiConstant) obj;
-                // don't replace if the object already is a placeholder
-                if (constant.kind == CiKind.Object && !(constant.asObject() instanceof Placeholder) && constant.asObject() != null) {
-                    return CiConstant.forObject(createDummyPlaceholder(constant.asObject()));
+                if (constant.kind != CiKind.Object) {
+                    return obj;
                 }
+                Object contents = constant.asObject();
+                if (contents == null) {
+                    return obj;
+                }
+                // don't replace if the object already is a placeholder
+                if (contents instanceof Placeholder || contents instanceof Long) {
+                    return obj;
+                }
+                placeholder = objectMap.get(contents);
+                if (placeholder != null) {
+                    return CiConstant.forObject(placeholder);
+                }
+                if (contents instanceof Remote) {
+                    return CiConstant.forObject(createRemoteCallPlaceholder(contents));
+                }
+                return CiConstant.forObject(createDummyPlaceholder(contents));
             }
             return obj;
         }

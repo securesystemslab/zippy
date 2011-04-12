@@ -88,5 +88,12 @@ public interface VMEntries {
     RiType RiType_uniqueConcreteSubtype(HotSpotTypeResolved hotSpotTypeResolved);
 
     RiType RiType_superType(HotSpotTypeResolved hotSpotTypeResolved);
+
+    int getArrayLength(CiConstant array);
+
+    boolean compareConstantObjects(CiConstant x, CiConstant y);
+
+    RiType getRiType(CiConstant constant);
+
     // Checkstyle: resume
 }
