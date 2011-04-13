@@ -22,6 +22,7 @@ package com.sun.hotspot.c1x.server;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 import javax.net.*;
 
@@ -30,18 +31,53 @@ import com.sun.hotspot.c1x.Compiler;
 import com.sun.hotspot.c1x.logging.*;
 
 /**
- * Server side of the client/server compilation model.
+ * Server side of the client/server compilation model. The server listens for connections on the hardcoded port 1199.
  *
  * @author Lukas Stadler
  */
-public class CompilationServer {
+public class CompilationServer implements Runnable {
 
     public static void main(String[] args) throws Exception {
-        new CompilationServer().run();
+        new CompilationServer(false).run();
     }
 
-    private void run() throws IOException, ClassNotFoundException {
-        ServerSocket serverSocket = ServerSocketFactory.getDefault().createServerSocket(1199);
+    public static interface ConnectionObserver {
+
+        public void connectionStarted(Compiler compiler);
+
+        public void connectionFinished(Compiler compiler);
+    }
+
+    private final boolean multiple;
+    private final ArrayList<ConnectionObserver> observers = new ArrayList<ConnectionObserver>();
+
+    /**
+     * Creates a new Compilation server. The server is activated by calling {@link #run()} directly or via a new
+     * {@link Thread}.
+     *
+     * @param multiple true if the server should server should serve an infinite amount of consecutive connections,
+     *            false if it should terminate after the first connection ends.
+     */
+    public CompilationServer(boolean multiple) {
+        this.multiple = multiple;
+        HotSpotOptions.setDefaultOptions();
+    }
+
+    public void addConnectionObserver(ConnectionObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeConnectionObserver(ConnectionObserver observer) {
+        observers.remove(observer);
+    }
+
+    public void run() {
+        final ServerSocket serverSocket;
+        try {
+            serverSocket = ServerSocketFactory.getDefault().createServerSocket(1199);
+        } catch (IOException e) {
+            throw new RuntimeException("Couldn't create compilation server", e);
+        }
         do {
             Socket socket = null;
             try {
@@ -51,18 +87,35 @@ public class CompilationServer {
 
                 ReplacingStreams streams = new ReplacingStreams(socket.getOutputStream(), socket.getInputStream());
 
-                VMEntries entries = (VMEntries) streams.getInvocation().waitForResult();
-                Compiler compiler = CompilerImpl.initializeServer(entries);
+                // get the VMEntries proxy from the client
+                VMEntries entries = (VMEntries) streams.getInvocation().waitForResult(false);
 
+                // return the initialized compiler to the client
+                Compiler compiler = CompilerImpl.initializeServer(entries);
+                compiler.getCompiler();
                 streams.getInvocation().sendResult(compiler);
 
-                streams.getInvocation().waitForResult();
+                for (ConnectionObserver observer : observers) {
+                    observer.connectionStarted(compiler);
+                }
+
+                streams.getInvocation().waitForResult(true);
+
+                for (ConnectionObserver observer : observers) {
+                    observer.connectionFinished(compiler);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            } finally {
                 if (socket != null) {
-                    socket.close();
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                    }
                 }
             }
-        } while (false);
+        } while (multiple);
     }
 }

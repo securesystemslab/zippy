@@ -152,6 +152,7 @@ public class InvocationSocket {
             if (forbiddenMethodNames.contains(methodName)) {
                 throw new IllegalAccessException(methodName + " not allowed");
             }
+            Object result = null;
             try {
                 if (DEBUG) {
                     Logger.startScope("invoking remote " + methodName);
@@ -160,7 +161,7 @@ public class InvocationSocket {
 
                 output.writeObject(new Invocation(receiver, methodName, args));
                 output.flush();
-                Object result = waitForResult();
+                result = waitForResult(false);
 
                 // result caching for selected methods
                 if ((args == null || args.length == 0) && cachedMethodNames.contains(methodName)) {
@@ -172,7 +173,7 @@ public class InvocationSocket {
                 throw t;
             } finally {
                 if (DEBUG) {
-                    Logger.endScope("");
+                    Logger.endScope(" = " + result);
                 }
             }
         }
@@ -182,9 +183,17 @@ public class InvocationSocket {
      * Waits for the result of a remote method invocation. Invocations that should be executed in this VM might arrive
      * while waiting for the result, and these invocations will be executed before again waiting fort he result.
      */
-    public Object waitForResult() throws IOException, ClassNotFoundException {
+    public Object waitForResult(boolean eofExpected) throws IOException, ClassNotFoundException {
         while (true) {
-            Object in = input.readObject();
+            Object in;
+            try {
+                in = input.readObject();
+            } catch(EOFException e) {
+                if (eofExpected) {
+                    return null;
+                }
+                throw e;
+            }
             if (in instanceof Result) {
                 return ((Result) in).result;
             } else if (in instanceof RuntimeException) {
@@ -209,7 +218,7 @@ public class InvocationSocket {
                 output.writeObject(e);
                 output.flush();
             } else {
-                Object result;
+                Object result = null;
                 try {
                     if (invoke.args == null) {
                         if (DEBUG) {
@@ -244,7 +253,11 @@ public class InvocationSocket {
                     result = e.getCause();
                 } finally {
                     if (DEBUG) {
-                        Logger.endScope("");
+                        if (result instanceof Result) {
+                            Logger.endScope(" = " + ((Result)result).result);
+                        } else {
+                            Logger.endScope(" = " + result);
+                        }
                     }
                 }
                 output.writeObject(result);

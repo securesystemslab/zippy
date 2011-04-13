@@ -67,12 +67,15 @@ void C1XCompiler::initialize() {
   {
     VM_ENTRY_MARK;
     HandleMark hm;
+    VMExits::setDefaultOptions();
     for (int i = 0; i < Arguments::num_c1x_args(); ++i) {
       const char* arg = Arguments::c1x_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);
       jboolean result = VMExits::setOption(option);
       if (!result) fatal("Invalid option for C1X!");
     }
+
+    VMExits::initializeCompiler();
   }
 }
 

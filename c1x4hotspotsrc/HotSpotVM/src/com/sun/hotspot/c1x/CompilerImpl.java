@@ -26,6 +26,8 @@ import java.net.*;
 
 import com.sun.c1x.*;
 import com.sun.c1x.target.amd64.*;
+import com.sun.cri.ci.*;
+import com.sun.cri.ri.*;
 import com.sun.cri.xir.*;
 import com.sun.hotspot.c1x.logging.*;
 import com.sun.hotspot.c1x.server.*;
@@ -40,39 +42,43 @@ public final class CompilerImpl implements Compiler, Remote {
     private static Compiler theInstance;
     private static boolean PrintGCStats = false;
 
-    private final VMEntries vmEntries;
-    private final VMExits vmExits;
-
-    private C1XCompiler compiler;
-    private final HotSpotRuntime runtime;
-    private final RiXirGenerator generator;
-    private final HotSpotTarget target;
-    private final HotSpotRegisterConfig registerConfig;
-
     public static Compiler getInstance() {
-        if (theInstance == null) {
-            // remote compilation (will not create a C1XCompiler)
-            String remote = System.getProperty("c1x.remote");
-            if (remote != null) {
-                try {
-                    System.out.println("C1X compiler started in client/server mode, server: " + remote);
-                    Socket socket = new Socket(remote, 1199);
-                    ReplacingStreams streams = new ReplacingStreams(socket.getOutputStream(), socket.getInputStream());
-                    streams.getInvocation().sendResult(new VMEntriesNative());
+        return theInstance;
+    }
 
-                    theInstance = (Compiler) streams.getInvocation().waitForResult();
-                } catch (IOException e1) {
-                    System.out.println("Connection to compilation server FAILED.");
-                    throw new RuntimeException(e1);
-                } catch (ClassNotFoundException e2) {
-                    System.out.println("Connection to compilation server FAILED.");
-                    throw new RuntimeException(e2);
-                }
-            } else {
-                theInstance = new CompilerImpl(null);
-                Runtime.getRuntime().addShutdownHook(new ShutdownThread());
-            }
+    public static void initialize() {
+        if (theInstance != null) {
+            throw new IllegalStateException("Compiler already initialized");
         }
+
+        String remote = System.getProperty("c1x.remote");
+        if (remote != null) {
+            // remote compilation (will not create a local Compiler)
+            try {
+                System.out.println("C1X compiler started in client/server mode, server: " + remote);
+                Socket socket = new Socket(remote, 1199);
+                ReplacingStreams streams = new ReplacingStreams(socket.getOutputStream(), socket.getInputStream());
+                streams.getInvocation().sendResult(new VMEntriesNative());
+
+                theInstance = (Compiler) streams.getInvocation().waitForResult(false);
+            } catch (IOException e1) {
+                System.out.println("Connection to compilation server FAILED.");
+                throw new RuntimeException(e1);
+            } catch (ClassNotFoundException e2) {
+                System.out.println("Connection to compilation server FAILED.");
+                throw new RuntimeException(e2);
+            }
+        } else {
+            // ordinary local compilation
+            theInstance = new CompilerImpl(null);
+            Runtime.getRuntime().addShutdownHook(new ShutdownThread());
+        }
+    }
+
+    public static Compiler initializeServer(VMEntries entries) {
+        assert theInstance == null;
+        theInstance = new CompilerImpl(entries);
+        Runtime.getRuntime().addShutdownHook(new ShutdownThread());
         return theInstance;
     }
 
@@ -113,22 +119,14 @@ public final class CompilerImpl implements Compiler, Remote {
         System.out.println("Total Garbage Collection Time (ms): " + garbageCollectionTime);
     }
 
-    public static Compiler initializeServer(VMEntries entries) {
-        assert theInstance == null;
-        theInstance = new CompilerImpl(entries);
-        Runtime.getRuntime().addShutdownHook(new ShutdownThread());
-        return theInstance;
-    }
+    private final VMEntries vmEntries;
+    private final VMExits vmExits;
+    private C1XCompiler compiler;
 
-    @Override
-    public VMEntries getVMEntries() {
-        return vmEntries;
-    }
-
-    @Override
-    public VMExits getVMExits() {
-        return vmExits;
-    }
+    private final HotSpotRuntime runtime;
+    private final CiTarget target;
+    private final RiXirGenerator generator;
+    private final RiRegisterConfig registerConfig;
 
     private CompilerImpl(VMEntries entries) {
 
@@ -173,9 +171,11 @@ public final class CompilerImpl implements Compiler, Remote {
 
         RiXirGenerator generator = new HotSpotXirGenerator(config, target, registerConfig, this);
         if (Logger.ENABLED) {
-            generator = LoggingProxy.getProxy(RiXirGenerator.class, generator);
+            this.generator = LoggingProxy.getProxy(RiXirGenerator.class, generator);
+        } else {
+            this.generator = generator;
         }
-        this.generator = generator;
+
     }
 
     @Override
@@ -184,6 +184,16 @@ public final class CompilerImpl implements Compiler, Remote {
             compiler = new C1XCompiler(runtime, target, generator, registerConfig);
         }
         return compiler;
+    }
+
+    @Override
+    public VMEntries getVMEntries() {
+        return vmEntries;
+    }
+
+    @Override
+    public VMExits getVMExits() {
+        return vmExits;
     }
 
 }

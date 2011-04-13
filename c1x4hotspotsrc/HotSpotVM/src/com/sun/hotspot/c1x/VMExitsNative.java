@@ -22,10 +22,8 @@
 package com.sun.hotspot.c1x;
 
 import java.io.*;
-import java.lang.reflect.*;
 import java.util.*;
 
-import com.sun.c1x.*;
 import com.sun.c1x.debug.*;
 import com.sun.cri.ci.*;
 import com.sun.cri.ri.*;
@@ -66,82 +64,6 @@ public class VMExitsNative implements VMExits, Remote {
         typeInt = new HotSpotTypePrimitive(compiler, CiKind.Int);
         typeLong = new HotSpotTypePrimitive(compiler, CiKind.Long);
         typeVoid = new HotSpotTypePrimitive(compiler, CiKind.Void);
-    }
-
-    /**
-     * Default option configuration for C1X.
-     */
-    static {
-        C1XOptions.setOptimizationLevel(3);
-        C1XOptions.OptInlineExcept = false;
-        C1XOptions.OptInlineSynchronized = false;
-        C1XOptions.DetailedAsserts = false;
-        C1XOptions.CommentedAssembly = false;
-        C1XOptions.MethodEndBreakpointGuards = 2;
-    }
-
-    @Override
-    public boolean setOption(String option) {
-        if (option.length() == 0) {
-            return false;
-        }
-
-        Object value = null;
-        String fieldName = null;
-        String valueString = null;
-
-        char first = option.charAt(0);
-        if (first == '+' || first == '-') {
-            fieldName = option.substring(1);
-            value = (first == '+');
-        } else {
-            int index = option.indexOf('=');
-            if (index == -1) {
-                return false;
-            }
-            fieldName = option.substring(0, index);
-            valueString = option.substring(index + 1);
-        }
-
-        Field f;
-        try {
-            f = C1XOptions.class.getField(fieldName);
-
-            if (value == null) {
-                if (f.getType() == Float.TYPE) {
-                    value = Float.parseFloat(valueString);
-                } else if (f.getType() == Double.TYPE) {
-                    value = Double.parseDouble(valueString);
-                } else if (f.getType() == Integer.TYPE) {
-                    value = Integer.parseInt(valueString);
-                } else if (f.getType() == Boolean.TYPE) {
-                    value = Boolean.parseBoolean(valueString);
-                } else if (f.getType() == String.class) {
-                    value = valueString;
-                }
-            }
-            if (value != null) {
-                f.set(null, value);
-                Logger.info("Set option " + fieldName + " to " + value);
-            } else {
-                Logger.info("Wrong value \"" + valueString + "\" for option " + fieldName);
-                return false;
-            }
-        } catch (SecurityException e) {
-            Logger.info("Security exception when setting option " + option);
-            return false;
-        } catch (NoSuchFieldException e) {
-            Logger.info("Could not find option " + fieldName);
-            return false;
-        } catch (IllegalArgumentException e) {
-            Logger.info("Illegal value for option " + option);
-            return false;
-        } catch (IllegalAccessException e) {
-            Logger.info("Illegal access exception when setting option " + option);
-            return false;
-        }
-
-        return true;
     }
 
     private static Set<String> compiledMethods = new HashSet<String>();

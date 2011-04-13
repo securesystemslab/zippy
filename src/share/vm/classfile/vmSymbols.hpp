@@ -265,6 +265,7 @@
   template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/sun/hotspot/c1x/HotSpotTargetMethod")                        \
   template(com_sun_hotspot_c1x_HotSpotField,          "com/sun/hotspot/c1x/HotSpotField")                               \
   template(com_sun_c1x_C1XOptions,                    "com/sun/c1x/C1XOptions")                                         \
+  template(com_sun_hotspot_c1x_HotSpotOptions,        "com/sun/hotspot/c1x/HotSpotOptions")                             \
   template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolvedImpl")                    \
   template(com_sun_hotspot_c1x_HotSpotType,           "com/sun/hotspot/c1x/HotSpotType")                                \
   template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/sun/hotspot/c1x/HotSpotExceptionHandler")                   \
@@ -300,6 +301,7 @@
   template(compileMethod_name,                        "compileMethod")                                                  \
   template(compileMethod_signature,                   "(JLjava/lang/String;I)V")                                        \
   template(setOption_name,                            "setOption")                                                      \
+  template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
   template(createRiMethodResolved_name,               "createRiMethodResolved")                                         \
   template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/sun/cri/ri/RiMethod;")                 \
@@ -328,6 +330,7 @@
   template(getVMExits_name,                           "getVMExits")                                                     \
   template(getVMExits_signature,                      "()Lcom/sun/hotspot/c1x/VMExits;")                                \
   template(getInstance_name,                          "getInstance")                                                    \
+  template(initialize_name,                           "initialize")                                                     \
   template(getInstance_signature,                     "()Lcom/sun/hotspot/c1x/Compiler;")                               \
   template(forObject_name,                            "forObject")                                                      \
                                                                                                                         \

@@ -33,10 +33,15 @@ private:
   static Handle instance();
 
 public:
+  static void initializeCompiler();
+
   static Handle compilerInstance();
 
-  // public abstract boolean setOption(String option);
+  // public static boolean HotSpotOptions.setOption(String option);
   static jboolean setOption(Handle option);
+
+  // public static void HotSpotOptions.setDefaultOptions();
+  static void setDefaultOptions();
 
   // public abstract void compileMethod(long vmId, String name, int entry_bci);
   static void compileMethod(jlong vmId, Handle name, int entry_bci);

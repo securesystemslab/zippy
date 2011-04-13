@@ -67,16 +67,35 @@ Handle VMExits::instance() {
   return Handle(JNIHandles::resolve_non_null(_vmExitsPermObject));
 }
 
+void VMExits::initializeCompiler() {
+  KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.c1x.CompilerImpl");
+
+  JavaValue result(T_VOID);
+  JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::void_method_signature(), Thread::current());
+  check_pending_exception("Couldn't initialize compiler");
+}
+
 jboolean VMExits::setOption(Handle option) {
   assert(!option.is_null(), "");
+  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.c1x.HotSpotOptions");
+
   Thread* THREAD = Thread::current();
   JavaValue result(T_BOOLEAN);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_oop(option);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::setOption_name(), vmSymbols::setOption_signature(), &args, THREAD);
+  JavaCalls::call_static(&result, compilerKlass, vmSymbols::setOption_name(), vmSymbols::setOption_signature(), option, THREAD);
   check_pending_exception("Error while calling setOption");
   return result.get_jboolean();
+}
+
+void VMExits::setDefaultOptions() {
+  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.c1x.HotSpotOptions");
+
+  Thread* THREAD = Thread::current();
+  JavaValue result(T_VOID);
+  JavaCalls::call_static(&result, compilerKlass, vmSymbols::setDefaultOptions_name(), vmSymbols::void_method_signature(), THREAD);
+  check_pending_exception("Error while calling setDefaultOptions");
 }
 
 void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
