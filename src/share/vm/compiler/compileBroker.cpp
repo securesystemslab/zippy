@@ -631,7 +631,7 @@ CompilerCounters::CompilerCounters(const char* thread_name, int instance, TRAPS)
 void CompileBroker::bootstrap_c1x() {
   HandleMark hm;
   Thread* THREAD = Thread::current();
-  tty->print_cr("Bootstrapping C1X...");
+  tty->print_cr("Bootstrapping C1X....");
 
   C1XCompiler* compiler = C1XCompiler::instance();
   if (compiler == NULL) fatal("must use flag -XX:+UseC1X");

@@ -593,7 +593,8 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
 
   address instruction = _instructions->start() + pc_offset;
 
-  switch (CiKind::typeChar(kind)) {
+  char typeChar = CiKind::typeChar(kind);
+  switch (typeChar) {
     case 'z':
     case 'b':
     case 's':
@@ -608,16 +609,20 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
       address next_instruction = Assembler::locate_next_instruction(instruction);
       // we don't care if this is a long/double/etc., the primitive field contains the right bits
-      address dest = _constants->end();
-      *(jlong*) dest = CiConstant::primitive(constant);
+      int size = _constants->size();
+      if (typeChar == 'd' || typeChar == 'l') {
+        size = _constants->align_at_start(size);
+      }
+      address dest = _constants->start() + size;
       _constants->set_end(dest + BytesPerLong);
+      *(jlong*) dest = CiConstant::primitive(constant);
 
       long disp = dest - next_instruction;
       assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
       *((jint*) operand) = (jint) disp;
 
       _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
-      TRACE_C1X_3("relocating (Float/Long/Double) at %016x/%016x", instruction, operand);
+      TRACE_C1X_3("relocating (%c) at %016x/%016x with destination at %016x (%d)", typeChar, instruction, operand, dest, size);
       break;
     }
     case 'a': {

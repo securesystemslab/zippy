@@ -698,6 +698,10 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 {
   address target_pc = NULL;
 
+  if (TraceSignals) {
+    tty->print_cr("Searching for continuation for implicit exception at %d", pc);
+  }
+
   if (Interpreter::contains(pc)) {
 #ifdef CC_INTERP
     // C++ interpreter doesn't throw implicit exceptions
@@ -796,7 +800,9 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
         _implicit_div0_throws++;
 #endif
         if (UseC1X) {
-          tty->print_cr("c1x implicit div0");
+          if (TraceSignals) {
+            tty->print_cr("c1x implicit div0");
+          }
           target_pc = Runtime1::entry_for(Runtime1::c1x_throw_div0_exception_id);
         } else {
           target_pc = nm->continuation_for_implicit_exception(pc);
