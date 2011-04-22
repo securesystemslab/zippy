@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates.  All Rights Reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates.  All Rights Reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -348,7 +348,7 @@ void VM_Version::get_processor_features() {
   }
 
   char buf[256];
-  jio_snprintf(buf, sizeof(buf), "(%u cores per cpu, %u threads per core) family %d model %d stepping %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+  jio_snprintf(buf, sizeof(buf), "(%u cores per cpu, %u threads per core) family %d model %d stepping %d%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
                cores_per_cpu(), threads_per_core(),
                cpu_family(), _model, _stepping,
                (supports_cmov() ? ", cmov" : ""),
@@ -363,8 +363,7 @@ void VM_Version::get_processor_features() {
                (supports_sse4_2() ? ", sse4.2" : ""),
                (supports_popcnt() ? ", popcnt" : ""),
                (supports_mmx_ext() ? ", mmxext" : ""),
-               (supports_3dnow()   ? ", 3dnow"  : ""),
-               (supports_3dnow2()  ? ", 3dnowext" : ""),
+               (supports_3dnow_prefetch() ? ", 3dnowpref" : ""),
                (supports_lzcnt()   ? ", lzcnt": ""),
                (supports_sse4a()   ? ", sse4a": ""),
                (supports_ht() ? ", ht": ""));
@@ -429,11 +428,23 @@ void VM_Version::get_processor_features() {
         UseXmmI2D = false;
       }
     }
+    if( FLAG_IS_DEFAULT(UseSSE42Intrinsics) ) {
+      if( supports_sse4_2() && UseSSE >= 4 ) {
+        UseSSE42Intrinsics = true;
+      }
+    }
 
     // Use count leading zeros count instruction if available.
     if (supports_lzcnt()) {
       if (FLAG_IS_DEFAULT(UseCountLeadingZerosInstruction)) {
         UseCountLeadingZerosInstruction = true;
+      }
+    }
+
+    // On family 21 processors default is no sw prefetch
+    if ( cpu_family() == 21 ) {
+      if (FLAG_IS_DEFAULT(AllocatePrefetchStyle)) {
+        AllocatePrefetchStyle = 0;
       }
     }
   }
@@ -510,13 +521,13 @@ void VM_Version::get_processor_features() {
   // set valid Prefetch instruction
   if( ReadPrefetchInstr < 0 ) ReadPrefetchInstr = 0;
   if( ReadPrefetchInstr > 3 ) ReadPrefetchInstr = 3;
-  if( ReadPrefetchInstr == 3 && !supports_3dnow() ) ReadPrefetchInstr = 0;
-  if( !supports_sse() && supports_3dnow() ) ReadPrefetchInstr = 3;
+  if( ReadPrefetchInstr == 3 && !supports_3dnow_prefetch() ) ReadPrefetchInstr = 0;
+  if( !supports_sse() && supports_3dnow_prefetch() ) ReadPrefetchInstr = 3;
 
   if( AllocatePrefetchInstr < 0 ) AllocatePrefetchInstr = 0;
   if( AllocatePrefetchInstr > 3 ) AllocatePrefetchInstr = 3;
-  if( AllocatePrefetchInstr == 3 && !supports_3dnow() ) AllocatePrefetchInstr=0;
-  if( !supports_sse() && supports_3dnow() ) AllocatePrefetchInstr = 3;
+  if( AllocatePrefetchInstr == 3 && !supports_3dnow_prefetch() ) AllocatePrefetchInstr=0;
+  if( !supports_sse() && supports_3dnow_prefetch() ) AllocatePrefetchInstr = 3;
 
   // Allocation prefetch settings
   intx cache_line_size = L1_data_cache_line_size();
@@ -564,10 +575,10 @@ void VM_Version::get_processor_features() {
                   logical_processors_per_package());
     tty->print_cr("UseSSE=%d",UseSSE);
     tty->print("Allocation: ");
-    if (AllocatePrefetchStyle <= 0 || UseSSE == 0 && !supports_3dnow()) {
+    if (AllocatePrefetchStyle <= 0 || UseSSE == 0 && !supports_3dnow_prefetch()) {
       tty->print_cr("no prefetching");
     } else {
-      if (UseSSE == 0 && supports_3dnow()) {
+      if (UseSSE == 0 && supports_3dnow_prefetch()) {
         tty->print("PREFETCHW");
       } else if (UseSSE >= 1) {
         if (AllocatePrefetchInstr == 0) {

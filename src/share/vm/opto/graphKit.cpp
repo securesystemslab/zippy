@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -3338,14 +3338,62 @@ InitializeNode* AllocateNode::initialization() {
   return NULL;
 }
 
+//----------------------------- loop predicates ---------------------------
+
+//------------------------------add_predicate_impl----------------------------
+void GraphKit::add_predicate_impl(Deoptimization::DeoptReason reason, int nargs) {
+  // Too many traps seen?
+  if (too_many_traps(reason)) {
+#ifdef ASSERT
+    if (TraceLoopPredicate) {
+      int tc = C->trap_count(reason);
+      tty->print("too many traps=%s tcount=%d in ",
+                    Deoptimization::trap_reason_name(reason), tc);
+      method()->print(); // which method has too many predicate traps
+      tty->cr();
+    }
+#endif
+    // We cannot afford to take more traps here,
+    // do not generate predicate.
+    return;
+  }
+
+  Node *cont    = _gvn.intcon(1);
+  Node* opq     = _gvn.transform(new (C, 2) Opaque1Node(C, cont));
+  Node *bol     = _gvn.transform(new (C, 2) Conv2BNode(opq));
+  IfNode* iff   = create_and_map_if(control(), bol, PROB_MAX, COUNT_UNKNOWN);
+  Node* iffalse = _gvn.transform(new (C, 1) IfFalseNode(iff));
+  C->add_predicate_opaq(opq);
+  {
+    PreserveJVMState pjvms(this);
+    set_control(iffalse);
+    _sp += nargs;
+    uncommon_trap(reason, Deoptimization::Action_maybe_recompile);
+  }
+  Node* iftrue = _gvn.transform(new (C, 1) IfTrueNode(iff));
+  set_control(iftrue);
+}
+
+//------------------------------add_predicate---------------------------------
+void GraphKit::add_predicate(int nargs) {
+  if (UseLoopPredicate) {
+    add_predicate_impl(Deoptimization::Reason_predicate, nargs);
+  }
+}
+
 //----------------------------- store barriers ----------------------------
 #define __ ideal.
 
 void GraphKit::sync_kit(IdealKit& ideal) {
+  set_all_memory(__ merged_memory());
+  set_i_o(__ i_o());
+  set_control(__ ctrl());
+}
+
+void GraphKit::final_sync(IdealKit& ideal) {
   // Final sync IdealKit and graphKit.
   __ drain_delay_transform();
-  set_all_memory(__ merged_memory());
-  set_control(__ ctrl());
+  sync_kit(ideal);
 }
 
 // vanilla/CMS post barrier
@@ -3392,7 +3440,7 @@ void GraphKit::write_barrier_post(Node* oop_store,
   // (Else it's an array (or unknown), and we want more precise card marks.)
   assert(adr != NULL, "");
 
-  IdealKit ideal(gvn(), control(), merged_memory(), true);
+  IdealKit ideal(this, true);
 
   // Convert the pointer to an int prior to doing math on it
   Node* cast = __ CastPX(__ ctrl(), adr);
@@ -3418,7 +3466,7 @@ void GraphKit::write_barrier_post(Node* oop_store,
   }
 
   // Final sync IdealKit and GraphKit.
-  sync_kit(ideal);
+  final_sync(ideal);
 }
 
 // G1 pre/post barriers
@@ -3428,7 +3476,7 @@ void GraphKit::g1_write_barrier_pre(Node* obj,
                                     Node* val,
                                     const TypeOopPtr* val_type,
                                     BasicType bt) {
-  IdealKit ideal(gvn(), control(), merged_memory(), true);
+  IdealKit ideal(this, true);
 
   Node* tls = __ thread(); // ThreadLocalStorage
 
@@ -3505,7 +3553,7 @@ void GraphKit::g1_write_barrier_pre(Node* obj,
   } __ end_if();  // (!marking)
 
   // Final sync IdealKit and GraphKit.
-  sync_kit(ideal);
+  final_sync(ideal);
 }
 
 //
@@ -3571,7 +3619,7 @@ void GraphKit::g1_write_barrier_post(Node* oop_store,
   // (Else it's an array (or unknown), and we want more precise card marks.)
   assert(adr != NULL, "");
 
-  IdealKit ideal(gvn(), control(), merged_memory(), true);
+  IdealKit ideal(this, true);
 
   Node* tls = __ thread(); // ThreadLocalStorage
 
@@ -3645,6 +3693,6 @@ void GraphKit::g1_write_barrier_post(Node* oop_store,
   }
 
   // Final sync IdealKit and GraphKit.
-  sync_kit(ideal);
+  final_sync(ideal);
 }
 #undef __

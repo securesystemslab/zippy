@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1673,11 +1673,11 @@ void ClassVerifier::verify_ldc(
   } else if (tag.is_method_handle()) {
     current_frame->push_stack(
       VerificationType::reference_type(
-        vmSymbols::java_dyn_MethodHandle()), CHECK_VERIFY(this));
+        vmSymbols::java_lang_invoke_MethodHandle()), CHECK_VERIFY(this));
   } else if (tag.is_method_type()) {
     current_frame->push_stack(
       VerificationType::reference_type(
-        vmSymbols::java_dyn_MethodType()), CHECK_VERIFY(this));
+        vmSymbols::java_lang_invoke_MethodType()), CHECK_VERIFY(this));
   } else {
     verify_error(bci, "Invalid index in ldc");
     return;
@@ -1944,8 +1944,7 @@ void ClassVerifier::verify_invoke_instructions(
   unsigned int types = (opcode == Bytecodes::_invokeinterface
                                 ? 1 << JVM_CONSTANT_InterfaceMethodref
                       : opcode == Bytecodes::_invokedynamic
-                                ? ((AllowTransitionalJSR292 ? 1 << JVM_CONSTANT_NameAndType : 0)
-                                  |1 << JVM_CONSTANT_InvokeDynamic)
+                                ? 1 << JVM_CONSTANT_InvokeDynamic
                                 : 1 << JVM_CONSTANT_Methodref);
   verify_cp_type(index, cp, types, CHECK_VERIFY(this));
 

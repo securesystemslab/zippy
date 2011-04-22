@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1018,7 +1018,7 @@ klassOop SystemDictionary::parse_stream(Symbol* class_name,
   }
 
   if (host_klass.not_null() && k.not_null()) {
-    assert(AnonymousClasses, "");
+    assert(EnableInvokeDynamic, "");
     // If it's anonymous, initialize it now, since nobody else will.
     k->set_host_klass(host_klass());
 
@@ -1967,25 +1967,15 @@ void SystemDictionary::initialize_preloaded_classes(TRAPS) {
   instanceKlass::cast(WK_KLASS(FinalReference_klass))->set_reference_type(REF_FINAL);
   instanceKlass::cast(WK_KLASS(PhantomReference_klass))->set_reference_type(REF_PHANTOM);
 
-  WKID meth_group_start = WK_KLASS_ENUM_NAME(MethodHandle_klass);
-  WKID meth_group_end   = WK_KLASS_ENUM_NAME(WrongMethodTypeException_klass);
-  initialize_wk_klasses_until(meth_group_start, scan, CHECK);
-  if (EnableMethodHandles) {
-    initialize_wk_klasses_through(meth_group_end, scan, CHECK);
-  }
-  if (_well_known_klasses[meth_group_start] == NULL) {
-    // Skip the rest of the method handle classes, if MethodHandle is not loaded.
-    scan = WKID(meth_group_end+1);
-  }
-  WKID indy_group_start = WK_KLASS_ENUM_NAME(Linkage_klass);
-  WKID indy_group_end   = WK_KLASS_ENUM_NAME(CallSite_klass);
-  initialize_wk_klasses_until(indy_group_start, scan, CHECK);
+  // JSR 292 classes
+  WKID jsr292_group_start = WK_KLASS_ENUM_NAME(MethodHandle_klass);
+  WKID jsr292_group_end   = WK_KLASS_ENUM_NAME(CallSite_klass);
+  initialize_wk_klasses_until(jsr292_group_start, scan, CHECK);
   if (EnableInvokeDynamic) {
-    initialize_wk_klasses_through(indy_group_end, scan, CHECK);
-  }
-  if (_well_known_klasses[indy_group_start] == NULL) {
-    // Skip the rest of the dynamic typing classes, if Linkage is not loaded.
-    scan = WKID(indy_group_end+1);
+    initialize_wk_klasses_through(jsr292_group_end, scan, CHECK);
+  } else {
+    // Skip the JSR 292 classes, if not enabled.
+    scan = WKID(jsr292_group_end + 1);
   }
 
   initialize_wk_klasses_until(WKID_LIMIT, scan, CHECK);
@@ -2336,7 +2326,7 @@ methodOop SystemDictionary::find_method_handle_invoke(Symbol* name,
                                                       Symbol* signature,
                                                       KlassHandle accessing_klass,
                                                       TRAPS) {
-  if (!EnableMethodHandles)  return NULL;
+  if (!EnableInvokeDynamic)  return NULL;
   vmSymbols::SID name_id = vmSymbols::find_sid(name);
   assert(name_id != vmSymbols::NO_SID, "must be a known name");
   unsigned int hash  = invoke_method_table()->compute_hash(signature, name_id);
@@ -2349,7 +2339,7 @@ methodOop SystemDictionary::find_method_handle_invoke(Symbol* name,
     // (tw) May we do this?
 	//if (THREAD->is_Compiler_thread())
     //  return NULL;              // do not attempt from within compiler
-    bool for_invokeGeneric = (name_id == vmSymbols::VM_SYMBOL_ENUM_NAME(invokeGeneric_name));
+    bool for_invokeGeneric = (name_id != vmSymbols::VM_SYMBOL_ENUM_NAME(invokeExact_name));
     bool found_on_bcp = false;
     Handle mt = find_method_handle_type(signature, accessing_klass,
                                         for_invokeGeneric,
@@ -2378,7 +2368,7 @@ methodOop SystemDictionary::find_method_handle_invoke(Symbol* name,
   }
 }
 
-// Ask Java code to find or construct a java.dyn.MethodType for the given
+// Ask Java code to find or construct a java.lang.invoke.MethodType for the given
 // signature, as interpreted relative to the given class loader.
 // Because of class loader constraints, all method handle usage must be
 // consistent with this loader.
@@ -2432,7 +2422,7 @@ Handle SystemDictionary::find_method_handle_type(Symbol* signature,
   }
   assert(arg == npts, "");
 
-  // call sun.dyn.MethodHandleNatives::findMethodType(Class rt, Class[] pts) -> MethodType
+  // call java.lang.invoke.MethodHandleNatives::findMethodType(Class rt, Class[] pts) -> MethodType
   JavaCallArguments args(Handle(THREAD, rt()));
   args.push_oop(pts());
   JavaValue result(T_OBJECT);
@@ -2444,7 +2434,7 @@ Handle SystemDictionary::find_method_handle_type(Symbol* signature,
   Handle method_type(THREAD, (oop) result.get_jobject());
 
   if (for_invokeGeneric) {
-    // call sun.dyn.MethodHandleNatives::notifyGenericMethodType(MethodType) -> void
+    // call java.lang.invoke.MethodHandleNatives::notifyGenericMethodType(MethodType) -> void
     JavaCallArguments args(Handle(THREAD, method_type()));
     JavaValue no_result(T_VOID);
     JavaCalls::call_static(&no_result,
@@ -2491,7 +2481,7 @@ Handle SystemDictionary::link_method_handle_constant(KlassHandle caller,
     THROW_MSG_(vmSymbols::java_lang_LinkageError(), "bad signature", empty);
   }
 
-  // call sun.dyn.MethodHandleNatives::linkMethodHandleConstant(Class caller, int refKind, Class callee, String name, Object type) -> MethodHandle
+  // call java.lang.invoke.MethodHandleNatives::linkMethodHandleConstant(Class caller, int refKind, Class callee, String name, Object type) -> MethodHandle
   JavaCallArguments args;
   args.push_oop(caller->java_mirror());  // the referring class
   args.push_int(ref_kind);
@@ -2507,7 +2497,7 @@ Handle SystemDictionary::link_method_handle_constant(KlassHandle caller,
   return Handle(THREAD, (oop) result.get_jobject());
 }
 
-// Ask Java code to find or construct a java.dyn.CallSite for the given
+// Ask Java code to find or construct a java.lang.invoke.CallSite for the given
 // name and signature, as interpreted relative to the given class loader.
 Handle SystemDictionary::make_dynamic_call_site(Handle bootstrap_method,
                                                 Symbol* name,
@@ -2518,13 +2508,13 @@ Handle SystemDictionary::make_dynamic_call_site(Handle bootstrap_method,
                                                 TRAPS) {
   Handle empty;
   guarantee(bootstrap_method.not_null() &&
-            java_dyn_MethodHandle::is_instance(bootstrap_method()),
+            java_lang_invoke_MethodHandle::is_instance(bootstrap_method()),
             "caller must supply a valid BSM");
 
   Handle caller_mname = MethodHandles::new_MemberName(CHECK_(empty));
   MethodHandles::init_MemberName(caller_mname(), caller_method());
 
-  // call sun.dyn.MethodHandleNatives::makeDynamicCallSite(bootm, name, mtype, info, caller_mname, caller_pos)
+  // call java.lang.invoke.MethodHandleNatives::makeDynamicCallSite(bootm, name, mtype, info, caller_mname, caller_pos)
   oop name_str_oop = StringTable::intern(name, CHECK_(empty)); // not a handle!
   JavaCallArguments args(Handle(THREAD, bootstrap_method()));
   args.push_oop(name_str_oop);
@@ -2540,7 +2530,7 @@ Handle SystemDictionary::make_dynamic_call_site(Handle bootstrap_method,
                          &args, CHECK_(empty));
   oop call_site_oop = (oop) result.get_jobject();
   assert(call_site_oop->is_oop()
-         /*&& java_dyn_CallSite::is_instance(call_site_oop)*/, "must be sane");
+         /*&& java_lang_invoke_CallSite::is_instance(call_site_oop)*/, "must be sane");
   if (TraceMethodHandles) {
 #ifndef PRODUCT
     tty->print_cr("Linked invokedynamic bci=%d site="INTPTR_FORMAT":", caller_bci, call_site_oop);
@@ -2617,26 +2607,8 @@ Handle SystemDictionary::find_bootstrap_method(methodHandle caller_method, int c
       argument_info_result = argument_info;  // return argument_info to caller
       return bsm;
     }
-    // else null BSM; fall through
-  } else if (tag.is_name_and_type()) {
-    // JSR 292 EDR does not have JVM_CONSTANT_InvokeDynamic
-    // a bare name&type defaults its BSM to null, so fall through...
   } else {
     ShouldNotReachHere();  // verifier does not allow this
-  }
-
-  // Fall through to pick up the per-class bootstrap method.
-  // This mechanism may go away in the PFD.
-  assert(AllowTransitionalJSR292, "else the verifier should have stopped us already");
-  argument_info_result = empty;  // return no argument_info to caller
-  oop bsm_oop = instanceKlass::cast(caller_method->method_holder())->bootstrap_method();
-  if (bsm_oop != NULL) {
-    if (TraceMethodHandles) {
-      tty->print_cr("bootstrap method for "PTR_FORMAT" registered as "PTR_FORMAT":",
-                    (intptr_t) caller_method(), (intptr_t) bsm_oop);
-    }
-    assert(bsm_oop->is_oop(), "must be sane");
-    return Handle(THREAD, bsm_oop);
   }
 
   return empty;

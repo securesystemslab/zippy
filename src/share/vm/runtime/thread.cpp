@@ -3169,7 +3169,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
         fieldDescriptor fd;
         // Possible we might not find this field; if so, don't break
         if (ik->find_local_field(vmSymbols::frontCacheEnabled_name(), vmSymbols::bool_signature(), &fd)) {
-          k()->bool_field_put(fd.offset(), true);
+          k()->java_mirror()->bool_field_put(fd.offset(), true);
         }
       }
 
@@ -3185,7 +3185,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
           fieldDescriptor fd;
           // Possible we might not find this field: if so, silently don't break
           if (ik->find_local_field(vmSymbols::stringCacheEnabled_name(), vmSymbols::bool_signature(), &fd)) {
-            k()->bool_field_put(fd.offset(), true);
+            k()->java_mirror()->bool_field_put(fd.offset(), true);
           }
         }
       }
@@ -3232,7 +3232,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
       warning("java.lang.ArithmeticException has not been initialized");
       warning("java.lang.StackOverflowError has not been initialized");
     }
-    }
+  }
 
   // See        : bugid 4211085.
   // Background : the static initializer of java.lang.Compiler tries to read
@@ -3647,6 +3647,7 @@ bool Threads::destroy_vm() {
   if (ShowMessageBoxOnError && is_error_reported()) {
     os::infinite_sleep();
   }
+  os::wait_for_keypress_at_exit();
 
   if (JDK_Version::is_jdk12x_version()) {
     // We are the last thread running, so check if finalizers should be run.

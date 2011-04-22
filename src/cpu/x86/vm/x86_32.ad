@@ -1,5 +1,5 @@
 //
-// Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+// Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This code is free software; you can redistribute it and/or modify it
@@ -1392,6 +1392,10 @@ const int Matcher::init_array_short_size = 8 * BytesPerLong;
 // be subsumed into complex addressing expressions or compute them into
 // registers?  True for Intel but false for most RISCs
 const bool Matcher::clone_shift_expressions = true;
+
+// Do we need to mask the count passed to shift instructions or does
+// the cpu only look at the lower 5/6 bits anyway?
+const bool Matcher::need_masked_shift_count = false;
 
 bool Matcher::narrow_oop_use_complex_address() {
   ShouldNotCallThis();
@@ -3419,7 +3423,7 @@ encode %{
          masm.movptr(boxReg, tmpReg);                   // consider: LEA box, [tmp-2] 
 
          // Using a prefetchw helps avoid later RTS->RTO upgrades and cache probes
-         if ((EmitSync & 2048) && VM_Version::supports_3dnow() && os::is_MP()) {
+         if ((EmitSync & 2048) && VM_Version::supports_3dnow_prefetch() && os::is_MP()) {
             // prefetchw [eax + Offset(_owner)-2]
             masm.prefetchw(Address(rax, ObjectMonitor::owner_offset_in_bytes()-2));
          }
@@ -3463,7 +3467,7 @@ encode %{
          masm.movptr(boxReg, tmpReg) ; 
 
          // Using a prefetchw helps avoid later RTS->RTO upgrades and cache probes
-         if ((EmitSync & 2048) && VM_Version::supports_3dnow() && os::is_MP()) {
+         if ((EmitSync & 2048) && VM_Version::supports_3dnow_prefetch() && os::is_MP()) {
             // prefetchw [eax + Offset(_owner)-2]
             masm.prefetchw(Address(rax, ObjectMonitor::owner_offset_in_bytes()-2));
          }
@@ -3610,7 +3614,7 @@ encode %{
       // See also http://gee.cs.oswego.edu/dl/jmm/cookbook.html.
 
       masm.get_thread (boxReg) ;
-      if ((EmitSync & 4096) && VM_Version::supports_3dnow() && os::is_MP()) {
+      if ((EmitSync & 4096) && VM_Version::supports_3dnow_prefetch() && os::is_MP()) {
         // prefetchw [ebx + Offset(_owner)-2]
         masm.prefetchw(Address(rbx, ObjectMonitor::owner_offset_in_bytes()-2));
       }
@@ -7329,7 +7333,7 @@ instruct loadSSD(regD dst, stackSlotD src) %{
 // Must be safe to execute with invalid address (cannot fault).
 
 instruct prefetchr0( memory mem ) %{
-  predicate(UseSSE==0 && !VM_Version::supports_3dnow());
+  predicate(UseSSE==0 && !VM_Version::supports_3dnow_prefetch());
   match(PrefetchRead mem);
   ins_cost(0);
   size(0);
@@ -7339,7 +7343,7 @@ instruct prefetchr0( memory mem ) %{
 %}
 
 instruct prefetchr( memory mem ) %{
-  predicate(UseSSE==0 && VM_Version::supports_3dnow() || ReadPrefetchInstr==3);
+  predicate(UseSSE==0 && VM_Version::supports_3dnow_prefetch() || ReadPrefetchInstr==3);
   match(PrefetchRead mem);
   ins_cost(100);
 
@@ -7383,7 +7387,7 @@ instruct prefetchrT2( memory mem ) %{
 %}
 
 instruct prefetchw0( memory mem ) %{
-  predicate(UseSSE==0 && !VM_Version::supports_3dnow());
+  predicate(UseSSE==0 && !VM_Version::supports_3dnow_prefetch());
   match(PrefetchWrite mem);
   ins_cost(0);
   size(0);
@@ -7393,7 +7397,7 @@ instruct prefetchw0( memory mem ) %{
 %}
 
 instruct prefetchw( memory mem ) %{
-  predicate(UseSSE==0 && VM_Version::supports_3dnow() || AllocatePrefetchInstr==3);
+  predicate(UseSSE==0 && VM_Version::supports_3dnow_prefetch() || AllocatePrefetchInstr==3);
   match( PrefetchWrite mem );
   ins_cost(100);
 
@@ -12658,17 +12662,46 @@ instruct string_equals(eDIRegP str1, eSIRegP str2, eCXRegI cnt, eAXRegI result,
   ins_pipe( pipe_slow );
 %}
 
+// fast search of substring with known size.
+instruct string_indexof_con(eDIRegP str1, eDXRegI cnt1, eSIRegP str2, immI int_cnt2,
+                            eBXRegI result, regXD vec, eAXRegI cnt2, eCXRegI tmp, eFlagsReg cr) %{
+  predicate(UseSSE42Intrinsics);
+  match(Set result (StrIndexOf (Binary str1 cnt1) (Binary str2 int_cnt2)));
+  effect(TEMP vec, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, KILL cnt2, KILL tmp, KILL cr);
+
+  format %{ "String IndexOf $str1,$cnt1,$str2,$int_cnt2 -> $result   // KILL $vec, $cnt1, $cnt2, $tmp" %}
+  ins_encode %{
+    int icnt2 = (int)$int_cnt2$$constant;
+    if (icnt2 >= 8) {
+      // IndexOf for constant substrings with size >= 8 elements
+      // which don't need to be loaded through stack.
+      __ string_indexofC8($str1$$Register, $str2$$Register,
+                          $cnt1$$Register, $cnt2$$Register,
+                          icnt2, $result$$Register,
+                          $vec$$XMMRegister, $tmp$$Register);
+    } else {
+      // Small strings are loaded through stack if they cross page boundary.
+      __ string_indexof($str1$$Register, $str2$$Register,
+                        $cnt1$$Register, $cnt2$$Register,
+                        icnt2, $result$$Register,
+                        $vec$$XMMRegister, $tmp$$Register);
+    }
+  %}
+  ins_pipe( pipe_slow );
+%}
+
 instruct string_indexof(eDIRegP str1, eDXRegI cnt1, eSIRegP str2, eAXRegI cnt2,
-                        eBXRegI result, regXD tmp1, eCXRegI tmp2, eFlagsReg cr) %{
+                        eBXRegI result, regXD vec, eCXRegI tmp, eFlagsReg cr) %{
   predicate(UseSSE42Intrinsics);
   match(Set result (StrIndexOf (Binary str1 cnt1) (Binary str2 cnt2)));
-  effect(TEMP tmp1, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL tmp2, KILL cr);
+  effect(TEMP vec, USE_KILL str1, USE_KILL str2, USE_KILL cnt1, USE_KILL cnt2, KILL tmp, KILL cr);
 
-  format %{ "String IndexOf $str1,$cnt1,$str2,$cnt2 -> $result   // KILL $tmp2, $tmp1" %}
+  format %{ "String IndexOf $str1,$cnt1,$str2,$cnt2 -> $result   // KILL all" %}
   ins_encode %{
     __ string_indexof($str1$$Register, $str2$$Register,
-                      $cnt1$$Register, $cnt2$$Register, $result$$Register,
-                      $tmp1$$XMMRegister, $tmp2$$Register);
+                      $cnt1$$Register, $cnt2$$Register,
+                      (-1), $result$$Register,
+                      $vec$$XMMRegister, $tmp$$Register);
   %}
   ins_pipe( pipe_slow );
 %}

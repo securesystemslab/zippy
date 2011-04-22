@@ -492,6 +492,12 @@ class os: AllStatic {
   static void print_location(outputStream* st, intptr_t x, bool verbose = false);
   static size_t lasterror(char *buf, size_t len);
 
+  // Determines whether the calling process is being debugged by a user-mode debugger.
+  static bool is_debugger_attached();
+
+  // wait for a key press if PauseAtExit is set
+  static void wait_for_keypress_at_exit(void);
+
   // The following two functions are used by fatal error handler to trace
   // native (C) frames. They are not part of frame.hpp/frame.cpp because
   // frame.hpp/cpp assume thread is JavaThread, and also because different
@@ -651,6 +657,10 @@ class os: AllStatic {
 
   // Hook for os specific jvm options that we don't want to abort on seeing
   static bool obsolete_option(const JavaVMOption *option);
+
+  // Read file line by line. If line is longer than bsize,
+  // rest of line is skipped. Returns number of bytes read or -1 on EOF
+  static int get_line_chars(int fd, char *buf, const size_t bsize);
 
   // Platform dependent stuff
 #ifdef TARGET_OS_FAMILY_linux

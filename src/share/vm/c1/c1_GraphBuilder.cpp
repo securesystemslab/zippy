@@ -30,6 +30,7 @@
 #include "c1/c1_InstructionPrinter.hpp"
 #include "ci/ciField.hpp"
 #include "ci/ciKlass.hpp"
+#include "compiler/compileBroker.hpp"
 #include "interpreter/bytecode.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/bitMap.inline.hpp"
@@ -1456,12 +1457,12 @@ void GraphBuilder::access_field(Bytecodes::Code code) {
   BasicType field_type = field->type()->basic_type();
   ValueType* type = as_ValueType(field_type);
   // call will_link again to determine if the field is valid.
-  const bool is_loaded = holder->is_loaded() &&
-                         field->will_link(method()->holder(), code);
-  const bool is_initialized = is_loaded && holder->is_initialized();
+  const bool needs_patching = !holder->is_loaded() ||
+                              !field->will_link(method()->holder(), code) ||
+                              PatchALot;
 
   ValueStack* state_before = NULL;
-  if (!is_initialized || PatchALot) {
+  if (!holder->is_initialized() || needs_patching) {
     // save state before instruction for debug info when
     // deoptimization happens during patching
     state_before = copy_state_before();
@@ -1469,20 +1470,16 @@ void GraphBuilder::access_field(Bytecodes::Code code) {
 
   Value obj = NULL;
   if (code == Bytecodes::_getstatic || code == Bytecodes::_putstatic) {
-    // commoning of class constants should only occur if the class is
-    // fully initialized and resolved in this constant pool.  The will_link test
-    // above essentially checks if this class is resolved in this constant pool
-    // so, the is_initialized flag should be suffiect.
     if (state_before != NULL) {
       // build a patching constant
-      obj = new Constant(new ClassConstant(holder), state_before);
+      obj = new Constant(new InstanceConstant(holder->java_mirror()), state_before);
     } else {
-      obj = new Constant(new ClassConstant(holder));
+      obj = new Constant(new InstanceConstant(holder->java_mirror()));
     }
   }
 
 
-  const int offset = is_loaded ? field->offset() : -1;
+  const int offset = !needs_patching ? field->offset() : -1;
   switch (code) {
     case Bytecodes::_getstatic: {
       // check for compile-time constants, i.e., initialized static final fields
@@ -1509,7 +1506,7 @@ void GraphBuilder::access_field(Bytecodes::Code code) {
           state_before = copy_state_for_exception();
         }
         push(type, append(new LoadField(append(obj), offset, field, true,
-                                        state_before, is_loaded, is_initialized)));
+                                        state_before, needs_patching)));
       }
       break;
     }
@@ -1518,7 +1515,7 @@ void GraphBuilder::access_field(Bytecodes::Code code) {
         if (state_before == NULL) {
           state_before = copy_state_for_exception();
         }
-        append(new StoreField(append(obj), offset, field, val, true, state_before, is_loaded, is_initialized));
+        append(new StoreField(append(obj), offset, field, val, true, state_before, needs_patching));
       }
       break;
     case Bytecodes::_getfield :
@@ -1526,8 +1523,8 @@ void GraphBuilder::access_field(Bytecodes::Code code) {
         if (state_before == NULL) {
           state_before = copy_state_for_exception();
         }
-        LoadField* load = new LoadField(apop(), offset, field, false, state_before, is_loaded, true);
-        Value replacement = is_loaded ? _memory->load(load) : load;
+        LoadField* load = new LoadField(apop(), offset, field, false, state_before, needs_patching);
+        Value replacement = !needs_patching ? _memory->load(load) : load;
         if (replacement != load) {
           assert(replacement->is_linked() || !replacement->can_be_linked(), "should already by linked");
           push(type, replacement);
@@ -1542,8 +1539,8 @@ void GraphBuilder::access_field(Bytecodes::Code code) {
         if (state_before == NULL) {
           state_before = copy_state_for_exception();
         }
-        StoreField* store = new StoreField(apop(), offset, field, val, false, state_before, is_loaded, true);
-        if (is_loaded) store = _memory->store(store);
+        StoreField* store = new StoreField(apop(), offset, field, val, false, state_before, needs_patching);
+        if (!needs_patching) store = _memory->store(store);
         if (store != NULL) {
           append(store);
         }
@@ -2827,7 +2824,7 @@ ValueStack* GraphBuilder::state_at_entry() {
   int idx = 0;
   if (!method()->is_static()) {
     // we should always see the receiver
-    state->store_local(idx, new Local(objectType, idx));
+    state->store_local(idx, new Local(method()->holder(), objectType, idx));
     idx = 1;
   }
 
@@ -2839,7 +2836,7 @@ ValueStack* GraphBuilder::state_at_entry() {
     // don't allow T_ARRAY to propagate into locals types
     if (basic_type == T_ARRAY) basic_type = T_OBJECT;
     ValueType* vt = as_ValueType(basic_type);
-    state->store_local(idx, new Local(vt, idx));
+    state->store_local(idx, new Local(type, vt, idx));
     idx += type->size();
   }
 
@@ -3308,22 +3305,23 @@ void GraphBuilder::fill_sync_handler(Value lock, BlockBegin* sync_handler, bool 
   Value exception = append_with_bci(new ExceptionObject(), SynchronizationEntryBCI);
   assert(exception->is_pinned(), "must be");
 
+  int bci = SynchronizationEntryBCI;
   if (compilation()->env()->dtrace_method_probes()) {
-    // Report exit from inline methods
+    // Report exit from inline methods.  We don't have a stream here
+    // so pass an explicit bci of SynchronizationEntryBCI.
     Values* args = new Values(1);
-    args->push(append(new Constant(new ObjectConstant(method()))));
-    append(new RuntimeCall(voidType, "dtrace_method_exit", CAST_FROM_FN_PTR(address, SharedRuntime::dtrace_method_exit), args));
+    args->push(append_with_bci(new Constant(new ObjectConstant(method())), bci));
+    append_with_bci(new RuntimeCall(voidType, "dtrace_method_exit", CAST_FROM_FN_PTR(address, SharedRuntime::dtrace_method_exit), args), bci);
   }
 
-  int bci = SynchronizationEntryBCI;
   if (lock) {
     assert(state()->locks_size() > 0 && state()->lock_at(state()->locks_size() - 1) == lock, "lock is missing");
     if (!lock->is_linked()) {
-      lock = append_with_bci(lock, -1);
+      lock = append_with_bci(lock, bci);
     }
 
     // exit the monitor in the context of the synchronized method
-    monitorexit(lock, SynchronizationEntryBCI);
+    monitorexit(lock, bci);
 
     // exit the context of the synchronized method
     if (!default_handler) {
@@ -3778,24 +3776,7 @@ void GraphBuilder::append_unsafe_CAS(ciMethod* callee) {
 
 #ifndef PRODUCT
 void GraphBuilder::print_inline_result(ciMethod* callee, bool res) {
-  const char sync_char      = callee->is_synchronized()        ? 's' : ' ';
-  const char exception_char = callee->has_exception_handlers() ? '!' : ' ';
-  const char monitors_char  = callee->has_monitor_bytecodes()  ? 'm' : ' ';
-  tty->print("     %c%c%c ", sync_char, exception_char, monitors_char);
-  for (int i = 0; i < scope()->level(); i++) tty->print("  ");
-  if (res) {
-    tty->print("  ");
-  } else {
-    tty->print("- ");
-  }
-  tty->print("@ %d  ", bci());
-  callee->print_short_name();
-  tty->print(" (%d bytes)", callee->code_size());
-  if (_inline_bailout_msg) {
-    tty->print("  %s", _inline_bailout_msg);
-  }
-  tty->cr();
-
+  CompileTask::print_inlining(callee, scope()->level(), bci(), _inline_bailout_msg);
   if (res && CIPrintMethodCodes) {
     callee->print_codes();
   }

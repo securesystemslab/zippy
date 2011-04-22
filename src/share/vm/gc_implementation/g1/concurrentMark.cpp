@@ -1204,7 +1204,6 @@ void ConcurrentMark::checkpointRootsFinal(bool clear_all_soft_refs) {
   g1p->record_concurrent_mark_remark_end();
 }
 
-
 #define CARD_BM_TEST_MODE 0
 
 class CalcLiveObjectsClosure: public HeapRegionClosure {
@@ -1726,6 +1725,11 @@ void ConcurrentMark::cleanup() {
   }
   _total_counting_time += this_final_counting_time;
 
+  if (G1PrintRegionLivenessInfo) {
+    G1PrintRegionLivenessInfoClosure cl(gclog_or_tty, "Post-Marking");
+    _g1h->heap_region_iterate(&cl);
+  }
+
   // Install newly created mark bitMap as "prev".
   swapMarkBitMaps();
 
@@ -1828,7 +1832,7 @@ void ConcurrentMark::completeCleanup() {
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
 
   _cleanup_list.verify_optional();
-  FreeRegionList local_free_list("Local Cleanup List");
+  FreeRegionList tmp_free_list("Tmp Free List");
 
   if (G1ConcRegionFreeingVerbose) {
     gclog_or_tty->print_cr("G1ConcRegionFreeing [complete cleanup] : "
@@ -1842,7 +1846,7 @@ void ConcurrentMark::completeCleanup() {
     HeapRegion* hr = _cleanup_list.remove_head();
     assert(hr != NULL, "the list was not empty");
     hr->rem_set()->clear();
-    local_free_list.add_as_tail(hr);
+    tmp_free_list.add_as_tail(hr);
 
     // Instead of adding one region at a time to the secondary_free_list,
     // we accumulate them in the local list and move them a few at a
@@ -1850,20 +1854,20 @@ void ConcurrentMark::completeCleanup() {
     // we do during this process. We'll also append the local list when
     // _cleanup_list is empty (which means we just removed the last
     // region from the _cleanup_list).
-    if ((local_free_list.length() % G1SecondaryFreeListAppendLength == 0) ||
+    if ((tmp_free_list.length() % G1SecondaryFreeListAppendLength == 0) ||
         _cleanup_list.is_empty()) {
       if (G1ConcRegionFreeingVerbose) {
         gclog_or_tty->print_cr("G1ConcRegionFreeing [complete cleanup] : "
                                "appending "SIZE_FORMAT" entries to the "
                                "secondary_free_list, clean list still has "
                                SIZE_FORMAT" entries",
-                               local_free_list.length(),
+                               tmp_free_list.length(),
                                _cleanup_list.length());
       }
 
       {
         MutexLockerEx x(SecondaryFreeList_lock, Mutex::_no_safepoint_check_flag);
-        g1h->secondary_free_list_add_as_tail(&local_free_list);
+        g1h->secondary_free_list_add_as_tail(&tmp_free_list);
         SecondaryFreeList_lock->notify_all();
       }
 
@@ -1874,7 +1878,7 @@ void ConcurrentMark::completeCleanup() {
       }
     }
   }
-  assert(local_free_list.is_empty(), "post-condition");
+  assert(tmp_free_list.is_empty(), "post-condition");
 }
 
 // Support closures for reference procssing in G1
@@ -2141,13 +2145,14 @@ void ConcurrentMark::weakRefsWork(bool clear_all_soft_refs) {
   G1CMKeepAliveClosure g1_keep_alive(g1h, this, nextMarkBitMap());
   G1CMDrainMarkingStackClosure
     g1_drain_mark_stack(nextMarkBitMap(), &_markStack, &g1_keep_alive);
-
   // We use the work gang from the G1CollectedHeap and we utilize all
   // the worker threads.
-  int active_workers = MAX2(MIN2(g1h->workers()->total_workers(), (int)_max_task_num), 1);
+  int active_workers = g1h->workers() ? g1h->workers()->total_workers() : 1;
+  active_workers = MAX2(MIN2(active_workers, (int)_max_task_num), 1);
 
   G1RefProcTaskExecutor par_task_executor(g1h, this, nextMarkBitMap(),
                                           g1h->workers(), active_workers);
+
 
   if (rp->processing_is_mt()) {
     // Set the degree of MT here.  If the discovery is done MT, there
@@ -2155,7 +2160,7 @@ void ConcurrentMark::weakRefsWork(bool clear_all_soft_refs) {
     // and a different number of discovered lists may have Ref objects.
     // That is OK as long as the Reference lists are balanced (see
     // balance_all_queues() and balance_queues()).
-    rp->set_mt_degree(active_workers);
+    rp->set_active_mt_degree(active_workers);
 
     rp->process_discovered_references(&g1_is_alive,
                                       &g1_keep_alive,
@@ -3182,7 +3187,7 @@ public:
 
   template <class T> void do_oop_work(T* p) {
     assert( _g1h->is_in_g1_reserved((HeapWord*) p), "invariant");
-    assert(!_g1h->is_on_free_list(
+    assert(!_g1h->is_on_master_free_list(
                     _g1h->heap_region_containing((HeapWord*) p)), "invariant");
 
     oop obj = oopDesc::load_decode_heap_oop(p);
@@ -3198,8 +3203,12 @@ public:
                CMTask* task)
     : _g1h(g1h), _cm(cm), _task(task)
   {
-    _ref_processor = g1h->ref_processor();
-    assert(_ref_processor != NULL, "should not be NULL");
+    assert(_ref_processor == NULL, "should be initialized to NULL");
+
+    if (G1UseConcMarkReferenceProcessing) {
+      _ref_processor = g1h->ref_processor();
+      assert(_ref_processor != NULL, "should not be NULL");
+    }
   }
 };
 
@@ -3403,7 +3412,7 @@ void CMTask::deal_with_reference(oop obj) {
 void CMTask::push(oop obj) {
   HeapWord* objAddr = (HeapWord*) obj;
   assert(_g1h->is_in_g1_reserved(objAddr), "invariant");
-  assert(!_g1h->is_on_free_list(
+  assert(!_g1h->is_on_master_free_list(
               _g1h->heap_region_containing((HeapWord*) objAddr)), "invariant");
   assert(!_g1h->is_obj_ill(obj), "invariant");
   assert(_nextMarkBitMap->isMarked(objAddr), "invariant");
@@ -3649,7 +3658,7 @@ void CMTask::drain_local_queue(bool partially) {
                                (void*) obj);
 
       assert(_g1h->is_in_g1_reserved((HeapWord*) obj), "invariant" );
-      assert(!_g1h->is_on_free_list(
+      assert(!_g1h->is_on_master_free_list(
                   _g1h->heap_region_containing((HeapWord*) obj)), "invariant");
 
       scan_object(obj);
@@ -4421,4 +4430,176 @@ CMTask::CMTask(int task_id,
              _clock_due_to_marking  = 0 );
 
   _marking_step_diffs_ms.add(0.5);
+}
+
+// These are formatting macros that are used below to ensure
+// consistent formatting. The *_H_* versions are used to format the
+// header for a particular value and they should be kept consistent
+// with the corresponding macro. Also note that most of the macros add
+// the necessary white space (as a prefix) which makes them a bit
+// easier to compose.
+
+// All the output lines are prefixed with this string to be able to
+// identify them easily in a large log file.
+#define G1PPRL_LINE_PREFIX            "###"
+
+#define G1PPRL_ADDR_BASE_FORMAT    " "PTR_FORMAT"-"PTR_FORMAT
+#ifdef _LP64
+#define G1PPRL_ADDR_BASE_H_FORMAT  " %37s"
+#else // _LP64
+#define G1PPRL_ADDR_BASE_H_FORMAT  " %21s"
+#endif // _LP64
+
+// For per-region info
+#define G1PPRL_TYPE_FORMAT            "   %-4s"
+#define G1PPRL_TYPE_H_FORMAT          "   %4s"
+#define G1PPRL_BYTE_FORMAT            "  "SIZE_FORMAT_W(9)
+#define G1PPRL_BYTE_H_FORMAT          "  %9s"
+#define G1PPRL_DOUBLE_FORMAT          "  %14.1f"
+#define G1PPRL_DOUBLE_H_FORMAT        "  %14s"
+
+// For summary info
+#define G1PPRL_SUM_ADDR_FORMAT(tag)    "  "tag":"G1PPRL_ADDR_BASE_FORMAT
+#define G1PPRL_SUM_BYTE_FORMAT(tag)    "  "tag": "SIZE_FORMAT
+#define G1PPRL_SUM_MB_FORMAT(tag)      "  "tag": %1.2f MB"
+#define G1PPRL_SUM_MB_PERC_FORMAT(tag) G1PPRL_SUM_MB_FORMAT(tag)" / %1.2f %%"
+
+G1PrintRegionLivenessInfoClosure::
+G1PrintRegionLivenessInfoClosure(outputStream* out, const char* phase_name)
+  : _out(out),
+    _total_used_bytes(0), _total_capacity_bytes(0),
+    _total_prev_live_bytes(0), _total_next_live_bytes(0),
+    _hum_used_bytes(0), _hum_capacity_bytes(0),
+    _hum_prev_live_bytes(0), _hum_next_live_bytes(0) {
+  G1CollectedHeap* g1h = G1CollectedHeap::heap();
+  MemRegion g1_committed = g1h->g1_committed();
+  MemRegion g1_reserved = g1h->g1_reserved();
+  double now = os::elapsedTime();
+
+  // Print the header of the output.
+  _out->cr();
+  _out->print_cr(G1PPRL_LINE_PREFIX" PHASE %s @ %1.3f", phase_name, now);
+  _out->print_cr(G1PPRL_LINE_PREFIX" HEAP"
+                 G1PPRL_SUM_ADDR_FORMAT("committed")
+                 G1PPRL_SUM_ADDR_FORMAT("reserved")
+                 G1PPRL_SUM_BYTE_FORMAT("region-size"),
+                 g1_committed.start(), g1_committed.end(),
+                 g1_reserved.start(), g1_reserved.end(),
+                 HeapRegion::GrainBytes);
+  _out->print_cr(G1PPRL_LINE_PREFIX);
+  _out->print_cr(G1PPRL_LINE_PREFIX
+                 G1PPRL_TYPE_H_FORMAT
+                 G1PPRL_ADDR_BASE_H_FORMAT
+                 G1PPRL_BYTE_H_FORMAT
+                 G1PPRL_BYTE_H_FORMAT
+                 G1PPRL_BYTE_H_FORMAT
+                 G1PPRL_DOUBLE_H_FORMAT,
+                 "type", "address-range",
+                 "used", "prev-live", "next-live", "gc-eff");
+}
+
+// It takes as a parameter a reference to one of the _hum_* fields, it
+// deduces the corresponding value for a region in a humongous region
+// series (either the region size, or what's left if the _hum_* field
+// is < the region size), and updates the _hum_* field accordingly.
+size_t G1PrintRegionLivenessInfoClosure::get_hum_bytes(size_t* hum_bytes) {
+  size_t bytes = 0;
+  // The > 0 check is to deal with the prev and next live bytes which
+  // could be 0.
+  if (*hum_bytes > 0) {
+    bytes = MIN2((size_t) HeapRegion::GrainBytes, *hum_bytes);
+    *hum_bytes -= bytes;
+  }
+  return bytes;
+}
+
+// It deduces the values for a region in a humongous region series
+// from the _hum_* fields and updates those accordingly. It assumes
+// that that _hum_* fields have already been set up from the "starts
+// humongous" region and we visit the regions in address order.
+void G1PrintRegionLivenessInfoClosure::get_hum_bytes(size_t* used_bytes,
+                                                     size_t* capacity_bytes,
+                                                     size_t* prev_live_bytes,
+                                                     size_t* next_live_bytes) {
+  assert(_hum_used_bytes > 0 && _hum_capacity_bytes > 0, "pre-condition");
+  *used_bytes      = get_hum_bytes(&_hum_used_bytes);
+  *capacity_bytes  = get_hum_bytes(&_hum_capacity_bytes);
+  *prev_live_bytes = get_hum_bytes(&_hum_prev_live_bytes);
+  *next_live_bytes = get_hum_bytes(&_hum_next_live_bytes);
+}
+
+bool G1PrintRegionLivenessInfoClosure::doHeapRegion(HeapRegion* r) {
+  const char* type = "";
+  HeapWord* bottom       = r->bottom();
+  HeapWord* end          = r->end();
+  size_t capacity_bytes  = r->capacity();
+  size_t used_bytes      = r->used();
+  size_t prev_live_bytes = r->live_bytes();
+  size_t next_live_bytes = r->next_live_bytes();
+  double gc_eff          = r->gc_efficiency();
+  if (r->used() == 0) {
+    type = "FREE";
+  } else if (r->is_survivor()) {
+    type = "SURV";
+  } else if (r->is_young()) {
+    type = "EDEN";
+  } else if (r->startsHumongous()) {
+    type = "HUMS";
+
+    assert(_hum_used_bytes == 0 && _hum_capacity_bytes == 0 &&
+           _hum_prev_live_bytes == 0 && _hum_next_live_bytes == 0,
+           "they should have been zeroed after the last time we used them");
+    // Set up the _hum_* fields.
+    _hum_capacity_bytes  = capacity_bytes;
+    _hum_used_bytes      = used_bytes;
+    _hum_prev_live_bytes = prev_live_bytes;
+    _hum_next_live_bytes = next_live_bytes;
+    get_hum_bytes(&used_bytes, &capacity_bytes,
+                  &prev_live_bytes, &next_live_bytes);
+    end = bottom + HeapRegion::GrainWords;
+  } else if (r->continuesHumongous()) {
+    type = "HUMC";
+    get_hum_bytes(&used_bytes, &capacity_bytes,
+                  &prev_live_bytes, &next_live_bytes);
+    assert(end == bottom + HeapRegion::GrainWords, "invariant");
+  } else {
+    type = "OLD";
+  }
+
+  _total_used_bytes      += used_bytes;
+  _total_capacity_bytes  += capacity_bytes;
+  _total_prev_live_bytes += prev_live_bytes;
+  _total_next_live_bytes += next_live_bytes;
+
+  // Print a line for this particular region.
+  _out->print_cr(G1PPRL_LINE_PREFIX
+                 G1PPRL_TYPE_FORMAT
+                 G1PPRL_ADDR_BASE_FORMAT
+                 G1PPRL_BYTE_FORMAT
+                 G1PPRL_BYTE_FORMAT
+                 G1PPRL_BYTE_FORMAT
+                 G1PPRL_DOUBLE_FORMAT,
+                 type, bottom, end,
+                 used_bytes, prev_live_bytes, next_live_bytes, gc_eff);
+
+  return false;
+}
+
+G1PrintRegionLivenessInfoClosure::~G1PrintRegionLivenessInfoClosure() {
+  // Print the footer of the output.
+  _out->print_cr(G1PPRL_LINE_PREFIX);
+  _out->print_cr(G1PPRL_LINE_PREFIX
+                 " SUMMARY"
+                 G1PPRL_SUM_MB_FORMAT("capacity")
+                 G1PPRL_SUM_MB_PERC_FORMAT("used")
+                 G1PPRL_SUM_MB_PERC_FORMAT("prev-live")
+                 G1PPRL_SUM_MB_PERC_FORMAT("next-live"),
+                 bytes_to_mb(_total_capacity_bytes),
+                 bytes_to_mb(_total_used_bytes),
+                 perc(_total_used_bytes, _total_capacity_bytes),
+                 bytes_to_mb(_total_prev_live_bytes),
+                 perc(_total_prev_live_bytes, _total_capacity_bytes),
+                 bytes_to_mb(_total_next_live_bytes),
+                 perc(_total_next_live_bytes, _total_capacity_bytes));
+  _out->cr();
 }

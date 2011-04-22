@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -83,11 +83,15 @@ public:
   }
 
   template <class T> void write_ref_array_pre_work(T* dst, int count);
-  virtual void write_ref_array_pre(oop* dst, int count) {
-    write_ref_array_pre_work(dst, count);
+  virtual void write_ref_array_pre(oop* dst, int count, bool dest_uninitialized) {
+    if (!dest_uninitialized) {
+      write_ref_array_pre_work(dst, count);
+    }
   }
-  virtual void write_ref_array_pre(narrowOop* dst, int count) {
-    write_ref_array_pre_work(dst, count);
+  virtual void write_ref_array_pre(narrowOop* dst, int count, bool dest_uninitialized) {
+    if (!dest_uninitialized) {
+      write_ref_array_pre_work(dst, count);
+    }
   }
 };
 

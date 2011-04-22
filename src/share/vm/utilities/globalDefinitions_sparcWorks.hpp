@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -146,6 +146,17 @@ typedef unsigned int            uintptr_t;
 // If this gets an error, figure out a symbol XXX that implies the
 // prior definition of intptr_t, and add "&& !defined(XXX)" above.
 #endif
+#endif
+
+// On solaris 8, UINTPTR_MAX is defined as empty.
+// Everywhere else it's an actual value.
+#if UINTPTR_MAX - 1 == -1
+#undef UINTPTR_MAX
+#ifdef _LP64
+#define UINTPTR_MAX UINT64_MAX
+#else
+#define UINTPTR_MAX UINT32_MAX
+#endif /* ifdef _LP64 */
 #endif
 
 // Additional Java basic types

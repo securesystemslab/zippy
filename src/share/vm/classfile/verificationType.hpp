@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -128,6 +128,7 @@ class VerificationType VALUE_OBJ_CLASS_SPEC {
 
   // Create verification types
   static VerificationType bogus_type() { return VerificationType(Bogus); }
+  static VerificationType top_type() { return bogus_type(); } // alias
   static VerificationType null_type() { return VerificationType(Null); }
   static VerificationType integer_type() { return VerificationType(Integer); }
   static VerificationType float_type() { return VerificationType(Float); }

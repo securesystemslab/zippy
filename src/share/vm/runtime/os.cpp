@@ -633,10 +633,10 @@ void  os::free(void *memblock) {
       *q = (u_char)freeBlockPad;
     }
     if (PrintMalloc && tty != NULL)
-      fprintf(stderr, "os::free " SIZE_FORMAT " bytes --> " PTR_FORMAT "\n", size, (intptr_t)memblock);
+      fprintf(stderr, "os::free " SIZE_FORMAT " bytes --> " PTR_FORMAT "\n", size, (uintptr_t)memblock);
   } else if (PrintMalloc && tty != NULL) {
     // tty->print_cr("os::free %p", memblock);
-    fprintf(stderr, "os::free " PTR_FORMAT "\n", (intptr_t)memblock);
+    fprintf(stderr, "os::free " PTR_FORMAT "\n", (uintptr_t)memblock);
   }
 #endif
   ::free((char*)memblock - space_before);
@@ -1079,11 +1079,6 @@ bool os::set_boot_path(char fileSep, char pathSep) {
         "%/lib/jsse.jar:"
         "%/lib/jce.jar:"
         "%/lib/charsets.jar:"
-
-        // ## TEMPORARY hack to keep the legacy launcher working when
-        // ## only the boot module is installed (cf. j.l.ClassLoader)
-        "%/lib/modules/jdk.boot.jar:"
-
         "%/classes";
     char* sysclasspath = format_boot_path(classpath_format, home, home_len, fileSep, pathSep);
     if (sysclasspath == NULL) return false;
@@ -1295,4 +1290,42 @@ bool os::is_server_class_machine() {
     }
   }
   return result;
+}
+
+// Read file line by line, if line is longer than bsize,
+// skip rest of line.
+int os::get_line_chars(int fd, char* buf, const size_t bsize){
+  size_t sz, i = 0;
+
+  // read until EOF, EOL or buf is full
+  while ((sz = (int) read(fd, &buf[i], 1)) == 1 && i < (bsize-1) && buf[i] != '\n') {
+     ++i;
+  }
+
+  if (buf[i] == '\n') {
+    // EOL reached so ignore EOL character and return
+
+    buf[i] = 0;
+    return (int) i;
+  }
+
+  buf[i+1] = 0;
+
+  if (sz != 1) {
+    // EOF reached. if we read chars before EOF return them and
+    // return EOF on next call otherwise return EOF
+
+    return (i == 0) ? -1 : (int) i;
+  }
+
+  // line is longer than size of buf, skip to EOL
+  int ch;
+  while (read(fd, &ch, 1) == 1 && ch != '\n') {
+    // Do nothing
+  }
+
+  // return initial part of line that fits in buf.
+  // If we reached EOF, it will be returned on next call.
+
+  return (int) i;
 }

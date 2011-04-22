@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1028,7 +1028,7 @@ void NonSafepointEmitter::emit_non_safepoint() {
 
 // helper for Fill_buffer bailout logic
 static void turn_off_compiler(Compile* C) {
-  if (CodeCache::unallocated_capacity() >= CodeCacheMinimumFreeSpace*10) {
+  if (CodeCache::largest_free_block() >= CodeCacheMinimumFreeSpace*10) {
     // Do not turn off compilation if a single giant method has
     // blown the code cache size.
     C->record_failure("excessive request to CodeCache");

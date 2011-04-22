@@ -746,9 +746,9 @@ enum CompLevel {
   CompLevel_simple            = 1,         // C1
   CompLevel_limited_profile   = 2,         // C1, invocation & backedge counters
   CompLevel_full_profile      = 3,         // C1, invocation & backedge counters + mdo
-  CompLevel_full_optimization = 4,         // C2
+  CompLevel_full_optimization = 4,         // C2 or Shark
 
-#if defined(COMPILER2)
+#if defined(COMPILER2) || defined(SHARK)
   CompLevel_highest_tier      = CompLevel_full_optimization,  // pure C2 and tiered
 #elif defined(COMPILER1)
   CompLevel_highest_tier      = CompLevel_simple,             // pure C1
@@ -760,7 +760,7 @@ enum CompLevel {
   CompLevel_initial_compile   = CompLevel_full_profile        // tiered
 #elif defined(COMPILER1)
   CompLevel_initial_compile   = CompLevel_simple              // pure C1
-#elif defined(COMPILER2)
+#elif defined(COMPILER2) || defined(SHARK)
   CompLevel_initial_compile   = CompLevel_full_optimization   // pure C2
 #else
   CompLevel_initial_compile   = CompLevel_none
@@ -1185,7 +1185,7 @@ inline int build_int_from_shorts( jushort low, jushort high ) {
 // '%d' formats to indicate a 64-bit quantity; commonly "l" (in LP64) or "ll"
 // (in ILP32).
 
-#define BOOL_TO_STR(__b) (__b) ? "true" : "false"
+#define BOOL_TO_STR(_b_) ((_b_) ? "true" : "false")
 
 // Format 32-bit quantities.
 #define INT32_FORMAT  "%d"

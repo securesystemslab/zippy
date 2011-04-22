@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2010, 2011, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -49,6 +49,10 @@ BUFFEROVERFLOWLIB = bufferoverflowU.lib
 LINK_FLAGS = $(LINK_FLAGS) $(BUFFEROVERFLOWLIB)
 !endif
 
+!if "$(COMPILER_NAME)" == "VS2010" && "$(BUILDARCH)" == "i486"
+LINK_FLAGS = /SAFESEH $(LINK_FLAGS)
+!endif
+
 LAUNCHERDIR = $(WorkSpace)/src/os/windows/launcher
 LAUNCHERDIR_SHARE = $(WorkSpace)/src/share/tools/launcher
 
@@ -67,5 +71,3 @@ $(OUTDIR)\*.obj: $(LAUNCHERDIR)\*.c $(LAUNCHERDIR)\*.h $(LAUNCHERDIR_SHARE)\*.c 
 launcher: $(OUTDIR)\java.obj $(OUTDIR)\java_md.obj $(OUTDIR)\jli_util.obj
 	echo $(JAVA_HOME) > jdkpath.txt  
 	$(LINK) $(LINK_FLAGS) /out:hotspot.exe $**
-
-

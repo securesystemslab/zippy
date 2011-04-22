@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1332,7 +1332,7 @@ void ClassLoader::compile_the_world_in(char* name, Handle loader, TRAPS) {
       }
 
       if (_compile_the_world_counter >= CompileTheWorldStartAt) {
-        if (k.is_null() || (exception_occurred && !CompileTheWorldIgnoreInitErrors)) {
+        if (k.is_null() || exception_occurred) {
           // If something went wrong (e.g. ExceptionInInitializerError) we skip this class
           tty->print_cr("CompileTheWorld (%d) : Skipping %s", _compile_the_world_counter, buffer);
         } else {

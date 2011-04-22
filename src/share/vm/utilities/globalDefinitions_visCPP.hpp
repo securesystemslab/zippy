@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,7 @@
 # include <stdio.h> // for va_list
 # include <time.h>
 # include <fcntl.h>
+# include <limits.h>
 // Need this on windows to get the math constants (e.g., M_PI).
 #define _USE_MATH_DEFINES
 # include <math.h>
@@ -97,6 +98,14 @@ typedef signed   __int64 ssize_t;
 #else
 typedef signed   int intptr_t;
 typedef signed   int ssize_t;
+#endif
+
+#ifndef UINTPTR_MAX
+#ifdef _WIN64
+#define UINTPTR_MAX _UI64_MAX
+#else
+#define UINTPTR_MAX _UI32_MAX
+#endif
 #endif
 
 //----------------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -411,7 +411,7 @@ oop PSPromotionManager::copy_to_survivor_space(oop o) {
 template <class T> void PSPromotionManager::process_array_chunk_work(
                                                  oop obj,
                                                  int start, int end) {
-  assert(start < end, "invariant");
+  assert(start <= end, "invariant");
   T* const base      = (T*)objArrayOop(obj)->base();
   T* p               = base + start;
   T* const chunk_end = base + end;

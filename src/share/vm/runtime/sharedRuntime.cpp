@@ -431,25 +431,24 @@ JRT_END
 // previous frame depending on the return address.
 
 address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thread, address return_address) {
-  assert(frame::verify_return_pc(return_address), "must be a return pc");
+  assert(frame::verify_return_pc(return_address), err_msg("must be a return address: " INTPTR_FORMAT, return_address));
 
-  // Reset MethodHandle flag.
+  // Reset method handle flag.
   thread->set_is_method_handle_return(false);
 
-  // the fastest case first
+  // The fastest case first
   CodeBlob* blob = CodeCache::find_blob(return_address);
-  if (blob != NULL && blob->is_nmethod()) {
-    nmethod* code = (nmethod*)blob;
-    assert(code != NULL, "nmethod must be present");
-    // Check if the return address is a MethodHandle call site.
-    thread->set_is_method_handle_return(code->is_method_handle_return(return_address));
+  nmethod* nm = (blob != NULL) ? blob->as_nmethod_or_null() : NULL;
+  if (nm != NULL) {
+    // Set flag if return address is a method handle call site.
+    thread->set_is_method_handle_return(nm->is_method_handle_return(return_address));
     // native nmethods don't have exception handlers
-    assert(!code->is_native_method(), "no exception handler");
-    assert(code->header_begin() != code->exception_begin(), "no exception handler");
-    if (code->is_deopt_pc(return_address)) {
+    assert(!nm->is_native_method(), "no exception handler");
+    assert(nm->header_begin() != nm->exception_begin(), "no exception handler");
+    if (nm->is_deopt_pc(return_address)) {
       return SharedRuntime::deopt_blob()->unpack_with_exception();
     } else {
-      return code->exception_begin();
+      return nm->exception_begin();
     }
   }
 
@@ -462,22 +461,9 @@ address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thre
     return Interpreter::rethrow_exception_entry();
   }
 
-  // Compiled code
-  if (CodeCache::contains(return_address)) {
-    CodeBlob* blob = CodeCache::find_blob(return_address);
-    if (blob->is_nmethod()) {
-      nmethod* code = (nmethod*)blob;
-      assert(code != NULL, "nmethod must be present");
-      // Check if the return address is a MethodHandle call site.
-      thread->set_is_method_handle_return(code->is_method_handle_return(return_address));
-      assert(code->header_begin() != code->exception_begin(), "no exception handler");
-      return code->exception_begin();
-    }
-    if (blob->is_runtime_stub()) {
-      ShouldNotReachHere();   // callers are responsible for skipping runtime stub frames
-    }
-  }
+  guarantee(blob == NULL || !blob->is_runtime_stub(), "caller should have skipped stub");
   guarantee(!VtableStubs::contains(return_address), "NULL exceptions in vtables should have been handled already!");
+
 #ifndef PRODUCT
   { ResourceMark rm;
     tty->print_cr("No exception handler found for exception at " INTPTR_FORMAT " - potential problems:", return_address);
@@ -485,6 +471,7 @@ address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thre
     tty->print_cr("b) other problem");
   }
 #endif // PRODUCT
+
   ShouldNotReachHere();
   return NULL;
 }
@@ -1707,7 +1694,7 @@ char* SharedRuntime::generate_wrong_method_type_message(JavaThread* thread,
     tty->print_cr("WrongMethodType thread="PTR_FORMAT" req="PTR_FORMAT" act="PTR_FORMAT"",
                   thread, required, actual);
   }
-  assert(EnableMethodHandles, "");
+  assert(EnableInvokeDynamic, "");
   oop singleKlass = wrong_method_type_is_for_single_argument(thread, required);
   char* message = NULL;
   if (singleKlass != NULL) {
@@ -1725,9 +1712,11 @@ char* SharedRuntime::generate_wrong_method_type_message(JavaThread* thread,
     message = generate_class_cast_message(objName, targetKlass->external_name());
   } else {
     // %%% need to get the MethodType string, without messing around too much
+    const char* desc = NULL;
     // Get a signature from the invoke instruction
     const char* mhName = "method handle";
     const char* targetType = "the required signature";
+    int targetArity = -1, mhArity = -1;
     vframeStream vfst(thread, true);
     if (!vfst.at_end()) {
       Bytecode_invoke call(vfst.method(), vfst.bci());
@@ -1741,20 +1730,35 @@ char* SharedRuntime::generate_wrong_method_type_message(JavaThread* thread,
           && target->is_method_handle_invoke()
           && required == target->method_handle_type()) {
         targetType = target->signature()->as_C_string();
+        targetArity = ArgumentCount(target->signature()).size();
       }
     }
-    klassOop kignore; int fignore;
-    methodOop actual_method = MethodHandles::decode_method(actual,
-                                                          kignore, fignore);
+    klassOop kignore; int dmf_flags = 0;
+    methodOop actual_method = MethodHandles::decode_method(actual, kignore, dmf_flags);
+    if ((dmf_flags & ~(MethodHandles::_dmf_has_receiver |
+                       MethodHandles::_dmf_does_dispatch |
+                       MethodHandles::_dmf_from_interface)) != 0)
+      actual_method = NULL;  // MH does extra binds, drops, etc.
+    bool has_receiver = ((dmf_flags & MethodHandles::_dmf_has_receiver) != 0);
     if (actual_method != NULL) {
-      if (methodOopDesc::is_method_handle_invoke_name(actual_method->name()))
-        mhName = "$";
+      mhName = actual_method->signature()->as_C_string();
+      mhArity = ArgumentCount(actual_method->signature()).size();
+      if (!actual_method->is_static())  mhArity += 1;
+    } else if (java_lang_invoke_MethodHandle::is_instance(actual)) {
+      oopDesc* mhType = java_lang_invoke_MethodHandle::type(actual);
+      mhArity = java_lang_invoke_MethodType::ptype_count(mhType);
+      stringStream st;
+      java_lang_invoke_MethodType::print_signature(mhType, &st);
+      mhName = st.as_string();
+    }
+    if (targetArity != -1 && targetArity != mhArity) {
+      if (has_receiver && targetArity == mhArity-1)
+        desc = " cannot be called without a receiver argument as ";
       else
-        mhName = actual_method->signature()->as_C_string();
-      if (mhName[0] == '$')
-        mhName = actual_method->signature()->as_C_string();
+        desc = " cannot be called with a different arity as ";
     }
     message = generate_class_cast_message(mhName, targetType,
+                                          desc != NULL ? desc :
                                           " cannot be called as ");
   }
   if (TraceMethodHandles) {
@@ -2504,19 +2508,9 @@ bool AdapterHandlerEntry::compare_code(unsigned char* buffer, int length, int to
 // java compiled calling convention to the native convention, handlizes
 // arguments, and transitions to native.  On return from the native we transition
 // back to java blocking if a safepoint is in progress.
-nmethod *AdapterHandlerLibrary::create_native_wrapper(methodHandle method) {
+nmethod *AdapterHandlerLibrary::create_native_wrapper(methodHandle method, int compile_id) {
   ResourceMark rm;
   nmethod* nm = NULL;
-
-  if (PrintCompilation) {
-    ttyLocker ttyl;
-    tty->print("---   n%s ", (method->is_synchronized() ? "s" : " "));
-    method->print_short_name(tty);
-    if (method->is_static()) {
-      tty->print(" (static)");
-    }
-    tty->cr();
-  }
 
   assert(method->has_native_function(), "must have something valid to call!");
 
@@ -2562,6 +2556,7 @@ nmethod *AdapterHandlerLibrary::create_native_wrapper(methodHandle method) {
       // Generate the compiled-to-native wrapper code
       nm = SharedRuntime::generate_native_wrapper(&_masm,
                                                   method,
+                                                  compile_id,
                                                   total_args_passed,
                                                   comp_args_on_stack,
                                                   sig_bt,regs,
@@ -2573,6 +2568,10 @@ nmethod *AdapterHandlerLibrary::create_native_wrapper(methodHandle method) {
 
   // Install the generated code.
   if (nm != NULL) {
+    if (PrintCompilation) {
+      ttyLocker ttyl;
+      CompileTask::print_compilation(tty, nm, method->is_static() ? "(static)" : "");
+    }
     method->set_code(method, nm);
     nm->post_compiled_method_load_event();
   } else {

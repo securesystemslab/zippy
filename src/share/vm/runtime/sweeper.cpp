@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -418,6 +418,11 @@ void NMethodSweeper::speculative_disconnect_nmethods(bool is_full) {
 // state of the code cache if it's requested.
 void NMethodSweeper::log_sweep(const char* msg, const char* format, ...) {
   if (PrintMethodFlushing) {
+    stringStream s;
+    // Dump code cache state into a buffer before locking the tty,
+    // because log_state() will use locks causing lock conflicts.
+    CodeCache::log_state(&s);
+
     ttyLocker ttyl;
     tty->print("### sweeper: %s ", msg);
     if (format != NULL) {
@@ -426,12 +431,15 @@ void NMethodSweeper::log_sweep(const char* msg, const char* format, ...) {
       tty->vprint(format, ap);
       va_end(ap);
     }
-    tty->print_cr(" total_blobs='" UINT32_FORMAT "' nmethods='" UINT32_FORMAT "'"
-                  " adapters='" UINT32_FORMAT "' free_code_cache='" SIZE_FORMAT "'",
-                  CodeCache::nof_blobs(), CodeCache::nof_nmethods(), CodeCache::nof_adapters(), CodeCache::unallocated_capacity());
+    tty->print_cr(s.as_string());
   }
 
   if (LogCompilation && (xtty != NULL)) {
+    stringStream s;
+    // Dump code cache state into a buffer before locking the tty,
+    // because log_state() will use locks causing lock conflicts.
+    CodeCache::log_state(&s);
+
     ttyLocker ttyl;
     xtty->begin_elem("sweeper state='%s' traversals='" INTX_FORMAT "' ", msg, (intx)traversal_count());
     if (format != NULL) {
@@ -440,9 +448,7 @@ void NMethodSweeper::log_sweep(const char* msg, const char* format, ...) {
       xtty->vprint(format, ap);
       va_end(ap);
     }
-    xtty->print(" total_blobs='" UINT32_FORMAT "' nmethods='" UINT32_FORMAT "'"
-                " adapters='" UINT32_FORMAT "' free_code_cache='" SIZE_FORMAT "'",
-                CodeCache::nof_blobs(), CodeCache::nof_nmethods(), CodeCache::nof_adapters(), CodeCache::unallocated_capacity());
+    xtty->print(s.as_string());
     xtty->stamp();
     xtty->end_elem();
   }

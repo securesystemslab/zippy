@@ -2213,7 +2213,7 @@ void os::jvm_path(char *buf, jint buflen) {
   if (rp == NULL)
     return;
 
-  if (strcmp(Arguments::sun_java_launcher(), "gamma") == 0) {
+  if (Arguments::created_by_gamma_launcher()) {
     // Support for the gamma launcher.  Typical value for buf is
     // "<JAVA_HOME>/jre/lib/<arch>/<vmtype>/libjvm.so".  If "/jre/lib/" appears at
     // the right place in the string, then assume we are installed in a JDK and
@@ -2648,44 +2648,38 @@ bool os::uncommit_memory(char* addr, size_t size) {
 // writing thread stacks don't use growable mappings (i.e. those
 // creeated with MAP_GROWSDOWN), and aren't marked "[stack]", so this
 // only applies to the main thread.
-static bool
-get_stack_bounds(uintptr_t *bottom, uintptr_t *top)
-{
-  FILE *f = fopen("/proc/self/maps", "r");
-  if (f == NULL)
+
+static
+bool get_stack_bounds(uintptr_t *bottom, uintptr_t *top) {
+
+  char buf[128];
+  int fd, sz;
+
+  if ((fd = ::open("/proc/self/maps", O_RDONLY)) < 0) {
     return false;
-
-  while (!feof(f)) {
-    size_t dummy;
-    char *str = NULL;
-    ssize_t len = getline(&str, &dummy, f);
-    if (len == -1) {
-      fclose(f);
-      return false;
-    }
-
-    if (len > 0 && str[len-1] == '\n') {
-      str[len-1] = 0;
-      len--;
-    }
-
-    static const char *stack_str = "[stack]";
-    if (len > (ssize_t)strlen(stack_str)
-       && (strcmp(str + len - strlen(stack_str), stack_str) == 0)) {
-      if (sscanf(str, "%" SCNxPTR "-%" SCNxPTR, bottom, top) == 2) {
-        uintptr_t sp = (uintptr_t)__builtin_frame_address(0);
-        if (sp >= *bottom && sp <= *top) {
-          free(str);
-          fclose(f);
-          return true;
-        }
-      }
-    }
-    free(str);
   }
-  fclose(f);
+
+  const char kw[] = "[stack]";
+  const int kwlen = sizeof(kw)-1;
+
+  // Address part of /proc/self/maps couldn't be more than 128 bytes
+  while ((sz = os::get_line_chars(fd, buf, sizeof(buf))) > 0) {
+     if (sz > kwlen && ::memcmp(buf+sz-kwlen, kw, kwlen) == 0) {
+        // Extract addresses
+        if (sscanf(buf, "%" SCNxPTR "-%" SCNxPTR, bottom, top) == 2) {
+           uintptr_t sp = (uintptr_t) __builtin_frame_address(0);
+           if (sp >= *bottom && sp <= *top) {
+              ::close(fd);
+              return true;
+           }
+        }
+     }
+  }
+
+ ::close(fd);
   return false;
 }
+
 
 // If the (growable) stack mapping already extends beyond the point
 // where we're going to put our guard pages, truncate the mapping at

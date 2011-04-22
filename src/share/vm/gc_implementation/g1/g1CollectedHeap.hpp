@@ -26,6 +26,7 @@
 #define SHARE_VM_GC_IMPLEMENTATION_G1_G1COLLECTEDHEAP_HPP
 
 #include "gc_implementation/g1/concurrentMark.hpp"
+#include "gc_implementation/g1/g1AllocRegion.hpp"
 #include "gc_implementation/g1/g1RemSet.hpp"
 #include "gc_implementation/g1/heapRegionSets.hpp"
 #include "gc_implementation/parNew/parGCAllocBuffer.hpp"
@@ -56,19 +57,12 @@ class HeapRegionRemSetIterator;
 class ConcurrentMark;
 class ConcurrentMarkThread;
 class ConcurrentG1Refine;
-class ConcurrentZFThread;
 
 typedef OverflowTaskQueue<StarTask>         RefToScanQueue;
 typedef GenericTaskQueueSet<RefToScanQueue> RefToScanQueueSet;
 
 typedef int RegionIdx_t;   // needs to hold [ 0..max_regions() )
 typedef int CardIdx_t;     // needs to hold [ 0..CardsPerRegion )
-
-enum G1GCThreadGroups {
-  G1CRGroup = 0,
-  G1ZFGroup = 1,
-  G1CMGroup = 2
-};
 
 enum GCAllocPurpose {
   GCAllocForTenured,
@@ -135,6 +129,15 @@ public:
   void          print();
 };
 
+class MutatorAllocRegion : public G1AllocRegion {
+protected:
+  virtual HeapRegion* allocate_new_region(size_t word_size, bool force);
+  virtual void retire_region(HeapRegion* alloc_region, size_t allocated_bytes);
+public:
+  MutatorAllocRegion()
+    : G1AllocRegion("Mutator Alloc Region", false /* bot_updates */) { }
+};
+
 class RefineCardTableEntryClosure;
 class G1CollectedHeap : public SharedHeap {
   friend class VM_G1CollectForAllocation;
@@ -142,6 +145,7 @@ class G1CollectedHeap : public SharedHeap {
   friend class VM_G1CollectFull;
   friend class VM_G1IncCollectionPause;
   friend class VMStructs;
+  friend class MutatorAllocRegion;
 
   // Closures used in implementation.
   friend class G1ParCopyHelper;
@@ -204,12 +208,15 @@ private:
   // The sequence of all heap regions in the heap.
   HeapRegionSeq* _hrs;
 
-  // The region from which normal-sized objects are currently being
-  // allocated.  May be NULL.
-  HeapRegion* _cur_alloc_region;
+  // Alloc region used to satisfy mutator allocation requests.
+  MutatorAllocRegion _mutator_alloc_region;
 
-  // Postcondition: cur_alloc_region == NULL.
-  void abandon_cur_alloc_region();
+  // It resets the mutator alloc region before new allocations can take place.
+  void init_mutator_alloc_region();
+
+  // It releases the mutator alloc region.
+  void release_mutator_alloc_region();
+
   void abandon_gc_alloc_regions();
 
   // The to-space memory regions into which objects are being copied during
@@ -294,9 +301,9 @@ private:
   // These are macros so that, if the assert fires, we get the correct
   // line number, file, etc.
 
-#define heap_locking_asserts_err_msg(__extra_message)                         \
+#define heap_locking_asserts_err_msg(_extra_message_)                         \
   err_msg("%s : Heap_lock locked: %s, at safepoint: %s, is VM thread: %s",    \
-          (__extra_message),                                                  \
+          (_extra_message_),                                                  \
           BOOL_TO_STR(Heap_lock->owned_by_self()),                            \
           BOOL_TO_STR(SafepointSynchronize::is_at_safepoint()),               \
           BOOL_TO_STR(Thread::current()->is_VM_thread()))
@@ -307,11 +314,11 @@ private:
            heap_locking_asserts_err_msg("should be holding the Heap_lock"));  \
   } while (0)
 
-#define assert_heap_locked_or_at_safepoint(__should_be_vm_thread)             \
+#define assert_heap_locked_or_at_safepoint(_should_be_vm_thread_)             \
   do {                                                                        \
     assert(Heap_lock->owned_by_self() ||                                      \
            (SafepointSynchronize::is_at_safepoint() &&                        \
-             ((__should_be_vm_thread) == Thread::current()->is_VM_thread())), \
+             ((_should_be_vm_thread_) == Thread::current()->is_VM_thread())), \
            heap_locking_asserts_err_msg("should be holding the Heap_lock or " \
                                         "should be at a safepoint"));         \
   } while (0)
@@ -338,10 +345,10 @@ private:
                                    "should not be at a safepoint"));          \
   } while (0)
 
-#define assert_at_safepoint(__should_be_vm_thread)                            \
+#define assert_at_safepoint(_should_be_vm_thread_)                            \
   do {                                                                        \
     assert(SafepointSynchronize::is_at_safepoint() &&                         \
-              ((__should_be_vm_thread) == Thread::current()->is_VM_thread()), \
+              ((_should_be_vm_thread_) == Thread::current()->is_VM_thread()), \
            heap_locking_asserts_err_msg("should be at a safepoint"));         \
   } while (0)
 
@@ -367,39 +374,38 @@ protected:
   G1CollectorPolicy* _g1_policy;
 
   // This is the second level of trying to allocate a new region. If
-  // new_region_work didn't find a region in the free_list, this call
-  // will check whether there's anything available in the
-  // secondary_free_list and/or wait for more regions to appear in that
-  // list, if _free_regions_coming is set.
-  HeapRegion* new_region_try_secondary_free_list(size_t word_size);
+  // new_region() didn't find a region on the free_list, this call will
+  // check whether there's anything available on the
+  // secondary_free_list and/or wait for more regions to appear on
+  // that list, if _free_regions_coming is set.
+  HeapRegion* new_region_try_secondary_free_list();
 
-  // It will try to allocate a single non-humongous HeapRegion
-  // sufficient for an allocation of the given word_size.  If
-  // do_expand is true, it will attempt to expand the heap if
-  // necessary to satisfy the allocation request. Note that word_size
-  // is only used to make sure that we expand sufficiently but, given
-  // that the allocation request is assumed not to be humongous,
-  // having word_size is not strictly necessary (expanding by a single
-  // region will always be sufficient). But let's keep that parameter
-  // in case we need it in the future.
-  HeapRegion* new_region_work(size_t word_size, bool do_expand);
+  // Try to allocate a single non-humongous HeapRegion sufficient for
+  // an allocation of the given word_size. If do_expand is true,
+  // attempt to expand the heap if necessary to satisfy the allocation
+  // request.
+  HeapRegion* new_region(size_t word_size, bool do_expand);
 
-  // It will try to allocate a new region to be used for allocation by
-  // mutator threads. It will not try to expand the heap if not region
-  // is available.
-  HeapRegion* new_alloc_region(size_t word_size) {
-    return new_region_work(word_size, false /* do_expand */);
-  }
-
-  // It will try to allocate a new region to be used for allocation by
+  // Try to allocate a new region to be used for allocation by
   // a GC thread. It will try to expand the heap if no region is
   // available.
   HeapRegion* new_gc_alloc_region(int purpose, size_t word_size);
 
+  // Attempt to satisfy a humongous allocation request of the given
+  // size by finding a contiguous set of free regions of num_regions
+  // length and remove them from the master free list. Return the
+  // index of the first region or -1 if the search was unsuccessful.
   int humongous_obj_allocate_find_first(size_t num_regions, size_t word_size);
 
-  // Attempt to allocate an object of the given (very large) "word_size".
-  // Returns "NULL" on failure.
+  // Initialize a contiguous set of free regions of length num_regions
+  // and starting at index first so that they appear as a single
+  // humongous region.
+  HeapWord* humongous_obj_allocate_initialize_regions(int first,
+                                                      size_t num_regions,
+                                                      size_t word_size);
+
+  // Attempt to allocate a humongous object of the given size. Return
+  // NULL if unsuccessful.
   HeapWord* humongous_obj_allocate(size_t word_size);
 
   // The following two methods, allocate_new_tlab() and
@@ -416,10 +422,6 @@ protected:
   //
   // * All non-TLAB allocation requests should go to mem_allocate()
   //   and mem_allocate() should never be called with is_tlab == true.
-  //
-  // * If the GC locker is active we currently stall until we can
-  //   allocate a new young region. This will be changed in the
-  //   near future (see CR 6994056).
   //
   // * If either call cannot satisfy the allocation request using the
   //   current allocating region, they will try to get a new one. If
@@ -443,122 +445,38 @@ protected:
                                  bool   is_tlab, /* expected to be false */
                                  bool*  gc_overhead_limit_was_exceeded);
 
-  // The following methods, allocate_from_cur_allocation_region(),
-  // attempt_allocation(), attempt_allocation_locked(),
-  // replace_cur_alloc_region_and_allocate(),
-  // attempt_allocation_slow(), and attempt_allocation_humongous()
-  // have very awkward pre- and post-conditions with respect to
-  // locking:
-  //
-  // If they are called outside a safepoint they assume the caller
-  // holds the Heap_lock when it calls them. However, on exit they
-  // will release the Heap_lock if they return a non-NULL result, but
-  // keep holding the Heap_lock if they return a NULL result. The
-  // reason for this is that we need to dirty the cards that span
-  // allocated blocks on young regions to avoid having to take the
-  // slow path of the write barrier (for performance reasons we don't
-  // update RSets for references whose source is a young region, so we
-  // don't need to look at dirty cards on young regions). But, doing
-  // this card dirtying while holding the Heap_lock can be a
-  // scalability bottleneck, especially given that some allocation
-  // requests might be of non-trivial size (and the larger the region
-  // size is, the fewer allocations requests will be considered
-  // humongous, as the humongous size limit is a fraction of the
-  // region size). So, when one of these calls succeeds in allocating
-  // a block it does the card dirtying after it releases the Heap_lock
-  // which is why it will return without holding it.
-  //
-  // The above assymetry is the reason why locking / unlocking is done
-  // explicitly (i.e., with Heap_lock->lock() and
-  // Heap_lock->unlocked()) instead of using MutexLocker and
-  // MutexUnlocker objects. The latter would ensure that the lock is
-  // unlocked / re-locked at every possible exit out of the basic
-  // block. However, we only want that action to happen in selected
-  // places.
-  //
-  // Further, if the above methods are called during a safepoint, then
-  // naturally there's no assumption about the Heap_lock being held or
-  // there's no attempt to unlock it. The parameter at_safepoint
-  // indicates whether the call is made during a safepoint or not (as
-  // an optimization, to avoid reading the global flag with
-  // SafepointSynchronize::is_at_safepoint()).
-  //
-  // The methods share these parameters:
-  //
-  // * word_size     : the size of the allocation request in words
-  // * at_safepoint  : whether the call is done at a safepoint; this
-  //                   also determines whether a GC is permitted
-  //                   (at_safepoint == false) or not (at_safepoint == true)
-  // * do_dirtying   : whether the method should dirty the allocated
-  //                   block before returning
-  //
-  // They all return either the address of the block, if they
-  // successfully manage to allocate it, or NULL.
+  // The following three methods take a gc_count_before_ret
+  // parameter which is used to return the GC count if the method
+  // returns NULL. Given that we are required to read the GC count
+  // while holding the Heap_lock, and these paths will take the
+  // Heap_lock at some point, it's easier to get them to read the GC
+  // count while holding the Heap_lock before they return NULL instead
+  // of the caller (namely: mem_allocate()) having to also take the
+  // Heap_lock just to read the GC count.
 
-  // It tries to satisfy an allocation request out of the current
-  // alloc region, which is passed as a parameter. It assumes that the
-  // caller has checked that the current alloc region is not NULL.
-  // Given that the caller has to check the current alloc region for
-  // at least NULL, it might as well pass it as the first parameter so
-  // that the method doesn't have to read it from the
-  // _cur_alloc_region field again. It is called from both
-  // attempt_allocation() and attempt_allocation_locked() and the
-  // with_heap_lock parameter indicates whether the caller was holding
-  // the heap lock when it called it or not.
-  inline HeapWord* allocate_from_cur_alloc_region(HeapRegion* cur_alloc_region,
-                                                  size_t word_size,
-                                                  bool with_heap_lock);
+  // First-level mutator allocation attempt: try to allocate out of
+  // the mutator alloc region without taking the Heap_lock. This
+  // should only be used for non-humongous allocations.
+  inline HeapWord* attempt_allocation(size_t word_size,
+                                      unsigned int* gc_count_before_ret);
 
-  // First-level of allocation slow path: it attempts to allocate out
-  // of the current alloc region in a lock-free manner using a CAS. If
-  // that fails it takes the Heap_lock and calls
-  // attempt_allocation_locked() for the second-level slow path.
-  inline HeapWord* attempt_allocation(size_t word_size);
+  // Second-level mutator allocation attempt: take the Heap_lock and
+  // retry the allocation attempt, potentially scheduling a GC
+  // pause. This should only be used for non-humongous allocations.
+  HeapWord* attempt_allocation_slow(size_t word_size,
+                                    unsigned int* gc_count_before_ret);
 
-  // Second-level of allocation slow path: while holding the Heap_lock
-  // it tries to allocate out of the current alloc region and, if that
-  // fails, tries to allocate out of a new current alloc region.
-  inline HeapWord* attempt_allocation_locked(size_t word_size);
-
-  // It assumes that the current alloc region has been retired and
-  // tries to allocate a new one. If it's successful, it performs the
-  // allocation out of the new current alloc region and updates
-  // _cur_alloc_region. Normally, it would try to allocate a new
-  // region if the young gen is not full, unless can_expand is true in
-  // which case it would always try to allocate a new region.
-  HeapWord* replace_cur_alloc_region_and_allocate(size_t word_size,
-                                                  bool at_safepoint,
-                                                  bool do_dirtying,
-                                                  bool can_expand);
-
-  // Third-level of allocation slow path: when we are unable to
-  // allocate a new current alloc region to satisfy an allocation
-  // request (i.e., when attempt_allocation_locked() fails). It will
-  // try to do an evacuation pause, which might stall due to the GC
-  // locker, and retry the allocation attempt when appropriate.
-  HeapWord* attempt_allocation_slow(size_t word_size);
-
-  // The method that tries to satisfy a humongous allocation
-  // request. If it cannot satisfy it it will try to do an evacuation
-  // pause to perhaps reclaim enough space to be able to satisfy the
-  // allocation request afterwards.
+  // Takes the Heap_lock and attempts a humongous allocation. It can
+  // potentially schedule a GC pause.
   HeapWord* attempt_allocation_humongous(size_t word_size,
-                                         bool at_safepoint);
+                                         unsigned int* gc_count_before_ret);
 
-  // It does the common work when we are retiring the current alloc region.
-  inline void retire_cur_alloc_region_common(HeapRegion* cur_alloc_region);
-
-  // It retires the current alloc region, which is passed as a
-  // parameter (since, typically, the caller is already holding on to
-  // it). It sets _cur_alloc_region to NULL.
-  void retire_cur_alloc_region(HeapRegion* cur_alloc_region);
-
-  // It attempts to do an allocation immediately before or after an
-  // evacuation pause and can only be called by the VM thread. It has
-  // slightly different assumptions that the ones before (i.e.,
-  // assumes that the current alloc region has been retired).
+  // Allocation attempt that should be called during safepoints (e.g.,
+  // at the end of a successful GC). expect_null_mutator_alloc_region
+  // specifies whether the mutator alloc region is expected to be NULL
+  // or not.
   HeapWord* attempt_allocation_at_safepoint(size_t word_size,
-                                            bool expect_null_cur_alloc_region);
+                                       bool expect_null_mutator_alloc_region);
 
   // It dirties the cards that cover the block so that so that the post
   // write barrier never queues anything when updating objects on this
@@ -584,6 +502,12 @@ protected:
   // Retires an allocation region when it is full or at the end of a
   // GC pause.
   void  retire_alloc_region(HeapRegion* alloc_region, bool par);
+
+  // These two methods are the "callbacks" from the G1AllocRegion class.
+
+  HeapRegion* new_mutator_alloc_region(size_t word_size, bool force);
+  void retire_mutator_alloc_region(HeapRegion* alloc_region,
+                                   size_t allocated_bytes);
 
   // - if explicit_gc is true, the GC is for a System.gc() or a heap
   //   inspection request and should collect the entire heap
@@ -776,7 +700,7 @@ protected:
   // Invoke "save_marks" on all heap regions.
   void save_marks();
 
-  // It frees a non-humongous region by initializing its contents and
+  // Frees a non-humongous region by initializing its contents and
   // adding it to the free list that's passed as a parameter (this is
   // usually a local list which will be appended to the master free
   // list later). The used bytes of freed regions are accumulated in
@@ -787,13 +711,13 @@ protected:
                    FreeRegionList* free_list,
                    bool par);
 
-  // It frees a humongous region by collapsing it into individual
-  // regions and calling free_region() for each of them. The freed
-  // regions will be added to the free list that's passed as a parameter
-  // (this is usually a local list which will be appended to the
-  // master free list later). The used bytes of freed regions are
-  // accumulated in pre_used. If par is true, the region's RSet will
-  // not be freed up. The assumption is that this will be done later.
+  // Frees a humongous region by collapsing it into individual regions
+  // and calling free_region() for each of them. The freed regions
+  // will be added to the free list that's passed as a parameter (this
+  // is usually a local list which will be appended to the master free
+  // list later). The used bytes of freed regions are accumulated in
+  // pre_used. If par is true, the region's RSet will not be freed
+  // up. The assumption is that this will be done later.
   void free_humongous_region(HeapRegion* hr,
                              size_t* pre_used,
                              FreeRegionList* free_list,
@@ -1029,6 +953,9 @@ public:
   // The number of regions available for "regular" expansion.
   size_t expansion_regions() { return _expansion_regions; }
 
+  void verify_dirty_young_list(HeapRegion* head) PRODUCT_RETURN;
+  void verify_dirty_young_regions() PRODUCT_RETURN;
+
   // verify_region_sets() performs verification over the region
   // lists. It will be compiled in the product code to be used when
   // necessary (i.e., during heap verification).
@@ -1046,13 +973,13 @@ public:
 #endif // HEAP_REGION_SET_FORCE_VERIFY
 
 #ifdef ASSERT
-  bool is_on_free_list(HeapRegion* hr) {
+  bool is_on_master_free_list(HeapRegion* hr) {
     return hr->containing_set() == &_free_list;
   }
 
-  bool is_on_humongous_set(HeapRegion* hr) {
+  bool is_in_humongous_set(HeapRegion* hr) {
     return hr->containing_set() == &_humongous_set;
-}
+  }
 #endif // ASSERT
 
   // Wrapper for the region list operations that can be called from
@@ -1063,10 +990,12 @@ public:
   }
 
   void append_secondary_free_list() {
-    _free_list.add_as_tail(&_secondary_free_list);
+    _free_list.add_as_head(&_secondary_free_list);
   }
 
-  void append_secondary_free_list_if_not_empty() {
+  void append_secondary_free_list_if_not_empty_with_lock() {
+    // If the secondary free list looks empty there's no reason to
+    // take the lock and then try to append it.
     if (!_secondary_free_list.is_empty()) {
       MutexLockerEx x(SecondaryFreeList_lock, Mutex::_no_safepoint_check_flag);
       append_secondary_free_list();
@@ -1128,13 +1057,19 @@ public:
     return _g1_reserved.contains(p);
   }
 
-  // Returns a MemRegion that corresponds to the space that  has been
+  // Returns a MemRegion that corresponds to the space that has been
+  // reserved for the heap
+  MemRegion g1_reserved() {
+    return _g1_reserved;
+  }
+
+  // Returns a MemRegion that corresponds to the space that has been
   // committed in the heap
   MemRegion g1_committed() {
     return _g1_committed;
   }
 
-  NOT_PRODUCT(bool is_in_closed_subset(const void* p) const;)
+  virtual bool is_in_closed_subset(const void* p) const;
 
   // Dirty card table entries covering a list of young regions.
   void dirtyCardsForYoungRegions(CardTableModRefBS* ct_bs, HeapRegion* list);

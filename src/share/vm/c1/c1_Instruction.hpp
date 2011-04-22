@@ -323,8 +323,6 @@ class Instruction: public CompilationResourceObj {
     CanTrapFlag,
     DirectCompareFlag,
     IsEliminatedFlag,
-    IsInitializedFlag,
-    IsLoadedFlag,
     IsSafepointFlag,
     IsStaticFlag,
     IsStrictfpFlag,
@@ -623,15 +621,20 @@ LEAF(Phi, Instruction)
 LEAF(Local, Instruction)
  private:
   int      _java_index;                          // the local index within the method to which the local belongs
+  ciType*  _declared_type;
  public:
   // creation
-  Local(ValueType* type, int index)
+  Local(ciType* declared, ValueType* type, int index)
     : Instruction(type)
     , _java_index(index)
+    , _declared_type(declared)
   {}
 
   // accessors
   int java_index() const                         { return _java_index; }
+
+  ciType* declared_type() const                  { return _declared_type; }
+  ciType* exact_type() const;
 
   // generic
   virtual void input_values_do(ValueVisitor* f)   { /* no values */ }
@@ -693,7 +696,7 @@ BASE(AccessField, Instruction)
  public:
   // creation
   AccessField(Value obj, int offset, ciField* field, bool is_static,
-              ValueStack* state_before, bool is_loaded, bool is_initialized)
+              ValueStack* state_before, bool needs_patching)
   : Instruction(as_ValueType(field->type()->basic_type()), state_before)
   , _obj(obj)
   , _offset(offset)
@@ -701,16 +704,9 @@ BASE(AccessField, Instruction)
   , _explicit_null_check(NULL)
   {
     set_needs_null_check(!is_static);
-    set_flag(IsLoadedFlag, is_loaded);
-    set_flag(IsInitializedFlag, is_initialized);
     set_flag(IsStaticFlag, is_static);
+    set_flag(NeedsPatchingFlag, needs_patching);
     ASSERT_VALUES
-      if (!is_loaded || (PatchALot && !field->is_volatile())) {
-      // need to patch if the holder wasn't loaded or we're testing
-      // using PatchALot.  Don't allow PatchALot for fields which are
-      // known to be volatile they aren't patchable.
-      set_flag(NeedsPatchingFlag, true);
-    }
     // pin of all instructions with memory access
     pin();
   }
@@ -721,10 +717,13 @@ BASE(AccessField, Instruction)
   ciField* field() const                         { return _field; }
   BasicType field_type() const                   { return _field->type()->basic_type(); }
   bool is_static() const                         { return check_flag(IsStaticFlag); }
-  bool is_loaded() const                         { return check_flag(IsLoadedFlag); }
-  bool is_initialized() const                    { return check_flag(IsInitializedFlag); }
   NullCheck* explicit_null_check() const         { return _explicit_null_check; }
   bool needs_patching() const                    { return check_flag(NeedsPatchingFlag); }
+
+  // Unresolved getstatic and putstatic can cause initialization.
+  // Technically it occurs at the Constant that materializes the base
+  // of the static fields but it's simpler to model it here.
+  bool is_init_point() const                     { return is_static() && (needs_patching() || !_field->holder()->is_initialized()); }
 
   // manipulation
 
@@ -745,15 +744,15 @@ LEAF(LoadField, AccessField)
  public:
   // creation
   LoadField(Value obj, int offset, ciField* field, bool is_static,
-            ValueStack* state_before, bool is_loaded, bool is_initialized)
-  : AccessField(obj, offset, field, is_static, state_before, is_loaded, is_initialized)
+            ValueStack* state_before, bool needs_patching)
+  : AccessField(obj, offset, field, is_static, state_before, needs_patching)
   {}
 
   ciType* declared_type() const;
   ciType* exact_type() const;
 
   // generic
-  HASHING2(LoadField, is_loaded() && !field()->is_volatile(), obj()->subst(), offset())  // cannot be eliminated if not yet loaded or if volatile
+  HASHING2(LoadField, !needs_patching() && !field()->is_volatile(), obj()->subst(), offset())  // cannot be eliminated if needs patching or if volatile
 };
 
 
@@ -764,8 +763,8 @@ LEAF(StoreField, AccessField)
  public:
   // creation
   StoreField(Value obj, int offset, ciField* field, Value value, bool is_static,
-             ValueStack* state_before, bool is_loaded, bool is_initialized)
-  : AccessField(obj, offset, field, is_static, state_before, is_loaded, is_initialized)
+             ValueStack* state_before, bool needs_patching)
+  : AccessField(obj, offset, field, is_static, state_before, needs_patching)
   , _value(value)
   {
     set_flag(NeedsWriteBarrierFlag, as_ValueType(field_type())->is_object());
@@ -1152,6 +1151,8 @@ LEAF(Invoke, StateSplit)
   BasicTypeList* signature() const               { return _signature; }
   ciMethod* target() const                       { return _target; }
 
+  ciType* declared_type() const;
+
   // Returns false if target is not loaded
   bool target_is_final() const                   { return check_flag(TargetIsFinalFlag); }
   bool target_is_loaded() const                  { return check_flag(TargetIsLoadedFlag); }
@@ -1193,6 +1194,7 @@ LEAF(NewInstance, StateSplit)
   // generic
   virtual bool can_trap() const                  { return true; }
   ciType* exact_type() const;
+  ciType* declared_type() const;
 };
 
 
@@ -1213,6 +1215,8 @@ BASE(NewArray, StateSplit)
   Value length() const                           { return _length; }
 
   virtual bool needs_exception_state() const     { return false; }
+
+  ciType* declared_type() const;
 
   // generic
   virtual bool can_trap() const                  { return true; }
@@ -1403,6 +1407,7 @@ LEAF(Intrinsic, StateSplit)
   vmIntrinsics::ID _id;
   Values*          _args;
   Value            _recv;
+  int              _nonnull_state; // mask identifying which args are nonnull
 
  public:
   // preserves_state can be set to true for Intrinsics
@@ -1423,6 +1428,7 @@ LEAF(Intrinsic, StateSplit)
   , _id(id)
   , _args(args)
   , _recv(NULL)
+  , _nonnull_state(AllBits)
   {
     assert(args != NULL, "args must exist");
     ASSERT_VALUES
@@ -1447,6 +1453,23 @@ LEAF(Intrinsic, StateSplit)
   bool has_receiver() const                      { return (_recv != NULL); }
   Value receiver() const                         { assert(has_receiver(), "must have receiver"); return _recv; }
   bool preserves_state() const                   { return check_flag(PreservesStateFlag); }
+
+  bool arg_needs_null_check(int i) {
+    if (i >= 0 && i < (int)sizeof(_nonnull_state) * BitsPerByte) {
+      return is_set_nth_bit(_nonnull_state, i);
+    }
+    return true;
+  }
+
+  void set_arg_needs_null_check(int i, bool check) {
+    if (i >= 0 && i < (int)sizeof(_nonnull_state) * BitsPerByte) {
+      if (check) {
+        _nonnull_state |= nth_bit(i);
+      } else {
+        _nonnull_state &= ~(nth_bit(i));
+      }
+    }
+  }
 
   // generic
   virtual bool can_trap() const                  { return check_flag(CanTrapFlag); }

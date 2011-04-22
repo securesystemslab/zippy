@@ -110,6 +110,8 @@ inline jint invocation_key_to_method_slot(jint key) {
 
 inline void* index_oop_from_field_offset_long(oop p, jlong field_offset) {
   jlong byte_offset = field_offset_to_byte_offset(field_offset);
+  // Don't allow unsafe to be used to read or write the header word of oops
+  assert(p == NULL || field_offset >= oopDesc::header_size(), "offset must be outside of header");
 #ifdef ASSERT
   if (p != NULL) {
     assert(byte_offset >= 0 && byte_offset <= (jlong)MAX_OBJECT_SIZE, "sane offset");
@@ -686,7 +688,7 @@ UNSAFE_ENTRY(jobject, Unsafe_StaticFieldBaseFromField(JNIEnv *env, jobject unsaf
     THROW_0(vmSymbols::java_lang_IllegalArgumentException());
   }
 
-  return JNIHandles::make_local(env, java_lang_Class::as_klassOop(mirror));
+  return JNIHandles::make_local(env, mirror);
 UNSAFE_END
 
 //@deprecated
@@ -704,7 +706,7 @@ UNSAFE_ENTRY(jobject, Unsafe_StaticFieldBaseFromClass(JNIEnv *env, jobject unsaf
   if (clazz == NULL) {
     THROW_0(vmSymbols::java_lang_NullPointerException());
   }
-  return JNIHandles::make_local(env, java_lang_Class::as_klassOop(JNIHandles::resolve_non_null(clazz)));
+  return JNIHandles::make_local(env, JNIHandles::resolve_non_null(clazz));
 UNSAFE_END
 
 UNSAFE_ENTRY(void, Unsafe_EnsureClassInitialized(JNIEnv *env, jobject unsafe, jobject clazz))
@@ -1558,7 +1560,7 @@ JVM_ENTRY(void, JVM_RegisterUnsafeMethods(JNIEnv *env, jclass unsafecls))
         }
       }
     }
-    if (AnonymousClasses) {
+    if (EnableInvokeDynamic) {
       env->RegisterNatives(unsafecls, anonk_methods, sizeof(anonk_methods)/sizeof(JNINativeMethod));
       if (env->ExceptionOccurred()) {
         if (PrintMiscellaneous && (Verbose || WizardMode)) {

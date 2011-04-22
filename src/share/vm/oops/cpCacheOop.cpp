@@ -133,7 +133,7 @@ void ConstantPoolCacheEntry::set_field(Bytecodes::Code get_code,
                                        TosState field_type,
                                        bool is_final,
                                        bool is_volatile) {
-  set_f1(field_holder());
+  set_f1(field_holder()->java_mirror());
   set_f2(field_offset);
   // The field index is used by jvm/ti and is the index into fields() array
   // in holder instanceKlass.  This is scaled by instanceKlass::next_offset.
@@ -185,7 +185,7 @@ void ConstantPoolCacheEntry::set_method(Bytecodes::Code invoke_code,
         this->print(tty, 0);
       }
       assert(method->can_be_statically_bound(), "must be a MH invoker method");
-      assert(AllowTransitionalJSR292 || _f2 >= constantPoolOopDesc::CPCACHE_INDEX_TAG, "BSM index initialized");
+      assert(_f2 >= constantPoolOopDesc::CPCACHE_INDEX_TAG, "BSM index initialized");
       // SystemDictionary::find_method_handle_invoke only caches
       // methods which signature classes are on the boot classpath,
       // otherwise the newly created method is returned.  To avoid

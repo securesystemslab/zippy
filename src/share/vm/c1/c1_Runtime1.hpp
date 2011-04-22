@@ -54,6 +54,7 @@ class StubAssembler;
   stub(new_multi_array)              \
   stub(handle_exception_nofpu)         /* optimized version that does not preserve fpu registers */ \
   stub(handle_exception)             \
+  stub(handle_exception_from_callee) \
   stub(throw_array_store_exception)  \
   stub(throw_class_cast_exception)   \
   stub(throw_incompatible_class_change_error)   \
@@ -103,7 +104,10 @@ class Runtime1: public AllStatic {
   static int _generic_arraycopy_cnt;
   static int _primitive_arraycopy_cnt;
   static int _oop_arraycopy_cnt;
+  static int _generic_arraycopystub_cnt;
   static int _arraycopy_slowcase_cnt;
+  static int _arraycopy_checkcast_cnt;
+  static int _arraycopy_checkcast_attempt_cnt;
   static int _new_type_array_slowcase_cnt;
   static int _new_object_array_slowcase_cnt;
   static int _new_instance_slowcase_cnt;
@@ -126,12 +130,12 @@ class Runtime1: public AllStatic {
   static const char* _blob_names[];
 
   // stub generation
-  static void generate_blob_for(BufferBlob* blob, StubID id);
-  static OopMapSet* generate_code_for(StubID id, StubAssembler* masm);
+  static void       generate_blob_for(BufferBlob* blob, StubID id);
+  static OopMapSet* generate_code_for(StubID id, StubAssembler* sasm);
   static OopMapSet* generate_exception_throw(StubAssembler* sasm, address target, bool has_argument);
-  static void generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map, bool ignore_fpu_registers = false);
-  static void c1x_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map);
-  static void generate_unwind_exception(StubAssembler *sasm);
+  static OopMapSet* generate_handle_exception(StubID id, StubAssembler* sasm);
+  static void       generate_unwind_exception(StubAssembler *sasm);
+  static void       c1x_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map);
   static OopMapSet* generate_patching(StubAssembler* sasm, address target);
 
   static OopMapSet* generate_stub_call(StubAssembler* sasm, Register result, address entry,
@@ -184,7 +188,8 @@ class Runtime1: public AllStatic {
   static void trace_block_entry(jint block_id);
 
 #ifndef PRODUCT
-  static address throw_count_address()       { return (address)&_throw_count;       }
+  static address throw_count_address()               { return (address)&_throw_count;             }
+  static address arraycopy_count_address(BasicType type);
 #endif
 
   // directly accessible leaf routine

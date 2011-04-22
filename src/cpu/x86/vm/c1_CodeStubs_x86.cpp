@@ -313,10 +313,15 @@ void PatchingStub::emit_code(LIR_Assembler* ce) {
     }
     assert(_obj != noreg, "must be a valid register");
     Register tmp = rax;
-    if (_obj == tmp) tmp = rbx;
+    Register tmp2 = rbx;
     __ push(tmp);
+    __ push(tmp2);
+    // Load without verification to keep code size small. We need it because
+    // begin_initialized_entry_offset has to fit in a byte. Also, we know it's not null.
+    __ load_heap_oop_not_null(tmp2, Address(_obj, java_lang_Class::klass_offset_in_bytes()));
     __ get_thread(tmp);
-    __ cmpptr(tmp, Address(_obj, instanceKlass::init_thread_offset_in_bytes() + sizeof(klassOopDesc)));
+    __ cmpptr(tmp, Address(tmp2, instanceKlass::init_thread_offset_in_bytes() + sizeof(klassOopDesc)));
+    __ pop(tmp2);
     __ pop(tmp);
     __ jcc(Assembler::notEqual, call_patch);
 

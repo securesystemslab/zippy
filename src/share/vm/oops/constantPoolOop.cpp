@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -284,17 +284,13 @@ int constantPoolOopDesc::impl_name_and_type_ref_index_at(int which, bool uncache
     if (constantPoolCacheOopDesc::is_secondary_index(which)) {
       // Invokedynamic index.
       int pool_index = cache()->main_entry_at(which)->constant_pool_index();
-      if (!AllowTransitionalJSR292 || tag_at(pool_index).is_invoke_dynamic())
-        pool_index = invoke_dynamic_name_and_type_ref_index_at(pool_index);
+      pool_index = invoke_dynamic_name_and_type_ref_index_at(pool_index);
       assert(tag_at(pool_index).is_name_and_type(), "");
       return pool_index;
     }
     // change byte-ordering and go via cache
     i = remap_instruction_operand_from_cache(which);
   } else {
-    if (AllowTransitionalJSR292 && tag_at(which).is_name_and_type())
-      // invokedynamic index is a simple name-and-type
-      return which;
     if (tag_at(which).is_invoke_dynamic()) {
       int pool_index = invoke_dynamic_name_and_type_ref_index_at(which);
       assert(tag_at(pool_index).is_name_and_type(), "");
@@ -481,7 +477,7 @@ oop constantPoolOopDesc::resolve_constant_at_impl(constantPoolHandle this_oop, i
     {
       klassOop resolved = klass_at_impl(this_oop, index, CHECK_NULL);
       // ldc wants the java mirror.
-      result_oop = resolved->klass_part()->java_mirror();
+      result_oop = resolved->java_mirror();
       break;
     }
 
@@ -953,7 +949,6 @@ bool constantPoolOopDesc::compare_entry_to(int index1, constantPoolHandle cp2,
   } break;
 
   case JVM_CONSTANT_InvokeDynamic:
-  case JVM_CONSTANT_InvokeDynamicTrans:
   {
     int k1 = invoke_dynamic_bootstrap_method_ref_index_at(index1);
     int k2 = cp2->invoke_dynamic_bootstrap_method_ref_index_at(index2);
@@ -1175,8 +1170,15 @@ void constantPoolOopDesc::copy_entry_to(constantPoolHandle from_cp, int from_i,
 
   case JVM_CONSTANT_UnresolvedClass:
   {
-    Symbol* k = from_cp->unresolved_klass_at(from_i);
-    to_cp->unresolved_klass_at_put(to_i, k);
+    // Can be resolved after checking tag, so check the slot first.
+    CPSlot entry = from_cp->slot_at(from_i);
+    if (entry.is_oop()) {
+      assert(entry.get_oop()->is_klass(), "must be");
+      // Already resolved
+      to_cp->klass_at_put(to_i, (klassOop)entry.get_oop());
+    } else {
+      to_cp->unresolved_klass_at_put(to_i, entry.get_symbol());
+    }
   } break;
 
   case JVM_CONSTANT_UnresolvedClassInError:
@@ -1189,8 +1191,14 @@ void constantPoolOopDesc::copy_entry_to(constantPoolHandle from_cp, int from_i,
 
   case JVM_CONSTANT_UnresolvedString:
   {
-    Symbol* s = from_cp->unresolved_string_at(from_i);
-    to_cp->unresolved_string_at_put(to_i, s);
+    // Can be resolved after checking tag, so check the slot first.
+    CPSlot entry = from_cp->slot_at(from_i);
+    if (entry.is_oop()) {
+      // Already resolved (either string or pseudo-string)
+      to_cp->string_at_put(to_i, entry.get_oop());
+    } else {
+      to_cp->unresolved_string_at_put(to_i, entry.get_symbol());
+    }
   } break;
 
   case JVM_CONSTANT_Utf8:
@@ -1212,13 +1220,6 @@ void constantPoolOopDesc::copy_entry_to(constantPoolHandle from_cp, int from_i,
     int k1 = from_cp->method_handle_ref_kind_at(from_i);
     int k2 = from_cp->method_handle_index_at(from_i);
     to_cp->method_handle_index_at_put(to_i, k1, k2);
-  } break;
-
-  case JVM_CONSTANT_InvokeDynamicTrans:
-  {
-    int k1 = from_cp->invoke_dynamic_bootstrap_method_ref_index_at(from_i);
-    int k2 = from_cp->invoke_dynamic_name_and_type_ref_index_at(from_i);
-    to_cp->invoke_dynamic_trans_at_put(to_i, k1, k2);
   } break;
 
   case JVM_CONSTANT_InvokeDynamic:
@@ -1446,7 +1447,6 @@ jint constantPoolOopDesc::cpool_entry_size(jint idx) {
       return 5;
 
     case JVM_CONSTANT_InvokeDynamic:
-    case JVM_CONSTANT_InvokeDynamicTrans:
       // u1 tag, u2 bsm, u2 nt
       return 5;
 
@@ -1661,7 +1661,6 @@ int constantPoolOopDesc::copy_cpool_bytes(int cpool_size,
         DBG(printf("JVM_CONSTANT_MethodType: %hd", idx1));
         break;
       }
-      case JVM_CONSTANT_InvokeDynamicTrans:
       case JVM_CONSTANT_InvokeDynamic: {
         *bytes = tag;
         idx1 = extract_low_short_from_int(*int_at_addr(idx));
