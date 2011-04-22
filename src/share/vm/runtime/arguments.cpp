@@ -2763,7 +2763,7 @@ SOLARIS_ONLY(
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/Assembler/bin", maxine_dir);
       scp_p->add_prefix(temp);
-      sprintf(temp, "%s/c1x4hotspotsrc/HotSpotVM/bin", graal_dir);
+      sprintf(temp, "%s/graal/Runtime/bin", graal_dir);
       scp_p->add_prefix(temp);
       *scp_assembly_required_p = true;
     } else if (match_option(option, "-C1X:", &tail)) { // -C1X:xxxx
