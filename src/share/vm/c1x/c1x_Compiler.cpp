@@ -137,9 +137,8 @@ oop C1XCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Kl
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
   Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
   Handle field_type = get_RiType(field->type(), accessor, CHECK_0);
-
-  // TODO: implement caching
-  return VMExits::createRiField(field_holder, field_name, field_type, offset, THREAD);
+  int flags = field->flags().as_int();
+  return VMExits::createRiField(field_holder, field_name, field_type, offset, flags, THREAD);
 }
 
 oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {

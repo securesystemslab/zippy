@@ -24,6 +24,8 @@
 
 void c1x_compute_offsets();
 
+#include "oops/instanceMirrorKlass.hpp"
+
 /* This macro defines the structure of the CiTargetMethod - classes.
  * It will generate classes with accessors similar to javaClasses.hpp, but with specializations for oops, Handles and jni handles.
  *
@@ -228,11 +230,26 @@ void c1x_compute_offsets();
 #define BOOLEAN_FIELD(klass, name) FIELD(name, jboolean, bool_field)
 #define LONG_FIELD(klass, name) FIELD(name, jlong, long_field)
 #define OOP_FIELD(klass, name, signature) FIELD(name, oop, obj_field)
-#define STATIC_OOP_FIELD(klassName, name, signature) \
-    static int _##name##_offset;                \
-    static oop name()             { return klassName::klass()->obj_field(_##name##_offset); } \
-    static void set_##name(oop x) { klassName::klass()->obj_field_put(_##name##_offset, x); }
-
+#define STATIC_OOP_FIELD(klassName, name, signature)                \
+    static int _##name##_offset;                                    \
+    static oop name() {                                             \
+      instanceKlass* ik = instanceKlass::cast(klassName::klass());  \
+      address addr = ik->static_field_addr(_##name##_offset - instanceMirrorKlass::offset_of_static_fields());       \
+      if (UseCompressedOops) {                                      \
+        return oopDesc::load_decode_heap_oop((narrowOop *)addr);    \
+      } else {                                                      \
+        return oopDesc::load_decode_heap_oop((oop*)addr);           \
+      }                                                             \
+    }                                                               \
+    static void set_##name(oop x) {                                 \
+      instanceKlass* ik = instanceKlass::cast(klassName::klass());  \
+      address addr = ik->static_field_addr(_##name##_offset - instanceMirrorKlass::offset_of_static_fields());       \
+      if (UseCompressedOops) {                                      \
+        oopDesc::encode_store_heap_oop((narrowOop *)addr, x);       \
+      } else {                                                      \
+        oopDesc::encode_store_heap_oop((oop*)addr, x);              \
+      }                                                             \
+    }
 COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 #undef START_CLASS
 #undef END_CLASS

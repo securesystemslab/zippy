@@ -136,7 +136,7 @@ oop VMExits::createRiMethodUnresolved(Handle name, Handle signature, Handle hold
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, TRAPS) {
+oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS) {
   assert(!holder.is_null(), "just checking");
   assert(!name.is_null(), "just checking");
   assert(!type.is_null(), "just checking");
@@ -147,8 +147,10 @@ oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, T
   args.push_oop(name);
   args.push_oop(type);
   args.push_int(index);
+  args.push_int(flags);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiField");
+  assert(result.get_type() == T_OBJECT, "just checking");
   return (oop) result.get_jobject();
 }
 

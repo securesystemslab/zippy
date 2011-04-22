@@ -52,8 +52,8 @@ public:
   // public abstract RiMethod createRiMethodUnresolved(String name, String signature, RiType holder);
   static oop createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS);
 
-  // public abstract RiField createRiField(RiType holder, String name, RiType type, int offset);
-  static oop createRiField(Handle holder, Handle name, Handle type, int index, TRAPS);
+  // public abstract RiField createRiField(RiType holder, String name, RiType type, int flags, int offset);
+  static oop createRiField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS);
 
   // public abstract RiType createRiType(long vmId, String name);
   static oop createRiType(jlong vmId, Handle name, TRAPS);

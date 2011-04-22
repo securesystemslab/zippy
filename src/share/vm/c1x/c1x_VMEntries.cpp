@@ -295,6 +295,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiConstantPool_1loo
 
   ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
   ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
+  
   Bytecodes::Code code = (Bytecodes::Code)(((int) byteCode) & 0xFF);
   Handle field_handle = C1XCompiler::get_RiField(field, loading_klass, cp->pool_holder(), code, THREAD);
   bool is_constant = field->is_constant();
@@ -369,7 +370,7 @@ JNIEXPORT jobject JNICALL Java_com_sun_hotspot_c1x_VMEntries_RiType_3resolveMeth
   if (method == NULL) {
     if (TraceC1X >= 3) {
       ResourceMark rm;
-      tty->print_cr("Could not resolve method %s %s on klass %d", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->klass_part()->name()->as_C_string());
+      tty->print_cr("Could not resolve method %s %s on klass %s", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->klass_part()->name()->as_C_string());
     }
     return NULL;
   }
@@ -617,7 +618,7 @@ JNIEXPORT jlong JNICALL Java_com_sun_hotspot_c1x_VMEntries_installStub(JNIEnv *j
 JNIEXPORT void JNICALL Java_com_sun_hotspot_c1x_VMEntries_recordBailout(JNIEnv *jniEnv, jobject message) {
   if (C1XBailoutIsFatal) {
     Handle msg = JNIHandles::resolve(message);
-    if (msg.is_null()) {
+    if (!msg.is_null()) {
       java_lang_String::print(msg, tty);
     }
     fatal("Bailout in C1X");

@@ -308,7 +308,7 @@
   template(createRiSignature_name,                    "createRiSignature")                                              \
   template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/sun/cri/ri/RiSignature;")               \
   template(createRiField_name,                        "createRiField")                                                  \
-  template(createRiField_signature,                   "(Lcom/sun/cri/ri/RiType;Ljava/lang/String;Lcom/sun/cri/ri/RiType;I)Lcom/sun/cri/ri/RiField;") \
+  template(createRiField_signature,                   "(Lcom/sun/cri/ri/RiType;Ljava/lang/String;Lcom/sun/cri/ri/RiType;II)Lcom/sun/cri/ri/RiField;") \
   template(createRiType_name,                         "createRiType")                                                   \
   template(createRiType_signature,                    "(JLjava/lang/String;)Lcom/sun/cri/ri/RiType;")                   \
   template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \

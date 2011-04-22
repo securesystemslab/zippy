@@ -3696,7 +3696,7 @@ class CommandLineFlags {
           "Skip assert() and verify() which page-in unwanted shared "       \
           "objects. ")                                                      \
                                                                             \
-  diagnostic(bool, EnableInvokeDynamic, true,                               \
+  diagnostic(bool, EnableInvokeDynamic, false,                              \
           "support JSR 292 (method handles, invokedynamic, "                \
           "anonymous classes")                                              \
                                                                             \
