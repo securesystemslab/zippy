@@ -223,7 +223,7 @@ void CodeInstaller::initialize_fields(Handle target_method) {
 
 
   // (very) conservative estimate: each site needs a constant section entry
-  _constants_size = _sites->length() * BytesPerLong;
+  _constants_size = _sites->length() * (BytesPerLong*2);
   _total_size = align_size_up(_code_size, HeapWordSize) + _constants_size;
 
   _next_call_type = MARK_INVOKE_INVALID;
