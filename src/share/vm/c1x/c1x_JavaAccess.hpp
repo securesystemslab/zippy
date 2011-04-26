@@ -46,7 +46,7 @@ void c1x_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
-    oop_field(HotSpotTypeResolved, compiler, "Lcom/sun/hotspot/c1x/Compiler;")          \
+    oop_field(HotSpotTypeResolved, compiler, "Lcom/oracle/graal/runtime/Compiler;")     \
     oop_field(HotSpotTypeResolved, javaMirror, "Ljava/lang/Class;")                     \
     oop_field(HotSpotTypeResolved, simpleName, "Ljava/lang/String;")                    \
     int_field(HotSpotTypeResolved, accessFlags)                                         \
@@ -74,7 +74,7 @@ void c1x_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/sun/cri/ci/CiTargetMethod;")     \
-    oop_field(HotSpotTargetMethod, method, "Lcom/sun/hotspot/c1x/HotSpotMethodResolved;")\
+    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/graal/runtime/HotSpotMethodResolved;") \
     oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
     oop_field(HotSpotTargetMethod, sites, "[Lcom/sun/cri/ci/CiTargetMethod$Site;")      \
     oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/sun/cri/ci/CiTargetMethod$ExceptionHandler;") \

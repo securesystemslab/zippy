@@ -51,7 +51,7 @@ void C1XCompiler::initialize() {
   Runtime1::initialize(THREAD->get_buffer_blob());
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
-  jclass klass = env->FindClass("com/sun/hotspot/c1x/VMEntriesNative");
+  jclass klass = env->FindClass("com/oracle/graal/runtime/VMEntriesNative");
   if (klass == NULL) {
     fatal("c1x VMEntries class not found");
   }
