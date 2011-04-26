@@ -258,18 +258,18 @@
   LP64_ONLY( do_alias(machine_word_signature,         long_signature) )                           \
                                                                                                                         \
   /* support for C1X */                                                                                                 \
-  template(com_sun_hotspot_c1x_VMExits,               "com/sun/hotspot/c1x/VMExits")                                    \
-  template(com_sun_hotspot_c1x_HotSpotMethodResolved, "com/sun/hotspot/c1x/HotSpotMethodResolved")                      \
-  template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/sun/hotspot/c1x/HotSpotTargetMethod")                        \
-  template(com_sun_hotspot_c1x_HotSpotField,          "com/sun/hotspot/c1x/HotSpotField")                               \
+  template(com_sun_hotspot_c1x_VMExits,               "com/oracle/graal/runtime/VMExits")                               \
+  template(com_sun_hotspot_c1x_HotSpotMethodResolved, "com/oracle/graal/runtime/HotSpotMethodResolved")                 \
+  template(com_sun_hotspot_c1x_HotSpotTargetMethod,   "com/oracle/graal/runtime/HotSpotTargetMethod")                   \
+  template(com_sun_hotspot_c1x_HotSpotField,          "com/oracle/graal/runtime/HotSpotField")                          \
   template(com_sun_c1x_C1XOptions,                    "com/sun/c1x/C1XOptions")                                         \
-  template(com_sun_hotspot_c1x_HotSpotOptions,        "com/sun/hotspot/c1x/HotSpotOptions")                             \
-  template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/sun/hotspot/c1x/HotSpotTypeResolvedImpl")                    \
-  template(com_sun_hotspot_c1x_HotSpotType,           "com/sun/hotspot/c1x/HotSpotType")                                \
-  template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/sun/hotspot/c1x/HotSpotExceptionHandler")                   \
-  template(com_sun_hotspot_c1x_HotSpotProxy,          "com/sun/hotspot/c1x/HotSpotProxy")                               \
-  template(com_sun_hotspot_c1x_Compiler,              "com/sun/hotspot/c1x/Compiler")                                   \
-  template(com_sun_hotspot_c1x_CompilerImpl,          "com/sun/hotspot/c1x/CompilerImpl")                               \
+  template(com_sun_hotspot_c1x_HotSpotOptions,        "com/oracle/graal/runtime/HotSpotOptions")                        \
+  template(com_sun_hotspot_c1x_HotSpotTypeResolved,   "com/oracle/graal/runtime/HotSpotTypeResolvedImpl")               \
+  template(com_sun_hotspot_c1x_HotSpotType,           "com/oracle/graal/runtime/HotSpotType")                           \
+  template(com_sun_hotspot_c1x_HotSpotExceptionHandler,"com/oracle/graal/runtime/HotSpotExceptionHandler")              \
+  template(com_sun_hotspot_c1x_HotSpotProxy,          "com/oracle/graal/runtime/HotSpotProxy")                          \
+  template(com_sun_hotspot_c1x_Compiler,              "com/oracle/graal/runtime/Compiler")                              \
+  template(com_sun_hotspot_c1x_CompilerImpl,          "com/oracle/graal/runtime/CompilerImpl")                          \
   template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
   template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
@@ -326,10 +326,10 @@
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
   template(getVMExits_name,                           "getVMExits")                                                     \
-  template(getVMExits_signature,                      "()Lcom/sun/hotspot/c1x/VMExits;")                                \
+  template(getVMExits_signature,                      "()Lcom/oracle/graal/runtime/VMExits;")                           \
   template(getInstance_name,                          "getInstance")                                                    \
   template(initialize_name,                           "initialize")                                                     \
-  template(getInstance_signature,                     "()Lcom/sun/hotspot/c1x/Compiler;")                               \
+  template(getInstance_signature,                     "()Lcom/oracle/graal/runtime/Compiler;")                          \
   template(forObject_name,                            "forObject")                                                      \
                                                                                                                         \
   /* common method and field names */                                                             \
