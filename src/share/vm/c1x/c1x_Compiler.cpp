@@ -104,12 +104,15 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   initialize_buffer_blob();
   VmIds::initializeObjects();
 
+  TRACE_C1X_2("C1XCompiler::compile_method");
+
   CompilerThread::current()->set_compiling(true);
   methodOop method = (methodOop) target->get_oop();
   VMExits::compileMethod(VmIds::add<methodOop>(method), VmIds::toString<Handle>(method->name(), THREAD), entry_bci);
   CompilerThread::current()->set_compiling(false);
 
   VmIds::cleanupLocalObjects();
+  TRACE_C1X_2("C1XCompiler::compile_method exit");
 }
 
 // Print compilation timers and statistics
