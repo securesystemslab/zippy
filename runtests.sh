@@ -1,0 +1,2 @@
+#!/bin/bash
+${GRAAL}/java64/bin/java -client -graal -ea -Xcomp -XX:+PrintCompilation -XX:CompileOnly=jtt -Xbootclasspath/p:"${MAXINE}/VM/bin" -Xbootclasspath/p:"${MAXINE}/Base/bin" test.com.sun.max.vm.compiler.JavaTester -verbose=1 -gen-run-scheme=false -run-scheme-package=all ${MAXINE}/VM/test/jtt/bytecode ${MAXINE}/VM/test/jtt/except ${MAXINE}/VM/test/jtt/hotpath ${MAXINE}/VM/test/jtt/jdk ${MAXINE}/VM/test/jtt/lang ${MAXINE}/VM/test/jtt/loop ${MAXINE}/VM/test/jtt/micro ${MAXINE}/VM/test/jtt/optimize ${MAXINE}/VM/test/jtt/reflect ${MAXINE}/VM/test/jtt/threads
