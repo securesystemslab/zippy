@@ -2682,15 +2682,15 @@ SOLARIS_ONLY(
         fatal("Must set GRAAL environment variable to a Graal project directory.");
       }
       if (PrintVMOptions) tty->print_cr(" GRAAL=%s", graal_dir);
-      sprintf(temp, "%s/C1X/bin", maxine_dir);
-      scp_p->add_prefix(temp);
       sprintf(temp, "%s/CRI/bin", maxine_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/Base/bin", maxine_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/Assembler/bin", maxine_dir);
       scp_p->add_prefix(temp);
-      sprintf(temp, "%s/graal/Runtime/bin", graal_dir);
+      sprintf(temp, "%s/graal/GraalCompiler/bin", graal_dir);
+      scp_p->add_prefix(temp);
+      sprintf(temp, "%s/graal/GraalRuntime/bin", graal_dir);
       scp_p->add_prefix(temp);
       *scp_assembly_required_p = true;
     } else if (match_option(option, "-C1X:", &tail)) { // -C1X:xxxx
