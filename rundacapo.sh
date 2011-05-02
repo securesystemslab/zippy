@@ -15,4 +15,4 @@ if [ -z "${DACAPO}" ]; then
   echo "DACAPO is not defined. It must point to a SciMark benchmark directory."
   exit 1;
 fi
-${JDK7}/bin/java -client -graal -XX:-C1XBailoutIsFatal -Xms1g -Xmx2g -esa -classpath ${DACAPO}/dacapo-9.12-bach.jar Harness $*
+${JDK7}/bin/java -client -graal -XX:-C1XBailoutIsFatal -C1X:+QuietBailout -Xms1g -Xmx2g -esa -classpath ${DACAPO}/dacapo-9.12-bach.jar Harness $*
