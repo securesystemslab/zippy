@@ -15,7 +15,11 @@ if [ -z "${SCIMARK}" ]; then
   echo "SCIMARK is not defined. It must point to a SciMark benchmark directory."
   exit 1;
 fi
-for (( i = 1; i <= 5000; i++ ))      ### Outer for loop ###
+COUNT=$1
+if [ -z "${COUNT}" ]; then
+  COUNT=5000
+fi
+for (( i = 1; i <= ${COUNT}; i++ ))      ### Outer for loop ###
 do
   echo "$i "
   ${JDK7}/jre/bin/java -client -graal -esa -ea -Xms32m -Xmx100m -Xbootclasspath/a:${SCIMARK} -C1X:+PrintTimers  jnt.scimark2.commandline -large
