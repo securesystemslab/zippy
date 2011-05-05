@@ -2692,6 +2692,8 @@ SOLARIS_ONLY(
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/graal/GraalRuntime/bin", graal_dir);
       scp_p->add_prefix(temp);
+      sprintf(temp, "%s/graal/GraalGraph/bin", graal_dir);
+      scp_p->add_prefix(temp);
       *scp_assembly_required_p = true;
     } else if (match_option(option, "-C1X:", &tail)) { // -C1X:xxxx
       // Option for the C1X compiler.
