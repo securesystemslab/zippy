@@ -12,7 +12,7 @@ if [ -z "${GRAAL}" ]; then
   exit 1;
 fi
 if [ -z "${SCIMARK}" ]; then
-  echo "SCIMARK is not defined. It must point to a SciMark benchmark directory."
+  echo "SCIMARK is not defined. It must point to a SciMark benchmark jar."
   exit 1;
 fi
 COUNT=$1
