@@ -809,7 +809,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           if (TraceSignals) {
             tty->print_cr("c1x implicit div0");
           }
-          target_pc = Runtime1::entry_for(Runtime1::c1x_throw_div0_exception_id);
+          target_pc = deoptimization_continuation(thread, pc, nm);
         } else {
           target_pc = nm->continuation_for_implicit_exception(pc);
         }
