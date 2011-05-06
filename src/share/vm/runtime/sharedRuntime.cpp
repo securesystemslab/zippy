@@ -699,7 +699,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
   address target_pc = NULL;
 
   if (TraceSignals) {
-    tty->print_cr("Searching for continuation for implicit exception at %d", pc);
+    tty->print_cr("Searching for continuation for implicit exception at %d!", pc);
   }
 
   if (Interpreter::contains(pc)) {
@@ -780,7 +780,8 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
             if (TraceSignals) {
               tty->print_cr(err_msg("calling implicit call stub relative pc=%d method name = %s", pc - nm->entry_point(), nm->method()->name()->as_C_string()));
             }
-            target_pc = Runtime1::entry_for(Runtime1::c1x_global_implicit_null_id);
+            thread->_ScratchA = (intptr_t)pc;
+            target_pc = (SharedRuntime::deopt_blob()->jmp_uncommon_trap());//Runtime1::entry_for(Runtime1::c1x_global_implicit_null_id);
           } else {
             target_pc = nm->continuation_for_implicit_exception(pc);
           }

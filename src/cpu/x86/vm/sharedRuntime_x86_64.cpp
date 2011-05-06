@@ -2653,6 +2653,9 @@ void SharedRuntime::generate_deopt_blob() {
   // (tw) Start of C1X uncommon trap code.
   __ jmp(cont);
 
+  int jmp_uncommon_trap_offset = __ pc() - start;
+  __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
+
   int uncommon_trap_offset = __ pc() - start;
 
   // Warning: Duplicate code
@@ -2877,6 +2880,7 @@ void SharedRuntime::generate_deopt_blob() {
   _deopt_blob = DeoptimizationBlob::create(&buffer, oop_maps, 0, exception_offset, reexecute_offset, frame_size_in_words);
   _deopt_blob->set_unpack_with_exception_in_tls_offset(exception_in_tls_offset);
   _deopt_blob->set_uncommon_trap_offset(uncommon_trap_offset);
+  _deopt_blob->set_jmp_uncommon_trap_offset(jmp_uncommon_trap_offset);
 }
 
 #ifdef COMPILER2
