@@ -304,6 +304,10 @@ void vframeArrayElement::unpack_on_stack(int callee_parameters,
       iframe()->interpreter_frame_set_mdp(mdp);
     }
   }
+  
+  if (TraceDeoptimization) {
+    tty->print_cr("Expressions size: %d", expressions()->size());
+  }
 
   // Unpack expression stack
   // If this is an intermediate frame (i.e. not top frame) then this

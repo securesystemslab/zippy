@@ -2878,7 +2878,7 @@ class CommandLineFlags {
           "Prefetch instruction to prefetch ahead")                         \
                                                                             \
   /* deoptimization */                                                      \
-  develop(bool, TraceDeoptimization, false,                                 \
+  product(bool, TraceDeoptimization, false,                                 \
           "Trace deoptimization")                                           \
                                                                             \
   develop(bool, DebugDeoptimization, false,                                 \

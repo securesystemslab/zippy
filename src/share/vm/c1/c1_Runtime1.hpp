@@ -72,8 +72,6 @@ class StubAssembler;
   stub(counter_overflow)             \
   stub(c1x_unwind_exception_call)    \
   stub(c1x_handle_exception)         \
-  stub(c1x_global_implicit_null)     \
-  stub(c1x_throw_div0_exception)     \
   stub(c1x_slow_subtype_check)       \
   stub(c1x_arithmetic_frem)          \
   stub(c1x_arithmetic_drem)          \

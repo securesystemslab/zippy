@@ -1924,36 +1924,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
-    case c1x_global_implicit_null_id: {
-      __ push(rax);
-      __ push(rax);
-      // move saved fp to make space for the inserted return address
-      __ get_thread(rax);
-      __ movptr(rax, Address(rax, JavaThread::saved_exception_pc_offset()));
-      __ movptr(Address(rsp, HeapWordSize), rax);
-      __ pop(rax);
-
-      { StubFrame f(sasm, "c1x_global_implicit_null_id", dont_gc_arguments);
-        oop_maps = generate_exception_throw(sasm, CAST_FROM_FN_PTR(address, throw_null_pointer_exception), false);
-      }
-      break;
-    }
-
-    case c1x_throw_div0_exception_id: {
-      __ push(rax);
-      __ push(rax);
-      // move saved fp to make space for the inserted return address
-      __ get_thread(rax);
-      __ movptr(rax, Address(rax, JavaThread::saved_exception_pc_offset()));
-      __ movptr(Address(rsp, HeapWordSize), rax);
-      __ pop(rax);
-
-      { StubFrame f(sasm, "throw_div0_exception", dont_gc_arguments);
-        oop_maps = generate_exception_throw(sasm, CAST_FROM_FN_PTR(address, throw_div0_exception), false);
-      }
-      break;
-    }
-
     case c1x_slow_subtype_check_id: {
       Label success;
       Label miss;

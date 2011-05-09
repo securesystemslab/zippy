@@ -216,6 +216,7 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
 
     // All other stubs should have oopmaps
     default:
+      tty->print_cr("No oopmap found for %d", id);
       assert(oop_maps != NULL, "must have an oopmap");
   }
 #endif

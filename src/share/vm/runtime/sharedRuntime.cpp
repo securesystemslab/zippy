@@ -692,6 +692,15 @@ JRT_ENTRY(void, SharedRuntime::throw_StackOverflowError(JavaThread* thread))
   throw_and_post_jvmti_exception(thread, exception);
 JRT_END
 
+address SharedRuntime::deoptimization_continuation(JavaThread* thread, address pc, nmethod* nm)
+{
+  if (TraceSignals) {
+    tty->print_cr(err_msg("Deoptimizing on implicit exception at relative pc=%d in method %s", pc - nm->entry_point(), nm->method()->name()->as_C_string()));
+  }
+  thread->_ScratchA = (intptr_t)pc;
+  return (SharedRuntime::deopt_blob()->jmp_uncommon_trap());
+}
+
 address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
                                                            address pc,
                                                            SharedRuntime::ImplicitExceptionKind exception_kind)
@@ -777,11 +786,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           _implicit_null_throws++;
 #endif
           if (UseC1X) {
-            if (TraceSignals) {
-              tty->print_cr(err_msg("calling implicit call stub relative pc=%d method name = %s", pc - nm->entry_point(), nm->method()->name()->as_C_string()));
-            }
-            thread->_ScratchA = (intptr_t)pc;
-            target_pc = (SharedRuntime::deopt_blob()->jmp_uncommon_trap());//Runtime1::entry_for(Runtime1::c1x_global_implicit_null_id);
+            target_pc = deoptimization_continuation(thread, pc, nm);
           } else {
             target_pc = nm->continuation_for_implicit_exception(pc);
           }
@@ -804,7 +809,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           if (TraceSignals) {
             tty->print_cr("c1x implicit div0");
           }
-          target_pc = Runtime1::entry_for(Runtime1::c1x_throw_div0_exception_id);
+          target_pc = deoptimization_continuation(thread, pc, nm);
         } else {
           target_pc = nm->continuation_for_implicit_exception(pc);
         }
