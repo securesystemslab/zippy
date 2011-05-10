@@ -11,6 +11,7 @@
 \.bak$
 \.aux$
 ^doc/.*/dot_temp_
+^doc/doxygen/.*$
 \.orig$
 output\.txt$
 output\.cfg$
