@@ -29,6 +29,7 @@
 #include "c1x/c1x_VMExits.hpp"
 #include "c1x/c1x_VmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "memory/oopFactory.hpp"
 
 // public byte[] RiMethod_code(long vmId);
 JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1code(JNIEnv *env, jobject, jlong vmId) {

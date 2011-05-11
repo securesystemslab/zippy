@@ -21,6 +21,14 @@
  * questions.
  */
 
+#include "memory/allocation.hpp"
+#include "oops/oop.hpp"
+#include "runtime/handles.hpp"
+#include "runtime/thread.hpp"
+#include "classfile/javaClasses.hpp"
+#include "runtime/jniHandles.hpp"
+#include "runtime/javaCalls.hpp"
+
 class VMExits : public AllStatic {
 
 private:
