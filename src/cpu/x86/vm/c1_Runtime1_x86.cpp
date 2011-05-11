@@ -38,6 +38,7 @@
 #include "runtime/vframeArray.hpp"
 #include "vmreg_x86.inline.hpp"
 
+static void restore_live_registers(StubAssembler* sasm, bool restore_fpu_registers = true);
 
 // Implementation of StubAssembler
 
@@ -96,14 +97,11 @@ int StubAssembler::call_RT(Register oop_result1, Register oop_result2, address e
     if (oop_result2->is_valid()) {
       movptr(Address(thread, JavaThread::vm_result_2_offset()), NULL_WORD);
     }
-    if (frame_size() == no_frame_size) {
-      leave();
-      jump(RuntimeAddress(StubRoutines::forward_exception_entry()));
-    } else if (_stub_id == Runtime1::forward_exception_id) {
-      should_not_reach_here();
-    } else {
-      jump(RuntimeAddress(Runtime1::entry_for(Runtime1::forward_exception_id)));
-    }
+    // (tw) Deoptimize in case of an exception.
+    restore_live_registers(this, false);
+    movptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
+    leave();
+    jump(RuntimeAddress(SharedRuntime::deopt_blob()->uncommon_trap()));
     bind(L);
   }
   // get oop results if there are any and reset the values in the thread
@@ -539,7 +537,7 @@ static void restore_fpu(StubAssembler* sasm, bool restore_fpu_registers = true) 
 }
 
 
-static void restore_live_registers(StubAssembler* sasm, bool restore_fpu_registers = true) {
+static void restore_live_registers(StubAssembler* sasm, bool restore_fpu_registers/* = true*/) {
   __ block_comment("restore_live_registers");
 
   restore_fpu(sasm, restore_fpu_registers);
