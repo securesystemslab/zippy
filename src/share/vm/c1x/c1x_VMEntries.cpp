@@ -642,13 +642,13 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_runtime_VMEntries_installStub(JNIE
 }
 
 // public void recordBailout(String reason);
-JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNIEnv *jniEnv, jobject message) {
+JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNIEnv *jniEnv, jobject, jobject message) {
   if (C1XBailoutIsFatal) {
     Handle msg = JNIHandles::resolve(message);
     if (!msg.is_null()) {
       java_lang_String::print(msg, tty);
     }
-    fatal("Bailout in C1X");
+    vm_abort(false);
   }
 }
 
