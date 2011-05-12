@@ -15,5 +15,5 @@ if [ -z "${GRAAL}" ]; then
   echo "GRAAL is not defined. It must point to a maxine repository directory."
   exit 1;
 fi
-${JDK7}/bin/java -client -graal -version
-${JDK7G}/bin/java -client -graal -version
+${JDK7}/bin/java -client -d64 -graal -version
+${JDK7G}/bin/java -client -d64 -graal -version
