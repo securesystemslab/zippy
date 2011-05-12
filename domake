@@ -28,7 +28,7 @@ if [ $? -ne 0 ] ; then
     exit 1
 fi
 
-java_link="$graal_home/c1x4hotspotsrc/hotspot/java"
+java_link="$graal_home/graal/hotspot/java"
 if [ ! -e $java_link ]; then
     echo "Creating link: $java_link -> $JDK7/jre/bin/java"
     ln -s $JDK7/jre/bin/java $java_link

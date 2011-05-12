@@ -21,6 +21,8 @@
  * questions.
  */
 
+#include "prims/jni.h"
+
 extern JNINativeMethod VMEntries_methods[];
 int VMEntries_methods_count();
 

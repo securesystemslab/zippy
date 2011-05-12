@@ -28,6 +28,7 @@
 #include "c1x/c1x_VMEntries.hpp"
 #include "c1x/c1x_VmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "runtime/arguments.hpp"
 
 C1XCompiler* C1XCompiler::_instance = NULL;
 

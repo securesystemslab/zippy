@@ -21,7 +21,13 @@
  * questions.
  */
 
-class Thread;
+#include "memory/allocation.hpp"
+#include "utilities/growableArray.hpp"
+#include "oops/oop.hpp"
+#include "runtime/handles.hpp"
+#include "runtime/thread.hpp"
+#include "classfile/javaClasses.hpp"
+#include "runtime/jniHandles.hpp"
 
 class VmIds : public AllStatic {
 

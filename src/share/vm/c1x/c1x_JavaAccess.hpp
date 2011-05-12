@@ -23,6 +23,7 @@
 
 void c1x_compute_offsets();
 
+#include "classfile/systemDictionary.hpp"
 #include "oops/instanceMirrorKlass.hpp"
 
 /* This macro defines the structure of the CiTargetMethod - classes.
