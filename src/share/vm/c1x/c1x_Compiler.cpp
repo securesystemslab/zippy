@@ -53,7 +53,8 @@ void C1XCompiler::initialize() {
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/runtime/VMEntriesNative");
   if (klass == NULL) {
-    fatal("c1x VMEntries class not found");
+    tty->print_cr("c1x VMEntries class not found");
+    vm_abort(false);
   }
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
 
@@ -72,7 +73,10 @@ void C1XCompiler::initialize() {
       const char* arg = Arguments::c1x_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);
       jboolean result = VMExits::setOption(option);
-      if (!result) fatal("Invalid option for C1X!");
+      if (!result) {
+        tty->print_cr("Invalid option for C1X!");
+        vm_abort(false);
+      }
     }
 
     VMExits::initializeCompiler();
