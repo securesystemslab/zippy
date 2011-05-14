@@ -2688,6 +2688,8 @@ SOLARIS_ONLY(
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/Assembler/bin", maxine_dir);
       scp_p->add_prefix(temp);
+      sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
+      scp_p->add_prefix(temp);
       sprintf(temp, "%s/graal/GraalCompiler/bin", graal_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/graal/GraalRuntime/bin", graal_dir);
