@@ -2682,11 +2682,11 @@ SOLARIS_ONLY(
         fatal("Must set GRAAL environment variable to a Graal project directory.");
       }
       if (PrintVMOptions) tty->print_cr(" GRAAL=%s", graal_dir);
-      sprintf(temp, "%s/CRI/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
       scp_p->add_prefix(temp);
-      sprintf(temp, "%s/Base/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
       scp_p->add_prefix(temp);
-      sprintf(temp, "%s/Assembler/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.asmdis/bin", maxine_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
       scp_p->add_prefix(temp);
