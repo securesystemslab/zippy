@@ -68,7 +68,6 @@ JNIEXPORT jstring JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1sign
   TRACE_C1X_3("VMEntries::RiMethod_signature");
   VM_ENTRY_MARK
   methodOop method = VmIds::get<methodOop>(vmId);
-  method->constMethod()->exception_table();
   return VmIds::toString<jstring>(method->signature(), THREAD);
 }
 
