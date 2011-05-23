@@ -73,7 +73,9 @@ public class Parser {
     public static final String TO_PROPERTY = "to";
     public static final String PROPERTY_NAME_PROPERTY = "name";
     public static final String GRAPH_NAME_PROPERTY = "name";
-    public static final String TO_INDEX_PROPERTY = "index";
+    public static final String FROM_INDEX_PROPERTY = "fromIndex";
+    public static final String TO_INDEX_PROPERTY = "toIndex";
+    public static final String TO_INDEX_ALT_PROPERTY = "index";
     public static final String METHOD_ELEMENT = "method";
     public static final String INLINE_ELEMENT = "inline";
     public static final String BYTECODES_ELEMENT = "bytecodes";
@@ -301,12 +303,21 @@ public class Parser {
 
         @Override
         protected InputEdge start() throws SAXException {
+            int fromIndex = 0;
             int toIndex = 0;
             int from = -1;
             int to = -1;
 
             try {
+                String fromIndexString = readAttribute(FROM_INDEX_PROPERTY);
+                if (fromIndexString != null) {
+                    fromIndex = Integer.parseInt(fromIndexString);
+                }
+
                 String toIndexString = readAttribute(TO_INDEX_PROPERTY);
+                if (toIndexString == null) {
+                    toIndexString = readAttribute(TO_INDEX_ALT_PROPERTY);
+                }
                 if (toIndexString != null) {
                     toIndex = Integer.parseInt(toIndexString);
                 }
@@ -317,8 +328,7 @@ public class Parser {
                 throw new SAXException(e);
             }
 
-
-            InputEdge conn = new InputEdge((char) toIndex, from, to);
+            InputEdge conn = new InputEdge((char) fromIndex, (char) toIndex, from, to);
             return start(conn);
         }
 

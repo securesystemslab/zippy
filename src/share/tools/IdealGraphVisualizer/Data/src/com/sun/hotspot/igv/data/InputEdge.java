@@ -35,12 +35,14 @@ public class InputEdge {
         NEW,
         DELETED
     }
+    private char fromIndex;
     private char toIndex;
     private int from;
     private int to;
     private State state;
 
-    public InputEdge(char toIndex, int from, int to) {
+    public InputEdge(char fromIndex, char toIndex, int from, int to) {
+        this.fromIndex = fromIndex;
         this.toIndex = toIndex;
         this.from = from;
         this.to = to;
@@ -53,6 +55,10 @@ public class InputEdge {
 
     public void setState(State x) {
         this.state = x;
+    }
+
+    public char getFromIndex() {
+        return fromIndex;
     }
 
     public char getToIndex() {
