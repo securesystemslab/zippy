@@ -135,9 +135,10 @@ public class Difference {
             int to = e.getTo();
             InputNode nodeFrom = inputNodeMap.get(a.getNode(from));
             InputNode nodeTo = inputNodeMap.get(a.getNode(to));
-            char index = e.getToIndex();
+            char fromIndex = e.getFromIndex();
+            char toIndex = e.getToIndex();
 
-            InputEdge newEdge = new InputEdge(index, nodeFrom.getId(), nodeTo.getId());
+            InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
             if (!newEdges.contains(newEdge)) {
                 markAsNew(newEdge);
                 newEdges.add(newEdge);
@@ -150,9 +151,10 @@ public class Difference {
             int to = e.getTo();
             InputNode nodeFrom = inputNodeMap.get(b.getNode(from));
             InputNode nodeTo = inputNodeMap.get(b.getNode(to));
-            char index = e.getToIndex();
+            char fromIndex = e.getFromIndex();
+            char toIndex = e.getToIndex();
 
-            InputEdge newEdge = new InputEdge(index, nodeFrom.getId(), nodeTo.getId());
+            InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
             if (!newEdges.contains(newEdge)) {
                 markAsDeleted(newEdge);
                 newEdges.add(newEdge);

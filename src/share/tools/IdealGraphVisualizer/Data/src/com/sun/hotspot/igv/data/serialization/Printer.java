@@ -209,6 +209,7 @@ public class Printer {
 
     private Properties createProperties(InputEdge edge) {
         Properties p = new Properties();
+        p.setProperty(Parser.FROM_INDEX_PROPERTY, Integer.toString(edge.getFromIndex()));
         p.setProperty(Parser.TO_INDEX_PROPERTY, Integer.toString(edge.getToIndex()));
         p.setProperty(Parser.TO_PROPERTY, Integer.toString(edge.getTo()));
         p.setProperty(Parser.FROM_PROPERTY, Integer.toString(edge.getFrom()));

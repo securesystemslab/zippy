@@ -142,18 +142,16 @@ public class Diagram {
             Figure toFigure = figureHash.get(to);
             assert fromFigure != null && toFigure != null;
 
-            int toIndex = e.getToIndex();
-
-            while (fromFigure.getOutputSlots().size() <= 0) {
+            int fromIndex = e.getFromIndex();
+            while (fromFigure.getOutputSlots().size() <= fromIndex) {
                 fromFigure.createOutputSlot();
             }
+            OutputSlot outputSlot = fromFigure.getOutputSlots().get(fromIndex);
 
-            OutputSlot outputSlot = fromFigure.getOutputSlots().get(0);
-
+            int toIndex = e.getToIndex();
             while (toFigure.getInputSlots().size() <= toIndex) {
                 toFigure.createInputSlot();
             }
-
             InputSlot inputSlot = toFigure.getInputSlots().get(toIndex);
 
             Connection c = d.createConnection(inputSlot, outputSlot);
