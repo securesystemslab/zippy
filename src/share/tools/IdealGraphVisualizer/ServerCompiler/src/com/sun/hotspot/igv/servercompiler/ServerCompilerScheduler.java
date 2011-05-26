@@ -538,15 +538,19 @@ public class ServerCompilerScheduler implements Scheduler {
     }
 
     private Node findRoot() {
+        Node node0 = null;
 
         for (Node n : nodes) {
             InputNode inputNode = n.inputNode;
             if (inputNode.getProperties().get("name").equals("Root")) {
                 return n;
+            } else if (inputNode.getId() == 0) {
+                // use as fallback in case no root node is found
+                node0 = n;
             }
         }
 
-        return null;
+        return node0;
     }
 
     public void buildUpGraph() {
