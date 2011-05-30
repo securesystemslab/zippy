@@ -23,5 +23,5 @@ fi
 for (( i = 1; i <= ${COUNT}; i++ ))      ### Outer for loop ###
 do
   echo "$i "
-  ${JDK7}/jre/bin/java -client -d64 -graal -esa -ea -Xms32m -Xmx100m -Xbootclasspath/a:${SCIMARK} -C1X:+PrintTimers $@ jnt.scimark2.commandline -large
+  ${JDK7}/jre/bin/java -client -d64 -graal -esa -ea -Xms32m -Xmx100m -Xbootclasspath/a:${SCIMARK} -C1X:+PrintTimers $@ jnt.scimark2.commandline
 done
