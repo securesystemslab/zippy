@@ -3,9 +3,9 @@ package at.ssw.visualizer.texteditor;
 import at.ssw.visualizer.core.selection.Selection;
 import at.ssw.visualizer.core.selection.SelectionManager;
 import at.ssw.visualizer.core.selection.SelectionProvider;
-import at.ssw.visualizer.model.cfg.BasicBlock;
 import at.ssw.visualizer.texteditor.model.BlockRegion;
 import at.ssw.visualizer.texteditor.model.Text;
+import com.sun.hotspot.igv.data.InputBlock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,7 +29,7 @@ public abstract class Editor extends CloneableEditor implements SelectionProvide
     
     protected Selection selection;
     private boolean selectionUpdating;
-    private BasicBlock[] curBlocks;
+    private InputBlock[] curBlocks;
     private boolean initialized;
     
     protected Editor(EditorSupport support) {
@@ -77,7 +77,7 @@ public abstract class Editor extends CloneableEditor implements SelectionProvide
             selectionUpdating = true;
             
             Text text = (Text) getEditorPane().getDocument().getProperty(Text.class);
-            BasicBlock[] newBlocks = selection.get(BasicBlock[].class);
+            InputBlock[] newBlocks = selection.get(InputBlock[].class);
             
             if (newBlocks != null && newBlocks.length > 0 && !Arrays.equals(curBlocks, newBlocks)) {
                 BlockRegion r = text.getBlocks().get(newBlocks[0]);
@@ -85,7 +85,7 @@ public abstract class Editor extends CloneableEditor implements SelectionProvide
                 int endOffset = r.getNameEnd();
                 
                 if (newBlocks.length > 1) {
-                    for (BasicBlock b : newBlocks) {
+                    for (InputBlock b : newBlocks) {
                         r = text.getBlocks().get(b);
                         startOffset = Math.min(startOffset, r.getStart());
                         endOffset = Math.max(endOffset, r.getEnd());
@@ -108,7 +108,7 @@ public abstract class Editor extends CloneableEditor implements SelectionProvide
             selectionUpdating = true;
             
             Text text = (Text) getEditorPane().getDocument().getProperty(Text.class);
-            List<BasicBlock> newBlocks = new ArrayList<BasicBlock>();
+            List<InputBlock> newBlocks = new ArrayList<InputBlock>();
             int startOffset = Math.min(event.getDot(), event.getMark());
             int endOffset = Math.max(event.getDot(), event.getMark());
             
@@ -118,7 +118,7 @@ public abstract class Editor extends CloneableEditor implements SelectionProvide
                 }
             }
             
-            curBlocks = newBlocks.toArray(new BasicBlock[newBlocks.size()]);
+            curBlocks = newBlocks.toArray(new InputBlock[newBlocks.size()]);
             selection.put(curBlocks);
             selectionUpdating = false;
         }

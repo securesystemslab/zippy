@@ -1,6 +1,6 @@
 package at.ssw.visualizer.texteditor.model;
 
-import at.ssw.visualizer.model.cfg.BasicBlock;
+import com.sun.hotspot.igv.data.InputBlock;
 
 /**
  *
@@ -8,12 +8,12 @@ import at.ssw.visualizer.model.cfg.BasicBlock;
  */
 public class BlockRegion extends TextRegion {
 
-    private BasicBlock block;
+    private InputBlock block;
 
     private int nameStart;
     private int nameEnd;
 
-    public BlockRegion(BasicBlock block, int start, int end, int nameStart, int nameEnd) {
+    public BlockRegion(InputBlock block, int start, int end, int nameStart, int nameEnd) {
         super(start, end);
         this.block = block;
         this.nameStart = nameStart;
@@ -21,7 +21,7 @@ public class BlockRegion extends TextRegion {
     }
 
 
-    public BasicBlock getBlock() {
+    public InputBlock getBlock() {
         return block;
     }
 

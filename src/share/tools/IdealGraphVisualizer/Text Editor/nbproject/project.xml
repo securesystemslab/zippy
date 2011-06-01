@@ -7,16 +7,12 @@
             <suite-component/>
             <module-dependencies>
                 <dependency>
-                    <code-name-base>at.ssw.visualizer</code-name-base>
+                    <code-name-base>com.sun.hotspot.igv.data</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
-                    <run-dependency/>
-                </dependency>
-                <dependency>
-                    <code-name-base>at.ssw.visualizer.model</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency/>
+                    <run-dependency>
+                        <specification-version>1.0</specification-version>
+                    </run-dependency>
                 </dependency>
                 <dependency>
                     <code-name-base>org.netbeans.modules.editor</code-name-base>

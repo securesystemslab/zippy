@@ -1,8 +1,7 @@
 package at.ssw.visualizer.texteditor.model;
 
-import at.ssw.visualizer.model.Compilation;
-import at.ssw.visualizer.model.cfg.BasicBlock;
-import at.ssw.visualizer.model.cfg.ControlFlowGraph;
+import com.sun.hotspot.igv.data.InputBlock;
+import com.sun.hotspot.igv.data.InputGraph;
 import java.util.Map;
 
 /**
@@ -11,8 +10,7 @@ import java.util.Map;
  */
 public class Text {
 
-    private Compilation compilation;
-    private ControlFlowGraph cfg;
+    private InputGraph cfg;
 
     private String text;
     private FoldingRegion[] foldings;
@@ -20,13 +18,12 @@ public class Text {
     private Map<String, String> stringHovers;
     private Map<TextRegion, String> regionHovers;
     private Map<String, TextRegion[]> highlighting;
-    private Map<BasicBlock, BlockRegion> blocks;
+    private Map<InputBlock, BlockRegion> blocks;
     private Scanner scanner;
     private String mimeType;
 
     
-    public Text(ControlFlowGraph cfg, String text, FoldingRegion[] foldings, Map<String, TextRegion> hyperlinks, Map<String, String> stringHovers, Map<TextRegion, String> regionHovers, Map<String, TextRegion[]> highlighting, Map<BasicBlock, BlockRegion> blocks, Scanner scanner, String mimeType) {
-        this.compilation = cfg.getCompilation();
+    public Text(InputGraph cfg, String text, FoldingRegion[] foldings, Map<String, TextRegion> hyperlinks, Map<String, String> stringHovers, Map<TextRegion, String> regionHovers, Map<String, TextRegion[]> highlighting, Map<InputBlock, BlockRegion> blocks, Scanner scanner, String mimeType) {
         this.cfg = cfg;
         this.text = text;
         this.foldings = foldings;
@@ -39,12 +36,7 @@ public class Text {
         this.mimeType = mimeType;
     }
 
-
-    public Compilation getCompilation() {
-        return compilation;
-    }
-
-    public ControlFlowGraph getCfg() {
+    public InputGraph getCfg() {
         return cfg;
     }
 
@@ -77,7 +69,7 @@ public class Text {
         return highlighting.get(key);
     }
 
-    public Map<BasicBlock, BlockRegion> getBlocks() {
+    public Map<InputBlock, BlockRegion> getBlocks() {
         return blocks;
     }
     

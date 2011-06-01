@@ -1,8 +1,7 @@
 package at.ssw.visualizer.texteditor;
 
-import at.ssw.visualizer.model.Compilation;
-import at.ssw.visualizer.model.cfg.ControlFlowGraph;
 import at.ssw.visualizer.texteditor.model.Text;
+import com.sun.hotspot.igv.data.InputGraph;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.beans.VetoableChangeListener;
@@ -37,16 +36,16 @@ import org.openide.windows.CloneableOpenSupport;
  */
 public abstract class EditorSupport extends CloneableEditorSupport implements EditCookie, EditorCookie, EditorCookie.Observable {
    
-    protected ControlFlowGraph cfg;
+    protected InputGraph cfg;
     protected Text text;
 
-    protected EditorSupport(ControlFlowGraph cfg) {
+    protected EditorSupport(InputGraph cfg) {
         super(new Env());
         ((Env) this.env).editorSupport = this;
         this.cfg = cfg;
     }
     
-    public ControlFlowGraph getControlFlowGraph() {
+    public InputGraph getControlFlowGraph() {
         return cfg;
     }
     
@@ -56,8 +55,7 @@ public abstract class EditorSupport extends CloneableEditorSupport implements Ed
 
         // Back-link from Document to our internal data model.
         doc.putProperty(Text.class, text);
-        doc.putProperty(Compilation.class, cfg.getCompilation());
-        doc.putProperty(ControlFlowGraph.class, cfg);
+        doc.putProperty(InputGraph.class, cfg);
 
         return doc;
     }
@@ -77,11 +75,11 @@ public abstract class EditorSupport extends CloneableEditorSupport implements Ed
     }
 
     protected String messageName() {
-        return cfg.getCompilation().getShortName();
+        return cfg.getName();
     }
 
     protected String messageToolTip() {
-        return cfg.getCompilation().getMethod() + " - " + cfg.getName();
+        return cfg.getGroup().getName() + " - " + cfg.getName();
     }
 
     public static class Env implements CloneableEditorSupport.Env {
@@ -104,7 +102,7 @@ public abstract class EditorSupport extends CloneableEditorSupport implements Ed
         }
 
         public Date getTime() {
-            return editorSupport.cfg.getCompilation().getDate();
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         public String getMimeType() {

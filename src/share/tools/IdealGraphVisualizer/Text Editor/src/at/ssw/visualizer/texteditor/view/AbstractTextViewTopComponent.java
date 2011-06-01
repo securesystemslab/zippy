@@ -2,9 +2,9 @@ package at.ssw.visualizer.texteditor.view;
 
 import at.ssw.visualizer.core.selection.Selection;
 import at.ssw.visualizer.core.selection.SelectionManager;
-import at.ssw.visualizer.model.cfg.BasicBlock;
-import at.ssw.visualizer.model.cfg.ControlFlowGraph;
 import at.ssw.visualizer.texteditor.EditorKit;
+import com.sun.hotspot.igv.data.InputBlock;
+import com.sun.hotspot.igv.data.InputGraph;
 import java.awt.BorderLayout;
 import java.util.Arrays;
 import javax.swing.BorderFactory;
@@ -20,8 +20,8 @@ import org.openide.windows.TopComponent;
  */
 public abstract class AbstractTextViewTopComponent extends TopComponent {
     
-    protected ControlFlowGraph curCFG;
-    protected BasicBlock[] curBlocks;
+    protected InputGraph curCFG;
+    protected InputBlock[] curBlocks;
 
     private JEditorPane editorPane;
     
@@ -61,8 +61,8 @@ public abstract class AbstractTextViewTopComponent extends TopComponent {
 
     protected void updateContent() {
         Selection selection = SelectionManager.getDefault().getCurSelection();
-        ControlFlowGraph newCFG = selection.get(ControlFlowGraph.class);
-        BasicBlock[] newBlocks = selection.get(BasicBlock[].class);
+        InputGraph newCFG = selection.get(InputGraph.class);
+        InputBlock[] newBlocks = selection.get(InputBlock[].class);
 
         if (newCFG == null || newBlocks == null || newBlocks.length == 0) {
             editorPane.setText("No block selected\n");
@@ -73,6 +73,6 @@ public abstract class AbstractTextViewTopComponent extends TopComponent {
         curBlocks = newBlocks;
     }
 
-    protected abstract String getContent(ControlFlowGraph cfg, BasicBlock[] blocks);
+    protected abstract String getContent(InputGraph cfg, InputBlock[] blocks);
     
 }

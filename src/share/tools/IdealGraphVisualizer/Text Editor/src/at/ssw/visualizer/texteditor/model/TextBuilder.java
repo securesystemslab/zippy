@@ -1,7 +1,7 @@
 package at.ssw.visualizer.texteditor.model;
 
-import at.ssw.visualizer.model.cfg.BasicBlock;
-import at.ssw.visualizer.model.cfg.ControlFlowGraph;
+import com.sun.hotspot.igv.data.InputBlock;
+import com.sun.hotspot.igv.data.InputGraph;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,7 +22,7 @@ public abstract class TextBuilder {
     protected Map<String, String> stringHovers;
     protected Map<TextRegion, String> regionHovers;
     protected Map<String, TextRegion[]> highlighting;
-    protected Map<BasicBlock, BlockRegion> blocks;
+    protected Map<InputBlock, BlockRegion> blocks;
     protected Set<String> hoverKeys;
     protected Map<String, String> hoverDefinitions;
     protected Map<String, List<String>> hoverReferences;
@@ -34,47 +34,36 @@ public abstract class TextBuilder {
         stringHovers = new HashMap<String, String>();
         regionHovers = new HashMap<TextRegion, String>();
         highlighting = new HashMap<String, TextRegion[]>();
-        blocks = new HashMap<BasicBlock, BlockRegion>();
+        blocks = new HashMap<InputBlock, BlockRegion>();
         hoverKeys = new HashSet<String>();
         hoverDefinitions = new HashMap<String, String>();
         hoverReferences = new HashMap<String, List<String>>();
     }
     
-    public abstract Text buildDocument(ControlFlowGraph cfg);
+    public abstract Text buildDocument(InputGraph cfg);
     
     protected abstract void buildHighlighting();
     
-    protected Text buildText(ControlFlowGraph cfg, String mimeType) {
+    protected Text buildText(InputGraph cfg, String mimeType) {
         buildHovers();
         buildHighlighting();
         return new Text(cfg, text.toString(), foldingRegions.toArray(new FoldingRegion[foldingRegions.size()]), hyperlinks, stringHovers, regionHovers, highlighting, blocks, scanner, mimeType);
     }
     
-    protected void appendBlockDetails(BasicBlock block) {
+    protected void appendBlockDetails(InputBlock block) {
         text.append(blockDetails(block));
     }
         
-    protected String blockDetails(BasicBlock block) {
+    protected String blockDetails(InputBlock block) {
         StringBuilder sb = new StringBuilder();
         sb.append(block.getName());
         hoverKeys.add(block.getName());
-        appendBlockList(sb, " <- ", block.getPredecessors());
-        appendBlockList(sb, " -> ", block.getSuccessors());
-        appendBlockList(sb, " xh ", block.getXhandlers());
-        if (block.getDominator() != null) {
-            sb.append(" dom ").append(block.getDominator().getName());
-        }
-        sb.append(" [").append(block.getFromBci()).append(", ").append(block.getToBci()).append("]");
-        appendList(sb, " ", block.getFlags());
-
-        if (block.getLoopDepth() > 0) {
-            sb.append(" (loop ").append(block.getLoopIndex()).append(" depth ").append(block.getLoopDepth()).append(")");
-        }
+        // TODO: predecessors, successors, BCI, ...
         return sb.toString();
     }
     
-    protected void appendBlockList(StringBuilder sb, String prefix, List<BasicBlock> blocks) {
-        for (BasicBlock block : blocks) {
+    protected void appendBlockList(StringBuilder sb, String prefix, List<InputBlock> blocks) {
+        for (InputBlock block : blocks) {
             sb.append(prefix);
             prefix = ",";
             sb.append(block.getName());
