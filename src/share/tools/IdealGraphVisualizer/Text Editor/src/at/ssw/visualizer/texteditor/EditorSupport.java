@@ -1,0 +1,149 @@
+package at.ssw.visualizer.texteditor;
+
+import at.ssw.visualizer.texteditor.model.Text;
+import com.sun.hotspot.igv.data.InputGraph;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.beans.VetoableChangeListener;
+import java.beans.VetoableChangeSupport;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Date;
+import javax.swing.text.EditorKit;
+import javax.swing.text.StyledDocument;
+import org.openide.cookies.EditorCookie;
+import org.openide.cookies.EditCookie;
+import org.openide.text.CloneableEditorSupport;
+import org.openide.windows.CloneableOpenSupport;
+
+/**
+ * Abstract template class of a <code> EditorSupport </code> class of the 
+ * Visulizer.
+ * 
+ * The <code> text </code> field must be initialized by the implementing class
+ * and the methods <code> createCloneableEditor </code> and <code> 
+ * initializeCloneableEditor </code> must be overwritten by the implenting class.
+ * <code> createCloneableEditor </code> must return a custom implementation
+ * of the <code> Editor </code> class.
+ * <code> initializeClonableEditor </code> is used to set the icon, e.g.
+ * <code> editor.setIcon(Utilities.loadImage(IconsImage)); </code>.
+ * 
+ * @author Bernhard Stiftner
+ * @author Christian Wimmer
+ * @author Alexander Reder
+ */
+public abstract class EditorSupport extends CloneableEditorSupport implements EditCookie, EditorCookie, EditorCookie.Observable {
+   
+    protected InputGraph cfg;
+    protected Text text;
+
+    protected EditorSupport(InputGraph cfg) {
+        super(new Env());
+        ((Env) this.env).editorSupport = this;
+        this.cfg = cfg;
+    }
+    
+    public InputGraph getControlFlowGraph() {
+        return cfg;
+    }
+    
+    @Override
+    protected StyledDocument createStyledDocument(EditorKit kit) {
+        StyledDocument doc = super.createStyledDocument(kit);
+
+        // Back-link from Document to our internal data model.
+        doc.putProperty(Text.class, text);
+        doc.putProperty(InputGraph.class, cfg);
+
+        return doc;
+    }
+    
+    public abstract String getMimeType();
+    
+    protected String messageOpening() {
+        return "Opening " + messageToolTip();
+    }
+
+    protected String messageOpened() {
+        return "Opened " + messageToolTip();
+    }
+    
+    protected String messageSave() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    protected String messageName() {
+        return cfg.getName();
+    }
+
+    protected String messageToolTip() {
+        return cfg.getGroup().getName() + " - " + cfg.getName();
+    }
+
+    public static class Env implements CloneableEditorSupport.Env {
+
+        private PropertyChangeSupport prop = new PropertyChangeSupport(this);
+        private VetoableChangeSupport veto = new VetoableChangeSupport(this);
+
+        /**
+         * Back-link to outer class EditorSupport. Env must be a static class
+         * because it is passed to super constructor of EditorSupport.
+         */
+        private EditorSupport editorSupport;
+
+        public InputStream inputStream() throws IOException {
+            return new ByteArrayInputStream(editorSupport.text.getText().getBytes());
+        }
+
+        public OutputStream outputStream() throws IOException {
+            throw new IOException("Editor is readonly");
+        }
+
+        public Date getTime() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        public String getMimeType() {
+            return editorSupport.getMimeType();
+        }
+
+        public boolean isValid() {
+            return true;
+        }
+
+        public boolean isModified() {
+            return false;
+        }
+
+        public void markModified() throws IOException {
+            throw new IOException("Editor is readonly");
+        }
+
+        public void unmarkModified() {
+            // Nothing to do.
+        }
+
+        public CloneableOpenSupport findCloneableOpenSupport() {
+            return editorSupport;
+        }
+
+        public void addPropertyChangeListener(PropertyChangeListener l) {
+            prop.addPropertyChangeListener(l);
+        }
+
+        public void removePropertyChangeListener(PropertyChangeListener l) {
+            prop.removePropertyChangeListener(l);
+        }
+
+        public void addVetoableChangeListener(VetoableChangeListener l) {
+            veto.addVetoableChangeListener(l);
+        }
+
+        public void removeVetoableChangeListener(VetoableChangeListener l) {
+            veto.removeVetoableChangeListener(l);
+        }
+    }
+
+}
