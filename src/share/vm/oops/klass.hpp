@@ -237,7 +237,7 @@ class Klass : public Klass_vtbl {
   klassOop    _primary_supers[_primary_super_limit];
   // java/lang/Class instance mirroring this class
   oop       _java_mirror;
-  // com/oracle/graal/runtime/HotSpotTypeResolved mirroring this class
+  // com/oracle/max/graal/runtime/HotSpotTypeResolved mirroring this class
   oop       _c1x_mirror;
   // Superclass
   klassOop  _super;
