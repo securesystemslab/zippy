@@ -661,7 +661,7 @@ JRT_END
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT
-  if (Tracegraal >= 3) {
+  if (TraceGraal >= 3) {
     tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, lock);
   }
   if (PrintBiasedLockingStatistics) {
@@ -689,7 +689,7 @@ JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj
     }
   }
 #ifdef ASSERT
-  if (Tracegraal >= 3) {
+  if (TraceGraal >= 3) {
     tty->print_cr("exiting locking lock state: obj=" INTPTR_FORMAT, lock->obj());
     lock->lock()->print_on(tty);
     tty->print_cr("");

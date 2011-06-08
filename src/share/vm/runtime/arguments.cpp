@@ -2669,7 +2669,7 @@ SOLARIS_ONLY(
         tty->print("Running Graal VM... ");
       }
       UseGraal = true;
-      Bootstrapgraal = true;
+      BootstrapGraal = true;
       const int BUFFER_SIZE = 1024;
       char maxine_dir[BUFFER_SIZE];
       char graal_dir[BUFFER_SIZE];
