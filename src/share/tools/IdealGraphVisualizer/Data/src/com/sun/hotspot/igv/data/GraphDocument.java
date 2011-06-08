@@ -55,14 +55,12 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
     }
 
     public void addGroup(Group group) {
-        group.setDocument(this);
         groups.add(group);
         getChangedEvent().fire();
     }
 
     public void removeGroup(Group group) {
         if (groups.contains(group)) {
-            group.setDocument(null);
             groups.remove(group);
             getChangedEvent().fire();
         }

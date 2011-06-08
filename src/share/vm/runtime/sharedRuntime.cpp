@@ -785,7 +785,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #ifndef PRODUCT
           _implicit_null_throws++;
 #endif
-          if (UseC1X) {
+          if (UseGraal) {
             target_pc = deoptimization_continuation(thread, pc, nm);
           } else {
             target_pc = nm->continuation_for_implicit_exception(pc);
@@ -805,9 +805,9 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #ifndef PRODUCT
         _implicit_div0_throws++;
 #endif
-        if (UseC1X) {
+        if (UseGraal) {
           if (TraceSignals) {
-            tty->print_cr("c1x implicit div0");
+            tty->print_cr("graal implicit div0");
           }
           target_pc = deoptimization_continuation(thread, pc, nm);
         } else {

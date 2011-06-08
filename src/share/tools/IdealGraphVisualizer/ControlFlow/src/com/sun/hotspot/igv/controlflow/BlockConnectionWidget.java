@@ -23,7 +23,7 @@
  */
 package com.sun.hotspot.igv.controlflow;
 
-import com.sun.hotspot.igv.data.InputBlockEdge;
+import com.sun.hotspot.igv.controlflow.InputBlockEdge;
 import com.sun.hotspot.igv.layout.Link;
 import com.sun.hotspot.igv.layout.Port;
 import java.awt.Point;

@@ -201,11 +201,11 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case slow_subtype_check_id:
     case fpu2long_stub_id:
     case unwind_exception_id:
-    case c1x_verify_pointer_id:
-    case c1x_unwind_exception_call_id:
-    case c1x_slow_subtype_check_id:
-    case c1x_arithmetic_frem_id:
-    case c1x_arithmetic_drem_id:
+    case graal_verify_pointer_id:
+    case graal_unwind_exception_call_id:
+    case graal_slow_subtype_check_id:
+    case graal_arithmetic_frem_id:
+    case graal_arithmetic_drem_id:
 #ifndef TIERED
     case counter_overflow_id: // Not generated outside the tiered world
 #endif
@@ -468,7 +468,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
   thread->set_is_method_handle_return(false);
 
   Handle exception(thread, ex);
-  if (UseC1X && exception.is_null()) {
+  if (UseGraal && exception.is_null()) {
     exception = Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
   }
   nm = CodeCache::find_nmethod(pc);
@@ -661,7 +661,7 @@ JRT_END
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT
-  if (TraceC1X >= 3) {
+  if (Tracegraal >= 3) {
     tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, lock);
   }
   if (PrintBiasedLockingStatistics) {
@@ -689,7 +689,7 @@ JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj
     }
   }
 #ifdef ASSERT
-  if (TraceC1X >= 3) {
+  if (Tracegraal >= 3) {
     tty->print_cr("exiting locking lock state: obj=" INTPTR_FORMAT, lock->obj());
     lock->lock()->print_on(tty);
     tty->print_cr("");

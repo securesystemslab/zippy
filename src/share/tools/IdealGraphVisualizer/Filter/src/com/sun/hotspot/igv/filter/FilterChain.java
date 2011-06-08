@@ -26,6 +26,7 @@ package com.sun.hotspot.igv.filter;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.data.ChangedEvent;
 import com.sun.hotspot.igv.data.ChangedEventProvider;
+import com.sun.hotspot.igv.data.ChangedListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,18 +39,21 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
 
     private List<Filter> filters;
     private transient ChangedEvent<FilterChain> changedEvent;
-    private boolean fireEvents;
+    
+    private ChangedListener<Filter> changedListener = new ChangedListener<Filter>() {
+        public void changed(Filter source) {
+            changedEvent.fire();
+        }
+    };
 
     public FilterChain() {
         filters = new ArrayList<Filter>();
         changedEvent = new ChangedEvent<FilterChain>(this);
-        this.fireEvents = true;
     }
 
     public FilterChain(FilterChain f) {
         this.filters = new ArrayList<Filter>(f.filters);
         changedEvent = new ChangedEvent<FilterChain>(this);
-        this.fireEvents = true;
     }
 
     public ChangedEvent<FilterChain> getChangedEvent() {
@@ -84,29 +88,12 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
         }
     }
 
-    public void beginAtomic() {
-        this.fireEvents = false;
-    }
-
-    public void endAtomic() {
-        this.fireEvents = true;
-        changedEvent.fire();
-    }
 
     public void addFilter(Filter filter) {
         assert filter != null;
         filters.add(filter);
-        if (fireEvents) {
-            changedEvent.fire();
-        }
-    }
-
-    public void addFilterSameSequence(Filter filter) {
-        assert filter != null;
-        filters.add(filter);
-        if (fireEvents) {
-            changedEvent.fire();
-        }
+        filter.getChangedEvent().addListener(changedListener);
+        changedEvent.fire();
     }
 
     public boolean containsFilter(Filter filter) {
@@ -116,9 +103,8 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
     public void removeFilter(Filter filter) {
         assert filters.contains(filter);
         filters.remove(filter);
-        if (fireEvents) {
-            changedEvent.fire();
-        }
+        filter.getChangedEvent().removeListener(changedListener);
+        changedEvent.fire();
     }
 
     public void moveFilterUp(Filter filter) {
@@ -128,9 +114,7 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
             filters.remove(index);
             filters.add(index - 1, filter);
         }
-        if (fireEvents) {
-            changedEvent.fire();
-        }
+        changedEvent.fire();
     }
 
     public void moveFilterDown(Filter filter) {
@@ -140,16 +124,10 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
             filters.remove(index);
             filters.add(index + 1, filter);
         }
-        if (fireEvents) {
-            changedEvent.fire();
-        }
+        changedEvent.fire();
     }
 
     public List<Filter> getFilters() {
         return Collections.unmodifiableList(filters);
-    }
-
-    public void clear() {
-        filters.clear();
     }
 }

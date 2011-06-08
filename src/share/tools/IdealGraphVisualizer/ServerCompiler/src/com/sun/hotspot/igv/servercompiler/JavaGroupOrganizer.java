@@ -68,7 +68,7 @@ public class JavaGroupOrganizer implements GroupOrganizer {
     }
 
     private void buildResult(List<Pair<String, List<Group>>> result, List<Group> groups, NameProvider provider) {
-        HashMap<String, List<Group>> map = new HashMap<String, List<Group>>();
+        HashMap<String, List<Group>> map = new HashMap<String, List<Group>>(groups.size());
         for (Group g : groups) {
             String s = provider.getName(g);
 
@@ -113,7 +113,7 @@ public class JavaGroupOrganizer implements GroupOrganizer {
             }
 
             int current = firstPoint;
-            while (current > 0 && name.charAt(current) != ' ') {
+            while (current >= 0 && name.charAt(current) != ' ') {
                 current--;
             }
 
@@ -145,10 +145,10 @@ public class JavaGroupOrganizer implements GroupOrganizer {
             }
 
             int current = firstPoint;
-            while (current > 0 && name.charAt(current) != ' ') {
+            while (current >= 0 && name.charAt(current) != ' ') {
                 current--;
             }
-
+            
             String fullClassName = name.substring(current + 1, firstParenthese);
             int lastPoint = fullClassName.lastIndexOf(".");
             if (lastPoint == -1) {
@@ -182,7 +182,7 @@ public class JavaGroupOrganizer implements GroupOrganizer {
             }
 
             int current = firstPoint;
-            while (current > 0 && name.charAt(current) != ' ') {
+            while (current >= 0 && name.charAt(current) != ' ') {
                 current--;
             }
 

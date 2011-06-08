@@ -52,14 +52,12 @@ public class RhinoScriptEngine implements ScriptEngineAbstraction {
             Class scriptable = cl.loadClass("org.mozilla.javascript.Scriptable");
             importerTopLevel = cl.loadClass("org.mozilla.javascript.ImporterTopLevel");
             importer = importerTopLevel.getDeclaredConstructor(context);
-            scope_put = importerTopLevel.getMethod("put", new Class[]{String.class, scriptable, Object.class});
-            cx_evaluateString = context.getDeclaredMethod("evaluateString", new Class[]{scriptable, String.class, String.class, Integer.TYPE, Object.class});
-            context_enter = context.getDeclaredMethod("enter", new Class[0]);
-            context_exit = context.getDeclaredMethod("exit", new Class[0]);
+            scope_put = importerTopLevel.getMethod("put", String.class, scriptable, Object.class);
+            cx_evaluateString = context.getDeclaredMethod("evaluateString", scriptable, String.class, String.class, Integer.TYPE, Object.class);
+            context_enter = context.getDeclaredMethod("enter");
+            context_exit = context.getDeclaredMethod("exit");
             return true;
-        } catch (NoSuchMethodException nsme) {
-            return false;
-        } catch (ClassNotFoundException cnfe) {
+        } catch (Exception e) {
             return false;
         }
     }
@@ -77,9 +75,8 @@ public class RhinoScriptEngine implements ScriptEngineAbstraction {
                 // Exit from the context.
                 context_exit.invoke(null, (Object[]) null);
             }
-        } catch (InvocationTargetException iae) {
-        } catch (IllegalAccessException iae) {
-        } catch (InstantiationException iae) {
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

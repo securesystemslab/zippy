@@ -26,6 +26,7 @@ package com.sun.hotspot.igv.bytecodes;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
+import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.BorderLayout;
 import java.io.Serializable;
 import javax.swing.SwingUtilities;
@@ -91,6 +92,7 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+
     /**
      * Gets default instance. Do not use directly: reserved for *.settings files only,
      * i.e. deserialization routines; otherwise you could get a non-deserialized instance.
@@ -126,7 +128,7 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
 
     @Override
     public void componentOpened() {
-        Lookup.Template tpl = new Lookup.Template(Object.class);
+        Lookup.Template tpl = new Lookup.Template(InputGraphProvider.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
         result.addLookupListener(this);
     }
@@ -151,17 +153,35 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
         return manager;
     }
 
+    @Override
+    public void requestActive() {
+        super.requestActive();
+        this.treeView.requestFocus();
+    }
+
+    @Override
+    public boolean requestFocus(boolean temporary) {
+        this.treeView.requestFocus();
+        return super.requestFocus(temporary);
+    }
+
+    @Override
+    protected boolean requestFocusInWindow(boolean temporary) {
+        this.treeView.requestFocus();
+        return super.requestFocusInWindow(temporary);
+    }
+
     public void resultChanged(LookupEvent lookupEvent) {
-        final InputGraphProvider p = Lookup.getDefault().lookup(InputGraphProvider.class);
+        final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//)Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
         if (p != null) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-            InputGraph graph = p.getGraph();
-            if (graph != null) {
-                Group g = graph.getGroup();
-                rootNode.update(graph, g.getMethod());
-            }
-        }
+                    InputGraph graph = p.getGraph();
+                    if (graph != null) {
+                        Group g = graph.getGroup();
+                        rootNode.update(graph, g.getMethod());
+                    }
+                }
             });
         }
     }

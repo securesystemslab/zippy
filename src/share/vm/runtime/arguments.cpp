@@ -67,8 +67,8 @@ char**  Arguments::_jvm_flags_array             = NULL;
 int     Arguments::_num_jvm_flags               = 0;
 char**  Arguments::_jvm_args_array              = NULL;
 int     Arguments::_num_jvm_args                = 0;
-char**  Arguments::_c1x_args_array              = NULL;
-int     Arguments::_num_c1x_args                = 0;
+char**  Arguments::_graal_args_array              = NULL;
+int     Arguments::_num_graal_args                = 0;
 char*  Arguments::_java_command                 = NULL;
 SystemProperty* Arguments::_system_properties   = NULL;
 const char*  Arguments::_gc_log_filename        = NULL;
@@ -749,8 +749,8 @@ void Arguments::build_jvm_flags(const char* arg) {
   add_string(&_jvm_flags_array, &_num_jvm_flags, arg);
 }
 
-void Arguments::add_c1x_arg(const char* arg) {
-  add_string(&_c1x_args_array, &_num_c1x_args, arg);
+void Arguments::add_graal_arg(const char* arg) {
+  add_string(&_graal_args_array, &_num_graal_args, arg);
 }
 
 // utility function to return a string that concatenates all
@@ -2668,8 +2668,8 @@ SOLARIS_ONLY(
       if (PrintVMOptions) {
         tty->print("Running Graal VM... ");
       }
-      UseC1X = true;
-      BootstrapC1X = true;
+      UseGraal = true;
+      Bootstrapgraal = true;
       const int BUFFER_SIZE = 1024;
       char maxine_dir[BUFFER_SIZE];
       char graal_dir[BUFFER_SIZE];
@@ -2699,12 +2699,12 @@ SOLARIS_ONLY(
       sprintf(temp, "%s/graal/com.oracle.max.graal.graphviz/bin", graal_dir);
       scp_p->add_prefix(temp);
       *scp_assembly_required_p = true;
-    } else if (match_option(option, "-C1X:", &tail)) { // -C1X:xxxx
-      // Option for the C1X compiler.
+    } else if (match_option(option, "-G:", &tail)) { // -graal:xxxx
+      // Option for the graal compiler.
       if (PrintVMOptions) {
-        tty->print_cr("C1X option %s", tail);
+        tty->print_cr("graal option %s", tail);
       }
-      Arguments::add_c1x_arg(tail);
+      Arguments::add_graal_arg(tail);
 
     // Unknown option
     } else if (is_bad_option(option, args->ignoreUnrecognized)) {

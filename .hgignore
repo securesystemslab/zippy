@@ -10,6 +10,8 @@
 \.log$
 \.bak$
 \.aux$
+\.pdf$
+\.dot$
 ^doc/.*/dot_temp_
 ^doc/doxygen/.*$
 \.orig$
@@ -18,6 +20,7 @@ output\.cfg$
 /nbproject/private/
 ^graal/hotspot/java$
 ^scratch/
+^local/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
 ^src/share/tools/IdealGraphVisualizer/build/

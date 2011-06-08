@@ -182,14 +182,14 @@ class SymbolPropertyTable;
   template(Integer_klass,                java_lang_Integer,              Pre) \
   template(Long_klass,                   java_lang_Long,                 Pre) \
                                                                               \
-  template(C1XOptions_klass,             com_sun_c1x_C1XOptions,                                    Opt) \
-  template(HotSpotTypeResolved_klass,    com_sun_hotspot_c1x_HotSpotTypeResolved,                   Opt) \
-  template(HotSpotType_klass,            com_sun_hotspot_c1x_HotSpotType,                           Opt) \
-  template(HotSpotField_klass,           com_sun_hotspot_c1x_HotSpotField,                          Opt) \
-  template(HotSpotMethodResolved_klass,  com_sun_hotspot_c1x_HotSpotMethodResolved,                 Opt) \
-  template(HotSpotTargetMethod_klass,    com_sun_hotspot_c1x_HotSpotTargetMethod,                   Opt) \
-  template(HotSpotExceptionHandler_klass,com_sun_hotspot_c1x_HotSpotExceptionHandler,               Opt) \
-  template(HotSpotProxy_klass,           com_sun_hotspot_c1x_HotSpotProxy,                          Opt) \
+  template(graalOptions_klass,             com_sun_graal_graalOptions,                                    Opt) \
+  template(HotSpotTypeResolved_klass,    com_sun_hotspot_graal_HotSpotTypeResolved,                   Opt) \
+  template(HotSpotType_klass,            com_sun_hotspot_graal_HotSpotType,                           Opt) \
+  template(HotSpotField_klass,           com_sun_hotspot_graal_HotSpotField,                          Opt) \
+  template(HotSpotMethodResolved_klass,  com_sun_hotspot_graal_HotSpotMethodResolved,                 Opt) \
+  template(HotSpotTargetMethod_klass,    com_sun_hotspot_graal_HotSpotTargetMethod,                   Opt) \
+  template(HotSpotExceptionHandler_klass,com_sun_hotspot_graal_HotSpotExceptionHandler,               Opt) \
+  template(HotSpotProxy_klass,           com_sun_hotspot_graal_HotSpotProxy,                          Opt) \
   template(CiAssumptions_klass,          com_sun_cri_ci_CiAssumptions,                              Opt) \
   template(CiAssumptions_ConcreteSubtype_klass, com_sun_cri_ci_CiAssumptions_ConcreteSubtype,       Opt) \
   template(CiAssumptions_ConcreteMethod_klass,  com_sun_cri_ci_CiAssumptions_ConcreteMethod,        Opt) \

@@ -50,9 +50,9 @@ public class LayoutGraph {
         assert verify();
 
         vertices = new TreeSet<Vertex>();
-        portLinks = new HashMap<Port, Set<Link>>();
-        inputPorts = new HashMap<Vertex, Set<Port>>();
-        outputPorts = new HashMap<Vertex, Set<Port>>();
+        portLinks = new HashMap<Port, Set<Link>>(links.size());
+        inputPorts = new HashMap<Vertex, Set<Port>>(links.size());
+        outputPorts = new HashMap<Vertex, Set<Port>>(links.size());
 
         for (Link l : links) {
             Port p = l.getFrom();
@@ -148,7 +148,7 @@ public class LayoutGraph {
 
     // Returns a set of vertices with the following properties:
     // - All Vertices in the set startingRoots are elements of the set.
-    // - When starting a DFS at every vertex in the set, every vertex of the
+    // - When starting a DFS at every vertex in the set, every vertex of the 
     //   whole graph is visited.
     public Set<Vertex> findRootVertices(Set<Vertex> startingRoots) {
 

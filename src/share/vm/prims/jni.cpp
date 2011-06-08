@@ -3345,8 +3345,8 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
        JvmtiExport::post_thread_start(thread);
     }
 
-    if (BootstrapC1X) {
-      CompileBroker::bootstrap_c1x();
+    if (Bootstrapgraal) {
+      CompileBroker::bootstrap_graal();
     }
 
     // Check if we should compile all classes on bootclasspath

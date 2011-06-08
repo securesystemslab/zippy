@@ -35,18 +35,17 @@ import java.util.Set;
  */
 public class EditorInputGraphProvider implements InputGraphProvider {
 
+    private EditorTopComponent editor;
+    
+    public EditorInputGraphProvider(EditorTopComponent editor) {
+        this.editor = editor;
+    }
+    
     public InputGraph getGraph() {
-        EditorTopComponent e = EditorTopComponent.getActive();
-        if (e == null) {
-            return null;
-        }
-        return e.getDiagramModel().getGraphToView();
+        return editor.getDiagramModel().getGraphToView();
     }
 
     public void setSelectedNodes(Set<InputNode> nodes) {
-        EditorTopComponent e = EditorTopComponent.getActive();
-        if (e != null) {
-            e.setSelectedNodes(nodes);
-        }
+        editor.setSelectedNodes(nodes);
     }
 }

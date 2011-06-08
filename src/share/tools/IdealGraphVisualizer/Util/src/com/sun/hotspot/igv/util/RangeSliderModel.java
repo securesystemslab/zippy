@@ -69,16 +69,17 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         this.colorChangedEvent = new ChangedEvent<RangeSliderModel>(this);
         setPositions(positions);
     }
-
+    
     protected void setPositions(List<String> positions) {
         this.positions = positions;
-        colors = new ArrayList<Color>();
-        for (int i = 0; i < positions.size(); i++) {
-            colors.add(Color.black);
-        }
+         colors = new ArrayList<Color>();
+         for (int i = 0; i < positions.size(); i++) {
+             colors.add(Color.black);
+         }
         changedEvent.fire();
         colorChangedEvent.fire();
-    }
+     }
+
 
     public void setColors(List<Color> colors) {
         this.colors = colors;

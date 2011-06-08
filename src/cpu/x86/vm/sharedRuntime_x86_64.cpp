@@ -2650,7 +2650,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ bind(no_pending_exception);
 #endif
 
-  // (tw) Start of C1X uncommon trap code.
+  // (tw) Start of graal uncommon trap code.
   __ jmp(cont);
 
   int jmp_uncommon_trap_offset = __ pc() - start;
@@ -2685,7 +2685,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ jmp(after_fetch_unroll_info_call);
 
 
-  // (tw) End of C1X uncommon trap code.
+  // (tw) End of graal uncommon trap code.
 
   __ bind(cont);
 

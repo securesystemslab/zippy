@@ -44,7 +44,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/sweeper.hpp"
 #include "utilities/dtrace.hpp"
-#include "c1x/c1x_Compiler.hpp"
+#include "graal/graalCompiler.hpp"
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"
 #endif
@@ -627,14 +627,14 @@ CompilerCounters::CompilerCounters(const char* thread_name, int instance, TRAPS)
   }
 }
 
-// Bootstrap the C1X compiler. Compiles all methods until compile queue is empty and no compilation is active.
-void CompileBroker::bootstrap_c1x() {
+// Bootstrap the graal compiler. Compiles all methods until compile queue is empty and no compilation is active.
+void CompileBroker::bootstrap_graal() {
   HandleMark hm;
   Thread* THREAD = Thread::current();
-  tty->print_cr("Bootstrapping C1X....");
+  tty->print_cr("Bootstrapping graal....");
 
-  C1XCompiler* compiler = C1XCompiler::instance();
-  if (compiler == NULL) fatal("must use flag -XX:+UseC1X");
+  GraalCompiler* compiler = GraalCompiler::instance();
+  if (compiler == NULL) fatal("must use flag -XX:+UseGraal");
 
   jlong start = os::javaTimeMillis();
 
@@ -660,7 +660,7 @@ void CompileBroker::bootstrap_c1x() {
           if (current->is_Compiler_thread()) {
             CompilerThread* comp_thread = current->as_CompilerThread();
             if (comp_thread->is_compiling()) {
-              if (TraceC1X >= 4) {
+              if (Tracegraal >= 4) {
                 tty->print_cr("Compile queue empty, but following thread is still compiling:");
                 comp_thread->print();
               }
@@ -673,7 +673,7 @@ void CompileBroker::bootstrap_c1x() {
           break;
         }
       }
-      if (TraceC1X >= 5) {
+      if (Tracegraal >= 5) {
         _c1_method_queue->print();
       }
     }
@@ -707,8 +707,8 @@ void CompileBroker::compilation_init() {
   int c1_count = CompilationPolicy::policy()->compiler_count(CompLevel_simple);
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
 #ifdef COMPILER1
-  if (UseC1X) {
-	  _compilers[0] = new C1XCompiler();
+  if (UseGraal) {
+	  _compilers[0] = new GraalCompiler();
   } else if (c1_count > 0) {
 	  _compilers[0] = new Compiler();
   }
@@ -1064,7 +1064,7 @@ void CompileBroker::compile_method_base(methodHandle method,
 
     if (Thread::current()->is_Compiler_thread() && CompilerThread::current()->is_compiling() && !BackgroundCompilation) {
 
-      TRACE_C1X_1("Recursive compile %s!", method->name_and_sig_as_C_string());
+      TRACE_graal_1("Recursive compile %s!", method->name_and_sig_as_C_string());
       method->set_not_compilable();
       return;
     }

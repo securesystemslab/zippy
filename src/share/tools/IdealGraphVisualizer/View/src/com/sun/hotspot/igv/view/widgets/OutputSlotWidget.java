@@ -23,10 +23,12 @@
  */
 package com.sun.hotspot.igv.view.widgets;
 
+import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.OutputSlot;
 import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.Point;
 import java.util.List;
+import org.netbeans.api.visual.widget.Scene;
 import org.netbeans.api.visual.widget.Widget;
 
 /**
@@ -40,14 +42,27 @@ public class OutputSlotWidget extends SlotWidget {
     public OutputSlotWidget(OutputSlot slot, DiagramScene scene, Widget parent, FigureWidget fw) {
         super(slot, scene, parent, fw);
         outputSlot = slot;
-        init();
-        getFigureWidget().getRightWidget().addChild(this);
+        //init();
+        //getFigureWidget().getRightWidget().addChild(this);
+        Point p = outputSlot.getRelativePosition();
+        p.y += getSlot().getFigure().getHeight() - Figure.SLOT_START;
+        p.x -= this.calculateClientArea().width / 2;
+        //p.x += this.calculateClientArea().width / 2;
+        this.setPreferredLocation(p);
     }
 
     public OutputSlot getOutputSlot() {
         return outputSlot;
     }
 
+    protected int calculateSlotWidth() {
+        
+        List<OutputSlot> slots = getSlot().getFigure().getOutputSlots();
+        assert slots.contains(getSlot());
+        return calculateWidth(slots.size());
+        
+    }
+    /*
     protected Point calculateRelativeLocation() {
         if (getFigureWidget().getBounds() == null) {
             return new Point(0, 0);
@@ -57,5 +72,5 @@ public class OutputSlotWidget extends SlotWidget {
         List<OutputSlot> slots = outputSlot.getFigure().getOutputSlots();
         assert slots.contains(outputSlot);
         return new Point((int) x, (int) (calculateRelativeY(slots.size(), slots.indexOf(outputSlot))));
-    }
+    }*/
 }

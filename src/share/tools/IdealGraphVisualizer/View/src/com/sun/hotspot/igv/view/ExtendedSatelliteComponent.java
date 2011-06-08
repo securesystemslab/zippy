@@ -97,9 +97,10 @@ public class ExtendedSatelliteComponent extends JComponent implements MouseListe
             image = this.createImage(imageWidth, imageHeight);
             Graphics2D ig = (Graphics2D) image.getGraphics();
             ig.scale(scale, scale);
-            scene.setRealZoomFactor(scale);
+	    double oldFactor = scene.getZoomFactor();
+	    scene.setZoomFactor(scale);
             scene.paint(ig);
-            scene.setRealZoomFactor(0.0);
+	    scene.setZoomFactor(oldFactor);
         }
 
         gr.drawImage(image, vx, vy, this);
