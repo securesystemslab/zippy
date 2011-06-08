@@ -21,7 +21,7 @@
  * questions.
  */
 
-void c1x_compute_offsets();
+void graal_compute_offsets();
 
 #include "classfile/systemDictionary.hpp"
 #include "oops/instanceMirrorKlass.hpp"
@@ -208,7 +208,7 @@ void c1x_compute_offsets();
 #define START_CLASS(name)                       \
   class name : AllStatic {                      \
   private:                                      \
-    friend class C1XCompiler;                   \
+    friend class GraalCompiler;                   \
     static void check(oop obj) { assert(obj != NULL, "NULL field access of class " #name); assert(obj->is_a(SystemDictionary::name##_klass()), "wrong class, " #name " expected"); } \
     static void compute_offsets();              \
   public:                                       \

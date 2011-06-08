@@ -52,7 +52,7 @@
 ciObject::ciObject(oop o) {
   ASSERT_IN_VM;
   if (ciObjectFactory::is_initialized()) {
-    if (UseC1X) {
+    if (UseGraal) {
       _handle = JNIHandles::make_global(o);
       _temp_global = true;
     } else {
@@ -73,7 +73,7 @@ ciObject::ciObject(oop o) {
 ciObject::ciObject(Handle h) {
   ASSERT_IN_VM;
   if (ciObjectFactory::is_initialized()) {
-    if (UseC1X) {
+    if (UseGraal) {
       _handle = JNIHandles::make_global(h);
       _temp_global = true;
     } else {

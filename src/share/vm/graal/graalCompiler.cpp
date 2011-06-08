@@ -22,28 +22,28 @@
  */
 
 #include "precompiled.hpp"
-#include "c1x/c1x_Compiler.hpp"
-#include "c1x/c1x_JavaAccess.hpp"
-#include "c1x/c1x_VMExits.hpp"
-#include "c1x/c1x_VMEntries.hpp"
-#include "c1x/c1x_VmIds.hpp"
+#include "graal/graalCompiler.hpp"
+#include "graal/graalJavaAccess.hpp"
+#include "graal/graalVMExits.hpp"
+#include "graal/graalVMEntries.hpp"
+#include "graal/graalVmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "runtime/arguments.hpp"
 
-C1XCompiler* C1XCompiler::_instance = NULL;
+GraalCompiler* GraalCompiler::_instance = NULL;
 
-C1XCompiler::C1XCompiler() {
+GraalCompiler::GraalCompiler() {
   _initialized = false;
   assert(_instance == NULL, "only one instance allowed");
   _instance = this;
 }
 
 // Initialization
-void C1XCompiler::initialize() {
+void GraalCompiler::initialize() {
   if (_initialized) return;
   CompilerThread* THREAD = CompilerThread::current();
   _initialized = true;
-  TRACE_C1X_1("C1XCompiler::initialize");
+  TRACE_graal_1("GraalCompiler::initialize");
 
   VmIds::initializeObjects();
 
@@ -53,7 +53,7 @@ void C1XCompiler::initialize() {
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/max/graal/runtime/VMEntriesNative");
   if (klass == NULL) {
-    tty->print_cr("c1x VMEntries class not found");
+    tty->print_cr("graal VMEntries class not found");
     vm_abort(false);
   }
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
@@ -63,18 +63,18 @@ void C1XCompiler::initialize() {
     check_pending_exception("Could not register natives");
   }
 
-  c1x_compute_offsets();
+  graal_compute_offsets();
 
   {
     VM_ENTRY_MARK;
     HandleMark hm;
     VMExits::setDefaultOptions();
-    for (int i = 0; i < Arguments::num_c1x_args(); ++i) {
-      const char* arg = Arguments::c1x_args_array()[i];
+    for (int i = 0; i < Arguments::num_graal_args(); ++i) {
+      const char* arg = Arguments::graal_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);
       jboolean result = VMExits::setOption(option);
       if (!result) {
-        tty->print_cr("Invalid option for C1X!");
+        tty->print_cr("Invalid option for graal!");
         vm_abort(false);
       }
     }
@@ -83,7 +83,7 @@ void C1XCompiler::initialize() {
   }
 }
 
-void C1XCompiler::initialize_buffer_blob() {
+void GraalCompiler::initialize_buffer_blob() {
 
   CompilerThread* THREAD = CompilerThread::current();
   if (THREAD->get_buffer_blob() == NULL) {
@@ -91,7 +91,7 @@ void C1XCompiler::initialize_buffer_blob() {
     // NMethodSizeLimit plus some extra space for constants.
     int code_buffer_size = Compilation::desired_max_code_buffer_size() +
       Compilation::desired_max_constant_size();
-    BufferBlob* blob = BufferBlob::create("C1X temporary CodeBuffer",
+    BufferBlob* blob = BufferBlob::create("graal temporary CodeBuffer",
                                           code_buffer_size);
     guarantee(blob != NULL, "must create code buffer");
     THREAD->set_buffer_blob(blob);
@@ -99,7 +99,7 @@ void C1XCompiler::initialize_buffer_blob() {
 }
 
 // Compilation entry point for methods
-void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
+void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   initialize();
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -108,7 +108,7 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   initialize_buffer_blob();
   VmIds::initializeObjects();
 
-  TRACE_C1X_2("C1XCompiler::compile_method");
+  TRACE_graal_2("GraalCompiler::compile_method");
 
   CompilerThread::current()->set_compiling(true);
   methodOop method = (methodOop) target->get_oop();
@@ -116,15 +116,15 @@ void C1XCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
   CompilerThread::current()->set_compiling(false);
 
   VmIds::cleanupLocalObjects();
-  TRACE_C1X_2("C1XCompiler::compile_method exit");
+  TRACE_graal_2("GraalCompiler::compile_method exit");
 }
 
 // Print compilation timers and statistics
-void C1XCompiler::print_timers() {
-  TRACE_C1X_1("C1XCompiler::print_timers");
+void GraalCompiler::print_timers() {
+  TRACE_graal_1("GraalCompiler::print_timers");
 }
 
-oop C1XCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
+oop GraalCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
   if (type->is_loaded()) {
     if (type->is_primitive_type()) {
       return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
@@ -138,7 +138,7 @@ oop C1XCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
   }
 }
 
-oop C1XCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
+oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
   bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
   int offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
@@ -148,9 +148,9 @@ oop C1XCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Kl
   return VMExits::createRiField(field_holder, field_name, field_type, offset, flags, THREAD);
 }
 
-oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
-  if (klass->c1x_mirror() != NULL) {
-    return klass->c1x_mirror();
+oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
+  if (klass->graal_mirror() != NULL) {
+    return klass->graal_mirror();
   }
 
   instanceKlass::cast(HotSpotTypeResolved::klass())->initialize(CHECK_NULL);
@@ -188,12 +188,12 @@ oop C1XCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS
   HotSpotTypeResolved::set_hasSubclass(obj, false);
   HotSpotTypeResolved::set_hasFinalizableSubclass(obj, false);
 
-  klass->set_c1x_mirror(obj());
+  klass->set_graal_mirror(obj());
 
   return obj();
 }
 
-BasicType C1XCompiler::kindToBasicType(jchar ch) {
+BasicType GraalCompiler::kindToBasicType(jchar ch) {
   switch(ch) {
     case 'z': return T_BOOLEAN;
     case 'b': return T_BYTE;

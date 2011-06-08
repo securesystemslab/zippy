@@ -22,7 +22,7 @@
  */
 
 #include "precompiled.hpp"
-#include "c1x/c1x_VmIds.hpp"
+#include "graal/graalVmIds.hpp"
 #include "ci/ciUtilities.hpp"
 
 // VmIds implementation

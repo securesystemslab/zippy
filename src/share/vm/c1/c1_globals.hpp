@@ -53,14 +53,14 @@
 //
 #define C1_FLAGS(develop, develop_pd, product, product_pd, notproduct)      \
                                                                             \
-  product(bool, UseC1X, false,                                              \
-          "Use C1X instead of C1")                                          \
-  product(bool, C1XBailoutIsFatal, true,                                    \
-          "Abort the VM on C1X bailout")                                    \
-  product(bool, BootstrapC1X, false,                                        \
-          "Bootstrap C1X before running Java main method")                  \
-  product(intx, TraceC1X, 0,                                                \
-          "Trace level for C1X")                                            \
+  product(bool, UseGraal, false,                                              \
+          "Use graal instead of C1")                                          \
+  product(bool, GraalBailoutIsFatal, true,                                    \
+          "Abort the VM on graal bailout")                                    \
+  product(bool, Bootstrapgraal, false,                                        \
+          "Bootstrap graal before running Java main method")                  \
+  product(intx, Tracegraal, 0,                                                \
+          "Trace level for graal")                                            \
   product(bool, TraceSignals, false,                                        \
           "Trace signals and implicit exception handling")                  \
   /* Printing */                                                            \
