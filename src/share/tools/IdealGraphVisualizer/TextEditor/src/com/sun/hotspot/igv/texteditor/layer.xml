@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE filesystem PUBLIC "-//NetBeans//DTD Filesystem 1.1//EN" "http://www.netbeans.org/dtds/filesystem-1_1.dtd">
+<filesystem>
+    
+    <folder name="Editors">
+        <folder name="Preferences"/>
+        <folder name="text">
+            <folder name="text-igv">
+                <file name="EditorKit.instance">
+                <attr name="instanceClass" stringvalue="com.sun.hotspot.igv.texteditor.TextEditorKit"/>
+                </file>
+                <folder name="FoldManager">
+                    <file name="com-sun-hotspot-igv-texteditor-TextFoldManagerFactory.instance"/>
+                </folder>
+                <folder name="Preferences">
+                    <file name="org-netbeans-modules-editor-preferences.xml" url="org-netbeans-modules-editor-preferences.xml"/>
+                </folder>
+                <folder name="SideBar">
+                    <file name="com-sun-hotspot-igv-texteditor-TextSideBarFactory.instance">
+                        <attr name="position" intvalue="1500"/>
+                    </file>
+                </folder>
+                <file name="com-sun-hotspot-igv-texteditor-TextHighlightsLayerFactory.instance"/>
+                </folder>
+        </folder>
+    </folder>
+</filesystem>

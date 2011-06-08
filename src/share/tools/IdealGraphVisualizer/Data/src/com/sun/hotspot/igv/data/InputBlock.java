@@ -23,10 +23,10 @@
  */
 package com.sun.hotspot.igv.data;
 
-import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -37,44 +37,55 @@ import java.util.Set;
 public class InputBlock {
 
     private List<InputNode> nodes;
-    private List<String> successorNames;
     private String name;
     private InputGraph graph;
-    private Rectangle bounds;
     private Set<InputBlock> successors;
-    private Set<InputBlock> predecessors;
-    private Set<InputBlockEdge> inputs;
-    private Set<InputBlockEdge> outputs;
 
-    public InputBlock(InputGraph graph, String name) {
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        if (o == this) {
+            return true;
+        }
+
+        if (o == null || (!(o instanceof InputBlock))) {
+            return false;
+        }
+        
+        final InputBlock b = (InputBlock)o;
+        final boolean result = b.nodes.equals(nodes) && b.name.equals(name) && b.successors.size() == successors.size();
+        if (!result) {
+            return false;
+        }
+
+        final HashSet<String> s = new HashSet<String>();
+        for (InputBlock succ : successors) {
+            s.add(succ.name);
+        }
+
+        for (InputBlock succ : b.successors) {
+            if (!s.contains(succ.name)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    InputBlock(InputGraph graph, String name) {
         this.graph = graph;
         this.name = name;
         nodes = new ArrayList<InputNode>();
-        successorNames = new ArrayList<String>();
-        successors = new HashSet<InputBlock>();
-        predecessors = new HashSet<InputBlock>();
-        inputs = new HashSet<InputBlockEdge>();
-        outputs = new HashSet<InputBlockEdge>();
-    }
-
-    public void removeSuccessor(InputBlock b) {
-        if (successors.contains(b)) {
-            successors.remove(b);
-            b.predecessors.remove(this);
-            InputBlockEdge e = new InputBlockEdge(this, b);
-            assert outputs.contains(e);
-            outputs.remove(e);
-            assert b.inputs.contains(e);
-            b.inputs.remove(e);
-        }
+        successors = new LinkedHashSet<InputBlock>(2);
     }
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String s) {
-        name = s;
     }
 
     public List<InputNode> getNodes() {
@@ -85,56 +96,24 @@ public class InputBlock {
         InputNode n = graph.getNode(id);
         assert n != null;
         graph.setBlock(n, this);
-        addNode(graph.getNode(id));
-    }
-
-    public void addNode(InputNode node) {
+        final InputNode node = graph.getNode(id);
+        assert node != null;
         assert !nodes.contains(node);
         nodes.add(node);
-    }
-
-    public Set<InputBlock> getPredecessors() {
-        return Collections.unmodifiableSet(predecessors);
     }
 
     public Set<InputBlock> getSuccessors() {
         return Collections.unmodifiableSet(successors);
     }
 
-    public Set<InputBlockEdge> getInputs() {
-        return Collections.unmodifiableSet(inputs);
-    }
-
-    public Set<InputBlockEdge> getOutputs() {
-        return Collections.unmodifiableSet(outputs);
-    }
-
-    // resolveBlockLinks must be called afterwards
-    public void addSuccessor(String name) {
-        successorNames.add(name);
-    }
-
-    public void resolveBlockLinks() {
-        for (String s : successorNames) {
-            InputBlock b = graph.getBlock(s);
-            addSuccessor(b);
-        }
-
-        successorNames.clear();
-    }
-
-    public void addSuccessor(InputBlock b) {
-        if (!successors.contains(b)) {
-            successors.add(b);
-            b.predecessors.add(this);
-            InputBlockEdge e = new InputBlockEdge(this, b);
-            outputs.add(e);
-            b.inputs.add(e);
-        }
-    }
-
     @Override
     public String toString() {
-        return this.getName();
+        return "Block " + this.getName();
+    }
+
+    void addSuccessor(InputBlock b) {
+        if (!successors.contains(b)) {
+            successors.add(b);
+        }
     }
 }

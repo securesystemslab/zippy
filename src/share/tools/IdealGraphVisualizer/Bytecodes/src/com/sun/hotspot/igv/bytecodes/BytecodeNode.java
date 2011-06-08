@@ -30,6 +30,7 @@ import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Properties.StringPropertyMatcher;
 import java.awt.Image;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.swing.Action;
@@ -58,7 +59,7 @@ public class BytecodeNode extends AbstractNode {
         StringPropertyMatcher matcher = new StringPropertyMatcher("bci", bciValue);
         List<InputNode> nodeList = selector.selectMultiple(matcher);
         if (nodeList.size() > 0) {
-            nodes = new HashSet<InputNode>();
+            nodes = new LinkedHashSet<InputNode>();
             for (InputNode n : nodeList) {
                 nodes.add(n);
             }

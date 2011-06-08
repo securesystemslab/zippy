@@ -1,0 +1,9 @@
+colorize("name", ".*", white);
+colorize("name", "cont",new  java.awt.Color(1.0, 0.8, 0.8));
+colorize("name", "proc", new  java.awt.Color(0.8, 0.8, 1.0));
+colorize("name", "call", new  java.awt.Color(0.9, 0.9, 0.9));
+colorize("name", "block", new java.awt.Color(1.0, 1.0, 0.6)); 
+colorize("class", ".*Constant", new java.awt.Color(0.7, 1.0, 0.9)); 
+colorize("class", ".*Parameter", new java.awt.Color(0.9, 1.0, 0.7)); 
+colorize("class", ".*Variable", new java.awt.Color(0.7, 1.0, 0.7)); 
+colorize("class", ".*cir\.snippet.*", yellow); 

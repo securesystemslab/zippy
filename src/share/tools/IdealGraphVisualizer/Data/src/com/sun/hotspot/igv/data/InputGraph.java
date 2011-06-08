@@ -26,9 +26,12 @@ package com.sun.hotspot.igv.data;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -37,51 +40,129 @@ import java.util.Set;
  */
 public class InputGraph extends Properties.Entity {
 
-    private HashMap<Integer, InputNode> nodes;
+    private LinkedHashMap<Integer, InputNode> nodes;
     private ArrayList<InputEdge> edges;
     private Group parent;
-    private HashMap<String, InputBlock> blocks;
-    private HashMap<Integer, InputBlock> nodeToBlock;
-    private boolean isDifferenceGraph;
+    private LinkedHashMap<String, InputBlock> blocks;
+    private LinkedHashMap<Integer, InputBlock> nodeToBlock;
+    private Pair<InputGraph, InputGraph> sourceGraphs;
+    private int parentIndex;
 
-    public InputGraph(Group parent) {
-        this(parent, null);
+    InputGraph(int parentIndex, Group parent, String name, Pair<InputGraph, InputGraph> sourceGraphs) {
+        this.parentIndex = parentIndex;
+        this.parent = parent;
+        this.sourceGraphs = sourceGraphs;
+        setName(name);
+        nodes = new LinkedHashMap<Integer, InputNode>();
+        edges = new ArrayList<InputEdge>();
+        blocks = new LinkedHashMap<String, InputBlock>();
+        nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
     }
 
-    public InputGraph(Group parent, InputGraph last) {
-        this(parent, last, "");
+    public void addBlockConnection(InputBlock left, InputBlock right) {
+        left.addSuccessor(right);
     }
 
-    private void clearBlocks() {
+    public Pair<InputGraph, InputGraph> getSourceGraphs() {
+        return sourceGraphs;
+    }
+    
+    public List<InputNode> findRootNodes() {
+        List<InputNode> result = new ArrayList<InputNode>();
+        Set<Integer> nonRoot = new HashSet<Integer>();
+        for(InputEdge curEdges : getEdges()) {
+            nonRoot.add(curEdges.getTo());
+        }
+        
+        for(InputNode node : getNodes()) {
+            if(!nonRoot.contains(node.getId())) {
+                result.add(node);
+            }
+        }
+        
+        return result;
+    }
+    
+    public Map<InputNode, List<InputEdge>> findAllOutgoingEdges() {
+        
+        Map<InputNode, List<InputEdge>> result = new HashMap<InputNode, List<InputEdge>>(getNodes().size());
+        for(InputNode n : this.getNodes()) {
+            result.put(n, new ArrayList<InputEdge>());
+        }
+        
+        for(InputEdge e : this.edges) {
+            int from = e.getFrom();
+            InputNode fromNode = this.getNode(from);
+            List<InputEdge> fromList = result.get(fromNode);
+            assert fromList != null;
+            fromList.add(e);
+        }
+        
+        for(InputNode n : this.getNodes()) {
+            List<InputEdge> list = result.get(n);
+            Collections.sort(list, InputEdge.OUTGOING_COMPARATOR);
+        }
+        
+        return result;
+    }
+    
+    public Map<InputNode, List<InputEdge>> findAllIngoingEdges() {
+        
+        Map<InputNode, List<InputEdge>> result = new HashMap<InputNode, List<InputEdge>>(getNodes().size());
+        for(InputNode n : this.getNodes()) {
+            result.put(n, new ArrayList<InputEdge>());
+        }
+        
+        for(InputEdge e : this.edges) {
+            int to = e.getTo();
+            InputNode toNode = this.getNode(to);
+            List<InputEdge> toList = result.get(toNode);
+            assert toList != null;
+            toList.add(e);
+        }
+        
+        for(InputNode n : this.getNodes()) {
+            List<InputEdge> list = result.get(n);
+            Collections.sort(list, InputEdge.INGOING_COMPARATOR);
+        }
+        
+        return result;
+    }
+    
+    public List<InputEdge> findOutgoingEdges(InputNode n) {
+        List<InputEdge> result = new ArrayList<InputEdge>();
+        
+        for(InputEdge e : this.edges) {
+            if(e.getFrom() == n.getId()) {
+                result.add(e);
+            }
+        }
+        
+        Collections.sort(result, InputEdge.OUTGOING_COMPARATOR);
+        
+        return result;
+    }
+
+    public void clearBlocks() {
         blocks.clear();
         nodeToBlock.clear();
     }
-
-    public InputGraph(Group parent, InputGraph last, String name) {
-        this.parent = parent;
-        setName(name);
-        nodes = new HashMap<Integer, InputNode>();
-        edges = new ArrayList<InputEdge>();
-        blocks = new HashMap<String, InputBlock>();
-        nodeToBlock = new HashMap<Integer, InputBlock>();
-        if (last != null) {
-
-            for (InputNode n : last.getNodes()) {
-                addNode(n);
-            }
-
-            for (InputEdge c : last.getEdges()) {
-                addEdge(c);
-            }
+    
+    public void setEdge(int fromIndex, int toIndex, int from, int to) {
+        assert fromIndex == ((char)fromIndex) : "Downcast must be safe";
+        assert toIndex == ((char)toIndex) : "Downcast must be safe";
+        
+        InputEdge edge = new InputEdge((char)fromIndex, (char)toIndex, from, to);
+        if(!this.getEdges().contains(edge)) {
+            this.addEdge(edge);
         }
     }
 
-    public void schedule(Collection<InputBlock> newBlocks) {
-        clearBlocks();
-        InputBlock noBlock = new InputBlock(this, "no block");
+    public void ensureNodesInBlocks() {
+        InputBlock noBlock = null;
         Set<InputNode> scheduledNodes = new HashSet<InputNode>();
 
-        for (InputBlock b : newBlocks) {
+        for (InputBlock b : getBlocks()) {
             for (InputNode n : b.getNodes()) {
                 assert !scheduledNodes.contains(n);
                 scheduledNodes.add(n);
@@ -91,15 +172,11 @@ public class InputGraph extends Properties.Entity {
         for (InputNode n : this.getNodes()) {
             assert nodes.get(n.getId()) == n;
             if (!scheduledNodes.contains(n)) {
+                if (noBlock == null) {
+                    noBlock = this.addBlock("no block");
+                }
                 noBlock.addNode(n.getId());
             }
-        }
-
-        if (noBlock.getNodes().size() != 0) {
-            newBlocks.add(noBlock);
-        }
-        for (InputBlock b : newBlocks) {
-            addBlock(b);
         }
 
         for (InputNode n : this.getNodes()) {
@@ -116,45 +193,35 @@ public class InputGraph extends Properties.Entity {
     }
 
     public InputBlock getBlock(InputNode node) {
+        assert nodes.containsKey(node.getId());
+        assert nodes.get(node.getId()).equals(node);
         return getBlock(node.getId());
     }
 
     public InputGraph getNext() {
         List<InputGraph> list = parent.getGraphs();
-        if (!list.contains(this)) {
-            return null;
-        }
-        int index = list.indexOf(this);
-        if (index == list.size() - 1) {
+        if (parentIndex == list.size() - 1) {
             return null;
         } else {
-            return list.get(index + 1);
+            return list.get(parentIndex + 1);
         }
     }
 
     public InputGraph getPrev() {
         List<InputGraph> list = parent.getGraphs();
-        if (!list.contains(this)) {
-            return null;
-        }
-        int index = list.indexOf(this);
-        if (index == 0) {
+        if (parentIndex == 0) {
             return null;
         } else {
-            return list.get(index - 1);
+            return list.get(parentIndex - 1);
         }
+    }
+
+    private void setName(String name) {
+        this.getProperties().setProperty("name", name);
     }
 
     public String getName() {
         return getProperties().get("name");
-    }
-
-    public String getAbsoluteName() {
-        String result = getName();
-        if (this.parent != null) {
-            result = parent.getName() + ": " + result;
-        }
-        return result;
     }
 
     public Collection<InputNode> getNodes() {
@@ -192,8 +259,11 @@ public class InputGraph extends Properties.Entity {
     }
 
     public void addEdge(InputEdge c) {
-        assert !edges.contains(c);
-        edges.add(c);
+        
+        // Be tolerant with duplicated edges.
+        if(!edges.contains(c)) {
+            edges.add(c);
+        }
         assert edges.contains(c);
     }
 
@@ -214,35 +284,22 @@ public class InputGraph extends Properties.Entity {
             sb.append(c.toString());
             sb.append("\n");
         }
+
+        for (InputBlock b : getBlocks()) {
+            sb.append(b.toString());
+            sb.append("\n");
+        }
+
         return sb.toString();
     }
 
-    public void addBlock(InputBlock b) {
+    public InputBlock addBlock(String name) {
+        final InputBlock b = new InputBlock(this, name);
         blocks.put(b.getName(), b);
-        for (InputNode n : b.getNodes()) {
-            this.nodeToBlock.put(n.getId(), b);
-        }
-    }
-
-    public void resolveBlockLinks() {
-        for (InputBlock b : blocks.values()) {
-            b.resolveBlockLinks();
-        }
-    }
-
-    public void setName(String s) {
-        getProperties().setProperty("name", s);
+        return b;
     }
 
     public InputBlock getBlock(String s) {
         return blocks.get(s);
-    }
-
-    public boolean isDifferenceGraph() {
-        return this.isDifferenceGraph;
-    }
-
-    public void setIsDifferenceGraph(boolean b) {
-        isDifferenceGraph = b;
     }
 }

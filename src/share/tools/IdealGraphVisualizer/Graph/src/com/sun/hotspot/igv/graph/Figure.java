@@ -23,16 +23,21 @@
  */
 package com.sun.hotspot.igv.graph;
 
+import com.sun.hotspot.igv.data.InputBlock;
+import com.sun.hotspot.igv.data.Source;
+import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.layout.Cluster;
 import com.sun.hotspot.igv.layout.Vertex;
 import com.sun.hotspot.igv.data.Properties;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -44,9 +49,11 @@ import java.util.Set;
  */
 public class Figure extends Properties.Entity implements Source.Provider, Vertex {
 
-    public static final int INSET = 6;
-    public static final int SLOT_WIDTH = 10;
-    public static final int SLOT_START = 3;
+    public static final int INSET = 12;
+    public static int SLOT_WIDTH = 12;
+    public static final int OVERLAPPING = 6;
+    public static final int SLOT_START = 4;
+    public static final int SLOT_OFFSET = 8;
     public static final boolean VERTICAL_LAYOUT = true;
     protected List<InputSlot> inputSlots;
     protected List<OutputSlot> outputSlots;
@@ -66,12 +73,31 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         if (heightCash == -1) {
             BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
-            g.setFont(diagram.getFont());
+            g.setFont(diagram.getFont().deriveFont(Font.BOLD));
             FontMetrics metrics = g.getFontMetrics();
             String nodeText = diagram.getNodeText();
             heightCash = nodeText.split("\n").length * metrics.getHeight() + INSET;
         }
         return heightCash;
+    }
+    
+    public static <T> List<T> getAllBefore(List<T> inputList, T tIn) {
+        List<T> result = new ArrayList<T>();
+        for(T t : inputList) {
+            if(t.equals(tIn)) {
+                break;
+            }
+            result.add(t);
+        }
+        return result;
+    }
+    
+    public static int getSlotsWidth(Collection<? extends Slot> slots) {
+        int result = Figure.SLOT_OFFSET;
+        for(Slot s : slots) {
+            result += s.getWidth() + Figure.SLOT_OFFSET;
+        }
+        return result;
     }
 
     public int getWidth() {
@@ -79,15 +105,17 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
             int max = 0;
             BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
-            g.setFont(diagram.getFont());
+            g.setFont(diagram.getFont().deriveFont(Font.BOLD));
             FontMetrics metrics = g.getFontMetrics();
-            for (String s : lines) {
+            for (String s : getLines()) {
                 int cur = metrics.stringWidth(s);
                 if (cur > max) {
                     max = cur;
                 }
             }
             widthCash = max + INSET;
+            widthCash = Math.max(widthCash, Figure.getSlotsWidth(inputSlots));
+            widthCash = Math.max(widthCash, Figure.getSlotsWidth(outputSlots));
         }
         return widthCash;
     }
@@ -221,6 +249,13 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     public List<InputSlot> getInputSlots() {
         return Collections.unmodifiableList(inputSlots);
     }
+    
+    public Set<Slot> getSlots() {
+        Set<Slot> result = new HashSet<Slot>();
+        result.addAll(getInputSlots());
+        result.addAll(getOutputSlots());
+        return result;
+    }
 
     public List<OutputSlot> getOutputSlots() {
         return Collections.unmodifiableList(outputSlots);
@@ -248,13 +283,13 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         String[] result = new String[strings.length];
 
         for (int i = 0; i < strings.length; i++) {
-            result[i] = resolveString(strings[i]);
+            result[i] = resolveString(strings[i], getProperties());
         }
 
         lines = result;
     }
 
-    private String resolveString(String string) {
+    public static final String resolveString(String string, Properties properties) {
 
         StringBuilder sb = new StringBuilder();
         boolean inBrackets = false;
@@ -264,7 +299,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
             char c = string.charAt(i);
             if (inBrackets) {
                 if (c == ']') {
-                    String value = getProperties().get(curIdent.toString());
+                    String value = properties.get(curIdent.toString());
                     if (value == null) {
                         value = "";
                     }
@@ -289,10 +324,12 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     public Dimension getSize() {
         if (VERTICAL_LAYOUT) {
             int width = Math.max(getWidth(), Figure.SLOT_WIDTH * (Math.max(inputSlots.size(), outputSlots.size()) + 1));
-            int height = getHeight() + 2 * Figure.SLOT_WIDTH;
+            int height = getHeight() + 2 * Figure.SLOT_WIDTH - 2 * Figure.OVERLAPPING;
+            
+            
             return new Dimension(width, height);
         } else {
-            int width = getWidth() + 2 * Figure.SLOT_WIDTH;
+            int width = getWidth() + 2 * Figure.SLOT_WIDTH - 2*Figure.OVERLAPPING;
             int height = Figure.SLOT_WIDTH * (Math.max(inputSlots.size(), outputSlots.size()) + 1);
             return new Dimension(width, height);
         }
@@ -308,15 +345,19 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
             assert false : "Should never reach here, every figure must have at least one source node!";
             return null;
         } else {
-            Cluster result = diagram.getBlock(diagram.getGraph().getBlock(getSource().getSourceNodes().get(0)));
+            final InputBlock inputBlock = diagram.getGraph().getBlock(getSource().getSourceNodes().get(0));
+            assert inputBlock != null;
+            Cluster result = diagram.getBlock(inputBlock);
             assert result != null;
             return result;
         }
     }
 
     public boolean isRoot() {
-        if (source.getSourceNodes().size() > 0 && source.getSourceNodes().get(0).getProperties().get("name").equals("Root")) {
-            return true;
+  
+        List<InputNode> sourceNodes = source.getSourceNodes();
+        if (sourceNodes.size() > 0 && sourceNodes.get(0).getProperties().get("name") != null) {
+            return source.getSourceNodes().get(0).getProperties().get("name").equals("Root");
         } else {
             return false;
         }

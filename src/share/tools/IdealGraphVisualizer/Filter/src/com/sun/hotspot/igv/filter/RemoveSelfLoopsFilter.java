@@ -72,7 +72,7 @@ public class RemoveSelfLoopsFilter extends AbstractFilter {
                     }
 
                     c.getInputSlot().setShortName("O");
-                    c.getInputSlot().setName("Self Loop");
+                    c.getInputSlot().setText("Self Loop");
                 }
             }
         }

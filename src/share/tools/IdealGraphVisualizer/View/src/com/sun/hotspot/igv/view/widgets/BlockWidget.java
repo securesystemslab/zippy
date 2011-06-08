@@ -74,7 +74,7 @@ public class BlockWidget extends Widget {
         g.setColor(titleColor);
         g.setFont(titleFont);
 
-        String s = "B" + blockNode.toString();
+        String s = "B" + blockNode.getName();
         Rectangle2D r1 = g.getFontMetrics().getStringBounds(s, g);
         g.drawString(s, r.x + 5, r.y + (int) r1.getHeight());
         g.setStroke(old);

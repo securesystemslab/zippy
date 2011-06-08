@@ -62,7 +62,7 @@ import org.openide.windows.TopComponent;
 import org.openide.windows.WindowManager;
 
 /**
- *
+ * 
  * @author Thomas Wuerthinger
  */
 public final class OutlineTopComponent extends TopComponent implements ExplorerManager.Provider, LookupListener {
@@ -89,9 +89,9 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private void initListView() {
         manager = new ExplorerManager();
         organizer = new StandardGroupOrganizer();
-        root = new FolderNode("", organizer, new ArrayList<String>(), document.getGroups());
+        root = new FolderNode(document, "", organizer, new ArrayList<String>(), document.getGroups());
         manager.setRootContext(root);
-        ((BeanTreeView) this.jScrollPane1).setRootVisible(false);
+        ((BeanTreeView) this.treeView).setRootVisible(false);
 
         document.getChangedEvent().addListener(new ChangedListener<GraphDocument>() {
 
@@ -122,17 +122,11 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         for (Toolbar tb : ToolbarPool.getDefault().getToolbars()) {
             tb.setVisible(false);
         }
-
-        initOrganizers();
     }
 
     public void setOrganizer(GroupOrganizer organizer) {
         this.organizer = organizer;
         updateStructure();
-    }
-
-    private void initOrganizers() {
-
     }
 
     private void initReceivers() {
@@ -221,6 +215,24 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         return PREFERRED_ID;
     }
 
+    @Override
+    public void requestActive() {
+        super.requestActive();
+        treeView.requestFocus();
+    }
+
+    @Override
+    public boolean requestFocus(boolean temporary) {
+        treeView.requestFocus();
+        return super.requestFocus(temporary);
+    }
+
+    @Override
+    protected boolean requestFocusInWindow(boolean temporary) {
+        treeView.requestFocus();
+        return super.requestFocusInWindow(temporary);
+    }
+
     public void resultChanged(LookupEvent lookupEvent) {
     }
 
@@ -228,7 +240,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     public void readExternal(ObjectInput objectInput) throws IOException, ClassNotFoundException {
         // Not called when user starts application for the first time
         super.readExternal(objectInput);
-        ((BeanTreeView) this.jScrollPane1).setRootVisible(false);
+        ((BeanTreeView) this.treeView).setRootVisible(false);
     }
 
     @Override
@@ -254,18 +266,18 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private void initComponents() {
 
         jPanel2 = new javax.swing.JPanel();
-        jScrollPane1 = new BeanTreeView();
+        treeView = new BeanTreeView();
 
         setLayout(new java.awt.BorderLayout());
 
         jPanel2.setLayout(new java.awt.BorderLayout());
-        jPanel2.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+        jPanel2.add(treeView, java.awt.BorderLayout.CENTER);
 
         add(jPanel2, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane treeView;
     // End of variables declaration//GEN-END:variables
 }

@@ -84,7 +84,7 @@ import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileObject;
 
 /**
- *
+ * 
  * @author Thomas Wuerthinger
  */
 public final class FilterTopComponent extends TopComponent implements LookupListener, ExplorerManager.Provider {
@@ -139,7 +139,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
         if (s != customFilterSetting) {
             FilterChain chain = getFilterChain();
-            chain.beginAtomic();
+            chain.getChangedEvent().beginAtomic();
             List<Filter> toRemove = new ArrayList<Filter>();
             for (Filter f : chain.getFilters()) {
                 if (!s.containsFilter(f)) {
@@ -156,7 +156,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
                 }
             }
 
-            chain.endAtomic();
+            chain.getChangedEvent().endAtomic();
             filterSettingsChangedEvent.fire();
         } else {
             this.updateComboBoxSelection();
@@ -269,8 +269,6 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
     private class FilterChildren extends Children.Keys implements ChangedListener<CheckNode> {
 
-        //private Node[] oldSelection;
-        //private ArrayList<Node> newSelection;
         private HashMap<Object, Node> nodeHash = new HashMap<Object, Node>();
 
         protected Node[] createNodes(Object object) {
@@ -280,7 +278,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
             assert object instanceof Filter;
             Filter filter = (Filter) object;
-            com.sun.hotspot.igv.filterwindow.FilterNode node = new com.sun.hotspot.igv.filterwindow.FilterNode(filter);
+            FilterNode node = new FilterNode(filter);
             node.getSelectionChangedEvent().addListener(this);
             nodeHash.put(object, node);
             return new Node[]{node};
@@ -322,12 +320,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     }
 
     public FilterChain getFilterChain() {
-        return filterChain;/*
-    EditorTopComponent tc = EditorTopComponent.getActive();
-    if (tc == null) {
-    return filterChain;
-    }
-    return tc.getFilterChain();*/
+        return filterChain;
     }
 
     private FilterTopComponent() {
@@ -566,7 +559,6 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         return PREFERRED_ID;
     }
 
-    @Override
     public ExplorerManager getExplorerManager() {
         return manager;
     }
@@ -586,11 +578,6 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
     public void resultChanged(LookupEvent lookupEvent) {
         setChain(Utilities.actionsGlobalContext().lookup(FilterChain.class));
-    /*
-    EditorTopComponent tc = EditorTopComponent.getActive();
-    if (tc != null) {
-    setChain(tc.getFilterChain());
-    }*/
     }
 
     public void setChain(FilterChain chain) {
@@ -607,6 +594,24 @@ public final class FilterTopComponent extends TopComponent implements LookupList
             }
         }
         return fo;
+    }
+
+    @Override
+    public boolean requestFocus(boolean temporary) {
+        view.requestFocus();
+        return super.requestFocus(temporary);
+    }
+
+    @Override
+    protected boolean requestFocusInWindow(boolean temporary) {
+        view.requestFocus();
+        return super.requestFocusInWindow(temporary);
+    }
+
+    @Override
+    public void requestActive() {
+        super.requestActive();
+        view.requestFocus();
     }
 
     @Override

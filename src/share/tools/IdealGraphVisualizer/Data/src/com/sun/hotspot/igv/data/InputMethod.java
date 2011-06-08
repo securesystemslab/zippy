@@ -23,7 +23,6 @@
  */
 package com.sun.hotspot.igv.data;
 
-import com.sun.hotspot.igv.data.Properties;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +40,29 @@ public class InputMethod extends Properties.Entity {
     private InputMethod parentMethod;
     private Group group;
     private List<InputBytecode> bytecodes;
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = result * 31 + bci;
+        result = result * 31 + shortName.hashCode();
+        result = result * 31 + inlined.hashCode();
+        result = result * 31 + bytecodes.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || (!(o instanceof InputMethod))) {
+            return false;
+        }
+
+        final InputMethod im = (InputMethod)o;
+        return name.equals(im.name) && bci == im.bci && shortName.equals(im.shortName) &&
+               inlined.equals(im.inlined) && bytecodes.equals(im.bytecodes);
+    }
+
+
 
     /** Creates a new instance of InputMethod */
     public InputMethod(Group parent, String name, String shortName, int bci) {

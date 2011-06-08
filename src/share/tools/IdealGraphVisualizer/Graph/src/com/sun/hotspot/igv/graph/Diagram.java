@@ -28,6 +28,7 @@ import com.sun.hotspot.igv.data.InputEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;
+import com.sun.hotspot.igv.data.Properties.StringPropertyMatcher;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +36,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,19 +54,26 @@ public class Diagram {
     private int curId;
     private String nodeText;
     private Font font;
+    private Font slotFont;
 
     public Font getFont() {
         return font;
     }
 
+    public Font getSlotFont() {
+        return slotFont;
+    }
+    
     private Diagram() {
         figures = new ArrayList<Figure>();
-        blocks = new HashMap<InputBlock, Block>();
+        blocks = new LinkedHashMap<InputBlock, Block>(8);
         this.nodeText = "";
-        this.font = new Font("Serif", Font.PLAIN, 14);
+        this.font = new Font("Arial", Font.PLAIN, 13);
+        this.slotFont = new Font("Arial", Font.PLAIN, 10);
     }
 
     public Block getBlock(InputBlock b) {
+        assert blocks.containsKey(b);
         return blocks.get(b);
     }
 
@@ -72,12 +81,7 @@ public class Diagram {
         return nodeText;
     }
 
-    public void schedule(Collection<InputBlock> newBlocks) {
-        graph.schedule(newBlocks);
-        updateBlocks();
-    }
-
-    private void updateBlocks() {
+    public void updateBlocks() {
         blocks.clear();
         for (InputBlock b : graph.getBlocks()) {
             Block curBlock = new Block(b, this);
@@ -113,6 +117,22 @@ public class Diagram {
         assert outputSlot.getFigure().getDiagram() == this;
         return new Connection(inputSlot, outputSlot);
     }
+    
+    public Map<InputNode, Set<Figure>> calcSourceToFigureRelation() {
+        Map<InputNode, Set<Figure>> map = new HashMap<InputNode, Set<Figure>>();
+        
+        for(InputNode node : this.getGraph().getNodes()) {
+            map.put(node, new HashSet<Figure>());
+        }
+        
+        for(Figure f : this.getFigures()) {
+            for(InputNode node : f.getSource().getSourceNodes()) {
+                map.get(node).add(f);
+            }
+        }
+        
+        return map;
+    }
 
     public static Diagram createDiagram(InputGraph graph, String nodeText) {
         if (graph == null) {
@@ -126,7 +146,7 @@ public class Diagram {
         d.updateBlocks();
 
         Collection<InputNode> nodes = graph.getNodes();
-        HashMap<Integer, Figure> figureHash = new HashMap<Integer, Figure>();
+        Hashtable<Integer, Figure> figureHash = new Hashtable<Integer, Figure>();
         for (InputNode n : nodes) {
             Figure f = d.createFigure();
             f.getSource().addSourceNode(n);
@@ -141,6 +161,8 @@ public class Diagram {
             Figure fromFigure = figureHash.get(from);
             Figure toFigure = figureHash.get(to);
             assert fromFigure != null && toFigure != null;
+            
+            if(fromFigure == null || toFigure == null) continue;
 
             int fromIndex = e.getFromIndex();
             while (fromFigure.getOutputSlots().size() <= fromIndex) {
@@ -230,9 +252,9 @@ public class Diagram {
 
     public Figure getRootFigure() {
         Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<Figure>(figures);
-        Figure root = selector.selectSingle("name", "Root");
+        Figure root = selector.selectSingle(new StringPropertyMatcher("name", "Root"));
         if (root == null) {
-            root = selector.selectSingle("name", "Start");
+            root = selector.selectSingle(new StringPropertyMatcher("name", "Start"));
         }
         if (root == null) {
             List<Figure> rootFigures = getRootFigures();

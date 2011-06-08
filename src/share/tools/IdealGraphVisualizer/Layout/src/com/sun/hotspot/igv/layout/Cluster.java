@@ -37,6 +37,4 @@ public interface Cluster extends Comparable<Cluster> {
     public void setBounds(Rectangle r);
 
     public Set<? extends Cluster> getSuccessors();
-
-    public Set<? extends Cluster> getPredecessors();
 }

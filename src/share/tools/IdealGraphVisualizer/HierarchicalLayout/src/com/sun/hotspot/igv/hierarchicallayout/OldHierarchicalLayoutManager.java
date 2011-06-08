@@ -754,7 +754,6 @@ public class OldHierarchicalLayoutManager implements LayoutManager {
 
     private void assignCoordinates(ArrayList<Node<NodeData, EdgeData>> layers[]) {
 
-        // TODO: change this
         for (int i = 0; i < layers.length; i++) {
             ArrayList<Node<NodeData, EdgeData>> curArray = layers[i];
             int curY = 0;

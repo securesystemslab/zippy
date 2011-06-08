@@ -116,7 +116,7 @@ public class HierarchicalClusterLayoutManager implements LayoutManager {
 
         for (Vertex v : graph.getVertices()) {
             Cluster c = v.getCluster();
-            assert c != null;
+            assert c != null : "Cluster of vertex " + v + " is null!";
             clusterNodes.get(c).addSubNode(v);
         }
 

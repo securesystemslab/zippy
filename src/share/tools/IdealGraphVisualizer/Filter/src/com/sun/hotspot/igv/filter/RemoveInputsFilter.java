@@ -73,7 +73,7 @@ public class RemoveInputsFilter extends AbstractFilter {
                         }
                         is.removeAllConnections();
                         is.setShortName("X");
-                        is.setName(sb.toString());
+                        is.setText(sb.toString());
                         last.add(is);
                     } else {
                         last.clear();
@@ -91,10 +91,10 @@ public class RemoveInputsFilter extends AbstractFilter {
                         if (i != 0) {
                             sb.append("<BR>");
                         }
-                        sb.append(is2.getName());
+                        sb.append(is2.getText());
                     }
 
-                    first.setName(sb.toString());
+                    first.setText(sb.toString());
 
                     for (int i = 1; i < last.size(); i++) {
                         f.removeSlot(last.get(i));
