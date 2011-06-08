@@ -47,7 +47,7 @@ public class BlockWidget extends LabelWidget implements Vertex {
     private Port outputSlot;
     private Cluster cluster;
     private boolean root;
-    private static final Font font = new Font(Font.SERIF, Font.PLAIN, 12);
+    private static final Font font = new Font("Serif", Font.PLAIN, 12);
     private static final Font boldFont = font.deriveFont(Font.BOLD);
     public static final Color NORMAL_FOREGROUND_COLOR = Color.BLACK;
     public static final Color HOVER_FOREGROUND_COLOR = Color.BLUE;

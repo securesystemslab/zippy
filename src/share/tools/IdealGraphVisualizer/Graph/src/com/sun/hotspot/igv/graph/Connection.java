@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.graph;
 
+import com.sun.hotspot.igv.data.Source;
 import com.sun.hotspot.igv.layout.Link;
 import com.sun.hotspot.igv.layout.Port;
 import java.awt.Color;
@@ -31,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
+ * 
  * @author Thomas Wuerthinger
  */
 public class Connection implements Source.Provider, Link {
@@ -99,6 +100,10 @@ public class Connection implements Source.Provider, Link {
         outputSlot.getFigure().removeSuccessor(inputSlot.getFigure());
         outputSlot.connections.remove(this);
     }
+    
+    public String getToolTipText() {
+        return "From " + this.getOutputSlot().getFigure().toString() + " to " + this.getInputSlot().getFigure();
+    }
 
     @Override
     public String toString() {
@@ -121,3 +126,4 @@ public class Connection implements Source.Provider, Link {
         controlPoints = list;
     }
 }
+

@@ -24,16 +24,17 @@
 package com.sun.hotspot.igv.data;
 
 /**
- *
+ * Class representing a generic changed event.
  * @author Thomas Wuerthinger
+ * @param <T>
  */
 public class ChangedEvent<T> extends Event<ChangedListener<T>> {
 
     private T object;
 
-    public ChangedEvent() {
-    }
-
+    /**
+     * Creates a new event with the specific object as the one for which the event gets fired.
+     */
     public ChangedEvent(T object) {
         this.object = object;
     }

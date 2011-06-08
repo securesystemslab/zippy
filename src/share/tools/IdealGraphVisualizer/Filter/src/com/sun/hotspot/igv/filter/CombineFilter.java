@@ -77,7 +77,7 @@ public class CombineFilter extends AbstractFilter {
                         }
 
                         assert slot != null;
-                        slot.setName(f.getProperties().get("dump_spec"));
+                        slot.setText(f.getProperties().get("dump_spec"));
                         if (f.getProperties().get("short_name") != null) {
                             slot.setShortName(f.getProperties().get("short_name"));
                         } else {
@@ -122,7 +122,7 @@ public class CombineFilter extends AbstractFilter {
                                     pos = Integer.parseInt(succ.getProperties().get("con"));
                                 }
                                 OutputSlot slot = f.createOutputSlot(pos);
-                                slot.setName(succ.getProperties().get("dump_spec"));
+                                slot.setText(succ.getProperties().get("dump_spec"));
                                 if (succ.getProperties().get("short_name") != null) {
                                     slot.setShortName(succ.getProperties().get("short_name"));
                                 } else {

@@ -12,7 +12,7 @@
     <attr name="Actions\Edit\org-openide-actions-RedoAction.instance\position" intvalue="1900"/>
     <attr name="Actions\Edit\org-openide-actions-ReplaceAction.instance\position" intvalue="2000"/>
     <attr name="Actions\Edit\org-openide-actions-UndoAction.instance\position" intvalue="2100"/>
-
+    
     <folder name="Actions">
         <folder name="File">
             <file name="com-sun-hotspot-igv-coordinator-actions-SaveAsAction.instance">
@@ -26,7 +26,7 @@
             </file>
         </folder>
         <folder name="Edit">
-
+            
             <file name="com-sun-hotspot-igv-coordinator-actions-RemoveAction.instance">
                 <attr name="position" intvalue="1200"/>
             </file>
@@ -57,7 +57,7 @@
                 <attr name="instanceClass" stringvalue="javax.swing.JSeparator"/>
                 <attr name="position" intvalue="500"/>
             </file>
-
+            
             <file name="org-netbeans-modules-openfile-OpenFileAction.instance_hidden"/>
             <file name="org-openide-actions-PageSetupAction.instance_hidden"/>
             <file name="org-openide-actions-PrintAction.instance_hidden"/>
@@ -98,13 +98,22 @@
         </folder>
     </folder>
     <folder name="Toolbars">
-        <file name="Standard.xml" url="StandardConfiguration.xml"/>
+        
+        <folder name="QuickSearch">
+            <attr name="SystemFileSystem.localizingBundle" stringvalue="com.sun.hotspot.igv.coordinator.Bundle"/>
+            <file name="org-netbeans-modules-quicksearch-QuickSearchAction.shadow">
+                <attr name="originalFile"
+                stringvalue="Actions/Edit/org-netbeans-modules-quicksearch-QuickSearchAction.instance"/>
+            </file>
+        </folder>
+        <!--<file name="Standard.xml" url="StandardConfiguration.xml"/>-->
+
     </folder>
     <folder name="Windows2">
         <folder name="Components">
             <file name="OutlineTopComponent.settings" url="OutlineTopComponentSettings.xml"/>
         </folder>
-        <folder name="Modes">
+        <folder name="Modes">  
             <file name="customLeft.wsmode" url="customLeftWsmode.xml"/>
             <folder name="customLeft">
                 <file name="OutlineTopComponent.wstcref" url="OutlineTopComponentWstcref.xml"/>

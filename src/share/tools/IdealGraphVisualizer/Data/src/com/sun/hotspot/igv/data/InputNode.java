@@ -23,6 +23,8 @@
  */
 package com.sun.hotspot.igv.data;
 
+import java.util.Comparator;
+
 /**
  *
  * @author Thomas Wuerthinger
@@ -30,6 +32,34 @@ package com.sun.hotspot.igv.data;
 public class InputNode extends Properties.Entity {
 
     private int id;
+
+    public static final Comparator<InputNode> COMPARATOR = new Comparator<InputNode>() {
+        public int compare(InputNode o1, InputNode o2) {
+            return o1.getId() - o2.getId();
+        }
+    };
+
+    public static Comparator<InputNode> getPropertyComparator(final String propertyName) {
+        return new Comparator<InputNode>() {
+
+            public int compare(InputNode o1, InputNode o2) {
+
+                int i1 = 0;
+                try {
+                    i1 = Integer.parseInt(o1.getProperties().get(propertyName));
+                } catch(NumberFormatException e) {
+                }
+
+                int i2 = 0;
+                try {
+                    i2 = Integer.parseInt(o2.getProperties().get(propertyName));
+                } catch(NumberFormatException e) {
+                }
+
+                return i1 - i2;
+            }
+        };
+    }
 
     public InputNode(InputNode n) {
         super(n);
@@ -55,15 +85,12 @@ public class InputNode extends Properties.Entity {
             return false;
         }
         InputNode n = (InputNode) o;
-        if (n.id != id) {
-            return false;
-        }
-        return getProperties().equals(n.getProperties());
+        return n.id == id;
     }
 
     @Override
     public int hashCode() {
-        return id;
+        return id * 13;
     }
 
     @Override

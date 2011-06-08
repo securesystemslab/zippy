@@ -24,16 +24,16 @@
 package com.sun.hotspot.igv.controlflow;
 
 import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputBlockEdge;
+import com.sun.hotspot.igv.controlflow.InputBlockEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import com.sun.hotspot.igv.data.InputNode;
+import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.HashMap;
 import java.util.Set;
 import javax.swing.BorderFactory;
 import org.netbeans.api.visual.action.ActionFactory;
@@ -52,7 +52,7 @@ import org.netbeans.api.visual.graph.GraphScene;
 import org.netbeans.api.visual.graph.layout.GraphLayout;
 import org.netbeans.api.visual.layout.SceneLayout;
 import org.netbeans.api.visual.widget.ConnectionWidget;
-import org.openide.util.Lookup;
+import org.openide.util.Utilities;
 
 /**
  *
@@ -61,7 +61,6 @@ import org.openide.util.Lookup;
 public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> implements SelectProvider, MoveProvider, RectangularSelectDecorator, RectangularSelectProvider {
 
     private HashSet<BlockWidget> selection;
-    private HashMap<InputBlock, BlockWidget> blockMap;
     private InputGraph oldGraph;
     private LayerWidget edgeLayer;
     private LayerWidget mainLayer;
@@ -81,7 +80,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
 
         edgeLayer = new LayerWidget(this);
         this.addChild(edgeLayer);
-
+        
         selectLayer = new LayerWidget(this);
         this.addChild(selectLayer);
 
@@ -112,7 +111,8 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         }
 
         for (InputBlock b : g.getBlocks()) {
-            for (InputBlockEdge e : b.getOutputs()) {
+            for (InputBlock succ : b.getSuccessors()) {
+                final InputBlockEdge e = new InputBlockEdge(b, succ);
                 addEdge(e);
                 assert g.getBlocks().contains(e.getFrom());
                 assert g.getBlocks().contains(e.getTo());
@@ -128,10 +128,6 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         this.validate();
     }
 
-    public BlockWidget getBlockWidget(InputBlock b) {
-        return blockMap.get(b);
-    }
-
     public void clearSelection() {
         for (BlockWidget w : selection) {
             w.setState(w.getState().deriveSelected(false));
@@ -141,7 +137,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
     }
 
     public void selectionChanged() {
-        InputGraphProvider p = Lookup.getDefault().lookup(InputGraphProvider.class);
+        InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//)Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
         if (p != null) {
             Set<InputNode> inputNodes = new HashSet<InputNode>();
             for (BlockWidget w : selection) {

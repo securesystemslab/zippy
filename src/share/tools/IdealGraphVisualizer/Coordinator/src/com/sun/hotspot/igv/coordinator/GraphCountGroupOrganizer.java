@@ -49,7 +49,7 @@ public class GraphCountGroupOrganizer implements GroupOrganizer {
         List<Pair<String, List<Group>>> result = new ArrayList<Pair<String, List<Group>>>();
 
         if (subFolders.size() == 0) {
-            Map<Integer, List<Group>> map = new HashMap<Integer, List<Group>>();
+            Map<Integer, List<Group>> map = new HashMap<Integer, List<Group>>(groups.size());
             for (Group g : groups) {
                 Integer cur = g.getGraphs().size();
                 if (!map.containsKey(cur)) {

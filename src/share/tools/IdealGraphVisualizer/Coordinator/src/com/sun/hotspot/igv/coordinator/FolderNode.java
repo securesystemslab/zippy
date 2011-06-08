@@ -25,6 +25,7 @@ package com.sun.hotspot.igv.coordinator;
 
 import com.sun.hotspot.igv.coordinator.actions.RemoveCookie;
 import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.services.GroupOrganizer;
 import com.sun.hotspot.igv.data.InputGraph;
@@ -55,6 +56,11 @@ public class FolderNode extends AbstractNode {
 
         private FolderNode parent;
         private List<Group> registeredGroups;
+        private GraphDocument document;
+
+        public FolderChildren(GraphDocument document) {
+            this.document = document;
+        }
 
         public void setParent(FolderNode parent) {
             this.parent = parent;
@@ -68,7 +74,7 @@ public class FolderNode extends AbstractNode {
                 g.getChangedEvent().removeListener(this);
             }
             registeredGroups.clear();
-
+            
             Pair<String, List<Group>> p = (Pair<String, List<Group>>) arg0;
             if (p.getLeft().length() == 0) {
 
@@ -88,7 +94,7 @@ public class FolderNode extends AbstractNode {
                 return result;
 
             } else {
-                return new Node[]{new FolderNode(p.getLeft(), parent.organizer, parent.subFolders, p.getRight())};
+                return new Node[]{new FolderNode(document, p.getLeft(), parent.organizer, parent.subFolders, p.getRight())};
             }
         }
 
@@ -96,13 +102,12 @@ public class FolderNode extends AbstractNode {
         public void addNotify() {
             this.setKeys(parent.structure);
         }
-
+        
         public void changed(Group source) {
-            List<Pair<String, List<Group>>> newStructure = new ArrayList<Pair<String, List<Group>>>();
             for(Pair<String, List<Group>> p : parent.structure) {
                 refreshKey(p);
             }
-        }
+         }
     }
 
     protected InstanceContent getContent() {
@@ -114,11 +119,11 @@ public class FolderNode extends AbstractNode {
         return Utilities.loadImage("com/sun/hotspot/igv/coordinator/images/folder.gif");
     }
 
-    protected FolderNode(String name, GroupOrganizer organizer, List<String> subFolders, List<Group> groups) {
-        this(name, organizer, subFolders, groups, new FolderChildren(), new InstanceContent());
+    protected FolderNode(GraphDocument document, String name, GroupOrganizer organizer, List<String> subFolders, List<Group> groups) {
+        this(document, name, organizer, subFolders, groups, new FolderChildren(document), new InstanceContent());
     }
 
-    private FolderNode(String name, GroupOrganizer organizer, List<String> oldSubFolders, final List<Group> groups, FolderChildren children, InstanceContent content) {
+    private FolderNode(final GraphDocument document, String name, GroupOrganizer organizer, List<String> oldSubFolders, final List<Group> groups, FolderChildren children, InstanceContent content) {
         super(children, new AbstractLookup(content));
         children.setParent(this);
         this.content = content;
@@ -127,9 +132,8 @@ public class FolderNode extends AbstractNode {
 
             public void remove() {
                 for (Group g : groups) {
-                    if (g.getDocument() != null) {
-                        g.getDocument().removeGroup(g);
-                    }
+                    document.removeGroup(g);
+                    
                 }
             }
         });
