@@ -542,7 +542,10 @@ public class ServerCompilerScheduler implements Scheduler {
 
         for (Node n : nodes) {
             InputNode inputNode = n.inputNode;
-            if (inputNode.getProperties().get("name").equals("Root")) {
+            if(inputNode.getProperties().get("name") == null) {
+                System.out.println("NO name !! " + inputNode);
+            }
+            if (inputNode != null && inputNode.getProperties().get("name") != null && inputNode.getProperties().get("name").equals("Root")) {
                 return n;
             } else if (inputNode.getId() == 0) {
                 // use as fallback in case no root node is found
