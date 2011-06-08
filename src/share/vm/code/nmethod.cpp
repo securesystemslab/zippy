@@ -818,8 +818,8 @@ nmethod::nmethod(
     // Exception handler and deopt handler are in the stub section
     assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
     assert(offsets->value(CodeOffsets::Deopt     ) != -1, "must be set");
-    if (UseC1X) {
-      // c1x produces no (!) stub section
+    if (UseGraal) {
+      // graal produces no (!) stub section
       _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
       _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
       if (offsets->value(CodeOffsets::DeoptMH) != -1) {
@@ -2301,7 +2301,7 @@ void nmethod::verify_scopes() {
         // information in a table.
         break;
     }
-    assert(UseC1X || stub == NULL || stub_contains(stub), "static call stub outside stub section");
+    assert(UseGraal || stub == NULL || stub_contains(stub), "static call stub outside stub section");
   }
 }
 

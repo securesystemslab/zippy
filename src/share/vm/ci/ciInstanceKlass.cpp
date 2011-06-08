@@ -64,7 +64,7 @@ ciInstanceKlass::ciInstanceKlass(KlassHandle h_k) :
   }
 
   Thread *thread = Thread::current();
-  if (ciObjectFactory::is_initialized() && !UseC1X) {
+  if (ciObjectFactory::is_initialized() && !UseGraal) {
     _loader = JNIHandles::make_local(thread, ik->class_loader());
     _protection_domain = JNIHandles::make_local(thread, ik->protection_domain());
     _is_shared = false;

@@ -592,8 +592,8 @@ void Runtime1::initialize_pd() {
 
 OopMapSet* Runtime1::generate_exception_throw(StubAssembler* sasm, address target, bool has_argument) {
   OopMapSet* oop_maps = new OopMapSet();
-  if (UseC1X) {
-    // c1x passes the argument in r10
+  if (UseGraal) {
+    // graal passes the argument in r10
     OopMap* oop_map = save_live_registers(sasm, 1);
 
     // now all registers are saved and can be used freely
@@ -772,7 +772,7 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
   return oop_maps;
 }
 
-void Runtime1::c1x_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map) {
+void Runtime1::graal_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map) {
   NOT_LP64(fatal("64 bit only"));
   // incoming parameters
   const Register exception_oop = j_rarg0;
@@ -780,7 +780,7 @@ void Runtime1::c1x_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop
   const Register exception_pc = j_rarg1;
   const Register thread = r15_thread;
 
-  __ block_comment("c1x_generate_handle_exception");
+  __ block_comment("graal_generate_handle_exception");
 
   // verify that rax, contains a valid exception
   __ verify_not_null_oop(exception_oop);
@@ -1047,7 +1047,7 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
   return oop_maps;
 }
 
-JRT_ENTRY(void, c1x_create_null_exception(JavaThread* thread))
+JRT_ENTRY(void, graal_create_null_exception(JavaThread* thread))
   thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
 JRT_END
 
@@ -1346,8 +1346,8 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         // will be place in C abi locations
 
 #ifdef _LP64
-        __ verify_oop((UseC1X) ? j_rarg0 : c_rarg0);
-        __ mov(rax, (UseC1X) ? j_rarg0 : c_rarg0);
+        __ verify_oop((UseGraal) ? j_rarg0 : c_rarg0);
+        __ mov(rax, (UseGraal) ? j_rarg0 : c_rarg0);
 #else
         // The object is passed on the stack and we haven't pushed a
         // frame yet so it's one work away from top of stack.
@@ -1480,7 +1480,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
         Label success;
         Label miss;
-        if (UseC1X) {
+        if (UseGraal) {
           // TODO this should really be within the XirSnippets
           __ check_klass_subtype_fast_path(rsi, rax, rcx, &success, &miss, NULL);
         };
@@ -1886,7 +1886,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
 #endif // !SERIALGC
 
-    case c1x_unwind_exception_call_id: {
+    case graal_unwind_exception_call_id: {
       // remove the frame from the stack
       __ movptr(rsp, rbp);
       __ pop(rbp);
@@ -1900,7 +1900,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ enter();
         oop_maps = new OopMapSet();
         OopMap* oop_map = save_live_registers(sasm, 0);
-        int call_offset = __ call_RT(rax, noreg, (address)c1x_create_null_exception, 0);
+        int call_offset = __ call_RT(rax, noreg, (address)graal_create_null_exception, 0);
         oop_maps->add_gc_map(call_offset, oop_map);
         __ leave();
       }
@@ -1914,15 +1914,15 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
-    case c1x_handle_exception_id: {
-      StubFrame f(sasm, "c1x_handle_exception", dont_gc_arguments);
+    case graal_handle_exception_id: {
+      StubFrame f(sasm, "graal_handle_exception", dont_gc_arguments);
       oop_maps = new OopMapSet();
       OopMap* oop_map = save_live_registers(sasm, 1, false);
-      c1x_generate_handle_exception(sasm, oop_maps, oop_map);
+      graal_generate_handle_exception(sasm, oop_maps, oop_map);
       break;
     }
 
-    case c1x_slow_subtype_check_id: {
+    case graal_slow_subtype_check_id: {
       Label success;
       Label miss;
 
@@ -1941,13 +1941,13 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
-    case c1x_verify_pointer_id: {
-      __ verify_oop(r13, "c1x verify pointer");
+    case graal_verify_pointer_id: {
+      __ verify_oop(r13, "graal verify pointer");
       __ ret(0);
       break;
     }
 
-    case c1x_arithmetic_frem_id: {
+    case graal_arithmetic_frem_id: {
       __ subptr(rsp, 8);
       __ movflt(Address(rsp, 0), xmm1);
       __ fld_s(Address(rsp, 0));
@@ -1968,7 +1968,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       __ ret(0);
       break;
     }
-    case c1x_arithmetic_drem_id: {
+    case graal_arithmetic_drem_id: {
       __ subptr(rsp, 8);
       __ movdbl(Address(rsp, 0), xmm1);
       __ fld_d(Address(rsp, 0));
@@ -1989,7 +1989,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       __ ret(0);
       break;
     }
-    case c1x_monitorenter_id: {
+    case graal_monitorenter_id: {
       Label slow_case;
 
       Register obj = j_rarg0;
@@ -2008,7 +2008,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
       __ bind(slow_case);
       {
-        StubFrame f(sasm, "c1x_monitorenter", dont_gc_arguments);
+        StubFrame f(sasm, "graal_monitorenter", dont_gc_arguments);
         OopMap* map = save_live_registers(sasm, 1, save_fpu_registers);
 
         // Called with store_parameter and not C abi
@@ -2021,7 +2021,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       __ ret(0);
       break;
     }
-    case c1x_monitorexit_id: {
+    case graal_monitorexit_id: {
       Label slow_case;
 
       Register obj = j_rarg0;
@@ -2042,7 +2042,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
       __ bind(slow_case);
       {
-        StubFrame f(sasm, "c1x_monitorexit", dont_gc_arguments);
+        StubFrame f(sasm, "graal_monitorexit", dont_gc_arguments);
         OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
         // note: really a leaf routine but must setup last java sp

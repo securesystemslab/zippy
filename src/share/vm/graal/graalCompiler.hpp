@@ -23,22 +23,22 @@
 
 #include "compiler/abstractCompiler.hpp"
 
-class C1XCompiler : public AbstractCompiler {
+class GraalCompiler : public AbstractCompiler {
 
 private:
 
   bool                  _initialized;
 
-  static C1XCompiler*   _instance;
+  static GraalCompiler*   _instance;
 
 public:
 
-  C1XCompiler();
+  GraalCompiler();
 
-  static C1XCompiler* instance() { return _instance; }
+  static GraalCompiler* instance() { return _instance; }
 
 
-  virtual const char* name() { return "C1X"; }
+  virtual const char* name() { return "G"; }
 
   // Native / OSR not supported
   virtual bool supports_native()                 { return false; }
@@ -79,19 +79,19 @@ private:
 
 // Tracing macros
 
-#define IF_TRACE_C1X_1 if (!(TraceC1X >= 1)) ; else
-#define IF_TRACE_C1X_2 if (!(TraceC1X >= 2)) ; else
-#define IF_TRACE_C1X_3 if (!(TraceC1X >= 3)) ; else
-#define IF_TRACE_C1X_4 if (!(TraceC1X >= 4)) ; else
-#define IF_TRACE_C1X_5 if (!(TraceC1X >= 5)) ; else
+#define IF_TRACE_graal_1 if (!(Tracegraal >= 1)) ; else
+#define IF_TRACE_graal_2 if (!(Tracegraal >= 2)) ; else
+#define IF_TRACE_graal_3 if (!(Tracegraal >= 3)) ; else
+#define IF_TRACE_graal_4 if (!(Tracegraal >= 4)) ; else
+#define IF_TRACE_graal_5 if (!(Tracegraal >= 5)) ; else
 
 // using commas and else to keep one-instruction semantics
 
-#define TRACE_C1X_1 if (!(TraceC1X >= 1 && (tty->print("TraceC1X-1: "), true))) ; else tty->print_cr
-#define TRACE_C1X_2 if (!(TraceC1X >= 2 && (tty->print("   TraceC1X-2: "), true))) ; else tty->print_cr
-#define TRACE_C1X_3 if (!(TraceC1X >= 3 && (tty->print("      TraceC1X-3: "), true))) ; else tty->print_cr
-#define TRACE_C1X_4 if (!(TraceC1X >= 4 && (tty->print("         TraceC1X-4: "), true))) ; else tty->print_cr
-#define TRACE_C1X_5 if (!(TraceC1X >= 5 && (tty->print("            TraceC1X-5: "), true))) ; else tty->print_cr
+#define TRACE_graal_1 if (!(Tracegraal >= 1 && (tty->print("Tracegraal-1: "), true))) ; else tty->print_cr
+#define TRACE_graal_2 if (!(Tracegraal >= 2 && (tty->print("   Tracegraal-2: "), true))) ; else tty->print_cr
+#define TRACE_graal_3 if (!(Tracegraal >= 3 && (tty->print("      Tracegraal-3: "), true))) ; else tty->print_cr
+#define TRACE_graal_4 if (!(Tracegraal >= 4 && (tty->print("         Tracegraal-4: "), true))) ; else tty->print_cr
+#define TRACE_graal_5 if (!(Tracegraal >= 5 && (tty->print("            Tracegraal-5: "), true))) ; else tty->print_cr
 
 
 

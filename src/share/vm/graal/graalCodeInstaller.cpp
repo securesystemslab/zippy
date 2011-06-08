@@ -22,10 +22,10 @@
  */
 
 #include "precompiled.hpp"
-#include "c1x/c1x_Compiler.hpp"
-#include "c1x/c1x_CodeInstaller.hpp"
-#include "c1x/c1x_JavaAccess.hpp"
-#include "c1x/c1x_VmIds.hpp"
+#include "graal/graalCompiler.hpp"
+#include "graal/graalCodeInstaller.hpp"
+#include "graal/graalJavaAccess.hpp"
+#include "graal/graalVmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "vmreg_x86.inline.hpp"
@@ -40,14 +40,14 @@ const static int NUM_XMM_REGS = sizeof(XMM_REGS) / sizeof(XMMRegister);
 const static int NUM_REGS = NUM_CPU_REGS + NUM_XMM_REGS;
 const static jlong NO_REF_MAP = 0x8000000000000000L;
 
-// convert c1x register indices (as used in oop maps) to hotspot registers
-VMReg get_hotspot_reg(jint c1x_reg) {
+// convert graal register indices (as used in oop maps) to hotspot registers
+VMReg get_hotspot_reg(jint graal_reg) {
 
-  assert(c1x_reg >= 0 && c1x_reg < NUM_REGS, "invalid register number");
-  if (c1x_reg < NUM_CPU_REGS) {
-    return CPU_REGS[c1x_reg]->as_VMReg();
+  assert(graal_reg >= 0 && graal_reg < NUM_REGS, "invalid register number");
+  if (graal_reg < NUM_CPU_REGS) {
+    return CPU_REGS[graal_reg]->as_VMReg();
   } else {
-    return XMM_REGS[c1x_reg - NUM_CPU_REGS]->as_VMReg();
+    return XMM_REGS[graal_reg - NUM_CPU_REGS]->as_VMReg();
   }
 }
 
@@ -105,13 +105,13 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   return map;
 }
 
-// TODO: finish this - c1x doesn't provide any scope values at the moment
+// TODO: finish this - graal doesn't provide any scope values at the moment
 static ScopeValue* get_hotspot_value(oop value, int frame_size) {
   if (value == CiValue::IllegalValue()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
-  BasicType type = C1XCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
+  BasicType type = GraalCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
   Location::Type locationType = Location::normal;
   if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
   if (value->is_a(CiRegisterValue::klass())) {
@@ -172,7 +172,7 @@ CodeInstaller::CodeInstaller(Handle target_method) {
   }
 
   // (very) conservative estimate: each site needs a relocation
-  //CodeBuffer buffer("temp c1x method", _total_size, _sites->length() * relocInfo::length_limit);
+  //CodeBuffer buffer("temp graal method", _total_size, _sites->length() * relocInfo::length_limit);
   CodeBuffer buffer(CompilerThread::current()->get_buffer_blob());
   initialize_buffer(buffer);
   process_exception_handlers();
@@ -180,7 +180,7 @@ CodeInstaller::CodeInstaller(Handle target_method) {
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
   _env->register_method(ciMethodObject, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-      &_implicit_exception_table, C1XCompiler::instance(), _env->comp_level(), false, false);
+      &_implicit_exception_table, GraalCompiler::instance(), _env->comp_level(), false, false);
 
 }
 
@@ -198,7 +198,7 @@ CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
 
   const char* cname = java_lang_String::as_utf8_string(_name);
   BufferBlob* blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
-  IF_TRACE_C1X_3 Disassembler::decode((CodeBlob*) blob);
+  IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
   id = VmIds::addStub(blob->code_begin());
 }
 
@@ -260,16 +260,16 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     jint pc_offset = CiTargetMethod_Site::pcOffset(site);
 
     if (site->is_a(CiTargetMethod_Safepoint::klass())) {
-      TRACE_C1X_4("safepoint at %i", pc_offset);
+      TRACE_graal_4("safepoint at %i", pc_offset);
       site_Safepoint(buffer, pc_offset, site);
     } else if (site->is_a(CiTargetMethod_Call::klass())) {
-      TRACE_C1X_4("call at %i", pc_offset);
+      TRACE_graal_4("call at %i", pc_offset);
       site_Call(buffer, pc_offset, site);
     } else if (site->is_a(CiTargetMethod_DataPatch::klass())) {
-      TRACE_C1X_4("datapatch at %i", pc_offset);
+      TRACE_graal_4("datapatch at %i", pc_offset);
       site_DataPatch(buffer, pc_offset, site);
     } else if (site->is_a(CiTargetMethod_Mark::klass())) {
-      TRACE_C1X_4("mark at %i", pc_offset);
+      TRACE_graal_4("mark at %i", pc_offset);
       site_Mark(buffer, pc_offset, site);
     } else {
       fatal("unexpected Site subclass");
@@ -411,7 +411,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 
-  if (TraceC1X >= 2) {
+  if (Tracegraal >= 2) {
     tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
   }
 
@@ -427,7 +427,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
     GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
 
-    if (TraceC1X >= 2) {
+    if (Tracegraal >= 2) {
       tty->print_cr("Scope at bci %d with %d values", bci, values->length());
       tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
     }
@@ -493,31 +493,31 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   if (runtime_call != NULL) {
     NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
     if (runtime_call == CiRuntimeCall::Debug()) {
-      TRACE_C1X_3("CiRuntimeCall::Debug()");
+      TRACE_graal_3("CiRuntimeCall::Debug()");
     } else if (runtime_call == CiRuntimeCall::UnwindException()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::c1x_unwind_exception_call_id));
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      TRACE_C1X_3("CiRuntimeCall::UnwindException()");
+      TRACE_graal_3("CiRuntimeCall::UnwindException()");
     } else if (runtime_call == CiRuntimeCall::HandleException()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::c1x_handle_exception_id));
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_handle_exception_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      TRACE_C1X_3("CiRuntimeCall::HandleException()");
+      TRACE_graal_3("CiRuntimeCall::HandleException()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
       call->set_destination((address)os::javaTimeMillis);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      TRACE_C1X_3("CiRuntimeCall::JavaTimeMillis()");
+      TRACE_graal_3("CiRuntimeCall::JavaTimeMillis()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
       call->set_destination((address)os::javaTimeNanos);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      TRACE_C1X_3("CiRuntimeCall::JavaTimeNanos()");
+      TRACE_graal_3("CiRuntimeCall::JavaTimeNanos()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::c1x_arithmetic_frem_id));
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      TRACE_C1X_3("CiRuntimeCall::ArithmeticFrem()");
+      TRACE_graal_3("CiRuntimeCall::ArithmeticFrem()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticDrem()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::c1x_arithmetic_drem_id));
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      TRACE_C1X_3("CiRuntimeCall::ArithmeticDrem()");
+      TRACE_graal_3("CiRuntimeCall::ArithmeticDrem()");
     } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
       call->set_destination(Runtime1::entry_for(Runtime1::register_finalizer_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
@@ -538,7 +538,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       nativeJump_at((address)inst)->set_jump_destination(VmIds::getStub(global_stub));
     }
     _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
-    TRACE_C1X_3("relocating (stub)  at %016x", inst);
+    TRACE_graal_3("relocating (stub)  at %016x", inst);
   } else if (symbol != NULL) {
     fatal("symbol");
   } else { // method != NULL
@@ -551,7 +551,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
     assert(debug_info != NULL, "debug info expected");
 
-    TRACE_C1X_3("method call");
+    TRACE_graal_3("method call");
     switch (_next_call_type) {
       case MARK_INVOKEVIRTUAL:
       case MARK_INVOKEINTERFACE: {
@@ -621,7 +621,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       *((jint*) operand) = (jint) disp;
 
       _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
-      TRACE_C1X_3("relocating (%c) at %016x/%016x with destination at %016x (%d)", typeChar, instruction, operand, dest, size);
+      TRACE_graal_3("relocating (%c) at %016x/%016x with destination at %016x (%d)", typeChar, instruction, operand, dest, size);
       break;
     }
     case 'a': {
@@ -632,7 +632,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
         assert(!obj.is_null(), "");
         *((jobject*) operand) = JNIHandles::make_local(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(obj)));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-        TRACE_C1X_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
+        TRACE_graal_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
       } else {
         jobject value;
         if (obj() == HotSpotProxy::DUMMY_CONSTANT_OBJ()) {
@@ -642,7 +642,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
         }
         *((jobject*) operand) = value;
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-        TRACE_C1X_3("relocating (oop constant) at %016x/%016x", instruction, operand);
+        TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);
       }
       break;
     }

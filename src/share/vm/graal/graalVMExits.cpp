@@ -22,7 +22,7 @@
  */
 
 #include "precompiled.hpp"
-#include "c1x/c1x_VMExits.hpp"
+#include "graal/graalVMExits.hpp"
 
 // this is a *global* handle
 jobject VMExits::_compilerPermObject;
@@ -31,8 +31,8 @@ jobject VMExits::_vmExitsPermKlass;
 
 KlassHandle VMExits::vmExitsKlass() {
   if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
-    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_VMExits(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(result, "Couldn't find class com.sun.hotspot.c1x.VMExits");
+    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_VMExits(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    check_not_null(result, "Couldn't find class com.sun.hotspot.graal.VMExits");
     _vmExitsPermKlass = JNIHandles::make_global(result);
   }
   return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmExitsPermKlass));
@@ -40,8 +40,8 @@ KlassHandle VMExits::vmExitsKlass() {
 
 Handle VMExits::compilerInstance() {
   if (JNIHandles::resolve(_compilerPermObject) == NULL) {
-    KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.c1x.CompilerImpl");
+    KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
 
     JavaValue result(T_OBJECT);
     JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::getInstance_name(), vmSymbols::getInstance_signature(), Thread::current());
@@ -53,8 +53,8 @@ Handle VMExits::compilerInstance() {
 
 Handle VMExits::instance() {
   if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
-    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.c1x.Compiler");
+    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.Compiler");
 
     JavaValue result(T_OBJECT);
     JavaCallArguments args;
@@ -67,8 +67,8 @@ Handle VMExits::instance() {
 }
 
 void VMExits::initializeCompiler() {
-  KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.c1x.CompilerImpl");
+  KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
 
   JavaValue result(T_VOID);
   JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::void_method_signature(), Thread::current());
@@ -77,8 +77,8 @@ void VMExits::initializeCompiler() {
 
 jboolean VMExits::setOption(Handle option) {
   assert(!option.is_null(), "");
-  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.c1x.HotSpotOptions");
+  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
 
   Thread* THREAD = Thread::current();
   JavaValue result(T_BOOLEAN);
@@ -88,8 +88,8 @@ jboolean VMExits::setOption(Handle option) {
 }
 
 void VMExits::setDefaultOptions() {
-  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_c1x_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.c1x.HotSpotOptions");
+  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
 
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);

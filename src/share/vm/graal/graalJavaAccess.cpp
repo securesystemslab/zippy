@@ -22,7 +22,7 @@
  */
 
 #include "precompiled.hpp"
-#include "c1x/c1x_JavaAccess.hpp"
+#include "graal/graalJavaAccess.hpp"
 #include "runtime/jniHandles.hpp"
 #include "classfile/symbolTable.hpp"
 // This function is similar to javaClasses.cpp, it computes the field offset of a (static or instance) field.
@@ -50,7 +50,7 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
   dest_offset = fd.offset();
 }
 
-// This piece of macro magic creates the contents of the c1x_compute_offsets method that initializes the field indices of all the access classes.
+// This piece of macro magic creates the contents of the graal_compute_offsets method that initializes the field indices of all the access classes.
 
 #define START_CLASS(name) { klassOop k = SystemDictionary::name##_klass(); assert(k != NULL, "Could not find class " #name "");
 
@@ -65,7 +65,7 @@ static void compute_offset(int &dest_offset, klassOop klass_oop, const char* nam
 #define STATIC_OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, true)
 
 
-void c1x_compute_offsets() {
+void graal_compute_offsets() {
   COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 }
 
