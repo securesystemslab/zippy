@@ -2699,7 +2699,7 @@ SOLARIS_ONLY(
       sprintf(temp, "%s/graal/com.oracle.max.graal.graphviz/bin", graal_dir);
       scp_p->add_prefix(temp);
       *scp_assembly_required_p = true;
-    } else if (match_option(option, "-G:", &tail)) { // -graal:xxxx
+    } else if (match_option(option, "-G:", &tail)) { // -G:XXX
       // Option for the graal compiler.
       if (PrintVMOptions) {
         tty->print_cr("graal option %s", tail);
