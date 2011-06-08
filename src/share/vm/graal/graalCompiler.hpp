@@ -62,6 +62,8 @@ public:
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
 
+  void exit();
+
   static BasicType kindToBasicType(jchar ch);
 
   static int to_cp_index_u2(int index) {
@@ -79,19 +81,19 @@ private:
 
 // Tracing macros
 
-#define IF_TRACE_graal_1 if (!(Tracegraal >= 1)) ; else
-#define IF_TRACE_graal_2 if (!(Tracegraal >= 2)) ; else
-#define IF_TRACE_graal_3 if (!(Tracegraal >= 3)) ; else
-#define IF_TRACE_graal_4 if (!(Tracegraal >= 4)) ; else
-#define IF_TRACE_graal_5 if (!(Tracegraal >= 5)) ; else
+#define IF_TRACE_graal_1 if (!(TraceGraal >= 1)) ; else
+#define IF_TRACE_graal_2 if (!(TraceGraal >= 2)) ; else
+#define IF_TRACE_graal_3 if (!(TraceGraal >= 3)) ; else
+#define IF_TRACE_graal_4 if (!(TraceGraal >= 4)) ; else
+#define IF_TRACE_graal_5 if (!(TraceGraal >= 5)) ; else
 
 // using commas and else to keep one-instruction semantics
 
-#define TRACE_graal_1 if (!(Tracegraal >= 1 && (tty->print("Tracegraal-1: "), true))) ; else tty->print_cr
-#define TRACE_graal_2 if (!(Tracegraal >= 2 && (tty->print("   Tracegraal-2: "), true))) ; else tty->print_cr
-#define TRACE_graal_3 if (!(Tracegraal >= 3 && (tty->print("      Tracegraal-3: "), true))) ; else tty->print_cr
-#define TRACE_graal_4 if (!(Tracegraal >= 4 && (tty->print("         Tracegraal-4: "), true))) ; else tty->print_cr
-#define TRACE_graal_5 if (!(Tracegraal >= 5 && (tty->print("            Tracegraal-5: "), true))) ; else tty->print_cr
+#define TRACE_graal_1 if (!(TraceGraal >= 1 && (tty->print("TraceGraal-1: "), true))) ; else tty->print_cr
+#define TRACE_graal_2 if (!(TraceGraal >= 2 && (tty->print("   TraceGraal-2: "), true))) ; else tty->print_cr
+#define TRACE_graal_3 if (!(TraceGraal >= 3 && (tty->print("      TraceGraal-3: "), true))) ; else tty->print_cr
+#define TRACE_graal_4 if (!(TraceGraal >= 4 && (tty->print("         TraceGraal-4: "), true))) ; else tty->print_cr
+#define TRACE_graal_5 if (!(TraceGraal >= 5 && (tty->print("            TraceGraal-5: "), true))) ; else tty->print_cr
 
 
 

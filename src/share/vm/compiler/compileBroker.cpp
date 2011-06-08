@@ -660,7 +660,7 @@ void CompileBroker::bootstrap_graal() {
           if (current->is_Compiler_thread()) {
             CompilerThread* comp_thread = current->as_CompilerThread();
             if (comp_thread->is_compiling()) {
-              if (Tracegraal >= 4) {
+              if (TraceGraal >= 4) {
                 tty->print_cr("Compile queue empty, but following thread is still compiling:");
                 comp_thread->print();
               }
@@ -673,7 +673,7 @@ void CompileBroker::bootstrap_graal() {
           break;
         }
       }
-      if (Tracegraal >= 5) {
+      if (TraceGraal >= 5) {
         _c1_method_queue->print();
       }
     }
