@@ -37,11 +37,25 @@ public final class DiffGraphAction extends CookieAction {
 
     protected void performAction(Node[] activatedNodes) {
         DiffGraphCookie c = activatedNodes[0].getCookie(DiffGraphCookie.class);
+        assert c != null;
         c.openDiff();
     }
 
     protected int mode() {
         return CookieAction.MODE_EXACTLY_ONE;
+    }
+
+    @Override
+    protected boolean enable(Node[] activatedNodes) {
+        boolean b = super.enable(activatedNodes);
+        if (b) {
+            assert activatedNodes.length == 1;
+            DiffGraphCookie c = activatedNodes[0].getCookie(DiffGraphCookie.class);
+            assert c != null;
+            return c.isPossible();
+        }
+
+        return false;
     }
 
     public String getName() {
@@ -68,3 +82,4 @@ public final class DiffGraphAction extends CookieAction {
         return false;
     }
 }
+

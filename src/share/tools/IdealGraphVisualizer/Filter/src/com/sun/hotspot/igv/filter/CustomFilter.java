@@ -89,7 +89,9 @@ public class CustomFilter extends AbstractFilter {
     public boolean openInEditor() {
         EditFilterDialog dialog = new EditFilterDialog(CustomFilter.this);
         dialog.setVisible(true);
-        return dialog.wasAccepted();
+        boolean result = dialog.wasAccepted();
+        this.getChangedEvent().fire();
+        return result;
     }
 
     @Override
@@ -100,18 +102,12 @@ public class CustomFilter extends AbstractFilter {
     public static ScriptEngineAbstraction getEngine() {
         if (engine == null) {
 
+            Collection<? extends ScriptEngineAbstraction> list = Lookup.getDefault().lookupAll(ScriptEngineAbstraction.class);
             ScriptEngineAbstraction chosen = null;
-            try {
-                Collection<? extends ScriptEngineAbstraction> list = Lookup.getDefault().lookupAll(ScriptEngineAbstraction.class);
-                for (ScriptEngineAbstraction s : list) {
-                    if (s.initialize(getJsHelperText())) {
-                        if (chosen == null || !(chosen instanceof JavaSE6ScriptEngine)) {
-                            chosen = s;
-                        }
-                    }
+            for (ScriptEngineAbstraction s : list) {
+                if (s.initialize(getJsHelperText())) {
+                    chosen = s;
                 }
-            } catch (NoClassDefFoundError ncdfe) {
-                Logger.getLogger("global").log(Level.SEVERE, null, ncdfe);
             }
 
             if (chosen == null) {

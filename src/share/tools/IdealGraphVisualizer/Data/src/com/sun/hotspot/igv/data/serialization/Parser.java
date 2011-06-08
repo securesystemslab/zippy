@@ -30,6 +30,7 @@ import com.sun.hotspot.igv.data.InputEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputMethod;
 import com.sun.hotspot.igv.data.InputNode;
+import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Property;
 import com.sun.hotspot.igv.data.services.GroupCallback;
@@ -38,7 +39,9 @@ import com.sun.hotspot.igv.data.serialization.XMLParser.HandoverElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ParseMonitor;
 import com.sun.hotspot.igv.data.serialization.XMLParser.TopElementHandler;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -63,6 +66,7 @@ public class Parser {
     public static final String REMOVE_EDGE_ELEMENT = "removeEdge";
     public static final String REMOVE_NODE_ELEMENT = "removeNode";
     public static final String METHOD_NAME_PROPERTY = "name";
+    public static final String GROUP_NAME_PROPERTY = "name";
     public static final String METHOD_IS_PUBLIC_PROPERTY = "public";
     public static final String METHOD_IS_STATIC_PROPERTY = "static";
     public static final String TRUE_VALUE = "true";
@@ -92,6 +96,7 @@ public class Parser {
     private boolean difference;
     private GroupCallback groupCallback;
     private HashMap<String, Integer> idCache = new HashMap<String, Integer>();
+    private ArrayList<Pair<String, String>> blockConnections = new ArrayList<Pair<String, String>>();
     private int maxId = 0;
 
     private int lookupID(String i) {
@@ -197,19 +202,67 @@ public class Parser {
         protected InputGraph start() throws SAXException {
 
             String name = readAttribute(GRAPH_NAME_PROPERTY);
-            InputGraph previous = getParentObject().getLastAdded();
-            if (!difference) {
-                previous = null;
+            InputGraph curGraph = getParentObject().addGraph(name);
+            if (difference) {
+
+                List<InputGraph> list = getParentObject().getGraphs();
+                if (list.size() > 1) {
+                    InputGraph previous = list.get(list.size() - 2);
+                    for (InputNode n : previous.getNodes()) {
+                        curGraph.addNode(n);
+                    }
+                    for (InputEdge e : previous.getEdges()) {
+                        curGraph.addEdge(e);
+                    }
+                }
             }
-            InputGraph curGraph = new InputGraph(getParentObject(), previous, name);
             this.graph = curGraph;
             return curGraph;
         }
 
         @Override
         protected void end(String text) throws SAXException {
-            getParentObject().addGraph(graph);
-            graph.resolveBlockLinks();
+
+            // Recover from control flow input with missing information
+            if (graph.getBlocks().size() > 0) {
+                boolean blockContainsNodes = false;
+                for (InputBlock b : graph.getBlocks()) {
+                    if (b.getNodes().size() > 0) {
+                        blockContainsNodes = true;
+                        break;
+                    }
+                }
+
+                if (!blockContainsNodes) {
+                    graph.clearBlocks();
+                    blockConnections.clear();
+                } else {
+                    
+                    InputBlock noBlock = null;
+                    
+                    for (InputNode n : graph.getNodes()) {
+                        if (graph.getBlock(n) == null) {
+                            if (noBlock == null) {
+                                noBlock = graph.addBlock("none");
+                            }
+                            
+                            noBlock.addNode(n.getId());
+                        }
+
+                        assert graph.getBlock(n) != null;
+                    }
+                }
+            }
+
+            // Resolve block successors
+            for (Pair<String, String> p : blockConnections) {
+                final InputBlock left = graph.getBlock(p.getLeft());
+                assert left != null;
+                final InputBlock right = graph.getBlock(p.getRight());
+                assert right != null;
+                graph.addBlockConnection(left, right);
+            }
+            blockConnections.clear();
         }
     };
     // <nodes>
@@ -223,8 +276,10 @@ public class Parser {
         protected InputBlock start() throws SAXException {
             InputGraph graph = getParentObject();
             String name = readRequiredAttribute(BLOCK_NAME_PROPERTY).intern();
-            InputBlock b = new InputBlock(getParentObject(), name);
-            graph.addBlock(b);
+            InputBlock b = graph.addBlock(name);
+            for (InputNode n : b.getNodes()) {
+                assert graph.getBlock(n).equals(b);
+            }
             return b;
         }
     };
@@ -255,7 +310,7 @@ public class Parser {
         @Override
         protected InputBlock start() throws SAXException {
             String name = readRequiredAttribute(BLOCK_NAME_PROPERTY);
-            getParentObject().addSuccessor(name);
+            blockConnections.add(new Pair<String, String>(getParentObject().getName(), name));
             return getParentObject();
         }
     };
@@ -372,7 +427,7 @@ public class Parser {
         @Override
         public String start() throws SAXException {
             return readRequiredAttribute(PROPERTY_NAME_PROPERTY).intern();
-        }
+         }
 
         @Override
         public void end(String text) {
@@ -430,7 +485,7 @@ public class Parser {
     }
 
     // Returns a new GraphDocument object deserialized from an XML input source.
-    public GraphDocument parse(XMLReader reader, InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
+    public synchronized GraphDocument parse(XMLReader reader, InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
         reader.setContentHandler(new XMLParser(xmlDocument, monitor));
         try {
             reader.parse(source);

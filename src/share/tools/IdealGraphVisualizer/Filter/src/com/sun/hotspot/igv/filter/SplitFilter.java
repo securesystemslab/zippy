@@ -39,25 +39,50 @@ public class SplitFilter extends AbstractFilter {
 
     private String name;
     private Selector selector;
+    private String propertyName;
 
-    public SplitFilter(String name, Selector selector) {
+    public SplitFilter(String name, Selector selector, String propertyName) {
         this.name = name;
         this.selector = selector;
+        this.propertyName = propertyName;
     }
 
     public String getName() {
         return name;
     }
-
+    
     public void apply(Diagram d) {
         List<Figure> list = selector.selected(d);
 
         for (Figure f : list) {
+            
+            for (InputSlot is : f.getInputSlots()) {
+                for (Connection c : is.getConnections()) {
+                    OutputSlot os = c.getOutputSlot();
+                    if (f.getSource().getSourceNodes().size() > 0) {
+                        os.getSource().addSourceNodes(f.getSource());
+                        os.setAssociatedNode(f.getSource().getSourceNodes().get(0));
+                        os.setColor(f.getColor());
+                    }
+
+
+                    String s = Figure.resolveString(propertyName, f.getProperties());
+                    if (s != null) {
+                        os.setShortName(s);
+                    }
+
+                }
+            }
             for (OutputSlot os : f.getOutputSlots()) {
                 for (Connection c : os.getConnections()) {
                     InputSlot is = c.getInputSlot();
-                    is.setName(f.getProperties().get("dump_spec"));
-                    String s = f.getProperties().get("short_name");
+                    if (f.getSource().getSourceNodes().size() > 0) {
+                        is.getSource().addSourceNodes(f.getSource());
+                        is.setAssociatedNode(f.getSource().getSourceNodes().get(0));
+                        is.setColor(f.getColor());
+                    }
+
+                    String s = Figure.resolveString(propertyName, f.getProperties());
                     if (s != null) {
                         is.setShortName(s);
                     }

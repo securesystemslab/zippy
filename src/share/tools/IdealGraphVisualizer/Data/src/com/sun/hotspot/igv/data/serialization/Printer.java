@@ -34,6 +34,7 @@ import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Property;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Writer;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,6 +44,16 @@ import java.util.Set;
  * @author Thomas Wuerthinger
  */
 public class Printer {
+
+    private InputStream in;
+
+    public Printer() {
+        this(null);
+    }
+
+    public Printer(InputStream inputStream) {
+        this.in = inputStream;
+    }
 
     public void export(Writer writer, GraphDocument document) {
 
@@ -71,14 +82,24 @@ public class Printer {
         writer.startTag(Parser.GROUP_ELEMENT, attributes);
         writer.writeProperties(g.getProperties());
 
-        if (g.getMethod() != null) {
-            export(writer, g.getMethod());
+        boolean shouldExport = true;
+        if (in != null) {
+            char c = (char) in.read();
+            if (c != 'y') {
+                shouldExport = false;
+            }
         }
 
-        InputGraph previous = null;
-        for (InputGraph graph : g.getGraphs()) {
-            export(writer, graph, previous, true);
-            previous = graph;
+        if (shouldExport) {
+            if (g.getMethod() != null) {
+                export(writer, g.getMethod());
+            }
+
+            InputGraph previous = null;
+            for (InputGraph graph : g.getGraphs()) {
+                export(writer, graph, previous, true);
+                previous = graph;
+            }
         }
 
         writer.endTag();
@@ -153,23 +174,25 @@ public class Printer {
 
         writer.startTag(Parser.CONTROL_FLOW_ELEMENT);
         for (InputBlock b : graph.getBlocks()) {
-
             writer.startTag(Parser.BLOCK_ELEMENT, new Properties(Parser.BLOCK_NAME_PROPERTY, b.getName()));
-
-            writer.startTag(Parser.SUCCESSORS_ELEMENT);
-            for (InputBlock s : b.getSuccessors()) {
-                writer.simpleTag(Parser.SUCCESSOR_ELEMENT, new Properties(Parser.BLOCK_NAME_PROPERTY, s.getName()));
+            
+            if (b.getSuccessors().size() > 0) {
+                writer.startTag(Parser.SUCCESSORS_ELEMENT);
+                for (InputBlock s : b.getSuccessors()) {
+                    writer.simpleTag(Parser.SUCCESSOR_ELEMENT, new Properties(Parser.BLOCK_NAME_PROPERTY, s.getName()));
+                }
+                writer.endTag();
             }
-            writer.endTag();
 
+            if (b.getNodes().size() > 0) {
             writer.startTag(Parser.NODES_ELEMENT);
-            for (InputNode n : b.getNodes()) {
-                writer.simpleTag(Parser.NODE_ELEMENT, new Properties(Parser.NODE_ID_PROPERTY, n.getId() + ""));
+                for (InputNode n : b.getNodes()) {
+                    writer.simpleTag(Parser.NODE_ELEMENT, new Properties(Parser.NODE_ID_PROPERTY, n.getId() + ""));
+                }
+                writer.endTag();
             }
+            
             writer.endTag();
-
-            writer.endTag();
-
         }
 
         writer.endTag();
@@ -199,8 +222,8 @@ public class Printer {
             b.append(" ");
             b.append(code.getName());
             b.append("\n");
-
         }
+        
         b.append("]]>");
         w.write(b.toString());
         w.endTag();
@@ -209,8 +232,12 @@ public class Printer {
 
     private Properties createProperties(InputEdge edge) {
         Properties p = new Properties();
-        p.setProperty(Parser.FROM_INDEX_PROPERTY, Integer.toString(edge.getFromIndex()));
-        p.setProperty(Parser.TO_INDEX_PROPERTY, Integer.toString(edge.getToIndex()));
+        if (edge.getToIndex() != 0) {
+            p.setProperty(Parser.TO_INDEX_PROPERTY, Integer.toString(edge.getToIndex()));
+        }
+        if (edge.getFromIndex() != 0) {
+            p.setProperty(Parser.FROM_INDEX_PROPERTY, Integer.toString(edge.getFromIndex()));
+        }
         p.setProperty(Parser.TO_PROPERTY, Integer.toString(edge.getTo()));
         p.setProperty(Parser.FROM_PROPERTY, Integer.toString(edge.getFrom()));
         return p;

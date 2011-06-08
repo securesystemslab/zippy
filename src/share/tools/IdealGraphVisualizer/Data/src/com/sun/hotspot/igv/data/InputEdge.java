@@ -23,6 +23,8 @@
  */
 package com.sun.hotspot.igv.data;
 
+import java.util.Comparator;
+
 /**
  *
  * @author Thomas Wuerthinger
@@ -35,15 +37,41 @@ public class InputEdge {
         NEW,
         DELETED
     }
-    private char fromIndex;
+    
+    public static final Comparator<InputEdge> OUTGOING_COMPARATOR = new Comparator<InputEdge>(){
+
+            public int compare(InputEdge o1, InputEdge o2) {
+                if(o1.getFromIndex() == o2.getFromIndex()) {
+                    return o1.getTo() - o2.getTo();
+                }
+                return o1.getFromIndex() - o2.getFromIndex();
+            }
+    };
+    
+    
+    public static final Comparator<InputEdge> INGOING_COMPARATOR = new Comparator<InputEdge>(){
+
+            public int compare(InputEdge o1, InputEdge o2) {
+                if(o1.getToIndex() == o2.getToIndex()) {
+                    return o1.getFrom() - o2.getFrom();
+                }
+                return o1.getToIndex() - o2.getToIndex();
+            }
+    };
+        
     private char toIndex;
+    private char fromIndex;
     private int from;
     private int to;
     private State state;
+    
+    public InputEdge(char toIndex, int from, int to) {
+        this((char)0, toIndex, from, to);
+    }
 
     public InputEdge(char fromIndex, char toIndex, int from, int to) {
-        this.fromIndex = fromIndex;
         this.toIndex = toIndex;
+        this.fromIndex = fromIndex;
         this.from = from;
         this.to = to;
         this.state = State.SAME;
@@ -57,12 +85,12 @@ public class InputEdge {
         this.state = x;
     }
 
-    public char getFromIndex() {
-        return fromIndex;
-    }
-
     public char getToIndex() {
         return toIndex;
+    }
+    
+    public char getFromIndex() {
+        return fromIndex;
     }
 
     public String getName() {
@@ -83,16 +111,16 @@ public class InputEdge {
             return false;
         }
         InputEdge conn2 = (InputEdge) o;
-        return conn2.toIndex == toIndex && conn2.from == from && conn2.to == to;
+        return conn2.fromIndex == fromIndex && conn2.toIndex == toIndex && conn2.from == from && conn2.to == to;
     }
 
     @Override
     public String toString() {
-        return "Edge from " + from + " to " + to + "(" + (int) toIndex + ") ";
+        return "Edge from " + from + " to " + to + "(" + (int) fromIndex + ", " + (int) toIndex + ") ";
     }
 
     @Override
     public int hashCode() {
-        return (from << 20 | to << 8 | toIndex);
+        return (from << 20 | to << 8 | toIndex << 4 | fromIndex);
     }
 }

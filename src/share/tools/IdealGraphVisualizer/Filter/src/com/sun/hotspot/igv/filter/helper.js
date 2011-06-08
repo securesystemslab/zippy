@@ -21,16 +21,16 @@
  * questions.
  *
  */
-
+ 
  /**
  *
  * @author Thomas Wuerthinger
  */
-
+ 
 function colorize(property, regexp, color) {
     var f = new ColorFilter("");
     f.addRule(new ColorFilter.ColorRule(new MatcherSelector(new Properties.RegexpPropertyMatcher(property, regexp)), color));
-    f.apply(graph);
+    f.apply(graph); 
 }
 
 function remove(property, regexp) {
@@ -39,8 +39,11 @@ function remove(property, regexp) {
     f.apply(graph);
 }
 
-function split(property, regexp) {
-    var f = new SplitFilter("", new MatcherSelector(new Properties.RegexpPropertyMatcher(property, regexp)));
+function split(property, regexp, propertyName) {
+    if (propertyName == undefined) {
+        propertyName = graph.getNodeText();
+    }
+    var f = new SplitFilter("", new MatcherSelector(new Properties.RegexpPropertyMatcher(property, regexp)), propertyName);
     f.apply(graph);
 }
 

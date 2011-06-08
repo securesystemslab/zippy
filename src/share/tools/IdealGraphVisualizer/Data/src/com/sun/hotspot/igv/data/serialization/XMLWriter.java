@@ -111,7 +111,7 @@ public class XMLWriter extends Writer {
     }
 
     public void writeProperties(Properties props) throws IOException {
-        if (props.getProperties().hasNext() == false) {
+        if (props.iterator().hasNext() == false) {
             return;
         }
 

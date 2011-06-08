@@ -24,6 +24,7 @@
 package com.sun.hotspot.igv.view.widgets;
 
 import com.sun.hotspot.igv.graph.Connection;
+import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
 import com.sun.hotspot.igv.graph.OutputSlot;
 import com.sun.hotspot.igv.view.DiagramScene;
@@ -35,12 +36,15 @@ import java.awt.Rectangle;
 import java.awt.Stroke;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.swing.JPopupMenu;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import org.netbeans.api.visual.action.ActionFactory;
 import org.netbeans.api.visual.action.PopupMenuProvider;
+import org.netbeans.api.visual.action.SelectProvider;
 import org.netbeans.api.visual.animator.SceneAnimator;
 import org.netbeans.api.visual.model.ObjectState;
 import org.netbeans.api.visual.widget.Widget;
@@ -51,7 +55,7 @@ import org.netbeans.api.visual.widget.Widget;
  */
 public class LineWidget extends Widget implements PopupMenuProvider {
 
-    public final int BORDER = 8;
+    public final int BORDER = 5;
     public final int ARROW_SIZE = 6;
     public final int BOLD_ARROW_SIZE = 7;
     public final int HOVER_ARROW_SIZE = 8;
@@ -110,6 +114,9 @@ public class LineWidget extends Widget implements PopupMenuProvider {
         if (connections.size() > 0) {
             color = connections.get(0).getColor();
         }
+        
+        this.setToolTipText(generateToolTipText(this.connections));
+        
 
         this.setCheckClipping(true);
 
@@ -120,7 +127,38 @@ public class LineWidget extends Widget implements PopupMenuProvider {
             this.setBackground(Color.WHITE);
             animator.animateBackgroundColor(this, color);
         }
+
+        this.getActions().addAction(ActionFactory.createSelectAction(new SelectProvider() {
+
+            public boolean isAimingAllowed(Widget arg0, Point arg1, boolean arg2) {
+                return true;
+            }
+
+            public boolean isSelectionAllowed(Widget arg0, Point arg1, boolean arg2) {
+                return true;
+            }
+
+            public void select(Widget arg0, Point arg1, boolean arg2) {
+                Set<Figure> set = new HashSet<Figure>();
+                for (Connection c : LineWidget.this.connections) {
+                    set.add(c.getInputSlot().getFigure());
+                    set.add(c.getOutputSlot().getFigure());
+                }
+                LineWidget.this.scene.setSelectedObjects(set);
+            }
+        }));
     }
+    
+    private String generateToolTipText(List<Connection> conn) {
+        StringBuffer sb = new StringBuffer();
+        for(Connection c : conn) {
+            sb.append(c.getToolTipText());
+            sb.append("<br>");
+        }
+        return sb.toString();
+    }
+    
+    
 
     public Point getFrom() {
         return from;
@@ -141,13 +179,12 @@ public class LineWidget extends Widget implements PopupMenuProvider {
 
     @Override
     protected void paintWidget() {
-        if (scene.getRealZoomFactor() < ZOOM_FACTOR) {
+        if (scene.getZoomFactor() < ZOOM_FACTOR) {
             return;
         }
 
         Graphics2D g = getScene().getGraphics();
         g.setPaint(this.getBackground());
-        ObjectState state = this.getState();
         float width = 1.0f;
 
         if (isBold) {
@@ -207,6 +244,20 @@ public class LineWidget extends Widget implements PopupMenuProvider {
 
     private void setHighlighted(boolean b) {
         this.highlighted = b;
+	Set<Object> highlightedObjects = new HashSet<Object>(scene.getHighlightedObjects());
+	Set<Object> highlightedObjectsChange = new HashSet<Object>();
+        for (Connection c : connections) {
+		highlightedObjectsChange.add(c.getInputSlot().getFigure());
+		highlightedObjectsChange.add(c.getInputSlot());
+		highlightedObjectsChange.add(c.getOutputSlot().getFigure());
+		highlightedObjectsChange.add(c.getOutputSlot());
+        }
+	if(b) {
+		highlightedObjects.addAll(highlightedObjectsChange);
+	} else {
+		highlightedObjects.removeAll(highlightedObjectsChange);
+	}
+	scene.setHighlightedObjects(highlightedObjects);
         this.revalidate(true);
     }
 
