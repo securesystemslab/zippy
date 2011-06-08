@@ -543,7 +543,7 @@ int basicTypeCount = sizeof(basicTypes) / sizeof(BasicType);
 
 // public HotSpotVMConfig getConfiguration();
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getConfiguration(JNIEnv *env, jobject) {
-  jclass klass = env->FindClass("com/oracle/graal/runtime/HotSpotVMConfig");
+  jclass klass = env->FindClass("com/oracle/max/graal/runtime/HotSpotVMConfig");
   assert(klass != NULL, "HotSpot vm config class not found");
   jobject config = env->AllocObject(klass);
 #ifdef _WIN64
@@ -659,15 +659,15 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNI
 
 #define PROXY           "J"
 #define TYPE            "Lcom/sun/cri/ri/RiType;"
-#define RESOLVED_TYPE   "Lcom/oracle/graal/runtime/HotSpotTypeResolved;"
+#define RESOLVED_TYPE   "Lcom/oracle/max/graal/runtime/HotSpotTypeResolved;"
 #define METHOD          "Lcom/sun/cri/ri/RiMethod;"
 #define SIGNATURE       "Lcom/sun/cri/ri/RiSignature;"
 #define FIELD           "Lcom/sun/cri/ri/RiField;"
 #define CONSTANT_POOL   "Lcom/sun/cri/ri/RiConstantPool;"
 #define EXCEPTION_HANDLERS "[Lcom/sun/cri/ri/RiExceptionHandler;"
-#define TARGET_METHOD   "Lcom/oracle/graal/runtime/HotSpotTargetMethod;"
-#define CONFIG          "Lcom/oracle/graal/runtime/HotSpotVMConfig;"
-#define HS_METHOD       "Lcom/oracle/graal/runtime/HotSpotMethod;"
+#define TARGET_METHOD   "Lcom/oracle/max/graal/runtime/HotSpotTargetMethod;"
+#define CONFIG          "Lcom/oracle/max/graal/runtime/HotSpotVMConfig;"
+#define HS_METHOD       "Lcom/oracle/max/graal/runtime/HotSpotMethod;"
 #define CI_CONSTANT     "Lcom/sun/cri/ci/CiConstant;"
 #define CI_KIND         "Lcom/sun/cri/ci/CiKind;"
 #define STRING          "Ljava/lang/String;"
