@@ -29,7 +29,6 @@
 #include "classfile/vmSymbols.hpp"
 #include "code/scopeDesc.hpp"
 #include "compiler/compileBroker.hpp"
-#include "graal/graalCompiler.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/linkResolver.hpp"
 #include "jvmtifiles/jvmtiEnv.hpp"
@@ -3660,9 +3659,6 @@ bool Threads::destroy_vm() {
     thread->invoke_shutdown_hooks();
   }
 
-  if (UseGraal) {
-    GraalCompiler::instance()->exit();
-  }
   before_exit(thread);
 
   thread->exit(true);

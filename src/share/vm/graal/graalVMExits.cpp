@@ -73,6 +73,8 @@ void VMExits::initializeCompiler() {
   JavaValue result(T_VOID);
   JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::void_method_signature(), Thread::current());
   check_pending_exception("Couldn't initialize compiler");
+
+  startCompiler();
 }
 
 jboolean VMExits::setOption(Handle option) {
@@ -119,6 +121,14 @@ void VMExits::shutdownCompiler() {
   check_pending_exception("Error while calling shutdownCompiler");
 }
 
+void VMExits::startCompiler() {
+  JavaThread* THREAD = JavaThread::current();
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::startCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  check_pending_exception("Error while calling startCompiler");
+}
 
 oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");

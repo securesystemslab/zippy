@@ -68,6 +68,7 @@ void GraalCompiler::initialize() {
   {
     VM_ENTRY_MARK;
     HandleMark hm;
+    VMExits::initializeCompiler();
     VMExits::setDefaultOptions();
     for (int i = 0; i < Arguments::num_graal_args(); ++i) {
       const char* arg = Arguments::graal_args_array()[i];
@@ -78,8 +79,6 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
-
-    VMExits::initializeCompiler();
   }
 }
 
