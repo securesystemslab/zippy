@@ -158,6 +158,40 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniq
   return JNIHandles::make_local(THREAD, method_resolved);
 }
 
+// public native int RiMethod_invocationCount();
+JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount(JNIEnv *, jobject, jlong vmId) {
+  TRACE_graal_3("VMEntries::RiMethod_invocationCount");
+  return VmIds::get<methodOop>(vmId)->invocation_count();
+}
+
+// public native RiTypeProfile RiMethod_typeProfile(int bci);
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1typeProfile(JNIEnv *, jobject, jlong vmId, jint bci) {
+  TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+  ciMethod* cimethod;
+  {
+    VM_ENTRY_MARK;
+    cimethod = (ciMethod*)CURRENT_ENV->get_object(VmIds::get<methodOop>(vmId));
+  }
+
+  ciCallProfile profile = cimethod->call_profile_at_bci(bci);
+
+  Handle obj;
+  {
+    VM_ENTRY_MARK;
+    instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
+    obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
+    assert(obj() != NULL, "must succeed in allocating instance");
+
+    RiTypeProfile::set_count(obj, cimethod->scale_count(profile.count(), 1));
+    RiTypeProfile::set_morphism(obj, profile.morphism());
+
+    RiTypeProfile::set_probabilities(obj, NULL);
+    RiTypeProfile::set_types(obj, NULL);
+  }
+
+  return JNIHandles::make_local(obj());
+}
+
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
   TRACE_graal_3("VMEntries::RiSignature_lookupType");
@@ -354,6 +388,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool
       default:
         constant.print();
         fatal("Unhandled constant");
+        break;
     }
     if (constant_object != NULL) {
       HotSpotField::set_constant(field_handle, constant_object);
@@ -614,6 +649,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getConfigurati
 #endif // SERIALGC
     default:
       ShouldNotReachHere();
+      break;
     }
 
   jintArray arrayOffsets = env->NewIntArray(basicTypeCount);
@@ -661,6 +697,7 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNI
 #define TYPE            "Lcom/sun/cri/ri/RiType;"
 #define RESOLVED_TYPE   "Lcom/oracle/max/graal/runtime/HotSpotTypeResolved;"
 #define METHOD          "Lcom/sun/cri/ri/RiMethod;"
+#define TYPE_PROFILE    "Lcom/sun/cri/ri/RiTypeProfile;"
 #define SIGNATURE       "Lcom/sun/cri/ri/RiSignature;"
 #define FIELD           "Lcom/sun/cri/ri/RiField;"
 #define CONSTANT_POOL   "Lcom/sun/cri/ri/RiConstantPool;"
@@ -684,6 +721,8 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_exceptionHandlers",      CC"("PROXY")"EXCEPTION_HANDLERS,            FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1exceptionHandlers)},
   {CC"RiMethod_hasBalancedMonitors",    CC"("PROXY")Z",                             FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors)},
   {CC"RiMethod_uniqueConcreteMethod",   CC"("PROXY")"METHOD,                        FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
+  {CC"RiMethod_invocationCount",        CC"("PROXY")I",                             FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
+  {CC"RiMethod_typeProfile",            CC"("PROXY"I)"TYPE_PROFILE,                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1typeProfile)},
   {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod)},
