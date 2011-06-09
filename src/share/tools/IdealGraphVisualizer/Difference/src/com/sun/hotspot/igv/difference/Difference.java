@@ -25,6 +25,7 @@
 package com.sun.hotspot.igv.difference;
 
 import com.sun.hotspot.igv.data.Group;
+import com.sun.hotspot.igv.data.InputBlock;
 import com.sun.hotspot.igv.data.InputEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
@@ -90,6 +91,16 @@ public class Difference {
         g.getProperties().setProperty("name", "Difference");
         InputGraph graph = g.addGraph(a.getName() + ", " + b.getName(), new Pair<InputGraph, InputGraph>(a, b));
 
+        Map<InputBlock, InputBlock> blocksMap = new HashMap<InputBlock, InputBlock>();
+        for (InputBlock blk : a.getBlocks()) {
+            InputBlock diffblk = graph.addBlock(blk.getName());
+            blocksMap.put(blk, diffblk);
+        }
+        for (InputBlock blk : b.getBlocks()) {
+            InputBlock diffblk = graph.addBlock(blk.getName());
+            blocksMap.put(blk, diffblk);
+        }
+
         Set<InputNode> nodesA = new HashSet<InputNode>(a.getNodes());
         Set<InputNode> nodesB = new HashSet<InputNode>(b.getNodes());
 
@@ -106,12 +117,14 @@ public class Difference {
             inputNodeMap.put(n, n2);
             inputNodeMap.put(nB, n2);
             graph.addNode(n2);
+            graph.setBlock(n2, blocksMap.get(a.getBlock(n)));
             markAsChanged(n2, n, nB);
         }
 
         for (InputNode n : nodesA) {
             InputNode n2 = new InputNode(n);
             graph.addNode(n2);
+            graph.setBlock(n2, blocksMap.get(a.getBlock(n)));
             markAsDeleted(n2);
             inputNodeMap.put(n, n2);
         }
@@ -127,6 +140,7 @@ public class Difference {
 
             n2.setId(curIndex);
             graph.addNode(n2);
+            graph.setBlock(n2, blocksMap.get(b.getBlock(n)));
             markAsNew(n2);
             inputNodeMap.put(n, n2);
         }
