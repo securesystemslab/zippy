@@ -30,6 +30,7 @@
 #include "graal/graalVmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "memory/oopFactory.hpp"
+#include "ci/ciMethodData.hpp"
 
 // public byte[] RiMethod_code(long vmId);
 JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1code(JNIEnv *env, jobject, jlong vmId) {
@@ -158,13 +159,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniq
   return JNIHandles::make_local(THREAD, method_resolved);
 }
 
-// public native int RiMethod_invocationCount();
+// public native int RiMethod_invocationCount(long vmId);
 JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount(JNIEnv *, jobject, jlong vmId) {
   TRACE_graal_3("VMEntries::RiMethod_invocationCount");
   return VmIds::get<methodOop>(vmId)->invocation_count();
 }
 
-// public native RiTypeProfile RiMethod_typeProfile(int bci);
+// public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1typeProfile(JNIEnv *, jobject, jlong vmId, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
   ciMethod* cimethod;
@@ -190,6 +191,50 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1type
   }
 
   return JNIHandles::make_local(obj());
+}
+
+// public native RiTypeProfile RiMethod_branchProfile(long vmId, int bci);
+JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1branchProbability(JNIEnv *, jobject, jlong vmId, jint bci) {
+  TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+  ciMethodData* method_data;
+  ciMethod* cimethod;
+  {
+    VM_ENTRY_MARK;
+    cimethod = (ciMethod*)CURRENT_ENV->get_object(VmIds::get<methodOop>(vmId));
+  }
+  method_data = cimethod->method_data();
+
+  jfloat probability = -1;
+
+  if (!method_data->is_mature()) return -1;
+
+  ciProfileData* data = method_data->bci_to_data(bci);
+  if (!data->is_JumpData())  return -1;
+
+  // get taken and not taken values
+  int     taken = data->as_JumpData()->taken();
+  int not_taken = 0;
+  if (data->is_BranchData()) {
+    not_taken = data->as_BranchData()->not_taken();
+  }
+
+  // scale the counts to be commensurate with invocation counts:
+  taken = cimethod->scale_count(taken);
+  not_taken = cimethod->scale_count(not_taken);
+
+  // Give up if too few (or too many, in which case the sum will overflow) counts to be meaningful.
+  // We also check that individual counters are positive first, otherwise the sum can become positive.
+  if (taken < 0 || not_taken < 0 || taken + not_taken < 40) return -1;
+
+  // Pin probability to sane limits
+  if (taken == 0)
+    return 0;
+  else if (not_taken == 0)
+    return 100;
+  else {                         // Compute probability of true path
+    int probability = (int)(taken * 100.0 / (taken + not_taken));
+    return MIN2(99, MAX2(1, probability));
+  }
 }
 
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
@@ -723,6 +768,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_uniqueConcreteMethod",   CC"("PROXY")"METHOD,                        FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
   {CC"RiMethod_invocationCount",        CC"("PROXY")I",                             FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
   {CC"RiMethod_typeProfile",            CC"("PROXY"I)"TYPE_PROFILE,                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1typeProfile)},
+  {CC"RiMethod_branchProbability",      CC"("PROXY"I)I",                            FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1branchProbability)},
   {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod)},
