@@ -29,6 +29,7 @@
 #include "classfile/systemDictionary.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "interpreter/linkResolver.hpp"
+#include "graal/graalCompiler.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/gcLocker.inline.hpp"
 #include "memory/oopFactory.hpp"

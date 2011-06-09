@@ -55,6 +55,9 @@ public:
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
+  
+  // public abstract void startCompiler();
+  static void startCompiler();
 
   // public abstract RiMethod createRiMethodResolved(long vmId, String name);
   static oop createRiMethodResolved(jlong vmId, Handle name, TRAPS);

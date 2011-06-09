@@ -296,6 +296,7 @@
   template(com_sun_cri_ci_CiConstant,                 "com/sun/cri/ci/CiConstant")                                      \
   template(com_sun_cri_ci_CiKind,                     "com/sun/cri/ci/CiKind")                                          \
   template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
+  template(startCompiler_name,                        "startCompiler")                                                  \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
   template(compileMethod_signature,                   "(JLjava/lang/String;I)V")                                        \
