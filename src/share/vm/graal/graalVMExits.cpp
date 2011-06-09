@@ -111,7 +111,6 @@ void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
 }
 
 void VMExits::shutdownCompiler() {
-  assert(!name.is_null(), "just checking");
   JavaThread* THREAD = JavaThread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
