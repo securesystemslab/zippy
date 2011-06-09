@@ -383,7 +383,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiType_3resolv
   Symbol* signature_symbol = VmIds::toSymbol(signature);
   methodOop method = klass->klass_part()->lookup_method(name_symbol, signature_symbol);
   if (method == NULL) {
-    if (Tracegraal >= 3) {
+    if (TraceGraal >= 3) {
       ResourceMark rm;
       tty->print_cr("Could not resolve method %s %s on klass %s", name_symbol->as_C_string(), signature_symbol->as_C_string(), klass->klass_part()->name()->as_C_string());
     }

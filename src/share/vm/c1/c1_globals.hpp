@@ -57,9 +57,9 @@
           "Use graal instead of C1")                                          \
   product(bool, GraalBailoutIsFatal, true,                                    \
           "Abort the VM on graal bailout")                                    \
-  product(bool, Bootstrapgraal, false,                                        \
+  product(bool, BootstrapGraal, false,                                        \
           "Bootstrap graal before running Java main method")                  \
-  product(intx, Tracegraal, 0,                                                \
+  product(intx, TraceGraal, 0,                                                \
           "Trace level for graal")                                            \
   product(bool, TraceSignals, false,                                        \
           "Trace signals and implicit exception handling")                  \

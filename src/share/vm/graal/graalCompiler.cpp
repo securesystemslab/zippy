@@ -119,6 +119,10 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
   TRACE_graal_2("GraalCompiler::compile_method exit");
 }
 
+void GraalCompiler::exit() {
+  VMExits::shutdownCompiler();
+}
+
 // Print compilation timers and statistics
 void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");

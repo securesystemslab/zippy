@@ -53,6 +53,9 @@ public:
   // public abstract void compileMethod(long vmId, String name, int entry_bci);
   static void compileMethod(jlong vmId, Handle name, int entry_bci);
 
+  // public abstract void shutdownCompiler();
+  static void shutdownCompiler();
+
   // public abstract RiMethod createRiMethodResolved(long vmId, String name);
   static oop createRiMethodResolved(jlong vmId, Handle name, TRAPS);
 

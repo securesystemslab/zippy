@@ -411,7 +411,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     reexecute = Interpreter::bytecode_should_reexecute(code);
   }
 
-  if (Tracegraal >= 2) {
+  if (TraceGraal >= 2) {
     tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
   }
 
@@ -427,7 +427,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
     GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
 
-    if (Tracegraal >= 2) {
+    if (TraceGraal >= 2) {
       tty->print_cr("Scope at bci %d with %d values", bci, values->length());
       tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
     }
