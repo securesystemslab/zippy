@@ -98,7 +98,7 @@ public class InputBlock {
         graph.setBlock(n, this);
         final InputNode node = graph.getNode(id);
         assert node != null;
-        assert !nodes.contains(node);
+        assert !nodes.contains(node) : "duplicate : " + node;
         nodes.add(node);
     }
 
