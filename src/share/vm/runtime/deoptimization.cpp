@@ -1221,6 +1221,8 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     DeoptAction action = trap_request_action(trap_request);
     jint unloaded_class_index = trap_request_index(trap_request); // CP idx or -1
 
+//    tty->print_cr("trap_request: %08x, cpi: %i, pc: %016x", trap_request, unloaded_class_index, fr.pc());
+
     Events::log("Uncommon trap occurred @" INTPTR_FORMAT " unloaded_class_index = %d", fr.pc(), (int) trap_request);
     vframe*  vf  = vframe::new_vframe(&fr, &reg_map, thread);
     compiledVFrame* cvf = compiledVFrame::cast(vf);
