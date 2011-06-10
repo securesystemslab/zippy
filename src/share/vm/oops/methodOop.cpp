@@ -206,6 +206,12 @@ int methodOopDesc::validate_bci_from_bcx(intptr_t bcx) const {
 }
 
 address methodOopDesc::bcp_from(int bci) const {
+#ifdef ASSERT
+  if (!((is_native() && bci == 0)  || (!is_native() && 0 <= bci && bci < code_size()))) {
+    char buf[1024];
+    tty->print_cr("bci: %i, size: %i, method: %s", bci, code_size(), const_cast<methodOop>(this)->name_and_sig_as_C_string(buf, 1024));
+  }
+#endif // ASSERT
   assert((is_native() && bci == 0)  || (!is_native() && 0 <= bci && bci < code_size()), "illegal bci");
   address bcp = code_base() + bci;
   assert(is_native() && bcp == code_base() || contains(bcp), "bcp doesn't belong to this method");
