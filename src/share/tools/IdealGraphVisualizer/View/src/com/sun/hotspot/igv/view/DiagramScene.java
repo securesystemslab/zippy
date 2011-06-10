@@ -1021,7 +1021,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         for (Figure f : diagram.getFigures()) {
             FigureWidget w = getWidget(f);
-            if (w.isVisible()) {
+            if (w != null && w.isVisible()) {
                 oldVisibleWidgets.add(w);
             }
         }

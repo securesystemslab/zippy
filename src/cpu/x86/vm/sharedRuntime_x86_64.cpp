@@ -140,6 +140,7 @@ class RegisterSaver {
   static int rax_offset_in_bytes(void)    { return BytesPerInt * rax_off; }
   static int rdx_offset_in_bytes(void)    { return BytesPerInt * rdx_off; }
   static int rbx_offset_in_bytes(void)    { return BytesPerInt * rbx_off; }
+  static int r10_offset_in_bytes(void)    { return BytesPerInt * r10_off; }
   static int xmm0_offset_in_bytes(void)   { return BytesPerInt * xmm0_off; }
   static int return_offset_in_bytes(void) { return BytesPerInt * return_off; }
 
@@ -2655,6 +2656,7 @@ void SharedRuntime::generate_deopt_blob() {
 
   int jmp_uncommon_trap_offset = __ pc() - start;
   __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
+  __ movptr(rscratch1, 0);
 
   int uncommon_trap_offset = __ pc() - start;
 
@@ -2669,8 +2671,15 @@ void SharedRuntime::generate_deopt_blob() {
   // fetch_unroll_info needs to call last_java_frame()
   __ set_last_Java_frame(noreg, noreg, NULL);
 
-  __ movl(c_rarg1, (int32_t)Deoptimization::Unpack_reexecute);
-  __ movl(r14, c_rarg1); // save into r14 for later call to unpack_frames
+
+  //  __ movl(c_rarg1, (int32_t)Deoptimization::Unpack_reexecute);
+  //  __ movl(r14, c_rarg1); // save into r14 for later call to unpack_frames
+
+  assert(r10 == rscratch1, "scratch register should be r10");
+  __ movptr(c_rarg1, Address(rsp, RegisterSaver::r10_offset_in_bytes()));
+  __ orq(c_rarg1, ~(int32_t)Deoptimization::make_trap_request(Deoptimization::Reason_unreached, Deoptimization::Action_none));
+  __ notq(c_rarg1);
+  __ movl(r14, (int32_t)Deoptimization::Unpack_reexecute);
   __ mov(c_rarg0, r15_thread);
   __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::uncommon_trap)));
 
@@ -2744,7 +2753,7 @@ void SharedRuntime::generate_deopt_blob() {
   // or captured in the vframeArray.
   RegisterSaver::restore_result_registers(masm);
 
-  // All of the register save area has been popped of the stack. Only the
+  // All of the register save area has been poppeset_jmp_uncommon_trap_offsetd of the stack. Only the
   // return address remains.
 
   // Pop all the frames we must move/replace.
