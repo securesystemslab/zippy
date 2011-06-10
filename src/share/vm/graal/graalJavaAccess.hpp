@@ -44,7 +44,7 @@ void graal_compute_offsets();
  *
  */
 
-#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, oop_field, static_oop_field)   \
+#define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
     oop_field(HotSpotTypeResolved, compiler, "Lcom/oracle/max/graal/runtime/Compiler;") \
     oop_field(HotSpotTypeResolved, javaMirror, "Ljava/lang/Class;")                     \
@@ -200,10 +200,13 @@ void graal_compute_offsets();
   start_class(CiStackSlot)                                                              \
     int_field(CiStackSlot, index)                                                       \
   end_class                                                                             \
+  start_class(RiTypeProfile)                                                            \
+    int_field(RiTypeProfile, count)                                                     \
+    int_field(RiTypeProfile, morphism)                                                  \
+    oop_field(RiTypeProfile, probabilities, "[F")                                       \
+    oop_field(RiTypeProfile, types, "[Lcom/sun/cri/ri/RiType;")                         \
+  end_class                                                                             \
   /* end*/
-
-
-
 
 #define START_CLASS(name)                       \
   class name : AllStatic {                      \
@@ -229,6 +232,7 @@ void graal_compute_offsets();
 #define INT_FIELD(klass, name) FIELD(name, jint, int_field)
 #define BOOLEAN_FIELD(klass, name) FIELD(name, jboolean, bool_field)
 #define LONG_FIELD(klass, name) FIELD(name, jlong, long_field)
+#define FLOAT_FIELD(klass, name) FIELD(name, jfloat, float_field)
 #define OOP_FIELD(klass, name, signature) FIELD(name, oop, obj_field)
 #define STATIC_OOP_FIELD(klassName, name, signature)                \
     static int _##name##_offset;                                    \
@@ -250,7 +254,7 @@ void graal_compute_offsets();
         oopDesc::encode_store_heap_oop((oop*)addr, x);              \
       }                                                             \
     }
-COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
+COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
 #undef START_CLASS
 #undef END_CLASS
 #undef FIELD
@@ -258,6 +262,7 @@ COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD
 #undef INT_FIELD
 #undef BOOLEAN_FIELD
 #undef LONG_FIELD
+#undef FLOAT_FIELD
 #undef OOP_FIELD
 #undef STATIC_OOP_FIELD
 
