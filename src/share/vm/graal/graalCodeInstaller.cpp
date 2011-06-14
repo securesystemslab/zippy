@@ -106,7 +106,8 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
 }
 
 // TODO: finish this - graal doesn't provide any scope values at the moment
-static ScopeValue* get_hotspot_value(oop value, int frame_size) {
+static ScopeValue* get_hotspot_value(oop value, int frame_size, ScopeValue* &second) {
+  second = NULL;
   if (value == CiValue::IllegalValue()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
@@ -114,27 +115,61 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size) {
   BasicType type = GraalCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
   Location::Type locationType = Location::normal;
   if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
+
   if (value->is_a(CiRegisterValue::klass())) {
     jint number = CiRegister::number(CiRegisterValue::reg(value));
     if (number < 16) {
-      return new LocationValue(Location::new_reg_loc(locationType, as_Register(number)->as_VMReg()));
+      if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
+        locationType = Location::int_in_long;
+      } else if (type == T_LONG) {
+        locationType = Location::lng;
+      } else {
+        assert(type == T_OBJECT || type == T_ARRAY, "unexpected type in cpu register");
+      }
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_Register(number)->as_VMReg()));
+      if (type == T_LONG) {
+        second = value;
+      }
+      return value;
     } else {
-      return new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
+      assert(type == T_FLOAT || type == T_DOUBLE, "only float and double expected in xmm register");
+      if (type == T_FLOAT) {
+        // this seems weird, but the same value is used in c1_LinearScan
+        locationType = Location::normal;
+      } else {
+        locationType = Location::dbl;
+      }
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
+      if (type == T_DOUBLE) {
+        second = value;
+      }
+      return value;
     }
   } else if (value->is_a(CiStackSlot::klass())) {
+    if (type == T_DOUBLE) {
+      locationType = Location::dbl;
+    } else if (type == T_LONG) {
+      locationType = Location::lng;
+    }
     jint index = CiStackSlot::index(value);
+    ScopeValue* value;
     if (index >= 0) {
-      return new LocationValue(Location::new_stk_loc(locationType, index * HeapWordSize));
+      value = new LocationValue(Location::new_stk_loc(locationType, index * HeapWordSize));
     } else {
       int frame_size_bytes = frame_size + 2 * HeapWordSize;
-      return new LocationValue(Location::new_stk_loc(locationType, -(index * HeapWordSize) + frame_size_bytes));
+      value = new LocationValue(Location::new_stk_loc(locationType, -(index * HeapWordSize) + frame_size_bytes));
     }
+    if (type == T_DOUBLE || type == T_LONG) {
+      second = value;
+    }
+    return value;
   } else if (value->is_a(CiConstant::klass())){
     oop obj = CiConstant::object(value);
     jlong prim = CiConstant::primitive(value);
     if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
       return new ConstantIntValue(*(jint*)&prim);
     } else if (type == T_LONG || type == T_DOUBLE) {
+      second = new ConstantIntValue(0);
       return new ConstantLongValue(prim);
     } else if (type == T_OBJECT) {
       oop obj = CiConstant::object(value);
@@ -433,18 +468,31 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     }
 
     for (jint i = 0; i < values->length(); i++) {
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size);
+      ScopeValue* second = NULL;
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size, second);
 
       if (i < local_count) {
+        if (second != NULL) {
+          locals->append(second);
+        }
         locals->append(value);
       } else if (i < local_count + expression_count) {
+        if (second != NULL) {
+          expressions->append(value);
+        }
         expressions->append(value);
       } else {
+        assert(second == NULL, "monitor cannot occupy two stack slots");
         assert(value->is_location(), "invalid monitor location");
         LocationValue* loc = (LocationValue*)value;
         int monitor_offset = loc->location().stack_offset();
         LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, monitor_offset + BasicObjectLock::obj_offset_in_bytes()));
         monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, monitor_offset  + BasicObjectLock::lock_offset_in_bytes())));
+      }
+      if (second != NULL) {
+        i++;
+        assert(i < values->length(), "double-slot value not followed by CiValue.IllegalValue");
+        assert(((oop*) values->base(T_OBJECT))[i] == CiValue::IllegalValue(), "double-slot value not followed by CiValue.IllegalValue");
       }
     }
     DebugToken* locals_token = _debug_recorder->create_scope_values(locals);

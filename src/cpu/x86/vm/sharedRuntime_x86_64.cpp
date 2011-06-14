@@ -2656,6 +2656,7 @@ void SharedRuntime::generate_deopt_blob() {
 
   int jmp_uncommon_trap_offset = __ pc() - start;
   __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
+  __ movptr(rscratch1, 0);
 
   int uncommon_trap_offset = __ pc() - start;
 
@@ -2752,7 +2753,7 @@ void SharedRuntime::generate_deopt_blob() {
   // or captured in the vframeArray.
   RegisterSaver::restore_result_registers(masm);
 
-  // All of the register save area has been popped of the stack. Only the
+  // All of the register save area has been poppeset_jmp_uncommon_trap_offsetd of the stack. Only the
   // return address remains.
 
   // Pop all the frames we must move/replace.
