@@ -27,6 +27,7 @@ package com.sun.hotspot.igv.view;
 import com.sun.hotspot.igv.graph.Figure;
 import java.awt.Component;
 import java.awt.Graphics2D;
+import java.util.Collection;
 import java.util.List;
 import javax.swing.JComponent;
 import org.openide.awt.UndoRedo;
@@ -57,6 +58,8 @@ interface DiagramViewer {
     public void componentShowing();
 
     public void initialize();
+    
+    public void setSelection(Collection<Figure> list);
 
     public void centerFigures(List<Figure> list);
 

@@ -46,7 +46,6 @@ import com.sun.hotspot.igv.data.Properties.PropertyMatcher;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import com.sun.hotspot.igv.filter.FilterChainProvider;
 import com.sun.hotspot.igv.graph.services.DiagramProvider;
-import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.RangeSlider;
 import com.sun.hotspot.igv.svg.BatikSVG;
 import com.sun.hotspot.igv.util.LookupHistory;
@@ -54,7 +53,6 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.KeyEvent;
@@ -436,7 +434,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     }
 
     public void setSelectedFigures(List<Figure> list) {
-        getModel().setSelectedFigures(list);
+        scene.setSelection(list);
         scene.centerFigures(list);
     }
 
