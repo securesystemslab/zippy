@@ -60,6 +60,7 @@ public:
   // Note:  The following predicates return false for invalid profiles:
   bool      has_receiver(int i) { return _limit > i; }
   int       morphism()          { return _morphism; }
+  int       limit()             { return _limit; }
 
   int       count()             { return _count; }
   int       receiver_count(int i)  {

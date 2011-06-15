@@ -212,6 +212,7 @@ class SymbolPropertyTable;
   template(CiKind_klass,                 com_sun_cri_ci_CiKind,                                     Opt) \
   template(CiRuntimeCall_klass,          com_sun_cri_ci_CiRuntimeCall,                              Opt) \
   template(RiMethod_klass,               com_sun_cri_ri_RiMethod,                                   Opt) \
+  template(RiType_klass,                 com_sun_cri_ri_RiType,                                     Opt) \
   template(RiExceptionHandler_klass,     com_sun_cri_ri_RiExceptionHandler,                         Opt) \
   template(RiTypeProfile_klass,          com_sun_cri_ri_RiTypeProfile,                              Opt) \
 
