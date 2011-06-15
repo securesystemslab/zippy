@@ -17,6 +17,7 @@
 \.orig$
 output\.txt$
 output\.cfg$
+java\.hprof\.txt$
 /nbproject/private/
 ^graal/hotspot/java$
 ^scratch/
