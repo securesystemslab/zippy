@@ -57,8 +57,6 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
@@ -123,6 +121,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private DiagramViewModel model;
     private DiagramViewModel modelCopy;
     private WidgetAction zoomAction;
+    private boolean rebuilding;
     
     /**
      * The alpha level of partially visible figures.
@@ -327,6 +326,11 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
 
         public void selectionChanged(ObjectSceneEvent e, Set<Object> oldSet, Set<Object> newSet) {
+            DiagramScene scene = (DiagramScene) e.getObjectScene();
+            if (scene.isRebuilding()) {
+                return;
+            }
+
             content.set(newSet, null);
 
             Set<Integer> nodeSelection = new HashSet<Integer>();
@@ -507,6 +511,8 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private void update() {
         mainLayer.removeChildren();
         blockLayer.removeChildren();
+        
+        rebuilding = true;
 
         Collection<Object> objects = new ArrayList<Object>(this.getObjects());
         for (Object o : objects) {
@@ -515,7 +521,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         Diagram d = getModel().getDiagramToView();
 
-        if (d.getGraph().getBlocks().size() == 0) {
+        if (d.getGraph().getBlocks().isEmpty()) {
             Scheduler s = Lookup.getDefault().lookup(Scheduler.class);
             d.getGraph().clearBlocks();
             s.schedule(d.getGraph());
@@ -557,9 +563,13 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 blockLayer.addChild(w);
             }
         }
-
+        
+        rebuilding = false;
         this.smallUpdate(true);
-
+    }
+    
+    public boolean isRebuilding() {
+        return rebuilding;
     }
 
     private void smallUpdate(boolean relayout) {
