@@ -183,8 +183,12 @@ public class Properties implements Serializable, Iterable<Property> {
 
         private String name;
         private Pattern valuePattern;
-
+        
         public RegexpPropertyMatcher(String name, String value) {
+            this(name, value, 0);
+        }
+
+        public RegexpPropertyMatcher(String name, String value, int flags) {
 
             if (name == null) {
                 throw new IllegalArgumentException("Property name must not be null!");
@@ -197,7 +201,7 @@ public class Properties implements Serializable, Iterable<Property> {
             this.name = name;
 
             try {
-                valuePattern = Pattern.compile(value);
+                valuePattern = Pattern.compile(value, flags);
             } catch (PatternSyntaxException e) {
                 throw new IllegalArgumentException("Bad pattern: " + value);
             }
