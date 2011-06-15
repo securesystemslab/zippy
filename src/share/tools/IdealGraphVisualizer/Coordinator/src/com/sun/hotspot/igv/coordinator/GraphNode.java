@@ -37,8 +37,8 @@ import org.openide.cookies.OpenCookie;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Sheet;
+import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
-import org.openide.util.Utilities;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 
@@ -98,7 +98,7 @@ public class GraphNode extends AbstractNode {
 
     @Override
     public Image getIcon(int i) {
-        return Utilities.loadImage("com/sun/hotspot/igv/coordinator/images/graph.gif");
+        return ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/graph.gif");
     }
 
     @Override

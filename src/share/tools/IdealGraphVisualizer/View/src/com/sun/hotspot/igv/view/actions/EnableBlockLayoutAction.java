@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
+import org.openide.util.ImageUtilities;
 
 /**
  *
@@ -39,7 +40,7 @@ public class EnableBlockLayoutAction extends AbstractAction {
 
     public EnableBlockLayoutAction() {
         state = true;
-        putValue(AbstractAction.SMALL_ICON, new ImageIcon(org.openide.util.Utilities.loadImage(iconResource())));
+        putValue(AbstractAction.SMALL_ICON, new ImageIcon(ImageUtilities.loadImage(iconResource())));
         putValue(STATE, true);
         putValue(Action.SHORT_DESCRIPTION, "Cluster nodes into blocks");
     }

@@ -38,6 +38,7 @@ import org.openide.cookies.OpenCookie;
 import org.openide.filesystems.Repository;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.Exceptions;
 import org.openide.util.Lookup;
 
@@ -126,8 +127,7 @@ public class CustomFilter extends AbstractFilter {
         InputStream is = null;
         StringBuilder sb = new StringBuilder("importPackage(Packages.com.sun.hotspot.igv.filter);importPackage(Packages.com.sun.hotspot.igv.graph);importPackage(Packages.com.sun.hotspot.igv.data);importPackage(Packages.com.sun.hotspot.igv.util);importPackage(java.awt);");
         try {
-            FileSystem fs = Repository.getDefault().getDefaultFileSystem();
-            FileObject fo = fs.getRoot().getFileObject(JAVASCRIPT_HELPER_ID);
+            FileObject fo = FileUtil.getConfigRoot().getFileObject(JAVASCRIPT_HELPER_ID);
             is = fo.getInputStream();
             BufferedReader r = new BufferedReader(new InputStreamReader(is));
             String s;

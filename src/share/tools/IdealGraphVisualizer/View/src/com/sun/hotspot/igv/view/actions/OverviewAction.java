@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
+import org.openide.util.ImageUtilities;
 
 /**
  *
@@ -38,7 +39,7 @@ public class OverviewAction extends AbstractAction {
     public static final String STATE = "state";
 
     public OverviewAction() {
-        putValue(AbstractAction.SMALL_ICON, new ImageIcon(org.openide.util.Utilities.loadImage(iconResource())));
+        putValue(AbstractAction.SMALL_ICON, new ImageIcon(ImageUtilities.loadImage(iconResource())));
         putValue(Action.SHORT_DESCRIPTION, "Show satellite view of whole graph");
         setState(false);
     }

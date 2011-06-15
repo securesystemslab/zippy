@@ -106,7 +106,6 @@ public class NodeQuickSearch implements SearchProvider {
                                     tmpSet.add(n);
                                     comp.setSelectedNodes(tmpSet);
                                     comp.requestActive();
-                                    comp.requestFocus();
                                 }
                             }
                         }, n.getProperties().get(name) + " (" + n.getId() + " " + n.getProperties().get("name") + ")");

@@ -260,7 +260,7 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         DiagramProvider p = LookupHistory.getLast(DiagramProvider.class);
         updateDiagramProvider(p);
 
-        Lookup.Template tpl = new Lookup.Template(DiagramProvider.class);
+        Lookup.Template<DiagramProvider> tpl = new Lookup.Template<DiagramProvider>(DiagramProvider.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
         result.addLookupListener(this);
     }

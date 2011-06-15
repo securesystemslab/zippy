@@ -499,7 +499,8 @@ public class OldHierarchicalLayoutManager implements LayoutManager {
         //}
 
 
-        ArrayList<Node<NodeData, EdgeData>> layers[] = new ArrayList[maxLayer + 1];
+        @SuppressWarnings("unchecked")
+        ArrayList<Node<NodeData, EdgeData>> layers[] = (ArrayList<Node<NodeData, EdgeData>>[]) new ArrayList[maxLayer + 1];
         int layerSizes[] = new int[maxLayer + 1];
         for (int i = 0; i < maxLayer + 1; i++) {
             layers[i] = new ArrayList<Node<NodeData, EdgeData>>();
@@ -1113,7 +1114,7 @@ public class OldHierarchicalLayoutManager implements LayoutManager {
         int removedCount = 0;
         int reversedCount = 0;
 
-        Graph.DFSTraversalVisitor visitor = graph.new DFSTraversalVisitor() {
+        Graph<NodeData, EdgeData>.DFSTraversalVisitor visitor = graph.new DFSTraversalVisitor() {
 
             @Override
             public boolean visitEdge(Edge<NodeData, EdgeData> e, boolean backEdge) {
@@ -1159,7 +1160,7 @@ public class OldHierarchicalLayoutManager implements LayoutManager {
             n.getData().setLayer(-1);
         }
 
-        Graph.BFSTraversalVisitor traverser = graph.new BFSTraversalVisitor() {
+        Graph<NodeData, EdgeData>.BFSTraversalVisitor traverser = graph.new BFSTraversalVisitor() {
 
             @Override
             public void visitNode(Node<NodeData, EdgeData> n, int depth) {

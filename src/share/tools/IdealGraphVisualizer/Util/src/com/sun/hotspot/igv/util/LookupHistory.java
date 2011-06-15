@@ -21,10 +21,9 @@
  * questions.
  *
  */
-
 package com.sun.hotspot.igv.util;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 import org.openide.util.Lookup.Result;
 import org.openide.util.LookupEvent;
@@ -37,13 +36,12 @@ import org.openide.util.Utilities;
  */
 public class LookupHistory {
 
-    private static Map<Class, LookupHistoryImpl> cache = new Hashtable<Class, LookupHistoryImpl>();
+    private static Map<Class, LookupHistoryImpl> cache = new HashMap<Class, LookupHistoryImpl>();
 
     private static class LookupHistoryImpl<T> implements LookupListener {
 
         private Class<T> klass;
         private Result<T> result;
-
         private T last;
 
         public LookupHistoryImpl(Class<T> klass) {
@@ -65,20 +63,16 @@ public class LookupHistory {
         }
     }
 
-
-    public static void init(Class klass) {
-
+    public static <T> void init(Class<T> klass) {
         if (!cache.containsKey(klass)) {
-            cache.put(klass, new LookupHistoryImpl(klass));
+            cache.put(klass, new LookupHistoryImpl<T>(klass));
         }
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T getLast(Class<T> klass) {
-
         init(klass);
-
         assert cache.containsKey(klass);
-
         return (T) cache.get(klass).getLast();
     }
 }

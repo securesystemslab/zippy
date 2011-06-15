@@ -128,7 +128,7 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
 
     @Override
     public void componentOpened() {
-        Lookup.Template tpl = new Lookup.Template(InputGraphProvider.class);
+        Lookup.Template<InputGraphProvider> tpl = new Lookup.Template<InputGraphProvider>(InputGraphProvider.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
         result.addLookupListener(this);
     }

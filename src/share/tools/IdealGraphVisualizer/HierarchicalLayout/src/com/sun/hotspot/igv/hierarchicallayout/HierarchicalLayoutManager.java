@@ -565,12 +565,16 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 n.x = space[n.layer].get(n.pos);
             }
         }
-
-        protected void run() {
-
+        
+        @SuppressWarnings("unchecked")
+        private void createArrays() {
             space = new ArrayList[layers.length];
             downProcessingOrder = new ArrayList[layers.length];
             upProcessingOrder = new ArrayList[layers.length];
+        }
+
+        protected void run() {
+            createArrays();
 
             for (int i = 0; i < layers.length; i++) {
                 space[i] = new ArrayList<Integer>();
@@ -1106,14 +1110,18 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 assert n.layer < layerCount;
             }
         }
-
-        protected void run() {
-
+        
+        @SuppressWarnings("unchecked")
+        private void createLayers() {
             layers = new List[layerCount];
 
             for (int i = 0; i < layerCount; i++) {
                 layers[i] = new ArrayList<LayoutNode>();
             }
+        }
+
+        protected void run() {
+            createLayers();
 
             // Generate initial ordering
             HashSet<LayoutNode> visited = new HashSet<LayoutNode>();

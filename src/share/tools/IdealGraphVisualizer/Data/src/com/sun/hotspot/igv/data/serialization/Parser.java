@@ -32,7 +32,6 @@ import com.sun.hotspot.igv.data.InputMethod;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Properties;
-import com.sun.hotspot.igv.data.Property;
 import com.sun.hotspot.igv.data.services.GroupCallback;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.HandoverElementHandler;
@@ -92,7 +91,7 @@ public class Parser {
     public static final String SUCCESSOR_ELEMENT = "successor";
     public static final String ASSEMBLY_ELEMENT = "assembly";
     public static final String DIFFERENCE_PROPERTY = "difference";
-    private TopElementHandler xmlDocument = new TopElementHandler();
+    private TopElementHandler<GraphDocument> xmlDocument = new TopElementHandler<GraphDocument>();
     private boolean difference;
     private GroupCallback groupCallback;
     private HashMap<String, Integer> idCache = new HashMap<String, Integer>();

@@ -82,6 +82,7 @@ import org.openide.windows.WindowManager;
 import org.openide.filesystems.Repository;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 
 /**
  * 
@@ -267,20 +268,18 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         }
     }
 
-    private class FilterChildren extends Children.Keys implements ChangedListener<CheckNode> {
+    private class FilterChildren extends Children.Keys<Filter> implements ChangedListener<CheckNode> {
 
-        private HashMap<Object, Node> nodeHash = new HashMap<Object, Node>();
+        private HashMap<Filter, Node> nodeHash = new HashMap<Filter, Node>();
 
-        protected Node[] createNodes(Object object) {
-            if (nodeHash.containsKey(object)) {
-                return new Node[]{nodeHash.get(object)};
+        protected Node[] createNodes(Filter filter) {
+            if (nodeHash.containsKey(filter)) {
+                return new Node[]{nodeHash.get(filter)};
             }
 
-            assert object instanceof Filter;
-            Filter filter = (Filter) object;
             FilterNode node = new FilterNode(filter);
             node.getSelectionChangedEvent().addListener(this);
-            nodeHash.put(object, node);
+            nodeHash.put(filter, node);
             return new Node[]{node};
         }
 
@@ -295,6 +294,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
             setBefore(false);
         }
 
+        @Override
         protected void addNotify() {
             setKeys(sequence.getFilters());
             updateSelection();
@@ -420,9 +420,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     }
 
     public void initFilters() {
-
-        FileSystem fs = Repository.getDefault().getDefaultFileSystem();
-        FileObject folder = fs.getRoot().getFileObject(FOLDER_ID);
+        FileObject folder = FileUtil.getConfigRoot().getFileObject(FOLDER_ID);
         FileObject[] children = folder.getChildren();
 
         List<CustomFilter> customFilters = new ArrayList<CustomFilter>();
@@ -585,10 +583,10 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     }
 
     private FileObject getFileObject(CustomFilter cf) {
-        FileObject fo = Repository.getDefault().getDefaultFileSystem().getRoot().getFileObject(FOLDER_ID + "/" + cf.getName());
+        FileObject fo = FileUtil.getConfigRoot().getFileObject(FOLDER_ID + "/" + cf.getName());
         if (fo == null) {
             try {
-                fo = org.openide.filesystems.Repository.getDefault().getDefaultFileSystem().getRoot().getFileObject(FOLDER_ID).createData(cf.getName());
+                fo = FileUtil.getConfigRoot().getFileObject(FOLDER_ID).createData(cf.getName());
             } catch (IOException ex) {
                 Exceptions.printStackTrace(ex);
             }

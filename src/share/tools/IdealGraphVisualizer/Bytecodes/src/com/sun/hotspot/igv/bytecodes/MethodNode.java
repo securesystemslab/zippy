@@ -30,7 +30,7 @@ import java.awt.Image;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
-import org.openide.util.Utilities;
+import org.openide.util.ImageUtilities;
 
 /**
  *
@@ -38,7 +38,7 @@ import org.openide.util.Utilities;
  */
 public class MethodNode extends AbstractNode {
 
-    private static class MethodNodeChildren extends Children.Keys {
+    private static class MethodNodeChildren extends Children.Keys<InputBytecode> {
 
         private InputMethod method;
         private InputGraph graph;
@@ -50,9 +50,7 @@ public class MethodNode extends AbstractNode {
             this.graph = graph;
         }
 
-        protected Node[] createNodes(Object object) {
-            assert object instanceof InputBytecode;
-            InputBytecode bc = (InputBytecode) object;
+        protected Node[] createNodes(InputBytecode bc) {
             if (bc.getInlined() == null) {
                 return new Node[]{new BytecodeNode(bc, graph, bciString)};
             } else {
@@ -84,7 +82,7 @@ public class MethodNode extends AbstractNode {
 
     @Override
     public Image getIcon(int i) {
-        return Utilities.loadImage("com/sun/hotspot/igv/bytecodes/images/method.gif");
+        return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/method.gif");
     }
 
     @Override

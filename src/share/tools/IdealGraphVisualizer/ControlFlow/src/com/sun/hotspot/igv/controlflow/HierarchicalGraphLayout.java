@@ -34,7 +34,6 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +127,7 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
         }
 
         public int compareTo(Vertex o) {
+            @SuppressWarnings("unchecked")
             VertexWrapper vw = (VertexWrapper) o;
             return node.toString().compareTo(vw.node.toString());
         }

@@ -29,6 +29,7 @@ import com.sun.hotspot.igv.util.ContextAction;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
 import org.openide.util.HelpCtx;
+import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.Utilities;
@@ -47,7 +48,7 @@ public final class NextDiagramAction extends ContextAction<DiagramViewModel> imp
 
     public NextDiagramAction(Lookup lookup) {
         putValue(Action.SHORT_DESCRIPTION, "Show next graph of current group");
-        putValue(Action.SMALL_ICON, new ImageIcon(Utilities.loadImage("com/sun/hotspot/igv/view/images/next_diagram.png")));
+        putValue(Action.SMALL_ICON, new ImageIcon(ImageUtilities.loadImage("com/sun/hotspot/igv/view/images/next_diagram.png")));
     }
 
     public String getName() {
