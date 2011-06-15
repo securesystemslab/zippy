@@ -113,6 +113,7 @@ void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
 }
 
 void VMExits::shutdownCompiler() {
+  HandleMark hm;
   JavaThread* THREAD = JavaThread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
