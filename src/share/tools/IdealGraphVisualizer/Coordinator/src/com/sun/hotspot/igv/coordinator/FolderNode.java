@@ -36,7 +36,7 @@ import java.util.List;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
-import org.openide.util.Utilities;
+import org.openide.util.ImageUtilities;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 
@@ -52,7 +52,7 @@ public class FolderNode extends AbstractNode {
     private List<String> subFolders;
     private FolderChildren children;
 
-    private static class FolderChildren extends Children.Keys implements ChangedListener<Group> {
+    private static class FolderChildren extends Children.Keys<Pair<String, List<Group>>> implements ChangedListener<Group> {
 
         private FolderNode parent;
         private List<Group> registeredGroups;
@@ -68,14 +68,13 @@ public class FolderNode extends AbstractNode {
         }
 
         @Override
-        protected Node[] createNodes(Object arg0) {
+        protected Node[] createNodes(Pair<String, List<Group>> p) {
 
             for(Group g : registeredGroups) {
                 g.getChangedEvent().removeListener(this);
             }
             registeredGroups.clear();
             
-            Pair<String, List<Group>> p = (Pair<String, List<Group>>) arg0;
             if (p.getLeft().length() == 0) {
 
                 List<Node> curNodes = new ArrayList<Node>();
@@ -116,7 +115,7 @@ public class FolderNode extends AbstractNode {
 
     @Override
     public Image getIcon(int i) {
-        return Utilities.loadImage("com/sun/hotspot/igv/coordinator/images/folder.gif");
+        return ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/folder.gif");
     }
 
     protected FolderNode(GraphDocument document, String name, GroupOrganizer organizer, List<String> subFolders, List<Group> groups) {

@@ -27,7 +27,6 @@ package com.sun.hotspot.igv.rhino;
 import com.sun.hotspot.igv.filter.ScriptEngineAbstraction;
 import com.sun.hotspot.igv.graph.Diagram;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
@@ -45,11 +44,11 @@ public class RhinoScriptEngine implements ScriptEngineAbstraction {
 
     public boolean initialize(String s) {
         this.jsHelperText = s;
-        Class importerTopLevel = null;
+        Class<?> importerTopLevel = null;
         try {
             ClassLoader cl = RhinoScriptEngine.class.getClassLoader();
-            Class context = cl.loadClass("org.mozilla.javascript.Context");
-            Class scriptable = cl.loadClass("org.mozilla.javascript.Scriptable");
+            Class<?> context = cl.loadClass("org.mozilla.javascript.Context");
+            Class<?> scriptable = cl.loadClass("org.mozilla.javascript.Scriptable");
             importerTopLevel = cl.loadClass("org.mozilla.javascript.ImporterTopLevel");
             importer = importerTopLevel.getDeclaredConstructor(context);
             scope_put = importerTopLevel.getMethod("put", String.class, scriptable, Object.class);

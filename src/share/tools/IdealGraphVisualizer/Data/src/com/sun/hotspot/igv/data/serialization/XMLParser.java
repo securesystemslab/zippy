@@ -23,7 +23,6 @@
  */
 package com.sun.hotspot.igv.data.serialization;
 
-import com.sun.hotspot.igv.data.Property;
 import com.sun.hotspot.igv.data.Properties;
 import java.util.HashMap;
 import java.util.Stack;
@@ -209,9 +208,10 @@ public class XMLParser implements ContentHandler {
     public void endPrefixMapping(String prefix) throws SAXException {
     }
 
+    @SuppressWarnings("unchecked")
     public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-
         assert !stack.isEmpty();
+
         ElementHandler parent = stack.peek();
         if (parent != null) {
             ElementHandler child = parent.getChild(qName);

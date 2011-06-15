@@ -43,13 +43,12 @@ public class JavaSE6ScriptEngine implements ScriptEngineAbstraction {
 
     public boolean initialize(String jsHelperText) {
         try {
-            
             ClassLoader cl = JavaSE6ScriptEngine.class.getClassLoader();
-            Class managerClass = cl.loadClass("javax.script.ScriptEngineManager");
-            Class engineClass = cl.loadClass("javax.script.ScriptEngine");
-            Class bindingsClass = cl.loadClass("javax.script.Bindings");
-            Class contextClass = cl.loadClass("javax.script.ScriptContext");
-            
+            Class<?> managerClass = cl.loadClass("javax.script.ScriptEngineManager");
+            Class<?> engineClass = cl.loadClass("javax.script.ScriptEngine");
+            Class<?> bindingsClass = cl.loadClass("javax.script.Bindings");
+            Class<?> contextClass = cl.loadClass("javax.script.ScriptContext");
+
             Object manager = managerClass.newInstance();
             Method getEngineByName = managerClass.getMethod("getEngineByName", String.class);
             engine = getEngineByName.invoke(manager, "ECMAScript");
@@ -63,7 +62,7 @@ public class JavaSE6ScriptEngine implements ScriptEngineAbstraction {
             bindings = getBindings.invoke(context, f.getInt(null));
             Bindings_put = bindingsClass.getMethod("put", String.class, Object.class);
             Bindings_put.invoke(bindings, "IO", System.out);
-            
+
             /*
              * Non-reflective code: 
             ScriptEngineManager sem = new ScriptEngineManager();

@@ -44,7 +44,7 @@ public class BatikSVG {
     private static Method createDefaultMethod;
     private static Method getDOMImplementationMethod;
     private static Method setEmbeddedFontsOnMethod;
-    private static Class classSVGGraphics2D;
+    private static Class<?> classSVGGraphics2D;
 
     /**
      * Creates a graphics object that allows to be exported to SVG data using the {@link #printToStream(Graphics2D, Writer, boolean) printToStream} method.
@@ -54,8 +54,8 @@ public class BatikSVG {
         try {
             if (SVGGraphics2DConstructor == null) {
                 ClassLoader cl = BatikSVG.class.getClassLoader();
-                Class classGenericDOMImplementation = cl.loadClass("org.apache.batik.dom.GenericDOMImplementation");
-                Class classSVGGeneratorContext = cl.loadClass("org.apache.batik.svggen.SVGGeneratorContext");
+                Class<?> classGenericDOMImplementation = cl.loadClass("org.apache.batik.dom.GenericDOMImplementation");
+                Class<?> classSVGGeneratorContext = cl.loadClass("org.apache.batik.svggen.SVGGeneratorContext");
                 classSVGGraphics2D = cl.loadClass("org.apache.batik.svggen.SVGGraphics2D");
                 getDOMImplementationMethod = classGenericDOMImplementation.getDeclaredMethod("getDOMImplementation", new Class[0]);
                 createDefaultMethod = classSVGGeneratorContext.getDeclaredMethod("createDefault", new Class[]{org.w3c.dom.Document.class});

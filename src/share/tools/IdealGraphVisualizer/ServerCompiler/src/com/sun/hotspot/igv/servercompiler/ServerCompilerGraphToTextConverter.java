@@ -149,7 +149,7 @@ public class ServerCompilerGraphToTextConverter implements GraphToTextConverter 
     
     private static final PropertyMatcher MATCHER = new Properties.RegexpPropertyMatcher("name", "Root");
     public boolean canConvert(InputGraph graph) {
-        return new PropertySelector(graph.getNodes()).selectSingle(MATCHER) != null;
+        return new PropertySelector<InputNode>(graph.getNodes()).selectSingle(MATCHER) != null;
     }
 
     private Color calcColor(InputNode node) {

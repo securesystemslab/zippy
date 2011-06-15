@@ -156,8 +156,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, ScopeValue* &sec
     if (index >= 0) {
       value = new LocationValue(Location::new_stk_loc(locationType, index * HeapWordSize));
     } else {
-      int frame_size_bytes = frame_size + 2 * HeapWordSize;
-      value = new LocationValue(Location::new_stk_loc(locationType, -(index * HeapWordSize) + frame_size_bytes));
+      value = new LocationValue(Location::new_stk_loc(locationType, -(index * HeapWordSize) + frame_size));
     }
     if (type == T_DOUBLE || type == T_LONG) {
       second = value;

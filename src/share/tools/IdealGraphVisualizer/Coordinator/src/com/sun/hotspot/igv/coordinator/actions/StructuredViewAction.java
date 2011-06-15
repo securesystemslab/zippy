@@ -51,8 +51,8 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import org.openide.awt.DropDownButtonFactory;
 import org.openide.util.HelpCtx;
+import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
-import org.openide.util.Utilities;
 import org.openide.util.actions.CallableSystemAction;
 
 public class StructuredViewAction extends CallableSystemAction {
@@ -71,7 +71,7 @@ public class StructuredViewAction extends CallableSystemAction {
     @Override
     public Component getToolbarPresenter() {
 
-        Image iconImage = Utilities.loadImage("com/sun/hotspot/igv/coordinator/images/structure.gif");
+        Image iconImage = ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/structure.gif");
         ImageIcon icon = new ImageIcon(iconImage);
 
         popup = new JPopupMenu();

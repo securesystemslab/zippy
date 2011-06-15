@@ -33,17 +33,21 @@ import com.sun.hotspot.igv.util.LookupHistory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.netbeans.spi.quicksearch.SearchProvider;
 import org.netbeans.spi.quicksearch.SearchRequest;
 import org.netbeans.spi.quicksearch.SearchResponse;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
+import org.openide.NotifyDescriptor.Message;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
 public class NodeQuickSearch implements SearchProvider {
+
+    private static final String DEFAULT_PROPERTY = "name";
 
     /**
      * Method is called by infrastructure when search operation was requested.
@@ -54,51 +58,67 @@ public class NodeQuickSearch implements SearchProvider {
      * @param response Search response object that stores search results. Note that it's important to react to return value of SearchResponse.addResult(...) method and stop computation if false value is returned.
      */
     public void evaluate(SearchRequest request, SearchResponse response) {
-
-        final String[] parts = request.getText().split("=");
-        if (parts.length == 0) {
+        String query = request.getText();
+        if (query.trim().isEmpty()) {
             return;
         }
 
-        String tmpName = parts[0];
+        final String[] parts = query.split("=", 2);
 
-        String value = null;
-        if (parts.length == 2) {
+        String name;
+        String value;
+
+        if (parts.length == 1) {
+            name = DEFAULT_PROPERTY;
+            value = ".*" + Pattern.quote(parts[0]) + ".*";
+        } else {
+            name = parts[0];
             value = parts[1];
         }
 
-        if (parts.length == 1 && request.getText().endsWith("=")) {
+        if (value.isEmpty()) {
             value = ".*";
         }
 
-        final String name = tmpName;
+        final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);
+        if (p != null && p.getGraph() != null) {
+            List<InputNode> matches = null;
+            try {
+                RegexpPropertyMatcher matcher = new RegexpPropertyMatcher(name, value, Pattern.CASE_INSENSITIVE);
+                Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<InputNode>(p.getGraph().getNodes());
 
-        if (value != null) {
-            final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//)Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
-            if (p != null) {
-                final InputGraph graph = p.getGraph();
-                if (graph != null) {
-                    final RegexpPropertyMatcher matcher = new RegexpPropertyMatcher(name, value);
-                    final Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<InputNode>(graph.getNodes());
-                    final List<InputNode> list = selector.selectMultiple(matcher);
-                    final Set<InputNode> set = new HashSet<InputNode>(list);
-
-                    response.addResult(new Runnable() {
-
+                matches = selector.selectMultiple(matcher);
+            } catch (Exception e) {
+                final String msg = e.getMessage();
+                response.addResult(new Runnable() {
                         public void run() {
+                            Message desc = new NotifyDescriptor.Message("An exception occurred during the search, "
+                                    + "perhaps due to a malformed query string:\n" + msg,
+                                    NotifyDescriptor.WARNING_MESSAGE);
+                            DialogDisplayer.getDefault().notify(desc);
+                        }
+                    },
+                    "(Error during search)"
+                );
+            }
 
+            if (matches != null) {
+                final Set<InputNode> set = new HashSet<InputNode>(matches);
+                response.addResult(new Runnable() {
+                        public void run() {
                             final EditorTopComponent comp = EditorTopComponent.getActive();
                             if (comp != null) {
                                 comp.setSelectedNodes(set);
                                 comp.requestActive();
                             }
                         }
-                    }, "All " + list.size() + " matching nodes (" + name + "=" + value + ")");
-                    for (final InputNode n : list) {
+                    },
+                    "All " + matches.size() + " matching nodes (" + name + "=" + value + ")"
+                );
 
-
-                        response.addResult(new Runnable() {
-
+                // Single matches
+                for (final InputNode n : matches) {
+                    response.addResult(new Runnable() {
                             public void run() {
                                 final EditorTopComponent comp = EditorTopComponent.getActive();
                                 if (comp != null) {
@@ -106,68 +126,15 @@ public class NodeQuickSearch implements SearchProvider {
                                     tmpSet.add(n);
                                     comp.setSelectedNodes(tmpSet);
                                     comp.requestActive();
-                                    comp.requestFocus();
                                 }
                             }
-                        }, n.getProperties().get(name) + " (" + n.getId() + " " + n.getProperties().get("name") + ")");
-                    }
-                }
-
-            } else {
-                System.out.println("no input graph provider!");
-            }
-
-        } else if (parts.length == 1) {
-
-            final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
-
-            if (p != null) {
-
-                final InputGraph graph = p.getGraph();
-                if (p != null && graph != null) {
-
-                    Set<String> properties = new HashSet<String>();
-                    for (InputNode n : p.getGraph().getNodes()) {
-                        for (Property property : n.getProperties()) {
-                            properties.add(property.getName());
-                        }
-                    }
-
-                    for (final String propertyName : properties) {
-
-                        if (propertyName.startsWith(name)) {
-
-                            response.addResult(new Runnable() {
-
-                                public void run() {
-
-                                    NotifyDescriptor.InputLine d =
-                                            new NotifyDescriptor.InputLine("Value of the property?", "Property Value Input");
-                                    if (DialogDisplayer.getDefault().notify(d) == NotifyDescriptor.OK_OPTION) {
-                                        String value = d.getInputText();
-                                        final RegexpPropertyMatcher matcher = new RegexpPropertyMatcher(propertyName, value);
-                                        final Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<InputNode>(graph.getNodes());
-                                        final List<InputNode> list = selector.selectMultiple(matcher);
-                                        final Set<InputNode> set = new HashSet<InputNode>(list);
-
-                                        final EditorTopComponent comp = EditorTopComponent.getActive();
-                                        if (comp != null) {
-                                            comp.setSelectedNodes(set);
-                                            comp.requestActive();
-                                        }
-
-                                    }
-
-
-                                }
-                            }, propertyName + "=");
-                        }
-                    }
-
-                } else {
-                    System.out.println("no input graph provider!");
+                        },
+                        n.getProperties().get(name) + " (" + n.getId() + " " + n.getProperties().get("name") + ")"
+                    );
                 }
             }
+        } else {
+            System.out.println("no input graph provider!");
         }
     }
 }
