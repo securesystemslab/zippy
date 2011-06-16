@@ -186,8 +186,20 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1type
     RiTypeProfile::set_count(obj, cimethod->scale_count(profile.count(), 1));
     RiTypeProfile::set_morphism(obj, profile.morphism());
 
-    RiTypeProfile::set_probabilities(obj, NULL);
-    RiTypeProfile::set_types(obj, NULL);
+    typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, profile.limit(), CHECK_NULL);
+    objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), profile.limit(), CHECK_NULL);
+    for (int i=0; i<profile.limit(); i++) {
+      float prob = profile.receiver_prob(i);
+      ciKlass* receiver = profile.receiver(i);
+      oop type = GraalCompiler::get_RiType(receiver, KlassHandle(), CHECK_NULL);
+
+      probabilities->float_at_put(i, prob);
+      types->obj_at_put(i, type);
+    }
+
+    RiTypeProfile::set_probabilities(obj, probabilities());
+    RiTypeProfile::set_types(obj, types());
+
   }
 
   return JNIHandles::make_local(obj());
