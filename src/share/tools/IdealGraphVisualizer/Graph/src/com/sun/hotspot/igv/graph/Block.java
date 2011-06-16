@@ -71,4 +71,10 @@ public class Block implements Cluster {
     public int compareTo(Cluster o) {
         return toString().compareTo(o.toString());
     }
+
+    @Override
+    public String toString() {
+        return inputBlock.getName();
+    }
 }
+    

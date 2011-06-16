@@ -249,7 +249,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
                     index++;
                 }
             }
-            this.setColors(colors);
         }
         setColors(colors);
         viewChangedEvent.fire();
