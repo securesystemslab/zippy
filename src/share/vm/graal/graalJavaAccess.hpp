@@ -53,21 +53,28 @@ void graal_compute_offsets();
     boolean_field(HotSpotTypeResolved, hasFinalizer)                                    \
     boolean_field(HotSpotTypeResolved, hasSubclass)                                     \
     boolean_field(HotSpotTypeResolved, hasFinalizableSubclass)                          \
-    boolean_field(HotSpotTypeResolved, isInitialized)                                   \
     boolean_field(HotSpotTypeResolved, isArrayClass)                                    \
     boolean_field(HotSpotTypeResolved, isInstanceClass)                                 \
     boolean_field(HotSpotTypeResolved, isInterface)                                     \
     int_field(HotSpotTypeResolved, instanceSize)                                        \
     oop_field(HotSpotTypeResolved, componentType, "Lcom/sun/cri/ri/RiType;")            \
   end_class                                                                             \
+  start_class(HotSpotMethodResolved)                                                    \
+    oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/max/graal/runtime/Compiler;") \
+    oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
+    oop_field(HotSpotMethodResolved, holder, "Lcom/sun/cri/ri/RiType;")                 \
+    oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/reflect/AccessibleObject;") \
+    int_field(HotSpotMethodResolved, codeSize)                                          \
+    int_field(HotSpotMethodResolved, accessFlags)                                       \
+    int_field(HotSpotMethodResolved, maxLocals)                                         \
+    int_field(HotSpotMethodResolved, maxStackSize)                                      \
+    int_field(HotSpotMethodResolved, invocationCount)                                   \
+  end_class                                                                             \
   start_class(HotSpotType)                                                              \
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \
   end_class                                                                             \
   start_class(HotSpotField)                                                             \
     oop_field(HotSpotField, constant, "Lcom/sun/cri/ci/CiConstant;")                    \
-  end_class                                                                             \
-  start_class(HotSpotMethodResolved)                                                    \
-    long_field(HotSpotMethodResolved, vmId)                                             \
   end_class                                                                             \
   start_class(HotSpotProxy)                                                             \
     static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \

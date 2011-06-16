@@ -25,6 +25,7 @@
 #include "graal/graalCompiler.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalJavaAccess.hpp"
+#include "graal/graalVMEntries.hpp"
 #include "graal/graalVmIds.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "classfile/vmSymbols.hpp"
@@ -200,7 +201,7 @@ CodeInstaller::CodeInstaller(Handle target_method) {
     assert(_hotspot_method != NULL && _name == NULL, "installMethod needs NON-NULL method and NULL name");
     assert(_hotspot_method->is_a(HotSpotMethodResolved::klass()), "installMethod needs a HotSpotMethodResolved");
 
-    methodOop method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(_hotspot_method));
+    methodOop method = getMethodFromHotSpotMethod(_hotspot_method);
     ciMethodObject = (ciMethod *) _env->get_object(method);
     _parameter_count = method->size_of_parameters();
   }
@@ -346,10 +347,8 @@ void CodeInstaller::assumption_ConcreteSubtype(oop assumption) {
 void CodeInstaller::assumption_ConcreteMethod(oop assumption) {
   oop context_oop = CiAssumptions_ConcreteMethod::context(assumption);
   oop method_oop = CiAssumptions_ConcreteMethod::method(assumption);
-  jlong context_oop_id = HotSpotMethodResolved::vmId(context_oop);
-  jlong method_oop_id = HotSpotMethodResolved::vmId(method_oop);
-  methodOop method = VmIds::get<methodOop>(method_oop_id);
-  methodOop context = VmIds::get<methodOop>(context_oop_id);
+  methodOop method = getMethodFromHotSpotMethod(method_oop);
+  methodOop context = getMethodFromHotSpotMethod(context_oop);
 
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method);
   ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context);
@@ -433,8 +432,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
   }
 
   oop hotspot_method = CiCodePos::method(code_pos);
-  assert(hotspot_method != NULL && hotspot_method->is_a(HotSpotMethodResolved::klass()), "unexpected hotspot method");
-  methodOop method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(hotspot_method));
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   ciMethod *cimethod = (ciMethod *) _env->get_object(method);
   jint bci = CiCodePos::bci(code_pos);
   bool reexecute;
@@ -594,7 +592,10 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     assert(debug_info != NULL, "debug info expected");
 
     methodOop method = NULL;
-    if (hotspot_method->is_a(HotSpotMethodResolved::klass())) method = VmIds::get<methodOop>(HotSpotMethodResolved::vmId(hotspot_method));
+    // we need to check, this might also be an unresolved method
+    if (hotspot_method->is_a(HotSpotMethodResolved::klass())) {
+      method = getMethodFromHotSpotMethod(hotspot_method);
+    }
 
     assert(debug_info != NULL, "debug info expected");
 

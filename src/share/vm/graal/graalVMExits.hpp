@@ -51,7 +51,7 @@ public:
   static void setDefaultOptions();
 
   // public abstract void compileMethod(long vmId, String name, int entry_bci);
-  static void compileMethod(jlong vmId, Handle name, int entry_bci);
+  static void compileMethod(Handle hotspot_method, int entry_bci);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();

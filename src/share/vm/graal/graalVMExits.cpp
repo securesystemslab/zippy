@@ -25,9 +25,9 @@
 #include "graal/graalVMExits.hpp"
 
 // this is a *global* handle
-jobject VMExits::_compilerPermObject;
-jobject VMExits::_vmExitsPermObject;
-jobject VMExits::_vmExitsPermKlass;
+jobject VMExits::_compilerPermObject = NULL;
+jobject VMExits::_vmExitsPermObject = NULL;
+jobject VMExits::_vmExitsPermKlass = NULL;
 
 KlassHandle VMExits::vmExitsKlass() {
   if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
@@ -99,27 +99,36 @@ void VMExits::setDefaultOptions() {
   check_pending_exception("Error while calling setDefaultOptions");
 }
 
-void VMExits::compileMethod(jlong methodVmId, Handle name, int entry_bci) {
-  assert(!name.is_null(), "just checking");
+void VMExits::compileMethod(Handle hotspot_method, int entry_bci) {
+  assert(!hotspot_method.is_null(), "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_long(methodVmId);
-  args.push_oop(name);
+  args.push_oop(hotspot_method);
   args.push_int(entry_bci);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
 }
 
 void VMExits::shutdownCompiler() {
-  HandleMark hm;
-  JavaThread* THREAD = JavaThread::current();
-  JavaValue result(T_VOID);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::shutdownCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
-  check_pending_exception("Error while calling shutdownCompiler");
+  if (_compilerPermObject != NULL) {
+    HandleMark hm;
+    JavaThread* THREAD = JavaThread::current();
+    JavaValue result(T_VOID);
+    JavaCallArguments args;
+    args.push_oop(instance());
+    JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::shutdownCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
+    check_pending_exception("Error while calling shutdownCompiler");
+
+    JNIHandles::destroy_global(_compilerPermObject);
+    JNIHandles::destroy_global(_vmExitsPermObject);
+    JNIHandles::destroy_global(_vmExitsPermKlass);
+
+    _compilerPermObject = NULL;
+    _vmExitsPermObject = NULL;
+    _vmExitsPermKlass = NULL;
+  }
 }
 
 void VMExits::startCompiler() {
