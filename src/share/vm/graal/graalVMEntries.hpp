@@ -26,6 +26,10 @@
 extern JNINativeMethod VMEntries_methods[];
 int VMEntries_methods_count();
 
+methodOop getMethodFromHotSpotMethod(oop hotspotMethod);
+
+oop getReflectedMethod(methodOop method, TRAPS);
+
 // nothing here - no need to define the jni method implementations in a header file
 
 

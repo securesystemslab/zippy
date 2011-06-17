@@ -61,6 +61,7 @@ public:
   static oop get_RiField(ciField *ciField, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS);
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
+  static oop createHotSpotMethodResolved(methodHandle method, Handle name, TRAPS);
 
   void exit();
 

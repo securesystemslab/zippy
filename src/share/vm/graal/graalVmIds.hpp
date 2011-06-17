@@ -82,11 +82,6 @@ public:
 };
 
 
-template <> inline jlong VmIds::add<methodOop>(methodOop obj){
-  assert(obj != NULL, "trying to add NULL<methodOop>");
-  assert(obj->is_method(), "trying to add mistyped object");
-  return add(Handle(obj), METHOD);
-}
 template <> inline jlong VmIds::add<klassOop>(klassOop obj) {
   assert(obj != NULL, "trying to add NULL<klassOop>");
   assert(obj->is_klass(), "trying to add mistyped object");
@@ -104,11 +99,6 @@ template <> inline jlong VmIds::add<oop>(oop obj) {
 }
 
 
-template <> inline methodOop VmIds::get<methodOop>(jlong id){
-  assert((id & TYPE_MASK) == METHOD, "METHOD expected");
-  assert(getObject(id)->is_method(), "methodOop expected");
-  return (methodOop)getObject(id);
-}
 template <> inline klassOop VmIds::get<klassOop>(jlong id) {
   assert((id & TYPE_MASK) == CLASS, "CLASS expected");
   assert(getObject(id)->is_klass(), "klassOop expected");

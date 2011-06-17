@@ -111,7 +111,9 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
 
   CompilerThread::current()->set_compiling(true);
   methodOop method = (methodOop) target->get_oop();
-  VMExits::compileMethod(VmIds::add<methodOop>(method), VmIds::toString<Handle>(method->name(), THREAD), entry_bci);
+  Handle name = VmIds::toString<Handle>(method->name(), CHECK);
+  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, name, CHECK);
+  VMExits::compileMethod(hotspot_method, entry_bci);
   CompilerThread::current()->set_compiling(false);
 
   VmIds::cleanupLocalObjects();
@@ -182,7 +184,6 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
   } else {
     HotSpotTypeResolved::set_isArrayClass(obj, false);
     HotSpotTypeResolved::set_componentType(obj, NULL);
-    HotSpotTypeResolved::set_isInitialized(obj, instanceKlass::cast(klass())->is_initialized());
     HotSpotTypeResolved::set_instanceSize(obj, instanceKlass::cast(klass())->size_helper() * HeapWordSize);
     HotSpotTypeResolved::set_hasFinalizer(obj, klass->has_finalizer());
   }
@@ -193,6 +194,36 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
 
   klass->set_graal_mirror(obj());
 
+  return obj();
+}
+
+oop GraalCompiler::createHotSpotMethodResolved(methodHandle method, Handle name, TRAPS) {
+  if (method->graal_mirror() != NULL) {
+    assert(method->graal_mirror()->is_a(HotSpotMethodResolved::klass()), "unexpected class...");
+    return method->graal_mirror();
+  }
+
+  instanceKlass::cast(HotSpotMethodResolved::klass())->initialize(CHECK_NULL);
+  Handle obj = instanceKlass::cast(HotSpotMethodResolved::klass())->allocate_instance(CHECK_NULL);
+  assert(obj() != NULL, "must succeed in allocating instance");
+
+  HotSpotMethodResolved::set_compiler(obj, VMExits::compilerInstance()());
+  oop reflected = getReflectedMethod(method(), CHECK_NULL);
+  HotSpotMethodResolved::set_javaMirror(obj, reflected);
+  HotSpotMethodResolved::set_name(obj, name());
+
+  KlassHandle klass = method->method_holder();
+  Handle holder_name = VmIds::toString<Handle>(klass->name(), CHECK_NULL);
+  oop holder = GraalCompiler::createHotSpotTypeResolved(klass, holder_name, CHECK_NULL);
+  HotSpotMethodResolved::set_holder(obj, holder);
+
+  HotSpotMethodResolved::set_codeSize(obj, method->code_size());
+  HotSpotMethodResolved::set_accessFlags(obj, method->access_flags().as_int());
+  HotSpotMethodResolved::set_maxLocals(obj, method->max_locals());
+  HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
+  HotSpotMethodResolved::set_invocationCount(obj, method->invocation_count());
+
+  method->set_graal_mirror(obj());
   return obj();
 }
 

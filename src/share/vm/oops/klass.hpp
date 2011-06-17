@@ -368,7 +368,7 @@ class Klass : public Klass_vtbl {
   oop* adr_secondary_super_cache() const { return (oop*)&_secondary_super_cache; }
   oop* adr_secondary_supers()const { return (oop*)&_secondary_supers;  }
   oop* adr_java_mirror()     const { return (oop*)&_java_mirror;       }
-  oop* adr_graal_mirror()      const { return (oop*)&_graal_mirror;        }
+  oop* adr_graal_mirror()    const { return (oop*)&_graal_mirror;      }
   oop* adr_subklass()        const { return (oop*)&_subklass;          }
   oop* adr_next_sibling()    const { return (oop*)&_next_sibling;      }
 
