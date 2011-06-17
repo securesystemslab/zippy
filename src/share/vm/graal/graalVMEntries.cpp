@@ -235,10 +235,10 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1branchP
 
   jfloat probability = -1;
 
-  if (!method_data->is_mature()) return -1;
+  if (method_data == NULL || !method_data->is_mature()) return -1;
 
   ciProfileData* data = method_data->bci_to_data(bci);
-  if (!data->is_JumpData())  return -1;
+  if (data == NULL || !data->is_JumpData())  return -1;
 
   // get taken and not taken values
   int     taken = data->as_JumpData()->taken();
