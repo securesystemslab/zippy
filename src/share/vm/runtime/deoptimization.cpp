@@ -1240,11 +1240,12 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
 
     if (trap_scope->rethrow_exception()) {
-      tty->print_cr("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Exception to be rethrown in the interpreter");
+      if (TraceDeoptimization) {
+        tty->print_cr("Exception to be rethrown in the interpreter");
+      }
       GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();
       ScopeValue* topOfStack = expressions->top();
       Handle topOfStackObj = cvf->create_stack_value(topOfStack)->get_obj();
-      topOfStackObj->print();
       THREAD->set_pending_exception(topOfStackObj(), NULL, 0);
     }
     
