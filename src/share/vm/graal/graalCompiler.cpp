@@ -206,23 +206,24 @@ oop GraalCompiler::createHotSpotMethodResolved(methodHandle method, Handle name,
   instanceKlass::cast(HotSpotMethodResolved::klass())->initialize(CHECK_NULL);
   Handle obj = instanceKlass::cast(HotSpotMethodResolved::klass())->allocate_instance(CHECK_NULL);
   assert(obj() != NULL, "must succeed in allocating instance");
-
+  
   HotSpotMethodResolved::set_compiler(obj, VMExits::compilerInstance()());
-  oop reflected = getReflectedMethod(method(), CHECK_NULL);
-  HotSpotMethodResolved::set_javaMirror(obj, reflected);
+  // (tw) Cannot use reflection here, because the compiler thread could dead lock with the running application.
+  // oop reflected = getReflectedMethod(method(), CHECK_NULL);
+  HotSpotMethodResolved::set_javaMirror(obj, method());
   HotSpotMethodResolved::set_name(obj, name());
-
+  
   KlassHandle klass = method->method_holder();
   Handle holder_name = VmIds::toString<Handle>(klass->name(), CHECK_NULL);
   oop holder = GraalCompiler::createHotSpotTypeResolved(klass, holder_name, CHECK_NULL);
   HotSpotMethodResolved::set_holder(obj, holder);
-
+  
   HotSpotMethodResolved::set_codeSize(obj, method->code_size());
   HotSpotMethodResolved::set_accessFlags(obj, method->access_flags().as_int());
   HotSpotMethodResolved::set_maxLocals(obj, method->max_locals());
   HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
   HotSpotMethodResolved::set_invocationCount(obj, method->invocation_count());
-
+  
   method->set_graal_mirror(obj());
   return obj();
 }

@@ -63,7 +63,7 @@ void graal_compute_offsets();
     oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/max/graal/runtime/Compiler;") \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
     oop_field(HotSpotMethodResolved, holder, "Lcom/sun/cri/ri/RiType;")                 \
-    oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/reflect/AccessibleObject;") \
+    oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/Object;")                  \
     int_field(HotSpotMethodResolved, codeSize)                                          \
     int_field(HotSpotMethodResolved, accessFlags)                                       \
     int_field(HotSpotMethodResolved, maxLocals)                                         \

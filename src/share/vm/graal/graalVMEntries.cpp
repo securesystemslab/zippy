@@ -39,7 +39,10 @@ methodOop getMethodFromHotSpotMethod(jobject hotspot_method) {
 methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
   oop reflected = HotSpotMethodResolved::javaMirror(hotspot_method);
   assert(reflected != NULL, "NULL not expected");
+  return (methodOop)reflected;
 
+  // (tw) Cannot use reflection code, because then the compiler can dead lock with the user application (test using -Xcomp).
+  /*
   // method is a handle to a java.lang.reflect.Method object
   oop mirror     = NULL;
   int slot       = 0;
@@ -58,7 +61,7 @@ methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
 //  assert(instanceKlass::cast(k)->is_initialized(), "only initialized classes expected");
   methodOop m = instanceKlass::cast(k)->method_with_idnum(slot);
   assert(m != NULL, "deleted method?");
-  return m;
+  return m;*/
 }
 
 oop getReflectedMethod(methodOop method, TRAPS) {
@@ -368,7 +371,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jlong vmId, jint index, jbyte byteCode) {
   TRACE_graal_3("VMEntries::RiConstantPool_lookupMethod");
   VM_ENTRY_MARK;
-
   index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = VmIds::get<constantPoolOop>(vmId);
 
