@@ -1239,6 +1239,15 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     int             trap_bci    = trap_scope->bci();
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
 
+    if (trap_scope->rethrow_exception()) {
+      tty->print_cr("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Exception to be rethrown in the interpreter");
+      GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();
+      ScopeValue* topOfStack = expressions->top();
+      Handle topOfStackObj = cvf->create_stack_value(topOfStack)->get_obj();
+      topOfStackObj->print();
+      THREAD->set_pending_exception(topOfStackObj(), NULL, 0);
+    }
+    
     // Record this event in the histogram.
     gather_statistics(reason, action, trap_bc);
 
@@ -1407,6 +1416,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       reprofile = true;
       break;
     case Action_make_not_entrant:
+    case Action_rethrow_exception_in_interpreter:
       // Request immediate recompilation, and get rid of the old code.
       // Make them not entrant, so next time they are called they get
       // recompiled.  Unloaded classes are loaded now so recompile before next

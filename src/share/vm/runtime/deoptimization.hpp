@@ -72,6 +72,7 @@ class Deoptimization : AllStatic {
     Action_reinterpret,           // invalidate the nmethod, reset IC, maybe recompile
     Action_make_not_entrant,      // invalidate the nmethod, recompile (probably)
     Action_make_not_compilable,   // invalidate the nmethod and do not compile
+    Action_rethrow_exception_in_interpreter,
     Action_LIMIT
     // Note:  Keep this enum in sync. with _trap_action_name.
   };

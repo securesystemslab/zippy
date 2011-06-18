@@ -496,9 +496,14 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
     DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
     DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
-    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, false, false, locals_token, expressions_token, monitors_token);
+    bool throw_exception = false;
+    if (CiFrame::rethrowException(frame)) {
+      throw_exception = true;
+    }
+
+    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
   } else {
-    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, false, false, NULL, NULL, NULL);
+    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, false, false, false, NULL, NULL, NULL);
   }
 }
 

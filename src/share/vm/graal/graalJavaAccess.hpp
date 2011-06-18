@@ -153,6 +153,7 @@ void graal_compute_offsets();
     int_field(CiFrame, numLocals)                                                       \
     int_field(CiFrame, numStack)                                                        \
     int_field(CiFrame, numLocks)                                                        \
+    boolean_field(CiFrame, rethrowException)                                            \
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
     oop_field(CiCodePos, caller, "Lcom/sun/cri/ci/CiCodePos;")                          \

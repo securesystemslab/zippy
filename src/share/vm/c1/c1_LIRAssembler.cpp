@@ -405,7 +405,7 @@ void LIR_Assembler::record_non_safepoint_debug_info() {
     if (s == NULL)  break;
     IRScope* scope = s->scope();
     //Always pass false for reexecute since these ScopeDescs are never used for deopt
-    debug_info->describe_scope(pc_offset, scope->method(), s->bci(), false/*reexecute*/);
+    debug_info->describe_scope(pc_offset, scope->method(), s->bci(), false/*reexecute*/, false/*rethrow_exception*/);
   }
 
   debug_info->end_non_safepoint(pc_offset);

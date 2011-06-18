@@ -43,6 +43,7 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
     int word;
     struct {
       unsigned int reexecute: 1;
+      unsigned int rethrow_exception: 1;
       unsigned int is_method_handle_invoke: 1;
       unsigned int return_oop: 1;
     } bits;
@@ -71,6 +72,8 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   // Flags
   bool     should_reexecute()              const { return _flags.bits.reexecute; }
   void set_should_reexecute(bool z)              { _flags.bits.reexecute = z;    }
+  bool     rethrow_exception()              const { return _flags.bits.rethrow_exception; }
+  void set_rethrow_exception(bool z)              { _flags.bits.rethrow_exception = z;    }
 
   // Does pd refer to the same information as pd?
   bool is_same_info(const PcDesc* pd) {
