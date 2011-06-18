@@ -1223,13 +1223,18 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 
 //    tty->print_cr("trap_request: %08x, cpi: %i, pc: %016x", trap_request, unloaded_class_index, fr.pc());
 
+    
     Events::log("Uncommon trap occurred @" INTPTR_FORMAT " unloaded_class_index = %d", fr.pc(), (int) trap_request);
     vframe*  vf  = vframe::new_vframe(&fr, &reg_map, thread);
     compiledVFrame* cvf = compiledVFrame::cast(vf);
-
+    
     nmethod* nm = cvf->code();
-
     ScopeDesc*      trap_scope  = cvf->scope();
+    
+    if (TraceDeoptimization) {
+      tty->print_cr("Deoptimization: bci=%d pc=%d, relative_pc=%d, method=%s", trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string());
+    }
+
     methodHandle    trap_method = trap_scope->method();
     int             trap_bci    = trap_scope->bci();
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
