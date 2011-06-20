@@ -1417,7 +1417,6 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       reprofile = true;
       break;
     case Action_make_not_entrant:
-    case Action_rethrow_exception_in_interpreter:
       // Request immediate recompilation, and get rid of the old code.
       // Make them not entrant, so next time they are called they get
       // recompiled.  Unloaded classes are loaded now so recompile before next
