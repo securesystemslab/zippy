@@ -2690,11 +2690,11 @@ SOLARIS_ONLY(
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
       scp_p->add_prefix(temp);
+      sprintf(temp, "%s/com.oracle.max.graal.graph/bin", maxine_dir);
+      scp_p->add_prefix(temp);
       sprintf(temp, "%s/graal/com.oracle.max.graal.compiler/bin", graal_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/graal/com.oracle.max.graal.runtime/bin", graal_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/graal/com.oracle.max.graal.graph/bin", graal_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/graal/com.oracle.max.graal.graphviz/bin", graal_dir);
       scp_p->add_prefix(temp);

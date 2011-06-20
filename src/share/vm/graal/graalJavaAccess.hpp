@@ -140,13 +140,13 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
     oop_field(CiDebugInfo, codePos, "Lcom/sun/cri/ci/CiCodePos;")                       \
-    oop_field(CiDebugInfo, registerRefMap, "Lcom/sun/cri/ci/CiBitMap;")                 \
-    oop_field(CiDebugInfo, frameRefMap, "Lcom/sun/cri/ci/CiBitMap;")                    \
+    oop_field(CiDebugInfo, registerRefMap, "Lcom/oracle/max/graal/graph/BitMap;")       \
+    oop_field(CiDebugInfo, frameRefMap, "Lcom/oracle/max/graal/graph/BitMap;")          \
   end_class                                                                             \
-  start_class(CiBitMap)                                                                 \
-    int_field(CiBitMap, size)                                                           \
-    long_field(CiBitMap, low)                                                           \
-    oop_field(CiBitMap, extra, "[J")                                                    \
+  start_class(GraalBitMap)                                                              \
+    int_field(GraalBitMap, size)                                                        \
+    long_field(GraalBitMap, low)                                                        \
+    oop_field(GraalBitMap, extra, "[J")                                                 \
   end_class                                                                             \
   start_class(CiFrame)                                                                  \
     oop_field(CiFrame, values, "[Lcom/sun/cri/ci/CiValue;")                             \
@@ -217,7 +217,7 @@ void graal_compute_offsets();
   /* end*/
 
 #define START_CLASS(name)                       \
-  class name : AllStatic {                      \
+class name : AllStatic {                      \
   private:                                      \
     friend class GraalCompiler;                   \
     static void check(oop obj) { assert(obj != NULL, "NULL field access of class " #name); assert(obj->is_a(SystemDictionary::name##_klass()), "wrong class, " #name " expected"); } \
