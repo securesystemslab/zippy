@@ -1,7 +1,0 @@
-split("class", ".*Constant");
-split("class", ".*Variable");
-split("class", ".*Parameter");
-split("class", ".*Snippet");
-split("class", ".*Switch");
-split("class", ".*cir\.snippet.*"); 
-split("class", ".*cir\.builtin.*"); 
