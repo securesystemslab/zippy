@@ -636,8 +636,15 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
 
 #ifdef COMPILER1
   if (t == NULL && nm->is_compiled_by_c1()) {
-    assert(nm->unwind_handler_begin() != NULL, "");
-    return nm->unwind_handler_begin();
+    if (UseGraal) {
+      nm->make_not_entrant();
+      JavaThread::current()->set_exception_pc(ret_pc);
+      JavaThread::current()->set_exception_oop(exception());
+      return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
+    } else {
+      assert(nm->unwind_handler_begin() != NULL, "");
+      return nm->unwind_handler_begin();
+    }
   }
 #endif
 
