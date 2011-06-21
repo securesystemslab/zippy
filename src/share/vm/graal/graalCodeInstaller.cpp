@@ -73,7 +73,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
 
   if (register_map != NULL) {
-    assert(BitMap::size(register_map) == (unsigned) NUM_CPU_REGS, "unexpected register_map length");
+    assert(GraalBitMap::size(register_map) == (unsigned) NUM_CPU_REGS, "unexpected register_map length");
     for (jint i = 0; i < NUM_CPU_REGS; i++) {
       bool is_oop = is_bit_set(register_map, i);
       VMReg reg = get_hotspot_reg(i);
@@ -87,7 +87,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   }
 
   if (frame_size > 0) {
-    assert(BitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
+    assert(GraalBitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
 
     for (jint i = 0; i < frame_size / HeapWordSize; i++) {
       bool is_oop = is_bit_set(frame_map, i);
@@ -100,7 +100,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
       }
     }
   } else {
-    assert(frame_map == NULL || BitMap::size(frame_map) == 0, "cannot have frame_map for frames with size 0");
+    assert(frame_map == NULL || GraalBitMap::size(frame_map) == 0, "cannot have frame_map for frames with size 0");
   }
 
   return map;
