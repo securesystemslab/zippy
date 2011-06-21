@@ -55,11 +55,11 @@ VMReg get_hotspot_reg(jint graal_reg) {
 static bool is_bit_set(oop bit_map, int i) {
   const int MapWordBits = 64;
   if (i < MapWordBits) {
-    jlong low = CiBitMap::low(bit_map);
+    jlong low = GraalBitMap::low(bit_map);
     return (low & (1LL << i)) != 0;
   } else {
     jint extra_idx = (i - MapWordBits) / MapWordBits;
-    arrayOop extra = (arrayOop) CiBitMap::extra(bit_map);
+    arrayOop extra = (arrayOop) GraalBitMap::extra(bit_map);
     assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
     jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
     return (word & (1LL << (i % MapWordBits))) != 0;
@@ -73,7 +73,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
 
   if (register_map != NULL) {
-    assert(CiBitMap::size(register_map) == (unsigned) NUM_CPU_REGS, "unexpected register_map length");
+    assert(GraalBitMap::size(register_map) == (unsigned) NUM_CPU_REGS, "unexpected register_map length");
     for (jint i = 0; i < NUM_CPU_REGS; i++) {
       bool is_oop = is_bit_set(register_map, i);
       VMReg reg = get_hotspot_reg(i);
@@ -87,7 +87,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
   }
 
   if (frame_size > 0) {
-    assert(CiBitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
+    assert(GraalBitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
 
     for (jint i = 0; i < frame_size / HeapWordSize; i++) {
       bool is_oop = is_bit_set(frame_map, i);
@@ -100,7 +100,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
       }
     }
   } else {
-    assert(frame_map == NULL || CiBitMap::size(frame_map) == 0, "cannot have frame_map for frames with size 0");
+    assert(frame_map == NULL || GraalBitMap::size(frame_map) == 0, "cannot have frame_map for frames with size 0");
   }
 
   return map;

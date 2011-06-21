@@ -200,7 +200,7 @@ class SymbolPropertyTable;
   template(CiTargetMethod_Safepoint_klass, com_sun_cri_ci_CiTargetMethod_Safepoint,                 Opt) \
   template(CiTargetMethod_ExceptionHandler_klass, com_sun_cri_ci_CiTargetMethod_ExceptionHandler,   Opt) \
   template(CiTargetMethod_Mark_klass,    com_sun_cri_ci_CiTargetMethod_Mark,                        Opt) \
-  template(CiBitMap_klass,               com_sun_cri_ci_CiBitMap,                                   Opt) \
+  template(GraalBitMap_klass,            com_oracle_max_graal_graph_BitMap,                         Opt) \
   template(CiDebugInfo_klass,            com_sun_cri_ci_CiDebugInfo,                                Opt) \
   template(CiFrame_klass,                com_sun_cri_ci_CiFrame,                                    Opt) \
   template(CiValue_klass,                com_sun_cri_ci_CiValue,                                    Opt) \
