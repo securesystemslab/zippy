@@ -458,6 +458,17 @@ IRT_ENTRY(address, InterpreterRuntime::exception_handler_for_exception(JavaThrea
     }
   } while (should_repeat == true);
 
+  if (h_method->method_data() != NULL) {
+    ProfileData* pdata = h_method->method_data()->allocate_bci_to_data(current_bci);
+    if (pdata != NULL) {
+      int tstate0 = pdata->trap_state();
+      int tstate1 = Deoptimization::trap_state_set_recompiled(tstate0, true);
+      if (tstate1 != tstate0) {
+        pdata->set_trap_state(tstate1);
+      }
+    }
+  }
+
   // notify JVMTI of an exception throw; JVMTI will detect if this is a first
   // time throw or a stack unwinding throw and accordingly notify the debugger
   if (JvmtiExport::can_post_on_exceptions()) {

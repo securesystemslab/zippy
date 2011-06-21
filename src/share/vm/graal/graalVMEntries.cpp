@@ -183,8 +183,35 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocat
   return method->invocation_count();
 }
 
+// public native int RiMethod_throwoutCount(long vmId);
+JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+  TRACE_graal_3("VMEntries::RiMethod_exceptionProbability");
+  ciMethod* cimethod;
+  {
+    VM_ENTRY_MARK;
+    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
+  }
+
+  ciMethodData* method_data = cimethod->method_data_or_null();
+  if (method_data == NULL) {
+    return -1;
+  } else {
+    ciProfileData* profile = method_data->bci_to_data(bci);
+    if (profile == NULL) {
+      return 0;
+    }
+    uint trap = method_data->trap_recompiled_at(profile);
+    if (trap > 0) {
+      return 100;
+    } else {
+      return trap;
+    }
+  }
+}
+
 // public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
   ciMethod* cimethod;
   {
@@ -225,7 +252,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1type
 }
 
 // public native RiTypeProfile RiMethod_branchProfile(long vmId, int bci);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
   ciMethodData* method_data;
   ciMethod* cimethod;
@@ -803,9 +830,10 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_exceptionHandlers",      CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1exceptionHandlers)},
   {CC"RiMethod_hasBalancedMonitors",    CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors)},
   {CC"RiMethod_uniqueConcreteMethod",   CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
-  {CC"RiMethod_typeProfile",            CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1typeProfile)},
-  {CC"RiMethod_branchProbability",      CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1branchProbability)},
+  {CC"RiMethod_typeProfile",            CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile)},
+  {CC"RiMethod_branchProbability",      CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability)},
   {CC"RiMethod_invocationCount",        CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
+  {CC"RiMethod_exceptionProbability",   CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability)},
   {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod)},
