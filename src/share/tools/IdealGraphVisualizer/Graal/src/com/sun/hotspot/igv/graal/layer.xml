@@ -5,5 +5,9 @@
         <file name="Graal Coloring" url="filters/color.filter">
             <attr name="enabled" boolvalue="false"/>
         </file>
+        
+        <file name="Graal Edge Coloring" url="filters/edgeColor.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
     </folder>
 </filesystem>
