@@ -29,6 +29,7 @@
 #include "classfile/vmSymbols.hpp"
 #include "code/scopeDesc.hpp"
 #include "compiler/compileBroker.hpp"
+#include "graal/graalCompiler.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/linkResolver.hpp"
 #include "jvmtifiles/jvmtiEnv.hpp"

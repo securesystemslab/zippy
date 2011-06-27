@@ -1534,6 +1534,12 @@ void CompileBroker::compiler_thread_loop() {
     log->stamp();
     log->end_elem();
   }
+  
+  if (UseGraal) {
+    thread->set_compiling(true); // Prevent recursive compilations while the compiler is initializing.
+    ThreadToNativeFromVM trans(JavaThread::current());
+    GraalCompiler::instance()->initialize();
+  }
 
   while (true) {
     {

@@ -41,8 +41,8 @@ GraalCompiler::GraalCompiler() {
 // Initialization
 void GraalCompiler::initialize() {
   if (_initialized) return;
-  CompilerThread* THREAD = CompilerThread::current();
   _initialized = true;
+  CompilerThread* THREAD = CompilerThread::current();
   TRACE_graal_1("GraalCompiler::initialize");
 
   VmIds::initializeObjects();
@@ -99,7 +99,7 @@ void GraalCompiler::initialize_buffer_blob() {
 
 // Compilation entry point for methods
 void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
-  initialize();
+  assert(_initialized, "must already be initialized");
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
