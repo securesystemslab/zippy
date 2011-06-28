@@ -631,6 +631,31 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiType_1arrayO
   return JNIHandles::make_local(THREAD, GraalCompiler::createHotSpotTypeResolved(array, name, THREAD));
 }
 
+// public RiField[] RiType_fields(HotSpotTypeResolved klass);
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiType_1fields(JNIEnv *, jobject, jobject klass) {
+  TRACE_graal_3("VMEntries::RiType_fields");
+  KlassHandle klass_handle;
+  ciInstanceKlass* instance_klass;
+  {
+    VM_ENTRY_MARK;
+    klass_handle = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
+    instance_klass = (ciInstanceKlass*) CURRENT_ENV->get_object(klass_handle());
+  }
+  GrowableArray<ciField*>* fields = instance_klass->non_static_fields();
+
+  objArrayHandle fieldsArray;
+  {
+    VM_ENTRY_MARK;
+    fieldsArray = oopFactory::new_objArray(SystemDictionary::RiField_klass(), fields->length(), CHECK_NULL);
+    for (int i = 0; i < fields->length(); i++) {
+      ciField* field = fields->at(i);
+      Handle field_handle = GraalCompiler::get_RiField(field, instance_klass, klass_handle, Bytecodes::_illegal, CHECK_NULL);
+      fieldsArray->obj_at_put(i, field_handle());
+    }
+  }
+  return JNIHandles::make_local(fieldsArray());
+}
+
 // public RiType getPrimitiveArrayType(CiKind kind);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getPrimitiveArrayType(JNIEnv *env, jobject, jobject kind) {
   TRACE_graal_3("VMEntries::VMEntries_getPrimitiveArrayType");
@@ -847,6 +872,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_uniqueConcreteSubtype",    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1uniqueConcreteSubtype)},
   {CC"RiType_superType",                CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1superType)},
   {CC"RiType_arrayOf",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1arrayOf)},
+  {CC"RiType_fields",                   CC"("RESOLVED_TYPE")["FIELD,                FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1fields)},
   {CC"RiType_isInitialized",            CC"("RESOLVED_TYPE")Z",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1isInitialized)},
   {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getPrimitiveArrayType)},
   {CC"getType",                         CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getType)},

@@ -206,11 +206,11 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   assert(vf->is_compiled_frame(), "Wrong frame type");
   chunk->push(compiledVFrame::cast(vf));
 
-#ifdef COMPILER2
+//#ifdef COMPILER2
   // Reallocate the non-escaping objects and restore their fields. Then
   // relock objects if synchronization on them was eliminated.
-  if (DoEscapeAnalysis) {
-    if (EliminateAllocations) {
+//  if (DoEscapeAnalysis) {
+//    if (EliminateAllocations) {
       assert (chunk->at(0)->scope() != NULL,"expect only compiled java frames");
       GrowableArray<ScopeValue*>* objects = chunk->at(0)->scope()->objects();
 
@@ -254,8 +254,8 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
         // Restore result.
         deoptee.set_saved_oop_result(&map, return_value());
       }
-    }
-    if (EliminateLocks) {
+//    }
+//    if (EliminateLocks) {
 #ifndef PRODUCT
       bool first = true;
 #endif
@@ -282,9 +282,9 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 #endif
         }
       }
-    }
-  }
-#endif // COMPILER2
+//    }
+//  }
+//#endif // COMPILER2
   // Ensure that no safepoint is taken after pointers have been stored
   // in fields of rematerialized objects.  If a safepoint occurs from here on
   // out the java state residing in the vframeArray will be missed.
@@ -709,7 +709,7 @@ int Deoptimization::deoptimize_dependents() {
 }
 
 
-#ifdef COMPILER2
+//#ifdef COMPILER2
 bool Deoptimization::realloc_objects(JavaThread* thread, frame* fr, GrowableArray<ScopeValue*>* objects, TRAPS) {
   Handle pending_exception(thread->pending_exception());
   const char* exception_file = thread->exception_file();
@@ -951,7 +951,7 @@ void Deoptimization::print_objects(GrowableArray<ScopeValue*>* objects) {
   }
 }
 #endif
-#endif // COMPILER2
+//#endif // COMPILER2
 
 vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk) {
 

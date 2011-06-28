@@ -109,7 +109,7 @@ class Deoptimization : AllStatic {
   // executing in a particular CodeBlob if UseBiasedLocking is enabled
   static void revoke_biases_of_monitors(CodeBlob* cb);
 
-#ifdef COMPILER2
+//#ifdef COMPILER2
   // Support for restoring non-escaping objects
   static bool realloc_objects(JavaThread* thread, frame* fr, GrowableArray<ScopeValue*>* objects, TRAPS);
   static void reassign_type_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, typeArrayOop obj, BasicType type);
@@ -117,7 +117,7 @@ class Deoptimization : AllStatic {
   static void reassign_fields(frame* fr, RegisterMap* reg_map, GrowableArray<ScopeValue*>* objects);
   static void relock_objects(GrowableArray<MonitorInfo*>* monitors, JavaThread* thread);
   NOT_PRODUCT(static void print_objects(GrowableArray<ScopeValue*>* objects);)
-#endif // COMPILER2
+//#endif // COMPILER2
 
   public:
   static vframeArray* create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk);

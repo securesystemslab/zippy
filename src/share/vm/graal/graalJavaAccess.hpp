@@ -207,6 +207,11 @@ void graal_compute_offsets();
   start_class(CiStackSlot)                                                              \
     int_field(CiStackSlot, index)                                                       \
   end_class                                                                             \
+  start_class(CiVirtualObject)                                                          \
+    int_field(CiVirtualObject, id)                                                      \
+    oop_field(CiVirtualObject, type, "Lcom/sun/cri/ri/RiType;")                         \
+    oop_field(CiVirtualObject, values, "[Lcom/sun/cri/ci/CiValue;")                     \
+  end_class                                                                             \
   start_class(RiTypeProfile)                                                            \
     int_field(RiTypeProfile, count)                                                     \
     int_field(RiTypeProfile, morphism)                                                  \

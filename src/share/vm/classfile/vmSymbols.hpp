@@ -258,18 +258,18 @@
   LP64_ONLY( do_alias(machine_word_signature,         long_signature) )                           \
                                                                                                                         \
   /* support for graal */                                                                                               \
-  template(com_sun_hotspot_graal_VMExits,               "com/oracle/max/graal/runtime/VMExits")                         \
+  template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/runtime/VMExits")                           \
   template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/runtime/HotSpotMethodResolvedImpl")       \
-  template(com_sun_hotspot_graal_HotSpotTargetMethod,   "com/oracle/max/graal/runtime/HotSpotTargetMethod")             \
-  template(com_sun_hotspot_graal_HotSpotField,          "com/oracle/max/graal/runtime/HotSpotField")                    \
-  template(com_sun_graal_graalOptions,                    "com/sun/graal/graalOptions")                                 \
-  template(com_sun_hotspot_graal_HotSpotOptions,        "com/oracle/max/graal/runtime/HotSpotOptions")                  \
-  template(com_sun_hotspot_graal_HotSpotTypeResolved,   "com/oracle/max/graal/runtime/HotSpotTypeResolvedImpl")         \
-  template(com_sun_hotspot_graal_HotSpotType,           "com/oracle/max/graal/runtime/HotSpotType")                     \
+  template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/runtime/HotSpotTargetMethod")               \
+  template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/runtime/HotSpotField")                      \
+  template(com_sun_graal_graalOptions,                "com/sun/graal/graalOptions")                                     \
+  template(com_sun_hotspot_graal_HotSpotOptions,      "com/oracle/max/graal/runtime/HotSpotOptions")                    \
+  template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/runtime/HotSpotTypeResolvedImpl")           \
+  template(com_sun_hotspot_graal_HotSpotType,         "com/oracle/max/graal/runtime/HotSpotType")                       \
   template(com_sun_hotspot_graal_HotSpotExceptionHandler,"com/oracle/max/graal/runtime/HotSpotExceptionHandler")        \
-  template(com_sun_hotspot_graal_HotSpotProxy,          "com/oracle/max/graal/runtime/HotSpotProxy")                    \
-  template(com_sun_hotspot_graal_Compiler,              "com/oracle/max/graal/runtime/Compiler")                        \
-  template(com_sun_hotspot_graal_CompilerImpl,          "com/oracle/max/graal/runtime/CompilerImpl")                    \
+  template(com_sun_hotspot_graal_HotSpotProxy,        "com/oracle/max/graal/runtime/HotSpotProxy")                      \
+  template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/runtime/Compiler")                          \
+  template(com_sun_hotspot_graal_CompilerImpl,        "com/oracle/max/graal/runtime/CompilerImpl")                      \
   template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
   template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
@@ -278,7 +278,7 @@
   template(com_sun_cri_ri_RiExceptionHandler,         "com/sun/cri/ri/RiExceptionHandler")                              \
   template(com_sun_cri_ci_CiAssumptions,              "com/sun/cri/ci/CiAssumptions")                                   \
   template(com_sun_cri_ci_CiAssumptions_ConcreteSubtype, "com/sun/cri/ci/CiAssumptions$ConcreteSubtype")                \
-  template(com_sun_cri_ci_CiAssumptions_ConcreteMethod,  "com/sun/cri/ci/CiAssumptions$ConcreteMethod")                 \
+  template(com_sun_cri_ci_CiAssumptions_ConcreteMethod, "com/sun/cri/ci/CiAssumptions$ConcreteMethod")                  \
   template(com_sun_cri_ci_CiTargetMethod,             "com/sun/cri/ci/CiTargetMethod")                                  \
   template(com_sun_cri_ci_CiTargetMethod_Site,        "com/sun/cri/ci/CiTargetMethod$Site")                             \
   template(com_sun_cri_ci_CiTargetMethod_Call,        "com/sun/cri/ci/CiTargetMethod$Call")                             \
@@ -295,6 +295,7 @@
   template(com_sun_cri_ci_CiRegister,                 "com/sun/cri/ci/CiRegister")                                      \
   template(com_sun_cri_ci_CiCodePos,                  "com/sun/cri/ci/CiCodePos")                                       \
   template(com_sun_cri_ci_CiConstant,                 "com/sun/cri/ci/CiConstant")                                      \
+  template(com_sun_cri_ci_CiVirtualObject,            "com/sun/cri/ci/CiVirtualObject")                                 \
   template(com_sun_cri_ci_CiKind,                     "com/sun/cri/ci/CiKind")                                          \
   template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
   template(startCompiler_name,                        "startCompiler")                                                  \

@@ -99,7 +99,7 @@ private:
   void site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Mark(CodeBuffer& buffer, jint pc_offset, oop site);
 
-  void record_scope(jint pc_offset, oop code_pos);
+  void record_scope(jint pc_offset, oop code_pos, GrowableArray<ScopeValue*>* objects);
 
   void process_exception_handlers();
 
