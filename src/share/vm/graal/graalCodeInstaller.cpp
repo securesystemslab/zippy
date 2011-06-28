@@ -567,7 +567,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop runtime_call = CiTargetMethod_Call::runtimeCall(site);
   oop hotspot_method = CiTargetMethod_Call::method(site);
   oop symbol = CiTargetMethod_Call::symbol(site);
-  oop global_stub = CiTargetMethod_Call::globalStubID(site);
+  oop global_stub = CiTargetMethod_Call::stubID(site);
 
   oop debug_info = CiTargetMethod_Call::debugInfo(site);
 

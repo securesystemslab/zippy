@@ -28,6 +28,7 @@ import com.sun.hotspot.igv.filter.AbstractFilter;
 import com.sun.hotspot.igv.graph.Connection;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
+import com.sun.hotspot.igv.graph.InputSlot;
 import com.sun.hotspot.igv.graph.OutputSlot;
 import java.awt.Color;
 import java.util.List;
@@ -39,8 +40,9 @@ import java.util.List;
  */
 public class GraalEdgeColorFilter extends AbstractFilter {
 
-    private Color successorColor = Color.ORANGE;
+    private Color successorColor = Color.BLUE;
     private Color usageColor = Color.RED;
+    private Color memoryColor = Color.GREEN;
 
     public GraalEdgeColorFilter() {
     }
@@ -53,7 +55,6 @@ public class GraalEdgeColorFilter extends AbstractFilter {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {
             Properties p = f.getProperties();
-
             int succCount = Integer.parseInt(p.get("successorCount"));
             for (OutputSlot os : f.getOutputSlots()) {
                 Color color;
@@ -69,6 +70,22 @@ public class GraalEdgeColorFilter extends AbstractFilter {
                 }
             }
         }
+        for (Figure f : figures) {
+            Properties p = f.getProperties();
+            int predCount = Integer.parseInt(p.get("predecessorCount"));
+            int inputCount = Integer.parseInt(p.get("inputCount"));
+            int variableInputCount = Integer.parseInt(p.get("variableInputCount"));
+            if (p.get("memoryCheckpoint") != null) {
+                for (InputSlot is : f.getInputSlots()) {
+                    if (is.getPosition() > predCount + inputCount - variableInputCount) {
+                        is.setColor(memoryColor);
+                        for (Connection c : is.getConnections()) {
+                            c.setColor(memoryColor);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public Color getUsageColor() {
@@ -78,7 +95,15 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     public void setUsageColor(Color usageColor) {
         this.usageColor = usageColor;
     }
+    
+    public void setMemoryColor(Color memoryColor) {
+        this.memoryColor = memoryColor;
+    }
 
+    public Color getMemoryColor() {
+        return memoryColor;
+    }
+    
     public Color getSuccessorColor() {
         return successorColor;
     }
