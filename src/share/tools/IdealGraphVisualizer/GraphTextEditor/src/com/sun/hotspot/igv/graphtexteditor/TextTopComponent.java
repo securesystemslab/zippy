@@ -24,24 +24,36 @@
 package com.sun.hotspot.igv.graphtexteditor;
 
 import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.texteditor.*;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.Pair;
+import com.sun.hotspot.igv.data.Property;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.services.DiagramProvider;
 import com.sun.hotspot.igv.graphtotext.services.GraphToTextConverter;
 import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
+import com.sun.hotspot.igv.structuredtext.MultiElement;
 import com.sun.hotspot.igv.structuredtext.StructuredText;
 import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.io.IOException;
 import java.io.Serializable;
+import java.io.StringReader;
 import java.util.Collection;
 import java.util.logging.Logger;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.JToolBar;
+import org.netbeans.api.diff.Diff;
+import org.netbeans.api.diff.DiffView;
+import org.netbeans.api.diff.StreamSource;
 import org.openide.util.Lookup;
 import org.openide.util.LookupEvent;
 import org.openide.util.LookupListener;
@@ -52,6 +64,7 @@ import org.openide.windows.WindowManager;
 
 /**
  * @author Thomas Wuerthinger
+ * @author Peter Hofer
  */
 final class TextTopComponent extends TopComponent implements LookupListener {
 
@@ -65,11 +78,16 @@ final class TextTopComponent extends TopComponent implements LookupListener {
     private JSplitPane splitPane;
     private CardLayout cardLayout;
     private JPanel cardLayoutPanel;
+    private JComboBox sourceCombo;
     private boolean firstTimeSlider = true;
+    private JPanel textDiffPanel;
 
+    private static final String TWO_GRAPHS_TEXT_DIFF = "twoGraphsTextDiff";
     private static final String TWO_GRAPHS = "twoGraphs";
     private static final String ONE_GRAPH = "oneGraph";
     private static final String NO_GRAPH = "noGraph";
+
+    private static final String GRAPH_TEXT_REPRESENTATION = "< Graph Text Representation >";
 
     private DiagramProvider currentDiagramProvider;
 
@@ -78,16 +96,28 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         setName(NbBundle.getMessage(TextTopComponent.class, "CTL_TextTopComponent"));
         setToolTipText(NbBundle.getMessage(TextTopComponent.class, "HINT_TextTopComponent"));
 
+        setLayout(new BorderLayout());
+
+        // Selector for displayed data
+        JToolBar sourceSelectBar = new JToolBar();
+        sourceSelectBar.setLayout(new BorderLayout());
+        sourceSelectBar.setFloatable(false);
+        sourceSelectBar.add(new JLabel("Show: "), BorderLayout.WEST);
+        sourceCombo = new JComboBox();
+        sourceCombo.addItem(GRAPH_TEXT_REPRESENTATION);
+        sourceCombo.addItemListener(sourceSelectionListener);
+        sourceSelectBar.add(sourceCombo, BorderLayout.CENTER);
+        add(sourceSelectBar, BorderLayout.NORTH);
+
         // Card layout for three different views.
         cardLayout = new CardLayout();
         cardLayoutPanel = new JPanel(cardLayout);
-        this.setLayout(new BorderLayout());
-        this.add(cardLayoutPanel, BorderLayout.CENTER);
+        add(cardLayoutPanel, BorderLayout.CENTER);
 
         // No graph selected.
-        JLabel noGraphLabel = new JLabel("No graph opened");
-        noGraphLabel.setBackground(Color.red);
-        //noGraphPanel.add(noGraphLabel);
+        JLabel noGraphLabel = new JLabel("No graph open.", JLabel.CENTER);
+        noGraphLabel.setOpaque(true);
+        noGraphLabel.setBackground(Color.WHITE);
         cardLayoutPanel.add(noGraphLabel, NO_GRAPH);
 
         // Single graph selected.
@@ -101,6 +131,11 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         rightEditor = new TextEditor();
         splitPane.setRightComponent(rightEditor.getComponent());
         cardLayoutPanel.add(splitPane, TWO_GRAPHS);
+        
+        // Text difference => NetBeans diff view
+        // Diff component is created and added on demand
+        textDiffPanel = new JPanel(new BorderLayout());
+        cardLayoutPanel.add(textDiffPanel, TWO_GRAPHS_TEXT_DIFF);
     }
 
 
@@ -129,15 +164,100 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         return text;
     }
 
-    private void updateDiagram(Diagram diagram) {
+    private StructuredText createStructuredPlainText(String name, String text) {
+        StructuredText structured = new StructuredText(name);
+        MultiElement multi = new MultiElement();
+        multi.print(text);
+        structured.addChild(multi);
+        return structured;
+    }
 
+    private ItemListener sourceSelectionListener = new ItemListener() {
+        public void itemStateChanged(ItemEvent e) {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                if (e.getItem() == GRAPH_TEXT_REPRESENTATION) {
+                    displayDiagram(lastDiagram);
+                } else {
+                    displayGroupProperty(lastDiagram, (String) e.getItem());
+                }
+            }
+        }
+    };
+
+    private void setDiagram(Diagram diagram) {
         if (diagram == lastDiagram) {
             // No change => return.
             return;
         }
-
         lastDiagram = diagram;
 
+        // Rebuild combobox choices
+        Object selection = sourceCombo.getSelectedItem();
+        sourceCombo.removeAllItems();
+        sourceCombo.addItem(GRAPH_TEXT_REPRESENTATION);
+        if (diagram != null) {
+            if (diagram.getGraph().getSourceGraphs() != null) {
+                // Diff graph with source graphs with possibly different groups:
+                // show properties from both graphs
+                Pair<InputGraph, InputGraph> sourceGraphs = diagram.getGraph().getSourceGraphs();
+                Properties props = new Properties(sourceGraphs.getLeft().getGroup().getProperties());
+                if (sourceGraphs.getLeft().getGroup() != sourceGraphs.getRight().getGroup()) {
+                    props.add(sourceGraphs.getRight().getGroup().getProperties());
+                }
+                for (Property p : props) {
+                    sourceCombo.addItem(p.getName());
+                }
+            } else {
+                // Single graph
+                for (Property p : diagram.getGraph().getGroup().getProperties()) {
+                    sourceCombo.addItem(p.getName());
+                }
+            }
+        }
+        // NOTE: The following triggers a display update.
+        sourceCombo.setSelectedItem(selection);
+        if (sourceCombo.getSelectedItem() == null) {
+            // previously selected property doesn't exist in new graph's group:
+            // default to show graph representation
+            sourceCombo.setSelectedItem(GRAPH_TEXT_REPRESENTATION);
+        }
+    }
+
+    private void displayGroupProperty(Diagram diagram, String property) {
+        if (diagram == null) {
+            showCard(NO_GRAPH);
+        } else if (diagram.getGraph().getSourceGraphs() != null) {
+            showCard(TWO_GRAPHS_TEXT_DIFF);
+            textDiffPanel.removeAll();
+            try {
+                Pair<InputGraph, InputGraph> sourceGraphs = diagram.getGraph().getSourceGraphs();
+
+                String ltext = sourceGraphs.getLeft().getGroup().getProperties().get(property);
+                if (ltext == null) {
+                    ltext = "";
+                }
+                StreamSource leftsrc = StreamSource.createSource("left", sourceGraphs.getLeft().getName(), "text/plain", new StringReader(ltext));
+
+                String rtext = sourceGraphs.getRight().getGroup().getProperties().get(property);
+                if (rtext == null) {
+                    rtext = "";
+                }
+                StreamSource rightsrc = StreamSource.createSource("right", sourceGraphs.getRight().getName(), "text/plain", new StringReader(rtext));
+
+                DiffView view = Diff.getDefault().createDiff(leftsrc, rightsrc);
+                textDiffPanel.add(view.getComponent(), BorderLayout.CENTER);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            textDiffPanel.revalidate(); // required when card was visible before
+        } else {
+            showCard(ONE_GRAPH);
+            String text = diagram.getGraph().getGroup().getProperties().get(property);
+            singleEditor.setStructuredText(createStructuredPlainText(diagram.getGraph().getName(), text));
+        }
+    }
+
+    private void displayDiagram(Diagram diagram) {
         if (diagram == null) {
             showCard(NO_GRAPH);
         } else if (diagram.getGraph().getSourceGraphs() != null) {
@@ -161,11 +281,11 @@ final class TextTopComponent extends TopComponent implements LookupListener {
             SelectionCoordinator.getInstance().getHighlightedChangedEvent().fire();
         }
     }
-    
+
     private ChangedListener<DiagramProvider> diagramChangedListener = new ChangedListener<DiagramProvider>() {
 
         public void changed(DiagramProvider source) {
-            updateDiagram(source.getDiagram());
+            setDiagram(source.getDiagram());
         }
         
     };
@@ -184,9 +304,9 @@ final class TextTopComponent extends TopComponent implements LookupListener {
 
         if (currentDiagramProvider != null) {
             currentDiagramProvider.getChangedEvent().addListener(diagramChangedListener);
-            updateDiagram(currentDiagramProvider.getDiagram());
+            setDiagram(currentDiagramProvider.getDiagram());
         } else {
-            updateDiagram(null);
+            setDiagram(null);
         }
     }
 
