@@ -530,9 +530,11 @@ public class HierarchicalLayoutManager implements LayoutManager {
         }
     };
     private static final Comparator<LayoutNode> nodeProcessingDownComparator = new Comparator<LayoutNode>() {
-
         public int compare(LayoutNode n1, LayoutNode n2) {
             if (n1.vertex == null) {
+                if (n2.vertex == null) {
+                    return 0;
+                }
                 return -1;
             }
             if (n2.vertex == null) {
@@ -545,6 +547,9 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         public int compare(LayoutNode n1, LayoutNode n2) {
             if (n1.vertex == null) {
+                if (n2.vertex == null) {
+                    return 0;
+                }
                 return -1;
             }
             if (n2.vertex == null) {
