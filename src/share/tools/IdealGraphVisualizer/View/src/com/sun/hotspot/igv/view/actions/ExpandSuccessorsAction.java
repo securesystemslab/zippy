@@ -41,7 +41,7 @@ public final class ExpandSuccessorsAction extends CallableSystemAction {
     }
 
     public String getName() {
-        return "Expand Successors";
+        return "Expand Below";
     }
 
     @Override
