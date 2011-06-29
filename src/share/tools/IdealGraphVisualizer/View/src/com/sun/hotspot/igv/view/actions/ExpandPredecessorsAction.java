@@ -41,7 +41,7 @@ public final class ExpandPredecessorsAction extends CallableSystemAction {
     }
 
     public String getName() {
-        return "Expand Predecessors";
+        return "Expand Above";
     }
 
     @Override
