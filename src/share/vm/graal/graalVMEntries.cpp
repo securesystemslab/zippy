@@ -636,14 +636,14 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiType_1fields
   TRACE_graal_3("VMEntries::RiType_fields");
   KlassHandle klass_handle;
   ciInstanceKlass* instance_klass;
+  objArrayHandle fieldsArray;
+  HandleMark hm;
   {
     VM_ENTRY_MARK;
     klass_handle = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
-    instance_klass = (ciInstanceKlass*) CURRENT_ENV->get_object(klass_handle());
+    instance_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(klass_handle());
   }
   GrowableArray<ciField*>* fields = instance_klass->non_static_fields();
-
-  objArrayHandle fieldsArray;
   {
     VM_ENTRY_MARK;
     fieldsArray = oopFactory::new_objArray(SystemDictionary::RiField_klass(), fields->length(), CHECK_NULL);
