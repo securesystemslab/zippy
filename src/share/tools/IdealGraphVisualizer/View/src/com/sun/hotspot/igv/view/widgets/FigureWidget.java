@@ -271,10 +271,10 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
     public JPopupMenu getPopupMenu(Widget widget, Point point) {
         JPopupMenu m = diagramScene.createPopupMenu();
 
-        JMenu predecessors = new JMenu("Predecessors");
+        JMenu predecessors = new JMenu("Nodes Above");
         addFigureToSubMenu(predecessors, getFigure(), false, DEPTH);
 
-        JMenu successors = new JMenu("Successors");
+        JMenu successors = new JMenu("Nodes Below");
         addFigureToSubMenu(successors, getFigure(), true, DEPTH);
 
         m.addSeparator();
@@ -308,14 +308,13 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
     }
 
     public void addFigureToMenu(JMenu m, final Figure f, boolean successor, int depth) {
-
         Action a = diagramScene.createGotoAction(f);
         m.add(a);
 
         if (depth > 0) {
-            String name = "Predecessors";
+            String name = "Nodes Above";
             if (successor) {
-                name = "Successors";
+                name = "Nodes Below";
             }
 
             JMenu subMenu = new JMenu(name);
