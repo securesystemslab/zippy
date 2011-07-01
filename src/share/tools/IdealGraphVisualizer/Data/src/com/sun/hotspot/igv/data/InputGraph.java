@@ -173,7 +173,7 @@ public class InputGraph extends Properties.Entity {
             assert nodes.get(n.getId()) == n;
             if (!scheduledNodes.contains(n)) {
                 if (noBlock == null) {
-                    noBlock = this.addBlock("no block");
+                    noBlock = this.addBlock("(no block)");
                 }
                 noBlock.addNode(n.getId());
             }

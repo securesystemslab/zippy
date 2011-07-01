@@ -221,30 +221,35 @@ public class Parser {
 
         @Override
         protected void end(String text) throws SAXException {
+            // NOTE: Some graphs intentionally don't provide blocks. Instead
+            //       they later generate the blocks from other information such
+            //       as node properties (example: ServerCompilerScheduler).
+            //       Thus, we shouldn't assign nodes that don't belong to any
+            //       block to some artificial block below unless blocks are
+            //       defined and nodes are assigned to them.
 
-            // Recover from control flow input with missing information
             if (graph.getBlocks().size() > 0) {
-                boolean blockContainsNodes = false;
+                boolean blocksContainNodes = false;
                 for (InputBlock b : graph.getBlocks()) {
                     if (b.getNodes().size() > 0) {
-                        blockContainsNodes = true;
+                        blocksContainNodes = true;
                         break;
                     }
                 }
 
-                if (!blockContainsNodes) {
+                if (!blocksContainNodes) {
                     graph.clearBlocks();
                     blockConnections.clear();
                 } else {
-                    
+                    // Blocks and their nodes defined: add other nodes to an
+                    //  artificial "no block" block
                     InputBlock noBlock = null;
-                    
                     for (InputNode n : graph.getNodes()) {
                         if (graph.getBlock(n) == null) {
                             if (noBlock == null) {
-                                noBlock = graph.addBlock("none");
+                                noBlock = graph.addBlock("(no block)");
                             }
-                            
+
                             noBlock.addNode(n.getId());
                         }
 

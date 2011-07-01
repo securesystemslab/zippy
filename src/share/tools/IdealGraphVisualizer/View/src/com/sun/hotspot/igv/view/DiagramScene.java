@@ -60,6 +60,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1141,11 +1142,9 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         Rectangle r = w.getBounds();
         Point p = w.getLocation();
         centerRectangle(new Rectangle(p.x, p.y, r.width, r.height));
-
     }
 
     public void gotoFigure(final Figure f) {
-
         if (!isVisible(f)) {
             showFigure(f);
         }
@@ -1153,7 +1152,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         FigureWidget fw = getWidget(f);
         if (fw != null) {
             centerWidget(fw);
-            getModel().setSelectedNodes(f.getSource().getSourceNodesAsSet());
+            setSelection(Arrays.asList(f));
         }
     }
 

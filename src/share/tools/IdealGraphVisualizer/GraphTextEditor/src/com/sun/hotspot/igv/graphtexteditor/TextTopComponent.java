@@ -39,6 +39,9 @@ import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.IOException;
@@ -79,7 +82,7 @@ final class TextTopComponent extends TopComponent implements LookupListener {
     private CardLayout cardLayout;
     private JPanel cardLayoutPanel;
     private JComboBox sourceCombo;
-    private boolean firstTimeSlider = true;
+    private boolean firstTimeSplitter = true;
     private JPanel textDiffPanel;
 
     private static final String TWO_GRAPHS_TEXT_DIFF = "twoGraphsTextDiff";
@@ -127,9 +130,25 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         // Graph difference => show split pane with two graphs.
         splitPane = new JSplitPane();
         leftEditor = new TextEditor();
-        splitPane.setLeftComponent(leftEditor.getComponent());
         rightEditor = new TextEditor();
-        splitPane.setRightComponent(rightEditor.getComponent());
+        // Work around a problem with JSplitPane and the NetBeans editor:
+        // setDividerLocation() doesn't work when the split pane has not been
+        // layouted and painted yet. JSplitPane then initially uses a tiny width
+        // for the left editor component, which causes the editor to calculate
+        // invalid offsets and constantly throw exceptions, particularly on
+        // mouse events. Thus, defer adding the two components and setting the
+        // divider's location.
+        splitPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                if (firstTimeSplitter && splitPane.getWidth() > 0) {
+                    splitPane.setLeftComponent(leftEditor.getComponent());
+                    splitPane.setRightComponent(rightEditor.getComponent());
+                    splitPane.setDividerLocation(0.5);
+                    firstTimeSplitter = false;
+                }
+            }
+        });
         cardLayoutPanel.add(splitPane, TWO_GRAPHS);
         
         // Text difference => NetBeans diff view
@@ -262,10 +281,6 @@ final class TextTopComponent extends TopComponent implements LookupListener {
             showCard(NO_GRAPH);
         } else if (diagram.getGraph().getSourceGraphs() != null) {
             showCard(TWO_GRAPHS);
-            if (firstTimeSlider) {
-                splitPane.setDividerLocation(0.5);
-            }
-            firstTimeSlider = false;
             Pair<InputGraph, InputGraph> graphs = diagram.getGraph().getSourceGraphs();
             leftEditor.setStructuredText(convert(graphs.getLeft(), diagram));
             rightEditor.setStructuredText(convert(graphs.getRight(), diagram));
@@ -290,8 +305,7 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         
     };
 
-    private void updateDiagramProvider(DiagramProvider provider) {
-
+    private void setDiagramProvider(DiagramProvider provider) {
         if (provider == currentDiagramProvider) {
             return;
         }
@@ -321,7 +335,7 @@ final class TextTopComponent extends TopComponent implements LookupListener {
             p = LookupHistory.getLast(DiagramProvider.class);
         }
 
-        updateDiagramProvider(p);
+        setDiagramProvider(p);
     }
 
     /** This method is called from within the constructor to
@@ -378,7 +392,7 @@ final class TextTopComponent extends TopComponent implements LookupListener {
     public void componentOpened() {
 
         DiagramProvider p = LookupHistory.getLast(DiagramProvider.class);
-        updateDiagramProvider(p);
+        setDiagramProvider(p);
 
         Lookup.Template<DiagramProvider> tpl = new Lookup.Template<DiagramProvider>(DiagramProvider.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
@@ -389,7 +403,7 @@ final class TextTopComponent extends TopComponent implements LookupListener {
     public void componentClosed() {
         result.removeLookupListener(this);
         result = null;
-        updateDiagramProvider(null);
+        setDiagramProvider(null);
     }
 
     /** replaces this in object stream */
