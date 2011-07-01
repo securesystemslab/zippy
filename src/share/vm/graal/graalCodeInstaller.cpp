@@ -203,12 +203,12 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
     }
 
     for (jint i = 0; i < values->length(); i++) {
-      ScopeValue* second = NULL;
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], frame_size, objects, second);
-
-//      if (second != NULL) {
-//        sv->field_values()->append(second);
-//      }
+      ScopeValue* cur_second = NULL;
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], frame_size, objects, cur_second);
+      
+      if (cur_second != NULL) {
+        sv->field_values()->append(cur_second);
+      }
       sv->field_values()->append(value);
     }
 
