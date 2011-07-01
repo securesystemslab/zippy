@@ -107,7 +107,7 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
 }
 
 // TODO: finish this - graal doesn't provide any scope values at the moment
-static ScopeValue* get_hotspot_value(oop value, int frame_size, ScopeValue* &second) {
+static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
   second = NULL;
   if (value == CiValue::IllegalValue()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
@@ -182,6 +182,45 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, ScopeValue* &sec
       return new ConstantLongValue(prim);
     }
     tty->print("%i", type);
+  } else if (value->is_a(CiVirtualObject::klass())) {
+    oop type = CiVirtualObject::type(value);
+    int id = CiVirtualObject::id(value);
+    ciKlass* klass = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)));
+    assert(klass->is_instance_klass() || klass->is_array_klass(), "Not supported allocation.");
+
+    for (jint i = 0; i < objects->length(); i++) {
+      ObjectValue* obj = (ObjectValue*) objects->at(i);
+      if (obj->id() == id) {
+        return obj;
+      }
+    }
+
+    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(klass->constant_encoding()));
+
+    arrayOop values = (arrayOop) CiVirtualObject::values(value);
+    for (jint i = 0; i < values->length(); i++) {
+      ((oop*) values->base(T_OBJECT))[i];
+    }
+
+    for (jint i = 0; i < values->length(); i++) {
+      ScopeValue* second = NULL;
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], frame_size, objects, second);
+
+//      if (second != NULL) {
+//        sv->field_values()->append(second);
+//      }
+      sv->field_values()->append(value);
+    }
+
+//    uint first_ind = spobj->first_index();
+//    for (uint i = 0; i < spobj->n_fields(); i++) {
+//      Node* fld_node = sfn->in(first_ind+i);
+//      (void)FillLocArray(sv->field_values()->length(), sfn, fld_node, sv->field_values(), objs);
+//    }
+//    scval = sv;
+
+    objects->append(sv);
+    return sv;
   } else {
     value->klass()->print();
     value->print();
@@ -421,10 +460,10 @@ void CodeInstaller::process_exception_handlers() {
 
 }
 
-void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
+void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<ScopeValue*>* objects) {
   oop caller_pos = CiCodePos::caller(code_pos);
   if (caller_pos != NULL) {
-    record_scope(pc_offset, caller_pos);
+    record_scope(pc_offset, caller_pos, objects);
   }
   oop frame = NULL;
   if (code_pos->klass()->klass_part()->name() == vmSymbols::com_sun_cri_ci_CiFrame()) {
@@ -466,7 +505,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
 
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* second = NULL;
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size, second);
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size, objects, second);
 
       if (i < local_count) {
         if (second != NULL) {
@@ -492,6 +531,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos) {
         assert(((oop*) values->base(T_OBJECT))[i] == CiValue::IllegalValue(), "double-slot value not followed by CiValue.IllegalValue");
       }
     }
+
+    _debug_recorder->dump_object_pool(objects);
+
     DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
     DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
     DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
@@ -516,7 +558,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   _debug_recorder->add_safepoint(pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
 
   oop code_pos = CiDebugInfo::codePos(debug_info);
-  record_scope(pc_offset, code_pos);
+  record_scope(pc_offset, code_pos, new GrowableArray<ScopeValue*>());
 
   _debug_recorder->end_safepoint(pc_offset);
 }
@@ -537,7 +579,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   if (debug_info != NULL) {
     _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
     oop code_pos = CiDebugInfo::codePos(debug_info);
-    record_scope(next_pc_offset, code_pos);
+    record_scope(next_pc_offset, code_pos, new GrowableArray<ScopeValue*>());
   }
 
   if (runtime_call != NULL) {

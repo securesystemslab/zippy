@@ -9,5 +9,9 @@
         <file name="Graal Edge Coloring" url="filters/edgeColor.filter">
             <attr name="enabled" boolvalue="false"/>
         </file>
+        
+        <file name="Graal Slot Filter" url="filters/slots.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
     </folder>
 </filesystem>

@@ -144,8 +144,13 @@ oop GraalCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
 }
 
 oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
-  bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
-  int offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
+  int offset;
+  if (byteCode != Bytecodes::_illegal) {
+    bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
+    offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
+  } else {
+    offset = field->offset();
+  }
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
   Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
   Handle field_type = get_RiType(field->type(), accessor, CHECK_0);

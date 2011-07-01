@@ -31,11 +31,13 @@ import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Property;
+import com.sun.hotspot.igv.data.services.Scheduler;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.openide.util.Lookup;
 
 /**
  *
@@ -84,7 +86,19 @@ public class Difference {
         return createDiff(a, b, pairs);
     }
 
+    private static void ensureScheduled(InputGraph a) {
+        if (a.getBlocks().isEmpty()) {
+            Scheduler s = Lookup.getDefault().lookup(Scheduler.class);
+            a.clearBlocks();
+            s.schedule(a);
+            a.ensureNodesInBlocks();
+        }
+    }
+
     private static InputGraph createDiff(InputGraph a, InputGraph b, Set<NodePair> pairs) {
+        ensureScheduled(a);
+        ensureScheduled(b);
+
         Group g = new Group();
         g.setMethod(a.getGroup().getMethod());
         g.setAssembly(a.getGroup().getAssembly());
@@ -97,7 +111,10 @@ public class Difference {
             blocksMap.put(blk, diffblk);
         }
         for (InputBlock blk : b.getBlocks()) {
-            InputBlock diffblk = graph.addBlock(blk.getName());
+            InputBlock diffblk = graph.getBlock(blk.getName());
+            if (diffblk == null) {
+                diffblk = graph.addBlock(blk.getName());
+            }
             blocksMap.put(blk, diffblk);
         }
 
@@ -117,14 +134,16 @@ public class Difference {
             inputNodeMap.put(n, n2);
             inputNodeMap.put(nB, n2);
             graph.addNode(n2);
-            graph.setBlock(n2, blocksMap.get(a.getBlock(n)));
+            InputBlock block = blocksMap.get(a.getBlock(n));
+            block.addNode(n2.getId());
             markAsChanged(n2, n, nB);
         }
 
         for (InputNode n : nodesA) {
             InputNode n2 = new InputNode(n);
             graph.addNode(n2);
-            graph.setBlock(n2, blocksMap.get(a.getBlock(n)));
+            InputBlock block = blocksMap.get(a.getBlock(n));
+            block.addNode(n2.getId());
             markAsDeleted(n2);
             inputNodeMap.put(n, n2);
         }
@@ -132,7 +151,7 @@ public class Difference {
         int curIndex = 0;
         for (InputNode n : nodesB) {
             InputNode n2 = new InputNode(n);
-            
+
             // Find new ID for node of b, does not change the id property
             while (graph.getNode(curIndex) != null) {
                 curIndex++;
@@ -140,7 +159,8 @@ public class Difference {
 
             n2.setId(curIndex);
             graph.addNode(n2);
-            graph.setBlock(n2, blocksMap.get(b.getBlock(n)));
+            InputBlock block = blocksMap.get(b.getBlock(n));
+            block.addNode(n2.getId());
             markAsNew(n2);
             inputNodeMap.put(n, n2);
         }

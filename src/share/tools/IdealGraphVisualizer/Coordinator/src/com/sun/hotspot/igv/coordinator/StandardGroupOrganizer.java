@@ -51,7 +51,7 @@ public class StandardGroupOrganizer implements GroupOrganizer {
                 List<Group> children = new ArrayList<Group>();
                 children.add(g);
                 if(g.getGraphs().size() == 1) {
-                    //g.getGraphs().get(0).setName(g.getName() + " / " + g.getGraphs().get(0).getName());
+                    g.getGraphs().get(0).setName(g.getName() + " / " + g.getGraphs().get(0).getName());
                     result.add(new Pair<String, List<Group>>("", children));
                 } else {
                     Pair<String, List<Group>> p = new Pair<String, List<Group>>();
