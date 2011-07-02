@@ -889,6 +889,9 @@ void Deoptimization::reassign_fields(frame* fr, RegisterMap* reg_map, GrowableAr
     KlassHandle k(((ConstantOopReadValue*) sv->klass())->value()());
     Handle obj = sv->value();
     assert(obj.not_null(), "reallocation was missed");
+    if (TraceDeoptimization) {
+      tty->print_cr("reassign fields for object of type %s!", k->name()->as_C_string());
+    }
 
     if (k->oop_is_instance()) {
       instanceKlass* ik = instanceKlass::cast(k());
