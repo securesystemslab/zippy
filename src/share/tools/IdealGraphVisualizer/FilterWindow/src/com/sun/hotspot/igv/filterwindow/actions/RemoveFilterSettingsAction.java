@@ -63,6 +63,6 @@ public final class RemoveFilterSettingsAction extends CallableSystemAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/filterwindow/images/delete.gif";
+        return "com/sun/hotspot/igv/filterwindow/images/delete.png";
     }
 }

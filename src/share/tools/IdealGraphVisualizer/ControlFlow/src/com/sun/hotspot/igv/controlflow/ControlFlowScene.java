@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.controlflow;
 
+import com.sun.hotspot.igv.data.InputBlockEdge;
 import com.sun.hotspot.igv.data.InputBlock;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
@@ -108,15 +109,12 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
             addNode(b);
         }
 
-        for (InputBlock b : g.getBlocks()) {
-            for (InputBlock succ : b.getSuccessors()) {
-                final InputBlockEdge e = new InputBlockEdge(b, succ);
-                addEdge(e);
-                assert g.getBlocks().contains(e.getFrom());
-                assert g.getBlocks().contains(e.getTo());
-                this.setEdgeSource(e, e.getFrom());
-                this.setEdgeTarget(e, e.getTo());
-            }
+        for (InputBlockEdge e : g.getBlockEdges()) {
+            addEdge(e);
+            assert g.getBlocks().contains(e.getFrom());
+            assert g.getBlocks().contains(e.getTo());
+            this.setEdgeSource(e, e.getFrom());
+            this.setEdgeTarget(e, e.getTo());
         }
 
         GraphLayout<InputBlock, InputBlockEdge> layout = new HierarchicalGraphLayout<InputBlock, InputBlockEdge>();//GridGraphLayout();
@@ -265,7 +263,15 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
     }
 
     protected Widget attachEdgeWidget(InputBlockEdge edge) {
-        ConnectionWidget w = new BlockConnectionWidget(this, edge);
+        BlockConnectionWidget w = new BlockConnectionWidget(this, edge);
+        switch (edge.getState()) {
+            case NEW:
+                w.setBold(true);
+                break;
+            case DELETED:
+                w.setDashed(true);
+                break;
+        }
         w.setRouter(RouterFactory.createDirectRouter());
         w.setTargetAnchorShape(AnchorShape.TRIANGLE_FILLED);
         edgeLayer.addChild(w);

@@ -161,7 +161,7 @@ public final class ImportAction extends CallableSystemAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/coordinator/images/import.gif";
+        return "com/sun/hotspot/igv/coordinator/images/import.png";
     }
 
     public HelpCtx getHelpCtx() {

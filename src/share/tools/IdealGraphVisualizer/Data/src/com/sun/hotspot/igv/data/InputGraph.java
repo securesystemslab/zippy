@@ -28,8 +28,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,11 +40,12 @@ import java.util.Set;
  */
 public class InputGraph extends Properties.Entity {
 
-    private LinkedHashMap<Integer, InputNode> nodes;
-    private ArrayList<InputEdge> edges;
+    private Map<Integer, InputNode> nodes;
+    private Set<InputEdge> edges;
     private Group parent;
-    private LinkedHashMap<String, InputBlock> blocks;
-    private LinkedHashMap<Integer, InputBlock> nodeToBlock;
+    private Map<String, InputBlock> blocks;
+    private Set<InputBlockEdge> blockEdges;
+    private Map<Integer, InputBlock> nodeToBlock;
     private Pair<InputGraph, InputGraph> sourceGraphs;
     private int parentIndex;
 
@@ -54,13 +55,17 @@ public class InputGraph extends Properties.Entity {
         this.sourceGraphs = sourceGraphs;
         setName(name);
         nodes = new LinkedHashMap<Integer, InputNode>();
-        edges = new ArrayList<InputEdge>();
+        edges = new LinkedHashSet<InputEdge>();
         blocks = new LinkedHashMap<String, InputBlock>();
+        blockEdges = new LinkedHashSet<InputBlockEdge>();
         nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
     }
 
-    public void addBlockConnection(InputBlock left, InputBlock right) {
+    public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {
+        InputBlockEdge edge = new InputBlockEdge(left, right);
+        blockEdges.add(edge);
         left.addSuccessor(right);
+        return edge;
     }
 
     public Pair<InputGraph, InputGraph> getSourceGraphs() {
@@ -177,9 +182,6 @@ public class InputGraph extends Properties.Entity {
                 }
                 noBlock.addNode(n.getId());
             }
-        }
-
-        for (InputNode n : this.getNodes()) {
             assert this.getBlock(n) != null;
         }
     }
@@ -249,22 +251,19 @@ public class InputGraph extends Properties.Entity {
     }
 
     public Collection<InputEdge> getEdges() {
-        return Collections.unmodifiableList(edges);
+        return Collections.unmodifiableSet(edges);
     }
 
     public void removeEdge(InputEdge c) {
-        assert edges.contains(c);
-        edges.remove(c);
-        assert !edges.contains(c);
+        boolean removed = edges.remove(c);
+        assert removed;
     }
 
     public void addEdge(InputEdge c) {
-        
         // Be tolerant with duplicated edges.
-        if(!edges.contains(c)) {
+        if (!edges.contains(c)) {
             edges.add(c);
         }
-        assert edges.contains(c);
     }
 
     public Group getGroup() {
@@ -301,5 +300,9 @@ public class InputGraph extends Properties.Entity {
 
     public InputBlock getBlock(String s) {
         return blocks.get(s);
+    }
+
+    public Collection<InputBlockEdge> getBlockEdges() {
+        return Collections.unmodifiableSet(blockEdges);
     }
 }

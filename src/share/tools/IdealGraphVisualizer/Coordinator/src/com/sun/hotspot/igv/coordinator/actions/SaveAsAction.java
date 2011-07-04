@@ -98,7 +98,7 @@ public final class SaveAsAction extends NodeAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/coordinator/images/save.gif";
+        return "com/sun/hotspot/igv/coordinator/images/save.png";
     }
 
     public HelpCtx getHelpCtx() {
