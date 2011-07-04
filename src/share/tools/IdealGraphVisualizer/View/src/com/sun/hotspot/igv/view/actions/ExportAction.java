@@ -103,7 +103,7 @@ public final class ExportAction extends CallableSystemAction implements LookupLi
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/view/images/export.gif";
+        return "com/sun/hotspot/igv/view/images/export.png";
     }
 
     public HelpCtx getHelpCtx() {

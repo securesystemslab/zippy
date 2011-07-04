@@ -71,7 +71,7 @@ public class StructuredViewAction extends CallableSystemAction {
     @Override
     public Component getToolbarPresenter() {
 
-        Image iconImage = ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/structure.gif");
+        Image iconImage = ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/structure.png");
         ImageIcon icon = new ImageIcon(iconImage);
 
         popup = new JPopupMenu();

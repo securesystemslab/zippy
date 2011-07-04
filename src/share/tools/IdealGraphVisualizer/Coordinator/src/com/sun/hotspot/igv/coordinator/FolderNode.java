@@ -115,7 +115,7 @@ public class FolderNode extends AbstractNode {
 
     @Override
     public Image getIcon(int i) {
-        return ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/folder.gif");
+        return ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/folder.png");
     }
 
     protected FolderNode(GraphDocument document, String name, GroupOrganizer organizer, List<String> subFolders, List<Group> groups) {

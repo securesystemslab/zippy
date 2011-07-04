@@ -125,7 +125,7 @@ public class ServerCompilerScheduler implements Scheduler {
                                 n = n.preds.get(0);
                             }
                             if (n.block != null) {
-                                graph.addBlockConnection(n.block, block);
+                                graph.addBlockEdge(n.block, block);
                             }
                         }
                     }
@@ -136,12 +136,12 @@ public class ServerCompilerScheduler implements Scheduler {
                         for (Node n2 : n.succs) {
 
                             if (n2 != parent && n2.block != null && n2.block != rootBlock) {
-                                graph.addBlockConnection(block, n2.block);
+                                graph.addBlockEdge(block, n2.block);
                             }
                         }
                     } else {
                         if (n != parent && n.block != null && n.block != rootBlock) {
-                            graph.addBlockConnection(block, n.block);
+                            graph.addBlockEdge(block, n.block);
                         }
                     }
                 }

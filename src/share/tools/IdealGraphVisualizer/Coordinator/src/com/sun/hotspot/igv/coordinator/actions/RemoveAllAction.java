@@ -51,7 +51,7 @@ public final class RemoveAllAction extends CallableSystemAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/coordinator/images/removeall.gif";
+        return "com/sun/hotspot/igv/coordinator/images/removeall.png";
     }
 
     public HelpCtx getHelpCtx() {

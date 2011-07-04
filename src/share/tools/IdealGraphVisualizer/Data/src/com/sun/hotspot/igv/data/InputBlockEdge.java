@@ -21,9 +21,7 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.controlflow;
-
-import com.sun.hotspot.igv.data.*;
+package com.sun.hotspot.igv.data;
 
 /**
  *
@@ -31,8 +29,15 @@ import com.sun.hotspot.igv.data.*;
  */
 public class InputBlockEdge {
 
+    public enum State {
+        SAME,
+        NEW,
+        DELETED
+    }
+
     private InputBlock from;
     private InputBlock to;
+    private State state = State.SAME;
 
     public InputBlockEdge(InputBlock from, InputBlock to) {
         assert from != null;
@@ -49,13 +54,21 @@ public class InputBlockEdge {
         return to;
     }
 
+    public State getState() {
+        return state;
+    }
+
+    public void setState(State state) {
+        this.state = state;
+    }
+
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof InputBlockEdge && obj != null) {
+        if (obj != null && obj instanceof InputBlockEdge) {
             InputBlockEdge e = (InputBlockEdge) obj;
             return e.from.equals(from) && e.to.equals(to);
         }
-        return super.equals(obj);
+        return false;
     }
 
     @Override

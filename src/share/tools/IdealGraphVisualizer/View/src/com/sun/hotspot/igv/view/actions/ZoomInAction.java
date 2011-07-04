@@ -64,6 +64,6 @@ public final class ZoomInAction extends CallableSystemAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/view/images/zoomin.gif";
+        return "com/sun/hotspot/igv/view/images/zoom_in.png";
     }
 }

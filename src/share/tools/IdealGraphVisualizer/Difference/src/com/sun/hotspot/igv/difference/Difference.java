@@ -26,6 +26,7 @@ package com.sun.hotspot.igv.difference;
 
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.InputBlock;
+import com.sun.hotspot.igv.data.InputBlockEdge;
 import com.sun.hotspot.igv.data.InputEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
@@ -116,6 +117,33 @@ public class Difference {
                 diffblk = graph.addBlock(blk.getName());
             }
             blocksMap.put(blk, diffblk);
+        }
+
+        // Difference between block edges
+        Set<Pair<String, String>> aEdges = new HashSet<Pair<String, String>>();
+        for (InputBlockEdge edge : a.getBlockEdges()) {
+            aEdges.add(new Pair<String, String>(edge.getFrom().getName(), edge.getTo().getName()));
+        }
+        for (InputBlockEdge bEdge : b.getBlockEdges()) {
+            InputBlock from = bEdge.getFrom();
+            InputBlock to = bEdge.getTo();
+            Pair<String, String> pair = new Pair<String, String>(from.getName(), to.getName());
+            if (aEdges.contains(pair)) {
+                // same
+                graph.addBlockEdge(blocksMap.get(from), blocksMap.get(to));
+                aEdges.remove(pair);
+            } else {
+                // added
+                InputBlockEdge edge = graph.addBlockEdge(blocksMap.get(from), blocksMap.get(to));
+                edge.setState(InputBlockEdge.State.NEW);
+            }
+        }
+        for (Pair<String, String> deleted : aEdges) {
+            // removed
+            InputBlock from = graph.getBlock(deleted.getLeft());
+            InputBlock to = graph.getBlock(deleted.getRight());
+            InputBlockEdge edge = graph.addBlockEdge(from, to);
+            edge.setState(InputBlockEdge.State.DELETED);
         }
 
         Set<InputNode> nodesA = new HashSet<InputNode>(a.getNodes());

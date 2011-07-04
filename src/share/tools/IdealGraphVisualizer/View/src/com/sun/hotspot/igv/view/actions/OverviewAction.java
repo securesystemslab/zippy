@@ -54,6 +54,6 @@ public class OverviewAction extends AbstractAction {
     }
 
     protected String iconResource() {
-        return "com/sun/hotspot/igv/view/images/overview.gif";
+        return "com/sun/hotspot/igv/view/images/overview.png";
     }
 }

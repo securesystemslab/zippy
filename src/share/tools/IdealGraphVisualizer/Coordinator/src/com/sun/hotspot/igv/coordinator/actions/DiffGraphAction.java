@@ -70,7 +70,7 @@ public final class DiffGraphAction extends CookieAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/coordinator/images/diff.gif";
+        return "com/sun/hotspot/igv/coordinator/images/diff.png";
     }
 
     public HelpCtx getHelpCtx() {

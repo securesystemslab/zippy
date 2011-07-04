@@ -82,7 +82,7 @@ public class MethodNode extends AbstractNode {
 
     @Override
     public Image getIcon(int i) {
-        return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/method.gif");
+        return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/method.png");
     }
 
     @Override

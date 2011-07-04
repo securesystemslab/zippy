@@ -63,6 +63,6 @@ public final class NewFilterAction extends CallableSystemAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/filterwindow/images/plus.gif";
+        return "com/sun/hotspot/igv/filterwindow/images/plus.png";
     }
 }
