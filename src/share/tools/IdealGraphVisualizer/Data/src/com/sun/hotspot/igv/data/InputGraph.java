@@ -44,6 +44,7 @@ public class InputGraph extends Properties.Entity {
     private Set<InputEdge> edges;
     private Group parent;
     private Map<String, InputBlock> blocks;
+    private Set<InputBlockEdge> blockEdges;
     private Map<Integer, InputBlock> nodeToBlock;
     private Pair<InputGraph, InputGraph> sourceGraphs;
     private int parentIndex;
@@ -56,11 +57,15 @@ public class InputGraph extends Properties.Entity {
         nodes = new LinkedHashMap<Integer, InputNode>();
         edges = new LinkedHashSet<InputEdge>();
         blocks = new LinkedHashMap<String, InputBlock>();
+        blockEdges = new LinkedHashSet<InputBlockEdge>();
         nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
     }
 
-    public void addBlockConnection(InputBlock left, InputBlock right) {
+    public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {
+        InputBlockEdge edge = new InputBlockEdge(left, right);
+        blockEdges.add(edge);
         left.addSuccessor(right);
+        return edge;
     }
 
     public Pair<InputGraph, InputGraph> getSourceGraphs() {
@@ -295,5 +300,9 @@ public class InputGraph extends Properties.Entity {
 
     public InputBlock getBlock(String s) {
         return blocks.get(s);
+    }
+
+    public Collection<InputBlockEdge> getBlockEdges() {
+        return Collections.unmodifiableSet(blockEdges);
     }
 }

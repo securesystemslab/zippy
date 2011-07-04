@@ -264,7 +264,7 @@ public class Parser {
                 assert left != null;
                 final InputBlock right = graph.getBlock(p.getRight());
                 assert right != null;
-                graph.addBlockConnection(left, right);
+                graph.addBlockEdge(left, right);
             }
             blockConnections.clear();
         }
