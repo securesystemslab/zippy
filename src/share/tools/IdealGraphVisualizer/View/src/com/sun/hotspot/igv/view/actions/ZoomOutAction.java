@@ -70,6 +70,6 @@ public final class ZoomOutAction extends CallableSystemAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/view/images/zoomout.gif";
+        return "com/sun/hotspot/igv/view/images/zoom_out.png";
     }
 }

@@ -85,7 +85,7 @@ public final class RemoveFilterAction extends CookieAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/filterwindow/images/minus.gif";
+        return "com/sun/hotspot/igv/filterwindow/images/minus.png";
     }
 
     public HelpCtx getHelpCtx() {

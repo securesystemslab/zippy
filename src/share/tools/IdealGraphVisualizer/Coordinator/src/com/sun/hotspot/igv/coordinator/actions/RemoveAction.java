@@ -55,7 +55,7 @@ public final class RemoveAction extends NodeAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/coordinator/images/remove.gif";
+        return "com/sun/hotspot/igv/coordinator/images/remove.png";
     }
 
     public HelpCtx getHelpCtx() {

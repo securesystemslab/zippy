@@ -65,7 +65,7 @@ public final class MoveFilterDownAction extends CookieAction {
 
     @Override
     protected String iconResource() {
-        return "com/sun/hotspot/igv/filterwindow/images/down.gif";
+        return "com/sun/hotspot/igv/filterwindow/images/down.png";
     }
 
     @Override

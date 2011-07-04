@@ -69,9 +69,9 @@ public class BytecodeNode extends AbstractNode {
     @Override
     public Image getIcon(int i) {
         if (nodes != null) {
-            return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/link.gif");
+            return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/link.png");
         } else {
-            return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/bytecode.gif");
+            return ImageUtilities.loadImage("com/sun/hotspot/igv/bytecodes/images/bytecode.png");
         }
     }
 

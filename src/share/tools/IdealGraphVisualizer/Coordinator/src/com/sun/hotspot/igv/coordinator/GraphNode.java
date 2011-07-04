@@ -98,7 +98,7 @@ public class GraphNode extends AbstractNode {
 
     @Override
     public Image getIcon(int i) {
-        return ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/graph.gif");
+        return ImageUtilities.loadImage("com/sun/hotspot/igv/coordinator/images/graph.png");
     }
 
     @Override
