@@ -50,7 +50,7 @@ public class StandardGroupOrganizer implements GroupOrganizer {
             for (Group g : groups) {
                 List<Group> children = new ArrayList<Group>();
                 children.add(g);
-                if(g.getGraphs().size() == 1) {
+                if(false && g.getGraphs().size() == 1) {
                     //g.getGraphs().get(0).setName(g.getName() + " / " + g.getGraphs().get(0).getName());
                     result.add(new Pair<String, List<Group>>("", children));
                 } else {
