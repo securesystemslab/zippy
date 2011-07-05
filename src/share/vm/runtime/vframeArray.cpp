@@ -24,6 +24,7 @@
 
 #include "precompiled.hpp"
 #include "classfile/vmSymbols.hpp"
+#include "code/scopeDesc.hpp"
 #include "interpreter/interpreter.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
@@ -62,7 +63,7 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
   _method = vf->method();
   _bci    = vf->raw_bci();
   _reexecute = vf->should_reexecute();
-
+  
   int index;
 
   // Get the monitors off-stack
@@ -126,28 +127,37 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
 
   // Now the expressions off-stack
   // Same silliness as above
-
-  StackValueCollection *exprs = vf->expressions();
-  _expressions = new StackValueCollection(exprs->size());
-  for(index = 0; index < exprs->size(); index++) {
-    StackValue* value = exprs->at(index);
-    switch(value->type()) {
-      case T_OBJECT:
-        assert(!value->obj_is_scalar_replaced(), "object should be reallocated already");
-        // preserve object type
-        _expressions->add( new StackValue((intptr_t) (value->get_obj()()), T_OBJECT ));
-        break;
-      case T_CONFLICT:
-        // A dead stack element.  Will be initialized to null/zero.
-        // This can occur when the compiler emits a state in which stack
-        // elements are known to be dead (because of an imminent exception).
-        _expressions->add( new StackValue());
-        break;
-      case T_INT:
-        _expressions->add( new StackValue(value->get_int()));
-        break;
-      default:
-        ShouldNotReachHere();
+  bool rethrow_exception = vf->scope()->rethrow_exception();
+  if (rethrow_exception) {
+    // (tw) Make sure there are only null pointers on the stack, because the stack values do not correspond to the GC map at the bytecode at which the exception is rethrown.
+    _expressions = new StackValueCollection(vf->method()->max_stack());
+    assert(Thread::current()->has_pending_exception(), "just checking");
+    for (int i=0; i<vf->method()->max_stack(); ++i) {
+      _expressions->add( new StackValue());
+    }
+  } else {
+    StackValueCollection *exprs = vf->expressions();
+    _expressions = new StackValueCollection(exprs->size());
+    for(index = 0; index < exprs->size(); index++) {
+      StackValue* value = exprs->at(index);
+      switch(value->type()) {
+        case T_OBJECT:
+          assert(!value->obj_is_scalar_replaced(), "object should be reallocated already");
+          // preserve object type
+          _expressions->add( new StackValue((intptr_t) (value->get_obj()()), T_OBJECT ));
+          break;
+        case T_CONFLICT:
+          // A dead stack element.  Will be initialized to null/zero.
+          // This can occur when the compiler emits a state in which stack
+          // elements are known to be dead (because of an imminent exception).
+          _expressions->add( new StackValue());
+          break;
+        case T_INT:
+          _expressions->add( new StackValue(value->get_int()));
+          break;
+        default:
+          ShouldNotReachHere();
+      }
     }
   }
 }
@@ -314,8 +324,7 @@ void vframeArrayElement::unpack_on_stack(int callee_parameters,
   // only unpacks the part of the expression stack not used by callee
   // as parameters. The callee parameters are unpacked as part of the
   // callee locals.
-  int i;
-  for(i = 0; i < expressions()->size(); i++) {
+  for(int i = 0; i < expressions()->size(); i++) {
     StackValue *value = expressions()->at(i);
     intptr_t*   addr  = iframe()->interpreter_frame_expression_stack_at(i);
     switch(value->type()) {
@@ -352,7 +361,7 @@ void vframeArrayElement::unpack_on_stack(int callee_parameters,
 
 
   // Unpack the locals
-  for(i = 0; i < locals()->size(); i++) {
+  for(int i = 0; i < locals()->size(); i++) {
     StackValue *value = locals()->at(i);
     intptr_t* addr  = iframe()->interpreter_frame_local_at(i);
     switch(value->type()) {
