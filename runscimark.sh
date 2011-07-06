@@ -12,16 +12,7 @@ if [ -z "${GRAAL}" ]; then
   exit 1;
 fi
 if [ -z "${SCIMARK}" ]; then
-  echo "SCIMARK is not defined. It must point to a SciMark benchmark jar."
+  echo "SCIMARK is not defined. It must point to a directory with the SciMark benchmark jar."
   exit 1;
 fi
-COUNT=$1
-shift
-if [ -z "${COUNT}" ]; then
-  COUNT=5000
-fi
-for (( i = 1; i <= ${COUNT}; i++ ))      ### Outer for loop ###
-do
-  echo "$i "
-  ${JDK7}/jre/bin/java -client -d64 -graal -esa -ea -Xms32m -Xmx100m -Xbootclasspath/a:${SCIMARK} -G:+Time $@ jnt.scimark2.commandline
-done
+${JDK7}/jre/bin/java -client -d64 -graal -Xms256m -Xmx512m -Xbootclasspath/a:${SCIMARK}/scimark2lib.jar $@ jnt.scimark2.commandline
