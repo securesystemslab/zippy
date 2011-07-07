@@ -112,6 +112,11 @@ def main():
                     csvOutput[csvOutputLine].append(match.group(5))
                 else:
                     matchGraalTime(line, csvOutput, csvOutputLine, options.n)
+                    
+            if nRuns < options.n:
+                csvOutputLine = csvOutputLine + (options.n - nRuns)
+                for i in range(options.n - nRuns):
+                    csvOutput.append([str(nRuns + i), benchmark, '0'])
     
         writeout(outputFile, csvOutput)
     
@@ -126,12 +131,8 @@ def main():
     
         benchmarkScore = re.compile(r"([a-zA-Z0-9_\(\),= ]+):\s+([0-9]+\.[0-9]+)$")
     
-        csvOutput = [['run']]
-        csvOutputLine = 0
+        csvOutput = [['run'],[]]
         scOutput = runBash(cmd)
-        csvOutputLine = csvOutputLine + 1
-        csvOutput.append(list())
-        csvOutput[csvOutputLine].append(str(csvOutputLine))
         while True:
             line = scOutput.readline().decode()
             if not line:
@@ -139,12 +140,11 @@ def main():
             line = line.strip()
             match = benchmarkScore.search(line)
             if match:
-                if csvOutputLine == 1:
-                    csvOutput[0].append(match.group(1).strip())
                 print('Scimark '+match.group(1)+' score: '+match.group(2))
-                csvOutput[csvOutputLine].append(match.group(2))
+                csvOutput[0].append(match.group(1).strip())
+                csvOutput[1].append(match.group(2))
             else:
-                matchGraalTime(line,csvOutput,csvOutputLine, 1)
+                matchGraalTime(line,csvOutput, 1, 1)
     
         writeout(outputFile, csvOutput)
         outputFile.close()
