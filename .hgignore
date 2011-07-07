@@ -20,6 +20,7 @@ output\.cfg$
 ^Test.java$
 ^diff1.txt$
 ^diff2.txt$
+^examples.jar$
 ^test.xml$
 java\.hprof\.txt$
 /nbproject/private/
