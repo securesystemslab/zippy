@@ -28,6 +28,7 @@ import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.services.GroupOrganizer;
 import com.sun.hotspot.igv.data.Pair;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,27 +42,17 @@ public class StandardGroupOrganizer implements GroupOrganizer {
     }
 
     public List<Pair<String, List<Group>>> organize(List<String> subFolders, List<Group> groups) {
-
         List<Pair<String, List<Group>>> result = new ArrayList<Pair<String, List<Group>>>();
-
         if (groups.size() == 1 && subFolders.size() > 0) {
             result.add(new Pair<String, List<Group>>("", groups));
         } else {
             for (Group g : groups) {
-                List<Group> children = new ArrayList<Group>();
-                children.add(g);
-                if(false && g.getGraphs().size() == 1) {
-                    //g.getGraphs().get(0).setName(g.getName() + " / " + g.getGraphs().get(0).getName());
-                    result.add(new Pair<String, List<Group>>("", children));
-                } else {
-                    Pair<String, List<Group>> p = new Pair<String, List<Group>>();
-                    p.setLeft(g.getName());
-                    p.setRight(children);
-                    result.add(p);
-                }
+                Pair<String, List<Group>> p = new Pair<String, List<Group>>();
+                p.setLeft(g.getName());
+                p.setRight(Arrays.asList(g));
+                result.add(p);
             }
         }
-
         return result;
     }
 }
