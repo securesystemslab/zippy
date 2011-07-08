@@ -186,6 +186,10 @@ public class ServerCompilerScheduler implements Scheduler {
     }
 
     public Collection<InputBlock> schedule(InputGraph graph) {
+        if (graph.getNodes().isEmpty()) {
+            return Collections.emptyList();
+        }
+
         if (graph.getBlocks().size() > 0) {
             Collection<InputNode> tmpNodes = new ArrayList<InputNode>(graph.getNodes());
             for (InputNode n : tmpNodes) {
@@ -207,7 +211,6 @@ public class ServerCompilerScheduler implements Scheduler {
             buildCommonDominators();
             scheduleLatest();
 
-
             InputBlock noBlock = null;
             for (InputNode n : graph.getNodes()) {
                 if (graph.getBlock(n) == null) {
@@ -225,9 +228,7 @@ public class ServerCompilerScheduler implements Scheduler {
         }
     }
 
-    public void scheduleLatest() {
-
-
+    private void scheduleLatest() {
         Node root = findRoot();
         if(root == null) {
             assert false : "No root found!";
@@ -552,21 +553,30 @@ public class ServerCompilerScheduler implements Scheduler {
     }
 
     private Node findRoot() {
-
+        Node minNode = null;
         Node alternativeRoot = null;
-        for (Node n : nodes) {
-            InputNode inputNode = n.inputNode;
+
+        for (Node node : nodes) {
+            InputNode inputNode = node.inputNode;
             String s = inputNode.getProperties().get("name");
             if (s != null && s.equals("Root")) {
-                return n;
+                return node;
             }
 
-            if (n.preds.size() == 0) {
-                alternativeRoot = n;
+            if (alternativeRoot == null && node.preds.isEmpty()) {
+                alternativeRoot = node;
+            }
+
+            if (minNode == null || node.inputNode.getId() < minNode.inputNode.getId()) {
+                minNode = node;
             }
         }
 
-        return alternativeRoot;
+        if (alternativeRoot != null) {
+            return alternativeRoot;
+        } else {
+            return minNode;
+        }
     }
 
     public void buildUpGraph() {
