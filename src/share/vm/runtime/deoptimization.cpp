@@ -1244,9 +1244,10 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 
     if (trap_scope->rethrow_exception()) {
       if (TraceDeoptimization) {
-        tty->print_cr("Exception to be rethrown in the interpreter");
+        tty->print_cr("Exception to be rethrown in the interpreter for method %s::%s at bci %d", instanceKlass::cast(trap_method->method_holder())->name()->as_C_string(), trap_method->name()->as_C_string(), trap_bci);
       }
       GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();
+      guarantee(expressions != NULL, "must have exception to throw");
       ScopeValue* topOfStack = expressions->top();
       Handle topOfStackObj = cvf->create_stack_value(topOfStack)->get_obj();
       THREAD->set_pending_exception(topOfStackObj(), NULL, 0);
