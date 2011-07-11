@@ -65,7 +65,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
     private LayerWidget mainLayer;
     private LayerWidget selectLayer;
     private WidgetAction hoverAction = this.createWidgetHoverAction();
-    private WidgetAction selectAction = ActionFactory.createSelectAction(this);
+    private WidgetAction selectAction = new DoubleClickSelectAction(this);
     private WidgetAction moveAction = ActionFactory.createMoveAction(null, this);
 
     public ControlFlowScene() {
@@ -196,15 +196,19 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
     }
 
     public void setNewLocation(Widget widget, Point location) {
-        Point originalLocation = getOriginalLocation(widget);
-        int xOffset = location.x - originalLocation.x;
-        int yOffset = location.y - originalLocation.y;
-        for (Widget w : this.selection) {
-            Point p = new Point(w.getPreferredLocation());
-            p.translate(xOffset, yOffset);
-            w.setPreferredLocation(p);
+        if (selection.contains(widget)) {
+            // move entire selection
+            Point originalLocation = getOriginalLocation(widget);
+            int xOffset = location.x - originalLocation.x;
+            int yOffset = location.y - originalLocation.y;
+            for (Widget w : selection) {
+                Point p = new Point(w.getPreferredLocation());
+                p.translate(xOffset, yOffset);
+                w.setPreferredLocation(p);
+            }
+        } else {
+            widget.setPreferredLocation(location);
         }
-
     }
 
     public Widget createSelectionWidget() {
