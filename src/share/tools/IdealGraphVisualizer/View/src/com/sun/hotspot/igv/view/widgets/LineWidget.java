@@ -114,9 +114,8 @@ public class LineWidget extends Widget implements PopupMenuProvider {
         if (connections.size() > 0) {
             color = connections.get(0).getColor();
         }
-        
-        this.setToolTipText(generateToolTipText(this.connections));
-        
+
+        this.setToolTipText("<HTML>" + generateToolTipText(this.connections) + "</HTML>");
 
         this.setCheckClipping(true);
 
