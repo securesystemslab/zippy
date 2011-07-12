@@ -251,8 +251,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2type
   return JNIHandles::make_local(obj());
 }
 
-// public native RiTypeProfile RiMethod_branchProfile(long vmId, int bci);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jdouble JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
   ciMethodData* method_data;
   ciMethod* cimethod;
@@ -277,10 +276,6 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchP
     not_taken = data->as_BranchData()->not_taken();
   }
 
-  // scale the counts to be commensurate with invocation counts:
-  taken = cimethod->scale_count(taken);
-  not_taken = cimethod->scale_count(not_taken);
-
   // Give up if too few (or too many, in which case the sum will overflow) counts to be meaningful.
   // We also check that individual counters are positive first, otherwise the sum can become positive.
   if (taken < 0 || not_taken < 0 || taken + not_taken < 40) return -1;
@@ -289,10 +284,56 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchP
   if (taken == 0)
     return 0;
   else if (not_taken == 0)
-    return 100;
+    return 1;
   else {                         // Compute probability of true path
-    int probability = (int)(taken * 100.0 / (taken + not_taken));
-    return MIN2(99, MAX2(1, probability));
+    return (jdouble)(taken) / (taken + not_taken);
+  }
+}
+
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+  TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+  ciMethodData* method_data;
+  ciMethod* cimethod;
+  {
+    VM_ENTRY_MARK;
+    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
+  }
+  method_data = cimethod->method_data();
+
+  jfloat probability = -1;
+
+  if (method_data == NULL || !method_data->is_mature()) return NULL;
+
+  ciProfileData* data = method_data->bci_to_data(bci);
+  if (data == NULL || !data->is_MultiBranchData())  return NULL;
+
+  MultiBranchData* branch_data = data->as_MultiBranchData();
+
+  long sum = 0;
+  int cases = branch_data->number_of_cases();
+  GrowableArray<uint>* counts = new GrowableArray<uint>(cases + 1);
+
+  for (int i = 0; i < cases; i++) {
+    uint value = branch_data->count_at(i);
+    sum += value;
+    counts->append(value);
+  }
+  uint value = branch_data->default_count();
+  sum += value;
+  counts->append(value);
+
+  // Give up if too few (or too many, in which case the sum will overflow) counts to be meaningful.
+  // We also check that individual counters are positive first, otherwise the sum can become positive.
+  if (sum < 10 * (cases + 3)) return NULL;
+
+  {
+    VM_ENTRY_MARK;
+    typeArrayOop probability = oopFactory::new_typeArray(T_DOUBLE, cases + 1, CHECK_NULL);
+    for (int i = 0; i < cases + 1; i++) {
+      probability->double_at_put(i, counts->at(i) / (double) sum);
+    }
+    return JNIHandles::make_local(probability);
   }
 }
 
@@ -856,7 +897,8 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_hasBalancedMonitors",    CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors)},
   {CC"RiMethod_uniqueConcreteMethod",   CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
   {CC"RiMethod_typeProfile",            CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile)},
-  {CC"RiMethod_branchProbability",      CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability)},
+  {CC"RiMethod_branchProbability",      CC"("RESOLVED_METHOD"I)D",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability)},
+  {CC"RiMethod_switchProbability",      CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2switchProbability)},
   {CC"RiMethod_invocationCount",        CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
   {CC"RiMethod_exceptionProbability",   CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability)},
   {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
