@@ -35,7 +35,13 @@ function colorize(property, regexp, color) {
 
 function remove(property, regexp) {
     var f = new RemoveFilter("");
-    f.addRule(new RemoveFilter.RemoveRule(new MatcherSelector(new Properties.RegexpPropertyMatcher(property, regexp)), false, false));
+    f.addRule(new RemoveFilter.RemoveRule(new MatcherSelector(new Properties.RegexpPropertyMatcher(property, regexp))));
+    f.apply(graph);
+}
+
+function removeIncludingOrphans(property, regexp) {
+    var f = new RemoveFilter("");
+    f.addRule(new RemoveFilter.RemoveRule(new MatcherSelector(new Properties.RegexpPropertyMatcher(property, regexp)), true));
     f.apply(graph);
 }
 

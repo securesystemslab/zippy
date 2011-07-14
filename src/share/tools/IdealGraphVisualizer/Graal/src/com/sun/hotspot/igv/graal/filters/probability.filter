@@ -1,0 +1,9 @@
+var pf = new com.sun.hotspot.igv.graal.filters.GraalGradientColorFilter();
+pf.setMode(com.sun.hotspot.igv.graal.filters.GraalGradientColorFilter.Mode.LOGARITHMIC);
+pf.setPropertyName("probability");
+pf.setMinValue(0);
+pf.setMaxValue(500);
+pf.setColors([blue, yellow, red]);
+pf.setFractions([0, 0.5, 1]);
+pf.setShadeCount(8);
+pf.apply(graph);
