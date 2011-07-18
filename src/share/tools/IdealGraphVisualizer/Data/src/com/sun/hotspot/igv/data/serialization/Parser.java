@@ -121,11 +121,10 @@ public class Parser {
         @Override
         protected Group start() throws SAXException {
             Group group = new Group();
-            Parser.this.difference = false;
+            group.setComplete(false);
+            
             String differenceProperty = this.readAttribute(DIFFERENCE_PROPERTY);
-            if (differenceProperty != null && (differenceProperty.equals("1") || differenceProperty.equals("true"))) {
-                Parser.this.difference = true;
-            }
+            Parser.this.difference = (differenceProperty != null && (differenceProperty.equals("1") || differenceProperty.equals("true")));
 
             ParseMonitor monitor = getMonitor();
             if (monitor != null) {
@@ -137,8 +136,10 @@ public class Parser {
 
         @Override
         protected void end(String text) throws SAXException {
+            Group group = getObject();
+            group.setComplete(true);
             if (groupCallback == null) {
-                getParentObject().addGroup(getObject());
+                getParentObject().addGroup(group);
             }
         }
     };

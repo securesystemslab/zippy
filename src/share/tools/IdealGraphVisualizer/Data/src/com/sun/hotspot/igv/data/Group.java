@@ -39,6 +39,7 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
     private InputMethod method;
     private String assembly;
     private transient ChangedEvent<Group> changedEvent;
+    private transient boolean complete = true;
 
     public Group() {
         graphs = new ArrayList<InputGraph>();
@@ -47,6 +48,14 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
         // Ensure that name and type are never null
         getProperties().setProperty("name", "");
         getProperties().setProperty("type", "");
+    }
+
+    public void setComplete(boolean complete) {
+        this.complete = complete;
+    }
+
+    public boolean isComplete() {
+        return complete;
     }
 
     public void fireChangedEvent() {

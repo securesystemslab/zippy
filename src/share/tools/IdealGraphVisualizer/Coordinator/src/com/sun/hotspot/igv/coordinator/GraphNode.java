@@ -25,6 +25,8 @@ package com.sun.hotspot.igv.coordinator;
 
 import com.sun.hotspot.igv.coordinator.actions.DiffGraphAction;
 import com.sun.hotspot.igv.coordinator.actions.DiffGraphCookie;
+import com.sun.hotspot.igv.coordinator.actions.GraphOpenCookie;
+import com.sun.hotspot.igv.coordinator.actions.GraphRemoveCookie;
 import com.sun.hotspot.igv.coordinator.actions.RemoveCookie;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.Properties;
@@ -65,21 +67,11 @@ public class GraphNode extends AbstractNode {
 
         if (viewer != null) {
             // Action for opening the graph
-            content.add(new OpenCookie() {
-
-                public void open() {
-                    viewer.view(graph);
-                }
-            });
+            content.add(new GraphOpenCookie(viewer, graph));
         }
 
         // Action for removing a graph
-        content.add(new RemoveCookie() {
-
-            public void remove() {
-                graph.getGroup().removeGraph(graph);
-            }
-        });
+        content.add(new GraphRemoveCookie(graph));
 
         // Action for diffing to the current graph
         content.add(new DiffGraphCookie(graph));

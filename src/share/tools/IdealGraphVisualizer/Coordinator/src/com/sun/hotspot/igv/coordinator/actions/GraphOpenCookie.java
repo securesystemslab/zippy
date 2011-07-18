@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,44 +25,24 @@ package com.sun.hotspot.igv.coordinator.actions;
 
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.GraphViewer;
-import com.sun.hotspot.igv.data.services.InputGraphProvider;
-import com.sun.hotspot.igv.difference.Difference;
-import com.sun.hotspot.igv.util.LookupHistory;
 import org.openide.DialogDescriptor;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
-import org.openide.nodes.Node;
-import org.openide.util.Lookup;
+import org.openide.cookies.OpenCookie;
 
-/**
- *
- * @author Thomas Wuerthinger
- */
-public class DiffGraphCookie implements Node.Cookie {
+public class GraphOpenCookie implements OpenCookie {
 
-    private InputGraph graph;
+    private final GraphViewer viewer;
+    private final InputGraph graph;
 
-    public DiffGraphCookie(InputGraph graph) {
+    public GraphOpenCookie(GraphViewer viewer, InputGraph graph) {
+        this.viewer = viewer;
         this.graph = graph;
     }
 
-    private InputGraph getCurrentGraph() {
-        InputGraphProvider graphProvider = LookupHistory.getLast(InputGraphProvider.class);
-        if (graphProvider != null) {
-            return graphProvider.getGraph();
-        }
-        return null;
-    }
-
-    public boolean isPossible() {
-        return getCurrentGraph() != null;
-    }
-
-    public void openDiff() {
-        InputGraph other = getCurrentGraph();
-
-        if (!graph.getGroup().isComplete() || !other.getGroup().isComplete()) {
-            String msg = "One of the graphs or the groups they belong to are still being loaded. Creating a diff now can cause problems. Do you want to continue?";
+    public void open() {
+        if (!graph.getGroup().isComplete()) {
+            String msg = "This graph or the group it belongs to is still being loaded. Opening this graph now can cause problems. Do you want to continue and open the graph?";
             NotifyDescriptor desc = new NotifyDescriptor(msg, "Incomplete data", NotifyDescriptor.YES_NO_OPTION, NotifyDescriptor.QUESTION_MESSAGE, null, NotifyDescriptor.NO_OPTION);
 
             if (DialogDisplayer.getDefault().notify(desc) == DialogDescriptor.NO_OPTION) {
@@ -70,10 +50,6 @@ public class DiffGraphCookie implements Node.Cookie {
             }
         }
 
-        final GraphViewer viewer = Lookup.getDefault().lookup(GraphViewer.class);
-        if (viewer != null) {
-            InputGraph diffGraph = Difference.createDiffGraph(other, graph);
-            viewer.view(diffGraph);
-        }
+        viewer.view(graph);
     }
 }
