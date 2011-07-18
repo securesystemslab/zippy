@@ -21,6 +21,7 @@ output\.cfg$
 ^diff1.txt$
 ^diff2.txt$
 ^examples.jar$
+^graal/com.oracle.max.graal.examples/examples.jar$
 ^test.xml$
 java\.hprof\.txt$
 /nbproject/private/

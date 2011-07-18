@@ -13,5 +13,9 @@
         <file name="Graal Slot Filter" url="filters/slots.filter">
             <attr name="enabled" boolvalue="false"/>
         </file>
+        
+        <file name="Graal Probability Filter" url="filters/probability.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
     </folder>
 </filesystem>
