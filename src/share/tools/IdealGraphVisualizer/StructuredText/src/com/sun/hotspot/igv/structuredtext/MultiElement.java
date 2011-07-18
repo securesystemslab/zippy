@@ -92,15 +92,13 @@ public class MultiElement extends Element {
         if (s == null) {
             s = "";
         }
-        StringBuffer sb = new StringBuffer(s);
-        while(sb.length() < padding) {
+        StringBuilder sb = new StringBuilder(s);
+        while (sb.length() < padding) {
             sb.insert(0, ' ');
         }
-
         print(sb.toString(), source);
-
     }
-    
+
     public void println() {
         println("");
     }

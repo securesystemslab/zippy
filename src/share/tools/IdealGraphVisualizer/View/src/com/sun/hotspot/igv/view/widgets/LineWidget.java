@@ -147,17 +147,15 @@ public class LineWidget extends Widget implements PopupMenuProvider {
             }
         }));
     }
-    
+
     private String generateToolTipText(List<Connection> conn) {
-        StringBuffer sb = new StringBuffer();
-        for(Connection c : conn) {
+        StringBuilder sb = new StringBuilder();
+        for (Connection c : conn) {
             sb.append(c.getToolTipText());
             sb.append("<br>");
         }
         return sb.toString();
     }
-    
-    
 
     public Point getFrom() {
         return from;

@@ -438,13 +438,12 @@ public final class FilterTopComponent extends TopComponent implements LookupList
                 is = fo.getInputStream();
                 BufferedReader r = new BufferedReader(new InputStreamReader(is));
                 String s;
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 while ((s = r.readLine()) != null) {
                     sb.append(s);
                     sb.append("\n");
                 }
                 code = sb.toString();
-
             } catch (FileNotFoundException ex) {
                 Exceptions.printStackTrace(ex);
             } catch (IOException ex) {
