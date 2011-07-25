@@ -21,7 +21,7 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.graal.filters;
+package com.sun.hotspot.igv.filter;
 
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
@@ -40,12 +40,10 @@ import java.util.List;
  * 
  * @author Peter Hofer
  */
-public class GraalGradientColorFilter {
+public class GradientColorFilter extends AbstractFilter {
 
-    public enum Mode {
-        LINEAR,
-        LOGARITHMIC
-    };
+    public static final String LINEAR = "LINEAR";
+    public static final String LOGARITHMIC = "LOGARITHMIC";
 
     private String propertyName = "probability";
     private float minValue = 0;
@@ -53,9 +51,18 @@ public class GraalGradientColorFilter {
     private float[] fractions = {0, 0.5f, 1};
     private Color[] colors = {Color.BLUE, Color.YELLOW, Color.RED};
     private int shadeCount = 8;
-    private Mode mode = Mode.LOGARITHMIC;
+    private String mode = LINEAR;
+
+    public String getName() {
+        return "Gradient Color Filter";
+    }
 
     public void apply(Diagram d) {
+        boolean logarithmic = mode.equalsIgnoreCase(LOGARITHMIC);
+        if (!logarithmic && !mode.equalsIgnoreCase(LINEAR)) {
+            throw new RuntimeException("Unknown mode: " + mode);
+        }
+
         Rectangle bounds = new Rectangle(shadeCount, 1);
         LinearGradientPaint lgp = new LinearGradientPaint(bounds.x, bounds.y, bounds.width, bounds.y, fractions, colors);
         PaintContext context = lgp.createContext(null, bounds, bounds.getBounds2D(), AffineTransform.getTranslateInstance(0, 0), new RenderingHints(null));
@@ -83,12 +90,10 @@ public class GraalGradientColorFilter {
                         double interval = maxValue - minValue;
                         int index;
                         // Use Math.ceil() to make values above zero distinguishable from zero
-                        if (mode == Mode.LOGARITHMIC) {
+                        if (logarithmic) {
                             index = (int) Math.ceil(shades.length * Math.log(1 + normalized) / Math.log(1 + interval));
-                        } else if (mode == Mode.LINEAR) {
-                            index = (int) Math.ceil(shades.length * normalized / interval);
                         } else {
-                            throw new RuntimeException("Unknown mode");
+                            index = (int) Math.ceil(shades.length * normalized / interval);
                         }
                         nodeColor = shades[index];
                     }
@@ -144,15 +149,15 @@ public class GraalGradientColorFilter {
         return shadeCount;
     }
 
-    public void setShadeCount(int steps) {
-        this.shadeCount = steps;
+    public void setShadeCount(int shadeCount) {
+        this.shadeCount = shadeCount;
     }
 
-    public Mode getMode() {
+    public String getMode() {
         return mode;
     }
 
-    public void setMode(Mode mode) {
+    public void setMode(String mode) {
         this.mode = mode;
     }
 }

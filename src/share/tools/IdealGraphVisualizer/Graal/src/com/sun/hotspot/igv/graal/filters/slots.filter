@@ -1,2 +1,1 @@
-var f = new com.sun.hotspot.igv.graal.filters.GraalSlotFilter();
-f.apply(graph);
+removeUnconnectedSlots(true, true);

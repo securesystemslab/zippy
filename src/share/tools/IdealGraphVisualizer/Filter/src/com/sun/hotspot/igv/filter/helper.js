@@ -65,6 +65,40 @@ function removeInputs(property, regexp, from, to) {
     f.apply(graph);
 }
 
+function removeUnconnectedSlots(inputs, outputs) {
+    var f = new UnconnectedSlotFilter(inputs, outputs);
+    f.apply(graph);
+}
+
+function colorizeGradient(property, min, max) {
+    var f = new GradientColorFilter();
+    f.setPropertyName(property);
+    f.setMinValue(min);
+    f.setMaxValue(max);
+    f.apply(graph);
+}
+
+function colorizeGradientWithMode(property, min, max, mode) {
+    var f = new GradientColorFilter();
+    f.setPropertyName(property);
+    f.setMinValue(min);
+    f.setMaxValue(max);
+    f.setMode(mode);
+    f.apply(graph);
+}
+
+function colorizeGradientCustom(property, min, max, mode, colors, fractions, nshades) {
+    var f = new GradientColorFilter();
+    f.setPropertyName(property);
+    f.setMinValue(min);
+    f.setMaxValue(max);
+    f.setMode(mode);
+    f.setColors(colors);
+    f.setFractions(fractions);
+    f.setShadeCount(nshades);
+    f.apply(graph);
+}
+
 var black = Color.black;
 var blue = Color.blue;
 var cyan = Color.cyan;

@@ -21,9 +21,8 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.graal.filters;
+package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.filter.AbstractFilter;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
@@ -35,27 +34,40 @@ import java.util.List;
 /**
  * Filter that hides slots with no connections.
  */
-public class GraalSlotFilter extends AbstractFilter {
+public class UnconnectedSlotFilter extends AbstractFilter {
 
-    public GraalSlotFilter() {
+    private final boolean removeInputs;
+    private final boolean removeOutputs;
+
+    public UnconnectedSlotFilter(boolean inputs, boolean outputs) {
+        this.removeInputs = inputs;
+        this.removeOutputs = outputs;
     }
 
     public String getName() {
-        return "Graal Slot Filter";
+        return "Unconnected Slot Filter";
     }
 
     public void apply(Diagram d) {
+        if (!removeInputs && !removeOutputs) {
+            return;
+        }
+
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {
             List<Slot> remove = new ArrayList<Slot>();
-            for (InputSlot is : f.getInputSlots()) {
-                if (is.getConnections().isEmpty()) {
-                    remove.add(is);
+            if (removeInputs) {
+                for (InputSlot is : f.getInputSlots()) {
+                    if (is.getConnections().isEmpty()) {
+                        remove.add(is);
+                    }
                 }
             }
-            for (OutputSlot os : f.getOutputSlots()) {
-                if (os.getConnections().isEmpty()) {
-                    remove.add(os);
+            if (removeOutputs) {
+                for (OutputSlot os : f.getOutputSlots()) {
+                    if (os.getConnections().isEmpty()) {
+                        remove.add(os);
+                    }
                 }
             }
             for (Slot s : remove) {
