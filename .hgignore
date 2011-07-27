@@ -5,6 +5,7 @@
 ^work/
 \.metadata/
 ~$
+\.csv$
 \.swp$
 \.class$
 \.log$
@@ -27,6 +28,7 @@ java\.hprof\.txt$
 /nbproject/private/
 ^graal/hotspot/java$
 ^scratch/
+scratch/
 ^local/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
