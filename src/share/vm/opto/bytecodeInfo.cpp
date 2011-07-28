@@ -35,14 +35,16 @@
 
 //=============================================================================
 //------------------------------InlineTree-------------------------------------
-InlineTree::InlineTree( Compile* c,
-                        const InlineTree *caller_tree, ciMethod* callee,
-                        JVMState* caller_jvms, int caller_bci,
-                        float site_invoke_ratio, int site_depth_adjust)
-: C(c), _caller_jvms(caller_jvms),
-  _caller_tree((InlineTree*)caller_tree),
-  _method(callee), _site_invoke_ratio(site_invoke_ratio),
-  _site_depth_adjust(site_depth_adjust),
+InlineTree::InlineTree(Compile* c,
+                       const InlineTree *caller_tree, ciMethod* callee,
+                       JVMState* caller_jvms, int caller_bci,
+                       float site_invoke_ratio, int max_inline_level) :
+  C(c),
+  _caller_jvms(caller_jvms),
+  _caller_tree((InlineTree*) caller_tree),
+  _method(callee),
+  _site_invoke_ratio(site_invoke_ratio),
+  _max_inline_level(max_inline_level),
   _count_inline_bcs(method()->code_size())
 {
   NOT_PRODUCT(_count_inlines = 0;)
@@ -66,10 +68,13 @@ InlineTree::InlineTree( Compile* c,
 }
 
 InlineTree::InlineTree(Compile* c, ciMethod* callee_method, JVMState* caller_jvms,
-                       float site_invoke_ratio, int site_depth_adjust)
-: C(c), _caller_jvms(caller_jvms), _caller_tree(NULL),
-  _method(callee_method), _site_invoke_ratio(site_invoke_ratio),
-  _site_depth_adjust(site_depth_adjust),
+                       float site_invoke_ratio, int max_inline_level) :
+  C(c),
+  _caller_jvms(caller_jvms),
+  _caller_tree(NULL),
+  _method(callee_method),
+  _site_invoke_ratio(site_invoke_ratio),
+  _max_inline_level(max_inline_level),
   _count_inline_bcs(method()->code_size())
 {
   NOT_PRODUCT(_count_inlines = 0;)
@@ -89,12 +94,12 @@ static bool is_init_with_ea(ciMethod* callee_method,
 }
 
 // positive filter: should send be inlined?  returns NULL, if yes, or rejection msg
-const char* InlineTree::shouldInline(ciMethod* callee_method, ciMethod* caller_method, int caller_bci, ciCallProfile& profile, WarmCallInfo* wci_result) const {
+const char* InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method, int caller_bci, ciCallProfile& profile, WarmCallInfo* wci_result) const {
   // Allows targeted inlining
   if(callee_method->should_inline()) {
     *wci_result = *(WarmCallInfo::always_hot());
     if (PrintInlining && Verbose) {
-      CompileTask::print_inline_indent(inline_depth());
+      CompileTask::print_inline_indent(inline_level());
       tty->print_cr("Inlined method is hot: ");
     }
     return NULL;
@@ -102,15 +107,14 @@ const char* InlineTree::shouldInline(ciMethod* callee_method, ciMethod* caller_m
 
   // positive filter: should send be inlined?  returns NULL (--> yes)
   // or rejection msg
-  int max_size = C->max_inline_size();
-  int size     = callee_method->code_size();
+  int size = callee_method->code_size();
 
   // Check for too many throws (and not too huge)
   if(callee_method->interpreter_throwout_count() > InlineThrowCount &&
      size < InlineThrowMaxSize ) {
     wci_result->set_profit(wci_result->profit() * 100);
     if (PrintInlining && Verbose) {
-      CompileTask::print_inline_indent(inline_depth());
+      CompileTask::print_inline_indent(inline_level());
       tty->print_cr("Inlined method with many throws (throws=%d):", callee_method->interpreter_throwout_count());
     }
     return NULL;
@@ -120,32 +124,50 @@ const char* InlineTree::shouldInline(ciMethod* callee_method, ciMethod* caller_m
     return NULL;  // size and frequency are represented in a new way
   }
 
+  int default_max_inline_size = C->max_inline_size();
+  int inline_small_code_size  = InlineSmallCode / 4;
+  int max_inline_size         = default_max_inline_size;
+
   int call_site_count  = method()->scale_count(profile.count());
   int invoke_count     = method()->interpreter_invocation_count();
-  assert( invoke_count != 0, "Require invokation count greater than zero");
-  int freq = call_site_count/invoke_count;
+
+  // Bytecoded method handle adapters do not have interpreter
+  // profiling data but only made up MDO data.  Get the counter from
+  // there.
+  if (caller_method->is_method_handle_adapter()) {
+    assert(method()->method_data_or_null(), "must have an MDO");
+    ciMethodData* mdo = method()->method_data();
+    ciProfileData* mha_profile = mdo->bci_to_data(caller_bci);
+    assert(mha_profile, "must exist");
+    CounterData* cd = mha_profile->as_CounterData();
+    invoke_count = cd->count();
+    call_site_count = invoke_count;  // use the same value
+  }
+
+  assert(invoke_count != 0, "require invocation count greater than zero");
+  int freq = call_site_count / invoke_count;
 
   // bump the max size if the call is frequent
   if ((freq >= InlineFrequencyRatio) ||
       (call_site_count >= InlineFrequencyCount) ||
       is_init_with_ea(callee_method, caller_method, C)) {
 
-    max_size = C->freq_inline_size();
-    if (size <= max_size && TraceFrequencyInlining) {
-      CompileTask::print_inline_indent(inline_depth());
+    max_inline_size = C->freq_inline_size();
+    if (size <= max_inline_size && TraceFrequencyInlining) {
+      CompileTask::print_inline_indent(inline_level());
       tty->print_cr("Inlined frequent method (freq=%d count=%d):", freq, call_site_count);
-      CompileTask::print_inline_indent(inline_depth());
+      CompileTask::print_inline_indent(inline_level());
       callee_method->print();
       tty->cr();
     }
   } else {
     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
     if (callee_method->has_compiled_code() &&
-        callee_method->instructions_size(CompLevel_full_optimization) > InlineSmallCode/4)
+        callee_method->instructions_size(CompLevel_full_optimization) > inline_small_code_size)
       return "already compiled into a medium method";
   }
-  if (size > max_size) {
-    if (max_size > C->max_inline_size())
+  if (size > max_inline_size) {
+    if (max_inline_size > default_max_inline_size)
       return "hot method too big";
     return "too big";
   }
@@ -154,7 +176,7 @@ const char* InlineTree::shouldInline(ciMethod* callee_method, ciMethod* caller_m
 
 
 // negative filter: should send NOT be inlined?  returns NULL, ok to inline, or rejection msg
-const char* InlineTree::shouldNotInline(ciMethod *callee_method, ciMethod* caller_method, WarmCallInfo* wci_result) const {
+const char* InlineTree::should_not_inline(ciMethod *callee_method, ciMethod* caller_method, WarmCallInfo* wci_result) const {
   // negative filter: should send NOT be inlined?  returns NULL (--> inline) or rejection msg
   if (!UseOldInlining) {
     const char* fail = NULL;
@@ -269,14 +291,13 @@ const char* InlineTree::try_to_inline(ciMethod* callee_method, ciMethod* caller_
   }
 
   const char *msg = NULL;
-  if ((msg = shouldInline(callee_method, caller_method, caller_bci,
-                          profile, wci_result)) != NULL) {
+  msg = should_inline(callee_method, caller_method, caller_bci, profile, wci_result);
+  if (msg != NULL)
     return msg;
-  }
-  if ((msg = shouldNotInline(callee_method, caller_method,
-                             wci_result)) != NULL) {
+
+  msg = should_not_inline(callee_method, caller_method, wci_result);
+  if (msg != NULL)
     return msg;
-  }
 
   if (InlineAccessors && callee_method->is_accessor()) {
     // accessor methods are not subject to any of the following limits.
@@ -306,17 +327,18 @@ const char* InlineTree::try_to_inline(ciMethod* callee_method, ciMethod* caller_
   if (!C->do_inlining() && InlineAccessors) {
     return "not an accessor";
   }
-  if( inline_depth() > MaxInlineLevel ) {
+  if (inline_level() > _max_inline_level) {
     return "inlining too deep";
   }
 
-  // We need to detect recursive inlining of method handle targets: if
-  // the current method is a method handle adapter and one of the
-  // callers is the same method as the callee, we bail out if
-  // MaxRecursiveInlineLevel is hit.
-  if (method()->is_method_handle_adapter()) {
+  // detect direct and indirect recursive inlining
+  {
+    // count the current method and the callee
+    int inline_level = (method() == callee_method) ? 1 : 0;
+    if (inline_level > MaxRecursiveInlineLevel)
+      return "recursively inlining too deep";
+    // count callers of current method and callee
     JVMState* jvms = caller_jvms();
-    int inline_level = 0;
     while (jvms != NULL && jvms->has_method()) {
       if (jvms->method() == callee_method) {
         inline_level++;
@@ -325,10 +347,6 @@ const char* InlineTree::try_to_inline(ciMethod* callee_method, ciMethod* caller_
       }
       jvms = jvms->caller();
     }
-  }
-
-  if (method() == callee_method && inline_depth() > MaxRecursiveInlineLevel) {
-    return "recursively inlining too deep";
   }
 
   int size = callee_method->code_size();
@@ -376,11 +394,10 @@ bool pass_initial_checks(ciMethod* caller_method, int caller_bci, ciMethod* call
   return true;
 }
 
-#ifndef PRODUCT
 //------------------------------print_inlining---------------------------------
 // Really, the failure_msg can be a success message also.
 void InlineTree::print_inlining(ciMethod* callee_method, int caller_bci, const char* failure_msg) const {
-  CompileTask::print_inlining(callee_method, inline_depth(), caller_bci, failure_msg ? failure_msg : "inline");
+  CompileTask::print_inlining(callee_method, inline_level(), caller_bci, failure_msg ? failure_msg : "inline");
   if (callee_method == NULL)  tty->print(" callee not monotonic or profiled");
   if (Verbose && callee_method) {
     const InlineTree *top = this;
@@ -388,7 +405,6 @@ void InlineTree::print_inlining(ciMethod* callee_method, int caller_bci, const c
     tty->print("  bcs: %d+%d  invoked: %d", top->count_inline_bcs(), callee_method->code_size(), callee_method->interpreter_invocation_count());
   }
 }
-#endif
 
 //------------------------------ok_to_inline-----------------------------------
 WarmCallInfo* InlineTree::ok_to_inline(ciMethod* callee_method, JVMState* jvms, ciCallProfile& profile, WarmCallInfo* initial_wci) {
@@ -489,26 +505,25 @@ InlineTree *InlineTree::build_inline_tree_for_callee( ciMethod* callee_method, J
   if (old_ilt != NULL) {
     return old_ilt;
   }
-  int new_depth_adjust = 0;
+  int max_inline_level_adjust = 0;
   if (caller_jvms->method() != NULL) {
     if (caller_jvms->method()->is_method_handle_adapter())
-      new_depth_adjust -= 1;  // don't count actions in MH or indy adapter frames
+      max_inline_level_adjust += 1;  // don't count actions in MH or indy adapter frames
     else if (callee_method->is_method_handle_invoke()) {
-      new_depth_adjust -= 1;  // don't count method handle calls from java.lang.invoke implem
+      max_inline_level_adjust += 1;  // don't count method handle calls from java.lang.invoke implem
     }
-    if (new_depth_adjust != 0 && PrintInlining) {
-      stringStream nm1; caller_jvms->method()->print_name(&nm1);
-      stringStream nm2; callee_method->print_name(&nm2);
-      tty->print_cr("discounting inlining depth from %s to %s", nm1.base(), nm2.base());
+    if (max_inline_level_adjust != 0 && PrintInlining && (Verbose || WizardMode)) {
+      CompileTask::print_inline_indent(inline_level());
+      tty->print_cr(" \\-> discounting inline depth");
     }
-    if (new_depth_adjust != 0 && C->log()) {
+    if (max_inline_level_adjust != 0 && C->log()) {
       int id1 = C->log()->identify(caller_jvms->method());
       int id2 = C->log()->identify(callee_method);
-      C->log()->elem("inline_depth_discount caller='%d' callee='%d'", id1, id2);
+      C->log()->elem("inline_level_discount caller='%d' callee='%d'", id1, id2);
     }
   }
-  InlineTree *ilt = new InlineTree(C, this, callee_method, caller_jvms, caller_bci, recur_frequency, _site_depth_adjust + new_depth_adjust);
-  _subtrees.append( ilt );
+  InlineTree* ilt = new InlineTree(C, this, callee_method, caller_jvms, caller_bci, recur_frequency, _max_inline_level + max_inline_level_adjust);
+  _subtrees.append(ilt);
 
   NOT_PRODUCT( _count_inlines += 1; )
 
@@ -533,7 +548,7 @@ InlineTree *InlineTree::build_inline_tree_root() {
   Compile* C = Compile::current();
 
   // Root of inline tree
-  InlineTree *ilt = new InlineTree(C, NULL, C->method(), NULL, -1, 1.0F, 0);
+  InlineTree* ilt = new InlineTree(C, NULL, C->method(), NULL, -1, 1.0F, MaxInlineLevel);
 
   return ilt;
 }

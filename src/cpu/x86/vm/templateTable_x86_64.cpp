@@ -147,12 +147,21 @@ static void do_oop_store(InterpreterMacroAssembler* _masm,
         } else {
           __ leaq(rdx, obj);
         }
-        __ g1_write_barrier_pre(rdx, r8, rbx, val != noreg);
+        __ g1_write_barrier_pre(rdx /* obj */,
+                                rbx /* pre_val */,
+                                r15_thread /* thread */,
+                                r8  /* tmp */,
+                                val != noreg /* tosca_live */,
+                                false /* expand_call */);
         if (val == noreg) {
           __ store_heap_oop_null(Address(rdx, 0));
         } else {
           __ store_heap_oop(Address(rdx, 0), val);
-          __ g1_write_barrier_post(rdx, val, r8, rbx);
+          __ g1_write_barrier_post(rdx /* store_adr */,
+                                   val /* new_val */,
+                                   r15_thread /* thread */,
+                                   r8 /* tmp */,
+                                   rbx /* tmp2 */);
         }
 
       }
@@ -376,6 +385,8 @@ void TemplateTable::ldc(bool wide) {
     __ jcc(Assembler::equal, L);
     __ cmpl(rdx, JVM_CONSTANT_String);
     __ jcc(Assembler::equal, L);
+    __ cmpl(rdx, JVM_CONSTANT_Object);
+    __ jcc(Assembler::equal, L);
     __ stop("unexpected tag type in ldc");
     __ bind(L);
   }
@@ -427,7 +438,7 @@ void TemplateTable::fast_aldc(bool wide) {
   Label L_done, L_throw_exception;
   const Register con_klass_temp = rcx;  // same as cache
   const Register array_klass_temp = rdx;  // same as index
-  __ movptr(con_klass_temp, Address(rax, oopDesc::klass_offset_in_bytes()));
+  __ load_klass(con_klass_temp, rax);
   __ lea(array_klass_temp, ExternalAddress((address)Universe::systemObjArrayKlassObj_addr()));
   __ cmpptr(con_klass_temp, Address(array_klass_temp, 0));
   __ jcc(Assembler::notEqual, L_done);
@@ -438,7 +449,7 @@ void TemplateTable::fast_aldc(bool wide) {
 
   // Load the exception from the system-array which wraps it:
   __ bind(L_throw_exception);
-  __ movptr(rax, Address(rax, arrayOopDesc::base_offset_in_bytes(T_OBJECT)));
+  __ load_heap_oop(rax, Address(rax, arrayOopDesc::base_offset_in_bytes(T_OBJECT)));
   __ jump(ExternalAddress(Interpreter::throw_exception_entry()));
 
   __ bind(L_done);
@@ -3128,7 +3139,6 @@ void TemplateTable::invokedynamic(int byte_no) {
     return;
   }
 
-  assert(byte_no == f1_oop, "use this argument");
   prepare_invoke(rax, rbx, byte_no);
 
   // rax: CallSite object (f1)
@@ -3139,14 +3149,14 @@ void TemplateTable::invokedynamic(int byte_no) {
   Register rax_callsite      = rax;
   Register rcx_method_handle = rcx;
 
-  if (ProfileInterpreter) {
-    // %%% should make a type profile for any invokedynamic that takes a ref argument
-    // profile this call
-    __ profile_call(r13);
-  }
+  // %%% should make a type profile for any invokedynamic that takes a ref argument
+  // profile this call
+  __ profile_call(r13);
 
-  __ load_heap_oop(rcx_method_handle, Address(rax_callsite, __ delayed_value(java_lang_invoke_CallSite::target_offset_in_bytes, rcx)));
+  __ verify_oop(rax_callsite);
+  __ load_heap_oop(rcx_method_handle, Address(rax_callsite, __ delayed_value(java_lang_invoke_CallSite::target_offset_in_bytes, rdx)));
   __ null_check(rcx_method_handle);
+  __ verify_oop(rcx_method_handle);
   __ prepare_to_jump_from_interpreted();
   __ jump_to_method_handle_entry(rcx_method_handle, rdx);
 }

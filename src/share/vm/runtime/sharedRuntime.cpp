@@ -80,6 +80,72 @@
 #include "c1/c1_Runtime1.hpp"
 #endif
 
+// Shared stub locations
+RuntimeStub*        SharedRuntime::_wrong_method_blob;
+RuntimeStub*        SharedRuntime::_ic_miss_blob;
+RuntimeStub*        SharedRuntime::_resolve_opt_virtual_call_blob;
+RuntimeStub*        SharedRuntime::_resolve_virtual_call_blob;
+RuntimeStub*        SharedRuntime::_resolve_static_call_blob;
+
+DeoptimizationBlob* SharedRuntime::_deopt_blob;
+RicochetBlob*       SharedRuntime::_ricochet_blob;
+
+SafepointBlob*      SharedRuntime::_polling_page_safepoint_handler_blob;
+SafepointBlob*      SharedRuntime::_polling_page_return_handler_blob;
+
+#ifdef COMPILER2
+UncommonTrapBlob*   SharedRuntime::_uncommon_trap_blob;
+#endif // COMPILER2
+
+
+//----------------------------generate_stubs-----------------------------------
+void SharedRuntime::generate_stubs() {
+  _wrong_method_blob                   = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method),         "wrong_method_stub");
+  _ic_miss_blob                        = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method_ic_miss), "ic_miss_stub");
+  _resolve_opt_virtual_call_blob       = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_opt_virtual_call_C),  "resolve_opt_virtual_call");
+  _resolve_virtual_call_blob           = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_virtual_call_C),      "resolve_virtual_call");
+  _resolve_static_call_blob            = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_static_call_C),       "resolve_static_call");
+
+  _polling_page_safepoint_handler_blob = generate_handler_blob(CAST_FROM_FN_PTR(address, SafepointSynchronize::handle_polling_page_exception), false);
+  _polling_page_return_handler_blob    = generate_handler_blob(CAST_FROM_FN_PTR(address, SafepointSynchronize::handle_polling_page_exception), true);
+
+  generate_ricochet_blob();
+  generate_deopt_blob();
+
+#ifdef COMPILER2
+  generate_uncommon_trap_blob();
+#endif // COMPILER2
+}
+
+//----------------------------generate_ricochet_blob---------------------------
+void SharedRuntime::generate_ricochet_blob() {
+  if (!EnableInvokeDynamic)  return;  // leave it as a null
+
+#ifndef TARGET_ARCH_NYI_6939861
+  // allocate space for the code
+  ResourceMark rm;
+  // setup code generation tools
+  CodeBuffer buffer("ricochet_blob", 256 LP64_ONLY(+ 256), 256);  // XXX x86 LP64L: 512, 512
+  MacroAssembler* masm = new MacroAssembler(&buffer);
+
+  int bounce_offset = -1, exception_offset = -1, frame_size_in_words = -1;
+  MethodHandles::RicochetFrame::generate_ricochet_blob(masm, &bounce_offset, &exception_offset, &frame_size_in_words);
+
+  // -------------
+  // make sure all code is generated
+  masm->flush();
+
+  // failed to generate?
+  if (bounce_offset < 0 || exception_offset < 0 || frame_size_in_words < 0) {
+    assert(false, "bad ricochet blob");
+    return;
+  }
+
+  _ricochet_blob = RicochetBlob::create(&buffer, bounce_offset, exception_offset, frame_size_in_words);
+#endif
+}
+
+
 #include <math.h>
 
 HS_DTRACE_PROBE_DECL4(hotspot, object__alloc, Thread*, char*, int, size_t);
@@ -140,6 +206,7 @@ int SharedRuntime::_rethrow_ctr=0;
 int     SharedRuntime::_ICmiss_index                    = 0;
 int     SharedRuntime::_ICmiss_count[SharedRuntime::maxICmiss_count];
 address SharedRuntime::_ICmiss_at[SharedRuntime::maxICmiss_count];
+
 
 void SharedRuntime::trace_ic_miss(address at) {
   for (int i = 0; i < _ICmiss_index; i++) {
@@ -460,6 +527,10 @@ address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thre
   if (Interpreter::contains(return_address)) {
     return Interpreter::rethrow_exception_entry();
   }
+  // Ricochet frame unwind code
+  if (SharedRuntime::ricochet_blob() != NULL && SharedRuntime::ricochet_blob()->returns_to_bounce_addr(return_address)) {
+    return SharedRuntime::ricochet_blob()->exception_addr();
+  }
 
   guarantee(blob == NULL || !blob->is_runtime_stub(), "caller should have skipped stub");
   guarantee(!VtableStubs::contains(return_address), "NULL exceptions in vtables should have been handled already!");
@@ -707,6 +778,13 @@ address SharedRuntime::deoptimization_continuation(JavaThread* thread, address p
   thread->_ScratchA = (intptr_t)pc;
   return (SharedRuntime::deopt_blob()->jmp_uncommon_trap());
 }
+
+JRT_ENTRY(void, SharedRuntime::throw_WrongMethodTypeException(JavaThread* thread, oopDesc* required, oopDesc* actual))
+  assert(thread == JavaThread::current() && required->is_oop() && actual->is_oop(), "bad args");
+  ResourceMark rm;
+  char* message = SharedRuntime::generate_wrong_method_type_message(thread, required, actual);
+  throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_invoke_WrongMethodTypeException(), message);
+JRT_END
 
 address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
                                                            address pc,
@@ -1205,6 +1283,7 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method_ic_miss(JavaThread* 
   assert(stub_frame.is_runtime_frame(), "sanity check");
   frame caller_frame = stub_frame.sender(&reg_map);
   assert(!caller_frame.is_interpreted_frame() && !caller_frame.is_entry_frame(), "unexpected frame");
+  assert(!caller_frame.is_ricochet_frame(), "unexpected frame");
 #endif /* ASSERT */
 
   methodHandle callee_method;
@@ -1253,6 +1332,7 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method(JavaThread* thread))
 
   if (caller_frame.is_interpreted_frame() ||
       caller_frame.is_entry_frame()       ||
+      caller_frame.is_ricochet_frame()    ||
       is_mh_invoke_via_adapter) {
     methodOop callee = thread->callee_target();
     guarantee(callee != NULL && callee->is_method(), "bad handshake");
@@ -1752,14 +1832,14 @@ char* SharedRuntime::generate_wrong_method_type_message(JavaThread* thread,
         targetArity = ArgumentCount(target->signature()).size();
       }
     }
-    klassOop kignore; int dmf_flags = 0;
-    methodOop actual_method = MethodHandles::decode_method(actual, kignore, dmf_flags);
+    KlassHandle kignore; int dmf_flags = 0;
+    methodHandle actual_method = MethodHandles::decode_method(actual, kignore, dmf_flags);
     if ((dmf_flags & ~(MethodHandles::_dmf_has_receiver |
                        MethodHandles::_dmf_does_dispatch |
                        MethodHandles::_dmf_from_interface)) != 0)
-      actual_method = NULL;  // MH does extra binds, drops, etc.
+      actual_method = methodHandle();  // MH does extra binds, drops, etc.
     bool has_receiver = ((dmf_flags & MethodHandles::_dmf_has_receiver) != 0);
-    if (actual_method != NULL) {
+    if (actual_method.not_null()) {
       mhName = actual_method->signature()->as_C_string();
       mhArity = ArgumentCount(actual_method->signature()).size();
       if (!actual_method->is_static())  mhArity += 1;

@@ -104,7 +104,7 @@ void ConstantPoolCacheEntry::set_f1_if_null_atomic(oop f1) {
   void* result = Atomic::cmpxchg_ptr(f1, f1_addr, NULL);
   bool success = (result == NULL);
   if (success) {
-    update_barrier_set(f1_addr, f1);
+    update_barrier_set((void*) f1_addr, f1);
   }
 }
 
@@ -275,22 +275,68 @@ int ConstantPoolCacheEntry::bootstrap_method_index_in_cache() {
   return (int) bsm_cache_index;
 }
 
-void ConstantPoolCacheEntry::set_dynamic_call(Handle call_site,
-                                              methodHandle signature_invoker) {
+void ConstantPoolCacheEntry::set_dynamic_call(Handle call_site, methodHandle signature_invoker) {
   assert(is_secondary_entry(), "");
+  // NOTE: it's important that all other values are set before f1 is
+  // set since some users short circuit on f1 being set
+  // (i.e. non-null) and that may result in uninitialized values for
+  // other racing threads (e.g. flags).
   int param_size = signature_invoker->size_of_parameters();
   assert(param_size >= 1, "method argument size must include MH.this");
-  param_size -= 1;              // do not count MH.this; it is not stacked for invokedynamic
-  if (Atomic::cmpxchg_ptr(call_site(), &_f1, NULL) == NULL) {
-    // racing threads might be trying to install their own favorites
-    set_f1(call_site());
-  }
+  param_size -= 1;  // do not count MH.this; it is not stacked for invokedynamic
   bool is_final = true;
   assert(signature_invoker->is_final_method(), "is_final");
-  set_flags(as_flags(as_TosState(signature_invoker->result_type()), is_final, false, false, false, true) | param_size);
+  int flags = as_flags(as_TosState(signature_invoker->result_type()), is_final, false, false, false, true) | param_size;
+  assert(_flags == 0 || _flags == flags, "flags should be the same");
+  set_flags(flags);
   // do not do set_bytecode on a secondary CP cache entry
   //set_bytecode_1(Bytecodes::_invokedynamic);
+  set_f1_if_null_atomic(call_site());  // This must be the last one to set (see NOTE above)!
 }
+
+
+methodOop ConstantPoolCacheEntry::get_method_if_resolved(Bytecodes::Code invoke_code, constantPoolHandle cpool) {
+  assert(invoke_code > (Bytecodes::Code)0, "bad query");
+  if (is_secondary_entry()) {
+    return cpool->cache()->entry_at(main_entry_index())->get_method_if_resolved(invoke_code, cpool);
+  }
+  // Decode the action of set_method and set_interface_call
+  if (bytecode_1() == invoke_code) {
+    oop f1 = _f1;
+    if (f1 != NULL) {
+      switch (invoke_code) {
+      case Bytecodes::_invokeinterface:
+        assert(f1->is_klass(), "");
+        return klassItable::method_for_itable_index(klassOop(f1), (int) f2());
+      case Bytecodes::_invokestatic:
+      case Bytecodes::_invokespecial:
+        assert(f1->is_method(), "");
+        return methodOop(f1);
+      }
+    }
+  }
+  if (bytecode_2() == invoke_code) {
+    switch (invoke_code) {
+    case Bytecodes::_invokevirtual:
+      if (is_vfinal()) {
+        // invokevirtual
+        methodOop m = methodOop((intptr_t) f2());
+        assert(m->is_method(), "");
+        return m;
+      } else {
+        int holder_index = cpool->uncached_klass_ref_index_at(constant_pool_index());
+        if (cpool->tag_at(holder_index).is_klass()) {
+          klassOop klass = cpool->resolved_klass_at(holder_index);
+          if (!Klass::cast(klass)->oop_is_instance())
+            klass = SystemDictionary::Object_klass();
+          return instanceKlass::cast(klass)->method_at_vtable((int) f2());
+        }
+      }
+    }
+  }
+  return NULL;
+}
+
 
 
 class LocalOopClosure: public OopClosure {

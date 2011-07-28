@@ -42,6 +42,12 @@
 #include "gc_implementation/g1/heapRegion.hpp"
 #endif
 
+#ifdef PRODUCT
+#define BLOCK_COMMENT(str) /* nothing */
+#else
+#define BLOCK_COMMENT(str) block_comment(str)
+#endif
+
 // Convert the raw encoding form into the form expected by the
 // constructor for Address.
 Address Address::make_raw(int base, int index, int scale, int disp, bool disp_is_oop) {
@@ -1072,6 +1078,12 @@ void MacroAssembler::call_VM_base(
     check_and_forward_exception(Gtemp);
   }
 
+#ifdef ASSERT
+  set(badHeapWordVal, G3);
+  set(badHeapWordVal, G4);
+  set(badHeapWordVal, G5);
+#endif
+
   // get oop result if there is one and reset the value in the thread
   if (oop_result->is_valid()) {
     get_vm_result(oop_result);
@@ -1177,6 +1189,11 @@ void MacroAssembler::call_VM_leaf_base(Register thread_cache, address entry_poin
   call(entry_point, relocInfo::runtime_call_type);
   delayed()->nop();
   restore_thread(thread_cache);
+#ifdef ASSERT
+  set(badHeapWordVal, G3);
+  set(badHeapWordVal, G4);
+  set(badHeapWordVal, G5);
+#endif
 }
 
 
@@ -1518,7 +1535,7 @@ int MacroAssembler::total_frame_size_in_bytes(int extraWords) {
 // save_frame: given number of "extra" words in frame,
 // issue approp. save instruction (p 200, v8 manual)
 
-void MacroAssembler::save_frame(int extraWords = 0) {
+void MacroAssembler::save_frame(int extraWords) {
   int delta = -total_frame_size_in_bytes(extraWords);
   if (is_simm13(delta)) {
     save(SP, delta, SP);
@@ -1730,6 +1747,7 @@ void MacroAssembler::_verify_oop(Register reg, const char* msg, const char * fil
 
   if (reg == G0)  return;       // always NULL, which is always an oop
 
+  BLOCK_COMMENT("verify_oop {");
   char buffer[64];
 #ifdef COMPILER1
   if (CommentedAssembly) {
@@ -1768,6 +1786,7 @@ void MacroAssembler::_verify_oop(Register reg, const char* msg, const char * fil
   delayed()->nop();
   // recover frame size
   add(SP, 8*8,SP);
+  BLOCK_COMMENT("} verify_oop");
 }
 
 void MacroAssembler::_verify_oop_addr(Address addr, const char* msg, const char * file, int line) {
@@ -2040,7 +2059,7 @@ void MacroAssembler::debug(char* msg, RegistersForDebugging* regs) {
   }
   else
      ::tty->print_cr("=============== DEBUG MESSAGE: %s ================\n", msg);
-  assert(false, "error");
+  assert(false, err_msg("DEBUG MESSAGE: %s", msg));
 }
 
 
@@ -3230,6 +3249,7 @@ void MacroAssembler::jump_to_method_handle_entry(Register mh_reg, Register temp_
 
 
 RegisterOrConstant MacroAssembler::argument_offset(RegisterOrConstant arg_slot,
+                                                   Register temp_reg,
                                                    int extra_slot_offset) {
   // cf. TemplateTable::prepare_invoke(), if (load_receiver).
   int stackElementSize = Interpreter::stackElementSize;
@@ -3238,18 +3258,19 @@ RegisterOrConstant MacroAssembler::argument_offset(RegisterOrConstant arg_slot,
     offset += arg_slot.as_constant() * stackElementSize;
     return offset;
   } else {
-    Register temp = arg_slot.as_register();
-    sll_ptr(temp, exact_log2(stackElementSize), temp);
+    assert(temp_reg != noreg, "must specify");
+    sll_ptr(arg_slot.as_register(), exact_log2(stackElementSize), temp_reg);
     if (offset != 0)
-      add(temp, offset, temp);
-    return temp;
+      add(temp_reg, offset, temp_reg);
+    return temp_reg;
   }
 }
 
 
 Address MacroAssembler::argument_address(RegisterOrConstant arg_slot,
+                                         Register temp_reg,
                                          int extra_slot_offset) {
-  return Address(Gargs, argument_offset(arg_slot, extra_slot_offset));
+  return Address(Gargs, argument_offset(arg_slot, temp_reg, extra_slot_offset));
 }
 
 
@@ -4257,33 +4278,13 @@ void MacroAssembler::bang_stack_size(Register Rsize, Register Rtsp,
 ///////////////////////////////////////////////////////////////////////////////////
 #ifndef SERIALGC
 
-static uint num_stores = 0;
-static uint num_null_pre_stores = 0;
+static address satb_log_enqueue_with_frame = NULL;
+static u_char* satb_log_enqueue_with_frame_end = NULL;
 
-static void count_null_pre_vals(void* pre_val) {
-  num_stores++;
-  if (pre_val == NULL) num_null_pre_stores++;
-  if ((num_stores % 1000000) == 0) {
-    tty->print_cr(UINT32_FORMAT " stores, " UINT32_FORMAT " (%5.2f%%) with null pre-vals.",
-                  num_stores, num_null_pre_stores,
-                  100.0*(float)num_null_pre_stores/(float)num_stores);
-  }
-}
-
-static address satb_log_enqueue_with_frame = 0;
-static u_char* satb_log_enqueue_with_frame_end = 0;
-
-static address satb_log_enqueue_frameless = 0;
-static u_char* satb_log_enqueue_frameless_end = 0;
+static address satb_log_enqueue_frameless = NULL;
+static u_char* satb_log_enqueue_frameless_end = NULL;
 
 static int EnqueueCodeSize = 128 DEBUG_ONLY( + 256); // Instructions?
-
-// The calls to this don't work.  We'd need to do a fair amount of work to
-// make it work.
-static void check_index(int ind) {
-  assert(0 <= ind && ind <= 64*K && ((ind % oopSize) == 0),
-         "Invariants.");
-}
 
 static void generate_satb_log_enqueue(bool with_frame) {
   BufferBlob* bb = BufferBlob::create("enqueue_with_frame", EnqueueCodeSize);
@@ -4388,13 +4389,27 @@ static inline void generate_satb_log_enqueue_if_necessary(bool with_frame) {
   }
 }
 
-void MacroAssembler::g1_write_barrier_pre(Register obj, Register index, int offset, Register tmp, bool preserve_o_regs) {
-  assert(offset == 0 || index == noreg, "choose one");
-
-  if (G1DisablePreBarrier) return;
-  // satb_log_barrier(tmp, obj, offset, preserve_o_regs);
+void MacroAssembler::g1_write_barrier_pre(Register obj,
+                                          Register index,
+                                          int offset,
+                                          Register pre_val,
+                                          Register tmp,
+                                          bool preserve_o_regs) {
   Label filtered;
-  // satb_log_barrier_work0(tmp, filtered);
+
+  if (obj == noreg) {
+    // We are not loading the previous value so make
+    // sure that we don't trash the value in pre_val
+    // with the code below.
+    assert_different_registers(pre_val, tmp);
+  } else {
+    // We will be loading the previous value
+    // in this code so...
+    assert(offset == 0 || index == noreg, "choose one");
+    assert(pre_val == noreg, "check this code");
+  }
+
+  // Is marking active?
   if (in_bytes(PtrQueue::byte_width_of_active()) == 4) {
     ld(G2,
        in_bytes(JavaThread::satb_mark_queue_offset() +
@@ -4413,61 +4428,46 @@ void MacroAssembler::g1_write_barrier_pre(Register obj, Register index, int offs
   br_on_reg_cond(rc_z, /*annul*/false, Assembler::pt, tmp, filtered);
   delayed() -> nop();
 
-  // satb_log_barrier_work1(tmp, offset);
-  if (index == noreg) {
-    if (Assembler::is_simm13(offset)) {
-      load_heap_oop(obj, offset, tmp);
+  // Do we need to load the previous value?
+  if (obj != noreg) {
+    // Load the previous value...
+    if (index == noreg) {
+      if (Assembler::is_simm13(offset)) {
+        load_heap_oop(obj, offset, tmp);
+      } else {
+        set(offset, tmp);
+        load_heap_oop(obj, tmp, tmp);
+      }
     } else {
-      set(offset, tmp);
-      load_heap_oop(obj, tmp, tmp);
+      load_heap_oop(obj, index, tmp);
     }
-  } else {
-    load_heap_oop(obj, index, tmp);
+    // Previous value has been loaded into tmp
+    pre_val = tmp;
   }
 
-  // satb_log_barrier_work2(obj, tmp, offset);
+  assert(pre_val != noreg, "must have a real register");
 
-  // satb_log_barrier_work3(tmp, filtered, preserve_o_regs);
-
-  const Register pre_val = tmp;
-
-  if (G1SATBBarrierPrintNullPreVals) {
-    save_frame(0);
-    mov(pre_val, O0);
-    // Save G-regs that target may use.
-    mov(G1, L1);
-    mov(G2, L2);
-    mov(G3, L3);
-    mov(G4, L4);
-    mov(G5, L5);
-    call(CAST_FROM_FN_PTR(address, &count_null_pre_vals));
-    delayed()->nop();
-    // Restore G-regs that target may have used.
-    mov(L1, G1);
-    mov(L2, G2);
-    mov(L3, G3);
-    mov(L4, G4);
-    mov(L5, G5);
-    restore(G0, G0, G0);
-  }
-
+  // Is the previous value null?
   // Check on whether to annul.
   br_on_reg_cond(rc_z, /*annul*/false, Assembler::pt, pre_val, filtered);
   delayed() -> nop();
 
   // OK, it's not filtered, so we'll need to call enqueue.  In the normal
-  // case, pre_val will be a scratch G-reg, but there's some cases in which
-  // it's an O-reg.  In the first case, do a normal call.  In the latter,
-  // do a save here and call the frameless version.
+  // case, pre_val will be a scratch G-reg, but there are some cases in
+  // which it's an O-reg.  In the first case, do a normal call.  In the
+  // latter, do a save here and call the frameless version.
 
   guarantee(pre_val->is_global() || pre_val->is_out(),
             "Or we need to think harder.");
+
   if (pre_val->is_global() && !preserve_o_regs) {
-    generate_satb_log_enqueue_if_necessary(true); // with frame.
+    generate_satb_log_enqueue_if_necessary(true); // with frame
+
     call(satb_log_enqueue_with_frame);
     delayed()->mov(pre_val, O0);
   } else {
-    generate_satb_log_enqueue_if_necessary(false); // with frameless.
+    generate_satb_log_enqueue_if_necessary(false); // frameless
+
     save_frame(0);
     call(satb_log_enqueue_frameless);
     delayed()->mov(pre_val->after_save(), O0);
@@ -4614,7 +4614,6 @@ void MacroAssembler::g1_write_barrier_post(Register store_addr, Register new_val
   MacroAssembler* post_filter_masm = this;
 
   if (new_val == G0) return;
-  if (G1DisablePostBarrier) return;
 
   G1SATBCardTableModRefBS* bs = (G1SATBCardTableModRefBS*) Universe::heap()->barrier_set();
   assert(bs->kind() == BarrierSet::G1SATBCT ||
@@ -4626,6 +4625,7 @@ void MacroAssembler::g1_write_barrier_post(Register store_addr, Register new_val
 #else
     srl(tmp, HeapRegion::LogOfHRGrainBytes, tmp);
 #endif
+
     if (G1PrintCTFilterStats) {
       guarantee(tmp->is_global(), "Or stats won't work...");
       // This is a sleazy hack: I'm temporarily hijacking G2, which I
@@ -4927,4 +4927,3 @@ void MacroAssembler::char_arrays_equals(Register ary1, Register ary2,
   // Caller should set it:
   // add(G0, 1, result); // equals
 }
-

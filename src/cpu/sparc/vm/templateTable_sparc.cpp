@@ -57,7 +57,11 @@ static void do_oop_store(InterpreterMacroAssembler* _masm,
     case BarrierSet::G1SATBCT:
     case BarrierSet::G1SATBCTLogging:
       {
-        __ g1_write_barrier_pre( base, index, offset, tmp, /*preserve_o_regs*/true);
+        // Load and record the previous value.
+        __ g1_write_barrier_pre(base, index, offset,
+                                noreg /* pre_val */,
+                                tmp, true /*preserve_o_regs*/);
+
         if (index == noreg ) {
           assert(Assembler::is_simm13(offset), "fix this code");
           __ store_heap_oop(val, base, offset);
@@ -262,7 +266,7 @@ void TemplateTable::sipush() {
 
 void TemplateTable::ldc(bool wide) {
   transition(vtos, vtos);
-  Label call_ldc, notInt, notString, notClass, exit;
+  Label call_ldc, notInt, isString, notString, notClass, exit;
 
   if (wide) {
     __ get_2_byte_integer_at_bcp(1, G3_scratch, O1, InterpreterMacroAssembler::Unsigned);
@@ -313,8 +317,11 @@ void TemplateTable::ldc(bool wide) {
 
   __ bind(notInt);
  // __ cmp(O2, JVM_CONSTANT_String);
+  __ brx(Assembler::equal, true, Assembler::pt, isString);
+  __ delayed()->cmp(O2, JVM_CONSTANT_Object);
   __ brx(Assembler::notEqual, true, Assembler::pt, notString);
   __ delayed()->ldf(FloatRegisterImpl::S, O0, O1, Ftos_f);
+  __ bind(isString);
   __ ld_ptr(O0, O1, Otos_i);
   __ verify_oop(Otos_i);
   __ push(atos);
@@ -3289,8 +3296,6 @@ void TemplateTable::invokedynamic(int byte_no) {
                              /*virtual*/ false, /*vfinal*/ false, /*indy*/ true);
   __ mov(SP, O5_savedSP);  // record SP that we wanted the callee to restore
 
-  __ verify_oop(G5_callsite);
-
   // profile this call
   __ profile_call(O4);
 
@@ -3303,8 +3308,10 @@ void TemplateTable::invokedynamic(int byte_no) {
   __ sll(Rret, LogBytesPerWord, Rret);
   __ ld_ptr(Rtemp, Rret, Rret);  // get return address
 
+  __ verify_oop(G5_callsite);
   __ load_heap_oop(G5_callsite, __ delayed_value(java_lang_invoke_CallSite::target_offset_in_bytes, Rscratch), G3_method_handle);
   __ null_check(G3_method_handle);
+  __ verify_oop(G3_method_handle);
 
   // Adjust Rret first so Llast_SP can be same as Rret
   __ add(Rret, -frame::pc_return_offset, O7);

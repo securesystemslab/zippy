@@ -32,6 +32,7 @@
 #include "graal/graalCompiler.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/linkResolver.hpp"
+#include "interpreter/oopMapCache.hpp"
 #include "jvmtifiles/jvmtiEnv.hpp"
 #include "memory/oopFactory.hpp"
 #include "memory/universe.inline.hpp"
@@ -2863,6 +2864,26 @@ void JavaThread::trace_frames() {
 }
 
 
+#ifdef ASSERT
+// Print or validate the layout of stack frames
+void JavaThread::print_frame_layout(int depth, bool validate_only) {
+  ResourceMark rm;
+  PRESERVE_EXCEPTION_MARK;
+  FrameValues values;
+  int frame_no = 0;
+  for(StackFrameStream fst(this, false); !fst.is_done(); fst.next()) {
+    fst.current()->describe(values, ++frame_no);
+    if (depth == frame_no) break;
+  }
+  if (validate_only) {
+    values.validate();
+  } else {
+    tty->print_cr("[Describe stack layout]");
+    values.print();
+  }
+}
+#endif
+
 void JavaThread::trace_stack_from(vframe* start_vf) {
   ResourceMark rm;
   int vframe_no = 1;
@@ -2926,12 +2947,22 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
   _counters = counters;
   _is_compiling = false;
   _buffer_blob = NULL;
+  _scanned_nmethod = NULL;
 
 #ifndef PRODUCT
   _ideal_graph_printer = NULL;
 #endif
 }
 
+void CompilerThread::oops_do(OopClosure* f, CodeBlobClosure* cf) {
+  JavaThread::oops_do(f, cf);
+  if (_scanned_nmethod != NULL && cf != NULL) {
+    // Safepoints can occur when the sweeper is scanning an nmethod so
+    // process it here to make sure it isn't unloaded in the middle of
+    // a scan.
+    cf->do_code_blob(_scanned_nmethod);
+  }
+}
 
 // ======= Threads ========
 

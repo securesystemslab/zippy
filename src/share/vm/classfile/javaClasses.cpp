@@ -1357,7 +1357,7 @@ class BacktraceBuilder: public StackObj {
 };
 
 
-void java_lang_Throwable::fill_in_stack_trace(Handle throwable, TRAPS) {
+void java_lang_Throwable::fill_in_stack_trace(Handle throwable, methodHandle method, TRAPS) {
   if (!StackTraceInThrowable) return;
   ResourceMark rm(THREAD);
 
@@ -1373,6 +1373,16 @@ void java_lang_Throwable::fill_in_stack_trace(Handle throwable, TRAPS) {
   int max_depth = MaxJavaStackTraceDepth;
   JavaThread* thread = (JavaThread*)THREAD;
   BacktraceBuilder bt(CHECK);
+
+  // If there is no Java frame just return the method that was being called
+  // with bci 0
+  if (!thread->has_last_Java_frame()) {
+    if (max_depth >= 1 && method() != NULL) {
+      bt.push(method(), 0, CHECK);
+      set_backtrace(throwable(), bt.backtrace());
+    }
+    return;
+  }
 
   // Instead of using vframe directly, this version of fill_in_stack_trace
   // basically handles everything by hand. This significantly improved the
@@ -1477,7 +1487,7 @@ void java_lang_Throwable::fill_in_stack_trace(Handle throwable, TRAPS) {
   set_backtrace(throwable(), bt.backtrace());
 }
 
-void java_lang_Throwable::fill_in_stack_trace(Handle throwable) {
+void java_lang_Throwable::fill_in_stack_trace(Handle throwable, methodHandle method) {
   // No-op if stack trace is disabled
   if (!StackTraceInThrowable) {
     return;
@@ -1491,7 +1501,7 @@ void java_lang_Throwable::fill_in_stack_trace(Handle throwable) {
   PRESERVE_EXCEPTION_MARK;
 
   JavaThread* thread = JavaThread::active();
-  fill_in_stack_trace(throwable, thread);
+  fill_in_stack_trace(throwable, method, thread);
   // ignore exceptions thrown during stack trace filling
   CLEAR_PENDING_EXCEPTION;
 }
@@ -2564,6 +2574,18 @@ Symbol* java_lang_invoke_MethodType::as_signature(oop mt, bool intern_if_not_fou
   return name;
 }
 
+bool java_lang_invoke_MethodType::equals(oop mt1, oop mt2) {
+  if (rtype(mt1) != rtype(mt2))
+    return false;
+  if (ptype_count(mt1) != ptype_count(mt2))
+    return false;
+  for (int i = ptype_count(mt1) - 1; i >= 0; i--) {
+    if (ptype(mt1, i) != ptype(mt2, i))
+      return false;
+  }
+  return true;
+}
+
 oop java_lang_invoke_MethodType::rtype(oop mt) {
   assert(is_instance(mt), "must be a MethodType");
   return mt->obj_field(_rtype_offset);
@@ -2592,6 +2614,7 @@ int java_lang_invoke_MethodType::ptype_count(oop mt) {
 // Support for java_lang_invoke_MethodTypeForm
 
 int java_lang_invoke_MethodTypeForm::_vmslots_offset;
+int java_lang_invoke_MethodTypeForm::_vmlayout_offset;
 int java_lang_invoke_MethodTypeForm::_erasedType_offset;
 int java_lang_invoke_MethodTypeForm::_genericInvoker_offset;
 
@@ -2599,6 +2622,7 @@ void java_lang_invoke_MethodTypeForm::compute_offsets() {
   klassOop k = SystemDictionary::MethodTypeForm_klass();
   if (k != NULL) {
     compute_optional_offset(_vmslots_offset,    k, vmSymbols::vmslots_name(),    vmSymbols::int_signature(), true);
+    compute_optional_offset(_vmlayout_offset,   k, vmSymbols::vmlayout_name(),   vmSymbols::object_signature());
     compute_optional_offset(_erasedType_offset, k, vmSymbols::erasedType_name(), vmSymbols::java_lang_invoke_MethodType_signature(), true);
     compute_optional_offset(_genericInvoker_offset, k, vmSymbols::genericInvoker_name(), vmSymbols::java_lang_invoke_MethodHandle_signature(), true);
     if (_genericInvoker_offset == 0)  _genericInvoker_offset = -1;  // set to explicit "empty" value
@@ -2607,7 +2631,29 @@ void java_lang_invoke_MethodTypeForm::compute_offsets() {
 
 int java_lang_invoke_MethodTypeForm::vmslots(oop mtform) {
   assert(mtform->klass() == SystemDictionary::MethodTypeForm_klass(), "MTForm only");
+  assert(_vmslots_offset > 0, "");
   return mtform->int_field(_vmslots_offset);
+}
+
+oop java_lang_invoke_MethodTypeForm::vmlayout(oop mtform) {
+  assert(mtform->klass() == SystemDictionary::MethodTypeForm_klass(), "MTForm only");
+  assert(_vmlayout_offset > 0, "");
+  return mtform->obj_field(_vmlayout_offset);
+}
+
+oop java_lang_invoke_MethodTypeForm::init_vmlayout(oop mtform, oop cookie) {
+  assert(mtform->klass() == SystemDictionary::MethodTypeForm_klass(), "MTForm only");
+  oop previous = vmlayout(mtform);
+  if (previous != NULL) {
+    return previous;  // someone else beat us to it
+  }
+  HeapWord* cookie_addr = (HeapWord*) mtform->obj_field_addr<oop>(_vmlayout_offset);
+  OrderAccess::storestore();  // make sure our copy is fully committed
+  previous = oopDesc::atomic_compare_exchange_oop(cookie, cookie_addr, previous);
+  if (previous != NULL) {
+    return previous;  // someone else beat us to it
+  }
+  return cookie;
 }
 
 oop java_lang_invoke_MethodTypeForm::erasedType(oop mtform) {

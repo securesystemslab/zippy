@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -176,10 +176,6 @@ void PSOldGen::compact() {
   object_mark_sweep()->compact(ZapUnusedHeapArea);
 }
 
-void PSOldGen::move_and_update(ParCompactionManager* cm) {
-  PSParallelCompact::move_and_update(cm, PSParallelCompact::old_space_id);
-}
-
 size_t PSOldGen::contiguous_available() const {
   return object_space()->free_in_bytes() + virtual_space()->uncommitted_size();
 }
@@ -228,6 +224,12 @@ void PSOldGen::expand(size_t bytes) {
   const size_t alignment = virtual_space()->alignment();
   size_t aligned_bytes  = align_size_up(bytes, alignment);
   size_t aligned_expand_bytes = align_size_up(MinHeapDeltaBytes, alignment);
+
+  if (UseNUMA) {
+    // With NUMA we use round-robin page allocation for the old gen. Expand by at least
+    // providing a page per lgroup. Alignment is larger or equal to the page size.
+    aligned_expand_bytes = MAX2(aligned_expand_bytes, alignment * os::numa_get_groups_num());
+  }
   if (aligned_bytes == 0){
     // The alignment caused the number of bytes to wrap.  An expand_by(0) will
     // return true with the implication that and expansion was done when it

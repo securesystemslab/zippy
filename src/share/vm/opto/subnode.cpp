@@ -1101,6 +1101,7 @@ Node *BoolNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   if( cmp2_type == TypeInt::ZERO &&
       cmp1_op == Op_XorI &&
       j_xor->in(1) != j_xor &&          // An xor of itself is dead
+      phase->type( j_xor->in(1) ) == TypeInt::BOOL &&
       phase->type( j_xor->in(2) ) == TypeInt::ONE &&
       (_test._test == BoolTest::eq ||
        _test._test == BoolTest::ne) ) {
@@ -1221,21 +1222,6 @@ bool BoolNode::is_counted_loop_exit_test() {
   }
   return false;
 }
-
-//=============================================================================
-//------------------------------NegNode----------------------------------------
-Node *NegFNode::Ideal(PhaseGVN *phase, bool can_reshape) {
-  if( in(1)->Opcode() == Op_SubF )
-    return new (phase->C, 3) SubFNode( in(1)->in(2), in(1)->in(1) );
-  return NULL;
-}
-
-Node *NegDNode::Ideal(PhaseGVN *phase, bool can_reshape) {
-  if( in(1)->Opcode() == Op_SubD )
-    return new (phase->C, 3) SubDNode( in(1)->in(2), in(1)->in(1) );
-  return NULL;
-}
-
 
 //=============================================================================
 //------------------------------Value------------------------------------------

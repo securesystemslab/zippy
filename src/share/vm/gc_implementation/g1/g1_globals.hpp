@@ -89,13 +89,9 @@
           "The number of discovered reference objects to process before "   \
           "draining concurrent marking work queues.")                       \
                                                                             \
-  experimental(bool, G1UseConcMarkReferenceProcessing, false,               \
+  experimental(bool, G1UseConcMarkReferenceProcessing, true,                \
           "If true, enable reference discovery during concurrent "          \
-          "marking and reference processing at the end of remark "          \
-          "(unsafe).")                                                      \
-                                                                            \
-  develop(bool, G1SATBBarrierPrintNullPreVals, false,                       \
-          "If true, count frac of ptr writes with null pre-vals.")          \
+          "marking and reference processing at the end of remark.")         \
                                                                             \
   product(intx, G1SATBBufferSize, 1*K,                                      \
           "Number of entries in an SATB log buffer.")                       \
@@ -149,12 +145,6 @@
                                                                             \
   develop(bool, G1PrintParCleanupStats, false,                              \
           "When true, print extra stats about parallel cleanup.")           \
-                                                                            \
-  develop(bool, G1DisablePreBarrier, false,                                 \
-          "Disable generation of pre-barrier (i.e., marking barrier)   ")   \
-                                                                            \
-  develop(bool, G1DisablePostBarrier, false,                                \
-          "Disable generation of post-barrier (i.e., RS barrier)   ")       \
                                                                             \
   product(intx, G1UpdateBufferSize, 256,                                    \
           "Size of an update buffer")                                       \
@@ -310,13 +300,22 @@
   develop(uintx, G1StressConcRegionFreeingDelayMillis, 0,                   \
           "Artificial delay during concurrent region freeing")              \
                                                                             \
+  develop(uintx, G1DummyRegionsPerGC, 0,                                    \
+          "The number of dummy regions G1 will allocate at the end of "     \
+          "each evacuation pause in order to artificially fill up the "     \
+          "heap and stress the marking implementation.")                    \
+                                                                            \
   develop(bool, ReduceInitialCardMarksForG1, false,                         \
           "When ReduceInitialCardMarks is true, this flag setting "         \
           " controls whether G1 allows the RICM optimization")              \
                                                                             \
   develop(bool, G1ExitOnExpansionFailure, false,                            \
           "Raise a fatal VM exit out of memory failure in the event "       \
-          " that heap expansion fails due to running out of swap.")
+          " that heap expansion fails due to running out of swap.")         \
+                                                                            \
+  develop(uintx, G1ConcMarkForceOverflow, 0,                                \
+          "The number of times we'll force an overflow during "             \
+          "concurrent marking")
 
 G1_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PD_DEVELOPER_FLAG, DECLARE_PRODUCT_FLAG, DECLARE_PD_PRODUCT_FLAG, DECLARE_DIAGNOSTIC_FLAG, DECLARE_EXPERIMENTAL_FLAG, DECLARE_NOTPRODUCT_FLAG, DECLARE_MANAGEABLE_FLAG, DECLARE_PRODUCT_RW_FLAG)
 
