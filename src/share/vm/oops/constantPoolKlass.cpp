@@ -285,10 +285,9 @@ int constantPoolKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
 void constantPoolKlass::oop_push_contents(PSPromotionManager* pm, oop obj) {
   assert(obj->is_constantPool(), "should be constant pool");
   constantPoolOop cp = (constantPoolOop) obj;
-  if (cp->tags() != NULL &&
-      (!JavaObjectsInPerm || (EnableInvokeDynamic && cp->has_pseudo_string()))) {
+  if (cp->tags() != NULL) {
     for (int i = 1; i < cp->length(); ++i) {
-      if (cp->tag_at(i).is_string()) {
+      if (cp->is_pointer_entry(i)) {
         oop* base = cp->obj_at_addr_raw(i);
         if (PSScavenge::should_scavenge(base)) {
           pm->claim_or_forward_depth(base);
@@ -311,10 +310,14 @@ void constantPoolKlass::oop_print_on(oop obj, outputStream* st) {
     st->print(" - flags: 0x%x", cp->flags());
     if (cp->has_pseudo_string()) st->print(" has_pseudo_string");
     if (cp->has_invokedynamic()) st->print(" has_invokedynamic");
+    if (cp->has_preresolution()) st->print(" has_preresolution");
     st->cr();
   }
+  if (cp->pool_holder() != NULL) {
+    bool extra = (instanceKlass::cast(cp->pool_holder())->constants() != cp);
+    st->print_cr(" - holder: " INTPTR_FORMAT "%s", cp->pool_holder(), (extra? " (extra)" : ""));
+  }
   st->print_cr(" - cache: " INTPTR_FORMAT, cp->cache());
-
   for (int index = 1; index < cp->length(); index++) {      // Index 0 is unused
     st->print(" - %3d : ", index);
     cp->tag_at(index).print_on(st);
@@ -339,6 +342,11 @@ void constantPoolKlass::oop_print_on(oop obj, outputStream* st) {
         } else {
           anObj = cp->string_at(index, CATCH);
         }
+        anObj->print_value_on(st);
+        st->print(" {0x%lx}", (address)anObj);
+        break;
+      case JVM_CONSTANT_Object :
+        anObj = cp->object_at(index);
         anObj->print_value_on(st);
         st->print(" {0x%lx}", (address)anObj);
         break;
@@ -410,10 +418,15 @@ void constantPoolKlass::oop_print_value_on(oop obj, outputStream* st) {
   st->print("constant pool [%d]", cp->length());
   if (cp->has_pseudo_string()) st->print("/pseudo_string");
   if (cp->has_invokedynamic()) st->print("/invokedynamic");
+  if (cp->has_preresolution()) st->print("/preresolution");
   if (cp->operands() != NULL)  st->print("/operands[%d]", cp->operands()->length());
   cp->print_address_on(st);
   st->print(" for ");
   cp->pool_holder()->print_value_on(st);
+  if (cp->pool_holder() != NULL) {
+    bool extra = (instanceKlass::cast(cp->pool_holder())->constants() != cp);
+    if (extra)  st->print(" (extra)");
+  }
   if (cp->cache() != NULL) {
     st->print(" cache=" PTR_FORMAT, cp->cache());
   }
@@ -432,23 +445,21 @@ void constantPoolKlass::oop_verify_on(oop obj, outputStream* st) {
   guarantee(cp->is_perm(), "should be in permspace");
   if (!cp->partially_loaded()) {
     for (int i = 0; i< cp->length();  i++) {
+      constantTag tag = cp->tag_at(i);
       CPSlot entry = cp->slot_at(i);
-      if (cp->tag_at(i).is_klass()) {
+      if (tag.is_klass()) {
         if (entry.is_oop()) {
           guarantee(entry.get_oop()->is_perm(),     "should be in permspace");
           guarantee(entry.get_oop()->is_klass(),    "should be klass");
         }
-      }
-      if (cp->tag_at(i).is_unresolved_klass()) {
+      } else if (tag.is_unresolved_klass()) {
         if (entry.is_oop()) {
           guarantee(entry.get_oop()->is_perm(),     "should be in permspace");
           guarantee(entry.get_oop()->is_klass(),    "should be klass");
         }
-      }
-      if (cp->tag_at(i).is_symbol()) {
+      } else if (tag.is_symbol()) {
         guarantee(entry.get_symbol()->refcount() != 0, "should have nonzero reference count");
-      }
-      if (cp->tag_at(i).is_unresolved_string()) {
+      } else if (tag.is_unresolved_string()) {
         if (entry.is_oop()) {
           guarantee(entry.get_oop()->is_perm(),     "should be in permspace");
           guarantee(entry.get_oop()->is_instance(), "should be instance");
@@ -456,8 +467,7 @@ void constantPoolKlass::oop_verify_on(oop obj, outputStream* st) {
         else {
           guarantee(entry.get_symbol()->refcount() != 0, "should have nonzero reference count");
         }
-      }
-      if (cp->tag_at(i).is_string()) {
+      } else if (tag.is_string()) {
         if (!cp->has_pseudo_string()) {
           if (entry.is_oop()) {
             guarantee(!JavaObjectsInPerm || entry.get_oop()->is_perm(),
@@ -467,8 +477,11 @@ void constantPoolKlass::oop_verify_on(oop obj, outputStream* st) {
         } else {
           // can be non-perm, can be non-instance (array)
         }
+      } else if (tag.is_object()) {
+        assert(entry.get_oop()->is_oop(), "should be some valid oop");
+      } else {
+        assert(!cp->is_pointer_entry(i), "unhandled oop type in constantPoolKlass::verify_on");
       }
-      // FIXME: verify JSR 292 tags JVM_CONSTANT_MethodHandle, etc.
     }
     guarantee(cp->tags()->is_perm(),         "should be in permspace");
     guarantee(cp->tags()->is_typeArray(),    "should be type array");

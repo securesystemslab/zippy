@@ -148,6 +148,7 @@
   template(java_lang_InstantiationException,          "java/lang/InstantiationException")         \
   template(java_lang_InstantiationError,              "java/lang/InstantiationError")             \
   template(java_lang_InterruptedException,            "java/lang/InterruptedException")           \
+  template(java_lang_BootstrapMethodError,            "java/lang/BootstrapMethodError")           \
   template(java_lang_LinkageError,                    "java/lang/LinkageError")                   \
   template(java_lang_NegativeArraySizeException,      "java/lang/NegativeArraySizeException")     \
   template(java_lang_NoSuchFieldException,            "java/lang/NoSuchFieldException")           \
@@ -420,6 +421,7 @@
   template(vmtarget_name,                             "vmtarget")                                 \
   template(vmentry_name,                              "vmentry")                                  \
   template(vmslots_name,                              "vmslots")                                  \
+  template(vmlayout_name,                             "vmlayout")                                 \
   template(vmindex_name,                              "vmindex")                                  \
   template(vmargslot_name,                            "vmargslot")                                \
   template(flags_name,                                "flags")                                    \
@@ -472,6 +474,7 @@
   template(void_signature,                            "V")                                        \
   template(byte_array_signature,                      "[B")                                       \
   template(char_array_signature,                      "[C")                                       \
+  template(int_array_signature,                       "[I")                                       \
   template(object_void_signature,                     "(Ljava/lang/Object;)V")                    \
   template(object_int_signature,                      "(Ljava/lang/Object;)I")                    \
   template(object_boolean_signature,                  "(Ljava/lang/Object;)Z")                    \
@@ -550,6 +553,13 @@
   template(sun_management_ManagementFactory,           "sun/management/ManagementFactory")                        \
   template(sun_management_Sensor,                      "sun/management/Sensor")                                   \
   template(sun_management_Agent,                       "sun/management/Agent")                                    \
+  template(sun_management_GarbageCollectorImpl,        "sun/management/GarbageCollectorImpl")                     \
+  template(getGcInfoBuilder_name,                      "getGcInfoBuilder")                                        \
+  template(getGcInfoBuilder_signature,                 "()Lsun/management/GcInfoBuilder;")                        \
+  template(com_sun_management_GcInfo,                  "com/sun/management/GcInfo")                               \
+  template(com_sun_management_GcInfo_constructor_signature, "(Lsun/management/GcInfoBuilder;JJJ[Ljava/lang/management/MemoryUsage;[Ljava/lang/management/MemoryUsage;[Ljava/lang/Object;)V") \
+  template(createGCNotification_name,                  "createGCNotification")                                    \
+  template(createGCNotification_signature,             "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/sun/management/GcInfo;)V") \
   template(createMemoryPoolMBean_name,                 "createMemoryPoolMBean")                                   \
   template(createMemoryManagerMBean_name,              "createMemoryManagerMBean")                                \
   template(createGarbageCollectorMBean_name,           "createGarbageCollectorMBean")                             \
@@ -567,6 +577,7 @@
   template(java_lang_management_MemoryPoolMXBean,      "java/lang/management/MemoryPoolMXBean")                   \
   template(java_lang_management_MemoryManagerMXBean,   "java/lang/management/MemoryManagerMXBean")                \
   template(java_lang_management_GarbageCollectorMXBean,"java/lang/management/GarbageCollectorMXBean")             \
+  template(gcInfoBuilder_name,                         "gcInfoBuilder")                                           \
   template(createMemoryPool_name,                      "createMemoryPool")                                        \
   template(createMemoryManager_name,                   "createMemoryManager")                                     \
   template(createGarbageCollector_name,                "createGarbageCollector")                                  \
@@ -756,6 +767,10 @@
   do_class(java_nio_Buffer,               "java/nio/Buffer")                                                            \
   do_intrinsic(_checkIndex,               java_nio_Buffer,        checkIndex_name, int_int_signature,            F_R)   \
    do_name(     checkIndex_name,                                 "checkIndex")                                          \
+                                                                                                                        \
+  /* java/lang/ref/Reference */                                                                                         \
+  do_intrinsic(_Reference_get,            java_lang_ref_Reference, get_name,    void_object_signature, F_R)             \
+                                                                                                                        \
                                                                                                                         \
   do_class(sun_misc_AtomicLongCSImpl,     "sun/misc/AtomicLongCSImpl")                                                  \
   do_intrinsic(_get_AtomicLong,           sun_misc_AtomicLongCSImpl, get_name, void_long_signature,              F_R)   \

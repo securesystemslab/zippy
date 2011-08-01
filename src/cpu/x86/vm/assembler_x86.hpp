@@ -234,6 +234,20 @@ class Address VALUE_OBJ_CLASS_SPEC {
     a._disp += disp;
     return a;
   }
+  Address plus_disp(RegisterOrConstant disp, ScaleFactor scale = times_1) const {
+    Address a = (*this);
+    a._disp += disp.constant_or_zero() * scale_size(scale);
+    if (disp.is_register()) {
+      assert(!a.index()->is_valid(), "competing indexes");
+      a._index = disp.as_register();
+      a._scale = scale;
+    }
+    return a;
+  }
+  bool is_same_address(Address a) const {
+    // disregard _rspec
+    return _base == a._base && _disp == a._disp && _index == a._index && _scale == a._scale;
+  }
 
   // The following two overloads are used in connection with the
   // ByteSize type (see sizes.hpp).  They simplify the use of
@@ -765,6 +779,7 @@ private:
   void andl(Register dst, Address src);
   void andl(Register dst, Register src);
 
+  void andq(Address  dst, int32_t imm32);
   void andq(Register dst, int32_t imm32);
   void andq(Register dst, Address src);
   void andq(Register dst, Register src);
@@ -1453,6 +1468,7 @@ private:
 class MacroAssembler: public Assembler {
   friend class LIR_Assembler;
   friend class Runtime1;      // as_Address()
+
  protected:
 
   Address as_Address(AddressLiteral adr);
@@ -1645,6 +1661,14 @@ class MacroAssembler: public Assembler {
                Register arg_1, Register arg_2, Register arg_3,
                bool check_exceptions = true);
 
+  // These always tightly bind to MacroAssembler::call_VM_base
+  // bypassing the virtual implementation
+  void super_call_VM(Register oop_result, Register last_java_sp, address entry_point, int number_of_arguments = 0, bool check_exceptions = true);
+  void super_call_VM(Register oop_result, Register last_java_sp, address entry_point, Register arg_1, bool check_exceptions = true);
+  void super_call_VM(Register oop_result, Register last_java_sp, address entry_point, Register arg_1, Register arg_2, bool check_exceptions = true);
+  void super_call_VM(Register oop_result, Register last_java_sp, address entry_point, Register arg_1, Register arg_2, Register arg_3, bool check_exceptions = true);
+  void super_call_VM(Register oop_result, Register last_java_sp, address entry_point, Register arg_1, Register arg_2, Register arg_3, Register arg_4, bool check_exceptions = true);
+
   void call_VM_leaf(address entry_point,
                     int number_of_arguments = 0);
   void call_VM_leaf(address entry_point,
@@ -1653,6 +1677,14 @@ class MacroAssembler: public Assembler {
                     Register arg_1, Register arg_2);
   void call_VM_leaf(address entry_point,
                     Register arg_1, Register arg_2, Register arg_3);
+
+  // These always tightly bind to MacroAssembler::call_VM_leaf_base
+  // bypassing the virtual implementation
+  void super_call_VM_leaf(address entry_point);
+  void super_call_VM_leaf(address entry_point, Register arg_1);
+  void super_call_VM_leaf(address entry_point, Register arg_1, Register arg_2);
+  void super_call_VM_leaf(address entry_point, Register arg_1, Register arg_2, Register arg_3);
+  void super_call_VM_leaf(address entry_point, Register arg_1, Register arg_2, Register arg_3, Register arg_4);
 
   // last Java Frame (fills frame anchor)
   void set_last_Java_frame(Register thread,
@@ -1674,21 +1706,22 @@ class MacroAssembler: public Assembler {
   void store_check(Register obj);                // store check for obj - register is destroyed afterwards
   void store_check(Register obj, Address dst);   // same as above, dst is exact store location (reg. is destroyed)
 
+#ifndef SERIALGC
+
   void g1_write_barrier_pre(Register obj,
-#ifndef _LP64
+                            Register pre_val,
                             Register thread,
-#endif
                             Register tmp,
-                            Register tmp2,
-                            bool     tosca_live);
+                            bool tosca_live,
+                            bool expand_call);
+
   void g1_write_barrier_post(Register store_addr,
                              Register new_val,
-#ifndef _LP64
                              Register thread,
-#endif
                              Register tmp,
                              Register tmp2);
 
+#endif // SERIALGC
 
   // split store_check(Register obj) to enhance instruction interleaving
   void store_check_part_1(Register obj);
@@ -2019,6 +2052,10 @@ class MacroAssembler: public Assembler {
   void addptr(Register dst, Address src) { LP64_ONLY(addq(dst, src)) NOT_LP64(addl(dst, src)); }
   void addptr(Register dst, int32_t src);
   void addptr(Register dst, Register src);
+  void addptr(Register dst, RegisterOrConstant src) {
+    if (src.is_constant()) addptr(dst, (int) src.as_constant());
+    else                   addptr(dst,       src.as_register());
+  }
 
   void andptr(Register dst, int32_t src);
   void andptr(Register src1, Register src2) { LP64_ONLY(andq(src1, src2)) NOT_LP64(andl(src1, src2)) ; }
@@ -2080,7 +2117,10 @@ class MacroAssembler: public Assembler {
   void subptr(Register dst, Address src) { LP64_ONLY(subq(dst, src)) NOT_LP64(subl(dst, src)); }
   void subptr(Register dst, int32_t src);
   void subptr(Register dst, Register src);
-
+  void subptr(Register dst, RegisterOrConstant src) {
+    if (src.is_constant()) subptr(dst, (int) src.as_constant());
+    else                   subptr(dst,       src.as_register());
+  }
 
   void sbbptr(Address dst, int32_t src) { LP64_ONLY(sbbq(dst, src)) NOT_LP64(sbbl(dst, src)); }
   void sbbptr(Register dst, int32_t src) { LP64_ONLY(sbbq(dst, src)) NOT_LP64(sbbl(dst, src)); }
@@ -2277,6 +2317,11 @@ public:
   void movptr(Address dst, intptr_t src);
 
   void movptr(Address dst, Register src);
+
+  void movptr(Register dst, RegisterOrConstant src) {
+    if (src.is_constant()) movptr(dst, src.as_constant());
+    else                   movptr(dst, src.as_register());
+  }
 
 #ifdef _LP64
   // Generally the next two are only used for moving NULL

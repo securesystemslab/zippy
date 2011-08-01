@@ -620,6 +620,9 @@ class CommandLineFlags {
   product(bool, UseSSE42Intrinsics, false,                                  \
           "SSE4.2 versions of intrinsics")                                  \
                                                                             \
+  product(bool, UseCondCardMark, false,                                     \
+          "Check for already marked card before updating card table")       \
+                                                                            \
   develop(bool, TraceCallFixup, false,                                      \
           "traces all call fixups")                                         \
                                                                             \
@@ -1358,13 +1361,6 @@ class CommandLineFlags {
   product(bool, UseParallelOldGC, false,                                    \
           "Use the Parallel Old garbage collector")                         \
                                                                             \
-  product(bool, UseParallelOldGCCompacting, true,                           \
-          "In the Parallel Old garbage collector use parallel compaction")  \
-                                                                            \
-  product(bool, UseParallelDensePrefixUpdate, true,                         \
-          "In the Parallel Old garbage collector use parallel dense"        \
-          " prefix update")                                                 \
-                                                                            \
   product(uintx, HeapMaximumCompactionInterval, 20,                         \
           "How often should we maximally compact the heap (not allowing "   \
           "any dead space)")                                                \
@@ -1383,9 +1379,6 @@ class CommandLineFlags {
   product(uintx, ParallelOldDeadWoodLimiterStdDev, 80,                      \
           "The standard deviation used by the par compact dead wood"        \
           "limiter (a number between 0-100).")                              \
-                                                                            \
-  product(bool, UseParallelOldGCDensePrefix, true,                          \
-          "Use a dense prefix with the Parallel Old garbage collector")     \
                                                                             \
   product(uintx, ParallelGCThreads, 0,                                      \
           "Number of parallel threads parallel gc will use")                \
@@ -1470,8 +1463,10 @@ class CommandLineFlags {
   product(intx, ParallelGCBufferWastePct, 10,                               \
           "wasted fraction of parallel allocation buffer.")                 \
                                                                             \
-  product(bool, ParallelGCRetainPLAB, true,                                 \
-          "Retain parallel allocation buffers across scavenges.")           \
+  diagnostic(bool, ParallelGCRetainPLAB, false,                             \
+             "Retain parallel allocation buffers across scavenges; "        \
+             " -- disabled because this currently conflicts with "          \
+             " parallel card scanning under certain conditions ")           \
                                                                             \
   product(intx, TargetPLABWastePct, 10,                                     \
           "target wasted space in last buffer as pct of overall allocation")\
@@ -1505,7 +1500,15 @@ class CommandLineFlags {
   product(uintx, ParGCDesiredObjsFromOverflowList, 20,                      \
           "The desired number of objects to claim from the overflow list")  \
                                                                             \
-  product(uintx, CMSParPromoteBlocksToClaim, 16,                             \
+  diagnostic(intx, ParGCStridesPerThread, 2,                                \
+          "The number of strides per worker thread that we divide up the "  \
+          "card table scanning work into")                                  \
+                                                                            \
+  diagnostic(intx, ParGCCardsPerStrideChunk, 256,                           \
+          "The number of cards in each chunk of the parallel chunks used "  \
+          "during card table scanning")                                     \
+                                                                            \
+  product(uintx, CMSParPromoteBlocksToClaim, 16,                            \
           "Number of blocks to attempt to claim when refilling CMS LAB for "\
           "parallel GC.")                                                   \
                                                                             \
@@ -1837,7 +1840,7 @@ class CommandLineFlags {
   develop(bool, VerifyBlockOffsetArray, false,                              \
           "Do (expensive!) block offset array verification")                \
                                                                             \
-  product(bool, BlockOffsetArrayUseUnallocatedBlock, false,                 \
+  diagnostic(bool, BlockOffsetArrayUseUnallocatedBlock, false,              \
           "Maintain _unallocated_block in BlockOffsetArray"                 \
           " (currently applicable only to CMS collector)")                  \
                                                                             \
@@ -2892,7 +2895,7 @@ class CommandLineFlags {
           "Max. no. of lines in the stack trace for Java exceptions "       \
           "(0 means all)")                                                  \
                                                                             \
-  NOT_EMBEDDED(develop(intx, GuaranteedSafepointInterval, 1000,             \
+  NOT_EMBEDDED(diagnostic(intx, GuaranteedSafepointInterval, 1000,          \
           "Guarantee a safepoint (at least) every so many milliseconds "    \
           "(0 means none)"))                                                \
                                                                             \
@@ -2908,6 +2911,12 @@ class CommandLineFlags {
                                                                             \
   product(intx, NmethodSweepCheckInterval, 5,                               \
           "Compilers wake up every n seconds to possibly sweep nmethods")   \
+                                                                            \
+  notproduct(bool, LogSweeper, false,                                       \
+            "Keep a ring buffer of sweeper activity")                       \
+                                                                            \
+  notproduct(intx, SweeperLogEntries, 1024,                                 \
+            "Number of records in the ring buffer of sweeper activity")     \
                                                                             \
   notproduct(intx, MemProfilingInterval, 500,                               \
           "Time between each invocation of the MemProfiler")                \
@@ -3709,6 +3718,9 @@ class CommandLineFlags {
   diagnostic(intx, MethodHandlePushLimit, 3,                                \
           "number of additional stack slots a method handle may push")      \
                                                                             \
+  diagnostic(bool, PrintMethodHandleStubs, false,                           \
+          "Print generated stub code for method handles")                   \
+                                                                            \
   develop(bool, TraceMethodHandles, false,                                  \
           "trace internal method handle operations")                        \
                                                                             \
@@ -3718,10 +3730,17 @@ class CommandLineFlags {
   diagnostic(bool, OptimizeMethodHandles, true,                             \
           "when constructing method handles, try to improve them")          \
                                                                             \
+  develop(bool, StressMethodHandleWalk, false,                              \
+          "Process all method handles with MethodHandleWalk")               \
+                                                                            \
+  diagnostic(bool, UseRicochetFrames, true,                                 \
+          "use ricochet stack frames for method handle combination, "       \
+          "if the platform supports them")                                  \
+                                                                            \
   experimental(bool, TrustFinalNonStaticFields, false,                      \
           "trust final non-static declarations for constant folding")       \
                                                                             \
-  experimental(bool, AllowInvokeGeneric, true,                              \
+  experimental(bool, AllowInvokeGeneric, false,                             \
           "accept MethodHandle.invoke and MethodHandle.invokeGeneric "      \
           "as equivalent methods")                                          \
                                                                             \

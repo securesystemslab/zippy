@@ -1437,7 +1437,10 @@ void ConnectionGraph::split_unique_types(GrowableArray<Node *>  &alloc_worklist)
 
   // Update the memory inputs of MemNodes with the value we computed
   // in Phase 2 and move stores memory users to corresponding memory slices.
-#ifdef ASSERT
+
+  // Disable memory split verification code until the fix for 6984348.
+  // Currently it produces false negative results since it does not cover all cases.
+#if 0 // ifdef ASSERT
   visited.Reset();
   Node_Stack old_mems(arena, _compile->unique() >> 2);
 #endif
@@ -1447,7 +1450,7 @@ void ConnectionGraph::split_unique_types(GrowableArray<Node *>  &alloc_worklist)
       Node *n = ptnode_adr(i)->_node;
       assert(n != NULL, "sanity");
       if (n->is_Mem()) {
-#ifdef ASSERT
+#if 0 // ifdef ASSERT
         Node* old_mem = n->in(MemNode::Memory);
         if (!visited.test_set(old_mem->_idx)) {
           old_mems.push(old_mem, old_mem->outcnt());
@@ -1469,13 +1472,13 @@ void ConnectionGraph::split_unique_types(GrowableArray<Node *>  &alloc_worklist)
       }
     }
   }
-#ifdef ASSERT
+#if 0 // ifdef ASSERT
   // Verify that memory was split correctly
   while (old_mems.is_nonempty()) {
     Node* old_mem = old_mems.node();
     uint  old_cnt = old_mems.index();
     old_mems.pop();
-    assert(old_cnt = old_mem->outcnt(), "old mem could be lost");
+    assert(old_cnt == old_mem->outcnt(), "old mem could be lost");
   }
 #endif
 }
@@ -1743,6 +1746,25 @@ bool ConnectionGraph::compute_escape() {
 
   _collecting = false;
   assert(C->unique() == nodes_size(), "there should be no new ideal nodes during ConnectionGraph build");
+
+  if (EliminateLocks) {
+    // Mark locks before changing ideal graph.
+    int cnt = C->macro_count();
+    for( int i=0; i < cnt; i++ ) {
+      Node *n = C->macro_node(i);
+      if (n->is_AbstractLock()) { // Lock and Unlock nodes
+        AbstractLockNode* alock = n->as_AbstractLock();
+        if (!alock->is_eliminated()) {
+          PointsToNode::EscapeState es = escape_state(alock->obj_node());
+          assert(es != PointsToNode::UnknownEscape, "should know");
+          if (es != PointsToNode::UnknownEscape && es != PointsToNode::GlobalEscape) {
+            // Mark it eliminated
+            alock->set_eliminated();
+          }
+        }
+      }
+    }
+  }
 
 #ifndef PRODUCT
   if (PrintEscapeAnalysis) {

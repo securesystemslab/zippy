@@ -911,7 +911,7 @@ void Compile::Process_OopMap_Node(MachNode *mach, int current_offset) {
         }
       } else {
         const TypePtr *tp = obj_node->bottom_type()->make_ptr();
-        scval = new ConstantOopWriteValue(tp->is_instptr()->const_oop()->constant_encoding());
+        scval = new ConstantOopWriteValue(tp->is_oopptr()->const_oop()->constant_encoding());
       }
 
       OptoReg::Name box_reg = BoxLockNode::stack_slot(box_node);
@@ -1354,15 +1354,20 @@ void Compile::Fill_buffer() {
         // Check that oop-store precedes the card-mark
         else if( mach->ideal_Opcode() == Op_StoreCM ) {
           uint storeCM_idx = j;
-          Node *oop_store = mach->in(mach->_cnt);  // First precedence edge
-          assert( oop_store != NULL, "storeCM expects a precedence edge");
-          uint i4;
-          for( i4 = 0; i4 < last_inst; ++i4 ) {
-            if( b->_nodes[i4] == oop_store ) break;
+          int count = 0;
+          for (uint prec = mach->req(); prec < mach->len(); prec++) {
+            Node *oop_store = mach->in(prec);  // Precedence edge
+            if (oop_store == NULL) continue;
+            count++;
+            uint i4;
+            for( i4 = 0; i4 < last_inst; ++i4 ) {
+              if( b->_nodes[i4] == oop_store ) break;
+            }
+            // Note: This test can provide a false failure if other precedence
+            // edges have been added to the storeCMNode.
+            assert( i4 == last_inst || i4 < storeCM_idx, "CM card-mark executes before oop-store");
           }
-          // Note: This test can provide a false failure if other precedence
-          // edges have been added to the storeCMNode.
-          assert( i4 == last_inst || i4 < storeCM_idx, "CM card-mark executes before oop-store");
+          assert(count > 0, "storeCM expects at least one precedence edge");
         }
 #endif
 

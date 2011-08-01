@@ -826,6 +826,14 @@ public:
 void ConcurrentMark::checkpointRootsInitialPost() {
   G1CollectedHeap*   g1h = G1CollectedHeap::heap();
 
+  // If we force an overflow during remark, the remark operation will
+  // actually abort and we'll restart concurrent marking. If we always
+  // force an oveflow during remark we'll never actually complete the
+  // marking phase. So, we initilize this here, at the start of the
+  // cycle, so that at the remaining overflow number will decrease at
+  // every remark and we'll eventually not need to cause one.
+  force_overflow_stw()->init();
+
   // For each region note start of marking.
   NoteStartOfMarkHRClosure startcl;
   g1h->heap_region_iterate(&startcl);
@@ -893,27 +901,37 @@ void ConcurrentMark::checkpointRootsInitial() {
 }
 
 /*
-   Notice that in the next two methods, we actually leave the STS
-   during the barrier sync and join it immediately afterwards. If we
-   do not do this, this then the following deadlock can occur: one
-   thread could be in the barrier sync code, waiting for the other
-   thread to also sync up, whereas another one could be trying to
-   yield, while also waiting for the other threads to sync up too.
-
-   Because the thread that does the sync barrier has left the STS, it
-   is possible to be suspended for a Full GC or an evacuation pause
-   could occur. This is actually safe, since the entering the sync
-   barrier is one of the last things do_marking_step() does, and it
-   doesn't manipulate any data structures afterwards.
-*/
+ * Notice that in the next two methods, we actually leave the STS
+ * during the barrier sync and join it immediately afterwards. If we
+ * do not do this, the following deadlock can occur: one thread could
+ * be in the barrier sync code, waiting for the other thread to also
+ * sync up, whereas another one could be trying to yield, while also
+ * waiting for the other threads to sync up too.
+ *
+ * Note, however, that this code is also used during remark and in
+ * this case we should not attempt to leave / enter the STS, otherwise
+ * we'll either hit an asseert (debug / fastdebug) or deadlock
+ * (product). So we should only leave / enter the STS if we are
+ * operating concurrently.
+ *
+ * Because the thread that does the sync barrier has left the STS, it
+ * is possible to be suspended for a Full GC or an evacuation pause
+ * could occur. This is actually safe, since the entering the sync
+ * barrier is one of the last things do_marking_step() does, and it
+ * doesn't manipulate any data structures afterwards.
+ */
 
 void ConcurrentMark::enter_first_sync_barrier(int task_num) {
   if (verbose_low())
     gclog_or_tty->print_cr("[%d] entering first barrier", task_num);
 
-  ConcurrentGCThread::stsLeave();
+  if (concurrent()) {
+    ConcurrentGCThread::stsLeave();
+  }
   _first_overflow_barrier_sync.enter();
-  ConcurrentGCThread::stsJoin();
+  if (concurrent()) {
+    ConcurrentGCThread::stsJoin();
+  }
   // at this point everyone should have synced up and not be doing any
   // more work
 
@@ -923,7 +941,12 @@ void ConcurrentMark::enter_first_sync_barrier(int task_num) {
   // let task 0 do this
   if (task_num == 0) {
     // task 0 is responsible for clearing the global data structures
-    clear_marking_state();
+    // We should be here because of an overflow. During STW we should
+    // not clear the overflow flag since we rely on it being true when
+    // we exit this method to abort the pause and restart concurent
+    // marking.
+    clear_marking_state(concurrent() /* clear_overflow */);
+    force_overflow()->update();
 
     if (PrintGC) {
       gclog_or_tty->date_stamp(PrintGCDateStamps);
@@ -940,14 +963,44 @@ void ConcurrentMark::enter_second_sync_barrier(int task_num) {
   if (verbose_low())
     gclog_or_tty->print_cr("[%d] entering second barrier", task_num);
 
-  ConcurrentGCThread::stsLeave();
+  if (concurrent()) {
+    ConcurrentGCThread::stsLeave();
+  }
   _second_overflow_barrier_sync.enter();
-  ConcurrentGCThread::stsJoin();
+  if (concurrent()) {
+    ConcurrentGCThread::stsJoin();
+  }
   // at this point everything should be re-initialised and ready to go
 
   if (verbose_low())
     gclog_or_tty->print_cr("[%d] leaving second barrier", task_num);
 }
+
+#ifndef PRODUCT
+void ForceOverflowSettings::init() {
+  _num_remaining = G1ConcMarkForceOverflow;
+  _force = false;
+  update();
+}
+
+void ForceOverflowSettings::update() {
+  if (_num_remaining > 0) {
+    _num_remaining -= 1;
+    _force = true;
+  } else {
+    _force = false;
+  }
+}
+
+bool ForceOverflowSettings::should_force() {
+  if (_force) {
+    _force = false;
+    return true;
+  } else {
+    return false;
+  }
+}
+#endif // !PRODUCT
 
 void ConcurrentMark::grayRoot(oop p) {
   HeapWord* addr = (HeapWord*) p;
@@ -1117,6 +1170,7 @@ void ConcurrentMark::markFromRoots() {
   _restart_for_overflow = false;
 
   size_t active_workers = MAX2((size_t) 1, parallel_marking_threads());
+  force_overflow_conc()->init();
   set_phase(active_workers, true /* concurrent */);
 
   CMConcurrentMarkingTask markingTask(this, cmThread());
@@ -1845,7 +1899,7 @@ void ConcurrentMark::completeCleanup() {
   while (!_cleanup_list.is_empty()) {
     HeapRegion* hr = _cleanup_list.remove_head();
     assert(hr != NULL, "the list was not empty");
-    hr->rem_set()->clear();
+    hr->par_clear();
     tmp_free_list.add_as_tail(hr);
 
     // Instead of adding one region at a time to the secondary_free_list,
@@ -2703,12 +2757,16 @@ void ConcurrentMark::oops_do(OopClosure* cl) {
 
 }
 
-void ConcurrentMark::clear_marking_state() {
+void ConcurrentMark::clear_marking_state(bool clear_overflow) {
   _markStack.setEmpty();
   _markStack.clear_overflow();
   _regionStack.setEmpty();
   _regionStack.clear_overflow();
-  clear_has_overflown();
+  if (clear_overflow) {
+    clear_has_overflown();
+  } else {
+    assert(has_overflown(), "pre-condition");
+  }
   _finger = _heap_start;
 
   for (int i = 0; i < (int)_max_task_num; ++i) {
@@ -2994,6 +3052,28 @@ void ConcurrentMark::registerCSetRegion(HeapRegion* hr) {
   HeapWord* region_end = hr->end();
   if (region_end > _min_finger)
     _should_gray_objects = true;
+}
+
+// Resets the region fields of active CMTasks whose values point
+// into the collection set.
+void ConcurrentMark::reset_active_task_region_fields_in_cset() {
+  assert(SafepointSynchronize::is_at_safepoint(), "should be in STW");
+  assert(parallel_marking_threads() <= _max_task_num, "sanity");
+
+  for (int i = 0; i < (int)parallel_marking_threads(); i += 1) {
+    CMTask* task = _tasks[i];
+    HeapWord* task_finger = task->finger();
+    if (task_finger != NULL) {
+      assert(_g1h->is_in_g1_reserved(task_finger), "not in heap");
+      HeapRegion* finger_region = _g1h->heap_region_containing(task_finger);
+      if (finger_region->in_collection_set()) {
+        // The task's current region is in the collection set.
+        // This region will be evacuated in the current GC and
+        // the region fields in the task will be stale.
+        task->giveup_current_region();
+      }
+    }
+  }
 }
 
 // abandon current marking iteration due to a Full GC
@@ -4276,6 +4356,15 @@ void CMTask::do_marking_step(double time_target_ms,
       } else {
         break;
       }
+    }
+  }
+
+  // If we are about to wrap up and go into termination, check if we
+  // should raise the overflow flag.
+  if (do_termination && !has_aborted()) {
+    if (_cm->force_overflow()->should_force()) {
+      _cm->set_has_overflown();
+      regular_clock_call();
     }
   }
 
