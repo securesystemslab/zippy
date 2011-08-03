@@ -3804,6 +3804,14 @@ void Assembler::addq(Register dst, Register src) {
   emit_arith(0x03, 0xC0, dst, src);
 }
 
+void Assembler::andq(Address dst, int32_t imm32) {
+  InstructionMark im(this);
+  prefixq(dst);
+  emit_byte(0x81);
+  emit_operand(rsp, dst, 4);
+  emit_long(imm32);
+}
+
 void Assembler::andq(Register dst, int32_t imm32) {
   (void) prefixq_and_encode(dst->encoding());
   emit_arith(0x81, 0xE0, dst, imm32);
@@ -5090,7 +5098,7 @@ void MacroAssembler::debug32(int rdi, int rsi, int rbp, int rsp, int rbx, int rd
   } else {
     ttyLocker ttyl;
     ::tty->print_cr("=============== DEBUG MESSAGE: %s ================\n", msg);
-    assert(false, "DEBUG MESSAGE");
+    assert(false, err_msg("DEBUG MESSAGE: %s", msg));
   }
   ThreadStateTransition::transition(thread, _thread_in_vm, saved_state);
 }
@@ -5653,6 +5661,7 @@ void MacroAssembler::debug64(char* msg, int64_t pc, int64_t regs[]) {
     ttyLocker ttyl;
     ::tty->print_cr("=============== DEBUG MESSAGE: %s ================\n",
                     msg);
+    assert(false, err_msg("DEBUG MESSAGE: %s", msg));
   }
 }
 
@@ -5890,6 +5899,53 @@ void MacroAssembler::call_VM(Register oop_result,
   call_VM(oop_result, last_java_sp, entry_point, 3, check_exceptions);
 }
 
+void MacroAssembler::super_call_VM(Register oop_result,
+                                   Register last_java_sp,
+                                   address entry_point,
+                                   int number_of_arguments,
+                                   bool check_exceptions) {
+  Register thread = LP64_ONLY(r15_thread) NOT_LP64(noreg);
+  MacroAssembler::call_VM_base(oop_result, thread, last_java_sp, entry_point, number_of_arguments, check_exceptions);
+}
+
+void MacroAssembler::super_call_VM(Register oop_result,
+                                   Register last_java_sp,
+                                   address entry_point,
+                                   Register arg_1,
+                                   bool check_exceptions) {
+  pass_arg1(this, arg_1);
+  super_call_VM(oop_result, last_java_sp, entry_point, 1, check_exceptions);
+}
+
+void MacroAssembler::super_call_VM(Register oop_result,
+                                   Register last_java_sp,
+                                   address entry_point,
+                                   Register arg_1,
+                                   Register arg_2,
+                                   bool check_exceptions) {
+
+  LP64_ONLY(assert(arg_1 != c_rarg2, "smashed arg"));
+  pass_arg2(this, arg_2);
+  pass_arg1(this, arg_1);
+  super_call_VM(oop_result, last_java_sp, entry_point, 2, check_exceptions);
+}
+
+void MacroAssembler::super_call_VM(Register oop_result,
+                                   Register last_java_sp,
+                                   address entry_point,
+                                   Register arg_1,
+                                   Register arg_2,
+                                   Register arg_3,
+                                   bool check_exceptions) {
+  LP64_ONLY(assert(arg_1 != c_rarg3, "smashed arg"));
+  LP64_ONLY(assert(arg_2 != c_rarg3, "smashed arg"));
+  pass_arg3(this, arg_3);
+  LP64_ONLY(assert(arg_1 != c_rarg2, "smashed arg"));
+  pass_arg2(this, arg_2);
+  pass_arg1(this, arg_1);
+  super_call_VM(oop_result, last_java_sp, entry_point, 3, check_exceptions);
+}
+
 void MacroAssembler::call_VM_base(Register oop_result,
                                   Register java_thread,
                                   Register last_java_sp,
@@ -6037,6 +6093,43 @@ void MacroAssembler::call_VM_leaf(address entry_point, Register arg_0, Register 
   pass_arg1(this, arg_1);
   pass_arg0(this, arg_0);
   call_VM_leaf(entry_point, 3);
+}
+
+void MacroAssembler::super_call_VM_leaf(address entry_point, Register arg_0) {
+  pass_arg0(this, arg_0);
+  MacroAssembler::call_VM_leaf_base(entry_point, 1);
+}
+
+void MacroAssembler::super_call_VM_leaf(address entry_point, Register arg_0, Register arg_1) {
+
+  LP64_ONLY(assert(arg_0 != c_rarg1, "smashed arg"));
+  pass_arg1(this, arg_1);
+  pass_arg0(this, arg_0);
+  MacroAssembler::call_VM_leaf_base(entry_point, 2);
+}
+
+void MacroAssembler::super_call_VM_leaf(address entry_point, Register arg_0, Register arg_1, Register arg_2) {
+  LP64_ONLY(assert(arg_0 != c_rarg2, "smashed arg"));
+  LP64_ONLY(assert(arg_1 != c_rarg2, "smashed arg"));
+  pass_arg2(this, arg_2);
+  LP64_ONLY(assert(arg_0 != c_rarg1, "smashed arg"));
+  pass_arg1(this, arg_1);
+  pass_arg0(this, arg_0);
+  MacroAssembler::call_VM_leaf_base(entry_point, 3);
+}
+
+void MacroAssembler::super_call_VM_leaf(address entry_point, Register arg_0, Register arg_1, Register arg_2, Register arg_3) {
+  LP64_ONLY(assert(arg_0 != c_rarg3, "smashed arg"));
+  LP64_ONLY(assert(arg_1 != c_rarg3, "smashed arg"));
+  LP64_ONLY(assert(arg_2 != c_rarg3, "smashed arg"));
+  pass_arg3(this, arg_3);
+  LP64_ONLY(assert(arg_0 != c_rarg2, "smashed arg"));
+  LP64_ONLY(assert(arg_1 != c_rarg2, "smashed arg"));
+  pass_arg2(this, arg_2);
+  LP64_ONLY(assert(arg_0 != c_rarg1, "smashed arg"));
+  pass_arg1(this, arg_1);
+  pass_arg0(this, arg_0);
+  MacroAssembler::call_VM_leaf_base(entry_point, 4);
 }
 
 void MacroAssembler::check_and_handle_earlyret(Register java_thread) {
@@ -6902,26 +6995,39 @@ void MacroAssembler::testl(Register dst, AddressLiteral src) {
 #ifndef SERIALGC
 
 void MacroAssembler::g1_write_barrier_pre(Register obj,
-#ifndef _LP64
+                                          Register pre_val,
                                           Register thread,
-#endif
                                           Register tmp,
-                                          Register tmp2,
-                                          bool tosca_live) {
-  LP64_ONLY(Register thread = r15_thread;)
+                                          bool tosca_live,
+                                          bool expand_call) {
+
+  // If expand_call is true then we expand the call_VM_leaf macro
+  // directly to skip generating the check by
+  // InterpreterMacroAssembler::call_VM_leaf_base that checks _last_sp.
+
+#ifdef _LP64
+  assert(thread == r15_thread, "must be");
+#endif // _LP64
+
+  Label done;
+  Label runtime;
+
+  assert(pre_val != noreg, "check this code");
+
+  if (obj != noreg) {
+    assert_different_registers(obj, pre_val, tmp);
+    assert(pre_val != rax, "check this code");
+  }
+
   Address in_progress(thread, in_bytes(JavaThread::satb_mark_queue_offset() +
                                        PtrQueue::byte_offset_of_active()));
-
   Address index(thread, in_bytes(JavaThread::satb_mark_queue_offset() +
                                        PtrQueue::byte_offset_of_index()));
   Address buffer(thread, in_bytes(JavaThread::satb_mark_queue_offset() +
                                        PtrQueue::byte_offset_of_buf()));
 
 
-  Label done;
-  Label runtime;
-
-  // if (!marking_in_progress) goto done;
+  // Is marking active?
   if (in_bytes(PtrQueue::byte_width_of_active()) == 4) {
     cmpl(in_progress, 0);
   } else {
@@ -6930,65 +7036,92 @@ void MacroAssembler::g1_write_barrier_pre(Register obj,
   }
   jcc(Assembler::equal, done);
 
-  // if (x.f == NULL) goto done;
-#ifdef _LP64
-  load_heap_oop(tmp2, Address(obj, 0));
-#else
-  movptr(tmp2, Address(obj, 0));
-#endif
-  cmpptr(tmp2, (int32_t) NULL_WORD);
+  // Do we need to load the previous value?
+  if (obj != noreg) {
+    load_heap_oop(pre_val, Address(obj, 0));
+  }
+
+  // Is the previous value null?
+  cmpptr(pre_val, (int32_t) NULL_WORD);
   jcc(Assembler::equal, done);
 
   // Can we store original value in the thread's buffer?
+  // Is index == 0?
+  // (The index field is typed as size_t.)
 
-#ifdef _LP64
-  movslq(tmp, index);
-  cmpq(tmp, 0);
-#else
-  cmpl(index, 0);
-#endif
-  jcc(Assembler::equal, runtime);
-#ifdef _LP64
-  subq(tmp, wordSize);
-  movl(index, tmp);
-  addq(tmp, buffer);
-#else
-  subl(index, wordSize);
-  movl(tmp, buffer);
-  addl(tmp, index);
-#endif
-  movptr(Address(tmp, 0), tmp2);
+  movptr(tmp, index);                   // tmp := *index_adr
+  cmpptr(tmp, 0);                       // tmp == 0?
+  jcc(Assembler::equal, runtime);       // If yes, goto runtime
+
+  subptr(tmp, wordSize);                // tmp := tmp - wordSize
+  movptr(index, tmp);                   // *index_adr := tmp
+  addptr(tmp, buffer);                  // tmp := tmp + *buffer_adr
+
+  // Record the previous value
+  movptr(Address(tmp, 0), pre_val);
   jmp(done);
+
   bind(runtime);
   // save the live input values
   if(tosca_live) push(rax);
-  push(obj);
-#ifdef _LP64
-  call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), tmp2, r15_thread);
-#else
-  push(thread);
-  call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), tmp2, thread);
-  pop(thread);
-#endif
-  pop(obj);
-  if(tosca_live) pop(rax);
-  bind(done);
 
+  if (obj != noreg && obj != rax)
+    push(obj);
+
+  if (pre_val != rax)
+    push(pre_val);
+
+  // Calling the runtime using the regular call_VM_leaf mechanism generates
+  // code (generated by InterpreterMacroAssember::call_VM_leaf_base)
+  // that checks that the *(ebp+frame::interpreter_frame_last_sp) == NULL.
+  //
+  // If we care generating the pre-barrier without a frame (e.g. in the
+  // intrinsified Reference.get() routine) then ebp might be pointing to
+  // the caller frame and so this check will most likely fail at runtime.
+  //
+  // Expanding the call directly bypasses the generation of the check.
+  // So when we do not have have a full interpreter frame on the stack
+  // expand_call should be passed true.
+
+  NOT_LP64( push(thread); )
+
+  if (expand_call) {
+    LP64_ONLY( assert(pre_val != c_rarg1, "smashed arg"); )
+    pass_arg1(this, thread);
+    pass_arg0(this, pre_val);
+    MacroAssembler::call_VM_leaf_base(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), 2);
+  } else {
+    call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), pre_val, thread);
+  }
+
+  NOT_LP64( pop(thread); )
+
+  // save the live input values
+  if (pre_val != rax)
+    pop(pre_val);
+
+  if (obj != noreg && obj != rax)
+    pop(obj);
+
+  if(tosca_live) pop(rax);
+
+  bind(done);
 }
 
 void MacroAssembler::g1_write_barrier_post(Register store_addr,
                                            Register new_val,
-#ifndef _LP64
                                            Register thread,
-#endif
                                            Register tmp,
                                            Register tmp2) {
+#ifdef _LP64
+  assert(thread == r15_thread, "must be");
+#endif // _LP64
 
-  LP64_ONLY(Register thread = r15_thread;)
   Address queue_index(thread, in_bytes(JavaThread::dirty_card_queue_offset() +
                                        PtrQueue::byte_offset_of_index()));
   Address buffer(thread, in_bytes(JavaThread::dirty_card_queue_offset() +
                                        PtrQueue::byte_offset_of_buf()));
+
   BarrierSet* bs = Universe::heap()->barrier_set();
   CardTableModRefBS* ct = (CardTableModRefBS*)bs;
   Label done;
@@ -7067,7 +7200,6 @@ void MacroAssembler::g1_write_barrier_post(Register store_addr,
   pop(store_addr);
 
   bind(done);
-
 }
 
 #endif // SERIALGC

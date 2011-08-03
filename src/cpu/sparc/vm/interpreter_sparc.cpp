@@ -407,6 +407,8 @@ address AbstractInterpreterGenerator::generate_method_entry(AbstractInterpreter:
     case Interpreter::java_lang_math_abs     :                                                                             break;
     case Interpreter::java_lang_math_log     :                                                                             break;
     case Interpreter::java_lang_math_log10   :                                                                             break;
+    case Interpreter::java_lang_ref_reference_get
+                                             : entry_point = ((InterpreterGenerator*)this)->generate_Reference_get_entry(); break;
     default                                  : ShouldNotReachHere();                                                       break;
   }
 
@@ -419,25 +421,6 @@ address AbstractInterpreterGenerator::generate_method_entry(AbstractInterpreter:
 bool AbstractInterpreter::can_be_compiled(methodHandle m) {
   // No special entry points that preclude compilation
   return true;
-}
-
-// This method tells the deoptimizer how big an interpreted frame must be:
-int AbstractInterpreter::size_activation(methodOop method,
-                                         int tempcount,
-                                         int popframe_extra_args,
-                                         int moncount,
-                                         int callee_param_count,
-                                         int callee_locals,
-                                         bool is_top_frame) {
-  return layout_activation(method,
-                           tempcount,
-                           popframe_extra_args,
-                           moncount,
-                           callee_param_count,
-                           callee_locals,
-                           (frame*)NULL,
-                           (frame*)NULL,
-                           is_top_frame);
 }
 
 void Deoptimization::unwind_callee_save_values(frame* f, vframeArray* vframe_array) {

@@ -104,6 +104,7 @@ class AbstractInterpreter: AllStatic {
     java_lang_math_sqrt,                                        // implementation of java.lang.Math.sqrt  (x)
     java_lang_math_log,                                         // implementation of java.lang.Math.log   (x)
     java_lang_math_log10,                                       // implementation of java.lang.Math.log10 (x)
+    java_lang_ref_reference_get,                                // implementation of java.lang.ref.Reference.get()
     number_of_method_entries,
     invalid = -1
   };
@@ -140,7 +141,7 @@ class AbstractInterpreter: AllStatic {
   // Method activation
   static MethodKind method_kind(methodHandle m);
   static address    entry_for_kind(MethodKind k)                { assert(0 <= k && k < number_of_method_entries, "illegal kind"); return _entry_table[k]; }
-  static address    entry_for_method(methodHandle m)            { return _entry_table[method_kind(m)]; }
+  static address    entry_for_method(methodHandle m)            { return entry_for_kind(method_kind(m)); }
 
   static void       print_method_kind(MethodKind kind)          PRODUCT_RETURN;
 
@@ -174,19 +175,32 @@ class AbstractInterpreter: AllStatic {
                                     int temps,
                                     int popframe_args,
                                     int monitors,
+                                    int caller_actual_parameters,
                                     int callee_params,
                                     int callee_locals,
-                                    bool is_top_frame);
+                                    bool is_top_frame) {
+    return layout_activation(method,
+                             temps,
+                             popframe_args,
+                             monitors,
+                             caller_actual_parameters,
+                             callee_params,
+                             callee_locals,
+                             (frame*)NULL,
+                             (frame*)NULL,
+                             is_top_frame);
+  }
 
   static int       layout_activation(methodOop method,
-                                      int temps,
-                                      int popframe_args,
-                                      int monitors,
-                                      int callee_params,
-                                      int callee_locals,
-                                      frame* caller,
-                                      frame* interpreter_frame,
-                                      bool is_top_frame);
+                                     int temps,
+                                     int popframe_args,
+                                     int monitors,
+                                     int caller_actual_parameters,
+                                     int callee_params,
+                                     int callee_locals,
+                                     frame* caller,
+                                     frame* interpreter_frame,
+                                     bool is_top_frame);
 
   // Runtime support
   static bool       is_not_reached(                       methodHandle method, int bci);

@@ -439,7 +439,7 @@ class Thread: public ThreadShadow {
   // GC support
   // Apply "f->do_oop" to all root oops in "this".
   // Apply "cf->do_code_blob" (if !NULL) to all code blobs active in frames
-  void oops_do(OopClosure* f, CodeBlobClosure* cf);
+  virtual void oops_do(OopClosure* f, CodeBlobClosure* cf);
 
   // Handles the parallel case for the method below.
 private:
@@ -1384,6 +1384,12 @@ public:
   void trace_stack_from(vframe* start_vf)        PRODUCT_RETURN;
   void trace_frames()                            PRODUCT_RETURN;
 
+  // Print an annotated view of the stack frames
+  void print_frame_layout(int depth = 0, bool validate_only = false) NOT_DEBUG_RETURN;
+  void validate_frame_layout() {
+    print_frame_layout(0, true);
+  }
+
   // Returns the number of stack frames on the stack
   int depth() const;
 
@@ -1697,6 +1703,8 @@ class CompilerThread : public JavaThread {
   bool          _is_compiling;
   BufferBlob*   _buffer_blob;
 
+  nmethod*      _scanned_nmethod;  // nmethod being scanned by the sweeper
+
  public:
 
   static CompilerThread* current();
@@ -1727,6 +1735,11 @@ class CompilerThread : public JavaThread {
     _log = log;
   }
 
+  // GC support
+  // Apply "f->do_oop" to all root oops in "this".
+  // Apply "cf->do_code_blob" (if !NULL) to all code blobs active in frames
+  void oops_do(OopClosure* f, CodeBlobClosure* cf);
+
 #ifndef PRODUCT
 private:
   IdealGraphPrinter *_ideal_graph_printer;
@@ -1738,6 +1751,12 @@ public:
   // Get/set the thread's current task
   CompileTask*  task()                           { return _task; }
   void          set_task(CompileTask* task)      { _task = task; }
+
+  // Track the nmethod currently being scanned by the sweeper
+  void          set_scanned_nmethod(nmethod* nm) {
+    assert(_scanned_nmethod == NULL || nm == NULL, "should reset to NULL before writing a new value");
+    _scanned_nmethod = nm;
+  }
 };
 
 inline CompilerThread* CompilerThread::current() {

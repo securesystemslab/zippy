@@ -316,6 +316,19 @@ public:
   void setEmpty()   { _index = 0; clear_overflow(); }
 };
 
+class ForceOverflowSettings VALUE_OBJ_CLASS_SPEC {
+private:
+#ifndef PRODUCT
+  uintx _num_remaining;
+  bool _force;
+#endif // !defined(PRODUCT)
+
+public:
+  void init() PRODUCT_RETURN;
+  void update() PRODUCT_RETURN;
+  bool should_force() PRODUCT_RETURN_( return false; );
+};
+
 // this will enable a variety of different statistics per GC task
 #define _MARKING_STATS_       0
 // this will enable the higher verbose levels
@@ -462,6 +475,9 @@ protected:
 
   WorkGang* _parallel_workers;
 
+  ForceOverflowSettings _force_overflow_conc;
+  ForceOverflowSettings _force_overflow_stw;
+
   void weakRefsWork(bool clear_all_soft_refs);
 
   void swapMarkBitMaps();
@@ -470,7 +486,7 @@ protected:
   // task local ones; should be called during initial mark.
   void reset();
   // It resets all the marking data structures.
-  void clear_marking_state();
+  void clear_marking_state(bool clear_overflow = true);
 
   // It should be called to indicate which phase we're in (concurrent
   // mark or remark) and how many threads are currently active.
@@ -546,6 +562,22 @@ protected:
   // Methods to enter the two overflow sync barriers
   void enter_first_sync_barrier(int task_num);
   void enter_second_sync_barrier(int task_num);
+
+  ForceOverflowSettings* force_overflow_conc() {
+    return &_force_overflow_conc;
+  }
+
+  ForceOverflowSettings* force_overflow_stw() {
+    return &_force_overflow_stw;
+  }
+
+  ForceOverflowSettings* force_overflow() {
+    if (concurrent()) {
+      return force_overflow_conc();
+    } else {
+      return force_overflow_stw();
+    }
+  }
 
 public:
   // Manipulation of the global mark stack.
@@ -777,9 +809,18 @@ public:
 
   // It indicates that a new collection set is being chosen.
   void newCSet();
+
   // It registers a collection set heap region with CM. This is used
   // to determine whether any heap regions are located above the finger.
   void registerCSetRegion(HeapRegion* hr);
+
+  // Resets the region fields of any active CMTask whose region fields
+  // are in the collection set (i.e. the region currently claimed by
+  // the CMTask will be evacuated and may be used, subsequently, as
+  // an alloc region). When this happens the region fields in the CMTask
+  // are stale and, hence, should be cleared causing the worker thread
+  // to claim a new region.
+  void reset_active_task_region_fields_in_cset();
 
   // Registers the maximum region-end associated with a set of
   // regions with CM. Again this is used to determine whether any
@@ -1007,9 +1048,6 @@ private:
   void setup_for_region(HeapRegion* hr);
   // it brings up-to-date the limit of the region
   void update_region_limit();
-  // it resets the local fields after a task has finished scanning a
-  // region
-  void giveup_current_region();
 
   // called when either the words scanned or the refs visited limit
   // has been reached
@@ -1061,6 +1099,11 @@ public:
   // From TerminatorTerminator. It determines whether this task should
   // exit the termination protocol after it's entered it.
   virtual bool should_exit_termination();
+
+  // Resets the local region fields after a task has finished scanning a
+  // region; or when they have become stale as a result of the region
+  // being evacuated.
+  void giveup_current_region();
 
   HeapWord* finger()            { return _finger; }
 

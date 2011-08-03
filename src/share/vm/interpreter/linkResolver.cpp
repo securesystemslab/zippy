@@ -294,6 +294,16 @@ void LinkResolver::resolve_method(methodHandle& resolved_method, KlassHandle& re
   Symbol*  method_signature  = pool->signature_ref_at(index);
   KlassHandle  current_klass(THREAD, pool->pool_holder());
 
+  if (pool->has_preresolution()
+      || (resolved_klass() == SystemDictionary::MethodHandle_klass() &&
+          methodOopDesc::is_method_handle_invoke_name(method_name))) {
+    methodOop result_oop = constantPoolOopDesc::method_at_if_loaded(pool, index);
+    if (result_oop != NULL) {
+      resolved_method = methodHandle(THREAD, result_oop);
+      return;
+    }
+  }
+
   resolve_method(resolved_method, resolved_klass, method_name, method_signature, current_klass, true, CHECK);
 }
 
@@ -327,6 +337,7 @@ void LinkResolver::resolve_method(methodHandle& resolved_method, KlassHandle res
 
   // 1. check if klass is not interface
   if (resolved_klass->is_interface()) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Found interface %s, but class was expected", Klass::cast(resolved_klass())->external_name());
     THROW_MSG(vmSymbols::java_lang_IncompatibleClassChangeError(), buf);
@@ -413,6 +424,7 @@ void LinkResolver::resolve_interface_method(methodHandle& resolved_method,
 
  // check if klass is interface
   if (!resolved_klass->is_interface()) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Found class %s, but interface was expected", Klass::cast(resolved_klass())->external_name());
     THROW_MSG(vmSymbols::java_lang_IncompatibleClassChangeError(), buf);
@@ -534,6 +546,7 @@ void LinkResolver::resolve_field(FieldAccessInfo& result, constantPoolHandle poo
 
   // check for errors
   if (is_static != fd.is_static()) {
+    ResourceMark rm(THREAD);
     char msg[200];
     jio_snprintf(msg, sizeof(msg), "Expected %s field %s.%s", is_static ? "static" : "non-static", Klass::cast(resolved_klass())->external_name(), fd.name()->as_C_string());
     THROW_MSG(vmSymbols::java_lang_IncompatibleClassChangeError(), msg);
@@ -631,6 +644,7 @@ void LinkResolver::linktime_resolve_static_method(methodHandle& resolved_method,
 
   // check if static
   if (!resolved_method->is_static()) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Expected static method %s", methodOopDesc::name_and_sig_as_C_string(Klass::cast(resolved_klass()),
                                                       resolved_method->name(),
@@ -671,6 +685,7 @@ void LinkResolver::linktime_resolve_special_method(methodHandle& resolved_method
 
   // check if not static
   if (resolved_method->is_static()) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf),
                  "Expecting non-static method %s",
@@ -717,6 +732,7 @@ void LinkResolver::runtime_resolve_special_method(CallInfo& result, methodHandle
 
   // check if not static
   if (sel_method->is_static()) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Expecting non-static method %s", methodOopDesc::name_and_sig_as_C_string(Klass::cast(resolved_klass()),
                                                                                                              resolved_method->name(),
@@ -757,6 +773,7 @@ void LinkResolver::linktime_resolve_virtual_method(methodHandle &resolved_method
 
   // check if not static
   if (resolved_method->is_static()) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Expecting non-static method %s", methodOopDesc::name_and_sig_as_C_string(Klass::cast(resolved_klass()),
                                                                                                              resolved_method->name(),
@@ -873,6 +890,7 @@ void LinkResolver::runtime_resolve_interface_method(CallInfo& result, methodHand
 
   // check if receiver klass implements the resolved interface
   if (!recv_klass->is_subtype_of(resolved_klass())) {
+    ResourceMark rm(THREAD);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Class %s does not implement the requested interface %s",
                  (Klass::cast(recv_klass()))->external_name(),
@@ -1109,7 +1127,24 @@ void LinkResolver::resolve_invokedynamic(CallInfo& result, constantPoolHandle po
   // The extra MH receiver will be inserted into the stack on every call.
   methodHandle resolved_method;
   KlassHandle current_klass(THREAD, pool->pool_holder());
-  lookup_implicit_method(resolved_method, resolved_klass, method_name, method_signature, current_klass, CHECK);
+  lookup_implicit_method(resolved_method, resolved_klass, method_name, method_signature, current_klass, THREAD);
+  if (HAS_PENDING_EXCEPTION) {
+    if (PENDING_EXCEPTION->is_a(SystemDictionary::BootstrapMethodError_klass())) {
+      // throw these guys, since they are already wrapped
+      return;
+    }
+    if (!PENDING_EXCEPTION->is_a(SystemDictionary::LinkageError_klass())) {
+      // intercept only LinkageErrors which might have failed to wrap
+      return;
+    }
+    // See the "Linking Exceptions" section for the invokedynamic instruction in the JVMS.
+    Handle ex(THREAD, PENDING_EXCEPTION);
+    CLEAR_PENDING_EXCEPTION;
+    oop bsme = Klass::cast(SystemDictionary::BootstrapMethodError_klass())->java_mirror();
+    MethodHandles::raise_exception(Bytecodes::_athrow, ex(), bsme, CHECK);
+    // java code should not return, but if it does throw out anyway
+    THROW(vmSymbols::java_lang_InternalError());
+  }
   if (resolved_method.is_null()) {
     THROW(vmSymbols::java_lang_InternalError());
   }

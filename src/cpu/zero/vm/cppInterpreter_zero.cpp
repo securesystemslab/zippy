@@ -657,7 +657,7 @@ int CppInterpreter::method_handle_entry(methodOop method,
   if (!is_exact) {
     if (method->intrinsic_id() == vmIntrinsics::_invokeExact) {
       CALL_VM_NOCHECK_NOFIX(
-        InterpreterRuntime::throw_WrongMethodTypeException(
+        SharedRuntime::throw_WrongMethodTypeException(
           thread, method_type, mhtype));
       // NB all oops trashed!
       assert(HAS_PENDING_EXCEPTION, "should do");
@@ -673,7 +673,7 @@ int CppInterpreter::method_handle_entry(methodOop method,
     oop adapter = java_lang_invoke_MethodTypeForm::genericInvoker(form);
     if (adapter == NULL) {
       CALL_VM_NOCHECK_NOFIX(
-        InterpreterRuntime::throw_WrongMethodTypeException(
+        SharedRuntime::throw_WrongMethodTypeException(
           thread, method_type, mhtype));
       // NB all oops trashed!
       assert(HAS_PENDING_EXCEPTION, "should do");
@@ -1302,6 +1302,26 @@ address InterpreterGenerator::generate_accessor_entry() {
   return generate_entry((address) CppInterpreter::accessor_entry);
 }
 
+address InterpreterGenerator::generate_Reference_get_entry(void) {
+#ifndef SERIALGC
+  if (UseG1GC) {
+    // We need to generate have a routine that generates code to:
+    //   * load the value in the referent field
+    //   * passes that value to the pre-barrier.
+    //
+    // In the case of G1 this will record the value of the
+    // referent in an SATB buffer if marking is active.
+    // This will cause concurrent marking to mark the referent
+    // field as live.
+    Unimplemented();
+  }
+#endif // SERIALGC
+
+  // If G1 is not enabled then attempt to go through the accessor entry point
+  // Reference.get is an accessor
+  return generate_accessor_entry();
+}
+
 address InterpreterGenerator::generate_native_entry(bool synchronized) {
   assert(synchronized == false, "should be");
 
@@ -1357,6 +1377,10 @@ address AbstractInterpreterGenerator::generate_method_entry(
     entry_point = ((InterpreterGenerator*) this)->generate_math_entry(kind);
     break;
 
+  case Interpreter::java_lang_ref_reference_get:
+    entry_point = ((InterpreterGenerator*)this)->generate_Reference_get_entry();
+    break;
+
   default:
     ShouldNotReachHere();
   }
@@ -1403,6 +1427,7 @@ int AbstractInterpreter::layout_activation(methodOop method,
                                            int       tempcount,
                                            int       popframe_extra_args,
                                            int       moncount,
+                                           int       caller_actual_parameters,
                                            int       callee_param_count,
                                            int       callee_locals,
                                            frame*    caller,

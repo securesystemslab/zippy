@@ -216,8 +216,18 @@ public:
     }
   }
 
-  // Returns "TRUE" iff "p" points into the youngest generation.
-  bool is_in_youngest(void* p);
+  // Returns true if the reference is to an object in the reserved space
+  // for the young generation.
+  // Assumes the the young gen address range is less than that of the old gen.
+  bool is_in_young(oop p);
+
+#ifdef ASSERT
+  virtual bool is_in_partial_collection(const void* p);
+#endif
+
+  virtual bool is_scavengable(const void* addr) {
+    return is_in_young((oop)addr);
+  }
 
   // Iteration functions.
   void oop_iterate(OopClosure* cl);
@@ -283,7 +293,7 @@ public:
     //       "Check can_elide_initializing_store_barrier() for this collector");
     // but unfortunately the flag UseSerialGC need not necessarily always
     // be set when DefNew+Tenured are being used.
-    return is_in_youngest((void*)new_obj);
+    return is_in_young(new_obj);
   }
 
   // Can a compiler elide a store barrier when it writes
@@ -427,13 +437,13 @@ public:
   // explicitly mark reachable objects in younger generations, to avoid
   // excess storage retention.)  If "collecting_perm_gen" is false, then
   // roots that may only contain references to permGen objects are not
-  // scanned. The "so" argument determines which of the roots
+  // scanned; instead, the older_gens closure is applied to all outgoing
+  // references in the perm gen.  The "so" argument determines which of the roots
   // the closure is applied to:
   // "SO_None" does none;
   // "SO_AllClasses" applies the closure to all entries in the SystemDictionary;
   // "SO_SystemClasses" to all the "system" classes and loaders;
-  // "SO_Symbols_and_Strings" applies the closure to all entries in
-  // SymbolsTable and StringTable.
+  // "SO_Strings" applies the closure to all entries in the StringTable.
   void gen_process_strong_roots(int level,
                                 bool younger_gens_as_roots,
                                 // The remaining arguments are in an order

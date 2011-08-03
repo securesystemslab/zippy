@@ -537,7 +537,7 @@ void GenCollectedHeap::do_collection(bool  full,
         // Timer for individual generations. Last argument is false: no CR
         TraceTime t1(_gens[i]->short_name(), PrintGCDetails, false, gclog_or_tty);
         TraceCollectorStats tcs(_gens[i]->counters());
-        TraceMemoryManagerStats tmms(_gens[i]->kind());
+        TraceMemoryManagerStats tmms(_gens[i]->kind(),gc_cause());
 
         size_t prev_used = _gens[i]->used();
         _gens[i]->stat_record()->invocations++;
@@ -710,15 +710,6 @@ void GenCollectedHeap::set_par_threads(int t) {
   SharedHeap::set_par_threads(t);
   _gen_process_strong_tasks->set_n_threads(t);
 }
-
-class AssertIsPermClosure: public OopClosure {
-public:
-  void do_oop(oop* p) {
-    assert((*p) == NULL || (*p)->is_perm(), "Referent should be perm.");
-  }
-  void do_oop(narrowOop* p) { ShouldNotReachHere(); }
-};
-static AssertIsPermClosure assert_is_perm_closure;
 
 void GenCollectedHeap::
 gen_process_strong_roots(int level,
@@ -962,6 +953,13 @@ void GenCollectedHeap::do_full_collection(bool clear_all_soft_refs,
   }
 }
 
+bool GenCollectedHeap::is_in_young(oop p) {
+  bool result = ((HeapWord*)p) < _gens[_n_gens - 1]->reserved().start();
+  assert(result == _gens[0]->is_in_reserved(p),
+         err_msg("incorrect test - result=%d, p=" PTR_FORMAT, result, (void*)p));
+  return result;
+}
+
 // Returns "TRUE" iff "p" points into the allocated area of the heap.
 bool GenCollectedHeap::is_in(const void* p) const {
   #ifndef ASSERT
@@ -984,10 +982,16 @@ bool GenCollectedHeap::is_in(const void* p) const {
   return false;
 }
 
-// Returns "TRUE" iff "p" points into the allocated area of the heap.
-bool GenCollectedHeap::is_in_youngest(void* p) {
-  return _gens[0]->is_in(p);
+#ifdef ASSERT
+// Don't implement this by using is_in_young().  This method is used
+// in some cases to check that is_in_young() is correct.
+bool GenCollectedHeap::is_in_partial_collection(const void* p) {
+  assert(is_in_reserved(p) || p == NULL,
+    "Does not work if address is non-null and outside of the heap");
+  // The order of the generations is young (low addr), old, perm (high addr)
+  return p < _gens[_n_gens - 2]->reserved().end() && p != NULL;
 }
+#endif
 
 void GenCollectedHeap::oop_iterate(OopClosure* cl) {
   for (int i = 0; i < _n_gens; i++) {

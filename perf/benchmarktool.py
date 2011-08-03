@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import subprocess
 import os
 import re
@@ -59,7 +57,7 @@ def main():
     parser = argparse.ArgumentParser(description='Automated DaCapo and Scimark bechmarks')
     parser.add_argument('-a', '-all', help='run all benchmarks for all compilers', action='store_true')
     parser.add_argument('-c', type=str, help='compiler to use', default='graal', choices=['client', 'server', 'graal'], required=False)
-    parser.add_argument('-n', type=int, help='number of DaCapo benchmarks to run', default=20)
+    parser.add_argument('-n', type=int, help='number of DaCapo benchmarks to run', default=10)
     parser.add_argument('-o', type=str, help='graalVM options(quoted!)', default='')
     parser.add_argument('-runonly', type=str, help='run specified benchmark only', default='all')
     options = parser.parse_args()
@@ -82,7 +80,7 @@ def main():
         else :
             vm = os.environ['REFERENCE_JDK']
         
-        cmd = vm + '/bin/java ' + compilerFlags[compiler] + ' -d64 ' + DEFAULT_DACAPO_OPTS + options.o + ' -classpath ' + \
+        cmd = '"' + vm + '/bin/java" ' + compilerFlags[compiler] + ' -d64 ' + DEFAULT_DACAPO_OPTS + options.o + ' -classpath ' + \
             os.environ['DACAPO'] + '/dacapo-9.12-bach.jar Harness -n ' + str(options.n) + ' '
         benchmarks = runBash('java -jar ' + os.environ['DACAPO'] + '/dacapo-9.12-bach.jar -l').read().decode().split(' ')
     
@@ -126,7 +124,7 @@ def main():
         
         # Scimark Benchmarks
         writeout(outputFile, [['']])
-        cmd = vm + '/bin/java ' + compilerFlags[compiler] + ' -d64 ' + DEFAULT_SCIMARK_OPTS + options.o + \
+        cmd = '"' + vm + '/bin/java" ' + compilerFlags[compiler] + ' -d64 ' + DEFAULT_SCIMARK_OPTS + options.o + \
             ' -Xbootclasspath/a:' + os.environ['SCIMARK'] + '/scimark2lib.jar jnt.scimark2.commandline'
     
         benchmarkScore = re.compile(r"([a-zA-Z0-9_\(\),= ]+):\s+([0-9]+\.[0-9]+)$")

@@ -392,6 +392,7 @@ class instanceKlass: public Klass {
   bool link_class_or_fail(TRAPS); // returns false on failure
   void unlink_class();
   void rewrite_class(TRAPS);
+  void relocate_and_link_methods(TRAPS);
   methodOop class_initializer();
 
   // set the class to initialized if no static initializer is present
@@ -400,6 +401,8 @@ class instanceKlass: public Klass {
   // reference type
   ReferenceType reference_type() const     { return _reference_type; }
   void set_reference_type(ReferenceType t) { _reference_type = t; }
+
+  static int reference_type_offset_in_bytes() { return offset_of(instanceKlass, _reference_type); }
 
   // find local field, returns true if found
   bool find_local_field(Symbol* name, Symbol* sig, fieldDescriptor* fd) const;
