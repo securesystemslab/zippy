@@ -183,7 +183,7 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocat
   return method->invocation_count();
 }
 
-// public native int RiMethod_throwoutCount(long vmId);
+// public native int RiMethod_exceptionProbability(long vmId, int bci);
 JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_exceptionProbability");
   ciMethod* cimethod;
@@ -335,6 +335,23 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2swit
     }
     return JNIHandles::make_local(probability);
   }
+}
+
+// public native boolean RiMethod_hasCompiledCode(HotSpotMethodResolved method);
+JNIEXPORT jboolean JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasCompiledCode(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("VMEntries::RiMethod_hasCompiledCode");
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  return method->has_compiled_code();
+}
+
+// public native boolean RiMethod_compiledCodeSize(HotSpotMethodResolved method);
+JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1compiledCodeSize(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("VMEntries::RiMethod_compiledCodeSize");
+  nmethod* code = getMethodFromHotSpotMethod(hotspot_method)->code();
+  if (code != NULL) {
+    return code->insts_end() - code->verified_entry_point();
+  }
+  return -1;
 }
 
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
@@ -901,6 +918,8 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_switchProbability",      CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2switchProbability)},
   {CC"RiMethod_invocationCount",        CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
   {CC"RiMethod_exceptionProbability",   CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability)},
+  {CC"RiMethod_hasCompiledCode",        CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasCompiledCode)},
+  {CC"RiMethod_compiledCodeSize",       CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1compiledCodeSize)},
   {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod)},
