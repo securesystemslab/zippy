@@ -192,21 +192,19 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2excepti
     methodOop method = getMethodFromHotSpotMethod(hotspot_method);
     cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
   }
+  ciMethodData* method_data = cimethod->method_data();
 
-  ciMethodData* method_data = cimethod->method_data_or_null();
-  if (method_data == NULL) {
-    return -1;
+  if (method_data == NULL || !method_data->is_mature()) return -1;
+
+  ciProfileData* profile = method_data->bci_to_data(bci);
+  if (profile == NULL) {
+    return 0;
+  }
+  uint trap = method_data->trap_recompiled_at(profile);
+  if (trap > 0) {
+    return 100;
   } else {
-    ciProfileData* profile = method_data->bci_to_data(bci);
-    if (profile == NULL) {
-      return 0;
-    }
-    uint trap = method_data->trap_recompiled_at(profile);
-    if (trap > 0) {
-      return 100;
-    } else {
-      return trap;
-    }
+    return trap;
   }
 }
 
