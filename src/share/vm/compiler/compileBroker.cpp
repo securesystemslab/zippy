@@ -642,6 +642,17 @@ CompilerCounters::CompilerCounters(const char* thread_name, int instance, TRAPS)
   }
 }
 
+void CompileBroker::add_method_to_queue(klassOop k, Symbol* name, Symbol* signature) {
+  Thread* THREAD = Thread::current();
+  instanceKlass* klass = instanceKlass::cast(k);
+  methodOop method = klass->find_method(name, signature);
+  CompileBroker::compile_method(method, -1, 0, method, 0, "initial compile of object initializer", THREAD);
+  if (HAS_PENDING_EXCEPTION) {
+    CLEAR_PENDING_EXCEPTION;
+    fatal("error inserting method into compile queue");
+  }
+}
+
 // Bootstrap the graal compiler. Compiles all methods until compile queue is empty and no compilation is active.
 void CompileBroker::bootstrap_graal() {
   HandleMark hm;
@@ -652,14 +663,10 @@ void CompileBroker::bootstrap_graal() {
   if (compiler == NULL) fatal("must use flag -XX:+UseGraal");
 
   jlong start = os::javaTimeMillis();
-
-  instanceKlass* klass = (instanceKlass*)SystemDictionary::Object_klass()->klass_part();
-  methodOop method = klass->find_method(vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
-  CompileBroker::compile_method(method, -1, 0, method, 0, "initial compile of object initializer", THREAD);
-  if (HAS_PENDING_EXCEPTION) {
-    CLEAR_PENDING_EXCEPTION;
-    fatal("error inserting object initializer into compile queue");
-  }
+  add_method_to_queue(SystemDictionary::Object_klass(), vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
+  add_method_to_queue(SystemDictionary::Object_klass(), vmSymbols::equals_name(), vmSymbols::object_boolean_signature());
+  add_method_to_queue(SystemDictionary::String_klass(), vmSymbols::length_name(), vmSymbols::void_int_signature());
+  add_method_to_queue(SystemDictionary::String_klass(), vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
 
   int z = 0;
   while (true) {
