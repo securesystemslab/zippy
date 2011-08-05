@@ -40,7 +40,7 @@ define_pd_global(bool, PreferInterpreterNativeStubs, false);
 define_pd_global(bool, ProfileTraps,                 true );
 define_pd_global(bool, UseOnStackReplacement,        true );
 define_pd_global(bool, TieredCompilation,            false);
-define_pd_global(intx, CompileThreshold,             5000 );   // changed for GRAAL
+define_pd_global(intx, CompileThreshold,             4500 );   // changed for GRAAL
 define_pd_global(intx, BackEdgeThreshold,            100000);
 
 define_pd_global(intx, OnStackReplacePercentage,     933  );
