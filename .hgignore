@@ -36,3 +36,4 @@ scratch/
 ^src/share/tools/IdealGraphVisualizer/dist/
 ^.hgtip
 ^make/solaris/solaris_amd64_compiler1/
+^RemoteSystemsTempFiles/
