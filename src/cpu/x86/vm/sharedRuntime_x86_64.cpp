@@ -2642,7 +2642,7 @@ void SharedRuntime::generate_deopt_blob() {
 
   int jmp_uncommon_trap_offset = __ pc() - start;
   __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
-  __ movptr(rscratch1, 0);
+  __ movptr(rscratch1, 2); // InvalidateRecompile
 
   int uncommon_trap_offset = __ pc() - start;
 
