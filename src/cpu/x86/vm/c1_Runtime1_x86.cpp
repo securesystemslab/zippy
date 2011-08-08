@@ -101,6 +101,7 @@ int StubAssembler::call_RT(Register oop_result1, Register oop_result2, address e
     restore_live_registers(this, false);
     movptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     leave();
+    movl(rscratch1, 2); // InvalidateRecompile
     jump(RuntimeAddress(SharedRuntime::deopt_blob()->uncommon_trap()));
     bind(L);
   }
