@@ -29,6 +29,7 @@ java\.hprof\.txt$
 ^graal/hotspot/java$
 ^scratch/
 scratch/
+bin/
 ^local/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
