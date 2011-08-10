@@ -70,14 +70,16 @@ class StubAssembler;
   stub(g1_post_barrier_slow)         \
   stub(fpu2long_stub)                \
   stub(counter_overflow)             \
-  stub(graal_unwind_exception_call)    \
-  stub(graal_handle_exception)         \
-  stub(graal_slow_subtype_check)       \
-  stub(graal_arithmetic_frem)          \
-  stub(graal_arithmetic_drem)          \
-  stub(graal_monitorenter)             \
-  stub(graal_monitorexit)              \
-  stub(graal_verify_pointer)           \
+  stub(graal_unwind_exception_call)  \
+  stub(graal_handle_exception)       \
+  stub(graal_slow_subtype_check)     \
+  stub(graal_arithmetic_frem)        \
+  stub(graal_arithmetic_drem)        \
+  stub(graal_monitorenter)           \
+  stub(graal_monitorexit)            \
+  stub(graal_verify_pointer)         \
+  stub(graal_create_null_pointer_exception) \
+  stub(graal_create_out_of_bounds_exception) \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,

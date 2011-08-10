@@ -594,6 +594,14 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       call->set_destination(Runtime1::entry_for(Runtime1::graal_handle_exception_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_graal_3("CiRuntimeCall::HandleException()");
+    } else if (runtime_call == CiRuntimeCall::CreateNullPointerException()) {
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_graal_3("CiRuntimeCall::CreateNullPointerException()");
+    } else if (runtime_call == CiRuntimeCall::CreateOutOfBoundsException()) {
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_graal_3("CiRuntimeCall::CreateOutOfBoundsException()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
       call->set_destination((address)os::javaTimeMillis);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
@@ -658,6 +666,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       }
       case MARK_INVOKESTATIC: {
         assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
+
         call->set_destination(SharedRuntime::get_resolve_static_call_stub());
         _instructions->relocate(call->instruction_address(), relocInfo::static_call_type, Assembler::call32_operand);
         break;
