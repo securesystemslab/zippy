@@ -70,22 +70,6 @@ public class GraalEdgeColorFilter extends AbstractFilter {
                 }
             }
         }
-        for (Figure f : figures) {
-            Properties p = f.getProperties();
-            int predCount = Integer.parseInt(p.get("predecessorCount"));
-            int inputCount = Integer.parseInt(p.get("inputCount"));
-            int variableInputCount = Integer.parseInt(p.get("variableInputCount"));
-            if (p.get("memoryCheckpoint") != null) {
-                for (InputSlot is : f.getInputSlots()) {
-                    if (is.getPosition() > predCount + inputCount - variableInputCount) {
-                        is.setColor(memoryColor);
-                        for (Connection c : is.getConnections()) {
-                            c.setColor(memoryColor);
-                        }
-                    }
-                }
-            }
-        }
     }
 
     public Color getUsageColor() {

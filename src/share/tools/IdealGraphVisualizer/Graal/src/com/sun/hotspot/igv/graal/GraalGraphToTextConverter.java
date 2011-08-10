@@ -122,8 +122,8 @@ public class GraalGraphToTextConverter implements GraphToTextConverter {
         //       and for slots that are connected with multiple edges, by
         //       from/to node
 
-        int succCount = Integer.parseInt(n.getProperties().get("successorCount"));
         InputEdge[] outgoing = outgoingEdges.get(n).toArray(new InputEdge[0]);
+        int succCount = outgoing.length - Integer.parseInt(n.getProperties().get("usageCount"));
 
         int i = 0;
         if (outgoing.length > 0 && outgoing[0].getFromIndex() < succCount) {
