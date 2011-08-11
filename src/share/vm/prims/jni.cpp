@@ -3369,7 +3369,7 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
        JvmtiExport::post_thread_start(thread);
     }
 
-    if (BootstrapGraal) {
+    if (UseGraal && BootstrapGraal) {
       CompileBroker::bootstrap_graal();
     }
 
