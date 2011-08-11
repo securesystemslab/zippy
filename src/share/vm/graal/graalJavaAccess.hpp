@@ -177,6 +177,8 @@ void graal_compute_offsets();
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, RegisterFinalizer, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, HandleException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, CreateNullPointerException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, CreateOutOfBoundsException, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, OSRMigrationEnd, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, JavaTimeMillis, "Lcom/sun/cri/ci/CiRuntimeCall;");  \
     static_oop_field(CiRuntimeCall, JavaTimeNanos, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
