@@ -2685,7 +2685,7 @@ SOLARIS_ONLY(
       if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
         fatal("Must set MAXINE environment variable to a Maxine project directory.");
       }
-      if (PrintVMOptions) tty->print("MAXINE=%s", maxine_dir);
+      if (PrintVMOptions) tty->print("MAXINE=%s\n", maxine_dir);
       sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
       scp_p->add_prefix(temp);
       sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
