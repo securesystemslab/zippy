@@ -59,7 +59,7 @@
           "Enable JVMTI for the compiler thread")                           \
   product(bool, GraalBailoutIsFatal, true,                                  \
           "Abort the VM on graal bailout")                                  \
-  product(bool, BootstrapGraal, false,                                      \
+  product(bool, BootstrapGraal, true,                                       \
           "Bootstrap graal before running Java main method")                \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for graal")                                          \
