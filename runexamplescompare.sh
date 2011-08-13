@@ -16,7 +16,7 @@ if [ -z "${DACAPO}" ]; then
   exit 1;
 fi
 ant -f create_examples.xml
-COMMAND="${JDK7}/bin/java -client -d64 -graal -Xms1g -Xmx2g -esa -G:Extend -Xcomp -XX:CompileOnly=examples $* -jar examples.jar"
+COMMAND="${JDK7}/bin/java -graal -Xms1g -Xmx2g -esa -G:Extend -Xcomp -XX:CompileOnly=examples $* -jar examples.jar"
 echo $COMMAND
 $COMMAND
 COMMAND="${JDK7}/bin/java -client -d64 -Xms1g -Xmx2g -esa -Xcomp -XX:CompileOnly=examples $* -jar examples.jar"

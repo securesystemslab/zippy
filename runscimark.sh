@@ -15,4 +15,4 @@ if [ -z "${SCIMARK}" ]; then
   echo "SCIMARK is not defined. It must point to a directory with the SciMark benchmark jar."
   exit 1;
 fi
-${JDK7}/jre/bin/java -client -d64 -graal -Xms256m -Xmx512m -Xbootclasspath/a:${SCIMARK}/scimark2lib.jar $@ jnt.scimark2.commandline
+${JDK7}/jre/bin/java -graal -Xms256m -Xmx512m -Xbootclasspath/a:${SCIMARK}/scimark2lib.jar $@ jnt.scimark2.commandline

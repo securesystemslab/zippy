@@ -61,7 +61,7 @@ def main():
     parser.add_argument('-o', type=str, help='graalVM options(quoted!)', default='')
     parser.add_argument('-runonly', type=str, help='run specified benchmark only', default='all')
     options = parser.parse_args()
-    compilerFlags = {'graal' : '-client -graal -G:+Time -XX:-GraalBailoutIsFatal -G:QuietBailout ',
+    compilerFlags = {'graal' : '-graal -G:+Time -XX:-GraalBailoutIsFatal -G:QuietBailout ',
         'client' : '-client',
         'server' : '-server'}
 

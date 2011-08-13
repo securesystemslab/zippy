@@ -2013,6 +2013,40 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     return result;
   }
 
+  if (UseGraal) {
+    if (PrintVMOptions) {
+    tty->print("Running Graal VM... ");
+    }
+    const int BUFFER_SIZE = 1024;
+    char maxine_dir[BUFFER_SIZE];
+    char temp[BUFFER_SIZE];
+    if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
+    fatal("Must set MAXINE environment variable to a Maxine project directory.");
+    }
+    if (PrintVMOptions) tty->print("MAXINE=%s", maxine_dir);
+    sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.asmdis/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.graal.graph/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.graal.compiler/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.graal.nodes/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.graal.extensions/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.graal.runtime/bin", maxine_dir);
+    scp.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.graal.graphviz/bin", maxine_dir);
+    scp.add_prefix(temp);
+    scp_assembly_required = true;
+  }
+
   if (AggressiveOpts) {
     // Insert alt-rt.jar between user-specified bootclasspath
     // prefix and the default bootclasspath.  os::set_boot_path()
@@ -2673,40 +2707,6 @@ SOLARIS_ONLY(
           return JNI_EINVAL;
         }
       }
-    } else if (match_option(option, "-graal", &tail)) {
-      if (PrintVMOptions) {
-        tty->print("Running Graal VM... ");
-      }
-      UseGraal = true;
-      BootstrapGraal = true;
-      const int BUFFER_SIZE = 1024;
-      char maxine_dir[BUFFER_SIZE];
-      char temp[BUFFER_SIZE];
-      if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
-        fatal("Must set MAXINE environment variable to a Maxine project directory.");
-      }
-      if (PrintVMOptions) tty->print("MAXINE=%s", maxine_dir);
-      sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.asmdis/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.graph/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.compiler/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.nodes/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.extensions/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.runtime/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.graphviz/bin", maxine_dir);
-      scp_p->add_prefix(temp);
-      *scp_assembly_required_p = true;
     } else if (match_option(option, "-G:", &tail)) { // -G:XXX
       // Option for the graal compiler.
       if (PrintVMOptions) {

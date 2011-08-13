@@ -1715,7 +1715,8 @@ class CompilerThread : public JavaThread {
   void set_compiling(bool b)                     { _is_compiling = b; }
   bool is_Compiler_thread() const                { return true; }
   // Hide this compiler thread from external view.
-  bool is_hidden_from_external_view() const      { return true; }
+  // (tw) For Graal, the compiler thread should be visible.
+  bool is_hidden_from_external_view() const      { return !UseGraal || !DebugGraal; }
 
   CompileQueue* queue()                          { return _queue; }
   CompilerCounters* counters()                   { return _counters; }

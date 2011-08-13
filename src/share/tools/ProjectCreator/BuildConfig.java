@@ -72,7 +72,7 @@ class BuildConfig {
 	}
 	outDir += Util.sep + "jre" + Util.sep + "bin";
 	if (flavour.equals("compiler1")) {
-		outDir += Util.sep + "client";
+		outDir += Util.sep + "graal";
 	} else {
 		outDir += Util.sep + "server";
 	}
