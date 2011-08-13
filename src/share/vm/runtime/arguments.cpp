@@ -106,6 +106,7 @@ SystemProperty *Arguments::_java_library_path = NULL;
 SystemProperty *Arguments::_java_home = NULL;
 SystemProperty *Arguments::_java_class_path = NULL;
 SystemProperty *Arguments::_sun_boot_class_path = NULL;
+SystemProperty *Arguments::_compiler_class_path = NULL;
 
 char* Arguments::_meta_index_path = NULL;
 char* Arguments::_meta_index_dir = NULL;
@@ -169,6 +170,7 @@ void Arguments::init_system_properties() {
   _java_library_path = new SystemProperty("java.library.path", NULL,  true);
   _java_home =  new SystemProperty("java.home", NULL,  true);
   _sun_boot_class_path = new SystemProperty("sun.boot.class.path", NULL,  true);
+  _compiler_class_path = new SystemProperty("compiler.class.path", NULL,  true);
 
   _java_class_path = new SystemProperty("java.class.path", "",  true);
 
@@ -180,6 +182,7 @@ void Arguments::init_system_properties() {
   PropertyList_add(&_system_properties, _java_home);
   PropertyList_add(&_system_properties, _java_class_path);
   PropertyList_add(&_system_properties, _sun_boot_class_path);
+  PropertyList_add(&_system_properties, _compiler_class_path);
 
   // Set OS specific system properties values
   os::init_system_properties_values();
@@ -2015,36 +2018,38 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
 
   if (UseGraal) {
     if (PrintVMOptions) {
-    tty->print("Running Graal VM... ");
+      tty->print("Running Graal VM... ");
     }
     const int BUFFER_SIZE = 1024;
     char maxine_dir[BUFFER_SIZE];
     char temp[BUFFER_SIZE];
     if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
-    fatal("Must set MAXINE environment variable to a Maxine project directory.");
+	  fatal("Must set MAXINE environment variable to a Maxine project directory.");
     }
     if (PrintVMOptions) tty->print("MAXINE=%s", maxine_dir);
+	SysClassPath scp_compiler(Arguments::get_sysclasspath());
     sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.asmdis/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.graph/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.compiler/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.nodes/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.extensions/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.runtime/bin", maxine_dir);
-    scp.add_prefix(temp);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.graphviz/bin", maxine_dir);
-    scp.add_prefix(temp);
-    scp_assembly_required = true;
+    scp_compiler.add_prefix(temp);
+	scp_compiler.expand_endorsed();
+	Arguments::set_compilerclasspath(scp_compiler.combined_path());
   }
 
   if (AggressiveOpts) {

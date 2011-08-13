@@ -181,6 +181,7 @@ bool MetaIndex::may_contain(const char* class_name) {
 
 ClassPathEntry::ClassPathEntry() {
   set_next(NULL);
+  _compiler_thread_only = false;
 }
 
 
@@ -439,10 +440,17 @@ void ClassLoader::setup_meta_index() {
 void ClassLoader::setup_bootstrap_search_path() {
   assert(_first_entry == NULL, "should not setup bootstrap class search path twice");
   char* sys_class_path = os::strdup(Arguments::get_sysclasspath());
+  char* compiler_class_path = os::strdup(Arguments::get_compilerclasspath());
   if (TraceClassLoading && Verbose) {
     tty->print_cr("[Bootstrap loader class path=%s]", sys_class_path);
+    tty->print_cr("[Compiler loader class path=%s]", compiler_class_path);
   }
 
+  setup_bootstrap_search_path(sys_class_path, false);
+  setup_bootstrap_search_path(compiler_class_path, true);
+}
+
+void ClassLoader::setup_bootstrap_search_path(char* sys_class_path, bool compiler_cp) {
   int len = (int)strlen(sys_class_path);
   int end = 0;
 
@@ -454,7 +462,7 @@ void ClassLoader::setup_bootstrap_search_path() {
     char* path = NEW_C_HEAP_ARRAY(char, end-start+1);
     strncpy(path, &sys_class_path[start], end-start);
     path[end-start] = '\0';
-    update_class_path_entry_list(path, false);
+    update_class_path_entry_list(path, false, compiler_cp);
     FREE_C_HEAP_ARRAY(char, path);
     while (sys_class_path[end] == os::path_separator()[0]) {
       end++;
@@ -550,7 +558,7 @@ bool ClassLoader::contains_entry(ClassPathEntry *entry) {
   ClassPathEntry* e = _first_entry;
   while (e != NULL) {
     // assume zip entries have been canonicalized
-    if (strcmp(entry->name(), e->name()) == 0) {
+	if (e->compiler_thread_only() == entry->compiler_thread_only() && strcmp(entry->name(), e->name()) == 0) {
       return true;
     }
     e = e->next();
@@ -570,12 +578,14 @@ void ClassLoader::add_to_list(ClassPathEntry *new_entry) {
 }
 
 void ClassLoader::update_class_path_entry_list(const char *path,
-                                               bool check_for_duplicates) {
+                                               bool check_for_duplicates,
+											   bool compiler_cp) {
   struct stat st;
   if (os::stat((char *)path, &st) == 0) {
     // File or directory found
     ClassPathEntry* new_entry = NULL;
     create_class_path_entry((char *)path, st, &new_entry, LazyBootClassLoader);
+	new_entry->set_compiler_thread_only(compiler_cp);
     // The kernel VM adds dynamically to the end of the classloader path and
     // doesn't reorder the bootclasspath which would break java.lang.Package
     // (see PackageInfo).
@@ -890,9 +900,11 @@ instanceKlassHandle ClassLoader::load_classfile(Symbol* h_name, TRAPS) {
     PerfClassTraceTime vmtimer(perf_sys_class_lookup_time(),
                                ((JavaThread*) THREAD)->get_thread_stat()->perf_timers_addr(),
                                PerfClassTraceTime::CLASS_LOAD);
-    ClassPathEntry* e = _first_entry;
+    ClassPathEntry* e = _first_entry; 
     while (e != NULL) {
-      stream = e->open_stream(name);
+      if (THREAD->is_Compiler_thread() || !Universe::_fully_initialized || !e->compiler_thread_only()) {
+        stream = e->open_stream(name);
+      }
       if (stream != NULL) {
         break;
       }
