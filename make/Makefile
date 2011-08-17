@@ -88,6 +88,7 @@ C2_VM_TARGETS=product  fastdebug  optimized  jvmg
 KERNEL_VM_TARGETS=productkernel fastdebugkernel optimizedkernel jvmgkernel
 ZERO_VM_TARGETS=productzero fastdebugzero optimizedzero jvmgzero
 SHARK_VM_TARGETS=productshark fastdebugshark optimizedshark jvmgshark
+GRAAL_VM_TARGETS=productgraal fastdebuggraal optimizedgraal jvmggraal
 
 # JDK directory list
 JDK_DIRS=bin include jre lib demo
@@ -115,6 +116,12 @@ all_productshark:   productshark docs export_product
 all_fastdebugshark: fastdebugshark docs export_fastdebug
 all_debugshark:     jvmgshark docs export_debug
 all_optimizedshark: optimizedshark docs export_optimized
+
+allgraal:           all_productgraal all_fastdebuggraal
+all_productgraal:   productgraal docs export_product
+all_fastdebuggraal: fastdebuggraal docs export_fastdebug
+all_debuggraal:     jvmggraal docs export_debug
+all_optimizedgraal: optimizedgraal docs export_optimized
 
 # Do everything
 world:         all create_jdk
@@ -149,6 +156,10 @@ $(ZERO_VM_TARGETS):
 $(SHARK_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
 	$(MAKE) VM_TARGET=$@ generic_buildshark $(ALT_OUT)
+
+$(GRAAL_VM_TARGETS):
+	$(CD) $(GAMMADIR)/make; \
+	$(MAKE) VM_TARGET=$@ generic_buildgraal $(ALT_OUT)
 
 # Build compiler1 (client) rule, different for platforms
 generic_build1:
@@ -218,6 +229,12 @@ generic_buildshark:
 		$(MAKE) -f $(ABS_OS_MAKEFILE) \
 			$(MAKE_ARGS) $(VM_TARGET) 
 
+generic_buildgraal:
+	$(MKDIR) -p $(OUTPUTDIR)
+	$(CD) $(OUTPUTDIR); \
+		$(MAKE) -f $(ABS_OS_MAKEFILE) \
+			$(MAKE_ARGS) $(VM_TARGET) 
+
 # Export file rule
 generic_export: $(EXPORT_LIST)
 export_product:
@@ -250,11 +267,13 @@ C2_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_compiler2
 KERNEL_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_kernel
 ZERO_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_zero
 SHARK_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_shark
+GRAAL_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_graal
 C1_DIR=$(C1_BASE_DIR)/$(VM_SUBDIR)
 C2_DIR=$(C2_BASE_DIR)/$(VM_SUBDIR)
 KERNEL_DIR=$(KERNEL_BASE_DIR)/$(VM_SUBDIR)
 ZERO_DIR=$(ZERO_BASE_DIR)/$(VM_SUBDIR)
 SHARK_DIR=$(SHARK_BASE_DIR)/$(VM_SUBDIR)
+GRAAL_DIR=$(GRAAL_BASE_DIR)/$(VM_SUBDIR)
 
 # Misc files and generated files need to come from C1 or C2 area
 ifeq ($(ZERO_BUILD), true)
@@ -387,6 +406,7 @@ clean_build:
 	$(RM) -r $(KERNEL_DIR)
 	$(RM) -r $(ZERO_DIR)
 	$(RM) -r $(SHARK_DIR)
+	$(RM) -r $(GRAAL_DIR)
 clean_export:
 	$(RM) -r $(EXPORT_PATH)
 clean_jdk:

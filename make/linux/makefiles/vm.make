@@ -148,6 +148,11 @@ COMPILER2_PATHS += $(GENERATED)/adfiles
 
 SHARK_PATHS := $(GAMMADIR)/src/share/vm/shark
 
+GRAAL_PATHS := $(call altsrc,$(HS_COMMON_SRC)/share/vm/c1)
+GRAAL_PATHS += $(HS_COMMON_SRC)/share/vm/c1
+GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/share/vm/graal)
+GRAAL_PATHS += $(HS_COMMON_SRC)/share/vm/graal
+
 # Include dirs per type.
 Src_Dirs/CORE      := $(CORE_PATHS)
 Src_Dirs/COMPILER1 := $(CORE_PATHS) $(COMPILER1_PATHS)
@@ -155,12 +160,14 @@ Src_Dirs/COMPILER2 := $(CORE_PATHS) $(COMPILER2_PATHS)
 Src_Dirs/TIERED    := $(CORE_PATHS) $(COMPILER1_PATHS) $(COMPILER2_PATHS)
 Src_Dirs/ZERO      := $(CORE_PATHS)
 Src_Dirs/SHARK     := $(CORE_PATHS) $(SHARK_PATHS)
+Src_Dirs/GRAAL     := $(CORE_PATHS) $(GRAAL_PATHS)
 Src_Dirs := $(Src_Dirs/$(TYPE))
 
 COMPILER2_SPECIFIC_FILES := opto libadt bcEscapeAnalyzer.cpp chaitin\* c2_\* runtime_\*
 COMPILER1_SPECIFIC_FILES := c1_\*
 SHARK_SPECIFIC_FILES     := shark
 ZERO_SPECIFIC_FILES      := zero
+GRAAL_SPECIFIC_FILES     := graal
 
 # Always exclude these.
 Src_Files_EXCLUDE := jsig.c jvmtiEnvRecommended.cpp jvmtiEnvStub.cpp
@@ -172,6 +179,7 @@ Src_Files_EXCLUDE/COMPILER2 := $(COMPILER1_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES
 Src_Files_EXCLUDE/TIERED    := $(ZERO_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES)
 Src_Files_EXCLUDE/ZERO      := $(COMPILER1_SPECIFIC_FILES) $(COMPILER2_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) ciTypeFlow.cpp
 Src_Files_EXCLUDE/SHARK     := $(COMPILER1_SPECIFIC_FILES) $(COMPILER2_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES)
+Src_Files_EXCLUDE/GRAAL     := $(COMPILER2_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) ciTypeFlow.cpp
 
 Src_Files_EXCLUDE +=  $(Src_Files_EXCLUDE/$(TYPE))
 

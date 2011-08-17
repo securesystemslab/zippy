@@ -15,6 +15,4 @@ if [ -z "${DACAPO}" ]; then
   echo "DACAPO is not defined. It must point to a Dacapo benchmark directory."
   exit 1;
 fi
-COMMAND="${JDK7}/bin/java -graal -Xms1g -Xmx2g -esa -classpath ${DACAPO}/dacapo-9.12-bach.jar -XX:-GraalBailoutIsFatal -G:-QuietBailout $* Harness --preserve -n 20 tradebeans"
-echo $COMMAND
-$COMMAND
+${JDK7}/bin/java -graal -Xms1g -Xmx2g -classpath ${DACAPO}/dacapo-9.12-bach.jar -XX:-GraalBailoutIsFatal $* Harness --preserve -n 10 h2 
