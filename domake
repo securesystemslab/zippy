@@ -10,20 +10,20 @@ while [ -h "$me" ]; do
 done
 graal_home=$(cd `dirname $me`; pwd)
 
-grep '-client KNOWN' $JDK7/jre/lib/amd64/jvm.cfg >/dev/null
+grep -- '-graal KNOWN' $JDK7/jre/lib/amd64/jvm.cfg >/dev/null
 if [ $? -ne 0 ] ; then
-    echo "The setting for -client in $JDK7/jre/lib/amd64/jvm.cfg must be:"
+    echo "The setting for -graal in $JDK7/jre/lib/amd64/jvm.cfg must be (insert if missing):"
     echo
-    echo "  -client KNOWN"
+    echo "  -graal KNOWN"
     echo
     exit 1
 fi
 
-grep '-client KNOWN' $JDK7G/jre/lib/amd64/jvm.cfg >/dev/null
+grep -- '-graal KNOWN' $JDK7G/jre/lib/amd64/jvm.cfg >/dev/null
 if [ $? -ne 0 ] ; then
-    echo "The setting for -client in $JDK7G/jre/lib/amd64/jvm.cfg must be:"
+    echo "The setting for -graal in $JDK7G/jre/lib/amd64/jvm.cfg must be (insert if missing):"
     echo
-    echo "  -client KNOWN"
+    echo "  -graal KNOWN"
     echo
     exit 1
 fi
@@ -34,16 +34,16 @@ if [ ! -e $java_link ]; then
     ln -s $JDK7/jre/bin/java $java_link
 fi
 
-client_dir=$JDK7/jre/lib/amd64/client
-if [ ! -e $client_dir ]; then
-    echo "Creating client compiler dir: $client_dir"
-    mkdir $client_dir
+graal_dir=$JDK7/jre/lib/amd64/graal/
+if [ ! -e $graal_dir ]; then
+    echo "Creating graal compiler dir: $graal_dir"
+    mkdir $graal_dir
 fi
 
-client_dir=$JDK7G/jre/lib/amd64/client
-if [ ! -e $client_dir ]; then
-    echo "Creating debug client compiler dir: $client_dir"
-    mkdir $client_dir
+graaldbg_dir=$JDK7G/jre/lib/amd64/graal/
+if [ ! -e $graaldbg_dir ]; then
+    echo "Creating debug graal compiler dir: $graaldbg_dir"
+    mkdir $graaldbg_dir
 fi
 
 pushd $graal_home/make
