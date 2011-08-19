@@ -41,6 +41,8 @@ private:
     MARK_INVOKESPECIAL              = 0x2003,
     MARK_INVOKEVIRTUAL              = 0x2004,
     MARK_IMPLICIT_NULL              = 0x3000,
+    MARK_POLL                       = 0x3001,
+    MARK_POLL_RETURN                = 0x3002,
     MARK_KLASS_PATCHING             = 0x4000,
     MARK_DUMMY_OOP_RELOCATION       = 0x4001,
     MARK_ACCESS_FIELD_PATCHING      = 0x4002

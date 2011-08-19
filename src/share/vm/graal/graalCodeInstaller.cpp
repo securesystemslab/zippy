@@ -804,6 +804,12 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_IMPLICIT_NULL:
         _implicit_exception_table.append(pc_offset, pc_offset);
         break;
+      case MARK_POLL:
+        _instructions->relocate(instruction, relocInfo::poll_type);
+        break;
+      case MARK_POLL_RETURN:
+        _instructions->relocate(instruction, relocInfo::poll_return_type);
+        break;
       case MARK_KLASS_PATCHING:
       case MARK_ACCESS_FIELD_PATCHING: {
         unsigned char* byte_count = (unsigned char*) (instruction - 1);
