@@ -747,8 +747,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getType(JNIEnv
 jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
   jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
   if (id == NULL) {
-    TRACE_graal_1("field not found: %s (%s)", name, sig);
-    fatal("field not found");
+    fatal(err_msg("field not found: %s (%s)", name, sig));
   }
   return id;
 }
