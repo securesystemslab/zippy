@@ -85,6 +85,7 @@ def main():
         benchmarks = runBash('java -jar ' + os.environ['DACAPO'] + '/dacapo-9.12-bach.jar -l').read().decode().split(' ')
     
         benchmarkTime = re.compile(r"===== DaCapo 9\.12 ([a-zA-Z0-9_]+) ((PASSED)|(completed warmup [0-9]+)) in ([0-9]+) msec =====")
+	print('command: ' + cmd)
     
         csvOutput = [['benchmark', 'type', 'time']]
         csvOutputLine = 0
