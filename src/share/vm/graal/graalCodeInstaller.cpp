@@ -804,10 +804,22 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_IMPLICIT_NULL:
         _implicit_exception_table.append(pc_offset, pc_offset);
         break;
-      case MARK_POLL:
+      case MARK_POLL_NEAR: {
+        NativeInstruction* ni = nativeInstruction_at(instruction);
+        int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
+        intptr_t new_disp = (intptr_t) (os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())) - (intptr_t) ni;
+        *disp = (int32_t)new_disp;
+      }
+      case MARK_POLL_FAR:
         _instructions->relocate(instruction, relocInfo::poll_type);
         break;
-      case MARK_POLL_RETURN:
+      case MARK_POLL_RETURN_NEAR: {
+        NativeInstruction* ni = nativeInstruction_at(instruction);
+        int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
+        intptr_t new_disp = (intptr_t) (os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())) - (intptr_t) ni;
+        *disp = (int32_t)new_disp;
+      }
+      case MARK_POLL_RETURN_FAR:
         _instructions->relocate(instruction, relocInfo::poll_return_type);
         break;
       case MARK_KLASS_PATCHING:
