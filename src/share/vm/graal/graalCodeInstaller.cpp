@@ -603,11 +603,11 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_graal_3("CiRuntimeCall::CreateOutOfBoundsException()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
-      call->set_destination((address)os::javaTimeMillis);
+      call->set_destination(CAST_FROM_FN_PTR(address, os::javaTimeMillis));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_graal_3("CiRuntimeCall::JavaTimeMillis()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
-      call->set_destination((address)os::javaTimeNanos);
+      call->set_destination(CAST_FROM_FN_PTR(address, os::javaTimeNanos));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_graal_3("CiRuntimeCall::JavaTimeNanos()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
