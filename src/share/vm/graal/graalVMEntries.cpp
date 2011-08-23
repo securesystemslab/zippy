@@ -143,6 +143,19 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBala
   return cimethod->has_balanced_monitors();
 }
 
+// public RiMethod getRiMethod(java.lang.reflect.Method reflectionMethod);
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getRiMethod(JNIEnv *, jobject, jobject reflection_method_handle) {
+  TRACE_graal_3("VMEntries::getRiMethod");
+  VM_ENTRY_MARK;
+  oop reflection_method = JNIHandles::resolve(reflection_method_handle);
+  oop reflection_holder = java_lang_reflect_Method::clazz(reflection_method);
+  int slot = java_lang_reflect_Method::slot(reflection_method);
+  klassOop holder = java_lang_Class::as_klassOop(reflection_holder);
+  methodOop method = instanceKlass::cast(holder)->method_with_idnum(slot);
+  oop ret = GraalCompiler::createHotSpotMethodResolved(method, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, ret);
+}
+
 // public boolean RiMethod_uniqueConcreteMethod(long vmId);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("VMEntries::RiMethod_uniqueConcreteMethod");
@@ -171,8 +184,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniq
     return NULL;
   }
 
-  Handle name = VmIds::toString<Handle>(unique_concrete->name(), CHECK_NULL);
-  oop method_resolved = GraalCompiler::createHotSpotMethodResolved(unique_concrete(), name, CHECK_NULL);
+  oop method_resolved = GraalCompiler::createHotSpotMethodResolved(unique_concrete(), CHECK_NULL);
   return JNIHandles::make_local(THREAD, method_resolved);
 }
 
@@ -462,8 +474,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool
   ciMethod *cimethod = CURRENT_ENV->get_method_by_index(cp, index, bc, loading_klass);
   if (cimethod->is_loaded()) {
     methodOop method = (methodOop) cimethod->get_oop();
-    Handle name = VmIds::toString<Handle>(method->name(), CHECK_NULL);
-    oop ret = GraalCompiler::createHotSpotMethodResolved(method, name, CHECK_NULL);
+    oop ret = GraalCompiler::createHotSpotMethodResolved(method, CHECK_NULL);
     return JNIHandles::make_local(THREAD, ret);
   } else {
     Handle name = VmIds::toString<Handle>(cimethod->name()->get_symbol(), CHECK_NULL);
@@ -584,7 +595,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiType_3resolv
     }
     return NULL;
   }
-  oop ret = GraalCompiler::createHotSpotMethodResolved(method, Handle(JNIHandles::resolve(name)), CHECK_NULL);
+  oop ret = GraalCompiler::createHotSpotMethodResolved(method, CHECK_NULL);
   return JNIHandles::make_local(THREAD, ret);
 }
 
@@ -858,14 +869,26 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getConfigurati
 // public void installMethod(HotSpotTargetMethod targetMethod);
 JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod) {
   VM_ENTRY_MARK;
-  CodeInstaller installer(JNIHandles::resolve(targetMethod));
+  if (CURRENT_ENV == NULL) {
+    Arena arena;
+    ciEnv env(&arena);
+    CodeInstaller installer(JNIHandles::resolve(targetMethod));
+  } else {
+    CodeInstaller installer(JNIHandles::resolve(targetMethod));
+  }
 }
 
 // public HotSpotProxy installStub(HotSpotTargetMethod targetMethod, String name);
 JNIEXPORT jlong JNICALL Java_com_oracle_graal_runtime_VMEntries_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
   VM_ENTRY_MARK;
   jlong id;
-  CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
+  if (CURRENT_ENV == NULL) {
+    Arena arena;
+    ciEnv env(&arena);
+    CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
+  } else {
+    CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
+  }
   return id;
 }
 
@@ -891,6 +914,7 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNI
 #define RESOLVED_TYPE   "Lcom/oracle/max/graal/runtime/HotSpotTypeResolved;"
 #define METHOD          "Lcom/sun/cri/ri/RiMethod;"
 #define RESOLVED_METHOD "Lcom/oracle/max/graal/runtime/HotSpotMethodResolved;"
+#define REFLECT_METHOD  "Ljava/lang/reflect/Method;"
 #define TYPE_PROFILE    "Lcom/sun/cri/ri/RiTypeProfile;"
 #define SIGNATURE       "Lcom/sun/cri/ri/RiSignature;"
 #define FIELD           "Lcom/sun/cri/ri/RiField;"
@@ -911,6 +935,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiMethod_exceptionHandlers",      CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1exceptionHandlers)},
   {CC"RiMethod_hasBalancedMonitors",    CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors)},
   {CC"RiMethod_uniqueConcreteMethod",   CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
+  {CC"getRiMethod",                     CC"("REFLECT_METHOD")"METHOD,               FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getRiMethod)},
   {CC"RiMethod_typeProfile",            CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile)},
   {CC"RiMethod_branchProbability",      CC"("RESOLVED_METHOD"I)D",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability)},
   {CC"RiMethod_switchProbability",      CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2switchProbability)},

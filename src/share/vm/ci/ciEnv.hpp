@@ -384,10 +384,10 @@ public:
   Arena*    arena() { return _arena; }
 
   // What is the current compilation environment?
-  static ciEnv* current() { return CompilerThread::current()->env(); }
+  static ciEnv* current() { return JavaThread::current()->env(); }
 
   // Overload with current thread argument
-  static ciEnv* current(CompilerThread *thread) { return thread->env(); }
+  static ciEnv* current(JavaThread *thread) { return thread->env(); }
 
   // Per-compiler data.  (Used by C2 to publish the Compile* pointer.)
   void* compiler_data() { return _compiler_data; }

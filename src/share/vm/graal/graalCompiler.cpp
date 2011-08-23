@@ -84,7 +84,7 @@ void GraalCompiler::initialize() {
 
 void GraalCompiler::initialize_buffer_blob() {
 
-  CompilerThread* THREAD = CompilerThread::current();
+  JavaThread* THREAD = JavaThread::current();
   if (THREAD->get_buffer_blob() == NULL) {
     // setup CodeBuffer.  Preallocate a BufferBlob of size
     // NMethodSizeLimit plus some extra space for constants.
@@ -104,15 +104,13 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
   ResourceMark rm;
   HandleMark hm;
 
-  initialize_buffer_blob();
   VmIds::initializeObjects();
 
   TRACE_graal_2("GraalCompiler::compile_method");
 
   CompilerThread::current()->set_compiling(true);
   methodOop method = (methodOop) target->get_oop();
-  Handle name = VmIds::toString<Handle>(method->name(), CHECK);
-  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, name, CHECK);
+  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
   VMExits::compileMethod(hotspot_method, entry_bci);
   CompilerThread::current()->set_compiling(false);
 
@@ -202,11 +200,13 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
   return obj();
 }
 
-oop GraalCompiler::createHotSpotMethodResolved(methodHandle method, Handle name, TRAPS) {
+oop GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   if (method->graal_mirror() != NULL) {
     assert(method->graal_mirror()->is_a(HotSpotMethodResolved::klass()), "unexpected class...");
     return method->graal_mirror();
   }
+
+  Handle name = VmIds::toString<Handle>(method->name(), CHECK_NULL);
 
   instanceKlass::cast(HotSpotMethodResolved::klass())->initialize(CHECK_NULL);
   Handle obj = instanceKlass::cast(HotSpotMethodResolved::klass())->allocate_instance(CHECK_NULL);

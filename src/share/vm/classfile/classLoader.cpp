@@ -585,7 +585,7 @@ void ClassLoader::update_class_path_entry_list(const char *path,
     // File or directory found
     ClassPathEntry* new_entry = NULL;
     create_class_path_entry((char *)path, st, &new_entry, LazyBootClassLoader);
-	new_entry->set_compiler_thread_only(compiler_cp);
+	//new_entry->set_compiler_thread_only(compiler_cp);
     // The kernel VM adds dynamically to the end of the classloader path and
     // doesn't reorder the bootclasspath which would break java.lang.Package
     // (see PackageInfo).
@@ -905,6 +905,22 @@ instanceKlassHandle ClassLoader::load_classfile(Symbol* h_name, TRAPS) {
       if (THREAD->is_Compiler_thread() || !Universe::_fully_initialized || !e->compiler_thread_only()) {
         stream = e->open_stream(name);
       }
+      if (stream != NULL) {
+        break;
+      }
+      e = e->next();
+      ++classpath_index;
+    }
+  }
+
+  if (stream == NULL && !(THREAD->is_Compiler_thread())) {  
+	  classpath_index = 0;
+    PerfClassTraceTime vmtimer(perf_sys_class_lookup_time(),
+                               ((JavaThread*) THREAD)->get_thread_stat()->perf_timers_addr(),
+                               PerfClassTraceTime::CLASS_LOAD);
+    ClassPathEntry* e = _first_entry; 
+    while (e != NULL) {
+      stream = e->open_stream(name);
       if (stream != NULL) {
         break;
       }

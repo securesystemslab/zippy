@@ -231,23 +231,25 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
 
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle target_method) {
+  _env = CURRENT_ENV;
   ciMethod *ciMethodObject = NULL;
   {
+    methodOop method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method));
+    ciMethodObject = (ciMethod *) _env->get_object(method);
+    _parameter_count = method->size_of_parameters();
+
     No_Safepoint_Verifier no_safepoint;
-    _env = CURRENT_ENV;
 
     initialize_fields(target_method);
     assert(_hotspot_method != NULL && _name == NULL, "installMethod needs NON-NULL method and NULL name");
     assert(_hotspot_method->is_a(HotSpotMethodResolved::klass()), "installMethod needs a HotSpotMethodResolved");
 
-    methodOop method = getMethodFromHotSpotMethod(_hotspot_method);
-    ciMethodObject = (ciMethod *) _env->get_object(method);
-    _parameter_count = method->size_of_parameters();
   }
 
   // (very) conservative estimate: each site needs a relocation
   //CodeBuffer buffer("temp graal method", _total_size, _sites->length() * relocInfo::length_limit);
-  CodeBuffer buffer(CompilerThread::current()->get_buffer_blob());
+  GraalCompiler::initialize_buffer_blob();
+  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   initialize_buffer(buffer);
   process_exception_handlers();
 
@@ -267,7 +269,8 @@ CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
   assert(_hotspot_method == NULL && _name != NULL, "installMethod needs NON-NULL name and NULL method");
 
   // (very) conservative estimate: each site needs a relocation
-  CodeBuffer buffer(CompilerThread::current()->get_buffer_blob());
+  GraalCompiler::initialize_buffer_blob();
+  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   initialize_buffer(buffer);
 
   const char* cname = java_lang_String::as_utf8_string(_name);

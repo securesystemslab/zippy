@@ -36,7 +36,7 @@
 
 // Bring the compilation thread into the VM state.
 #define VM_ENTRY_MARK                       \
-  CompilerThread* thread=CompilerThread::current(); \
+  JavaThread* thread=JavaThread::current(); \
   ThreadInVMfromNative __tiv(thread);       \
   ResetNoHandleMark rnhm;                   \
   HandleMarkCleaner __hm(thread);           \
@@ -47,7 +47,7 @@
 
 // Bring the compilation thread into the VM state.  No handle mark.
 #define VM_QUICK_ENTRY_MARK                 \
-  CompilerThread* thread=CompilerThread::current(); \
+  JavaThread* thread=JavaThread::current(); \
   ThreadInVMfromNative __tiv(thread);       \
 /*                                          \
  * [TODO] The NoHandleMark line does nothing but declare a function prototype \
@@ -60,7 +60,7 @@
 
 
 #define EXCEPTION_CONTEXT \
-  CompilerThread* thread=CompilerThread::current(); \
+  JavaThread* thread=JavaThread::current(); \
   Thread* THREAD = thread;
 
 

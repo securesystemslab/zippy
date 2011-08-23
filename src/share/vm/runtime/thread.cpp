@@ -1245,7 +1245,9 @@ void JavaThread::initialize() {
 
   // Set the claimed par_id to -1 (ie not claiming any par_ids)
   set_claimed_par_id(-1);
-
+  
+  _env   = NULL;
+  _buffer_blob = NULL;
   set_saved_exception_pc(NULL);
   set_threadObj(NULL);
   _anchor.clear();
@@ -2940,13 +2942,11 @@ static void compiler_thread_entry(JavaThread* thread, TRAPS) {
 // Create a CompilerThread
 CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
 : JavaThread(&compiler_thread_entry) {
-  _env   = NULL;
   _log   = NULL;
   _task  = NULL;
   _queue = queue;
   _counters = counters;
   _is_compiling = false;
-  _buffer_blob = NULL;
   _scanned_nmethod = NULL;
 
 #ifndef PRODUCT

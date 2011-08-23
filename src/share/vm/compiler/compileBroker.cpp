@@ -660,7 +660,7 @@ void CompileBroker::bootstrap_graal() {
   tty->print_cr("Bootstrapping graal....");
 
   GraalCompiler* compiler = GraalCompiler::instance();
-  if (compiler == NULL) fatal("must use flag -XX:+UseGraal");
+  assert(compiler != NULL, "just checking");
 
   jlong start = os::javaTimeMillis();
   add_method_to_queue(SystemDictionary::Object_klass(), vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());

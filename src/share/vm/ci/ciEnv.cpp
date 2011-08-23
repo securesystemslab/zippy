@@ -94,7 +94,7 @@ static bool firstEnv = true;
 // ciEnv::ciEnv
 ciEnv::ciEnv(CompileTask* task, int system_dictionary_modification_counter) {
   VM_ENTRY_MARK;
-
+  CompilerThread* compiler_thread = CompilerThread::current();
   // Set up ciEnv::current immediately, for the sake of ciObjectFactory, etc.
   thread->set_env(this);
   assert(ciEnv::current() == this, "sanity");
@@ -106,13 +106,13 @@ ciEnv::ciEnv(CompileTask* task, int system_dictionary_modification_counter) {
   _compilable = MethodCompilable;
   _break_at_compile = false;
   _compiler_data = NULL;
-#ifndef PRODUCT
-  assert(!firstEnv, "not initialized properly");
-#endif /* !PRODUCT */
+//#ifndef PRODUCT
+//  assert(!firstEnv, "not initialized properly");
+//#endif /* !PRODUCT */
 
   _system_dictionary_modification_counter = system_dictionary_modification_counter;
   _num_inlined_bytecodes = 0;
-  assert(task == NULL || thread->task() == task, "sanity");
+  assert(task == NULL || compiler_thread->task() == task, "sanity");
   _task = task;
   _log = NULL;
 
@@ -149,7 +149,7 @@ ciEnv::ciEnv(Arena* arena) {
   ASSERT_IN_VM;
 
   // Set up ciEnv::current immediately, for the sake of ciObjectFactory, etc.
-  CompilerThread* current_thread = CompilerThread::current();
+  JavaThread* current_thread = JavaThread::current();
   assert(current_thread->env() == NULL, "must be");
   current_thread->set_env(this);
   assert(ciEnv::current() == this, "sanity");
@@ -161,10 +161,10 @@ ciEnv::ciEnv(Arena* arena) {
   _compilable = MethodCompilable_never;
   _break_at_compile = false;
   _compiler_data = NULL;
-#ifndef PRODUCT
-  assert(firstEnv, "must be first");
-  firstEnv = false;
-#endif /* !PRODUCT */
+//#ifndef PRODUCT
+//  assert(firstEnv, "must be first");
+//  firstEnv = false;
+//#endif /* !PRODUCT */
 
   _system_dictionary_modification_counter = 0;
   _num_inlined_bytecodes = 0;
@@ -202,7 +202,7 @@ ciEnv::ciEnv(Arena* arena) {
 
 ciEnv::~ciEnv() {
   _factory->cleanup();
-  CompilerThread* current_thread = CompilerThread::current();
+  JavaThread* current_thread = JavaThread::current();
   _factory->remove_symbols();
   current_thread->set_env(NULL);
 }
