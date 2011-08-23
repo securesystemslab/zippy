@@ -9,4 +9,3 @@ call create.bat %OrigPath%
 
 set PATH=%ORIG_PATH%
 cd %OrigPath%
-pause
