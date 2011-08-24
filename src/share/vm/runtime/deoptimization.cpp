@@ -1265,6 +1265,18 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     
     if (TraceDeoptimization) {
       tty->print_cr("Deoptimization: bci=%d pc=%d, relative_pc=%d, method=%s", trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string());
+      if (thread->graal_deopt_info() != NULL) {
+        oop deopt_info = thread->graal_deopt_info();
+        if (java_lang_String::is_instance(deopt_info)) {
+          char buf[1024];
+          java_lang_String::as_utf8_string(deopt_info, buf, 1024);
+          tty->print_cr("deopt info: %s", buf);
+        } else {
+          tty->print_cr("deopt info:");
+          deopt_info->print();
+        }
+        thread->set_graal_deopt_info(NULL);
+      }
     }
 
     methodHandle    trap_method = trap_scope->method();

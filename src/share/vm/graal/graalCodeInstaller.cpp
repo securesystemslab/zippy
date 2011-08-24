@@ -597,6 +597,10 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       call->set_destination(Runtime1::entry_for(Runtime1::graal_handle_exception_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_graal_3("CiRuntimeCall::HandleException()");
+    } else if (runtime_call == CiRuntimeCall::SetDeoptInfo()) {
+      call->set_destination(Runtime1::entry_for(Runtime1::graal_set_deopt_info_id));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_graal_3("CiRuntimeCall::SetDeoptInfo()");
     } else if (runtime_call == CiRuntimeCall::CreateNullPointerException()) {
       call->set_destination(Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);

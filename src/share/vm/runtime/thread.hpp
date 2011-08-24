@@ -840,6 +840,8 @@ class JavaThread: public Thread {
   // graal needs some place to put the dimensions
   jint graal_multinewarray_storage[256];
 
+  volatile oop _graal_deopt_info;
+
   StackGuardState        _stack_guard_state;
 
   // Compiler exception handling (NOTE: The _exception_oop is *NOT* the same as _pending_exception. It is
@@ -1194,6 +1196,9 @@ class JavaThread: public Thread {
   MemRegion deferred_card_mark() const           { return _deferred_card_mark; }
   void set_deferred_card_mark(MemRegion mr)      { _deferred_card_mark = mr;   }
 
+  oop      graal_deopt_info() const              { return _graal_deopt_info; }
+  void set_graal_deopt_info(oop o)               { _graal_deopt_info = o; }
+
   // Exception handling for compiled methods
   oop      exception_oop() const                 { return _exception_oop; }
   int      exception_stack_size() const          { return _exception_stack_size; }
@@ -1275,6 +1280,7 @@ class JavaThread: public Thread {
   static ByteSize thread_state_offset()          { return byte_offset_of(JavaThread, _thread_state        ); }
   static ByteSize saved_exception_pc_offset()    { return byte_offset_of(JavaThread, _saved_exception_pc  ); }
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
+  static ByteSize graal_deopt_info_offset()      { return byte_offset_of(JavaThread, _graal_deopt_info    ); }
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }
   static ByteSize exception_handler_pc_offset()  { return byte_offset_of(JavaThread, _exception_handler_pc); }
