@@ -625,6 +625,18 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       call->set_destination(Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
       TRACE_graal_3("CiRuntimeCall::ArithmeticDrem()");
+    } else if (runtime_call == CiRuntimeCall::ArithmeticSin()) {
+      call->set_destination(CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_graal_3("CiRuntimeCall::ArithmeticSin()");
+    } else if (runtime_call == CiRuntimeCall::ArithmeticCos()) {
+      call->set_destination(CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_graal_3("CiRuntimeCall::ArithmeticCos()");
+    } else if (runtime_call == CiRuntimeCall::ArithmeticTan()) {
+      call->set_destination(CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      TRACE_graal_3("CiRuntimeCall::ArithmeticTan()");
     } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
       call->set_destination(Runtime1::entry_for(Runtime1::register_finalizer_id));
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
