@@ -22,15 +22,16 @@
  */
 
 #include "precompiled.hpp"
+#include "c1/c1_Runtime1.hpp"
+#include "ci/ciMethodData.hpp"
 #include "graal/graalVMEntries.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMExits.hpp"
 #include "graal/graalVmIds.hpp"
-#include "c1/c1_Runtime1.hpp"
 #include "memory/oopFactory.hpp"
-#include "ci/ciMethodData.hpp"
+#include "oops/generateOopMap.hpp"
 
 methodOop getMethodFromHotSpotMethod(jobject hotspot_method) {
   return getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
@@ -134,13 +135,29 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_
 // public boolean RiMethod_hasBalancedMonitors(long vmId);
 JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("VMEntries::RiMethod_hasBalancedMonitors");
-  ciMethod* cimethod;
-  {
-    VM_ENTRY_MARK;
-    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
+
+  VM_ENTRY_MARK;
+
+  // Analyze the method to see if monitors are used properly.
+  methodHandle method(THREAD, getMethodFromHotSpotMethod(hotspot_method));
+  assert(method->has_monitor_bytecodes(), "should have checked this");
+
+  // Check to see if a previous compilation computed the monitor-matching analysis.
+  if (method->guaranteed_monitor_matching()) {
+    return true;
   }
-  return cimethod->has_balanced_monitors();
+
+  {
+    EXCEPTION_MARK;
+    ResourceMark rm(THREAD);
+    GeneratePairingInfo gpi(method);
+    gpi.compute_map(CATCH);
+    if (!gpi.monitor_safe()) {
+      return false;
+    }
+    method->set_guaranteed_monitor_matching();
+  }
+  return true;
 }
 
 // public RiMethod getRiMethod(java.lang.reflect.Method reflectionMethod);
@@ -159,10 +176,11 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getRiMethod(JN
 // public boolean RiMethod_uniqueConcreteMethod(long vmId);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("VMEntries::RiMethod_uniqueConcreteMethod");
+
   VM_ENTRY_MARK;
-  methodOop m = getMethodFromHotSpotMethod(hotspot_method);
-  ciMethod* cimethod = (ciMethod*)CURRENT_ENV->get_object(m);
-  if (cimethod->holder()->is_interface()) {
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  klassOop holder = method->method_holder();
+  if (holder->klass_part()->is_interface()) {
     // Cannot trust interfaces. Because of:
     // interface I { void foo(); }
     // class A { public void foo() {} }
@@ -172,20 +190,18 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniq
     // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
     return false;
   }
-  klassOop klass = (klassOop)cimethod->holder()->get_oop();
-  methodHandle method((methodOop)cimethod->get_oop());
-  methodHandle unique_concrete;
+  methodOop unique_concrete;
   {
     ResourceMark rm;
     MutexLocker locker(Compile_lock);
-    unique_concrete = methodHandle(Dependencies::find_unique_concrete_method(klass, method()));
+    unique_concrete = Dependencies::find_unique_concrete_method(holder, method);
   }
-  if (unique_concrete.is_null()) {
+  if (unique_concrete == NULL) {
     return NULL;
+  } else {
+    oop method_resolved = GraalCompiler::createHotSpotMethodResolved(unique_concrete, CHECK_NULL);
+    return JNIHandles::make_local(THREAD, method_resolved);
   }
-
-  oop method_resolved = GraalCompiler::createHotSpotMethodResolved(unique_concrete(), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, method_resolved);
 }
 
 // public native int RiMethod_invocationCount(long vmId);
