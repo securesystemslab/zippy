@@ -114,10 +114,7 @@ void graal_compute_offsets();
     int_field(CiTargetMethod_Site, pcOffset)                                            \
   end_class                                                                             \
   start_class(CiTargetMethod_Call)                                                      \
-    oop_field(CiTargetMethod_Call, runtimeCall, "Lcom/sun/cri/ci/CiRuntimeCall;")       \
-    oop_field(CiTargetMethod_Call, method, "Lcom/sun/cri/ri/RiMethod;")                 \
-    oop_field(CiTargetMethod_Call, symbol, "Ljava/lang/String;")                        \
-    oop_field(CiTargetMethod_Call, stubID, "Ljava/lang/Object;")                        \
+    oop_field(CiTargetMethod_Call, target, "Ljava/lang/Object;")                        \
     oop_field(CiTargetMethod_Call, debugInfo, "Lcom/sun/cri/ci/CiDebugInfo;")           \
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \

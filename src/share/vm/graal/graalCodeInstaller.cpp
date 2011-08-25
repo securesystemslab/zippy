@@ -336,12 +336,12 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     oop site = sites[i];
     jint pc_offset = CiTargetMethod_Site::pcOffset(site);
 
-    if (site->is_a(CiTargetMethod_Safepoint::klass())) {
-      TRACE_graal_4("safepoint at %i", pc_offset);
-      site_Safepoint(buffer, pc_offset, site);
-    } else if (site->is_a(CiTargetMethod_Call::klass())) {
+    if (site->is_a(CiTargetMethod_Call::klass())) {
       TRACE_graal_4("call at %i", pc_offset);
       site_Call(buffer, pc_offset, site);
+    } else if (site->is_a(CiTargetMethod_Safepoint::klass())) {
+      TRACE_graal_4("safepoint at %i", pc_offset);
+      site_Safepoint(buffer, pc_offset, site);
     } else if (site->is_a(CiTargetMethod_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
       site_DataPatch(buffer, pc_offset, site);
@@ -567,14 +567,24 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 }
 
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop runtime_call = CiTargetMethod_Call::runtimeCall(site);
-  oop hotspot_method = CiTargetMethod_Call::method(site);
-  oop symbol = CiTargetMethod_Call::symbol(site);
-  oop global_stub = CiTargetMethod_Call::stubID(site);
+  oop target = CiTargetMethod_Call::target(site);
+  instanceKlass* target_klass = instanceKlass::cast(target->klass());
+
+  oop runtime_call = NULL; // CiRuntimeCall
+  oop hotspot_method = NULL; // RiMethod
+  oop global_stub = NULL;
+
+  if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
+    global_stub = target;
+  } else if (target_klass->name() == vmSymbols::com_sun_cri_ci_CiRuntimeCall()) {
+    runtime_call = target;
+  } else {
+    hotspot_method = target;
+  }
 
   oop debug_info = CiTargetMethod_Call::debugInfo(site);
 
-  assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (symbol ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
+  assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
   assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size)");
   jint next_pc_offset = pc_offset + NativeCall::instruction_size;
@@ -658,8 +668,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     }
     _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     TRACE_graal_3("relocating (stub)  at %016x", inst);
-  } else if (symbol != NULL) {
-    fatal("symbol");
   } else { // method != NULL
     NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
     assert(hotspot_method != NULL, "unexpected RiMethod");
