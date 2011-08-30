@@ -29,7 +29,6 @@ import com.sun.hotspot.igv.graph.Connection;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
-import com.sun.hotspot.igv.graph.OutputSlot;
 import java.awt.Color;
 import java.util.List;
 
@@ -55,17 +54,17 @@ public class GraalEdgeColorFilter extends AbstractFilter {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {
             Properties p = f.getProperties();
-            int succCount = Integer.parseInt(p.get("successorCount"));
-            for (OutputSlot os : f.getOutputSlots()) {
+            int predCount = Integer.parseInt(p.get("predecessorCount"));
+            for (InputSlot is : f.getInputSlots()) {
                 Color color;
-                if (os.getPosition() < succCount) {
+                if (is.getPosition() < predCount) {
                     color = successorColor;
                 } else {
                     color = usageColor;
                 }
 
-                os.setColor(color);
-                for (Connection c : os.getConnections()) {
+                is.setColor(color);
+                for (Connection c : is.getConnections()) {
                     c.setColor(color);
                 }
             }
@@ -79,7 +78,7 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     public void setUsageColor(Color usageColor) {
         this.usageColor = usageColor;
     }
-    
+
     public void setMemoryColor(Color memoryColor) {
         this.memoryColor = memoryColor;
     }
@@ -87,7 +86,7 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     public Color getMemoryColor() {
         return memoryColor;
     }
-    
+
     public Color getSuccessorColor() {
         return successorColor;
     }
