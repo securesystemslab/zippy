@@ -749,6 +749,31 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getPrimitiveAr
   return JNIHandles::make_local(THREAD, GraalCompiler::get_RiType(klass, KlassHandle(), THREAD));
 }
 
+// public long getMaxCallTargetOffset(CiRuntimeCall rtcall);
+JNIEXPORT jlong JNICALL Java_com_oracle_graal_runtime_VMEntries_getMaxCallTargetOffset(JNIEnv *env, jobject, jobject rtcall) {
+  TRACE_graal_3("VMEntries::VMEntries_getMaxCallTargetOffset");
+  VM_ENTRY_MARK;
+  oop call = JNIHandles::resolve(rtcall);
+  address target_addr = 0x0;
+  if (call == CiRuntimeCall::ArithmeticSin()) {
+    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
+  } else if (call == CiRuntimeCall::ArithmeticCos()) {
+    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
+  } else if (call == CiRuntimeCall::ArithmeticTan()) {
+    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
+  } else if (call == CiRuntimeCall::JavaTimeMillis()) {
+    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
+  } else if (call == CiRuntimeCall::JavaTimeNanos()) {
+    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
+  }
+  if (target_addr != 0x0) {
+    int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
+    int64_t off_high = (int64_t)target_addr - ((int64_t)CodeCache::high_bound() + sizeof(int));
+    return MAX2(ABS(off_low), ABS(off_high));
+  }
+  return -1;
+}
+
 // public RiType getType(Class<?> javaClass);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getType(JNIEnv *env, jobject, jobject javaClass) {
   TRACE_graal_3("VMEntries::VMEntries_getType");
@@ -941,6 +966,7 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNI
 #define HS_METHOD       "Lcom/oracle/max/graal/runtime/HotSpotMethod;"
 #define CI_CONSTANT     "Lcom/sun/cri/ci/CiConstant;"
 #define CI_KIND         "Lcom/sun/cri/ci/CiKind;"
+#define CI_RUNTIME_CALL "Lcom/sun/cri/ci/CiRuntimeCall;"
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"
 #define CLASS           "Ljava/lang/Class;"
@@ -975,6 +1001,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_fields",                   CC"("RESOLVED_TYPE")["FIELD,                FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1fields)},
   {CC"RiType_isInitialized",            CC"("RESOLVED_TYPE")Z",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1isInitialized)},
   {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",          CC"("CI_RUNTIME_CALL")J",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getMaxCallTargetOffset)},
   {CC"getType",                         CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getType)},
   {CC"getConfiguration",                CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getConfiguration)},
   {CC"installMethod",                   CC"("TARGET_METHOD")V",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_installMethod)},
