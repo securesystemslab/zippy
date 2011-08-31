@@ -127,18 +127,24 @@ void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
 }
 
-oop GraalCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
-  if (type->is_loaded()) {
-    if (type->is_primitive_type()) {
-      return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
+oop GraalCompiler::get_RiType(KlassHandle klass, KlassHandle accessor, TRAPS) {
+  assert(instanceKlass::cast(klass())->is_initialized(), "unexpected unresolved klass");
+  Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
+  return createHotSpotTypeResolved(klass, name, CHECK_NULL);
+}
+
+  oop GraalCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
+    if (type->is_loaded()) {
+      if (type->is_primitive_type()) {
+        return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
+      }
+      KlassHandle klass = (klassOop) type->get_oop();
+      Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
+      return createHotSpotTypeResolved(klass, name, CHECK_NULL);
+    } else {
+      Symbol* name = ((ciKlass *) type)->name()->get_symbol();
+      return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), THREAD);
     }
-    KlassHandle klass = (klassOop) type->get_oop();
-    Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
-    return createHotSpotTypeResolved(klass, name, CHECK_NULL);
-  } else {
-    Symbol* name = ((ciKlass *) type)->name()->get_symbol();
-    return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), THREAD);
-  }
 }
 
 oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
