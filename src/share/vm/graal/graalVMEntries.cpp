@@ -243,12 +243,17 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2excepti
 // invocation counts in methods.
 int scale_count(methodDataOop method_data, int count) {
   if (count > 0) {
-    int method_life = method_data->method()->invocation_count();
-    int counter_life = method_life - method_data->creation_mileage();
+    int counter_life;
+    int method_life = method_data->method()->interpreter_invocation_count();
+    int current_mileage = methodDataOopDesc::mileage_of(method_data->method());
+    int creation_mileage = method_data->creation_mileage();
+    counter_life = current_mileage - creation_mileage;
 
-    if (method_life > 0 && counter_life > 0 && method_life > counter_life) {
-      double factor = method_life / (double) counter_life;
-      count = (int)(count * factor);
+    // counter_life due to backedge_counter could be > method_life
+    if (counter_life > method_life)
+      counter_life = method_life;
+    if (0 < counter_life && counter_life <= method_life) {
+      count = (int)((double)count * method_life / counter_life + 0.5);
       count = (count > 0) ? count : 1;
     }
   }
@@ -260,9 +265,14 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2type
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
   Handle obj;
   {
-    /*
     VM_ENTRY_MARK;
     methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
+    if (strstr(method->name_and_sig_as_C_string(), "factor") != NULL) {
+//      tty->print_cr("here");
+    }
+    if (bci == 123) {
+//      tty->print_cr("here2");
+    }
     methodDataHandle method_data = method->method_data();
     if (method_data == NULL || !method_data->is_mature()) {
       return NULL;
@@ -272,7 +282,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2type
       ReceiverTypeData* recv = data->as_ReceiverTypeData();
       // determine morphism
       int morphism = 0;
-      int total_count = 0;
+      uint total_count = 0;
       for (uint i = 0; i < recv->row_limit(); i++) {
         klassOop receiver = recv->receiver(i);
         if (receiver == NULL)  continue;
@@ -280,14 +290,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2type
         total_count += recv->receiver_count(i);
       }
 
-      if (morphism > 0) {
         instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
         obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
         assert(obj() != NULL, "must succeed in allocating instance");
 
-        RiTypeProfile::set_count(obj, scale_count(method_data(), recv->count()));
+        int count = MAX2(total_count, recv->count());
+        RiTypeProfile::set_count(obj, scale_count(method_data(), count));
         RiTypeProfile::set_morphism(obj, morphism);
 
+      if (morphism > 0) {
         typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, morphism, CHECK_NULL);
         objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), morphism, CHECK_NULL);
         int pos = 0;
@@ -306,8 +317,11 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2type
 
         RiTypeProfile::set_probabilities(obj, probabilities());
         RiTypeProfile::set_types(obj, types());
+      } else {
+        RiTypeProfile::set_probabilities(obj, NULL);
+        RiTypeProfile::set_types(obj, NULL);
       }
-    }*/
+    }
   }
 
   return JNIHandles::make_local(obj());

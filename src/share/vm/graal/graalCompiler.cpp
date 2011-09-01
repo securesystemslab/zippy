@@ -128,7 +128,13 @@ void GraalCompiler::print_timers() {
 }
 
 oop GraalCompiler::get_RiType(KlassHandle klass, KlassHandle accessor, TRAPS) {
-  assert(instanceKlass::cast(klass())->is_initialized(), "unexpected unresolved klass");
+  if (klass->oop_is_instance_slow()) {
+    assert(instanceKlass::cast(klass())->is_initialized(), "unexpected unresolved klass");
+  } else if (klass->oop_is_javaArray_slow()){
+  } else {
+    klass()->print();
+    assert(false, "unexpected klass");
+  }
   Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
   return createHotSpotTypeResolved(klass, name, CHECK_NULL);
 }
