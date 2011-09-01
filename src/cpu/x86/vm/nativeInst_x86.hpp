@@ -549,8 +549,10 @@ inline bool NativeInstruction::is_safepoint_poll() {
       return false;
     }
   } else {
-    if (ubyte_at(0) == NativeTstRegMem::instruction_code_memXregl &&
-        ubyte_at(1) == 0x05) { // 00 rax 101
+    if (ubyte_at(0) == Assembler::REX_WR && ubyte_at(1) == NativeMovRegMem::instruction_code_mem2reg && ubyte_at(2) == 0x15) { // mov r10, rip[...]
+      address fault = addr_at(7) + int_at(3);
+      return os::is_poll_address(fault);
+    } else if (ubyte_at(0) == NativeTstRegMem::instruction_code_memXregl && ubyte_at(1) == 0x05) { // 00 rax 101
       address fault = addr_at(6) + int_at(2);
       return os::is_poll_address(fault);
     } else {
