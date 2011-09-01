@@ -152,11 +152,11 @@ void InterpretedRFrame::init() {
 
 void RFrame::print(const char* kind) {
 #ifndef PRODUCT
-#ifdef COMPILER2
+//#ifdef COMPILER2
   int cnt = top_method()->interpreter_invocation_count();
-#else
-  int cnt = top_method()->invocation_count();
-#endif
+//#else
+//  int cnt = top_method()->invocation_count();
+//#endif
   tty->print("%3d %s ", _num, is_interpreted() ? "I" : "C");
   top_method()->print_short_name(tty);
   tty->print_cr(": inv=%5d(%d) cst=%4d", _invocations, cnt, cost());
