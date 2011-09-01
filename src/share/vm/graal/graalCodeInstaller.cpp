@@ -586,8 +586,21 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
-  assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size)");
-  jint next_pc_offset = pc_offset + NativeCall::instruction_size;
+  NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
+  jint next_pc_offset = 0x0;
+  if (inst->is_call() || inst->is_jump()) {
+    assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size");
+    next_pc_offset = pc_offset + NativeCall::instruction_size;
+  } else if (inst->is_mov_literal64()) {
+    // mov+call instruction pair
+    next_pc_offset = pc_offset + NativeMovConstReg::instruction_size;
+    u_char* call = (u_char*) (_instructions->start() + next_pc_offset);
+    assert((call[0] == 0x40 || call[0] == 0x41) && call[1] == 0xFF, "expected call with rex/rexb prefix byte");
+    next_pc_offset += 3; /* prefix byte + opcode byte + modrm byte */
+  } else {
+    runtime_call->print();
+    fatal("unsupported type of instruction for call site");
+  }
 
   if (debug_info != NULL) {
     _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
@@ -596,69 +609,69 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (runtime_call != NULL) {
-    NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
+    address target_addr = 0x0;
     if (runtime_call == CiRuntimeCall::Debug()) {
       TRACE_graal_3("CiRuntimeCall::Debug()");
     } else if (runtime_call == CiRuntimeCall::UnwindException()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id);
       TRACE_graal_3("CiRuntimeCall::UnwindException()");
     } else if (runtime_call == CiRuntimeCall::HandleException()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_handle_exception_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_handle_exception_id);
       TRACE_graal_3("CiRuntimeCall::HandleException()");
     } else if (runtime_call == CiRuntimeCall::SetDeoptInfo()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_set_deopt_info_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_set_deopt_info_id);
       TRACE_graal_3("CiRuntimeCall::SetDeoptInfo()");
     } else if (runtime_call == CiRuntimeCall::CreateNullPointerException()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id);
       TRACE_graal_3("CiRuntimeCall::CreateNullPointerException()");
     } else if (runtime_call == CiRuntimeCall::CreateOutOfBoundsException()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id);
       TRACE_graal_3("CiRuntimeCall::CreateOutOfBoundsException()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
-      call->set_destination(CAST_FROM_FN_PTR(address, os::javaTimeMillis));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
       TRACE_graal_3("CiRuntimeCall::JavaTimeMillis()");
     } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
-      call->set_destination(CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
       TRACE_graal_3("CiRuntimeCall::JavaTimeNanos()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id);
       TRACE_graal_3("CiRuntimeCall::ArithmeticFrem()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticDrem()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id);
       TRACE_graal_3("CiRuntimeCall::ArithmeticDrem()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticSin()) {
-      call->set_destination(CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
       TRACE_graal_3("CiRuntimeCall::ArithmeticSin()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticCos()) {
-      call->set_destination(CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
       TRACE_graal_3("CiRuntimeCall::ArithmeticCos()");
     } else if (runtime_call == CiRuntimeCall::ArithmeticTan()) {
-      call->set_destination(CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
       TRACE_graal_3("CiRuntimeCall::ArithmeticTan()");
     } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
-      call->set_destination(Runtime1::entry_for(Runtime1::register_finalizer_id));
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = Runtime1::entry_for(Runtime1::register_finalizer_id);
     } else if (runtime_call == CiRuntimeCall::Deoptimize()) {
-      call->set_destination(SharedRuntime::deopt_blob()->uncommon_trap());
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      target_addr = SharedRuntime::deopt_blob()->uncommon_trap();
     } else {
       runtime_call->print();
       fatal("runtime_call not implemented");
     }
+
+    if (inst->is_call()) {
+      // NOTE: for call without a mov, the offset must fit a 32-bit immediate
+      //       see also VMEntries.getMaxCallTargetOffset()
+      NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
+      call->set_destination(target_addr);
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+    } else if (inst->is_mov_literal64()) {
+      NativeMovConstReg* mov = nativeMovConstReg_at(_instructions->start() + pc_offset);
+      mov->set_data((intptr_t) target_addr);
+      _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
+    } else {
+      runtime_call->print();
+      fatal("unknown type of instruction for runtime call");
+    }
   } else if (global_stub != NULL) {
-    NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
     assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
 
     if (inst->is_call()) {
