@@ -214,64 +214,114 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocat
 // public native int RiMethod_exceptionProbability(long vmId, int bci);
 JNIEXPORT jint JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_exceptionProbability");
-  ciMethod* cimethod;
   {
     VM_ENTRY_MARK;
     methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
+    methodDataOop method_data = method->method_data();
+    if (method_data == NULL || !method_data->is_mature()) {
+      return -1;
+    }
+    ProfileData* data = method_data->bci_to_data(bci);
+    if (data == NULL) {
+      return 0;
+    }
+    uint trap = Deoptimization::trap_state_is_recompiled(data->trap_state())? 1: 0;
+    if (trap > 0) {
+      return 100;
+    } else {
+      return trap;
+    }
   }
-  ciMethodData* method_data = cimethod->method_data();
+}
 
-  if (method_data == NULL || !method_data->is_mature()) return -1;
+// ------------------------------------------------------------------
+// Adjust a CounterData count to be commensurate with
+// interpreter_invocation_count.  If the MDO exists for
+// only 25% of the time the method exists, then the
+// counts in the MDO should be scaled by 4X, so that
+// they can be usefully and stably compared against the
+// invocation counts in methods.
+int scale_count(methodDataOop method_data, int count) {
+  if (count > 0) {
+    int counter_life;
+    int method_life = method_data->method()->interpreter_invocation_count();
+    int current_mileage = methodDataOopDesc::mileage_of(method_data->method());
+    int creation_mileage = method_data->creation_mileage();
+    counter_life = current_mileage - creation_mileage;
 
-  ciProfileData* profile = method_data->bci_to_data(bci);
-  if (profile == NULL) {
-    return 0;
+    // counter_life due to backedge_counter could be > method_life
+    if (counter_life > method_life)
+      counter_life = method_life;
+    if (0 < counter_life && counter_life <= method_life) {
+      count = (int)((double)count * method_life / counter_life + 0.5);
+      count = (count > 0) ? count : 1;
+    }
   }
-  uint trap = method_data->trap_recompiled_at(profile);
-  if (trap > 0) {
-    return 100;
-  } else {
-    return trap;
-  }
+  return count;
 }
 
 // public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
-  ciMethod* cimethod;
-  {
-    VM_ENTRY_MARK;
-    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
-  }
-
-  ciCallProfile profile = cimethod->call_profile_at_bci(bci);
-
   Handle obj;
   {
     VM_ENTRY_MARK;
-    instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
-    obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
-    assert(obj() != NULL, "must succeed in allocating instance");
-
-    RiTypeProfile::set_count(obj, cimethod->scale_count(profile.count(), 1));
-    RiTypeProfile::set_morphism(obj, profile.morphism());
-
-    typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, profile.limit(), CHECK_NULL);
-    objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), profile.limit(), CHECK_NULL);
-    for (int i=0; i<profile.limit(); i++) {
-      float prob = profile.receiver_prob(i);
-      ciKlass* receiver = profile.receiver(i);
-      oop type = GraalCompiler::get_RiType(receiver, KlassHandle(), CHECK_NULL);
-
-      probabilities->float_at_put(i, prob);
-      types->obj_at_put(i, type);
+    methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
+    if (strstr(method->name_and_sig_as_C_string(), "factor") != NULL) {
+//      tty->print_cr("here");
     }
+    if (bci == 123) {
+//      tty->print_cr("here2");
+    }
+    methodDataHandle method_data = method->method_data();
+    if (method_data == NULL || !method_data->is_mature()) {
+      return NULL;
+    }
+    ProfileData* data = method_data->bci_to_data(bci);
+    if (data != NULL && data->is_ReceiverTypeData()) {
+      ReceiverTypeData* recv = data->as_ReceiverTypeData();
+      // determine morphism
+      int morphism = 0;
+      uint total_count = 0;
+      for (uint i = 0; i < recv->row_limit(); i++) {
+        klassOop receiver = recv->receiver(i);
+        if (receiver == NULL)  continue;
+        morphism++;
+        total_count += recv->receiver_count(i);
+      }
 
-    RiTypeProfile::set_probabilities(obj, probabilities());
-    RiTypeProfile::set_types(obj, types());
+        instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
+        obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
+        assert(obj() != NULL, "must succeed in allocating instance");
 
+        int count = MAX2(total_count, recv->count());
+        RiTypeProfile::set_count(obj, scale_count(method_data(), count));
+        RiTypeProfile::set_morphism(obj, morphism);
+
+      if (morphism > 0) {
+        typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, morphism, CHECK_NULL);
+        objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), morphism, CHECK_NULL);
+        int pos = 0;
+        for (uint i = 0; i < recv->row_limit(); i++) {
+          KlassHandle receiver = recv->receiver(i);
+          if (receiver.is_null())  continue;
+
+          float prob = recv->receiver_count(i) / (float) total_count;
+          oop type = GraalCompiler::get_RiType(receiver, KlassHandle(), CHECK_NULL);
+
+          probabilities->float_at_put(pos, prob);
+          types->obj_at_put(pos, type);
+
+          pos++;
+        }
+
+        RiTypeProfile::set_probabilities(obj, probabilities());
+        RiTypeProfile::set_types(obj, types());
+      } else {
+        RiTypeProfile::set_probabilities(obj, NULL);
+        RiTypeProfile::set_types(obj, NULL);
+      }
+    }
   }
 
   return JNIHandles::make_local(obj());

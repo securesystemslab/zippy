@@ -114,7 +114,7 @@ class SimpleCompPolicy : public NonTieredCompPolicy {
 
 // StackWalkCompPolicy - existing C2 policy
 
-#ifdef COMPILER2
+//#ifdef COMPILER2
 class StackWalkCompPolicy : public NonTieredCompPolicy {
  public:
   virtual void method_invocation_event(methodHandle m, TRAPS);
@@ -134,6 +134,6 @@ class StackWalkCompPolicy : public NonTieredCompPolicy {
   // negative filter: should send NOT be inlined?  returns NULL (--> inline) or rejection msg
 
 };
-#endif
+//#endif
 
 #endif // SHARE_VM_RUNTIME_COMPILATIONPOLICY_HPP

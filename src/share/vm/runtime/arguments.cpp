@@ -2018,7 +2018,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
 
   if (UseGraal) {
     if (PrintVMOptions) {
-      tty->print("Running Graal VM... ");
+      tty->print_cr("Running Graal VM... ");
     }
     const int BUFFER_SIZE = 1024;
     char maxine_dir[BUFFER_SIZE];
@@ -2026,7 +2026,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
 	  fatal("Must set MAXINE environment variable to a Maxine project directory.");
     }
-    if (PrintVMOptions) tty->print("MAXINE=%s", maxine_dir);
+    if (PrintVMOptions) tty->print_cr("MAXINE=%s", maxine_dir);
 	SysClassPath scp_compiler(Arguments::get_sysclasspath());
     sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
     scp_compiler.add_prefix(temp);

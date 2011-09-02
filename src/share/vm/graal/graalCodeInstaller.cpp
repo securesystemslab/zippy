@@ -526,7 +526,8 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
         LocationValue* loc = (LocationValue*)value;
         int monitor_offset = loc->location().stack_offset();
         LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, monitor_offset + BasicObjectLock::obj_offset_in_bytes()));
-        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, monitor_offset  + BasicObjectLock::lock_offset_in_bytes())));
+        bool eliminated = value->is_object();
+        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, monitor_offset  + BasicObjectLock::lock_offset_in_bytes()), eliminated));
       }
       if (second != NULL) {
         i++;
