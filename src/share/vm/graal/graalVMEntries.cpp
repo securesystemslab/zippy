@@ -921,6 +921,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_getConfigurati
   set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorexit_id)));
   set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
   set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
+  set_int(env, config, "klassModifierFlagsOffset", Klass::modifier_flags_offset_in_bytes() + sizeof(oopDesc));
+  set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
   set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());
 
   BarrierSet* bs = Universe::heap()->barrier_set();
