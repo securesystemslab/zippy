@@ -804,18 +804,7 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_runtime_VMEntries_getMaxCallTarget
   TRACE_graal_3("VMEntries::VMEntries_getMaxCallTargetOffset");
   VM_ENTRY_MARK;
   oop call = JNIHandles::resolve(rtcall);
-  address target_addr = 0x0;
-  if (call == CiRuntimeCall::ArithmeticSin()) {
-    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
-  } else if (call == CiRuntimeCall::ArithmeticCos()) {
-    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
-  } else if (call == CiRuntimeCall::ArithmeticTan()) {
-    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
-  } else if (call == CiRuntimeCall::JavaTimeMillis()) {
-    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
-  } else if (call == CiRuntimeCall::JavaTimeNanos()) {
-    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
-  }
+  address target_addr = CodeInstaller::runtime_call_target_address(call);
   if (target_addr != 0x0) {
     int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
     int64_t off_high = (int64_t)target_addr - ((int64_t)CodeCache::high_bound() + sizeof(int));

@@ -567,6 +567,57 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   _debug_recorder->end_safepoint(pc_offset);
 }
 
+address CodeInstaller::runtime_call_target_address(oop runtime_call) {
+  address target_addr = 0x0;
+  if (runtime_call == CiRuntimeCall::Debug()) {
+    TRACE_graal_3("CiRuntimeCall::Debug()");
+  } else if (runtime_call == CiRuntimeCall::UnwindException()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id);
+    TRACE_graal_3("CiRuntimeCall::UnwindException()");
+  } else if (runtime_call == CiRuntimeCall::HandleException()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_handle_exception_id);
+    TRACE_graal_3("CiRuntimeCall::HandleException()");
+  } else if (runtime_call == CiRuntimeCall::SetDeoptInfo()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_set_deopt_info_id);
+    TRACE_graal_3("CiRuntimeCall::SetDeoptInfo()");
+  } else if (runtime_call == CiRuntimeCall::CreateNullPointerException()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id);
+    TRACE_graal_3("CiRuntimeCall::CreateNullPointerException()");
+  } else if (runtime_call == CiRuntimeCall::CreateOutOfBoundsException()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id);
+    TRACE_graal_3("CiRuntimeCall::CreateOutOfBoundsException()");
+  } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
+    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
+    TRACE_graal_3("CiRuntimeCall::JavaTimeMillis()");
+  } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
+    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
+    TRACE_graal_3("CiRuntimeCall::JavaTimeNanos()");
+  } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id);
+    TRACE_graal_3("CiRuntimeCall::ArithmeticFrem()");
+  } else if (runtime_call == CiRuntimeCall::ArithmeticDrem()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id);
+    TRACE_graal_3("CiRuntimeCall::ArithmeticDrem()");
+  } else if (runtime_call == CiRuntimeCall::ArithmeticSin()) {
+    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
+    TRACE_graal_3("CiRuntimeCall::ArithmeticSin()");
+  } else if (runtime_call == CiRuntimeCall::ArithmeticCos()) {
+    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
+    TRACE_graal_3("CiRuntimeCall::ArithmeticCos()");
+  } else if (runtime_call == CiRuntimeCall::ArithmeticTan()) {
+    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
+    TRACE_graal_3("CiRuntimeCall::ArithmeticTan()");
+  } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
+    target_addr = Runtime1::entry_for(Runtime1::register_finalizer_id);
+  } else if (runtime_call == CiRuntimeCall::Deoptimize()) {
+    target_addr = SharedRuntime::deopt_blob()->uncommon_trap();
+  } else {
+    runtime_call->print();
+    fatal("runtime_call not implemented");
+  }
+  return target_addr;
+}
+
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop target = CiTargetMethod_Call::target(site);
   instanceKlass* target_klass = instanceKlass::cast(target->klass());
@@ -610,67 +661,23 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (runtime_call != NULL) {
-    address target_addr = 0x0;
-    if (runtime_call == CiRuntimeCall::Debug()) {
-      TRACE_graal_3("CiRuntimeCall::Debug()");
-    } else if (runtime_call == CiRuntimeCall::UnwindException()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id);
-      TRACE_graal_3("CiRuntimeCall::UnwindException()");
-    } else if (runtime_call == CiRuntimeCall::HandleException()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_handle_exception_id);
-      TRACE_graal_3("CiRuntimeCall::HandleException()");
-    } else if (runtime_call == CiRuntimeCall::SetDeoptInfo()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_set_deopt_info_id);
-      TRACE_graal_3("CiRuntimeCall::SetDeoptInfo()");
-    } else if (runtime_call == CiRuntimeCall::CreateNullPointerException()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id);
-      TRACE_graal_3("CiRuntimeCall::CreateNullPointerException()");
-    } else if (runtime_call == CiRuntimeCall::CreateOutOfBoundsException()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id);
-      TRACE_graal_3("CiRuntimeCall::CreateOutOfBoundsException()");
-    } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
-      target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
-      TRACE_graal_3("CiRuntimeCall::JavaTimeMillis()");
-    } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
-      target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
-      TRACE_graal_3("CiRuntimeCall::JavaTimeNanos()");
-    } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id);
-      TRACE_graal_3("CiRuntimeCall::ArithmeticFrem()");
-    } else if (runtime_call == CiRuntimeCall::ArithmeticDrem()) {
-      target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id);
-      TRACE_graal_3("CiRuntimeCall::ArithmeticDrem()");
-    } else if (runtime_call == CiRuntimeCall::ArithmeticSin()) {
-      target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
-      TRACE_graal_3("CiRuntimeCall::ArithmeticSin()");
-    } else if (runtime_call == CiRuntimeCall::ArithmeticCos()) {
-      target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
-      TRACE_graal_3("CiRuntimeCall::ArithmeticCos()");
-    } else if (runtime_call == CiRuntimeCall::ArithmeticTan()) {
-      target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
-      TRACE_graal_3("CiRuntimeCall::ArithmeticTan()");
-    } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
-      target_addr = Runtime1::entry_for(Runtime1::register_finalizer_id);
-    } else if (runtime_call == CiRuntimeCall::Deoptimize()) {
-      target_addr = SharedRuntime::deopt_blob()->uncommon_trap();
-    } else {
-      runtime_call->print();
-      fatal("runtime_call not implemented");
-    }
+    if (runtime_call != CiRuntimeCall::Debug()) {
+      address target_addr = runtime_call_target_address(runtime_call);
 
-    if (inst->is_call()) {
-      // NOTE: for call without a mov, the offset must fit a 32-bit immediate
-      //       see also VMEntries.getMaxCallTargetOffset()
-      NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-      call->set_destination(target_addr);
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-    } else if (inst->is_mov_literal64()) {
-      NativeMovConstReg* mov = nativeMovConstReg_at(_instructions->start() + pc_offset);
-      mov->set_data((intptr_t) target_addr);
-      _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
-    } else {
-      runtime_call->print();
-      fatal("unknown type of instruction for runtime call");
+      if (inst->is_call()) {
+        // NOTE: for call without a mov, the offset must fit a 32-bit immediate
+        //       see also VMEntries.getMaxCallTargetOffset()
+        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
+        call->set_destination(target_addr);
+        _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+      } else if (inst->is_mov_literal64()) {
+        NativeMovConstReg* mov = nativeMovConstReg_at(_instructions->start() + pc_offset);
+        mov->set_data((intptr_t) target_addr);
+        _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
+      } else {
+        runtime_call->print();
+        fatal("unknown type of instruction for runtime call");
+      }
     }
   } else if (global_stub != NULL) {
     assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");

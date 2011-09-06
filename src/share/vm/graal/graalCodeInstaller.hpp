@@ -88,6 +88,8 @@ public:
   // constructor used to create a stub
   CodeInstaller(Handle target_method, jlong& id);
 
+  static address runtime_call_target_address(oop runtime_call);
+
 private:
   // extract the fields of the CiTargetMethod
   void initialize_fields(Handle target_method);
