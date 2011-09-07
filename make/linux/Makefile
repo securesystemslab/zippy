@@ -336,7 +336,6 @@ endif
 
 $(TARGETS_GRAAL):  $(SUBDIRS_GRAAL)
 	cd $(OSNAME)_$(BUILDARCH)_graal/$(patsubst %graal,%,$@) && $(MAKE) $(MFLAGS)
-	cd $(OSNAME)_$(BUILDARCH)_graal/$(patsubst %graal,%,$@) && ./test_gamma
 ifdef INSTALL
 	cd $(OSNAME)_$(BUILDARCH)_graal/$(patsubst %graal,%,$@) && $(MAKE) $(MFLAGS) install
 endif
