@@ -69,11 +69,13 @@ public:
   static BasicType kindToBasicType(jchar ch);
 
   static int to_cp_index_u2(int index) {
-    // Swap.
-    index = ((index & 0xFF) << 8) | (index >> 8);
     // Tag.
-    index = index + constantPoolOopDesc::CPCACHE_INDEX_TAG;
-    return index;
+    return to_index_u2(index) + constantPoolOopDesc::CPCACHE_INDEX_TAG;
+  }
+
+  static int to_index_u2(int index) {
+    // Swap.
+    return ((index & 0xFF) << 8) | (index >> 8);
   }
 
   static void initialize_buffer_blob();

@@ -569,6 +569,30 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool
   return JNIHandles::make_local(THREAD, GraalCompiler::get_RiType(klass, cp->klass(), THREAD));
 }
 
+// public void RiConstantPool_loadReferencedType(long vmId, int cpi);
+JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1loadReferencedType(JNIEnv *env, jobject, jlong vmId, jint index, jbyte op) {
+  TRACE_graal_3("VMEntries::RiConstantPool_lookupType");
+  VM_ENTRY_MARK;
+
+  constantPoolOop cp = VmIds::get<constantPoolOop>(vmId);
+  int byteCode = (op & 0xFF);
+  if (byteCode != Bytecodes::_checkcast && byteCode != Bytecodes::_instanceof && byteCode != Bytecodes::_new && byteCode != Bytecodes::_anewarray && byteCode != Bytecodes::_multianewarray) {
+    index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index_u2(index));
+  }
+  constantTag tag = cp->tag_at(index);
+  if (tag.is_field_or_method()) {
+    index = cp->uncached_klass_ref_index_at(index);
+    tag = cp->tag_at(index);
+  }
+
+  if (tag.is_unresolved_klass()) {
+    klassOop klass = cp->klass_at(index, CHECK);
+    if (klass->klass_part()->oop_is_instance()) {
+      instanceKlass::cast(klass)->initialize(CHECK);
+    }
+  }
+}
+
 // public RiField RiConstantPool_lookupField(long vmId, int cpi);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jlong vmId, jint index, jbyte byteCode) {
   TRACE_graal_3("VMEntries::RiConstantPool_lookupField");
@@ -1014,41 +1038,42 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_recordBailout(JNI
 #define CLASS           "Ljava/lang/Class;"
 
 JNINativeMethod VMEntries_methods[] = {
-  {CC"RiMethod_code",                   CC"("RESOLVED_METHOD")[B",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1code)},
-  {CC"RiMethod_signature",              CC"("RESOLVED_METHOD")"STRING,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1signature)},
-  {CC"RiMethod_exceptionHandlers",      CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1exceptionHandlers)},
-  {CC"RiMethod_hasBalancedMonitors",    CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors)},
-  {CC"RiMethod_uniqueConcreteMethod",   CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
-  {CC"getRiMethod",                     CC"("REFLECT_METHOD")"METHOD,               FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getRiMethod)},
-  {CC"RiMethod_typeProfile",            CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile)},
-  {CC"RiMethod_branchProbability",      CC"("RESOLVED_METHOD"I)D",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability)},
-  {CC"RiMethod_switchProbability",      CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2switchProbability)},
-  {CC"RiMethod_invocationCount",        CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
-  {CC"RiMethod_exceptionProbability",   CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability)},
-  {CC"RiMethod_hasCompiledCode",        CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasCompiledCode)},
-  {CC"RiMethod_compiledCodeSize",       CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1compiledCodeSize)},
-  {CC"RiSignature_lookupType",          CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
-  {CC"RiConstantPool_lookupConstant",   CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupConstant)},
-  {CC"RiConstantPool_lookupMethod",     CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod)},
-  {CC"RiConstantPool_lookupSignature",  CC"("PROXY"I)"SIGNATURE,                    FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupSignature)},
-  {CC"RiConstantPool_lookupType",       CC"("PROXY"I)"TYPE,                         FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupType)},
-  {CC"RiConstantPool_lookupField",      CC"("PROXY"IB)"FIELD,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupField)},
-  {CC"RiType_constantPool",             CC"("RESOLVED_TYPE")"CONSTANT_POOL,         FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1constantPool)},
-  {CC"RiType_resolveMethodImpl",        CC"("RESOLVED_TYPE STRING STRING")"METHOD,  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_3resolveMethodImpl)},
-  {CC"RiType_isSubtypeOf",              CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_2isSubtypeOf)},
-  {CC"RiType_componentType",            CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1componentType)},
-  {CC"RiType_uniqueConcreteSubtype",    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1uniqueConcreteSubtype)},
-  {CC"RiType_superType",                CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1superType)},
-  {CC"RiType_arrayOf",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1arrayOf)},
-  {CC"RiType_fields",                   CC"("RESOLVED_TYPE")["FIELD,                FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1fields)},
-  {CC"RiType_isInitialized",            CC"("RESOLVED_TYPE")Z",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1isInitialized)},
-  {CC"getPrimitiveArrayType",           CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",          CC"("CI_RUNTIME_CALL")J",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getMaxCallTargetOffset)},
-  {CC"getType",                         CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getType)},
-  {CC"getConfiguration",                CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getConfiguration)},
-  {CC"installMethod",                   CC"("TARGET_METHOD")V",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_installMethod)},
-  {CC"installStub",                     CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_installStub)},
-  {CC"recordBailout",                   CC"("STRING")V",                            FN_PTR(Java_com_oracle_graal_runtime_VMEntries_recordBailout)}
+  {CC"RiMethod_code",                     CC"("RESOLVED_METHOD")[B",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1code)},
+  {CC"RiMethod_signature",                CC"("RESOLVED_METHOD")"STRING,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1signature)},
+  {CC"RiMethod_exceptionHandlers",        CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1exceptionHandlers)},
+  {CC"RiMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasBalancedMonitors)},
+  {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1uniqueConcreteMethod)},
+  {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getRiMethod)},
+  {CC"RiMethod_typeProfile",              CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2typeProfile)},
+  {CC"RiMethod_branchProbability",        CC"("RESOLVED_METHOD"I)D",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2branchProbability)},
+  {CC"RiMethod_switchProbability",        CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2switchProbability)},
+  {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1invocationCount)},
+  {CC"RiMethod_exceptionProbability",     CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_2exceptionProbability)},
+  {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1hasCompiledCode)},
+  {CC"RiMethod_compiledCodeSize",         CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiMethod_1compiledCodeSize)},
+  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiSignature_1lookupType)},
+  {CC"RiConstantPool_lookupConstant",     CC"("PROXY"I)"OBJECT,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupConstant)},
+  {CC"RiConstantPool_lookupMethod",       CC"("PROXY"IB)"METHOD,                      FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupMethod)},
+  {CC"RiConstantPool_lookupSignature",    CC"("PROXY"I)"SIGNATURE,                    FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupSignature)},
+  {CC"RiConstantPool_lookupType",         CC"("PROXY"I)"TYPE,                         FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupType)},
+  {CC"RiConstantPool_loadReferencedType", CC"("PROXY"IB)V",                           FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1loadReferencedType)},
+  {CC"RiConstantPool_lookupField",        CC"("PROXY"IB)"FIELD,                       FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiConstantPool_1lookupField)},
+  {CC"RiType_constantPool",               CC"("RESOLVED_TYPE")"CONSTANT_POOL,         FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1constantPool)},
+  {CC"RiType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_3resolveMethodImpl)},
+  {CC"RiType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_2isSubtypeOf)},
+  {CC"RiType_componentType",              CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1componentType)},
+  {CC"RiType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1uniqueConcreteSubtype)},
+  {CC"RiType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1superType)},
+  {CC"RiType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1arrayOf)},
+  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["FIELD,                FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1fields)},
+  {CC"RiType_isInitialized",              CC"("RESOLVED_TYPE")Z",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_RiType_1isInitialized)},
+  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                   FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getMaxCallTargetOffset)},
+  {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getType)},
+  {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_runtime_VMEntries_getConfiguration)},
+  {CC"installMethod",                     CC"("TARGET_METHOD")V",                     FN_PTR(Java_com_oracle_graal_runtime_VMEntries_installMethod)},
+  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_runtime_VMEntries_installStub)},
+  {CC"recordBailout",                     CC"("STRING")V",                            FN_PTR(Java_com_oracle_graal_runtime_VMEntries_recordBailout)}
 };
 
 int VMEntries_methods_count() {
