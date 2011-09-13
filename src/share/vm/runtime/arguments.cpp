@@ -2030,6 +2030,8 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
 	SysClassPath scp_compiler(Arguments::get_sysclasspath());
     sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
     scp_compiler.add_prefix(temp);
+    sprintf(temp, "%s/com.oracle.max.criutils/bin", maxine_dir);
+    scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
     scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.asmdis/bin", maxine_dir);
