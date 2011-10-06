@@ -11,7 +11,9 @@ if [ -z "${DACAPO}" ]; then
   echo "DACAPO is not defined. It must point to a Dacapo benchmark directory."
   exit 1;
 fi
+TEST=$1
+shift
 ant -f create_examples.xml
-COMMAND="${JDK7}/bin/java -graal -Xms1g -Xmx2g -esa -G:Extend -Xcomp -XX:CompileOnly=examples $* -jar examples.jar"
+COMMAND="${JDK7}/bin/java -graal -Xms1g -Xmx2g -esa -G:Extend -Xcomp -XX:CompileOnly=examples $* -jar examples.jar $TEST"
 echo $COMMAND
 $COMMAND
