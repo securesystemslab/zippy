@@ -7,10 +7,6 @@ if [ -z "${MAXINE}" ]; then
   echo "MAXINE is not defined. It must point to a maxine repository directory."
   exit 1;
 fi
-if [ -z "${GRAAL}" ]; then
-  echo "GRAAL is not defined. It must point to a maxine repository directory."
-  exit 1;
-fi
 if [ -z "${SCIMARK}" ]; then
   echo "SCIMARK is not defined. It must point to a directory with the SciMark benchmark jar."
   exit 1;

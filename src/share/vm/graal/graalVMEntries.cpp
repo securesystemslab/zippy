@@ -979,8 +979,10 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_runtime_VMEntries_installMethod(JNI
   if (CURRENT_ENV == NULL) {
     Arena arena;
     ciEnv env(&arena);
+    ResourceMark rm;
     CodeInstaller installer(JNIHandles::resolve(targetMethod));
   } else {
+    ResourceMark rm;
     CodeInstaller installer(JNIHandles::resolve(targetMethod));
   }
 }
@@ -992,8 +994,10 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_runtime_VMEntries_installStub(JNIE
   if (CURRENT_ENV == NULL) {
     Arena arena;
     ciEnv env(&arena);
+    ResourceMark rm;
     CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
   } else {
+    ResourceMark rm;
     CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
   }
   return id;

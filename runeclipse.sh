@@ -7,10 +7,6 @@ if [ -z "${MAXINE}" ]; then
   echo "MAXINE is not defined. It must point to a Maxine repository directory."
   exit 1;
 fi
-if [ -z "${GRAAL}" ]; then
-  echo "GRAAL is not defined. It must point to a Maxine repository directory."
-  exit 1;
-fi
 if [ ! -f "${DACAPO}/dacapo-9.12-bach.jar" ]; then
   echo "DACAPO must point to a directory containing dacapo-9.12-bach.jar"
   exit 1;
