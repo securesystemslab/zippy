@@ -129,7 +129,7 @@ class methodOopDesc : public oopDesc {
   InvocationCounter _invocation_counter;         // Incremented before each activation of the method - used to trigger frequency-based optimizations
   InvocationCounter _backedge_counter;           // Incremented before each backedge taken - used to trigger frequencey-based optimizations
 
-  // com/oracle/max/graal/runtime/HotSpotMethodResolved mirroring this method
+  // com/oracle/max/graal/hotspot/HotSpotMethodResolved mirroring this method
   oop               _graal_mirror;
 #ifdef TIERED
   jlong             _prev_time;                   // Previous time the rate was acquired

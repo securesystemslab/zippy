@@ -46,7 +46,7 @@ void graal_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
-    oop_field(HotSpotTypeResolved, compiler, "Lcom/oracle/max/graal/runtime/Compiler;") \
+    oop_field(HotSpotTypeResolved, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
     oop_field(HotSpotTypeResolved, javaMirror, "Ljava/lang/Class;")                     \
     oop_field(HotSpotTypeResolved, simpleName, "Ljava/lang/String;")                    \
     int_field(HotSpotTypeResolved, accessFlags)                                         \
@@ -60,7 +60,7 @@ void graal_compute_offsets();
     oop_field(HotSpotTypeResolved, componentType, "Lcom/sun/cri/ri/RiType;")            \
   end_class                                                                             \
   start_class(HotSpotMethodResolved)                                                    \
-    oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/max/graal/runtime/Compiler;") \
+    oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
     oop_field(HotSpotMethodResolved, holder, "Lcom/sun/cri/ri/RiType;")                 \
     oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/Object;")                  \
@@ -80,7 +80,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/sun/cri/ci/CiTargetMethod;")     \
-    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/max/graal/runtime/HotSpotMethodResolved;") \
+    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/max/graal/hotspot/HotSpotMethodResolved;") \
     oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
     oop_field(HotSpotTargetMethod, sites, "[Lcom/sun/cri/ci/CiTargetMethod$Site;")      \
     oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/sun/cri/ci/CiTargetMethod$ExceptionHandler;") \

@@ -2050,7 +2050,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.extensions/bin", maxine_dir);
     scp_compiler.add_prefix(temp);
-    sprintf(temp, "%s/com.oracle.max.graal.runtime/bin", maxine_dir);
+    sprintf(temp, "%s/com.oracle.max.graal.hotspot/bin", maxine_dir);
     scp_compiler.add_prefix(temp);
     sprintf(temp, "%s/com.oracle.max.graal.graphviz/bin", maxine_dir);
     scp_compiler.add_prefix(temp);

@@ -259,18 +259,18 @@
   LP64_ONLY( do_alias(machine_word_signature,         long_signature) )                           \
                                                                                                                         \
   /* support for graal */                                                                                               \
-  template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/runtime/VMExits")                           \
-  template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/runtime/HotSpotMethodResolvedImpl")       \
-  template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/runtime/HotSpotTargetMethod")               \
-  template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/runtime/HotSpotField")                      \
+  template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/hotspot/VMExits")                           \
+  template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/hotspot/HotSpotMethodResolvedImpl")       \
+  template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/hotspot/HotSpotTargetMethod")               \
+  template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/hotspot/HotSpotField")                      \
   template(com_sun_graal_graalOptions,                "com/sun/graal/graalOptions")                                     \
-  template(com_sun_hotspot_graal_HotSpotOptions,      "com/oracle/max/graal/runtime/HotSpotOptions")                    \
-  template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/runtime/HotSpotTypeResolvedImpl")           \
-  template(com_sun_hotspot_graal_HotSpotType,         "com/oracle/max/graal/runtime/HotSpotType")                       \
-  template(com_sun_hotspot_graal_HotSpotExceptionHandler,"com/oracle/max/graal/runtime/HotSpotExceptionHandler")        \
-  template(com_sun_hotspot_graal_HotSpotProxy,        "com/oracle/max/graal/runtime/HotSpotProxy")                      \
-  template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/runtime/Compiler")                          \
-  template(com_sun_hotspot_graal_CompilerImpl,        "com/oracle/max/graal/runtime/CompilerImpl")                      \
+  template(com_sun_hotspot_graal_HotSpotOptions,      "com/oracle/max/graal/hotspot/HotSpotOptions")                    \
+  template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/hotspot/HotSpotTypeResolvedImpl")           \
+  template(com_sun_hotspot_graal_HotSpotType,         "com/oracle/max/graal/hotspot/HotSpotType")                       \
+  template(com_sun_hotspot_graal_HotSpotExceptionHandler,"com/oracle/max/graal/hotspot/HotSpotExceptionHandler")        \
+  template(com_sun_hotspot_graal_HotSpotProxy,        "com/oracle/max/graal/hotspot/HotSpotProxy")                      \
+  template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/hotspot/Compiler")                          \
+  template(com_sun_hotspot_graal_CompilerImpl,        "com/oracle/max/graal/hotspot/CompilerImpl")                      \
   template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
   template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
@@ -303,7 +303,7 @@
   template(startCompiler_name,                        "startCompiler")                                                  \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
-  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/runtime/HotSpotMethodResolved;I)V")       \
+  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/HotSpotMethodResolved;I)V")       \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
@@ -332,10 +332,10 @@
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
   template(getVMExits_name,                           "getVMExits")                                                     \
-  template(getVMExits_signature,                      "()Lcom/oracle/max/graal/runtime/VMExits;")                       \
+  template(getVMExits_signature,                      "()Lcom/oracle/max/graal/hotspot/VMExits;")                       \
   template(getInstance_name,                          "getInstance")                                                    \
   template(initialize_name,                           "initialize")                                                     \
-  template(getInstance_signature,                     "()Lcom/oracle/max/graal/runtime/Compiler;")                      \
+  template(getInstance_signature,                     "()Lcom/oracle/max/graal/hotspot/Compiler;")                      \
   template(forObject_name,                            "forObject")                                                      \
                                                                                                                         \
   /* common method and field names */                                                             \
