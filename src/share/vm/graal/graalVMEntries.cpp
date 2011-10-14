@@ -803,11 +803,24 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields
   GrowableArray<ciField*>* fields = instance_klass->non_static_fields();
   {
     VM_ENTRY_MARK;
-    fieldsArray = oopFactory::new_objArray(SystemDictionary::RiField_klass(), fields->length(), CHECK_NULL);
+    
+    int count = 0;
     for (int i = 0; i < fields->length(); i++) {
       ciField* field = fields->at(i);
-      Handle field_handle = GraalCompiler::get_RiField(field, instance_klass, klass_handle, Bytecodes::_illegal, CHECK_NULL);
-      fieldsArray->obj_at_put(i, field_handle());
+      if (field->holder() == instance_klass) {
+        count++;
+      }
+    }
+
+    fieldsArray = oopFactory::new_objArray(SystemDictionary::RiField_klass(), count, CHECK_NULL);
+    int z = 0;
+    for (int i = 0; i < fields->length(); i++) {
+      ciField* field = fields->at(i);
+      if (field->holder() == instance_klass) {
+        Handle field_handle = GraalCompiler::get_RiField(field, instance_klass, klass_handle, Bytecodes::_illegal, CHECK_NULL);
+        fieldsArray->obj_at_put(z, field_handle());
+        z++;
+      }
     }
   }
   return JNIHandles::make_local(fieldsArray());
