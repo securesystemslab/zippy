@@ -99,6 +99,11 @@ public class Parser {
     private int maxId = 0;
 
     private int lookupID(String i) {
+        try {
+            return Integer.parseInt(i);
+        } catch (NumberFormatException nfe) {
+            // ignore
+        }
         Integer id = idCache.get(i);
         if (id == null) {
             id = maxId++;
