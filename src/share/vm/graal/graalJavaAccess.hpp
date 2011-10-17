@@ -57,12 +57,11 @@ void graal_compute_offsets();
     boolean_field(HotSpotTypeResolved, isInstanceClass)                                 \
     boolean_field(HotSpotTypeResolved, isInterface)                                     \
     int_field(HotSpotTypeResolved, instanceSize)                                        \
-    oop_field(HotSpotTypeResolved, componentType, "Lcom/sun/cri/ri/RiType;")            \
   end_class                                                                             \
   start_class(HotSpotMethodResolved)                                                    \
     oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
-    oop_field(HotSpotMethodResolved, holder, "Lcom/sun/cri/ri/RiType;")                 \
+    oop_field(HotSpotMethodResolved, holder, "Lcom/sun/cri/ri/RiResolvedType;")         \
     oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/Object;")                  \
     int_field(HotSpotMethodResolved, codeSize)                                          \
     int_field(HotSpotMethodResolved, accessFlags)                                       \
@@ -103,8 +102,8 @@ void graal_compute_offsets();
     oop_field(CiAssumptions, list, "[Lcom/sun/cri/ci/CiAssumptions$Assumption;")        \
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteSubtype)                                            \
-    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/sun/cri/ri/RiType;")        \
-    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/sun/cri/ri/RiType;")        \
+    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/sun/cri/ri/RiResolvedType;")\
+    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/sun/cri/ri/RiResolvedType;")\
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteMethod)                                             \
     oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/sun/cri/ri/RiMethod;")       \
@@ -216,7 +215,7 @@ void graal_compute_offsets();
     int_field(RiTypeProfile, count)                                                     \
     int_field(RiTypeProfile, morphism)                                                  \
     oop_field(RiTypeProfile, probabilities, "[F")                                       \
-    oop_field(RiTypeProfile, types, "[Lcom/sun/cri/ri/RiType;")                         \
+    oop_field(RiTypeProfile, types, "[Lcom/sun/cri/ri/RiResolvedType;")                 \
   end_class                                                                             \
   /* end*/
 

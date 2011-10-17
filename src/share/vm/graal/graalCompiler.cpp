@@ -197,10 +197,8 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
 
   if (klass->oop_is_javaArray()) {
     HotSpotTypeResolved::set_isArrayClass(obj, true);
-    HotSpotTypeResolved::set_componentType(obj, NULL);
   } else {
     HotSpotTypeResolved::set_isArrayClass(obj, false);
-    HotSpotTypeResolved::set_componentType(obj, NULL);
     HotSpotTypeResolved::set_instanceSize(obj, instanceKlass::cast(klass())->size_helper() * HeapWordSize);
     HotSpotTypeResolved::set_hasFinalizer(obj, klass->has_finalizer());
   }
