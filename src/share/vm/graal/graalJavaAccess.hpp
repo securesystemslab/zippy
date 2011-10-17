@@ -153,7 +153,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
     oop_field(CiCodePos, caller, "Lcom/sun/cri/ci/CiCodePos;")                          \
-    oop_field(CiCodePos, method, "Lcom/sun/cri/ri/RiMethod;")                           \
+    oop_field(CiCodePos, method, "Lcom/sun/cri/ri/RiResolvedMethod;")                   \
     int_field(CiCodePos, bci)                                                           \
   end_class                                                                             \
   start_class(CiConstant)                                                               \
