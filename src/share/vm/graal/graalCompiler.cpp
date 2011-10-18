@@ -252,7 +252,7 @@ BasicType GraalCompiler::kindToBasicType(jchar ch) {
     case 'c': return T_CHAR;
     case 'i': return T_INT;
     case 'f': return T_FLOAT;
-    case 'l': return T_LONG;
+    case 'j': return T_LONG;
     case 'd': return T_DOUBLE;
     case 'a': return T_OBJECT;
     case 'r': return T_ADDRESS;
