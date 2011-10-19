@@ -47,10 +47,8 @@ import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
 import org.openide.util.actions.CallableSystemAction;
-import org.openide.xml.XMLUtil;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 /**
  *
@@ -88,7 +86,6 @@ public final class ImportAction extends CallableSystemAction {
             Settings.get().put(Settings.DIRECTORY, dir.getAbsolutePath());
 
             try {
-                final XMLReader reader = XMLUtil.createXMLReader();
                 final FileInputStream inputStream = new FileInputStream(file);
                 final InputSource is = new InputSource(inputStream);
 
@@ -123,7 +120,7 @@ public final class ImportAction extends CallableSystemAction {
                     public void run() {
                         GraphDocument document = null;
                         try {
-                            document = parser.parse(reader, is, parseMonitor);
+                            document = parser.parse(is, parseMonitor);
                             parseMonitor.setState("Finishing");
                             component.getDocument().addGraphDocument(document);
                         } catch (SAXException ex) {
@@ -140,8 +137,6 @@ public final class ImportAction extends CallableSystemAction {
                     }
                 });
 
-            } catch (SAXException ex) {
-                ex.printStackTrace();
             } catch (FileNotFoundException ex) {
                 ex.printStackTrace();
             } catch (IOException ex) {

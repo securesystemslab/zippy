@@ -38,9 +38,15 @@ import com.sun.hotspot.igv.data.serialization.XMLParser.HandoverElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ParseMonitor;
 import com.sun.hotspot.igv.data.serialization.XMLParser.TopElementHandler;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.SchemaFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -378,7 +384,7 @@ public class Parser {
                 if (fromIndexString != null) {
                     fromIndex = Integer.parseInt(fromIndexString);
                 }
-
+                
                 String toIndexString = readAttribute(TO_INDEX_PROPERTY);
                 if (toIndexString == null) {
                     toIndexString = readAttribute(TO_INDEX_ALT_PROPERTY);
@@ -495,7 +501,9 @@ public class Parser {
     }
 
     // Returns a new GraphDocument object deserialized from an XML input source.
-    public synchronized GraphDocument parse(XMLReader reader, InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
+    public synchronized GraphDocument parse(InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
+        XMLReader reader = createReader();
+
         reader.setContentHandler(new XMLParser(xmlDocument, monitor));
         try {
             reader.parse(source);
@@ -504,5 +512,22 @@ public class Parser {
         }
 
         return topHandler.getObject();
+    }
+
+    private XMLReader createReader() throws SAXException {
+        try {
+            SAXParserFactory pfactory = SAXParserFactory.newInstance();
+            pfactory.setValidating(false);
+            pfactory.setNamespaceAware(true);
+
+            // Enable schema validation
+            SchemaFactory sfactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
+            InputStream stream = Parser.class.getResourceAsStream("graphdocument.xsd");
+            pfactory.setSchema(sfactory.newSchema(new Source[]{new StreamSource(stream)}));
+
+            return pfactory.newSAXParser().getXMLReader();
+        } catch (ParserConfigurationException ex) {
+            throw new SAXException(ex);
+        }
     }
 }
