@@ -70,7 +70,7 @@ public class Util {
 
     public static void assertGroupEquals(Group a, Group b) {
 
-        if (a.getGraphs().size() != b.getGraphs().size()) {
+        if (a.getGraphsCount() != b.getGraphsCount()) {
             fail();
         }
 

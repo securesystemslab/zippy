@@ -79,7 +79,7 @@ public class FolderNode extends AbstractNode {
 
                 List<Node> curNodes = new ArrayList<Node>();
                 for (Group g : p.getRight()) {
-                    for (InputGraph graph : g.getGraphs()) {
+                    for (InputGraph graph : g.getGraphListCopy()) {
                         curNodes.add(new GraphNode(graph));
                     }
                     g.getChangedEvent().addListener(this);

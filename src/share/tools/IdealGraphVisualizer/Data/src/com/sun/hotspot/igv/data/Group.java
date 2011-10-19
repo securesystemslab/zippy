@@ -35,14 +35,15 @@ import java.util.Set;
  */
 public class Group extends Properties.Entity implements ChangedEventProvider<Group> {
 
-    private List<InputGraph> graphs;
+    private final List<InputGraph> graphs;
+
     private InputMethod method;
     private String assembly;
     private transient ChangedEvent<Group> changedEvent;
     private transient boolean complete = true;
 
     public Group() {
-        graphs = new ArrayList<InputGraph>();
+        graphs = Collections.synchronizedList(new ArrayList<InputGraph>());
         changedEvent = new ChangedEvent<Group>(this);
 
         // Ensure that name and type are never null
@@ -86,30 +87,50 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
         return Collections.unmodifiableList(graphs);
     }
 
+    public int getGraphsCount() {
+        return graphs.size();
+    }
+
+    public List<InputGraph> getGraphListCopy() {
+        synchronized (graphs) {
+            return new ArrayList<InputGraph>(graphs);
+        }
+    }
+
+    public void addGraph(InputGraph graph) {
+        synchronized (graphs) {
+            graph.setParent(this, graphs.size());
+            graphs.add(graph);
+        }
+        changedEvent.fire();
+    }
+
     public InputGraph addGraph(String name) {
         return addGraph(name, null);
     }
 
     public InputGraph addGraph(String name, Pair<InputGraph, InputGraph> pair) {
-        InputGraph g = new InputGraph(graphs.size(), this, name, pair);
-        graphs.add(g);
+        InputGraph g;
+        synchronized (graphs) {
+            g = new InputGraph(graphs.size(), this, name, pair);
+            graphs.add(g);
+        }
         changedEvent.fire();
         return g;
     }
 
     public void removeGraph(InputGraph g) {
-        int index = graphs.indexOf(g);
-        if (index != -1) {
-            graphs.remove(g);
+        if (graphs.remove(g)) {
             changedEvent.fire();
         }
     }
 
     public Set<Integer> getAllNodes() {
         Set<Integer> result = new HashSet<Integer>();
-        for (InputGraph g : graphs) {
-            Set<Integer> ids = g.getNodesAsSet();
-            result.addAll(g.getNodesAsSet());
+        synchronized (graphs) {
+            for (InputGraph g : graphs) {
+                result.addAll(g.getNodesAsSet());
+            }
         }
         return result;
     }
@@ -118,9 +139,11 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Group " + getProperties().toString() + "\n");
-        for (InputGraph g : graphs) {
-            sb.append(g.toString());
-            sb.append("\n");
+        synchronized (graphs) {
+            for (InputGraph g : graphs) {
+                sb.append(g.toString());
+                sb.append('\n');
+            }
         }
         return sb.toString();
     }

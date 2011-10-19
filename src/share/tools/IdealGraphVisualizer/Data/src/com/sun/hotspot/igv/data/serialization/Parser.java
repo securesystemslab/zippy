@@ -211,14 +211,12 @@ public class Parser {
 
         @Override
         protected InputGraph start() throws SAXException {
-
             String name = readAttribute(GRAPH_NAME_PROPERTY);
-            InputGraph curGraph = getParentObject().addGraph(name);
+            InputGraph curGraph = InputGraph.createWithoutGroup(name, null);
             if (difference) {
-
                 List<InputGraph> list = getParentObject().getGraphs();
-                if (list.size() > 1) {
-                    InputGraph previous = list.get(list.size() - 2);
+                if (list.size() > 0) {
+                    InputGraph previous = list.get(list.size() - 1);
                     for (InputNode n : previous.getNodes()) {
                         curGraph.addNode(n);
                     }
@@ -279,6 +277,9 @@ public class Parser {
                 graph.addBlockEdge(left, right);
             }
             blockConnections.clear();
+            
+            // Add to group
+            getParentObject().addGraph(graph);
         }
     };
     // <nodes>
