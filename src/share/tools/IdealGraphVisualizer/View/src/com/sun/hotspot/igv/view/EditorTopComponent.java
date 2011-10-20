@@ -294,7 +294,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
             }
         });
 
-        if (diagram.getGraph().getGroup().getGraphs().size() == 1) {
+        if (diagram.getGraph().getGroup().getGraphsCount() == 1) {
             rangeSlider.setVisible(false);
         }
 

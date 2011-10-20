@@ -49,6 +49,10 @@ public class InputGraph extends Properties.Entity {
     private Pair<InputGraph, InputGraph> sourceGraphs;
     private int parentIndex;
 
+    public static InputGraph createWithoutGroup(String name, Pair<InputGraph, InputGraph> sourceGraphs) {
+        return new InputGraph(-1, null, name, sourceGraphs);
+    }
+
     InputGraph(int parentIndex, Group parent, String name, Pair<InputGraph, InputGraph> sourceGraphs) {
         this.parentIndex = parentIndex;
         this.parent = parent;
@@ -59,6 +63,14 @@ public class InputGraph extends Properties.Entity {
         blocks = new LinkedHashMap<String, InputBlock>();
         blockEdges = new LinkedHashSet<InputBlockEdge>();
         nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
+    }
+    
+    public void setParent(Group parent, int parentIndex) {
+        assert (this.parent == null);
+        assert (this.parentIndex == -1);
+
+        this.parent = parent;
+        this.parentIndex = parentIndex;
     }
 
     public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {

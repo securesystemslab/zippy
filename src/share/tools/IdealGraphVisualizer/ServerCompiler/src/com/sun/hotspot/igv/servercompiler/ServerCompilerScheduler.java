@@ -111,7 +111,12 @@ public class ServerCompilerScheduler implements Scheduler {
                         p = parent;
                         break;
                     }
+
                     p = p.preds.get(0);
+                    if (p == proj) {
+                        // Cycle, stop
+                        break;
+                    }
 
                     if (p.block == null) {
                         p.block = block;

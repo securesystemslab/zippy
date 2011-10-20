@@ -33,10 +33,8 @@ import java.io.InputStream;
 import java.net.Socket;
 import javax.swing.JTextField;
 import org.openide.util.Exceptions;
-import org.openide.xml.XMLUtil;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 /**
  *
@@ -65,9 +63,8 @@ public class Client implements Runnable, GroupCallback {
                 InputSource is = new InputSource(inputStream);
 
                 try {
-                    XMLReader reader = XMLUtil.createXMLReader();
                     Parser parser = new Parser(this);
-                    parser.parse(reader, is, null);
+                    parser.parse(is, null);
                 } catch (SAXException ex) {
                     ex.printStackTrace();
                 }

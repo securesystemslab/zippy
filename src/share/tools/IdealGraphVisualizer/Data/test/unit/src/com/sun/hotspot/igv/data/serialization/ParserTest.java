@@ -40,11 +40,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openide.xml.XMLUtil;
 import static org.junit.Assert.*;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 /**
  *
@@ -84,9 +82,8 @@ public class ParserTest {
         InputSource is = new InputSource(sr);
 
         try {
-            XMLReader reader = XMLUtil.createXMLReader();
             Parser parser = new Parser();
-            final GraphDocument parsedDocument = parser.parse(reader, is, null);
+            final GraphDocument parsedDocument = parser.parse(is, null);
             Util.assertGraphDocumentEquals(document, parsedDocument);
         } catch (SAXException ex) {
             fail(ex.toString());
