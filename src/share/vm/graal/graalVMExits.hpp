@@ -101,10 +101,17 @@ inline void check_pending_exception(const char* message, bool dump_core = false)
   if (THREAD->has_pending_exception()) {
     Handle exception = PENDING_EXCEPTION;
     CLEAR_PENDING_EXCEPTION;
-    tty->print_cr("%s", message);
-    java_lang_Throwable::print(exception, tty);
-    tty->cr();
-    java_lang_Throwable::print_stack_trace(exception(), tty);
+
+    assert(exception->is_a(SystemDictionary::Throwable_klass()), "Throwable instance expected");
+    JavaValue result(T_VOID);
+    JavaCalls::call_virtual(&result,
+                            exception,
+                            KlassHandle(THREAD,
+                            SystemDictionary::Throwable_klass()),
+                            vmSymbols::printStackTrace_name(),
+                            vmSymbols::void_method_signature(),
+                            THREAD);
+
     vm_abort(dump_core);
   }
 }
