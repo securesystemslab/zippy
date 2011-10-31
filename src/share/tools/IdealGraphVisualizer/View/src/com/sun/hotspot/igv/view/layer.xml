@@ -24,24 +24,31 @@
         <folder name="View">
             <file name="com-sun-hotspot-igv-view-actions-PrevDiagramAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-PrevDiagramAction.instance"/>
+                <attr name="position" intvalue="100"/>
             </file>
             <file name="com-sun-hotspot-igv-view-actions-NextDiagramAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-NextDiagramAction.instance"/>
+                <attr name="position" intvalue="150"/>
             </file>
             <file name="com-sun-hotspot-igv-view-actions-ShowAllAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-ShowAllAction.instance"/>
+                <attr name="position" intvalue="200"/>
             </file>
             <file name="com-sun-hotspot-igv-view-actions-ExtractAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-ExtractAction.instance"/>
+                <attr name="position" intvalue="300"/>
             </file>
             <file name="com-sun-hotspot-igv-view-actions-HideAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-HideAction.instance"/>
+                <attr name="position" intvalue="400"/>
             </file>
             <file name="com-sun-hotspot-igv-view-actions-ZoomInAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-ZoomInAction.instance"/>
+                <attr name="position" intvalue="500"/>
             </file>
             <file name="com-sun-hotspot-igv-view-actions-ZoomOutAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/View/com-sun-hotspot-igv-view-actions-ZoomOutAction.instance"/>
+                <attr name="position" intvalue="550"/>
             </file>
         </folder>
         <folder name="File">

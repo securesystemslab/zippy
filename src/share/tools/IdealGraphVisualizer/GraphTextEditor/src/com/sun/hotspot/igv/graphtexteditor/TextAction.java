@@ -36,9 +36,6 @@ public class TextAction extends AbstractAction {
 
     public TextAction() {
         super(NbBundle.getMessage(TextAction.class, "CTL_TextAction"));
-
-        System.out.println("Text action initialized!!!");
-//        putValue(SMALL_ICON, new ImageIcon(Utilities.loadImage(TextTopComponent.ICON_PATH, true)));
     }
 
     public void actionPerformed(ActionEvent evt) {
