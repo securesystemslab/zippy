@@ -69,9 +69,4 @@
             </file>
         </folder>
     </folder>
-    <folder name="Toolbars">
-        <folder name="Edit">
-            <attr name="com-sun-hotspot-igv-view-actions-LineGeneratorAction.shadow/com-sun-hotspot-igv-coordinator-actions-OpenGraphAction.shadow" boolvalue="true"/>
-        </folder>
-    </folder>
 </filesystem>

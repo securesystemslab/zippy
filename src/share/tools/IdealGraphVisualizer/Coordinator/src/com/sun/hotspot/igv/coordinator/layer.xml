@@ -159,6 +159,7 @@
         <file name="org-netbeans-modules-quicksearch-QuickSearchAction.shadow">
             <attr name="displayName" bundlevalue="com.sun.hotspot.igv.coordinator.Bundle#Toolbars/QuickSearch"/>
             <attr name="originalFile" stringvalue="Actions/Edit/org-netbeans-modules-quicksearch-QuickSearchAction.instance"/>
+            <attr name="position" intvalue="9990"/>
         </file>
         
         <folder name="Help">
