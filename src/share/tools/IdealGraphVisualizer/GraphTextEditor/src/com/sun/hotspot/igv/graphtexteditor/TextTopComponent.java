@@ -39,7 +39,6 @@ import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ItemEvent;
@@ -213,7 +212,9 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         // Rebuild combobox choices
         Object selection = sourceCombo.getSelectedItem();
         sourceCombo.removeAllItems();
-        sourceCombo.addItem(GRAPH_TEXT_REPRESENTATION);
+        // NOTE: addItem() makes the first inserted item the selected item,
+        //       so use insertItemAt() instead
+        sourceCombo.insertItemAt(GRAPH_TEXT_REPRESENTATION, 0);
         if (diagram != null) {
             if (diagram.getGraph().getSourceGraphs() != null) {
                 // Diff graph with source graphs with possibly different groups:
