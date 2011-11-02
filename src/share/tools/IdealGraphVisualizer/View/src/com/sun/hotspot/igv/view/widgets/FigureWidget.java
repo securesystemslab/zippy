@@ -43,6 +43,8 @@ import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.JMenu;
 import javax.swing.JPopupMenu;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import org.netbeans.api.visual.action.PopupMenuProvider;
 import org.netbeans.api.visual.action.WidgetAction;
 import org.netbeans.api.visual.model.ObjectState;
@@ -61,7 +63,6 @@ import org.openide.nodes.Sheet;
 public class FigureWidget extends Widget implements Properties.Provider, PopupMenuProvider, DoubleClickHandler {
 
     public static final boolean VERTICAL_LAYOUT = true;
-    public static final int DEPTH = 5;
     //public static final int MAX_STRING_LENGTH = 20;
     private static final double LABEL_ZOOM_FACTOR = 0.3;
     private static final double ZOOM_FACTOR = 0.1;
@@ -267,61 +268,84 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
             getScene().getGraphics().setComposite(oldComposite);
         }
     }
-
+ 
     public JPopupMenu getPopupMenu(Widget widget, Point point) {
-        JPopupMenu m = diagramScene.createPopupMenu();
+        JPopupMenu menu = diagramScene.createPopupMenu();
+        menu.addSeparator();
 
         JMenu predecessors = new JMenu("Nodes Above");
-        addFigureToSubMenu(predecessors, getFigure(), false, DEPTH);
+        predecessors.addMenuListener(new NeighborMenuListener(predecessors, getFigure(), false));
+        menu.add(predecessors);
 
         JMenu successors = new JMenu("Nodes Below");
-        addFigureToSubMenu(successors, getFigure(), true, DEPTH);
+        successors.addMenuListener(new NeighborMenuListener(successors, getFigure(), true));
+        menu.add(successors);
 
-        m.addSeparator();
-        m.add(predecessors);
-        m.add(successors);
-        return m;
+        return menu;
     }
 
-    public void addFigureToSubMenu(JMenu subMenu, final Figure f, boolean successor, int depth) {
-        Set<Figure> set = f.getPredecessorSet();
-        if (successor) {
-            set = f.getSuccessorSet();
+    /**
+     * Builds the submenu for a figure's neighbors on demand.
+     */
+    private class NeighborMenuListener implements MenuListener {
+
+        private final JMenu menu;
+        private final Figure figure;
+        private final boolean successors;
+
+        public NeighborMenuListener(JMenu menu, Figure figure, boolean successors) {
+            this.menu = menu;
+            this.figure = figure;
+            this.successors = successors;
         }
 
-        int count = set.size();
-        if (set.contains(f)) {
-            count--;
-        }
-
-        for (Figure f2 : set) {
-            if (f2 == f) {
-                continue;
+        public void menuSelected(MenuEvent e) {
+            if (menu.getItemCount() > 0) {
+                // already built before
+                return;
             }
 
-            count--;
-            addFigureToMenu(subMenu, f2, successor, depth - 1);
-            if (count > 0) {
-                subMenu.addSeparator();
-            }
-        }
-    }
-
-    public void addFigureToMenu(JMenu m, final Figure f, boolean successor, int depth) {
-        Action a = diagramScene.createGotoAction(f);
-        m.add(a);
-
-        if (depth > 0) {
-            String name = "Nodes Above";
-            if (successor) {
-                name = "Nodes Below";
+            Set<Figure> set = figure.getPredecessorSet();
+            if (successors) {
+                set = figure.getSuccessorSet();
             }
 
-            JMenu subMenu = new JMenu(name);
-            addFigureToSubMenu(subMenu, f, successor, depth);
-            m.add(subMenu);
+            boolean first = true;
+            for (Figure f : set) {
+                if (f == figure) {
+                    continue;
+                }
+
+                if (first) {
+                    first = false;
+                } else {
+                    menu.addSeparator();
+                }
+
+                Action go = diagramScene.createGotoAction(f);
+                menu.add(go);
+
+                JMenu preds = new JMenu("Nodes Above");
+                preds.addMenuListener(new NeighborMenuListener(preds, f, false));
+                menu.add(preds);
+
+                JMenu succs = new JMenu("Nodes Below");
+                succs.addMenuListener(new NeighborMenuListener(succs, f, true));
+                menu.add(succs);
+            }
+
+            if (menu.getItemCount() == 0) {
+                menu.add("(none)");
+            }
         }
 
+        public void menuDeselected(MenuEvent e) {
+            // ignore
+        }
+
+        public void menuCanceled(MenuEvent e) {
+            // ignore
+        }
     }
 
     public void handleDoubleClick(Widget w, WidgetAction.WidgetMouseEvent e) {
