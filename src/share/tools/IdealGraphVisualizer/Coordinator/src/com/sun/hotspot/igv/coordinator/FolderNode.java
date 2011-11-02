@@ -149,6 +149,10 @@ public class FolderNode extends AbstractNode {
         structure = organizer.organize(subFolders, groups);
         assert structure != null;
         children.addNotify();
+
+        for (Group g : groups) {
+            content.add(g);
+        }
     }
 
     @Override
