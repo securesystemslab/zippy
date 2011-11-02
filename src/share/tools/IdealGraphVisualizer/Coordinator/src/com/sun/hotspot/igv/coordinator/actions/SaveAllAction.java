@@ -49,7 +49,7 @@ public final class SaveAllAction extends CallableSystemAction {
     }
 
     public SaveAllAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Save all methods to XML file");
+        putValue(Action.SHORT_DESCRIPTION, "Save all groups to XML file...");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK));
     }
 

@@ -111,11 +111,12 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         this.add(toolbar, BorderLayout.NORTH);
 
         toolbar.add(ImportAction.get(ImportAction.class));
-        toolbar.add(((NodeAction) RemoveAction.get(RemoveAction.class)).createContextAwareInstance(this.getLookup()));
-        toolbar.add(RemoveAllAction.get(RemoveAllAction.class));
 
         toolbar.add(((NodeAction) SaveAsAction.get(SaveAsAction.class)).createContextAwareInstance(this.getLookup()));
         toolbar.add(SaveAllAction.get(SaveAllAction.class));
+
+        toolbar.add(((NodeAction) RemoveAction.get(RemoveAction.class)).createContextAwareInstance(this.getLookup()));
+        toolbar.add(RemoveAllAction.get(RemoveAllAction.class));
 
         toolbar.add(StructuredViewAction.get(StructuredViewAction.class).getToolbarPresenter());
 

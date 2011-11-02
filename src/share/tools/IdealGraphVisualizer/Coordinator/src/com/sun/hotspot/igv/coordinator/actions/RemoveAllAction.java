@@ -41,11 +41,11 @@ public final class RemoveAllAction extends CallableSystemAction {
 
 
     public String getName() {
-        return NbBundle.getMessage(RemoveAllAction.class, "CTL_ImportAction");
+        return NbBundle.getMessage(RemoveAllAction.class, "CTL_RemoveAllAction");
     }
 
     public RemoveAllAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Remove all methods");
+        putValue(Action.SHORT_DESCRIPTION, "Remove all graphs and groups");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.CTRL_MASK));
     }
 

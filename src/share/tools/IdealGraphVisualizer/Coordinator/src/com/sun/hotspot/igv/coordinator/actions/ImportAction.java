@@ -150,7 +150,7 @@ public final class ImportAction extends CallableSystemAction {
     }
 
     public ImportAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Open an XML graph document");
+        putValue(Action.SHORT_DESCRIPTION, "Open XML graph document...");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK));
     }
 

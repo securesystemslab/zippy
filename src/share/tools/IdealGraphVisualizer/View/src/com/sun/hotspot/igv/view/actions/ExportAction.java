@@ -50,7 +50,7 @@ public final class ExportAction extends CallableSystemAction implements LookupLi
     private final Lookup.Result<ExportCookie> result;
 
     public ExportAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Export current graph as an SVG file");
+        putValue(Action.SHORT_DESCRIPTION, "Export current graph as SVG file");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_MASK));
         lookup = Utilities.actionsGlobalContext();
         result = lookup.lookup(new Lookup.Template<ExportCookie>(ExportCookie.class));

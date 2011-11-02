@@ -68,7 +68,7 @@ public final class RemoveFilterAction extends CookieAction {
     }
 
     public RemoveFilterAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Remove filter");
+        putValue(Action.SHORT_DESCRIPTION, "Remove selected filter");
     }
 
     protected Class[] cookieClasses() {

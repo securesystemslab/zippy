@@ -52,9 +52,13 @@
             </file>
         </folder>
         <folder name="File">
+            <file name="ExportActionSeparator.instance">
+                <attr name="instanceClass" stringvalue="javax.swing.JSeparator"/>
+                <attr name="position" intvalue="700"/>
+            </file>
             <file name="com-sun-hotspot-igv-view-actions-ExportAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/File/com-sun-hotspot-igv-view-actions-ExportAction.instance"/>
-                <attr name="position" intvalue="600"/>
+                <attr name="position" intvalue="710"/>
             </file>
         </folder>
     </folder>

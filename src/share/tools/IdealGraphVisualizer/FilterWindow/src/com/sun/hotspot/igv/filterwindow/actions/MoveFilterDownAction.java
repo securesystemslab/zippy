@@ -50,7 +50,7 @@ public final class MoveFilterDownAction extends CookieAction {
 
     public MoveFilterDownAction() {
 
-        putValue(Action.SHORT_DESCRIPTION, "Move filter downwards");
+        putValue(Action.SHORT_DESCRIPTION, "Move selected filter downwards");
     }
 
     public String getName() {
