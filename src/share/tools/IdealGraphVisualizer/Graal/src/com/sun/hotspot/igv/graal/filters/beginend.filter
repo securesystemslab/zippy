@@ -1,0 +1,4 @@
+var f = new CombineFilter("Combine Filter");
+f.addRule(new CombineFilter.CombineRule(new Properties.RegexpPropertyMatcher("class", ".*"), new Properties.RegexpPropertyMatcher("class", "BeginNode"), false, "shortName"));
+f.addRule(new CombineFilter.CombineRule(new Properties.RegexpPropertyMatcher("class", "EndNode"), new Properties.RegexpPropertyMatcher("class", ".*"), true, "shortName"));
+f.apply(graph);
