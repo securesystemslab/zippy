@@ -333,9 +333,16 @@ JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2bran
   ciMethod* cimethod;
   {
     VM_ENTRY_MARK;
+    assert(hotspot_method != NULL, "must not be null");
     methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+    assert(method != NULL, "method not found");
+    if (CURRENT_ENV == NULL) {
+      return -1;
+    }
+    assert(CURRENT_ENV != NULL, "current environment must be present");
     cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
   }
+  assert(cimethod != NULL, "cimethod not found");
   method_data = cimethod->method_data();
 
   jfloat probability = -1;
@@ -774,6 +781,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1unique
 JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1isInitialized(JNIEnv *, jobject, jobject hotspot_klass) {
   TRACE_graal_3("VMEntries::RiType_isInitialized");
   klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(hotspot_klass));
+  assert(klass != NULL, "method must not be called for primitive types");
   return instanceKlass::cast(klass)->is_initialized();
 }
 

@@ -14,4 +14,6 @@ fi
 FILTER=$1
 shift 1
 TESTDIR=${MAXINE}/com.oracle.max.vm/test
-${JDK7}/bin/java -graal -ea -esa -Xcomp -G:Plot -XX:+PrintCompilation -XX:CompileOnly=jtt -Xbootclasspath/p:"${MAXINE}/com.oracle.max.vm/bin" -Xbootclasspath/p:"${MAXINE}/com.oracle.max.base/bin" $@ test.com.sun.max.vm.compiler.JavaTester -filter=${FILTER} -verbose=1 -gen-run-scheme=false -run-scheme-package=all $@ ${TESTDIR}/jtt/bytecode ${TESTDIR}/jtt/except ${TESTDIR}/jtt/hotpath ${TESTDIR}/jtt/jdk ${TESTDIR}/jtt/lang ${TESTDIR}/jtt/loop ${TESTDIR}/jtt/micro ${TESTDIR}/jtt/optimize ${TESTDIR}/jtt/reflect ${TESTDIR}/jtt/threads ${TESTDIR}/jtt/reflect ${TESTDIR}/jtt/hotspot
+COMMAND="${JDK7}/bin/java -graal -ea -esa -Xcomp -G:Plot -XX:+PrintCompilation -XX:CompileOnly=jtt -Xbootclasspath/p:"${MAXINE}/com.oracle.max.vm/bin" -Xbootclasspath/p:"${MAXINE}/com.oracle.max.base/bin" $@ test.com.sun.max.vm.compiler.JavaTester -filter=${FILTER} -verbose=1 -gen-run-scheme=false -run-scheme-package=all $@ ${TESTDIR}/jtt/bytecode ${TESTDIR}/jtt/except ${TESTDIR}/jtt/hotpath ${TESTDIR}/jtt/jdk ${TESTDIR}/jtt/lang ${TESTDIR}/jtt/loop ${TESTDIR}/jtt/micro ${TESTDIR}/jtt/optimize ${TESTDIR}/jtt/reflect ${TESTDIR}/jtt/threads ${TESTDIR}/jtt/reflect ${TESTDIR}/jtt/hotspot"
+echo $COMMAND
+$COMMAND
