@@ -72,11 +72,11 @@ def tests(env, args):
     """run a selection of the Maxine JTT tests in Graal"""
     
     def jtt(name):
-        return join(env.maxine_home, 'com.oracle.max.vm', 'test', 'jtt', name)
+        return join(env.maxine, 'com.oracle.max.vm', 'test', 'jtt', name)
     
     return env.run_vm(args + ['-ea', '-esa', '-Xcomp', '-XX:+PrintCompilation', '-XX:CompileOnly=jtt'] + args +
-                       ['-Xbootclasspath/p:' + join(env.maxine_home, 'com.oracle.max.vm', 'bin'), 
-                        '-Xbootclasspath/p:' + join(env.maxine_home, 'com.oracle.max.base', 'bin'),
+                       ['-Xbootclasspath/p:' + join(env.maxine, 'com.oracle.max.vm', 'bin'), 
+                        '-Xbootclasspath/p:' + join(env.maxine, 'com.oracle.max.base', 'bin'),
                         'test.com.sun.max.vm.compiler.JavaTester',
                         '-verbose=1', '-gen-run-scheme=false', '-run-scheme-package=all',
                         jtt('bytecode'),
@@ -123,19 +123,22 @@ Given a command name, print help for that command."""
 def make(env, args):
     """builds the Graal+HotSpot binary"""
 
-    
-    jvmCfg = join(env.jdk7, 'jre', 'lib', 'amd64', 'jvm.cfg')
-    found = False
-    with open(jvmCfg) as f:
-        for line in f:
-            if '-graal KNOWN' in line:
-                found = True
-                break
-            
-    if not found:
-        env.log('Appending "-graal KNOWN" to ' + jvmCfg)
-        with open(jvmCfg, 'a') as f:
-            f.write('-graal KNOWN\n')
+    def fix_jvm_cfg(env, jdk):
+        jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+        found = False
+        with open(jvmCfg) as f:
+            for line in f:
+                if '-graal KNOWN' in line:
+                    found = True
+                    break
+                
+        if not found:
+            env.log('Appending "-graal KNOWN" to ' + jvmCfg)
+            with open(jvmCfg, 'a') as f:
+                f.write('-graal KNOWN\n')
+
+    fix_jvm_cfg(env, env.jdk7)
+    fix_jvm_cfg(env, env.jdk7g)
 
     if env.get_os() != 'windows':
         javaLink = join(env.graal_home, 'graal', 'hotspot', 'java')
@@ -161,6 +164,9 @@ def make(env, args):
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7, INSTALL='y')
     env.run(['gmake', 'productgraal'], cwd=join(env.graal_home, 'make'))
     
+def vm(env, args):
+    return env.run_vm(args)
+
 # Table of commands in alphabetical order.
 # Keys are command names, value are lists: [<function>, <usage msg>, <format args to doc string of function>...]
 # If any of the format args are instances of Callable, then they are called with an 'env' are before being
@@ -181,4 +187,5 @@ table = {
     'help': [help_, '[command]'],
     'make': [make, ''],
     'xalan': [xalan, ''],
+    'vm': [vm, ''],
 }

@@ -56,7 +56,7 @@ class Env(ArgumentParser):
         self.dacapo = os.getenv('DACAPO')
         self.jdk7 = os.getenv('JDK7')
         self.jdk7g = os.getenv('JDK7G')
-        self.maxine_home = os.getenv('MAXINE')
+        self.maxine = os.getenv('MAXINE')
         
         ArgumentParser.__init__(self, prog='gl')
     
@@ -64,20 +64,20 @@ class Env(ArgumentParser):
         self.add_argument('--dacapo', help='path to DaCapo 91.12 jar file')
         self.add_argument('--jdk7', help='JDK7 installation in which the GraalVM binary is installed', metavar='<path>')
         self.add_argument('--jdk7g', help='JDK7G installation in which the GraalVM binary is installed', metavar='<path>')
-        self.add_argument('-M', '--maxine', dest='maxine_home', help='path to Maxine code base', metavar='<path>')
+        self.add_argument('-M', '--maxine', dest='maxine', help='path to Maxine code base', metavar='<path>')
         
-    def parse_cmd_line(self):
+    def parse_cmd_line(self, configFile):
         
         self.add_argument('commandAndArgs', nargs=REMAINDER, metavar='command args...')
         
         self.parse_args(namespace=self)
 
-        if not isdir(self.jdk7):
-            self.log('JDK7 is required. Use --jdk7 option or set JDK7 environment variable')
+        if self.jdk7 is None or not isdir(self.jdk7):
+            self.log('JDK7 is required. Use --jdk7 option or set JDK7 environment variable (in ' + configFile + ')')
             self.abort(1)
 
-        if not isdir(self.jdk7g):
-            self.log('JDK7G is required. Use --jdk7g option or set JDK7G environment variable')
+        if self.jdk7g is None or not isdir(self.jdk7g):
+            self.log('JDK7G is required. Use --jdk7g option or set JDK7G environment variable (in ' + configFile + ')')
             self.abort(1)
 
         self.graal_home = dirname(abspath(dirname(sys.argv[0])))
@@ -86,12 +86,13 @@ class Env(ArgumentParser):
         """ adds attributes to this object from a file containing key=value lines """
         if exists(configFile):
             with open(configFile) as f:
-                self.log('[loading vars from ' + configFile + ']')
+                #self.log('[loading vars from ' + configFile + ']')
                 for line in f:
-                    kv = line.split('=', 1)
-                    if len(kv) == 2:
-                        k = kv[0].strip().lower()
-                        setattr(self, k, os.path.expandvars(kv[1].strip()))
+                    if not line.startswith('#'):
+                        kv = line.split('=', 1)
+                        if len(kv) == 2:
+                            k = kv[0].strip().lower()
+                            setattr(self, k, os.path.expandvars(kv[1].strip()))
 
     def get_os(self):
         if sys.platform.startswith('darwin'):
@@ -119,14 +120,15 @@ class Env(ArgumentParser):
         return self.run_vm(['-Xms1g', '-Xmx2g', '-esa', '-XX:-GraalBailoutIsFatal', '-G:-QuietBailout', '-cp', self.dacapo] + args)
 
     def run_vm(self, args):
-        if self.maxine_home is None:
-            self.log('Path to Maxine code base must be specified with -M option of MAXINE environment variable')
+        if self.maxine is None:
+            configFile = join(dirname(sys.argv[0]), 'glrc')
+            self.log('Path to Maxine code base must be specified with -M option or MAXINE environment variable (in ' + configFile + ')')
             self.abort(1)
-        if not exists(join(self.maxine_home, 'com.oracle.max.graal.hotspot', 'bin', 'com', 'oracle', 'max', 'graal', 'hotspot', 'VMEntriesNative.class')):
-            self.log('Maxine code base path specified -M option or MAXINE environment variable does not contain com.oracle.max.graal.hotspot/bin/com/oracle/max/graal/hotspot/VMEntriesNative.class: ' + self.maxine_home)
+        if not exists(join(self.maxine, 'com.oracle.max.graal.hotspot', 'bin', 'com', 'oracle', 'max', 'graal', 'hotspot', 'VMEntriesNative.class')):
+            self.log('Maxine code base path specified -M option or MAXINE environment variable does not contain com.oracle.max.graal.hotspot/bin/com/oracle/max/graal/hotspot/VMEntriesNative.class: ' + self.maxine)
             self.abort(1)
             
-        os.environ['MAXINE'] = self.maxine_home
+        os.environ['MAXINE'] = self.maxine
         exe = join(self.jdk7, 'bin', self.exe('java'))
         return self.run([exe, '-graal'] + args)
 
@@ -196,7 +198,7 @@ class Env(ArgumentParser):
 def main(env):
     configFile = join(dirname(sys.argv[0]), 'glrc')
     env.load_config_file(configFile)
-    env.parse_cmd_line()
+    env.parse_cmd_line(configFile)
     
     if len(env.commandAndArgs) == 0:
         env.print_help()
