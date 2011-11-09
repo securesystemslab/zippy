@@ -1003,10 +1003,10 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JN
     Arena arena;
     ciEnv env(&arena);
     ResourceMark rm;
-    CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code);
+    CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code != 0);
   } else {
     ResourceMark rm;
-    CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code);
+    CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code != 0);
   }
   return (jlong) nm;
 }
