@@ -178,14 +178,14 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     }
 
     public void addFilterSetting() {
-        NotifyDescriptor.InputLine l = new NotifyDescriptor.InputLine("Enter a name:", "Filter");
+        NotifyDescriptor.InputLine l = new NotifyDescriptor.InputLine("Name of the new profile:", "Filter Profile");
         if (DialogDisplayer.getDefault().notify(l) == NotifyDescriptor.OK_OPTION) {
             String name = l.getInputText();
 
             FilterSetting toRemove = null;
             for (FilterSetting s : filterSettings) {
                 if (s.getName().equals(name)) {
-                    NotifyDescriptor.Confirmation conf = new NotifyDescriptor.Confirmation("Filter \"" + name + "\" already exists, to you want to overwrite?", "Filter");
+                    NotifyDescriptor.Confirmation conf = new NotifyDescriptor.Confirmation("Filter profile \"" + name + "\" already exists, do you want to replace it?", "Filter");
                     if (DialogDisplayer.getDefault().notify(conf) == NotifyDescriptor.YES_OPTION) {
                         toRemove = s;
                         break;
@@ -224,7 +224,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
             FilterSetting f = (FilterSetting) o;
             assert f != customFilterSetting;
             assert filterSettings.contains(f);
-            NotifyDescriptor.Confirmation l = new NotifyDescriptor.Confirmation("Do you really want to remove filter \"" + f + "\"?", "Filter");
+            NotifyDescriptor.Confirmation l = new NotifyDescriptor.Confirmation("Do you really want to remove filter profile \"" + f + "\"?", "Filter Profile");
             if (DialogDisplayer.getDefault().notify(l) == NotifyDescriptor.YES_OPTION) {
                 filterSettings.remove(f);
                 updateComboBox();
