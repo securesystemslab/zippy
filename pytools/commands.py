@@ -33,7 +33,7 @@ from collections import Callable
 def clean(env, args):
     """cleans the GraalVM source tree"""
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
-    env.run(['gmake', 'clean'], cwd=join(env.graal_home, 'make'))
+    env.run([env.gmake_cmd(), 'clean'], cwd=join(env.graal_home, 'make'))
 
 def bootstrap(env, args):
     return env.run_vm(args + ['-version'])
@@ -154,10 +154,7 @@ def make(env, args):
         os.makedirs(graalVmDir)
 
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7, INSTALL='y')
-    env.run(['gmake', 'jvmggraal'], cwd=join(env.graal_home, 'make'))
-
-    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7, INSTALL='y')
-    env.run(['gmake', 'productgraal'], cwd=join(env.graal_home, 'make'))
+    env.run([env.gmake_cmd(), 'productgraal'], cwd=join(env.graal_home, 'make'))
     
 def vm(env, args):
     return env.run_vm(args)

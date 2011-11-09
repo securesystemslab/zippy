@@ -175,6 +175,15 @@ class Env(ArgumentParser):
             
         return retcode
 
+    def gmake_cmd(self):
+        for a in ['make', 'gmake', 'gnumake']:
+            try:
+                output = subprocess.check_output([a, '--version'])
+                if 'GNU' in output:
+                    return a;
+            except:
+                pass
+        self.abort('Could not find a GNU make executable on the current path.')
     
     def log(self, msg=None):
         if msg is None:
