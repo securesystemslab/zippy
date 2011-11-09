@@ -44,7 +44,7 @@ public final class RemoveFilterSettingsAction extends CallableSystemAction {
     }
 
     public RemoveFilterSettingsAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Remove filter profile");
+        putValue(Action.SHORT_DESCRIPTION, "Delete current filter profile");
     }
 
     @Override

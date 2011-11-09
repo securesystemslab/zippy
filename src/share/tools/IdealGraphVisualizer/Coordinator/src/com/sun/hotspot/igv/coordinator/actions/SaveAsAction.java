@@ -34,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import javax.swing.Action;
 import javax.swing.JFileChooser;
 import org.openide.nodes.Node;
 import org.openide.util.HelpCtx;
@@ -46,6 +47,10 @@ import org.openide.util.actions.NodeAction;
  * @author Thomas Wuerthinger
  */
 public final class SaveAsAction extends NodeAction {
+
+    public SaveAsAction() {
+        putValue(Action.SHORT_DESCRIPTION, "Save selected groups to XML file...");
+    }
 
     protected void performAction(Node[] activatedNodes) {
 

@@ -38,7 +38,7 @@ public final class ViewOptionsCategory extends OptionsCategory {
 
     @Override
     public Icon getIcon() {
-        return new ImageIcon(ImageUtilities.loadImage("com/sun/hotspot/igv/settings/settings.gif"));
+        return new ImageIcon(ImageUtilities.loadImage("com/sun/hotspot/igv/settings/settings.png"));
     }
 
     public String getCategoryName() {

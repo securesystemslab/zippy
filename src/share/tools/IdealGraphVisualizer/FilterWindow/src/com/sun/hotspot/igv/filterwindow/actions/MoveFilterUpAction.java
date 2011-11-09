@@ -49,7 +49,7 @@ public final class MoveFilterUpAction extends CookieAction {
     }
 
     public MoveFilterUpAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Move filter upwards");
+        putValue(Action.SHORT_DESCRIPTION, "Move selected filter upwards");
     }
 
     public String getName() {

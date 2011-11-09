@@ -49,7 +49,7 @@ public final class SaveFilterSettingsAction extends CallableSystemAction {
     }
 
     public SaveFilterSettingsAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Create new filter profile");
+        putValue(Action.SHORT_DESCRIPTION, "Save filter configuration as profile...");
     }
 
     public HelpCtx getHelpCtx() {

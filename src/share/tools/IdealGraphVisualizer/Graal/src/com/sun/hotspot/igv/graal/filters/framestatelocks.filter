@@ -1,0 +1,2 @@
+colorize("class", "FrameState", red);
+colorize("locks", "", gray);

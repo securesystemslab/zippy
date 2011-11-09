@@ -39,7 +39,6 @@ import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ItemEvent;
@@ -213,7 +212,9 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         // Rebuild combobox choices
         Object selection = sourceCombo.getSelectedItem();
         sourceCombo.removeAllItems();
-        sourceCombo.addItem(GRAPH_TEXT_REPRESENTATION);
+        // NOTE: addItem() makes the first inserted item the selected item,
+        //       so use insertItemAt() instead
+        sourceCombo.insertItemAt(GRAPH_TEXT_REPRESENTATION, 0);
         if (diagram != null) {
             if (diagram.getGraph().getSourceGraphs() != null) {
                 // Diff graph with source graphs with possibly different groups:
@@ -279,7 +280,11 @@ final class TextTopComponent extends TopComponent implements LookupListener {
     private void displayDiagram(Diagram diagram) {
         if (diagram == null) {
             showCard(NO_GRAPH);
-        } else if (diagram.getGraph().getSourceGraphs() != null) {
+        } /* This side-by-side view of the source graphs for diff graphs doesn't
+           * work properly because nodes that exist only in graph B (the 'new'
+           * graph) are in most cases assigned different ids.
+
+            else if (diagram.getGraph().getSourceGraphs() != null) {
             showCard(TWO_GRAPHS);
             Pair<InputGraph, InputGraph> graphs = diagram.getGraph().getSourceGraphs();
             leftEditor.setStructuredText(convert(graphs.getLeft(), diagram));
@@ -287,7 +292,8 @@ final class TextTopComponent extends TopComponent implements LookupListener {
 
             // TODO: Hack to update view - remove
             SelectionCoordinator.getInstance().getHighlightedChangedEvent().fire();
-        } else {
+        } */
+        else {
             showCard(ONE_GRAPH);
             StructuredText text = convert(diagram.getGraph(), diagram);
             singleEditor.setStructuredText(text);

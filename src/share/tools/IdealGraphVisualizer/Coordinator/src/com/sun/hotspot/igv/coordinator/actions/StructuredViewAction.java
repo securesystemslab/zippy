@@ -111,7 +111,7 @@ public class StructuredViewAction extends CallableSystemAction {
 
         dropDownButton.setIcon(icon);
 
-        dropDownButton.setToolTipText("Insert Layer Registration");
+        dropDownButton.setToolTipText("Choose group organization");
 
         dropDownButton.addItemListener(new ItemListener() {
 

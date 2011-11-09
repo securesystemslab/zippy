@@ -31,6 +31,7 @@ import com.sun.hotspot.igv.data.InputEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Pair;
+import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Property;
 import com.sun.hotspot.igv.data.services.Scheduler;
 import java.util.Collection;
@@ -103,6 +104,18 @@ public class Difference {
         Group g = new Group();
         g.setMethod(a.getGroup().getMethod());
         g.setAssembly(a.getGroup().getAssembly());
+        if (a.getGroup() == b.getGroup()) {
+            g.getProperties().add(a.getGroup().getProperties());
+        } else {
+            // copy properties that have the same value in both groups
+            Properties bps = b.getGroup().getProperties();
+            for (Property p : a.getGroup().getProperties()) {
+                String value = p.getValue();
+                if (value != null && value.equals(bps.get(p.getName()))) {
+                    g.getProperties().setProperty(p.getName(), value);
+                }
+            }
+        }
         g.getProperties().setProperty("name", "Difference");
         InputGraph graph = g.addGraph(a.getName() + ", " + b.getName(), new Pair<InputGraph, InputGraph>(a, b));
 

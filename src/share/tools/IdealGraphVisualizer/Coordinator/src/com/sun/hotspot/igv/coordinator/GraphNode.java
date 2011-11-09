@@ -27,7 +27,6 @@ import com.sun.hotspot.igv.coordinator.actions.DiffGraphAction;
 import com.sun.hotspot.igv.coordinator.actions.DiffGraphCookie;
 import com.sun.hotspot.igv.coordinator.actions.GraphOpenCookie;
 import com.sun.hotspot.igv.coordinator.actions.GraphRemoveCookie;
-import com.sun.hotspot.igv.coordinator.actions.RemoveCookie;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.services.GraphViewer;
@@ -35,7 +34,6 @@ import com.sun.hotspot.igv.util.PropertiesSheet;
 import java.awt.Image;
 import javax.swing.Action;
 import org.openide.actions.OpenAction;
-import org.openide.cookies.OpenCookie;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Sheet;
@@ -50,7 +48,7 @@ import org.openide.util.lookup.InstanceContent;
  */
 public class GraphNode extends AbstractNode {
 
-    private InputGraph graph;
+    private final InputGraph graph;
 
     /** Creates a new instance of GraphNode */
     public GraphNode(InputGraph graph) {
@@ -106,5 +104,21 @@ public class GraphNode extends AbstractNode {
     @Override
     public Action getPreferredAction() {
         return (Action) OpenAction.findObject(OpenAction.class, true);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj instanceof GraphNode) {
+            return (graph == ((GraphNode) obj).graph);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return graph.hashCode();
     }
 }
