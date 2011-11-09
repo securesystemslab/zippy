@@ -140,7 +140,7 @@ def make(env, args):
     fix_jvm_cfg(env, env.jdk7)
 
     if env.get_os() != 'windows':
-        javaLink = join(env.graal_home, 'graal', 'hotspot', 'java')
+        javaLink = join(env.graal_home, 'hotspot', 'java')
         if not exists(javaLink):
             javaExe = join(env.jdk7, 'jre', 'bin', 'java')
             env.log('Creating link: ' + javaLink + ' -> ' + javaExe)
@@ -151,7 +151,7 @@ def make(env, args):
         env.log('Creating Graal directory in JDK7: ' + graalVmDir)
         os.makedirs(graalVmDir)
 
-    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7g, INSTALL='y')
+    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7, INSTALL='y')
     env.run(['gmake', 'jvmggraal'], cwd=join(env.graal_home, 'make'))
 
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7, INSTALL='y')
