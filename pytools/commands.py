@@ -126,12 +126,14 @@ def make(env, args):
     def fix_jvm_cfg(env, jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
         found = False
+        if not exists(jvmCfg):
+            env.abort(jvmCfg + ' does not exist')
+            
         with open(jvmCfg) as f:
             for line in f:
                 if '-graal KNOWN' in line:
                     found = True
                     break
-                
         if not found:
             env.log('Appending "-graal KNOWN" to ' + jvmCfg)
             with open(jvmCfg, 'a') as f:

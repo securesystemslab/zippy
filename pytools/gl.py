@@ -70,9 +70,11 @@ class Env(ArgumentParser):
         
         self.parse_args(namespace=self)
 
-        if self.jdk7 is None or not isdir(self.jdk7):
-            self.log('JDK7 is required. Use --jdk7 option or set JDK7 environment variable (in ' + configFile + ')')
-            self.abort(1)
+        if self.jdk7 is None:
+            self.abort('JDK7 is required. Use --jdk7 option or set JDK7 environment variable (in ' + configFile + ')')
+            
+        if not isdir(self.jdk7):
+            self.abort('Specified JDK7 path is not a directory: ' + self.jdk7)
 
         self.graal_home = dirname(abspath(dirname(sys.argv[0])))
     
@@ -98,8 +100,7 @@ class Env(ArgumentParser):
         elif sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
             return 'windows'
         else:
-            print 'Supported operating system could not be derived from', sys.platform
-            self.abort(1)
+            self.abort('Supported operating system could not be derived from ' + sys.platform)
 
         
     def exe(self, name):
@@ -109,18 +110,15 @@ class Env(ArgumentParser):
 
     def run_dacapo(self, args):
         if not isfile(self.dacapo) or not self.dacapo.endswith('.jar'):
-            self.log('Specified DaCapo jar file does not exist or is not a jar file: ' + self.dacapo)
-            self.abort(1)
+            self.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + self.dacapo)
         return self.run_vm(['-Xms1g', '-Xmx2g', '-esa', '-XX:-GraalBailoutIsFatal', '-G:-QuietBailout', '-cp', self.dacapo] + args)
 
     def run_vm(self, args):
         if self.maxine is None:
             configFile = join(dirname(sys.argv[0]), 'glrc')
-            self.log('Path to Maxine code base must be specified with -M option or MAXINE environment variable (in ' + configFile + ')')
-            self.abort(1)
+            self.abort('Path to Maxine code base must be specified with -M option or MAXINE environment variable (in ' + configFile + ')')
         if not exists(join(self.maxine, 'com.oracle.max.graal.hotspot', 'bin', 'com', 'oracle', 'max', 'graal', 'hotspot', 'VMEntriesNative.class')):
-            self.log('Maxine code base path specified -M option or MAXINE environment variable does not contain com.oracle.max.graal.hotspot/bin/com/oracle/max/graal/hotspot/VMEntriesNative.class: ' + self.maxine)
-            self.abort(1)
+            self.abort('Maxine code base path specified -M option or MAXINE environment variable does not contain com.oracle.max.graal.hotspot/bin/com/oracle/max/graal/hotspot/VMEntriesNative.class: ' + self.maxine)
             
         os.environ['MAXINE'] = self.maxine
         exe = join(self.jdk7, 'bin', self.exe('java'))
@@ -140,8 +138,7 @@ class Env(ArgumentParser):
         assert isinstance(args, types.ListType), "'args' must be a list: " + str(args)
         for arg in args:
             if not isinstance(arg, types.StringTypes):
-                self.log('argument is not a string: ' + str(arg))
-                self.abort(1)
+                self.abort('argument is not a string: ' + str(arg))
         
         if self.verbose:
             self.log(' '.join(args))
