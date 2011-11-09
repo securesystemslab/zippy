@@ -55,16 +55,14 @@ class Env(ArgumentParser):
     def __init__(self):
         self.dacapo = os.getenv('DACAPO')
         self.jdk7 = os.getenv('JDK7')
-        self.jdk7g = os.getenv('JDK7G')
         self.maxine = os.getenv('MAXINE')
         
         ArgumentParser.__init__(self, prog='gl')
     
         self.add_argument('-v', action='store_true', dest='verbose', help='enable verbose output')
-        self.add_argument('--dacapo', help='path to DaCapo 91.12 jar file')
-        self.add_argument('--jdk7', help='JDK7 installation in which the GraalVM binary is installed', metavar='<path>')
-        self.add_argument('--jdk7g', help='JDK7G installation in which the GraalVM binary is installed', metavar='<path>')
-        self.add_argument('-M', '--maxine', dest='maxine', help='path to Maxine code base', metavar='<path>')
+        self.add_argument('--dacapo', help='path to DaCapo 9.12 jar file', metavar='<path>')
+        self.add_argument('--jdk7', help='JDK7 in which the GraalVM will be installed', metavar='<path>')
+        self.add_argument('-M', dest='maxine', help='path to Maxine code base', metavar='<path>')
         
     def parse_cmd_line(self, configFile):
         
@@ -74,10 +72,6 @@ class Env(ArgumentParser):
 
         if self.jdk7 is None or not isdir(self.jdk7):
             self.log('JDK7 is required. Use --jdk7 option or set JDK7 environment variable (in ' + configFile + ')')
-            self.abort(1)
-
-        if self.jdk7g is None or not isdir(self.jdk7g):
-            self.log('JDK7G is required. Use --jdk7g option or set JDK7G environment variable (in ' + configFile + ')')
             self.abort(1)
 
         self.graal_home = dirname(abspath(dirname(sys.argv[0])))

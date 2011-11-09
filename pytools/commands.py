@@ -31,7 +31,7 @@ from os.path import join, exists
 from collections import Callable
 
 def clean(env, args):
-    """cleans the Graal+HotSpot source tree"""
+    """cleans the GraalVM source tree"""
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
     env.run(['gmake', 'clean'], cwd=join(env.graal_home, 'make'))
 
@@ -121,7 +121,7 @@ Given a command name, print help for that command."""
     print 'gl {0} {1}\n\n{2}\n'.format(name, usage, doc)
 
 def make(env, args):
-    """builds the Graal+HotSpot binary"""
+    """builds the GraalVM binary"""
 
     def fix_jvm_cfg(env, jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
@@ -138,7 +138,6 @@ def make(env, args):
                 f.write('-graal KNOWN\n')
 
     fix_jvm_cfg(env, env.jdk7)
-    fix_jvm_cfg(env, env.jdk7g)
 
     if env.get_os() != 'windows':
         javaLink = join(env.graal_home, 'graal', 'hotspot', 'java')
@@ -151,12 +150,6 @@ def make(env, args):
     if not exists(graalVmDir):
         env.log('Creating Graal directory in JDK7: ' + graalVmDir)
         os.makedirs(graalVmDir)
-
-    graalVmDbgDir = join(env.jdk7g, 'jre', 'lib', 'amd64', 'graal')
-    if not exists(graalVmDbgDir):
-        env.log('Creating Graal directory in JDK7G: ' + graalVmDbgDir)
-        os.makedirs(graalVmDbgDir)
-
 
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='4', ALT_BOOTDIR=env.jdk7g, INSTALL='y')
     env.run(['gmake', 'jvmggraal'], cwd=join(env.graal_home, 'make'))
