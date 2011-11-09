@@ -59,6 +59,9 @@ public:
   // public abstract void startCompiler();
   static void startCompiler();
 
+  // public abstract void pollJavaQueue();
+  static void pollJavaQueue();
+
   // public abstract RiMethod createRiMethodResolved(long vmId, String name);
   static oop createRiMethodResolved(jlong vmId, Handle name, TRAPS);
 

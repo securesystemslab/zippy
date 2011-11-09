@@ -263,6 +263,7 @@
   template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/hotspot/HotSpotMethodResolvedImpl")       \
   template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/hotspot/HotSpotTargetMethod")               \
   template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/hotspot/HotSpotField")                      \
+  template(com_sun_hotspot_graal_HotSpotCompiledMethod, "com/oracle/max/graal/hotspot/HotSpotCompiledMethod")           \
   template(com_sun_graal_graalOptions,                "com/sun/graal/graalOptions")                                     \
   template(com_sun_hotspot_graal_HotSpotOptions,      "com/oracle/max/graal/hotspot/HotSpotOptions")                    \
   template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/hotspot/HotSpotTypeResolvedImpl")           \
@@ -303,6 +304,7 @@
   template(startCompiler_name,                        "startCompiler")                                                  \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
+  template(pollJavaQueue_name,                        "pollJavaQueue")                                                  \
   template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/HotSpotMethodResolved;I)V")       \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \

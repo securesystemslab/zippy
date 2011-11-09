@@ -73,6 +73,11 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotField)                                                             \
     oop_field(HotSpotField, constant, "Lcom/sun/cri/ci/CiConstant;")                    \
+    int_field(HotSpotField, offset)                                                     \
+    int_field(HotSpotField, accessFlags)                                                \
+  end_class                                                                             \
+  start_class(HotSpotCompiledMethod)                                                    \
+    long_field(HotSpotCompiledMethod, nmethod)                                          \
   end_class                                                                             \
   start_class(HotSpotProxy)                                                             \
     static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \

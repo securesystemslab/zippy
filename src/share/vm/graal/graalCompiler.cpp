@@ -264,3 +264,22 @@ BasicType GraalCompiler::kindToBasicType(jchar ch) {
   return T_ILLEGAL;
 }
 
+void GraalCompiler::poll_java_queue() {
+  int system_dictionary_modification_counter;
+  {
+    MutexLocker locker(Compile_lock, Thread::current());
+    system_dictionary_modification_counter = SystemDictionary::number_of_modifications();
+  }
+
+  {
+    ThreadToNativeFromVM ttn(JavaThread::current());
+    ciEnv ci_env(NULL, system_dictionary_modification_counter);
+    {
+      VM_ENTRY_MARK;
+      ResourceMark rm;
+      HandleMark hm;
+
+      VMExits::pollJavaQueue();
+    }
+  }
+}

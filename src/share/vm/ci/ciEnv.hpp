@@ -312,7 +312,7 @@ public:
   uint compile_id();  // task()->compile_id()
 
   // Register the result of a compilation.
-  void register_method(ciMethod*                 target,
+  nmethod* register_method(ciMethod*             target,
                        int                       entry_bci,
                        CodeOffsets*              offsets,
                        int                       orig_pc_offset,
@@ -324,7 +324,8 @@ public:
                        AbstractCompiler*         compiler,
                        int                       comp_level,
                        bool                      has_debug_info = true,
-                       bool                      has_unsafe_access = false);
+                       bool                      has_unsafe_access = false,
+                       bool                      install_code = true);
 
 
   // Access to certain well known ciObjects.

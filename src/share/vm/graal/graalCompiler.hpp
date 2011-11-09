@@ -79,6 +79,8 @@ public:
   }
 
   static void initialize_buffer_blob();
+
+  void poll_java_queue();
 };
 
 // Tracing macros

@@ -24,6 +24,7 @@
 #include "precompiled.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "ci/ciMethodData.hpp"
+#include "compiler/compileBroker.hpp"
 #include "graal/graalVMEntries.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalJavaAccess.hpp"
@@ -986,18 +987,20 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getConfigurati
   return config;
 }
 
-// public void installMethod(HotSpotTargetMethod targetMethod);
-JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod) {
+// public long installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
+JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
   VM_ENTRY_MARK;
+  nmethod* nm = NULL;
   if (CURRENT_ENV == NULL) {
     Arena arena;
     ciEnv env(&arena);
     ResourceMark rm;
-    CodeInstaller installer(JNIHandles::resolve(targetMethod));
+    CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code);
   } else {
     ResourceMark rm;
-    CodeInstaller installer(JNIHandles::resolve(targetMethod));
+    CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code);
   }
+  return (jlong) nm;
 }
 
 // public HotSpotProxy installStub(HotSpotTargetMethod targetMethod, String name);
@@ -1025,6 +1028,11 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_recordBailout(JNI
     }
     vm_abort(false);
   }
+}
+
+// public void notifyJavaQueue();
+JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue(JNIEnv *jniEnv, jobject) {
+  CompileBroker::notify_java_queue();
 }
 
 
@@ -1088,9 +1096,10 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getMaxCallTargetOffset)},
   {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getType)},
   {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getConfiguration)},
-  {CC"installMethod",                     CC"("TARGET_METHOD")V",                     FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installMethod)},
+  {CC"installMethod",                     CC"("TARGET_METHOD"Z)J",                    FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installMethod)},
   {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installStub)},
-  {CC"recordBailout",                     CC"("STRING")V",                            FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_recordBailout)}
+  {CC"recordBailout",                     CC"("STRING")V",                            FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_recordBailout)},
+  {CC"notifyJavaQueue",                   CC"()V",                                    FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue)}
 };
 
 int VMEntries_methods_count() {

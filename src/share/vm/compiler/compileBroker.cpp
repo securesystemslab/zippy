@@ -159,6 +159,7 @@ CompileTask*  CompileBroker::_task_free_list = NULL;
 
 GrowableArray<CompilerThread*>* CompileBroker::_method_threads = NULL;
 
+bool CompileBroker::_poll_java_queue = false;
 
 CompileTaskWrapper::CompileTaskWrapper(CompileTask* task) {
   CompilerThread* thread = CompilerThread::current();
@@ -543,12 +544,15 @@ void CompileQueue::add(CompileTask* task) {
 // CompileQueue::get
 //
 // Get the next CompileTask from a CompileQueue
-CompileTask* CompileQueue::get() {
+CompileTask* CompileQueue::get(bool& interrupt) {
   NMethodSweeper::possibly_sweep();
 
   MutexLocker locker(lock());
   // Wait for an available CompileTask.
   while (_first == NULL) {
+    if (interrupt) {
+      return NULL;
+    }
     // There is no work to be done right now.  Wait.
     if (UseCodeCacheFlushing && (!CompileBroker::should_compile_new_jobs() || CodeCache::needs_flushing())) {
       // During the emergency sweeping periods, wake up and sweep occasionally
@@ -714,6 +718,20 @@ void CompileBroker::bootstrap_graal() {
   tty->print_cr("Finished bootstrap in %d ms", diff);
   if (CITime) CompileBroker::print_times();
   tty->print_cr("===========================================================================");
+}
+
+
+void CompileBroker::notify_java_queue() {
+  HandleMark hm;
+  ResourceMark rm;
+
+  _poll_java_queue = true;
+  {
+    ThreadInVMfromNative tivm(JavaThread::current());
+    MutexLocker locker(_c1_method_queue->lock(), Thread::current());
+
+    _c1_method_queue->lock()->notify_all();
+  }
 }
 
 
@@ -1579,49 +1597,58 @@ void CompileBroker::compiler_thread_loop() {
         NMethodSweeper::handle_full_code_cache(false);
       }
 
-      CompileTask* task = queue->get();
+      CompileTask* task = queue->get(_poll_java_queue);
 
-      // Give compiler threads an extra quanta.  They tend to be bursty and
-      // this helps the compiler to finish up the job.
-      if( CompilerThreadHintNoPreempt )
-        os::hint_no_preempt();
+      if (task != NULL) {
+        // Give compiler threads an extra quanta.  They tend to be bursty and
+        // this helps the compiler to finish up the job.
+        if( CompilerThreadHintNoPreempt )
+          os::hint_no_preempt();
 
-      // trace per thread time and compile statistics
-      CompilerCounters* counters = ((CompilerThread*)thread)->counters();
-      PerfTraceTimedEvent(counters->time_counter(), counters->compile_counter());
+        // trace per thread time and compile statistics
+        CompilerCounters* counters = ((CompilerThread*)thread)->counters();
+        PerfTraceTimedEvent(counters->time_counter(), counters->compile_counter());
 
-      // Assign the task to the current thread.  Mark this compilation
-      // thread as active for the profiler.
-      CompileTaskWrapper ctw(task);
-      nmethodLocker result_handle;  // (handle for the nmethod produced by this task)
-      task->set_code_handle(&result_handle);
-      methodHandle method(thread,
-                     (methodOop)JNIHandles::resolve(task->method_handle()));
+        // Assign the task to the current thread.  Mark this compilation
+        // thread as active for the profiler.
+        CompileTaskWrapper ctw(task);
+        nmethodLocker result_handle;  // (handle for the nmethod produced by this task)
+        task->set_code_handle(&result_handle);
+        methodHandle method(thread,
+                       (methodOop)JNIHandles::resolve(task->method_handle()));
 
-      // Never compile a method if breakpoints are present in it
-      if (method()->number_of_breakpoints() == 0) {
-        // Compile the method.
-        if ((UseCompiler || AlwaysCompileLoopMethods) && CompileBroker::should_compile_new_jobs()) {
-#ifdef COMPILER1
-          // Allow repeating compilations for the purpose of benchmarking
-          // compile speed. This is not useful for customers.
-          if (CompilationRepeat != 0) {
-            int compile_count = CompilationRepeat;
-            while (compile_count > 0) {
-              invoke_compiler_on_method(task);
-              nmethod* nm = method->code();
-              if (nm != NULL) {
-                nm->make_zombie();
-                method->clear_code();
+        // Never compile a method if breakpoints are present in it
+        if (method()->number_of_breakpoints() == 0) {
+          // Compile the method.
+          if ((UseCompiler || AlwaysCompileLoopMethods) && CompileBroker::should_compile_new_jobs()) {
+  #ifdef COMPILER1
+            // Allow repeating compilations for the purpose of benchmarking
+            // compile speed. This is not useful for customers.
+            if (CompilationRepeat != 0) {
+              int compile_count = CompilationRepeat;
+              while (compile_count > 0) {
+                invoke_compiler_on_method(task);
+                nmethod* nm = method->code();
+                if (nm != NULL) {
+                  nm->make_zombie();
+                  method->clear_code();
+                }
+                compile_count--;
               }
-              compile_count--;
             }
+  #endif /* COMPILER1 */
+            invoke_compiler_on_method(task);
+          } else {
+            // After compilation is disabled, remove remaining methods from queue
+            method->clear_queued_for_compilation();
           }
-#endif /* COMPILER1 */
-          invoke_compiler_on_method(task);
-        } else {
-          // After compilation is disabled, remove remaining methods from queue
-          method->clear_queued_for_compilation();
+        }
+      }
+
+      if (_poll_java_queue) {
+        _poll_java_queue = false;
+        if (UseGraal) {
+          GraalCompiler::instance()->poll_java_queue();
         }
       }
     }

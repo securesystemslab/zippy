@@ -195,7 +195,7 @@ class CompileQueue : public CHeapObj {
   CompileTask* first()                           { return _first; }
   CompileTask* last()                            { return _last;  }
 
-  CompileTask* get();
+  CompileTask* get(bool& interrupt);
 
   bool         is_empty() const                  { return _first == NULL; }
   int          size()     const                  { return _size;          }
@@ -296,6 +296,8 @@ class CompileBroker: AllStatic {
   static int _sum_standard_bytes_compiled;
   static int _sum_nmethod_size;
   static int _sum_nmethod_code_size;
+
+  static bool _poll_java_queue;
 
   static CompilerThread* make_compiler_thread(const char* name, CompileQueue* queue, CompilerCounters* counters, TRAPS);
   static void init_compiler_threads(int c1_compiler_count, int c2_compiler_count);
@@ -404,6 +406,8 @@ class CompileBroker: AllStatic {
 
   static void bootstrap_graal();
   static void add_method_to_queue(klassOop k, Symbol* name, Symbol* signature);
+
+  static void notify_java_queue();
 };
 
 #endif // SHARE_VM_COMPILER_COMPILEBROKER_HPP

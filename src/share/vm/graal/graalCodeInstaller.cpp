@@ -230,7 +230,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle target_method) {
+CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_code) {
   _env = CURRENT_ENV;
   ciMethod *ciMethodObject = NULL;
   {
@@ -255,9 +255,8 @@ CodeInstaller::CodeInstaller(Handle target_method) {
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
-  _env->register_method(ciMethodObject, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-      &_implicit_exception_table, GraalCompiler::instance(), _env->comp_level(), false, false);
-
+  nm = _env->register_method(ciMethodObject, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+      &_implicit_exception_table, GraalCompiler::instance(), _env->comp_level(), false, false, install_code);
 }
 
 // constructor used to create a stub
@@ -652,6 +651,16 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   } else {
     runtime_call->print();
     fatal("unsupported type of instruction for call site");
+  }
+
+  if (target->is_a(SystemDictionary::HotSpotCompiledMethod_klass())) {
+    assert(inst->is_jump(), "jump expected");
+
+    nmethod* nm = (nmethod*) HotSpotCompiledMethod::nmethod(target);
+    nativeJump_at((address)inst)->set_jump_destination(nm->verified_entry_point());
+    _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
+
+    return;
   }
 
   if (debug_info != NULL) {

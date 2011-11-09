@@ -83,7 +83,7 @@ private:
 public:
 
   // constructor used to create a method
-  CodeInstaller(Handle target_method);
+  CodeInstaller(Handle target_method, nmethod*& nm, bool install_code);
 
   // constructor used to create a stub
   CodeInstaller(Handle target_method, jlong& id);

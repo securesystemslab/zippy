@@ -928,19 +928,20 @@ void ciEnv::check_for_system_dictionary_modification(ciMethod* target) {
 
 // ------------------------------------------------------------------
 // ciEnv::register_method
-void ciEnv::register_method(ciMethod* target,
-                            int entry_bci,
-                            CodeOffsets* offsets,
-                            int orig_pc_offset,
-                            CodeBuffer* code_buffer,
-                            int frame_words,
-                            OopMapSet* oop_map_set,
-                            ExceptionHandlerTable* handler_table,
-                            ImplicitExceptionTable* inc_table,
-                            AbstractCompiler* compiler,
-                            int comp_level,
-                            bool has_debug_info,
-                            bool has_unsafe_access) {
+nmethod* ciEnv::register_method(ciMethod* target,
+                                int entry_bci,
+                                CodeOffsets* offsets,
+                                int orig_pc_offset,
+                                CodeBuffer* code_buffer,
+                                int frame_words,
+                                OopMapSet* oop_map_set,
+                                ExceptionHandlerTable* handler_table,
+                                ImplicitExceptionTable* inc_table,
+                                AbstractCompiler* compiler,
+                                int comp_level,
+                                bool has_debug_info,
+                                bool has_unsafe_access,
+                                bool install_code) {
   VM_ENTRY_MARK;
   nmethod* nm = NULL;
   {
@@ -996,7 +997,7 @@ void ciEnv::register_method(ciMethod* target,
       // If the code buffer is created on each compile attempt
       // as in C2, then it must be freed.
       code_buffer->free_blob();
-      return;
+      return NULL;
     }
 
     assert(offsets->value(CodeOffsets::Deopt) != -1, "must have deopt entry");
@@ -1041,41 +1042,43 @@ void ciEnv::register_method(ciMethod* target,
       // (Put nm into the task handle *before* publishing to the Java heap.)
       if (task() != NULL)  task()->set_code(nm);
 
-      if (entry_bci == InvocationEntryBci) {
-        if (TieredCompilation) {
-          // If there is an old version we're done with it
-          nmethod* old = method->code();
-          if (TraceMethodReplacement && old != NULL) {
+      if (install_code) {
+        if (entry_bci == InvocationEntryBci) {
+          if (TieredCompilation) {
+            // If there is an old version we're done with it
+            nmethod* old = method->code();
+            if (TraceMethodReplacement && old != NULL) {
+              ResourceMark rm;
+              char *method_name = method->name_and_sig_as_C_string();
+              tty->print_cr("Replacing method %s", method_name);
+            }
+            if (old != NULL ) {
+              old->make_not_entrant();
+            }
+          }
+          if (TraceNMethodInstalls ) {
             ResourceMark rm;
             char *method_name = method->name_and_sig_as_C_string();
-            tty->print_cr("Replacing method %s", method_name);
+            ttyLocker ttyl;
+            tty->print_cr("Installing method (%d) %s ",
+                          comp_level,
+                          method_name);
           }
-          if (old != NULL ) {
-            old->make_not_entrant();
+          // Allow the code to be executed
+          method->set_code(method, nm);
+        } else {
+          if (TraceNMethodInstalls ) {
+            ResourceMark rm;
+            char *method_name = method->name_and_sig_as_C_string();
+            ttyLocker ttyl;
+            tty->print_cr("Installing osr method (%d) %s @ %d",
+                          comp_level,
+                          method_name,
+                          entry_bci);
           }
-        }
-        if (TraceNMethodInstalls ) {
-          ResourceMark rm;
-          char *method_name = method->name_and_sig_as_C_string();
-          ttyLocker ttyl;
-          tty->print_cr("Installing method (%d) %s ",
-                        comp_level,
-                        method_name);
-        }
-        // Allow the code to be executed
-        method->set_code(method, nm);
-      } else {
-        if (TraceNMethodInstalls ) {
-          ResourceMark rm;
-          char *method_name = method->name_and_sig_as_C_string();
-          ttyLocker ttyl;
-          tty->print_cr("Installing osr method (%d) %s @ %d",
-                        comp_level,
-                        method_name,
-                        entry_bci);
-        }
-        instanceKlass::cast(method->method_holder())->add_osr_nmethod(nm);
+          instanceKlass::cast(method->method_holder())->add_osr_nmethod(nm);
 
+        }
       }
     }
   }
@@ -1084,6 +1087,7 @@ void ciEnv::register_method(ciMethod* target,
     nm->post_compiled_method_load_event();
   }
 
+  return nm;
 }
 
 
