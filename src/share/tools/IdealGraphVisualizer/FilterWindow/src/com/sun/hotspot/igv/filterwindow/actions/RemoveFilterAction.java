@@ -45,7 +45,7 @@ public final class RemoveFilterAction extends CookieAction {
             "Cancel"
         };
         int n = JOptionPane.showOptionDialog(WindowManager.getDefault().getMainWindow(),
-                "Do you really want to delete " + activatedNodes.length + " filter/s?", "Delete?",
+                "Do you really want to delete " + activatedNodes.length + " filter(s)?", "Delete Filters",
                 JOptionPane.YES_NO_CANCEL_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
                 null,

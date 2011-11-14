@@ -348,10 +348,10 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         toolBar.add(SaveFilterSettingsAction.get(SaveFilterSettingsAction.class));
         toolBar.add(RemoveFilterSettingsAction.get(RemoveFilterSettingsAction.class));
         toolBar.addSeparator();
+        toolBar.add(NewFilterAction.get(NewFilterAction.class));
+        toolBar.add(RemoveFilterAction.get(RemoveFilterAction.class).createContextAwareInstance(this.getLookup()));
         toolBar.add(MoveFilterUpAction.get(MoveFilterUpAction.class).createContextAwareInstance(this.getLookup()));
         toolBar.add(MoveFilterDownAction.get(MoveFilterDownAction.class).createContextAwareInstance(this.getLookup()));
-        toolBar.add(RemoveFilterAction.get(RemoveFilterAction.class).createContextAwareInstance(this.getLookup()));
-        toolBar.add(NewFilterAction.get(NewFilterAction.class));
         this.add(view, BorderLayout.CENTER);
 
         filterSettings = new ArrayList<FilterSetting>();
