@@ -39,6 +39,11 @@ import org.openide.util.Lookup;
  */
 interface DiagramViewer {
 
+    enum InteractionMode {
+        SELECTION,
+        PANNING,
+    }
+
     public void paint(Graphics2D svgGenerator);
 
     public Lookup getLookup();
@@ -62,5 +67,7 @@ interface DiagramViewer {
     public void setSelection(Collection<Figure> list);
 
     public void centerFigures(List<Figure> list);
+    
+    public void setInteractionMode(InteractionMode mode);
 
 }

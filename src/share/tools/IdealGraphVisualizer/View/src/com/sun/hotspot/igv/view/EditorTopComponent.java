@@ -49,6 +49,8 @@ import com.sun.hotspot.igv.graph.services.DiagramProvider;
 import com.sun.hotspot.igv.util.RangeSlider;
 import com.sun.hotspot.igv.svg.BatikSVG;
 import com.sun.hotspot.igv.util.LookupHistory;
+import com.sun.hotspot.igv.view.actions.PanModeAction;
+import com.sun.hotspot.igv.view.actions.SelectionModeAction;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -72,6 +74,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
@@ -106,6 +109,8 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     private EnableBlockLayoutAction blockLayoutAction;
     private OverviewAction overviewAction;
     private PredSuccAction predSuccAction;
+    private SelectionModeAction selectionModeAction;
+    private PanModeAction panModeAction;
     private boolean notFirstTime;
     private JComponent satelliteComponent;
     private JPanel centerPanel;
@@ -262,6 +267,23 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.addSeparator();
         toolBar.add(UndoAction.get(UndoAction.class));
         toolBar.add(RedoAction.get(RedoAction.class));
+
+        toolBar.addSeparator();
+        ButtonGroup interactionButtons = new ButtonGroup();
+
+        panModeAction = new PanModeAction();
+        panModeAction.setSelected(true);
+        button = new JToggleButton(panModeAction);
+        button.setSelected(true);
+        interactionButtons.add(button);
+        toolBar.add(button);
+        panModeAction.addPropertyChangeListener(this);
+
+        selectionModeAction = new SelectionModeAction();
+        button = new JToggleButton(selectionModeAction);
+        interactionButtons.add(button);
+        toolBar.add(button);
+        selectionModeAction.addPropertyChangeListener(this);
 
         centerPanel = new JPanel();
         this.add(centerPanel, BorderLayout.CENTER);
@@ -472,6 +494,12 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         } else if (evt.getSource() == this.blockLayoutAction) {
             boolean b = (Boolean) blockLayoutAction.getValue(EnableBlockLayoutAction.STATE);
             this.getModel().setShowBlocks(b);
+        } else if (evt.getSource() == this.selectionModeAction || evt.getSource() == this.panModeAction) {
+            if (panModeAction.isSelected()) {
+                scene.setInteractionMode(DiagramViewer.InteractionMode.PANNING);
+            } else if (selectionModeAction.isSelected()) {
+                scene.setInteractionMode(DiagramViewer.InteractionMode.SELECTION);
+            }
         } else {
             assert false : "Unknown event source";
         }
