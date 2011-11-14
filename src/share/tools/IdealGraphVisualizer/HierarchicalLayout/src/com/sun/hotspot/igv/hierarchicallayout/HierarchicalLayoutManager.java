@@ -30,6 +30,7 @@ import com.sun.hotspot.igv.layout.Vertex;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -606,64 +607,61 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
             for (int i = 0; i < SWEEP_ITERATIONS; i++) {
                 doubleSweep();
-            }
+            }            
         }
 
         private int calculateOptimalDown(LayoutNode n) {
-
-            List<Integer> values = new ArrayList<Integer>();
-            if (n.preds.size() == 0) {
+            int size = n.preds.size();
+            if (size == 0) {
                 return n.x;
             }
-            for (LayoutEdge e : n.preds) {
-                int cur = e.from.x + e.relativeFrom - e.relativeTo;
-                values.add(cur);
+            int[] values = new int[size];
+            for (int i = 0; i < size; i++) {
+                LayoutEdge e = n.preds.get(i);
+                values[i] = e.from.x + e.relativeFrom - e.relativeTo;
             }
             return median(values);
         }
 
         private int calculateOptimalBoth(LayoutNode n) {
-
-            List<Integer> values = new ArrayList<Integer>();
-            if (n.preds.size() == 0 + n.succs.size()) {
+            if (n.preds.size() == n.succs.size()) {
                 return n.x;
             }
+            
+            int[] values = new int[n.preds.size() + n.succs.size()];
+            int i = 0;
+
             for (LayoutEdge e : n.preds) {
-                int cur = e.from.x + e.relativeFrom - e.relativeTo;
-                values.add(cur);
+                values[i] = e.from.x + e.relativeFrom - e.relativeTo;
+                i++;
             }
 
             for (LayoutEdge e : n.succs) {
-                int cur = e.to.x + e.relativeTo - e.relativeFrom;
-                values.add(cur);
+                values[i] = e.to.x + e.relativeTo - e.relativeFrom;
+                i++;
             }
 
             return median(values);
         }
 
         private int calculateOptimalUp(LayoutNode n) {
-
-            //List<Integer> values = new ArrayList<Integer>();
             int size = n.succs.size();
             if (size == 0) {
                 return n.x;
-            } else {
-                int result = 0;
-                for (LayoutEdge e : n.succs) {
-                    int cur = e.to.x + e.relativeTo - e.relativeFrom;
-                    result += cur;
-                }
-                return result / size; //median(values);
-
             }
+            long sum = 0;
+            for (LayoutEdge e : n.succs) {
+                sum += e.to.x + e.relativeTo - e.relativeFrom;
+            }
+            return (int) (sum / size); // why not the median?
         }
 
-        private int median(List<Integer> values) {
-            Collections.sort(values);
-            if (values.size() % 2 == 0) {
-                return (values.get(values.size() / 2 - 1) + values.get(values.size() / 2)) / 2;
+        private int median(int[] values) {
+            Arrays.sort(values);
+            if (values.length % 2 == 0) {
+                return (values[values.length / 2 - 1] + values[values.length / 2]) / 2;
             } else {
-                return values.get(values.size() / 2);
+                return values[values.length / 2];
             }
         }
 
@@ -1161,6 +1159,11 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 downSweep();
                 upSweep();
             }
+            if (reversedLinks.isEmpty()) {
+                // This graph seems to be a tree or forest.
+                // A final down-sweep will usually give us a better layout.
+                downSweep();
+            }
         }
 
         private void initX() {
@@ -1466,11 +1469,6 @@ public class HierarchicalLayoutManager implements LayoutManager {
                                 if (!portHash.containsKey(i)) {
                                     portHash.put(i, new ArrayList<LayoutEdge>());
                                 }
-
-                                if (n.vertex.toString().equals("1012 CastPP")) {
-                                    int x = 0;
-                                }
-
                                 portHash.get(i).add(e);
                             }
                         }
