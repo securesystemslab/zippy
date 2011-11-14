@@ -48,6 +48,7 @@ import com.sun.hotspot.igv.graph.Slot;
 import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.ColorIcon;
 import com.sun.hotspot.igv.util.PropertiesSheet;
+import com.sun.hotspot.igv.view.actions.CustomizablePanAction;
 import com.sun.hotspot.igv.view.widgets.InputSlotWidget;
 import com.sun.hotspot.igv.view.widgets.OutputSlotWidget;
 import com.sun.hotspot.igv.view.widgets.SlotWidget;
@@ -57,6 +58,7 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
@@ -107,6 +109,7 @@ import org.openide.util.lookup.InstanceContent;
  */
 public class DiagramScene extends ObjectScene implements DiagramViewer {
 
+    private CustomizablePanAction panAction;
     private WidgetAction hoverAction;
     private WidgetAction selectAction;
     private Lookup lookup;
@@ -409,7 +412,13 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         this.getInputBindings().setZoomActionModifiers(0);
 
         scrollPane = createScrollPane();
-        this.getActions().addAction(ActionFactory.createPanAction());
+
+        // This panAction handles the event only when the left mouse button is
+        // pressed without any modifier keys, otherwise it will not consume it
+        // and the selection action will handle the event
+        panAction = new CustomizablePanAction(~0, MouseEvent.BUTTON1_DOWN_MASK);
+        this.getActions().addAction(panAction);
+
         hoverAction = createObjectHoverAction();
         selectAction = createSelectAction();
         this.getActions().addAction(selectAction);
@@ -828,6 +837,12 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
             processOutputSlot(lastLineCache, s, connectionList, controlPointIndex + 1, p, newPredecessor, offx, offy, animator);
         }
+    }
+
+    public void setInteractionMode(InteractionMode mode) {
+        panAction.setEnabled(mode == InteractionMode.PANNING);
+        // When panAction is not enabled, it does not consume the event
+        // and the selection action handles it instead
     }
 
     private class ConnectionSet {
