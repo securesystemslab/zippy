@@ -27,25 +27,11 @@
 
 // VmIds implementation
 
-GrowableArray<address>* VmIds::_stubs = NULL;
-
-
-void VmIds::initializeObjects() {
-  if (_stubs == NULL) {
-    assert(_localHandles == NULL, "inconsistent state");
-    _stubs = new (ResourceObj::C_HEAP) GrowableArray<address> (64, true);
-  }
-  assert(_localHandles->length() == 0, "invalid state");
-}
-
 jlong VmIds::addStub(address stub) {
-  assert(!_stubs->contains(stub), "duplicate stub");
-  return _stubs->append(stub) | STUB;
+  return (jlong)stub;
 }
 
 address VmIds::getStub(jlong id) {
-  assert((id & TYPE_MASK) == STUB, "wrong id type, STUB expected");
-  assert((id & ~TYPE_MASK) >= 0 && (id & ~TYPE_MASK) < _stubs->length(), "STUB index out of bounds");
-  return _stubs->at(id & ~TYPE_MASK);
+  return (address)id;
 }
 

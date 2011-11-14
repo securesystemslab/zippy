@@ -45,8 +45,6 @@ void GraalCompiler::initialize() {
   CompilerThread* THREAD = CompilerThread::current();
   TRACE_graal_1("GraalCompiler::initialize");
 
-  VmIds::initializeObjects();
-
   initialize_buffer_blob();
   Runtime1::initialize(THREAD->get_buffer_blob());
 
@@ -103,8 +101,6 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
-
-  VmIds::initializeObjects();
 
   TRACE_graal_2("GraalCompiler::compile_method");
 

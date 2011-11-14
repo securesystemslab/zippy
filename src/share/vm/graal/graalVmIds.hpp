@@ -31,24 +31,7 @@
 
 class VmIds : public AllStatic {
 
-private:
-  static GrowableArray<address>* _stubs;
-
-  static oop getObject(jlong id);
-
 public:
-  // these constants needs to have the same values as the one in HotSpotProxy.java
-  static const jlong STUB           = 0x100000000000000LL;        // address
-  static const jlong METHOD         = 0x200000000000000LL;        // methodOop
-  static const jlong CLASS          = 0x300000000000000LL;        // klassOop
-  static const jlong CONSTANT_POOL  = 0x500000000000000LL;        // constantPoolOop
-  static const jlong CONSTANT       = 0x600000000000000LL;        // oop
-  static const jlong TYPE_MASK      = 0xf00000000000000LL;
-  static const jlong DUMMY_CONSTANT = 0x6ffffffffffffffLL;
-
-  // Initializes the VmIds for a compilation, by creating the arrays
-  static void initializeObjects();
-
   // Adds a stub address, and returns the corresponding vmId (which is of type STUB)
   static jlong addStub(address stub);
 
