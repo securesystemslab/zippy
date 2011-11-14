@@ -28,23 +28,14 @@
 // VmIds implementation
 
 GrowableArray<address>* VmIds::_stubs = NULL;
-GrowableArray<jobject>* VmIds::_localHandles = NULL;
 
 
 void VmIds::initializeObjects() {
   if (_stubs == NULL) {
     assert(_localHandles == NULL, "inconsistent state");
     _stubs = new (ResourceObj::C_HEAP) GrowableArray<address> (64, true);
-    _localHandles = new (ResourceObj::C_HEAP) GrowableArray<jobject> (64, true);
   }
   assert(_localHandles->length() == 0, "invalid state");
-}
-
-void VmIds::cleanupLocalObjects() {
-  for (int i = 0; i < _localHandles->length(); i++) {
-    JNIHandles::destroy_global(_localHandles->at(i));
-  }
-  _localHandles->clear();
 }
 
 jlong VmIds::addStub(address stub) {
@@ -52,34 +43,9 @@ jlong VmIds::addStub(address stub) {
   return _stubs->append(stub) | STUB;
 }
 
-jlong VmIds::add(Handle obj, jlong type) {
-  assert(!obj.is_null(), "cannot add NULL handle");
-  int idx = -1;
-  for (int i = 0; i < _localHandles->length(); i++)
-    if (JNIHandles::resolve_non_null(_localHandles->at(i)) == obj()) {
-      idx = i;
-      break;
-    }
-  if (idx == -1) {
-    if (JavaThread::current()->thread_state() == _thread_in_vm) {
-      idx = _localHandles->append(JNIHandles::make_global(obj));
-    } else {
-      VM_ENTRY_MARK;
-      idx = _localHandles->append(JNIHandles::make_global(obj));
-    }
-  }
-  return idx | type;
-}
-
 address VmIds::getStub(jlong id) {
   assert((id & TYPE_MASK) == STUB, "wrong id type, STUB expected");
   assert((id & ~TYPE_MASK) >= 0 && (id & ~TYPE_MASK) < _stubs->length(), "STUB index out of bounds");
   return _stubs->at(id & ~TYPE_MASK);
-}
-
-oop VmIds::getObject(jlong id) {
-  assert((id & TYPE_MASK) != STUB, "wrong id type");
-  assert((id & ~TYPE_MASK) >= 0 && (id & ~TYPE_MASK) < _localHandles->length(), "index out of bounds");
-  return JNIHandles::resolve_non_null(_localHandles->at(id & ~TYPE_MASK));
 }
 

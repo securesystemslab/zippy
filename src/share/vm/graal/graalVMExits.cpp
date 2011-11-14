@@ -225,16 +225,6 @@ oop VMExits::createRiTypeUnresolved(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiConstantPool(jlong vmId, TRAPS) {
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_long(vmId);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiConstantPool_name(), vmSymbols::createRiConstantPool_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createRiConstantPool");
-  return (oop) result.get_jobject();
-}
-
 oop VMExits::createRiSignature(Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);

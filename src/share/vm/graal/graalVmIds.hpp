@@ -33,7 +33,6 @@ class VmIds : public AllStatic {
 
 private:
   static GrowableArray<address>* _stubs;
-  static GrowableArray<jobject>* _localHandles;
 
   static oop getObject(jlong id);
 
@@ -49,27 +48,15 @@ public:
 
   // Initializes the VmIds for a compilation, by creating the arrays
   static void initializeObjects();
-  // Cleans up after a compilation, by deallocating the arrays
-  static void cleanupLocalObjects();
 
   // Adds a stub address, and returns the corresponding vmId (which is of type STUB)
   static jlong addStub(address stub);
 
-  // Adds an object, and returns the corresponding vmId (with the given type)
-  static jlong add(Handle obj, jlong type);
-
-  // Adds an object, and returns the corresponding vmId (the type of which is determined by the template parameter)
-  template <typename T> static jlong add(T obj);
-
-
   // Returns the stub address with the given vmId
   static address getStub(jlong id);
+
   // Returns the stub address with the given vmId taken from a java.lang.Long
   static address getStub(oop id);
-
-  // Returns the object with the given id, the return type is defined by the template parameter (which must correspond to the actual type of the vmId)
-  template <typename T> static T get(jlong id);
-
 
   // Helper function to convert a symbol to a java.lang.String object
   template <typename T> static T toString(Symbol* symbol, TRAPS);
@@ -81,40 +68,6 @@ public:
   static jlong getBoxedLong(oop obj);
 };
 
-
-template <> inline jlong VmIds::add<klassOop>(klassOop obj) {
-  assert(obj != NULL, "trying to add NULL<klassOop>");
-  assert(obj->is_klass(), "trying to add mistyped object");
-  return add(Handle(obj), CLASS);
-}
-template <> inline jlong VmIds::add<constantPoolOop>(constantPoolOop obj) {
-  assert(obj != NULL, "trying to add NULL<constantPoolOop>");
-  assert(obj->is_constantPool(), "trying to add mistyped object");
-  return add(Handle(obj), CONSTANT_POOL);
-}
-template <> inline jlong VmIds::add<oop>(oop obj) {
-  assert(obj != NULL, "trying to add NULL<oop>");
-  assert(obj->is_oop(), "trying to add mistyped object");
-  return add(Handle(obj), CONSTANT);
-}
-
-
-template <> inline klassOop VmIds::get<klassOop>(jlong id) {
-  assert((id & TYPE_MASK) == CLASS, "CLASS expected");
-  assert(getObject(id)->is_klass(), "klassOop expected");
-  return (klassOop)getObject(id);
-}
-template <> inline constantPoolOop VmIds::get<constantPoolOop>(jlong id) {
-  assert((id & TYPE_MASK) == CONSTANT_POOL, "CONSTANT_POOL expected");
-  assert(getObject(id)->is_constantPool(), "constantPoolOop expected");
-  return (constantPoolOop)getObject(id);
-}
-template <> inline oop VmIds::get<oop>(jlong id) {
-  assert((id & TYPE_MASK) == CONSTANT, "CONSTANT expected");
-  assert(getObject(id)->is_oop(true), "oop expected");
-  return (oop)getObject(id);
-}
-
 inline address VmIds::getStub(oop obj) {
   return getStub(getBoxedLong(obj));
 }
@@ -122,12 +75,15 @@ inline address VmIds::getStub(oop obj) {
 template <> inline Handle VmIds::toString<Handle>(Symbol* symbol, TRAPS) {
   return java_lang_String::create_from_symbol(symbol, THREAD);
 }
+
 template <> inline oop VmIds::toString<oop>(Symbol* symbol, TRAPS) {
   return toString<Handle>(symbol, THREAD)();
 }
+
 template <> inline jstring VmIds::toString<jstring>(Symbol* symbol, TRAPS) {
   return (jstring)JNIHandles::make_local(toString<oop>(symbol, THREAD));
 }
+
 template <> inline jobject VmIds::toString<jobject>(Symbol* symbol, TRAPS) {
   return JNIHandles::make_local(toString<oop>(symbol, THREAD));
 }

@@ -77,9 +77,6 @@ public:
   // public abstract RiType createRiTypeUnresolved(String name);
   static oop createRiTypeUnresolved(Handle name, TRAPS);
 
-  // public abstract RiConstantPool createRiConstantPool(long vmId);
-  static oop createRiConstantPool(jlong vmId, TRAPS);
-
   // public abstract RiType createRiTypePrimitive(int basicType);
   static oop createRiTypePrimitive(int basicType, TRAPS);
 

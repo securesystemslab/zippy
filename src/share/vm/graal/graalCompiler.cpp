@@ -114,7 +114,6 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
   VMExits::compileMethod(hotspot_method, entry_bci);
   CompilerThread::current()->set_compiling(false);
 
-  VmIds::cleanupLocalObjects();
   TRACE_graal_2("GraalCompiler::compile_method exit");
 }
 
