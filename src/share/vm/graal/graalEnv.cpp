@@ -73,7 +73,6 @@ klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
                                           constantPoolHandle cpool,
                                           Symbol* sym,
                                           bool require_local) {
-  ASSERT_IN_VM;
   EXCEPTION_CONTEXT;
 
   // Now we need to check the SystemDictionary
@@ -243,7 +242,7 @@ void GraalEnv::get_field_by_index_impl(instanceKlassHandle klass, fieldDescripto
                                         int index) {
   EXCEPTION_CONTEXT;
 
-  assert(klass->get_instanceKlass()->is_linked(), "must be linked before using its constan-pool");
+  assert(klass->is_linked(), "must be linked before using its constan-pool");
 
   constantPoolHandle cpool(thread, klass->constants());
 
@@ -416,24 +415,14 @@ bool GraalEnv::check_for_system_dictionary_modification(Dependencies* dependenci
   //DEBUG_ONLY(test_deps = true);
   //if (!test_deps)  return;
 
-  bool print_failures = false;
-  DEBUG_ONLY(print_failures = !counter_changed);
-
-  bool keep_going = (print_failures || xtty != NULL);
-
-  int violated = 0;
-
   for (Dependencies::DepStream deps(dependencies); deps.next(); ) {
     klassOop witness = deps.check_dependency();
     if (witness != NULL) {
-      ++violated;
-      if (print_failures)  deps.print_dependency(witness, /*verbose=*/ true);
-      // If there's no log and we're not sanity-checking, we're done.
-      if (!keep_going)     break;
+      return false;
     }
   }
 
-  return violated == 0;
+  return true;
 }
 
 // ------------------------------------------------------------------

@@ -204,7 +204,7 @@ ciEnv::~ciEnv() {
   _factory->cleanup();
   JavaThread* current_thread = JavaThread::current();
   _factory->remove_symbols();
-  current_thread->set_env(NULL);
+  //current_thread->set_env(NULL);
 }
 
 // ------------------------------------------------------------------

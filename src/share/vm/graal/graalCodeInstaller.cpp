@@ -27,6 +27,7 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalVMEntries.hpp"
 #include "graal/graalVmIds.hpp"
+#include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "vmreg_x86.inline.hpp"
@@ -232,10 +233,9 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_code) {
   _env = CURRENT_ENV;
-  ciMethod *ciMethodObject = NULL;
+  methodOop method = NULL;
   {
-    methodOop method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method));
-    ciMethodObject = (ciMethod *) _env->get_object(method);
+    method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method));
     _parameter_count = method->size_of_parameters();
 
     No_Safepoint_Verifier no_safepoint;
@@ -255,8 +255,8 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
-  nm = _env->register_method(ciMethodObject, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-      &_implicit_exception_table, GraalCompiler::instance(), _env->comp_level(), false, false, install_code);
+  nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
 }
 
 // constructor used to create a stub

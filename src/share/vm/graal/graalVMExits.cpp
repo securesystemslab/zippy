@@ -272,14 +272,6 @@ oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
 oop VMExits::createCiConstantObject(Handle object, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
-  /*
-  args.push_oop(instance());
-  args.push_oop(object);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantObject_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createCiConstantObject");
-  */
-
-
   KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_cri_ci_CiConstant(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   JavaCalls::call_static(&result, klass(), vmSymbols::forObject_name(), vmSymbols::createCiConstantObject_signature(), object, THREAD);
   check_pending_exception("Error while calling CiConstant.forObject");
