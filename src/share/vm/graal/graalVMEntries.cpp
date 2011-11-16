@@ -534,10 +534,16 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
   int nt_index = cp->name_and_type_ref_index_at(index);
   int sig_index = cp->signature_ref_index_at(nt_index);
   Symbol* signature = cp->symbol_at(sig_index);
+  int name_index = cp->name_ref_index_at(nt_index);
+  Symbol* name = cp->symbol_at(name_index);
   int holder_index = cp->klass_ref_index_at(index);
   Handle holder = GraalCompiler::get_RiType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
+  instanceKlassHandle holder_klass;
   
   Bytecodes::Code code = (Bytecodes::Code)(((int) byteCode) & 0xFF);
+  int offset = -1;
+  AccessFlags flags;
+  BasicType basic_type;
   if (holder->klass() == SystemDictionary::HotSpotTypeResolved_klass()) {
     FieldAccessInfo result;
     LinkResolver::resolve_field(result, cp, index,
@@ -546,60 +552,80 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
     if (HAS_PENDING_EXCEPTION) {
       CLEAR_PENDING_EXCEPTION;
     }
-    //result.field_offset();
-    holder = GraalCompiler::get_RiType(result.klass(), CHECK_NULL);
+    offset = result.field_offset();
+    flags = result.access_flags();
+    holder_klass = result.klass()->as_klassOop();
+    basic_type = result.field_type();
+    holder = GraalCompiler::get_RiType(holder_klass, CHECK_NULL);
   }
-
+  
   Handle type = GraalCompiler::get_RiTypeFromSignature(cp, sig_index, cp->pool_holder(), CHECK_NULL);
-  Handle field_handle = GraalCompiler::get_RiField(field, loading_klass, holder, type, code, THREAD);
-  bool is_constant = field->is_constant();
-  if (is_constant && field->is_static()) {
-    ciConstant constant = field->constant_value();
-    oop constant_object = NULL;
-    switch (constant.basic_type()) {
-      case T_OBJECT:
-      case T_ARRAY:
-        {
-          ciObject* obj = constant.as_object();
-          if (obj->is_null_object()) {
-            constant_object = VMExits::createCiConstantObject(NULL, CHECK_0);
-          } else if (obj->can_be_constant()) {
-            constant_object = VMExits::createCiConstantObject(constant.as_object()->get_oop(), CHECK_0);
-          }
-        }
-        break;
-      case T_DOUBLE:
-        constant_object = VMExits::createCiConstantDouble(constant.as_double(), CHECK_0);
-        break;
-      case T_FLOAT:
-        constant_object = VMExits::createCiConstantFloat(constant.as_float(), CHECK_0);
-        break;
-      case T_LONG:
-        constant_object = VMExits::createCiConstant(CiKind::Long(), constant.as_long(), CHECK_0);
-        break;
-      case T_INT:
-        constant_object = VMExits::createCiConstant(CiKind::Int(), constant.as_int(), CHECK_0);
-        break;
-      case T_SHORT:
-        constant_object = VMExits::createCiConstant(CiKind::Short(), constant.as_int(), CHECK_0);
-        break;
-      case T_CHAR:
-        constant_object = VMExits::createCiConstant(CiKind::Char(), constant.as_int(), CHECK_0);
-        break;
-      case T_BYTE:
-        constant_object = VMExits::createCiConstant(CiKind::Byte(), constant.as_int(), CHECK_0);
-        break;
-      case T_BOOLEAN:
-        constant_object = VMExits::createCiConstant(CiKind::Boolean(), constant.as_int(), CHECK_0);
-        break;
-      default:
-        constant.print();
-        fatal("Unhandled constant");
-        break;
+  Handle field_handle = GraalCompiler::get_RiField(offset, flags.as_int(), name, holder, type, code, THREAD);
+
+  oop constant_object = NULL;
+    // Check to see if the field is constant.
+  if (!holder_klass.is_null() && holder_klass->is_initialized() && flags.is_final() && flags.is_static()) {
+    // This field just may be constant.  The only cases where it will
+    // not be constant are:
+    //
+    // 1. The field holds a non-perm-space oop.  The field is, strictly
+    //    speaking, constant but we cannot embed non-perm-space oops into
+    //    generated code.  For the time being we need to consider the
+    //    field to be not constant.
+    // 2. The field is a *special* static&final field whose value
+    //    may change.  The three examples are java.lang.System.in,
+    //    java.lang.System.out, and java.lang.System.err.
+
+    bool ok = true;
+    assert( SystemDictionary::System_klass() != NULL, "Check once per vm");
+    if( holder_klass->as_klassOop() == SystemDictionary::System_klass() ) {
+      // Check offsets for case 2: System.in, System.out, or System.err
+      if( offset == java_lang_System::in_offset_in_bytes()  ||
+          offset == java_lang_System::out_offset_in_bytes() ||
+          offset == java_lang_System::err_offset_in_bytes() ) {
+        ok = false;
+      }
     }
-    if (constant_object != NULL) {
-      HotSpotField::set_constant(field_handle, constant_object);
+
+    if (ok) {
+      Handle mirror = holder_klass->java_mirror();
+      switch(basic_type) {
+        case T_OBJECT:
+        case T_ARRAY:
+          constant_object = VMExits::createCiConstantObject(mirror->obj_field(offset), CHECK_0);
+          break;
+        case T_DOUBLE:
+          constant_object = VMExits::createCiConstantDouble(mirror->double_field(offset), CHECK_0);
+          break;
+        case T_FLOAT:
+          constant_object = VMExits::createCiConstantFloat(mirror->float_field(offset), CHECK_0);
+          break;
+        case T_LONG:
+          constant_object = VMExits::createCiConstant(CiKind::Long(), mirror->long_field(offset), CHECK_0);
+          break;
+        case T_INT:
+          constant_object = VMExits::createCiConstant(CiKind::Int(), mirror->int_field(offset), CHECK_0);
+          break;
+        case T_SHORT:
+          constant_object = VMExits::createCiConstant(CiKind::Short(), mirror->short_field(offset), CHECK_0);
+          break;
+        case T_CHAR:
+          constant_object = VMExits::createCiConstant(CiKind::Char(), mirror->char_field(offset), CHECK_0);
+          break;
+        case T_BYTE:
+          constant_object = VMExits::createCiConstant(CiKind::Byte(), mirror->byte_field(offset), CHECK_0);
+          break;
+        case T_BOOLEAN:
+          constant_object = VMExits::createCiConstant(CiKind::Boolean(), mirror->bool_field(offset), CHECK_0);
+          break;
+        default:
+          fatal("Unhandled constant");
+          break;
+      }
     }
+  }
+  if (constant_object != NULL) {
+    HotSpotField::set_constant(field_handle, constant_object);
   }
   return JNIHandles::make_local(THREAD, field_handle());
 }

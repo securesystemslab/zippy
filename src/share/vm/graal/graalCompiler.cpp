@@ -180,17 +180,9 @@ oop GraalCompiler::get_RiType(KlassHandle klass, TRAPS) {
   return createHotSpotTypeResolved(klass, name, CHECK_NULL);
 }
 
-oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS) {
-  int offset;
-  if (byteCode != Bytecodes::_illegal) {
-    bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
-    offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
-  } else {
-    offset = field->offset();
-  }
-  Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
-  int flags = field->flags().as_int();
-  return VMExits::createRiField(field_holder, field_name, field_type, offset, flags, THREAD);
+oop GraalCompiler::get_RiField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS) {
+  Handle name = VmIds::toString<Handle>(field_name, CHECK_NULL);
+  return VMExits::createRiField(field_holder, name, field_type, offset, flags, CHECK_NULL);
 }
 
 oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {

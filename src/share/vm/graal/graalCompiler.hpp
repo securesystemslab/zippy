@@ -61,7 +61,7 @@ public:
   static oop get_RiType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
   static oop get_RiType(Symbol* klass_name, TRAPS);
   static oop get_RiType(KlassHandle klass, TRAPS);
-  static oop get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS);
+  static oop get_RiField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS);
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
   static oop createHotSpotMethodResolved(methodHandle method, TRAPS);
