@@ -132,7 +132,7 @@ klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
     }
   }
 
-  if (found_klass.is_null() == NULL && !cpool.is_null() && cpool->has_preresolution()) {
+  if (found_klass.is_null() && !cpool.is_null() && cpool->has_preresolution()) {
     // Look inside the constant pool for pre-resolved class entries.
     for (int i = cpool->length() - 1; i >= 1; i--) {
       if (cpool->tag_at(i).is_klass()) {
