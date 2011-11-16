@@ -73,8 +73,6 @@ void VMExits::initializeCompiler() {
   JavaValue result(T_VOID);
   JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::void_method_signature(), Thread::current());
   check_pending_exception("Couldn't initialize compiler");
-
-  startCompiler();
 }
 
 jboolean VMExits::setOption(Handle option) {
@@ -138,6 +136,15 @@ void VMExits::startCompiler() {
   args.push_oop(instance());
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::startCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
   check_pending_exception("Error while calling startCompiler");
+}
+
+void VMExits::bootstrap() {
+  JavaThread* THREAD = JavaThread::current();
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::bootstrap_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  check_pending_exception("Error while calling boostrap");
 }
 
 void VMExits::pollJavaQueue() {

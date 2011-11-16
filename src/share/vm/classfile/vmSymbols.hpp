@@ -302,6 +302,7 @@
   template(com_sun_cri_ci_CiKind,                     "com/sun/cri/ci/CiKind")                                          \
   template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
   template(startCompiler_name,                        "startCompiler")                                                  \
+  template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
   template(pollJavaQueue_name,                        "pollJavaQueue")                                                  \
@@ -453,6 +454,7 @@
   template(void_long_signature,                       "()J")                                      \
   template(void_float_signature,                      "()F")                                      \
   template(void_double_signature,                     "()D")                                      \
+  template(bool_void_signature,                       "(Z)V")                                     \
   template(int_void_signature,                        "(I)V")                                     \
   template(int_int_signature,                         "(I)I")                                     \
   template(char_char_signature,                       "(C)C")                                     \

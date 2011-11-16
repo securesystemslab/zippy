@@ -67,6 +67,7 @@ JNIEXPORT jstring JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1sign
 JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1exceptionHandlers(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("VMEntries::RiMethod_exceptionHandlers");
   VM_ENTRY_MARK
+  ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   typeArrayHandle handlers = method->exception_table();
   int handler_count = handlers.is_null() ? 0 : handlers->length() / 4;
@@ -180,23 +181,22 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1invocat
 // public native int RiMethod_exceptionProbability(long vmId, int bci);
 JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_exceptionProbability");
-  {
-    VM_ENTRY_MARK;
-    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-    methodDataOop method_data = method->method_data();
-    if (method_data == NULL || !method_data->is_mature()) {
-      return -1;
-    }
-    ProfileData* data = method_data->bci_to_data(bci);
-    if (data == NULL) {
-      return 0;
-    }
-    uint trap = Deoptimization::trap_state_is_recompiled(data->trap_state())? 1: 0;
-    if (trap > 0) {
-      return 100;
-    } else {
-      return trap;
-    }
+  VM_ENTRY_MARK;
+  ResourceMark rm;
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  methodDataOop method_data = method->method_data();
+  if (method_data == NULL || !method_data->is_mature()) {
+    return -1;
+  }
+  ProfileData* data = method_data->bci_to_data(bci);
+  if (data == NULL) {
+    return 0;
+  }
+  uint trap = Deoptimization::trap_state_is_recompiled(data->trap_state())? 1: 0;
+  if (trap > 0) {
+    return 100;
+  } else {
+    return trap;
   }
 }
 
@@ -232,13 +232,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
   Handle obj;
   {
     VM_ENTRY_MARK;
+    ResourceMark rm;
     methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-    if (strstr(method->name_and_sig_as_C_string(), "factor") != NULL) {
-//      tty->print_cr("here");
-    }
-    if (bci == 123) {
-//      tty->print_cr("here2");
-    }
     methodDataHandle method_data = method->method_data();
     if (method_data == NULL || !method_data->is_mature()) {
       return NULL;
@@ -295,6 +290,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
 
 JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+  ResourceMark rm;
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   methodDataOop method_data = method->method_data();
 
@@ -328,6 +324,7 @@ JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2bran
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
   VM_ENTRY_MARK;
+  ResourceMark rm;
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   methodDataOop method_data = method->method_data();
 
@@ -373,6 +370,7 @@ JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1has
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
   TRACE_graal_3("VMEntries::RiSignature_lookupType");
   VM_ENTRY_MARK;
+  ResourceMark rm;
 
   Symbol* nameSymbol = VmIds::toSymbol(jname);
   Handle name = JNIHandles::resolve(jname);
@@ -524,13 +522,11 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1l
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode) {
   TRACE_graal_3("VMEntries::RiConstantPool_lookupField");
   VM_ENTRY_MARK;
+  ResourceMark rm;
 
   index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(constantPoolHolder)))->constants();
 
-  ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
-  ciField *field = CURRENT_ENV->get_field_by_index(loading_klass, index);
-  
   int nt_index = cp->name_and_type_ref_index_at(index);
   int sig_index = cp->signature_ref_index_at(nt_index);
   Symbol* signature = cp->symbol_at(sig_index);
@@ -736,6 +732,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayO
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("VMEntries::RiType_fields");
   VM_ENTRY_MARK;
+  ResourceMark rm;
 
   instanceKlassHandle k = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
   class MyFieldClosure : public FieldClosure {

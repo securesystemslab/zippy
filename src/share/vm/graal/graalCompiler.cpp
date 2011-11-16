@@ -41,9 +41,9 @@ GraalCompiler::GraalCompiler() {
 
 // Initialization
 void GraalCompiler::initialize() {
-  if (_initialized) return;
-  _initialized = true;
-  CompilerThread* THREAD = CompilerThread::current();
+  
+  ThreadToNativeFromVM trans(JavaThread::current());
+  JavaThread* THREAD = JavaThread::current();
   TRACE_graal_1("GraalCompiler::initialize");
 
   initialize_buffer_blob();
@@ -57,6 +57,8 @@ void GraalCompiler::initialize() {
   }
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
 
+  ResourceMark rm;
+  HandleMark hm;
   {
     VM_ENTRY_MARK;
     check_pending_exception("Could not register natives");
@@ -78,6 +80,12 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
+    VMExits::startCompiler();
+  }
+  
+  _initialized = true;
+  if (BootstrapGraal) {
+    VMExits::bootstrap();
   }
 }
 
@@ -96,20 +104,30 @@ void GraalCompiler::initialize_buffer_blob() {
   }
 }
 
+void GraalCompiler::compile_method(methodHandle method, int entry_bci) {
+  EXCEPTION_CONTEXT
+    if (!_initialized) return;
+  assert(_initialized, "must already be initialized");
+  ResourceMark rm;
+  ciEnv* current_env = JavaThread::current()->env();
+  JavaThread::current()->set_env(NULL);
+  JavaThread::current()->set_compiling(true);
+  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
+  VMExits::compileMethod(hotspot_method, entry_bci);
+  JavaThread::current()->set_compiling(false);
+  JavaThread::current()->set_env(current_env);
+}
+
 // Compilation entry point for methods
 void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
-  assert(_initialized, "must already be initialized");
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
 
   TRACE_graal_2("GraalCompiler::compile_method");
 
-  CompilerThread::current()->set_compiling(true);
-  methodOop method = (methodOop) target->get_oop();
-  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
-  VMExits::compileMethod(hotspot_method, entry_bci);
-  CompilerThread::current()->set_compiling(false);
+  
+  compile_method((methodOop)target->get_oop(), entry_bci);
 
   TRACE_graal_2("GraalCompiler::compile_method exit");
 }
@@ -197,6 +215,7 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
   HotSpotTypeResolved::set_compiler(obj, VMExits::compilerInstance()());
 
   if (klass->oop_is_instance()) {
+    ResourceMark rm;
     instanceKlass* ik = (instanceKlass*)klass()->klass_part();
     Handle full_name = java_lang_String::create_from_str(ik->signature_name(), CHECK_NULL);
     HotSpotType::set_name(obj, full_name());

@@ -280,7 +280,7 @@ int DebugInformationRecorder::find_sharable_decode_offset(int stream_offset) {
 // must call add_safepoint before: it sets PcDesc and this routine uses
 // the last PcDesc set
 void DebugInformationRecorder::describe_scope(int         pc_offset,
-                                              ciMethod*   method,
+                                              methodHandle   method,
                                               int         bci,
                                               bool        reexecute,
                                               bool        rethrow_exception,
@@ -307,7 +307,7 @@ void DebugInformationRecorder::describe_scope(int         pc_offset,
   stream()->write_int(sender_stream_offset);
 
   // serialize scope
-  jobject method_enc = (method == NULL)? NULL: method->constant_encoding();
+  jobject method_enc = JNIHandles::make_local(Thread::current(), method());
   stream()->write_int(oop_recorder()->find_index(method_enc));
   stream()->write_bci(bci);
   assert(method == NULL ||

@@ -58,6 +58,9 @@ public:
   
   // public abstract void startCompiler();
   static void startCompiler();
+  
+  // public abstract void bootstrap();
+  static void bootstrap();
 
   // public abstract void pollJavaQueue();
   static void pollJavaQueue();

@@ -257,6 +257,7 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
   nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
+  method->clear_queued_for_compilation();
 }
 
 // constructor used to create a stub
@@ -363,6 +364,7 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
         } else if (assumption->is_a(CiAssumptions_ConcreteMethod::klass())) {
           assumption_ConcreteMethod(assumption);
         } else {
+          assumption->print();
           fatal("unexpected Assumption subclass");
         }
       }
@@ -474,7 +476,6 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
 
   oop hotspot_method = CiCodePos::method(code_pos);
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-  ciMethod *cimethod = (ciMethod *) _env->get_object(method);
   jint bci = CiCodePos::bci(code_pos);
   bool reexecute;
   if (bci == -1) {
@@ -546,9 +547,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
       throw_exception = true;
     }
 
-    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
+    _debug_recorder->describe_scope(pc_offset, method, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
   } else {
-    _debug_recorder->describe_scope(pc_offset, cimethod, bci, reexecute, false, false, false, NULL, NULL, NULL);
+    _debug_recorder->describe_scope(pc_offset, method, bci, reexecute, false, false, false, NULL, NULL, NULL);
   }
 }
 
