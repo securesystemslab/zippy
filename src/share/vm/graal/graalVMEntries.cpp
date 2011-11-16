@@ -548,12 +548,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
                                 true, false, Thread::current());
     if (HAS_PENDING_EXCEPTION) {
       CLEAR_PENDING_EXCEPTION;
+    } else {
+      offset = result.field_offset();
+      flags = result.access_flags();
+      holder_klass = result.klass()->as_klassOop();
+      basic_type = result.field_type();
+      holder = GraalCompiler::get_RiType(holder_klass, CHECK_NULL);
     }
-    offset = result.field_offset();
-    flags = result.access_flags();
-    holder_klass = result.klass()->as_klassOop();
-    basic_type = result.field_type();
-    holder = GraalCompiler::get_RiType(holder_klass, CHECK_NULL);
   }
   
   Handle type = GraalCompiler::get_RiTypeFromSignature(cp, sig_index, cp->pool_holder(), CHECK_NULL);
