@@ -41,41 +41,7 @@ methodOop getMethodFromHotSpotMethod(jobject hotspot_method) {
 }
 
 methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
-  oop reflected = HotSpotMethodResolved::javaMirror(hotspot_method);
-  assert(reflected != NULL, "NULL not expected");
-  return (methodOop)reflected;
-
-  // (tw) Cannot use reflection code, because then the compiler can dead lock with the user application (test using -Xcomp).
-  /*
-  // method is a handle to a java.lang.reflect.Method object
-  oop mirror     = NULL;
-  int slot       = 0;
-
-  if (reflected->klass() == SystemDictionary::reflect_Constructor_klass()) {
-    mirror = java_lang_reflect_Constructor::clazz(reflected);
-    slot   = java_lang_reflect_Constructor::slot(reflected);
-  } else {
-    assert(reflected->klass() == SystemDictionary::reflect_Method_klass(), "wrong type");
-    mirror = java_lang_reflect_Method::clazz(reflected);
-    slot   = java_lang_reflect_Method::slot(reflected);
-  }
-  klassOop k     = java_lang_Class::as_klassOop(mirror);
-
-  // Make sure class is initialized before handing id's out to methods
-//  assert(instanceKlass::cast(k)->is_initialized(), "only initialized classes expected");
-  methodOop m = instanceKlass::cast(k)->method_with_idnum(slot);
-  assert(m != NULL, "deleted method?");
-  return m;*/
-}
-
-oop getReflectedMethod(methodOop method, TRAPS) {
-  assert(method != NULL, "NULL not expected");
-
-  if (!method->is_initializer() || method->is_static()) {
-    return Reflection::new_method(method, true, true, CHECK_NULL);
-  } else {
-    return Reflection::new_constructor(method, CHECK_NULL);
-  }
+  return (methodOop)HotSpotMethodResolved::javaMirror(hotspot_method);
 }
 
 // public byte[] RiMethod_code(HotSpotResolvedMethod method);
@@ -329,27 +295,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
 
 JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
-  ciMethodData* method_data;
-  ciMethod* cimethod;
-  {
-    VM_ENTRY_MARK;
-    assert(hotspot_method != NULL, "must not be null");
-    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-    assert(method != NULL, "method not found");
-    if (CURRENT_ENV == NULL) {
-      return -1;
-    }
-    assert(CURRENT_ENV != NULL, "current environment must be present");
-    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
-  }
-  assert(cimethod != NULL, "cimethod not found");
-  method_data = cimethod->method_data();
-
-  jfloat probability = -1;
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  methodDataOop method_data = method->method_data();
 
   if (method_data == NULL || !method_data->is_mature()) return -1;
-
-  ciProfileData* data = method_data->bci_to_data(bci);
+  method_data->bci_to_data(bci);
+  
+  ProfileData* data = method_data->bci_to_data(bci);
   if (data == NULL || !data->is_JumpData())  return -1;
 
   // get taken and not taken values
