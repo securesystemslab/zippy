@@ -81,11 +81,11 @@ void GraalCompiler::initialize() {
       }
     }
     VMExits::startCompiler();
-  }
   
-  _initialized = true;
-  if (BootstrapGraal) {
-    VMExits::bootstrap();
+    _initialized = true;
+    if (BootstrapGraal) {
+      VMExits::bootstrap();
+    }
   }
 }
 
@@ -104,32 +104,28 @@ void GraalCompiler::initialize_buffer_blob() {
   }
 }
 
-void GraalCompiler::compile_method(methodHandle method, int entry_bci) {
+void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
   EXCEPTION_CONTEXT
-    if (!_initialized) return;
+  if (!_initialized) {
+    method->clear_queued_for_compilation();
+    method->invocation_counter()->reset();
+    method->backedge_counter()->reset();
+    return;
+  }
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
   ciEnv* current_env = JavaThread::current()->env();
   JavaThread::current()->set_env(NULL);
   JavaThread::current()->set_compiling(true);
   Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
-  VMExits::compileMethod(hotspot_method, entry_bci);
+  VMExits::compileMethod(hotspot_method, entry_bci, blocking);
   JavaThread::current()->set_compiling(false);
   JavaThread::current()->set_env(current_env);
 }
 
 // Compilation entry point for methods
 void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
-  VM_ENTRY_MARK;
-  ResourceMark rm;
-  HandleMark hm;
-
-  TRACE_graal_2("GraalCompiler::compile_method");
-
-  
-  compile_method((methodOop)target->get_oop(), entry_bci);
-
-  TRACE_graal_2("GraalCompiler::compile_method exit");
+  ShouldNotReachHere();
 }
 
 void GraalCompiler::exit() {

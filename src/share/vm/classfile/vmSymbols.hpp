@@ -306,7 +306,7 @@
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
   template(pollJavaQueue_name,                        "pollJavaQueue")                                                  \
-  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/HotSpotMethodResolved;I)V")       \
+  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/HotSpotMethodResolved;IZ)V")      \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \

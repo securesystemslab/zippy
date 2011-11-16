@@ -1125,8 +1125,11 @@ void CompileBroker::compile_method_base(methodHandle method,
 
   if (!JavaThread::current()->is_compiling()) {
     method->set_queued_for_compilation();
-    GraalCompiler::instance()->compile_method(method, osr_bci);
+    GraalCompiler::instance()->compile_method(method, osr_bci, blocking);
+  } else {
+    // Recursive compile request => ignore.
   }
+
   /*if (blocking) {
     wait_for_completion(task);
   }*/

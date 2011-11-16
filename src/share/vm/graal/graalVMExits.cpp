@@ -97,7 +97,7 @@ void VMExits::setDefaultOptions() {
   check_pending_exception("Error while calling setDefaultOptions");
 }
 
-void VMExits::compileMethod(Handle hotspot_method, int entry_bci) {
+void VMExits::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking) {
   assert(!hotspot_method.is_null(), "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
@@ -105,6 +105,7 @@ void VMExits::compileMethod(Handle hotspot_method, int entry_bci) {
   args.push_oop(instance());
   args.push_oop(hotspot_method);
   args.push_int(entry_bci);
+  args.push_int(blocking);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
 }
