@@ -1809,12 +1809,13 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
 
     compiler(task->comp_level())->compile_method(&ci_env, target, osr_bci);
 
-    if (!ci_env.failing() && task->code() == NULL) {
+    // TODO (tw): Check if this is OK.
+    /*if (!ci_env.failing() && task->code() == NULL) {
       //assert(false, "compiler should always document failure");
       // The compiler elected, without comment, not to register a result.
       // Do not attempt further compilations of this method.
       ci_env.record_method_not_compilable("compile failed", !TieredCompilation);
-    }
+    }*/
 
     if (ci_env.failing()) {
       // Copy this bit to the enclosing block:
