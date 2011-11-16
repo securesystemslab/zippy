@@ -472,10 +472,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
   constantPoolHandle cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) byteCode) & 0xFF);
-  ciInstanceKlass* loading_klass = (ciInstanceKlass *) CURRENT_ENV->get_object(cp->pool_holder());
-  ciMethod *cimethod = CURRENT_ENV->get_method_by_index(cp, index, bc, loading_klass);
-  if (cimethod->is_loaded()) {
-    methodOop method = (methodOop) cimethod->get_oop();
+  methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, instanceKlass::cast(cp->pool_holder()));
+  if (!method.is_null()) {
     oop ret = GraalCompiler::createHotSpotMethodResolved(method, CHECK_NULL);
     return JNIHandles::make_local(THREAD, ret);
   } else {
