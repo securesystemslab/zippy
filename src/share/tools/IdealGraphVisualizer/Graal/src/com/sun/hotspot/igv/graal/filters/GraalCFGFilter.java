@@ -41,28 +41,34 @@ public class GraalCFGFilter extends AbstractFilter {
     }
 
     public void apply(Diagram d) {
-        List<Figure> figures = d.getFigures();
         Set<Figure> figuresToRemove = new HashSet<Figure>();
         Set<Connection> connectionsToRemove = new HashSet<Connection>();
-        for (Figure f : figures) {
-            Properties p = f.getProperties();
-            final String prop = p.get("probability");
+        for (Figure f : d.getFigures()) {
+            final String prop = f.getProperties().get("probability");
             
             if (prop == null) {
                 figuresToRemove.add(f);
             }
-            
+        }
+        d.removeAllFigures(figuresToRemove);
+        
+        for (Figure f : d.getFigures()) {
+            Properties p = f.getProperties();
             int predCount = Integer.parseInt(p.get("predecessorCount"));
             for (InputSlot is : f.getInputSlots()) {
-                Color color;
-                if (is.getPosition() >= predCount) {
-                    connectionsToRemove.addAll(is.getConnections());
+                if (is.getPosition() >= predCount && !"EndNode".equals(is.getProperties().get("class"))) {
+                    for (Connection c : is.getConnections()) {
+                        if (!"EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))) {
+                            connectionsToRemove.add(c);
+                        }
+                    }
                 }
             }
         }
-        d.removeAllFigures(figuresToRemove);
+        
         for (Connection c : connectionsToRemove) {
             c.remove();
+            System.out.println("rm " + c);
         }
     }
 }
