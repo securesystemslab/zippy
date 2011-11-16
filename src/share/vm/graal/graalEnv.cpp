@@ -297,14 +297,12 @@ void GraalEnv::get_field_by_index(instanceKlassHandle accessor, fieldDescriptor&
 //
 // Perform an appropriate method lookup based on accessor, holder,
 // name, signature, and bytecode.
-methodOop GraalEnv::lookup_method(instanceKlass*  accessor,
-                               instanceKlass*  holder,
+methodHandle GraalEnv::lookup_method(instanceKlassHandle  h_accessor,
+                               instanceKlassHandle  h_holder,
                                Symbol*       name,
                                Symbol*       sig,
                                Bytecodes::Code bc) {
   EXCEPTION_CONTEXT;
-  KlassHandle h_accessor(THREAD, accessor);
-  KlassHandle h_holder(THREAD, holder);
   LinkResolver::check_klass_accessability(h_accessor, h_holder, KILL_COMPILE_ON_FATAL_(NULL));
   methodHandle dest_method;
   switch (bc) {
@@ -329,7 +327,7 @@ methodOop GraalEnv::lookup_method(instanceKlass*  accessor,
   default: ShouldNotReachHere();
   }
 
-  return dest_method();
+  return dest_method;
 }
 
 
@@ -337,25 +335,25 @@ methodOop GraalEnv::lookup_method(instanceKlass*  accessor,
 // ciEnv::get_method_by_index_impl
 methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle cpool,
                                           int index, Bytecodes::Code bc,
-                                          instanceKlass* accessor) {
+                                          instanceKlassHandle accessor) {
   int holder_index = cpool->klass_ref_index_at(index);
   bool holder_is_accessible;
-  KlassHandle holder = get_klass_by_index_impl(cpool, holder_index, holder_is_accessible, KlassHandle(Thread::current(), accessor));
+  KlassHandle holder = get_klass_by_index_impl(cpool, holder_index, holder_is_accessible, accessor);
 
   // Get the method's name and signature.
   Symbol* name_sym = cpool->name_ref_at(index);
   Symbol* sig_sym  = cpool->signature_ref_at(index);
 
   if (holder_is_accessible) { // Our declared holder is loaded.
-    instanceKlass* lookup = get_instance_klass_for_declared_method_holder(holder);
-    methodOop m = lookup_method(accessor, lookup, name_sym, sig_sym, bc);
-    if (m != NULL &&
+    instanceKlassHandle lookup = get_instance_klass_for_declared_method_holder(holder);
+    methodHandle m = lookup_method(accessor, lookup, name_sym, sig_sym, bc);
+    if (!m.is_null() &&
         (bc == Bytecodes::_invokestatic
          ?  instanceKlass::cast(m->method_holder())->is_not_initialized()
          : !instanceKlass::cast(m->method_holder())->is_loaded())) {
       m = NULL;
     }
-    if (m != NULL) {
+    if (!m.is_null()) {
       // We found the method.
       return m;
     }
@@ -370,7 +368,7 @@ methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle cpool,
 
 // ------------------------------------------------------------------
 // ciEnv::get_instance_klass_for_declared_method_holder
-instanceKlass* GraalEnv::get_instance_klass_for_declared_method_holder(KlassHandle method_holder) {
+instanceKlassHandle GraalEnv::get_instance_klass_for_declared_method_holder(KlassHandle method_holder) {
   // For the case of <array>.clone(), the method holder can be a ciArrayKlass
   // instead of a ciInstanceKlass.  For that case simply pretend that the
   // declared holder is Object.clone since that's where the call will bottom out.
@@ -380,9 +378,9 @@ instanceKlass* GraalEnv::get_instance_klass_for_declared_method_holder(KlassHand
   // only occurs for clone() the more extensive fix seems like overkill so
   // instead we simply smear the array type into Object.
   if (method_holder->oop_is_instance()) {
-    return instanceKlass::cast(method_holder());
+    return instanceKlassHandle(method_holder());
   } else if (method_holder->oop_is_array()) {
-    return instanceKlass::cast(SystemDictionary::Object_klass());
+    return instanceKlassHandle(SystemDictionary::Object_klass());
   } else {
     ShouldNotReachHere();
   }
@@ -394,7 +392,7 @@ instanceKlass* GraalEnv::get_instance_klass_for_declared_method_holder(KlassHand
 // ciEnv::get_method_by_index
 methodHandle GraalEnv::get_method_by_index(constantPoolHandle cpool,
                                      int index, Bytecodes::Code bc,
-                                     instanceKlass* accessor) {
+                                     instanceKlassHandle accessor) {
   ResourceMark rm;
   assert(bc != Bytecodes::_invokedynamic, "invokedynamic not yet supported");
   return get_method_by_index_impl(cpool, index, bc, accessor);

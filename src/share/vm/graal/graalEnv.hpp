@@ -71,7 +71,7 @@ public:
                                 int field_index);
   static methodHandle  get_method_by_index(constantPoolHandle cpool,
                                  int method_index, Bytecodes::Code bc,
-                                 instanceKlass* loading_klass);
+                                 instanceKlassHandle loading_klass);
 
 private:
 
@@ -88,12 +88,12 @@ private:
                                      int field_index);
   static methodHandle  get_method_by_index_impl(constantPoolHandle cpool,
                                       int method_index, Bytecodes::Code bc,
-                                      instanceKlass* loading_klass);
+                                      instanceKlassHandle loading_klass);
 
   // Helper methods
   static bool       check_klass_accessibility(klassOop accessing_klass, klassOop resolved_klassOop);
-  static methodOop  lookup_method(instanceKlass*  accessor,
-                           instanceKlass*  holder,
+  static methodHandle  lookup_method(instanceKlassHandle  accessor,
+                           instanceKlassHandle  holder,
                            Symbol*         name,
                            Symbol*         sig,
                            Bytecodes::Code bc);
@@ -135,7 +135,7 @@ public:
   // ciInstanceKlass*.  This is needed since the holder of a method in
   // the bytecodes could be an array type.  Basically this converts
   // array types into java/lang/Object and other types stay as they are.
-  static instanceKlass* get_instance_klass_for_declared_method_holder(KlassHandle klass);
+  static instanceKlassHandle get_instance_klass_for_declared_method_holder(KlassHandle klass);
 };
 
 #endif // SHARE_VM_GRAAL_GRAALENV_HPP
