@@ -56,10 +56,12 @@ public:
 
   // Print compilation timers and statistics
   virtual void print_timers();
-
-  static oop get_RiType(KlassHandle klass, KlassHandle accessor, TRAPS);
-  static oop get_RiType(ciType *klass, KlassHandle accessor, TRAPS);
-  static oop get_RiField(ciField *ciField, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS);
+  
+  static oop get_RiTypeFromSignature(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
+  static oop get_RiType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
+  static oop get_RiType(Symbol* klass_name, TRAPS);
+  static oop get_RiType(KlassHandle klass, TRAPS);
+  static oop get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS);
 
   static oop createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
   static oop createHotSpotMethodResolved(methodHandle method, TRAPS);

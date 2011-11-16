@@ -27,6 +27,7 @@
 #include "graal/graalVMExits.hpp"
 #include "graal/graalVMEntries.hpp"
 #include "graal/graalVmIds.hpp"
+#include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "runtime/arguments.hpp"
 
@@ -124,33 +125,62 @@ void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
 }
 
-oop GraalCompiler::get_RiType(KlassHandle klass, KlassHandle accessor, TRAPS) {
-  if (klass->oop_is_instance_slow()) {
-    assert(instanceKlass::cast(klass())->is_initialized(), "unexpected unresolved klass");
-  } else if (klass->oop_is_javaArray_slow()){
+oop GraalCompiler::get_RiType(Symbol* klass_name, TRAPS) {
+   return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(klass_name, THREAD), THREAD);
+}
+
+oop GraalCompiler::get_RiTypeFromSignature(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
+  
+  Symbol* signature = cp->symbol_at(index);
+  BasicType field_type = FieldType::basic_type(signature);
+  // If the field is a pointer type, get the klass of the
+  // field.
+  if (field_type == T_OBJECT || field_type == T_ARRAY) {
+    KlassHandle handle = GraalEnv::get_klass_by_name(loading_klass, signature, false);
+    if (handle.is_null()) {
+      return get_RiType(signature, CHECK_NULL);
+    } else {
+      return get_RiType(handle, CHECK_NULL);
+    }
   } else {
-    klass()->print();
-    assert(false, "unexpected klass");
+    return VMExits::createRiTypePrimitive(field_type, CHECK_NULL);
   }
+}
+
+oop GraalCompiler::get_RiType(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
+  bool is_accessible = false;
+
+  KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, is_accessible, loading_klass);
+  oop catch_class = NULL;
+  if (klass.is_null()) {
+    // We have to lock the cpool to keep the oop from being resolved
+    // while we are accessing it.
+    ObjectLocker ol(cp, THREAD);
+
+    Symbol* klass_name = NULL;
+    constantTag tag = cp->tag_at(index);
+    if (tag.is_klass()) {
+      // The klass has been inserted into the constant pool
+      // very recently.
+      return GraalCompiler::get_RiType(cp->resolved_klass_at(index), CHECK_NULL);
+    } else if (tag.is_symbol()) {
+      klass_name = cp->symbol_at(index);
+    } else {
+      assert(cp->tag_at(index).is_unresolved_klass(), "wrong tag");
+      klass_name = cp->unresolved_klass_at(index);
+    }
+    return GraalCompiler::get_RiType(klass_name, CHECK_NULL);
+  } else {
+    return GraalCompiler::get_RiType(klass, CHECK_NULL);
+  }
+}
+
+oop GraalCompiler::get_RiType(KlassHandle klass, TRAPS) {
   Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
   return createHotSpotTypeResolved(klass, name, CHECK_NULL);
 }
 
-  oop GraalCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
-    if (type->is_loaded()) {
-      if (type->is_primitive_type()) {
-        return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
-      }
-      KlassHandle klass = (klassOop) type->get_oop();
-      Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
-      return createHotSpotTypeResolved(klass, name, CHECK_NULL);
-    } else {
-      Symbol* name = ((ciKlass *) type)->name()->get_symbol();
-      return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), THREAD);
-    }
-}
-
-oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
+oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS) {
   int offset;
   if (byteCode != Bytecodes::_illegal) {
     bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
@@ -159,8 +189,6 @@ oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, 
     offset = field->offset();
   }
   Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
-  Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
-  Handle field_type = get_RiType(field->type(), accessor, CHECK_0);
   int flags = field->flags().as_int();
   return VMExits::createRiField(field_holder, field_name, field_type, offset, flags, THREAD);
 }
