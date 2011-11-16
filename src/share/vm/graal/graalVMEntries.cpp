@@ -774,28 +774,30 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields
   VM_ENTRY_MARK;
 
   instanceKlassHandle k = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
-  objArrayHandle field_array = oopFactory::new_objArray(SystemDictionary::RiField_klass(), k->fields()->length() / instanceKlass::next_offset, CHECK_NULL);
   class MyFieldClosure : public FieldClosure {
    public:
     instanceKlassHandle _holder;
     Handle _resolved_type_holder;
-    objArrayHandle _field_array;
-    int _current;
+    GrowableArray<Handle> _field_array;
 
-    MyFieldClosure(instanceKlassHandle& holder, Handle resolved_type_holder, objArrayHandle field_array) : _holder(holder), _resolved_type_holder(resolved_type_holder), _field_array(field_array), _current(0) { }
+    MyFieldClosure(instanceKlassHandle& holder, Handle resolved_type_holder) : _holder(holder), _resolved_type_holder(resolved_type_holder) { }
     
     virtual void do_field(fieldDescriptor* fd) {
       if (!Thread::current()->has_pending_exception()) {
         if (fd->field_holder() == _holder()) {
           Handle type = GraalCompiler::get_RiTypeFromSignature(fd->constants(), fd->signature_index(), fd->field_holder(), Thread::current());
           Handle field = VMExits::createRiField(_resolved_type_holder, VmIds::toString<Handle>(fd->name(), Thread::current()), type, fd->offset(), fd->access_flags().as_int(), Thread::current());
-          _field_array->obj_at_put(_current++, field());
+          _field_array.append(field());
         }
       }
     }
   };
-  MyFieldClosure closure(k, JNIHandles::resolve(klass), field_array);
+  MyFieldClosure closure(k, JNIHandles::resolve(klass));
   k->do_nonstatic_fields(&closure);
+  objArrayHandle field_array = oopFactory::new_objArray(SystemDictionary::RiField_klass(), closure._field_array.length(), CHECK_NULL);
+  for (int i=0; i<closure._field_array.length(); ++i) {
+    field_array->obj_at_put(i, closure._field_array.at(i)());
+  }
   return JNIHandles::make_local(field_array());
 }
 
