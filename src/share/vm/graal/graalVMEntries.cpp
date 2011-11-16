@@ -327,20 +327,13 @@ JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2bran
 
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
-  ciMethodData* method_data;
-  ciMethod* cimethod;
-  {
-    VM_ENTRY_MARK;
-    methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-    cimethod = (ciMethod*)CURRENT_ENV->get_object(method);
-  }
-  method_data = cimethod->method_data();
-
-  jfloat probability = -1;
+  VM_ENTRY_MARK;
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  methodDataOop method_data = method->method_data();
 
   if (method_data == NULL || !method_data->is_mature()) return NULL;
 
-  ciProfileData* data = method_data->bci_to_data(bci);
+  ProfileData* data = method_data->bci_to_data(bci);
   if (data == NULL || !data->is_MultiBranchData())  return NULL;
 
   MultiBranchData* branch_data = data->as_MultiBranchData();
@@ -362,14 +355,11 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2swit
   // We also check that individual counters are positive first, otherwise the sum can become positive.
   if (sum < 10 * (cases + 3)) return NULL;
 
-  {
-    VM_ENTRY_MARK;
-    typeArrayOop probability = oopFactory::new_typeArray(T_DOUBLE, cases + 1, CHECK_NULL);
-    for (int i = 0; i < cases + 1; i++) {
-      probability->double_at_put(i, counts->at(i) / (double) sum);
-    }
-    return JNIHandles::make_local(probability);
+  typeArrayOop probability = oopFactory::new_typeArray(T_DOUBLE, cases + 1, CHECK_NULL);
+  for (int i = 0; i < cases + 1; i++) {
+    probability->double_at_put(i, counts->at(i) / (double) sum);
   }
+  return JNIHandles::make_local(probability);
 }
 
 // public native boolean RiMethod_hasCompiledCode(HotSpotMethodResolved method);
