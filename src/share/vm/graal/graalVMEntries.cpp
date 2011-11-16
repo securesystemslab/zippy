@@ -510,9 +510,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
     }
     result = VMExits::createCiConstantObject(string, CHECK_0);
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
-    bool ignore;
-    KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, ignore, cp->pool_holder());
-    result = GraalCompiler::get_RiType(klass, CHECK_NULL);
+    result = GraalCompiler::get_RiType(cp, index, cp->pool_holder(), CHECK_NULL);
   } else if (tag.is_object()) {
     oop obj = cp->object_at(index);
     assert(obj->is_instance(), "must be an instance");
