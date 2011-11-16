@@ -49,27 +49,27 @@
 //
 // Note: the logic of this method should mirror the logic of
 // constantPoolOopDesc::verify_constant_pool_resolve.
-bool GraalEnv::check_klass_accessibility(klassOop accessing_klass, klassOop resolved_klass) {
-  if (accessing_klass->klass_part()->oop_is_objArray()) {
-    accessing_klass = ((objArrayKlass*)accessing_klass)->bottom_klass();
+bool GraalEnv::check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klass) {
+  if (accessing_klass->oop_is_objArray()) {
+    accessing_klass = objArrayKlass::cast(accessing_klass())->bottom_klass();
   }
-  if (!accessing_klass->klass_part()->oop_is_instance()) {
+  if (!accessing_klass->oop_is_instance()) {
     return true;
   }
 
-  if (resolved_klass->klass_part()->oop_is_objArray()) {
+  if (resolved_klass->oop_is_objArray()) {
     // Find the element klass, if this is an array.
-    resolved_klass = objArrayKlass::cast(resolved_klass)->bottom_klass();
+    resolved_klass = objArrayKlass::cast(resolved_klass())->bottom_klass();
   }
-  if (resolved_klass->klass_part()->oop_is_instance()) {
-    return Reflection::verify_class_access(accessing_klass, resolved_klass, true);
+  if (resolved_klass->oop_is_instance()) {
+    return Reflection::verify_class_access(accessing_klass(), resolved_klass(), true);
   }
   return true;
 }
 
 // ------------------------------------------------------------------
 // ciEnv::get_klass_by_name_impl
-klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
+KlassHandle GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
                                           constantPoolHandle cpool,
                                           Symbol* sym,
                                           bool require_local) {
@@ -82,7 +82,7 @@ klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
     // Call recursive to keep scope of strippedsym.
     TempNewSymbol strippedsym = SymbolTable::new_symbol(sym->as_utf8()+1,
                     sym->utf8_length()-2,
-                    CHECK_NULL);
+                    CHECK_(KlassHandle()));
     return get_klass_by_name_impl(accessing_klass, cpool, strippedsym, require_local);
   }
 
@@ -99,9 +99,9 @@ klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
     MutexLocker ml(Compile_lock);
     klassOop kls;
     if (!require_local) {
-      kls = SystemDictionary::find_constrained_instance_or_array_klass(sym, loader, CHECK_NULL);
+      kls = SystemDictionary::find_constrained_instance_or_array_klass(sym, loader, CHECK_(KlassHandle()));
     } else {
-      kls = SystemDictionary::find_instance_or_array_klass(sym, loader, domain, CHECK_NULL);
+      kls = SystemDictionary::find_instance_or_array_klass(sym, loader, domain, CHECK_(KlassHandle()));
     }
     found_klass = KlassHandle(THREAD, kls);
   }
@@ -118,7 +118,7 @@ klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
     // Build it on the fly if the element class exists.
     TempNewSymbol elem_sym = SymbolTable::new_symbol(sym->as_utf8()+1,
                                                  sym->utf8_length()-1,
-                                                 CHECK_NULL);
+                                                 CHECK_(KlassHandle()));
 
     // Get element ciKlass recursively.
     KlassHandle elem_klass =
@@ -128,7 +128,7 @@ klassOop GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
                              require_local);
     if (!elem_klass.is_null()) {
       // Now make an array for it
-      return elem_klass->array_klass(CHECK_NULL);
+      return elem_klass->array_klass(CHECK_(KlassHandle()));
     }
   }
 
@@ -163,7 +163,7 @@ KlassHandle GraalEnv::get_klass_by_name(KlassHandle accessing_klass,
 // ciEnv::get_klass_by_index_impl
 //
 // Implementation of get_klass_by_index.
-klassOop GraalEnv::get_klass_by_index_impl(constantPoolHandle cpool,
+KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle cpool,
                                         int index,
                                         bool& is_accessible,
                                         KlassHandle accessor) {
@@ -209,16 +209,12 @@ klassOop GraalEnv::get_klass_by_index_impl(constantPoolHandle cpool,
       // Linked locally, and we must also check public/private, etc.
       is_accessible = check_klass_accessibility(accessor(), k());
     }
-    return k();
+    return k;
   }
-
-  // Check for prior unloaded klass.  The SystemDictionary's answers
-  // can vary over time but the compiler needs consistency.
-  Symbol* name = klass()->klass_part()->name();
 
   // It is known to be accessible, since it was found in the constant pool.
   is_accessible = true;
-  return klass();
+  return klass;
 }
 
 // ------------------------------------------------------------------

@@ -76,11 +76,11 @@ public:
 private:
 
   // Implementation methods for loading and constant pool access.
-  static klassOop get_klass_by_name_impl(KlassHandle accessing_klass,
+  static KlassHandle get_klass_by_name_impl(KlassHandle accessing_klass,
                                   constantPoolHandle cpool,
                                   Symbol* klass_name,
                                   bool require_local);
-  static klassOop   get_klass_by_index_impl(constantPoolHandle cpool,
+  static KlassHandle   get_klass_by_index_impl(constantPoolHandle cpool,
                                      int klass_index,
                                      bool& is_accessible,
                                      KlassHandle loading_klass);
@@ -91,7 +91,7 @@ private:
                                       instanceKlassHandle loading_klass);
 
   // Helper methods
-  static bool       check_klass_accessibility(klassOop accessing_klass, klassOop resolved_klassOop);
+  static bool       check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klassOop);
   static methodHandle  lookup_method(instanceKlassHandle  accessor,
                            instanceKlassHandle  holder,
                            Symbol*         name,
