@@ -228,62 +228,59 @@ int scale_count(methodDataOop method_data, int count) {
 // public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+  VM_ENTRY_MARK;
   Handle obj;
-  {
-    VM_ENTRY_MARK;
-    ResourceMark rm;
-    methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-    methodDataHandle method_data = method->method_data();
-    if (method_data == NULL || !method_data->is_mature()) {
-      return NULL;
+  
+  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
+  methodDataHandle method_data = method->method_data();
+  if (method_data == NULL || !method_data->is_mature()) {
+    return NULL;
+  }
+  ProfileData* data = method_data->bci_to_data(bci);
+  if (data != NULL && data->is_ReceiverTypeData()) {
+    ReceiverTypeData* recv = data->as_ReceiverTypeData();
+    GrowableArray<KlassHandle> receivers;
+    GrowableArray<int> counts;
+    // determine morphism
+    uint total_count = 0;
+    for (uint i = 0; i < recv->row_limit(); i++) {
+      klassOop receiver = recv->receiver(i);
+      if (receiver == NULL)  continue;
+      uint count = recv->receiver_count(i);
+      total_count += count;
+      receivers.append(receiver);
+      counts.append(count);
     }
-    ProfileData* data = method_data->bci_to_data(bci);
-    if (data != NULL && data->is_ReceiverTypeData()) {
-      ReceiverTypeData* recv = data->as_ReceiverTypeData();
-      GrowableArray<KlassHandle> receivers;
-      GrowableArray<int> counts;
-      // determine morphism
-      uint total_count = 0;
-      for (uint i = 0; i < recv->row_limit(); i++) {
-        klassOop receiver = recv->receiver(i);
-        if (receiver == NULL)  continue;
-        uint count = recv->receiver_count(i);
-        total_count += count;
-        receivers.append(receiver);
-        counts.append(count);
+
+    instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
+    obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
+    assert(obj() != NULL, "must succeed in allocating instance");
+
+    int count = MAX2(total_count, recv->count());
+    RiTypeProfile::set_count(obj, scale_count(method_data(), count));
+    RiTypeProfile::set_morphism(obj, receivers.length());
+
+    if (receivers.length() > 0) {
+      typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, receivers.length(), CHECK_NULL);
+      objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), receivers.length(), CHECK_NULL);
+      for (int i = 0; i < receivers.length(); i++) {
+        KlassHandle receiver = receivers.at(i);
+
+        float prob = counts.at(i) / (float) total_count;
+        Handle type = GraalCompiler::get_RiType(receiver, CHECK_NULL);
+
+        probabilities->float_at_put(i, prob);
+        types->obj_at_put(i, type());
+
       }
 
-        instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
-        obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
-        assert(obj() != NULL, "must succeed in allocating instance");
-
-        int count = MAX2(total_count, recv->count());
-        RiTypeProfile::set_count(obj, scale_count(method_data(), count));
-        RiTypeProfile::set_morphism(obj, receivers.length());
-
-      if (receivers.length() > 0) {
-        typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, receivers.length(), CHECK_NULL);
-        objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), receivers.length(), CHECK_NULL);
-        for (int i = 0; i < receivers.length(); i++) {
-          KlassHandle receiver = receivers.at(i);
-
-          float prob = counts.at(i) / (float) total_count;
-          Handle type = GraalCompiler::get_RiType(receiver, CHECK_NULL);
-
-          probabilities->float_at_put(i, prob);
-          types->obj_at_put(i, type());
-
-        }
-
-        RiTypeProfile::set_probabilities(obj, probabilities());
-        RiTypeProfile::set_types(obj, types());
-      } else {
-        RiTypeProfile::set_probabilities(obj, NULL);
-        RiTypeProfile::set_types(obj, NULL);
-      }
+      RiTypeProfile::set_probabilities(obj, probabilities());
+      RiTypeProfile::set_types(obj, types());
+    } else {
+      RiTypeProfile::set_probabilities(obj, NULL);
+      RiTypeProfile::set_types(obj, NULL);
     }
   }
-
   return JNIHandles::make_local(obj());
 }
 

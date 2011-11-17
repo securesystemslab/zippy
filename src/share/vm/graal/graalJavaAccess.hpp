@@ -238,10 +238,10 @@ class name : AllStatic {                      \
 #define FIELD(name, type, accessor)             \
     static int _##name##_offset;                \
     static type name(oop obj)                   { check(obj); return obj->accessor(_##name##_offset); } \
-    static type name(Handle obj)                { check(obj()); return obj->accessor(_##name##_offset); } \
+    static type name(Handle& obj)                { check(obj()); return obj->accessor(_##name##_offset); } \
     static type name(jobject obj)               { check(JNIHandles::resolve(obj)); return JNIHandles::resolve(obj)->accessor(_##name##_offset); } \
     static void set_##name(oop obj, type x)     { check(obj); obj->accessor##_put(_##name##_offset, x); } \
-    static void set_##name(Handle obj, type x)  { check(obj()); obj->accessor##_put(_##name##_offset, x); } \
+    static void set_##name(Handle& obj, type x)  { check(obj()); obj->accessor##_put(_##name##_offset, x); } \
     static void set_##name(jobject obj, type x) { check(JNIHandles::resolve(obj)); JNIHandles::resolve(obj)->accessor##_put(_##name##_offset, x); }
 
 #define CHAR_FIELD(klass, name) FIELD(name, jchar, char_field)
