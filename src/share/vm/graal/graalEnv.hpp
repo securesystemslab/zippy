@@ -109,7 +109,7 @@ private:
 
 public:
   // Register the result of a compilation.
-  static nmethod* register_method(methodHandle             target,
+  static nmethod* register_method(methodHandle&             target,
                        int                       entry_bci,
                        CodeOffsets*              offsets,
                        int                       orig_pc_offset,

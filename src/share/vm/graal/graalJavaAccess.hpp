@@ -265,9 +265,9 @@ class name : AllStatic {                      \
       instanceKlass* ik = instanceKlass::cast(klassName::klass());  \
       address addr = ik->static_field_addr(_##name##_offset - instanceMirrorKlass::offset_of_static_fields());       \
       if (UseCompressedOops) {                                      \
-        oopDesc::encode_store_heap_oop((narrowOop *)addr, x);       \
+        oop_store((narrowOop *)addr, x);       \
       } else {                                                      \
-        oopDesc::encode_store_heap_oop((oop*)addr, x);              \
+        oop_store((oop*)addr, x);              \
       }                                                             \
     }
 COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD)

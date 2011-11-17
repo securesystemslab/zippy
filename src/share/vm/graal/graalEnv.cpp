@@ -424,7 +424,7 @@ bool GraalEnv::check_for_system_dictionary_modification(Dependencies* dependenci
 
 // ------------------------------------------------------------------
 // ciEnv::register_method
-nmethod* GraalEnv::register_method(methodHandle method,
+nmethod* GraalEnv::register_method(methodHandle& method,
                                 int entry_bci,
                                 CodeOffsets* offsets,
                                 int orig_pc_offset,
@@ -441,7 +441,7 @@ nmethod* GraalEnv::register_method(methodHandle method,
                                 bool has_debug_info,
                                 bool has_unsafe_access,
                                 bool install_code) {
-  VM_ENTRY_MARK;
+  EXCEPTION_CONTEXT;
   nmethod* nm = NULL;
   int comp_level = CompLevel_simple;
   {

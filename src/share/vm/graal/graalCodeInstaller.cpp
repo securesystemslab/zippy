@@ -266,10 +266,11 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
   }
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
-  ThreadToNativeFromVM t((JavaThread*) Thread::current());
   methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method)); 
-  nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
+  {
+    nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+      &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
+  }
   method->clear_queued_for_compilation();
 }
 
