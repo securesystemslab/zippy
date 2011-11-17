@@ -233,17 +233,9 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_code) {
   _env = CURRENT_ENV;
-  methodOop method = NULL;
   {
-    method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method));
-    _parameter_count = method->size_of_parameters();
-
     No_Safepoint_Verifier no_safepoint;
-
     initialize_fields(target_method);
-    assert(_hotspot_method != NULL && _name == NULL, "installMethod needs NON-NULL method and NULL name");
-    assert(_hotspot_method->is_a(HotSpotMethodResolved::klass()), "installMethod needs a HotSpotMethodResolved");
-
   }
 
   // (very) conservative estimate: each site needs a relocation
@@ -256,7 +248,6 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
     process_exception_handlers();
   }
 
-  
   if (_assumptions != NULL) {
     objArrayHandle assumptions = (objArrayOop)_assumptions;
     for (int i = 0; i < assumptions->length(); ++i) {
@@ -276,6 +267,7 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
+  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method)); 
   nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
   method->clear_queued_for_compilation();
@@ -303,6 +295,7 @@ CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
 void CodeInstaller::initialize_fields(Handle target_method) {
   _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
   _hotspot_method = HotSpotTargetMethod::method(target_method);
+  _parameter_count = getMethodFromHotSpotMethod(_hotspot_method)->size_of_parameters();
   _name = HotSpotTargetMethod::name(target_method);
   _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
   oop assumptions = CiTargetMethod::assumptions(_citarget_method);
