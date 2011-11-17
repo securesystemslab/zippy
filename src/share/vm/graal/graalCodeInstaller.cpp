@@ -250,8 +250,29 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
   //CodeBuffer buffer("temp graal method", _total_size, _sites->length() * relocInfo::length_limit);
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  initialize_buffer(buffer);
-  process_exception_handlers();
+  { 
+    No_Safepoint_Verifier no_safepoint;
+    initialize_buffer(buffer);
+    process_exception_handlers();
+  }
+
+  
+  if (_assumptions != NULL) {
+    objArrayHandle assumptions = (objArrayOop)_assumptions;
+    for (int i = 0; i < assumptions->length(); ++i) {
+      Handle assumption = assumptions->obj_at(i);
+      if (!assumption.is_null()) {
+        if (assumption->is_a(CiAssumptions_ConcreteSubtype::klass())) {
+          assumption_ConcreteSubtype(assumption);
+        } else if (assumption->is_a(CiAssumptions_ConcreteMethod::klass())) {
+          assumption_ConcreteMethod(assumption);
+        } else {
+          assumption->print();
+          fatal("unexpected Assumption subclass");
+        }
+      }
+    }
+  }
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   ThreadToNativeFromVM t((JavaThread*) Thread::current());
@@ -352,32 +373,14 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       fatal("unexpected Site subclass");
     }
   }
-
-
-  if (_assumptions != NULL) {
-    oop* assumptions = (oop*) _assumptions->base(T_OBJECT);
-    for (int i = 0; i < _assumptions->length(); ++i) {
-      oop assumption = assumptions[i];
-      if (assumption != NULL) {
-        if (assumption->is_a(CiAssumptions_ConcreteSubtype::klass())) {
-          assumption_ConcreteSubtype(assumption);
-        } else if (assumption->is_a(CiAssumptions_ConcreteMethod::klass())) {
-          assumption_ConcreteMethod(assumption);
-        } else {
-          assumption->print();
-          fatal("unexpected Assumption subclass");
-        }
-      }
-    }
-  }
 }
 
-void CodeInstaller::assumption_ConcreteSubtype(oop assumption) {
-  oop context_oop = CiAssumptions_ConcreteSubtype::context(assumption);
-  oop type_oop = CiAssumptions_ConcreteSubtype::subtype(assumption);
+void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
+  Handle context_handle = CiAssumptions_ConcreteSubtype::context(assumption);
+  Handle type_handle = CiAssumptions_ConcreteSubtype::subtype(assumption);
 
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_oop)));
-  ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_oop)));
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_handle)));
+  ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_handle)));
 
   _dependencies->assert_leaf_type(type);
   if (context != type) {
@@ -387,14 +390,14 @@ void CodeInstaller::assumption_ConcreteSubtype(oop assumption) {
   }
 }
 
-void CodeInstaller::assumption_ConcreteMethod(oop assumption) {
-  oop context_oop = CiAssumptions_ConcreteMethod::context(assumption);
-  oop method_oop = CiAssumptions_ConcreteMethod::method(assumption);
-  methodOop method = getMethodFromHotSpotMethod(method_oop);
-  methodOop context = getMethodFromHotSpotMethod(context_oop);
+void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
+  Handle context_handle = CiAssumptions_ConcreteMethod::context(assumption);
+  Handle method_handle = CiAssumptions_ConcreteMethod::method(assumption);
+  methodHandle method = getMethodFromHotSpotMethod(method_handle());
+  methodHandle context = getMethodFromHotSpotMethod(context_handle());
 
-  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method);
-  ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context);
+  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
+  ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context());
   ciKlass* context_klass = c->holder();
   {
     ThreadToNativeFromVM trans(JavaThread::current());
