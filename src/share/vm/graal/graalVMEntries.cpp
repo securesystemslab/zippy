@@ -240,14 +240,17 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
     ProfileData* data = method_data->bci_to_data(bci);
     if (data != NULL && data->is_ReceiverTypeData()) {
       ReceiverTypeData* recv = data->as_ReceiverTypeData();
+      GrowableArray<KlassHandle> receivers;
+      GrowableArray<int> counts;
       // determine morphism
-      int morphism = 0;
       uint total_count = 0;
       for (uint i = 0; i < recv->row_limit(); i++) {
         klassOop receiver = recv->receiver(i);
         if (receiver == NULL)  continue;
-        morphism++;
-        total_count += recv->receiver_count(i);
+        uint count = recv->receiver_count(i);
+        total_count += count;
+        receivers.append(receiver);
+        counts.append(count);
       }
 
         instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
@@ -256,23 +259,20 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
 
         int count = MAX2(total_count, recv->count());
         RiTypeProfile::set_count(obj, scale_count(method_data(), count));
-        RiTypeProfile::set_morphism(obj, morphism);
+        RiTypeProfile::set_morphism(obj, receivers.length());
 
-      if (morphism > 0) {
-        typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, morphism, CHECK_NULL);
-        objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), morphism, CHECK_NULL);
-        int pos = 0;
-        for (uint i = 0; i < recv->row_limit(); i++) {
-          KlassHandle receiver = recv->receiver(i);
-          if (receiver.is_null())  continue;
+      if (receivers.length() > 0) {
+        typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, receivers.length(), CHECK_NULL);
+        objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), receivers.length(), CHECK_NULL);
+        for (int i = 0; i < receivers.length(); i++) {
+          KlassHandle receiver = receivers.at(i);
 
-          float prob = recv->receiver_count(i) / (float) total_count;
+          float prob = counts.at(i) / (float) total_count;
           Handle type = GraalCompiler::get_RiType(receiver, CHECK_NULL);
 
-          probabilities->float_at_put(pos, prob);
-          types->obj_at_put(pos, type());
+          probabilities->float_at_put(i, prob);
+          types->obj_at_put(i, type());
 
-          pos++;
         }
 
         RiTypeProfile::set_probabilities(obj, probabilities());
