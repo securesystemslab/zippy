@@ -236,6 +236,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
   if (method_data == NULL || !method_data->is_mature()) {
     return NULL;
   }
+  ResourceMark rm;
   ProfileData* data = method_data->bci_to_data(bci);
   if (data != NULL && data->is_ReceiverTypeData()) {
     ReceiverTypeData* recv = data->as_ReceiverTypeData();

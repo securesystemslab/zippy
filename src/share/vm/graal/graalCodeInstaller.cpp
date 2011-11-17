@@ -233,17 +233,12 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_code) {
   _env = CURRENT_ENV;
+  GraalCompiler::initialize_buffer_blob();
+  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
+
   {
     No_Safepoint_Verifier no_safepoint;
     initialize_fields(target_method);
-  }
-
-  // (very) conservative estimate: each site needs a relocation
-  //CodeBuffer buffer("temp graal method", _total_size, _sites->length() * relocInfo::length_limit);
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  { 
-    No_Safepoint_Verifier no_safepoint;
     initialize_buffer(buffer);
     process_exception_handlers();
   }
@@ -381,7 +376,6 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   _dependencies->assert_leaf_type(type);
   if (context != type) {
     assert(context->is_abstract(), "");
-    ThreadToNativeFromVM trans(JavaThread::current());
     _dependencies->assert_abstract_with_unique_concrete_subtype(context, type);
   }
 }
@@ -395,10 +389,7 @@ void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
   ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context());
   ciKlass* context_klass = c->holder();
-  {
-    ThreadToNativeFromVM trans(JavaThread::current());
-    _dependencies->assert_unique_concrete_method(context_klass, m);
-  }
+  _dependencies->assert_unique_concrete_method(context_klass, m);
 }
 
 void CodeInstaller::process_exception_handlers() {
