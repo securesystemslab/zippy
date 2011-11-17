@@ -235,16 +235,14 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-
-  {
-    No_Safepoint_Verifier no_safepoint;
-    initialize_fields(target_method);
-    initialize_buffer(buffer);
-    process_exception_handlers();
-  }
-
-  if (_assumptions != NULL) {
-    objArrayHandle assumptions = (objArrayOop)_assumptions;
+  
+  _oop_recorder = new OopRecorder(_env->arena());
+  _env->set_oop_recorder(_oop_recorder);
+  _env->set_dependencies(_dependencies);
+  _dependencies = new Dependencies(_env);
+  Handle assumptions_handle = CiTargetMethod::assumptions(HotSpotTargetMethod::targetMethod(target_method));
+  if (!assumptions_handle.is_null()) {
+    objArrayHandle assumptions = (objArrayOop)CiAssumptions::list(assumptions_handle());
     for (int i = 0; i < assumptions->length(); ++i) {
       Handle assumption = assumptions->obj_at(i);
       if (!assumption.is_null()) {
@@ -260,6 +258,13 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
     }
   }
 
+  {
+    No_Safepoint_Verifier no_safepoint;
+    initialize_fields(target_method);
+    initialize_buffer(buffer);
+    process_exception_handlers();
+  }
+
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
   methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method)); 
   {
@@ -273,7 +278,9 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
 CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
   No_Safepoint_Verifier no_safepoint;
   _env = CURRENT_ENV;
-
+  
+  _oop_recorder = new OopRecorder(_env->arena());
+  _env->set_oop_recorder(_oop_recorder);
   initialize_fields(target_method);
   assert(_hotspot_method == NULL && _name != NULL, "installMethod needs NON-NULL name and NULL method");
 
@@ -296,12 +303,6 @@ void CodeInstaller::initialize_fields(Handle target_method) {
   }
   _name = HotSpotTargetMethod::name(target_method);
   _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
-  oop assumptions = CiTargetMethod::assumptions(_citarget_method);
-  if (assumptions != NULL) {
-    _assumptions = (arrayOop) CiAssumptions::list(assumptions);
-  } else {
-    _assumptions = NULL;
-  }
   _exception_handlers = (arrayOop) HotSpotTargetMethod::exceptionHandlers(target_method);
 
   _code = (arrayOop) CiTargetMethod::targetCode(_citarget_method);
@@ -325,15 +326,10 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   buffer.initialize_stubs_size(256);
   buffer.initialize_consts_size(_constants_size);
 
-  _oop_recorder = new OopRecorder(_env->arena());
-  _env->set_oop_recorder(_oop_recorder);
   _debug_recorder = new DebugInformationRecorder(_env->oop_recorder());
   _debug_recorder->set_oopmaps(new OopMapSet());
-  _dependencies = new Dependencies(_env);
-
-  _env->set_oop_recorder(_oop_recorder);
+  
   _env->set_debug_info(_debug_recorder);
-  _env->set_dependencies(_dependencies);
   buffer.initialize_oop_recorder(_oop_recorder);
 
   _instructions = buffer.insts();

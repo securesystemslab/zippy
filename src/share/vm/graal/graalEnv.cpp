@@ -466,7 +466,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
       // All buffers in the CodeBuffer are allocated in the CodeCache.
       // If the code buffer is created on each compile attempt
       // as in C2, then it must be freed.
-      code_buffer->free_blob();
+      //code_buffer->free_blob();
       return NULL;
     }
 
@@ -484,7 +484,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
                                compiler, comp_level);
 
     // Free codeBlobs
-    code_buffer->free_blob();
+    //code_buffer->free_blob();
 
     // stress test 6243940 by immediately making the method
     // non-entrant behind the system's back. This has serious

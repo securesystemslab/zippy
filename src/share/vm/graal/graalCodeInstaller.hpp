@@ -56,7 +56,6 @@ private:
   oop           _hotspot_method;
   oop           _name;
   arrayOop      _sites;
-  arrayOop      _assumptions;
   arrayOop      _exception_handlers;
   CodeOffsets   _offsets;
 
