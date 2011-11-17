@@ -295,7 +295,9 @@ CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
 void CodeInstaller::initialize_fields(Handle target_method) {
   _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
   _hotspot_method = HotSpotTargetMethod::method(target_method);
-  _parameter_count = getMethodFromHotSpotMethod(_hotspot_method)->size_of_parameters();
+  if (_hotspot_method != NULL) {
+    _parameter_count = getMethodFromHotSpotMethod(_hotspot_method)->size_of_parameters();
+  }
   _name = HotSpotTargetMethod::name(target_method);
   _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
   oop assumptions = CiTargetMethod::assumptions(_citarget_method);
