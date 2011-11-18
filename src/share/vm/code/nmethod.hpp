@@ -116,6 +116,8 @@ class nmethod : public CodeBlob {
   int       _entry_bci;        // != InvocationEntryBci if this nmethod is an on-stack replacement method
   jmethodID _jmethod_id;       // Cache of method()->jmethod_id()
 
+  oop       _graal_compiled_method;
+
   // To support simple linked-list chaining of nmethods:
   nmethod*  _osr_link;         // from instanceKlass::osr_nmethods_head
   nmethod*  _scavenge_root_link; // from CodeCache::scavenge_root_nmethods
@@ -538,6 +540,10 @@ public:
 
   // Evolution support. We make old (discarded) compiled methods point to new methodOops.
   void set_method(methodOop method) { _method = method; }
+
+
+  oop graal_compiled_method() { return _graal_compiled_method; }
+  void set_graal_compiled_method(oop compiled_method) { _graal_compiled_method = compiled_method; }
 
   // GC support
   void do_unloading(BoolObjectClosure* is_alive, OopClosure* keep_alive,

@@ -44,6 +44,9 @@
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 #ifdef DTRACE_ENABLED
 
@@ -462,6 +465,8 @@ void nmethod::init_defaults() {
   _scavenge_root_state     = 0;
   _saved_nmethod_link      = NULL;
   _compiler                = NULL;
+
+  _graal_compiled_method   = NULL;
 
 #ifdef HAVE_DTRACE_H
   _trap_offset             = 0;
@@ -1295,6 +1300,13 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
       return false;
     }
 
+#ifdef GRAAL
+    if (_graal_compiled_method != NULL) {
+      HotSpotCompiledMethod::set_nmethod(_graal_compiled_method, 0);
+      _graal_compiled_method = NULL;
+    }
+#endif
+
     // The caller can be calling the method statically or through an inline
     // cache call.
     if (!is_osr_method() && !is_not_entrant()) {
@@ -1593,6 +1605,10 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive,
     return;
   }
 
+  if (_graal_compiled_method != NULL && can_unload(is_alive, keep_alive, (oop*)&_graal_compiled_method, unloading_occurred)) {
+    return;
+  }
+
   // Exception cache
   ExceptionCache* ec = exception_cache();
   while (ec != NULL) {
@@ -1707,6 +1723,7 @@ void nmethod::oops_do(OopClosure* f, bool do_strong_roots_only) {
 
   // Compiled code
   f->do_oop((oop*) &_method);
+  f->do_oop((oop*) &_graal_compiled_method);
   if (!do_strong_roots_only) {
     // weak roots processing phase -- update ExceptionCache oops
     ExceptionCache* ec = exception_cache();
