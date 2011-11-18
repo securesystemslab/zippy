@@ -952,6 +952,8 @@ nmethod* ciEnv::register_method(ciMethod* target,
     // and invalidating our dependencies until we install this method.
     MutexLocker ml(Compile_lock);
 
+    // TODO(ls) this doesn't make much sense as long as graal doesn't support jvmti or dtrace...
+#ifndef GRAAL
     // Change in Jvmti state may invalidate compilation.
     if (!failing() &&
         ( (!jvmti_can_hotswap_or_post_breakpoint() &&
@@ -970,6 +972,7 @@ nmethod* ciEnv::register_method(ciMethod* target,
           (!dtrace_alloc_probes() && DTraceAllocProbes) )) {
       record_failure("DTrace flags change invalidated dependencies");
     }
+#endif
 
     if (!failing()) {
       if (log() != NULL) {
