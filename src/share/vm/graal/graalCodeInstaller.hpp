@@ -91,7 +91,8 @@ public:
 
 private:
   // extract the fields of the CiTargetMethod
-  void initialize_fields(Handle target_method);
+  void initialize_fields(Handle& target_method);
+  void initialize_assumptions(Handle& target_method);
 
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);

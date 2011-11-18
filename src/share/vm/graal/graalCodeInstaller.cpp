@@ -187,7 +187,6 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
     oop type = CiVirtualObject::type(value);
     int id = CiVirtualObject::id(value);
     instanceKlass* klass = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)));
-    assert(klass->is_instance_klass() || klass->is_array_klass(), "Not supported allocation.");
 
     for (jint i = 0; i < objects->length(); i++) {
       ObjectValue* obj = (ObjectValue*) objects->at(i);
@@ -230,12 +229,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   return NULL;
 }
 
-// constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code) {
-  _env = CURRENT_ENV;
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  
+void CodeInstaller::initialize_assumptions(Handle& target_method) {
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
@@ -257,6 +251,14 @@ CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_c
       }
     }
   }
+}
+
+// constructor used to create a method
+CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code) {
+  _env = CURRENT_ENV;
+  GraalCompiler::initialize_buffer_blob();
+  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
+  initialize_assumptions(target_method);
 
   {
     No_Safepoint_Verifier no_safepoint;
@@ -295,7 +297,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, jlong& id) {
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(Handle target_method) {
+void CodeInstaller::initialize_fields(Handle& target_method) {
   _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
   _hotspot_method = HotSpotTargetMethod::method(target_method);
   if (_hotspot_method != NULL) {
