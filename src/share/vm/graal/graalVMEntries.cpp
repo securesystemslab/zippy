@@ -925,13 +925,14 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getConfigurati
 // public long installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
 JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
   VM_ENTRY_MARK;
+  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
   nmethod* nm = NULL;
   ciEnv* current_env = JavaThread::current()->env();
   JavaThread::current()->set_env(NULL);
   Arena arena;
   ciEnv env(&arena);
   ResourceMark rm;
-  CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code != 0);
+  CodeInstaller installer(targetMethodHandle, nm, install_code != 0);
   JavaThread::current()->set_env(current_env);
   return (jlong) nm;
 }
@@ -939,13 +940,14 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JN
 // public HotSpotProxy installStub(HotSpotTargetMethod targetMethod, String name);
 JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
   VM_ENTRY_MARK;
+  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
   jlong id;
   ciEnv* current_env = JavaThread::current()->env();
   JavaThread::current()->set_env(NULL);
   Arena arena;
   ciEnv env(&arena);
   ResourceMark rm;
-  CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
+  CodeInstaller installer(targetMethodHandle, id);
   JavaThread::current()->set_env(current_env);
   return id;
 }
