@@ -49,10 +49,12 @@ public class Connection implements Source.Provider, Link {
     private Color color;
     private ConnectionStyle style;
     private List<Point> controlPoints;
+    private String label;
 
-    protected Connection(InputSlot inputSlot, OutputSlot outputSlot) {
+    protected Connection(InputSlot inputSlot, OutputSlot outputSlot, String label) {
         this.inputSlot = inputSlot;
         this.outputSlot = outputSlot;
+        this.label = label;
         this.inputSlot.connections.add(this);
         this.outputSlot.connections.add(this);
         controlPoints = new ArrayList<Point>();
@@ -94,6 +96,10 @@ public class Connection implements Source.Provider, Link {
         return source;
     }
 
+    public String getLabel() {
+        return label;
+    }
+
     public void remove() {
         inputSlot.getFigure().removePredecessor(outputSlot.getFigure());
         inputSlot.connections.remove(this);
@@ -102,12 +108,21 @@ public class Connection implements Source.Provider, Link {
     }
     
     public String getToolTipText() {
-        return "From " + this.getOutputSlot().getFigure().toString() + " to " + this.getInputSlot().getFigure();
+        StringBuilder builder = new StringBuilder();
+        if (label != null) {
+            builder.append(label).append(": from ");
+        } else {
+            builder.append("From ");
+        }
+        builder.append(getOutputSlot().getFigure());
+        builder.append(" to ");
+        builder.append(getInputSlot().getFigure());
+        return builder.toString();
     }
 
     @Override
     public String toString() {
-        return "Connection(" + getFrom().getVertex() + " to " + getTo().getVertex() + ")";
+        return "Connection('" + label + "', " + getFrom().getVertex() + " to " + getTo().getVertex() + ")";
     }
 
     public Port getFrom() {

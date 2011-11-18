@@ -58,23 +58,29 @@ public class InputEdge {
                 return o1.getToIndex() - o2.getToIndex();
             }
     };
-        
+
     private char toIndex;
     private char fromIndex;
     private int from;
     private int to;
     private State state;
-    
+    private String label;
+
     public InputEdge(char toIndex, int from, int to) {
-        this((char)0, toIndex, from, to);
+        this((char) 0, toIndex, from, to, null);
     }
 
     public InputEdge(char fromIndex, char toIndex, int from, int to) {
+        this(fromIndex, toIndex, from, to, null);
+    }
+
+    public InputEdge(char fromIndex, char toIndex, int from, int to, String label) {
         this.toIndex = toIndex;
         this.fromIndex = fromIndex;
         this.from = from;
         this.to = to;
         this.state = State.SAME;
+        this.label = label;
     }
 
     public State getState() {
@@ -103,6 +109,10 @@ public class InputEdge {
 
     public int getTo() {
         return to;
+    }
+
+    public String getLabel() {
+        return label;
     }
 
     @Override

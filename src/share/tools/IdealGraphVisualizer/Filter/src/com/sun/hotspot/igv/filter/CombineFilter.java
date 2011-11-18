@@ -30,7 +30,6 @@ import com.sun.hotspot.igv.graph.InputSlot;
 import com.sun.hotspot.igv.graph.OutputSlot;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Properties.PropertyMatcher;
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -100,7 +99,7 @@ public class CombineFilter extends AbstractFilter {
 
                         for (InputSlot s : f.getInputSlots()) {
                             for (Connection c : s.getConnections()) {
-                                Connection newConn = diagram.createConnection(slot, c.getOutputSlot());
+                                Connection newConn = diagram.createConnection(slot, c.getOutputSlot(), c.getLabel());
                                 newConn.setColor(c.getColor());
                                 newConn.setStyle(c.getStyle());
                             }
@@ -157,7 +156,7 @@ public class CombineFilter extends AbstractFilter {
                                     }
                                 }
                                 for (Connection c : nextSlot.getConnections()) {
-                                    Connection newConn = diagram.createConnection(c.getInputSlot(), slot);
+                                    Connection newConn = diagram.createConnection(c.getInputSlot(), slot, c.getLabel());
                                     newConn.setColor(c.getColor());
                                     newConn.setStyle(c.getStyle());
                                 }
