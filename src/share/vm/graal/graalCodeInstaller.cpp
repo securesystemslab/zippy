@@ -177,7 +177,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
       if (obj == NULL) {
         return new ConstantOopWriteValue(NULL);
       } else {
-        return new ConstantOopWriteValue(JNIHandles::make_global(obj));
+        return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
     } else if (type == T_ADDRESS) {
       return new ConstantLongValue(prim);
