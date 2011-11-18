@@ -82,16 +82,17 @@ private:
 public:
 
   // constructor used to create a method
-  CodeInstaller(Handle target_method, nmethod*& nm, bool install_code);
+  CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code);
 
   // constructor used to create a stub
-  CodeInstaller(Handle target_method, jlong& id);
+  CodeInstaller(Handle& target_method, jlong& id);
 
   static address runtime_call_target_address(oop runtime_call);
 
 private:
   // extract the fields of the CiTargetMethod
-  void initialize_fields(Handle target_method);
+  void initialize_fields(oop target_method);
+  void initialize_assumptions(oop target_method);
 
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);

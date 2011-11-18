@@ -467,9 +467,10 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
   VM_ENTRY_MARK;
   index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
+  instanceKlassHandle pool_holder(cp->pool_holder());
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) byteCode) & 0xFF);
-  methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, cp->pool_holder());
+  methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
   if (!method.is_null()) {
     Handle ret = GraalCompiler::createHotSpotMethodResolved(method, CHECK_NULL);
     return JNIHandles::make_local(THREAD, ret());
@@ -927,14 +928,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getConfigurati
 // public HotSpotCompiledMethod installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
   VM_ENTRY_MARK;
+  ResourceMark rm;
+  HandleMark hm;
+  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
   nmethod* nm = NULL;
-  ciEnv* current_env = JavaThread::current()->env();
-  JavaThread::current()->set_env(NULL);
   Arena arena;
   ciEnv env(&arena);
-  ResourceMark rm;
-  CodeInstaller installer(JNIHandles::resolve(targetMethod), nm, install_code != 0);
-  JavaThread::current()->set_env(current_env);
+  CodeInstaller installer(targetMethodHandle, nm, install_code != 0);
 
   // if install_code is true then we installed the code into the given method, no need to return an RiCompiledMethod
   if (!install_code && nm != NULL) {
@@ -953,14 +953,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(
 // public HotSpotProxy installStub(HotSpotTargetMethod targetMethod, String name);
 JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
   VM_ENTRY_MARK;
+  ResourceMark rm;
+  HandleMark hm;
+  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
   jlong id;
-  ciEnv* current_env = JavaThread::current()->env();
-  JavaThread::current()->set_env(NULL);
   Arena arena;
   ciEnv env(&arena);
-  ResourceMark rm;
-  CodeInstaller installer(JNIHandles::resolve(targetMethod), id);
-  JavaThread::current()->set_env(current_env);
+  CodeInstaller installer(targetMethodHandle, id);
   return id;
 }
 

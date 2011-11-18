@@ -177,7 +177,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
       if (obj == NULL) {
         return new ConstantOopWriteValue(NULL);
       } else {
-        return new ConstantOopWriteValue(JNIHandles::make_global(obj));
+        return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
     } else if (type == T_ADDRESS) {
       return new ConstantLongValue(prim);
@@ -186,8 +186,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   } else if (value->is_a(CiVirtualObject::klass())) {
     oop type = CiVirtualObject::type(value);
     int id = CiVirtualObject::id(value);
-    ciKlass* klass = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)));
-    assert(klass->is_instance_klass() || klass->is_array_klass(), "Not supported allocation.");
+    instanceKlass* klass = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)));
 
     for (jint i = 0; i < objects->length(); i++) {
       ObjectValue* obj = (ObjectValue*) objects->at(i);
@@ -196,7 +195,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
       }
     }
 
-    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(klass->constant_encoding()));
+    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), klass->as_klassOop())));
 
     arrayOop values = (arrayOop) CiVirtualObject::values(value);
     for (jint i = 0; i < values->length(); i++) {
@@ -212,14 +211,6 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
       }
       sv->field_values()->append(value);
     }
-
-//    uint first_ind = spobj->first_index();
-//    for (uint i = 0; i < spobj->n_fields(); i++) {
-//      Node* fld_node = sfn->in(first_ind+i);
-//      (void)FillLocArray(sv->field_values()->length(), sfn, fld_node, sv->field_values(), objs);
-//    }
-//    scval = sv;
-
     objects->append(sv);
     return sv;
   } else {
@@ -230,25 +221,21 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   return NULL;
 }
 
-// constructor used to create a method
-CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_code) {
-  _env = CURRENT_ENV;
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  
+void CodeInstaller::initialize_assumptions(oop target_method) {
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
   Handle assumptions_handle = CiTargetMethod::assumptions(HotSpotTargetMethod::targetMethod(target_method));
   if (!assumptions_handle.is_null()) {
-    objArrayHandle assumptions = (objArrayOop)CiAssumptions::list(assumptions_handle());
-    for (int i = 0; i < assumptions->length(); ++i) {
+    objArrayHandle assumptions(Thread::current(), (objArrayOop)CiAssumptions::list(assumptions_handle()));
+    int length = assumptions->length();
+    for (int i = 0; i < length; ++i) {
       Handle assumption = assumptions->obj_at(i);
       if (!assumption.is_null()) {
-        if (assumption->is_a(CiAssumptions_ConcreteSubtype::klass())) {
+        if (assumption->klass() == CiAssumptions_ConcreteSubtype::klass()) {
           assumption_ConcreteSubtype(assumption);
-        } else if (assumption->is_a(CiAssumptions_ConcreteMethod::klass())) {
+        } else if (assumption->klass() == CiAssumptions_ConcreteMethod::klass()) {
           assumption_ConcreteMethod(assumption);
         } else {
           assumption->print();
@@ -257,16 +244,25 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
       }
     }
   }
+}
+
+// constructor used to create a method
+CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code) {
+  _env = CURRENT_ENV;
+  GraalCompiler::initialize_buffer_blob();
+  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
+  jobject target_method_obj = JNIHandles::make_local(target_method());
+  initialize_assumptions(JNIHandles::resolve(target_method_obj));
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(target_method);
+    initialize_fields(JNIHandles::resolve(target_method_obj));
     initialize_buffer(buffer);
     process_exception_handlers();
   }
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
-  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method)); 
+  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(JNIHandles::resolve(target_method_obj))); 
   {
     nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
       &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
@@ -275,13 +271,13 @@ CodeInstaller::CodeInstaller(Handle target_method, nmethod*& nm, bool install_co
 }
 
 // constructor used to create a stub
-CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
+CodeInstaller::CodeInstaller(Handle& target_method, jlong& id) {
   No_Safepoint_Verifier no_safepoint;
   _env = CURRENT_ENV;
   
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
-  initialize_fields(target_method);
+  initialize_fields(target_method());
   assert(_hotspot_method == NULL && _name != NULL, "installMethod needs NON-NULL name and NULL method");
 
   // (very) conservative estimate: each site needs a relocation
@@ -295,7 +291,7 @@ CodeInstaller::CodeInstaller(Handle target_method, jlong& id) {
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(Handle target_method) {
+void CodeInstaller::initialize_fields(oop target_method) {
   _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
   _hotspot_method = HotSpotTargetMethod::method(target_method);
   if (_hotspot_method != NULL) {
@@ -363,10 +359,10 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
-  Handle context_handle = CiAssumptions_ConcreteSubtype::context(assumption);
-  Handle type_handle = CiAssumptions_ConcreteSubtype::subtype(assumption);
-
+  Handle context_handle = CiAssumptions_ConcreteSubtype::context(assumption());
   ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_handle)));
+
+  Handle type_handle = CiAssumptions_ConcreteSubtype::subtype(assumption());
   ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_handle)));
 
   _dependencies->assert_leaf_type(type);
@@ -377,12 +373,12 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
 }
 
 void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
-  Handle context_handle = CiAssumptions_ConcreteMethod::context(assumption);
-  Handle method_handle = CiAssumptions_ConcreteMethod::method(assumption);
+  Handle method_handle = CiAssumptions_ConcreteMethod::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
-  methodHandle context = getMethodFromHotSpotMethod(context_handle());
-
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
+  
+  Handle context_handle = CiAssumptions_ConcreteMethod::context(assumption());
+  methodHandle context = getMethodFromHotSpotMethod(context_handle());
   ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context());
   ciKlass* context_klass = c->holder();
   _dependencies->assert_unique_concrete_method(context_klass, m);

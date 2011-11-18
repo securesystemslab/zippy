@@ -49,7 +49,7 @@
 //
 // Note: the logic of this method should mirror the logic of
 // constantPoolOopDesc::verify_constant_pool_resolve.
-bool GraalEnv::check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klass) {
+bool GraalEnv::check_klass_accessibility(KlassHandle& accessing_klass, KlassHandle& resolved_klass) {
   if (accessing_klass->oop_is_objArray()) {
     accessing_klass = objArrayKlass::cast(accessing_klass())->bottom_klass();
   }
@@ -69,8 +69,8 @@ bool GraalEnv::check_klass_accessibility(KlassHandle accessing_klass, KlassHandl
 
 // ------------------------------------------------------------------
 // ciEnv::get_klass_by_name_impl
-KlassHandle GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
-                                          constantPoolHandle cpool,
+KlassHandle GraalEnv::get_klass_by_name_impl(KlassHandle& accessing_klass,
+                                          constantPoolHandle& cpool,
                                           Symbol* sym,
                                           bool require_local) {
   EXCEPTION_CONTEXT;
@@ -149,12 +149,13 @@ KlassHandle GraalEnv::get_klass_by_name_impl(KlassHandle accessing_klass,
 
 // ------------------------------------------------------------------
 // ciEnv::get_klass_by_name
-KlassHandle GraalEnv::get_klass_by_name(KlassHandle accessing_klass,
+KlassHandle GraalEnv::get_klass_by_name(KlassHandle& accessing_klass,
                                   Symbol* klass_name,
                                   bool require_local) {
   ResourceMark rm;
+  constantPoolHandle cpool;
   return get_klass_by_name_impl(accessing_klass,
-                                                 constantPoolHandle(),
+                                                 cpool,
                                                  klass_name,
                                                  require_local);
 }
@@ -163,10 +164,10 @@ KlassHandle GraalEnv::get_klass_by_name(KlassHandle accessing_klass,
 // ciEnv::get_klass_by_index_impl
 //
 // Implementation of get_klass_by_index.
-KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle cpool,
+KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle& cpool,
                                         int index,
                                         bool& is_accessible,
-                                        KlassHandle accessor) {
+                                        KlassHandle& accessor) {
   EXCEPTION_CONTEXT;
   KlassHandle klass (THREAD, constantPoolOopDesc::klass_at_if_loaded(cpool, index));
   Symbol* klass_name = NULL;
@@ -207,7 +208,7 @@ KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle cpool,
       is_accessible = false;
     } else {
       // Linked locally, and we must also check public/private, etc.
-      is_accessible = check_klass_accessibility(accessor(), k());
+      is_accessible = check_klass_accessibility(accessor, k);
     }
     return k;
   }
@@ -221,10 +222,10 @@ KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle cpool,
 // ciEnv::get_klass_by_index
 //
 // Get a klass from the constant pool.
-KlassHandle GraalEnv::get_klass_by_index(constantPoolHandle cpool,
+KlassHandle GraalEnv::get_klass_by_index(constantPoolHandle& cpool,
                                    int index,
                                    bool& is_accessible,
-                                   KlassHandle accessor) {
+                                   KlassHandle& accessor) {
   ResourceMark rm;
   return get_klass_by_index_impl(cpool, index, is_accessible, accessor);
 }
@@ -236,7 +237,7 @@ KlassHandle GraalEnv::get_klass_by_index(constantPoolHandle cpool,
 //
 // Implementation note: the results of field lookups are cached
 // in the accessor klass.
-void GraalEnv::get_field_by_index_impl(instanceKlassHandle klass, fieldDescriptor& field_desc,
+void GraalEnv::get_field_by_index_impl(instanceKlassHandle& klass, fieldDescriptor& field_desc,
                                         int index) {
   EXCEPTION_CONTEXT;
 
@@ -282,7 +283,7 @@ void GraalEnv::get_field_by_index_impl(instanceKlassHandle klass, fieldDescripto
 // ciEnv::get_field_by_index
 //
 // Get a field by index from a klass's constant pool.
-void GraalEnv::get_field_by_index(instanceKlassHandle accessor, fieldDescriptor& fd,
+void GraalEnv::get_field_by_index(instanceKlassHandle& accessor, fieldDescriptor& fd,
                                    int index) {
   ResourceMark rm;
   return get_field_by_index_impl(accessor, fd, index);
@@ -293,8 +294,8 @@ void GraalEnv::get_field_by_index(instanceKlassHandle accessor, fieldDescriptor&
 //
 // Perform an appropriate method lookup based on accessor, holder,
 // name, signature, and bytecode.
-methodHandle GraalEnv::lookup_method(instanceKlassHandle  h_accessor,
-                               instanceKlassHandle  h_holder,
+methodHandle GraalEnv::lookup_method(instanceKlassHandle& h_accessor,
+                               instanceKlassHandle& h_holder,
                                Symbol*       name,
                                Symbol*       sig,
                                Bytecodes::Code bc) {
@@ -329,9 +330,9 @@ methodHandle GraalEnv::lookup_method(instanceKlassHandle  h_accessor,
 
 // ------------------------------------------------------------------
 // ciEnv::get_method_by_index_impl
-methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle cpool,
+methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle& cpool,
                                           int index, Bytecodes::Code bc,
-                                          instanceKlassHandle accessor) {
+                                          instanceKlassHandle& accessor) {
   int holder_index = cpool->klass_ref_index_at(index);
   bool holder_is_accessible;
   KlassHandle holder = get_klass_by_index_impl(cpool, holder_index, holder_is_accessible, accessor);
@@ -364,7 +365,7 @@ methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle cpool,
 
 // ------------------------------------------------------------------
 // ciEnv::get_instance_klass_for_declared_method_holder
-instanceKlassHandle GraalEnv::get_instance_klass_for_declared_method_holder(KlassHandle method_holder) {
+instanceKlassHandle GraalEnv::get_instance_klass_for_declared_method_holder(KlassHandle& method_holder) {
   // For the case of <array>.clone(), the method holder can be a ciArrayKlass
   // instead of a ciInstanceKlass.  For that case simply pretend that the
   // declared holder is Object.clone since that's where the call will bottom out.
@@ -386,9 +387,9 @@ instanceKlassHandle GraalEnv::get_instance_klass_for_declared_method_holder(Klas
 
 // ------------------------------------------------------------------
 // ciEnv::get_method_by_index
-methodHandle GraalEnv::get_method_by_index(constantPoolHandle cpool,
+methodHandle GraalEnv::get_method_by_index(constantPoolHandle& cpool,
                                      int index, Bytecodes::Code bc,
-                                     instanceKlassHandle accessor) {
+                                     instanceKlassHandle& accessor) {
   ResourceMark rm;
   assert(bc != Bytecodes::_invokedynamic, "invokedynamic not yet supported");
   return get_method_by_index_impl(cpool, index, bc, accessor);

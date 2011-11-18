@@ -2280,7 +2280,7 @@ nmethod* instanceKlass::lookup_osr_nmethod(const methodOop m, int bci, int comp_
 }
 
 // -----------------------------------------------------------------------------------------------------
-#ifndef PRODUCT
+
 
 // Printing
 
@@ -2350,7 +2350,7 @@ void instanceKlass::oop_print_on(oop obj, outputStream* st) {
   }
 }
 
-#endif //PRODUCT
+
 
 void instanceKlass::oop_print_value_on(oop obj, outputStream* st) {
   st->print("a ");

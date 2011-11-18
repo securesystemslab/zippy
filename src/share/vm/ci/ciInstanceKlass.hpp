@@ -71,19 +71,6 @@ private:
 
   GrowableArray<ciField*>* _non_static_fields;
 
-public:
-  virtual void cleanup() {
-    ciObject::cleanup();
-    if (!_is_shared) {
-      if (JNIHandles::is_global_handle(_loader)) {
-        JNIHandles::destroy_global(_loader);
-      }
-      if (JNIHandles::is_global_handle(_protection_domain)) {
-        JNIHandles::destroy_global(_protection_domain);
-      }
-    }
-  }
-
 protected:
   ciInstanceKlass(KlassHandle h_k);
   ciInstanceKlass(ciSymbol* name, jobject loader, jobject protection_domain);

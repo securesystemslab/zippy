@@ -94,8 +94,6 @@ public:
 
   ciObjectFactory(Arena* arena, int expected_size);
 
-  void cleanup();
-
   // Get the ciObject corresponding to some oop.
   ciObject* get(oop key);
 
