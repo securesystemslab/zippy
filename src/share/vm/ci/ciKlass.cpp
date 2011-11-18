@@ -73,7 +73,7 @@ bool ciKlass::is_subtype_of(ciKlass* that) {
     return true;
   }
 
-  VM_ENTRY_MARK;
+  //VM_ENTRY_MARK;
   Klass* this_klass = get_Klass();
   klassOop that_klass = that->get_klassOop();
   bool result = this_klass->is_subtype_of(that_klass);

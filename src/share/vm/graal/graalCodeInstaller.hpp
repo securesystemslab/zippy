@@ -97,8 +97,8 @@ private:
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);
 
-  void assumption_ConcreteSubtype(jobject assumption);
-  void assumption_ConcreteMethod(jobject assumption);
+  void assumption_ConcreteSubtype(Handle assumption);
+  void assumption_ConcreteMethod(Handle assumption);
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);

@@ -153,8 +153,9 @@ KlassHandle GraalEnv::get_klass_by_name(KlassHandle& accessing_klass,
                                   Symbol* klass_name,
                                   bool require_local) {
   ResourceMark rm;
+  constantPoolHandle cpool;
   return get_klass_by_name_impl(accessing_klass,
-                                                 constantPoolHandle(),
+                                                 cpool,
                                                  klass_name,
                                                  require_local);
 }
