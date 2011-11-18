@@ -227,7 +227,7 @@ ciSymbol* ciObjectFactory::get_symbol(Symbol* key) {
     return result;
   }*/
 
-  assert(vmSymbols::find_sid(key) == vmSymbols::NO_SID, "");
+  //assert(vmSymbols::find_sid(key) == vmSymbols::NO_SID, "");
   ciSymbol* s = new (arena()) ciSymbol(key, vmSymbols::NO_SID);
   _symbols->push(s);
   return s;

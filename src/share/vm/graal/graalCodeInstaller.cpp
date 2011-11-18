@@ -229,21 +229,23 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   return NULL;
 }
 
-void CodeInstaller::initialize_assumptions(Handle& target_method) {
+void CodeInstaller::initialize_assumptions(oop target_method) {
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
   Handle assumptions_handle = CiTargetMethod::assumptions(HotSpotTargetMethod::targetMethod(target_method));
   if (!assumptions_handle.is_null()) {
-    objArrayHandle assumptions = (objArrayOop)CiAssumptions::list(assumptions_handle());
-    for (int i = 0; i < assumptions->length(); ++i) {
-      Handle assumption = assumptions->obj_at(i);
-      if (!assumption.is_null()) {
-        if (assumption->is_a(CiAssumptions_ConcreteSubtype::klass())) {
-          assumption_ConcreteSubtype(assumption);
-        } else if (assumption->is_a(CiAssumptions_ConcreteMethod::klass())) {
-          assumption_ConcreteMethod(assumption);
+    objArrayHandle assumptions(Thread::current(), (objArrayOop)CiAssumptions::list(assumptions_handle()));
+    int length = assumptions->length();
+    jobject assumptions_handle = JNIHandles::make_local(assumptions());
+    for (int i = 0; i < length; ++i) {
+      oop assumption = assumptions->obj_at(i);
+      if (assumption != NULL) {
+        if (assumption->klass() == CiAssumptions_ConcreteSubtype::klass()) {
+          assumption_ConcreteSubtype(JNIHandles::make_local(assumption));
+        } else if (assumption->klass() == CiAssumptions_ConcreteMethod::klass()) {
+          assumption_ConcreteMethod(JNIHandles::make_local(assumption));
         } else {
           assumption->print();
           fatal("unexpected Assumption subclass");
@@ -258,17 +260,18 @@ CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_c
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  initialize_assumptions(target_method);
+  jobject target_method_obj = JNIHandles::make_local(target_method());
+  initialize_assumptions(JNIHandles::resolve(target_method_obj));
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(target_method);
+    initialize_fields(JNIHandles::resolve(target_method_obj));
     initialize_buffer(buffer);
     process_exception_handlers();
   }
 
   int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
-  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(target_method)); 
+  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(JNIHandles::resolve(target_method_obj))); 
   {
     nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
       &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
@@ -283,7 +286,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, jlong& id) {
   
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
-  initialize_fields(target_method);
+  initialize_fields(target_method());
   assert(_hotspot_method == NULL && _name != NULL, "installMethod needs NON-NULL name and NULL method");
 
   // (very) conservative estimate: each site needs a relocation
@@ -297,7 +300,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, jlong& id) {
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(Handle& target_method) {
+void CodeInstaller::initialize_fields(oop target_method) {
   _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
   _hotspot_method = HotSpotTargetMethod::method(target_method);
   if (_hotspot_method != NULL) {
@@ -364,30 +367,46 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   }
 }
 
-void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
-  Handle context_handle = CiAssumptions_ConcreteSubtype::context(assumption);
-  Handle type_handle = CiAssumptions_ConcreteSubtype::subtype(assumption);
-
+void CodeInstaller::assumption_ConcreteSubtype(jobject assumption) {
+  Handle context_handle = CiAssumptions_ConcreteSubtype::context(JNIHandles::resolve(assumption));
   ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_handle)));
+
+  Handle type_handle = CiAssumptions_ConcreteSubtype::subtype(JNIHandles::resolve(assumption));
   ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_handle)));
 
   _dependencies->assert_leaf_type(type);
   if (context != type) {
+    // Once you removed the transition to native here
+    // and have realized what a terrible mistake that was,
+    // please increment the following counter as a warning
+    // to the next guy:
+    //
+    // total_hours_wasted_here = 8
+    ThreadToNativeFromVM trans(JavaThread::current());
     assert(context->is_abstract(), "");
     _dependencies->assert_abstract_with_unique_concrete_subtype(context, type);
   }
 }
 
-void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
-  Handle context_handle = CiAssumptions_ConcreteMethod::context(assumption);
-  Handle method_handle = CiAssumptions_ConcreteMethod::method(assumption);
+void CodeInstaller::assumption_ConcreteMethod(jobject assumption) {
+  Handle method_handle = CiAssumptions_ConcreteMethod::method(JNIHandles::resolve(assumption));
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
-  methodHandle context = getMethodFromHotSpotMethod(context_handle());
-
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
+  
+  Handle context_handle = CiAssumptions_ConcreteMethod::context(JNIHandles::resolve(assumption));
+  methodHandle context = getMethodFromHotSpotMethod(context_handle());
   ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context());
   ciKlass* context_klass = c->holder();
-  _dependencies->assert_unique_concrete_method(context_klass, m);
+  {
+    // Once you removed the transition to native here
+    // and have realized what a terrible mistake that was,
+    // please increment the following counter as a warning
+    // to the next guy:
+    //
+    // total_hours_wasted_here = 8
+    ThreadToNativeFromVM trans(JavaThread::current());
+    _dependencies->assert_unique_concrete_method(context_klass, m);
+  }
 }
 
 void CodeInstaller::process_exception_handlers() {

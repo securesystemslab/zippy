@@ -91,14 +91,14 @@ public:
 
 private:
   // extract the fields of the CiTargetMethod
-  void initialize_fields(Handle& target_method);
-  void initialize_assumptions(Handle& target_method);
+  void initialize_fields(oop target_method);
+  void initialize_assumptions(oop target_method);
 
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);
 
-  void assumption_ConcreteSubtype(Handle assumption);
-  void assumption_ConcreteMethod(Handle assumption);
+  void assumption_ConcreteSubtype(jobject assumption);
+  void assumption_ConcreteMethod(jobject assumption);
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);
