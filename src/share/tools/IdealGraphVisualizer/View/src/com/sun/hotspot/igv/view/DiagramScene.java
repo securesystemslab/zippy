@@ -58,6 +58,7 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
@@ -287,11 +288,13 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             setSelectedObjects(selectedObjects);
         }
     };
-    
+
     private MouseWheelListener mouseWheelListener = new MouseWheelListener() {
 
         public void mouseWheelMoved(MouseWheelEvent e) {
-            DiagramScene.this.relayoutWithoutLayout(null);
+            if (e.isControlDown()) {
+                DiagramScene.this.relayoutWithoutLayout(null);
+            }
         }
     };
 
@@ -409,17 +412,16 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         this.setCheckClipping(true);
 
-        this.getInputBindings().setZoomActionModifiers(0);
-
         scrollPane = createScrollPane();
+
+        hoverAction = createObjectHoverAction();
 
         // This panAction handles the event only when the left mouse button is
         // pressed without any modifier keys, otherwise it will not consume it
-        // and the selection action will handle the event
+        // and the selection action (below) will handle the event
         panAction = new CustomizablePanAction(~0, MouseEvent.BUTTON1_DOWN_MASK);
         this.getActions().addAction(panAction);
 
-        hoverAction = createObjectHoverAction();
         selectAction = createSelectAction();
         this.getActions().addAction(selectAction);
 
@@ -445,10 +447,13 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         this.setLayout(LayoutFactory.createAbsoluteLayout());
 
+        this.getInputBindings().setZoomActionModifiers(KeyEvent.CTRL_MASK);
         zoomAction = ActionFactory.createMouseCenteredZoomAction(1.2);
         this.getActions().addAction(zoomAction);
         this.getView().addMouseWheelListener(mouseWheelListener);
         this.getActions().addAction(ActionFactory.createPopupMenuAction(popupMenuProvider));
+        
+        this.getActions().addAction(ActionFactory.createWheelPanAction());
 
         LayerWidget selectLayer = new LayerWidget(this);
         this.addChild(selectLayer);
