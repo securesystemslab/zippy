@@ -230,7 +230,9 @@ ciSymbol* ciObjectFactory::get_symbol(Symbol* key) {
   vmSymbols::SID sid = vmSymbols::find_sid(key);
   if (sid != vmSymbols::NO_SID) {
     // do not pollute the main cache with it
-    return vm_symbol_at(sid);
+    ciSymbol* result = vm_symbol_at(sid);
+    assert(result != NULL, "");
+    return result;
   }
 
   assert(vmSymbols::find_sid(key) == vmSymbols::NO_SID, "");

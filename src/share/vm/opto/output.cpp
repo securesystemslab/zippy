@@ -934,7 +934,7 @@ void Compile::Process_OopMap_Node(MachNode *mach, int current_offset) {
     assert(jvms->bci() >= InvocationEntryBci && jvms->bci() <= 0x10000, "must be a valid or entry BCI");
     assert(!jvms->should_reexecute() || depth == max_depth, "reexecute allowed only for the youngest");
     // Now we can describe the scope.
-    debug_info()->describe_scope(safepoint_pc_offset, scope_method, jvms->bci(), jvms->should_reexecute(), is_method_handle_invoke, return_oop, locvals, expvals, monvals);
+    debug_info()->describe_scope(safepoint_pc_offset, (methodOop)scope_method->get_oop(), jvms->bci(), jvms->should_reexecute(), is_method_handle_invoke, return_oop, locvals, expvals, monvals);
   } // End jvms loop
 
   // Mark the end of the scope set.
@@ -1017,7 +1017,7 @@ void NonSafepointEmitter::emit_non_safepoint() {
     JVMState* jvms = youngest_jvms->of_depth(depth);
     ciMethod* method = jvms->has_method() ? jvms->method() : NULL;
     assert(!jvms->should_reexecute() || depth==max_depth, "reexecute allowed only for the youngest");
-    debug_info->describe_scope(pc_offset, method, jvms->bci(), jvms->should_reexecute());
+    debug_info->describe_scope(pc_offset, (methodOop)method->get_oop(), jvms->bci(), jvms->should_reexecute());
   }
 
   // Mark the end of the scope set.

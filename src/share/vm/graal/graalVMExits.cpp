@@ -73,8 +73,6 @@ void VMExits::initializeCompiler() {
   JavaValue result(T_VOID);
   JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::void_method_signature(), Thread::current());
   check_pending_exception("Couldn't initialize compiler");
-
-  startCompiler();
 }
 
 jboolean VMExits::setOption(Handle option) {
@@ -99,7 +97,7 @@ void VMExits::setDefaultOptions() {
   check_pending_exception("Error while calling setDefaultOptions");
 }
 
-void VMExits::compileMethod(Handle hotspot_method, int entry_bci) {
+void VMExits::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking) {
   assert(!hotspot_method.is_null(), "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
@@ -107,6 +105,7 @@ void VMExits::compileMethod(Handle hotspot_method, int entry_bci) {
   args.push_oop(instance());
   args.push_oop(hotspot_method);
   args.push_int(entry_bci);
+  args.push_int(blocking);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
 }
@@ -138,6 +137,15 @@ void VMExits::startCompiler() {
   args.push_oop(instance());
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::startCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
   check_pending_exception("Error while calling startCompiler");
+}
+
+void VMExits::bootstrap() {
+  JavaThread* THREAD = JavaThread::current();
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::bootstrap_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  check_pending_exception("Error while calling boostrap");
 }
 
 void VMExits::pollJavaQueue() {
@@ -272,14 +280,6 @@ oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
 oop VMExits::createCiConstantObject(Handle object, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
-  /*
-  args.push_oop(instance());
-  args.push_oop(object);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantObject_name(), vmSymbols::createCiConstantObject_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createCiConstantObject");
-  */
-
-
   KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_cri_ci_CiConstant(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   JavaCalls::call_static(&result, klass(), vmSymbols::forObject_name(), vmSymbols::createCiConstantObject_signature(), object, THREAD);
   check_pending_exception("Error while calling CiConstant.forObject");

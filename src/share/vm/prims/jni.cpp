@@ -3361,16 +3361,18 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     *vm = (JavaVM *)(&main_vm);
     *(JNIEnv**)penv = thread->jni_environment();
 
+    if (UseGraal) {
+      GraalCompiler* compiler = GraalCompiler::instance();
+      ciObjectFactory::initialize(); 
+      compiler->initialize();
+    }
+
     // Tracks the time application was running before GC
     RuntimeService::record_application_start();
 
     // Notify JVMTI
     if (JvmtiExport::should_post_thread_life()) {
        JvmtiExport::post_thread_start(thread);
-    }
-
-    if (UseGraal && BootstrapGraal) {
-      CompileBroker::bootstrap_graal();
     }
 
     // Check if we should compile all classes on bootclasspath

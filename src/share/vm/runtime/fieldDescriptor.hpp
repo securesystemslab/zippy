@@ -49,6 +49,8 @@ class fieldDescriptor VALUE_OBJ_CLASS_SPEC {
   constantPoolHandle  _cp;
 
  public:
+  int name_index() const               { return _name_index; }
+  int signature_index() const          { return _signature_index; }
   Symbol* name() const                 { return _cp->symbol_at(_name_index); }
   Symbol* signature() const            { return _cp->symbol_at(_signature_index); }
   klassOop field_holder() const        { return _cp->pool_holder(); }

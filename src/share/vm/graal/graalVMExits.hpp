@@ -50,14 +50,17 @@ public:
   // public static void HotSpotOptions.setDefaultOptions();
   static void setDefaultOptions();
 
-  // public abstract void compileMethod(long vmId, String name, int entry_bci);
-  static void compileMethod(Handle hotspot_method, int entry_bci);
+  // public abstract void compileMethod(long vmId, String name, int entry_bci, boolean blocking);
+  static void compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
   
   // public abstract void startCompiler();
   static void startCompiler();
+  
+  // public abstract void bootstrap();
+  static void bootstrap();
 
   // public abstract void pollJavaQueue();
   static void pollJavaQueue();

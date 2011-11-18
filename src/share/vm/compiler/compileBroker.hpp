@@ -404,7 +404,6 @@ class CompileBroker: AllStatic {
 
   static void print_compiler_threads_on(outputStream* st);
 
-  static void bootstrap_graal();
   static void add_method_to_queue(klassOop k, Symbol* name, Symbol* signature);
 
   static void notify_java_queue();

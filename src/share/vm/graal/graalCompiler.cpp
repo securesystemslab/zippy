@@ -27,6 +27,7 @@
 #include "graal/graalVMExits.hpp"
 #include "graal/graalVMEntries.hpp"
 #include "graal/graalVmIds.hpp"
+#include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "runtime/arguments.hpp"
 
@@ -40,9 +41,9 @@ GraalCompiler::GraalCompiler() {
 
 // Initialization
 void GraalCompiler::initialize() {
-  if (_initialized) return;
-  _initialized = true;
-  CompilerThread* THREAD = CompilerThread::current();
+  
+  ThreadToNativeFromVM trans(JavaThread::current());
+  JavaThread* THREAD = JavaThread::current();
   TRACE_graal_1("GraalCompiler::initialize");
 
   initialize_buffer_blob();
@@ -56,6 +57,8 @@ void GraalCompiler::initialize() {
   }
   env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
 
+  ResourceMark rm;
+  HandleMark hm;
   {
     VM_ENTRY_MARK;
     check_pending_exception("Could not register natives");
@@ -77,6 +80,12 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
+    VMExits::startCompiler();
+  
+    _initialized = true;
+    if (BootstrapGraal) {
+      VMExits::bootstrap();
+    }
   }
 }
 
@@ -95,22 +104,28 @@ void GraalCompiler::initialize_buffer_blob() {
   }
 }
 
+void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
+  EXCEPTION_CONTEXT
+  if (!_initialized) {
+    method->clear_queued_for_compilation();
+    method->invocation_counter()->reset();
+    method->backedge_counter()->reset();
+    return;
+  }
+  assert(_initialized, "must already be initialized");
+  ResourceMark rm;
+  ciEnv* current_env = JavaThread::current()->env();
+  JavaThread::current()->set_env(NULL);
+  JavaThread::current()->set_compiling(true);
+  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
+  VMExits::compileMethod(hotspot_method, entry_bci, blocking);
+  JavaThread::current()->set_compiling(false);
+  JavaThread::current()->set_env(current_env);
+}
+
 // Compilation entry point for methods
 void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) {
-  assert(_initialized, "must already be initialized");
-  VM_ENTRY_MARK;
-  ResourceMark rm;
-  HandleMark hm;
-
-  TRACE_graal_2("GraalCompiler::compile_method");
-
-  CompilerThread::current()->set_compiling(true);
-  methodOop method = (methodOop) target->get_oop();
-  Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
-  VMExits::compileMethod(hotspot_method, entry_bci);
-  CompilerThread::current()->set_compiling(false);
-
-  TRACE_graal_2("GraalCompiler::compile_method exit");
+  ShouldNotReachHere();
 }
 
 void GraalCompiler::exit() {
@@ -124,48 +139,67 @@ void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
 }
 
-oop GraalCompiler::get_RiType(KlassHandle klass, KlassHandle accessor, TRAPS) {
-  if (klass->oop_is_instance_slow()) {
-    assert(instanceKlass::cast(klass())->is_initialized(), "unexpected unresolved klass");
-  } else if (klass->oop_is_javaArray_slow()){
+Handle GraalCompiler::get_RiType(Symbol* klass_name, TRAPS) {
+   return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(klass_name, THREAD), THREAD);
+}
+
+Handle GraalCompiler::get_RiTypeFromSignature(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
+  
+  Symbol* signature = cp->symbol_at(index);
+  BasicType field_type = FieldType::basic_type(signature);
+  // If the field is a pointer type, get the klass of the
+  // field.
+  if (field_type == T_OBJECT || field_type == T_ARRAY) {
+    KlassHandle handle = GraalEnv::get_klass_by_name(loading_klass, signature, false);
+    if (handle.is_null()) {
+      return get_RiType(signature, CHECK_NULL);
+    } else {
+      return get_RiType(handle, CHECK_NULL);
+    }
   } else {
-    klass()->print();
-    assert(false, "unexpected klass");
+    return VMExits::createRiTypePrimitive(field_type, CHECK_NULL);
   }
+}
+
+Handle GraalCompiler::get_RiType(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
+  bool is_accessible = false;
+
+  KlassHandle klass = GraalEnv::get_klass_by_index(cp, index, is_accessible, loading_klass);
+  oop catch_class = NULL;
+  if (klass.is_null()) {
+    // We have to lock the cpool to keep the oop from being resolved
+    // while we are accessing it.
+    ObjectLocker ol(cp, THREAD);
+
+    Symbol* klass_name = NULL;
+    constantTag tag = cp->tag_at(index);
+    if (tag.is_klass()) {
+      // The klass has been inserted into the constant pool
+      // very recently.
+      return GraalCompiler::get_RiType(cp->resolved_klass_at(index), CHECK_NULL);
+    } else if (tag.is_symbol()) {
+      klass_name = cp->symbol_at(index);
+    } else {
+      assert(cp->tag_at(index).is_unresolved_klass(), "wrong tag");
+      klass_name = cp->unresolved_klass_at(index);
+    }
+    return GraalCompiler::get_RiType(klass_name, CHECK_NULL);
+  } else {
+    return GraalCompiler::get_RiType(klass, CHECK_NULL);
+  }
+}
+
+Handle GraalCompiler::get_RiType(KlassHandle klass, TRAPS) {
   Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
   return createHotSpotTypeResolved(klass, name, CHECK_NULL);
 }
 
-  oop GraalCompiler::get_RiType(ciType *type, KlassHandle accessor, TRAPS) {
-    if (type->is_loaded()) {
-      if (type->is_primitive_type()) {
-        return VMExits::createRiTypePrimitive((int) type->basic_type(), THREAD);
-      }
-      KlassHandle klass = (klassOop) type->get_oop();
-      Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
-      return createHotSpotTypeResolved(klass, name, CHECK_NULL);
-    } else {
-      Symbol* name = ((ciKlass *) type)->name()->get_symbol();
-      return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(name, THREAD), THREAD);
-    }
+Handle GraalCompiler::get_RiField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS) {
+  Handle name = VmIds::toString<Handle>(field_name, CHECK_NULL);
+  return VMExits::createRiField(field_holder, name, field_type, offset, flags, CHECK_NULL);
 }
 
-oop GraalCompiler::get_RiField(ciField *field, ciInstanceKlass* accessor_klass, KlassHandle accessor, Bytecodes::Code byteCode, TRAPS) {
-  int offset;
-  if (byteCode != Bytecodes::_illegal) {
-    bool will_link = field->will_link_from_vm(accessor_klass, byteCode);
-    offset = (field->holder()->is_loaded() && will_link) ? field->offset() : -1;
-  } else {
-    offset = field->offset();
-  }
-  Handle field_name = VmIds::toString<Handle>(field->name()->get_symbol(), CHECK_0);
-  Handle field_holder = get_RiType(field->holder(), accessor, CHECK_0);
-  Handle field_type = get_RiType(field->type(), accessor, CHECK_0);
-  int flags = field->flags().as_int();
-  return VMExits::createRiField(field_holder, field_name, field_type, offset, flags, THREAD);
-}
-
-oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
+Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
   if (klass->graal_mirror() != NULL) {
     return klass->graal_mirror();
   }
@@ -177,6 +211,7 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
   HotSpotTypeResolved::set_compiler(obj, VMExits::compilerInstance()());
 
   if (klass->oop_is_instance()) {
+    ResourceMark rm;
     instanceKlass* ik = (instanceKlass*)klass()->klass_part();
     Handle full_name = java_lang_String::create_from_str(ik->signature_name(), CHECK_NULL);
     HotSpotType::set_name(obj, full_name());
@@ -204,10 +239,10 @@ oop GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRA
 
   klass->set_graal_mirror(obj());
 
-  return obj();
+  return obj;
 }
 
-oop GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
+Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   if (method->graal_mirror() != NULL) {
     assert(method->graal_mirror()->is_a(HotSpotMethodResolved::klass()), "unexpected class...");
     return method->graal_mirror();
@@ -227,8 +262,8 @@ oop GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   
   KlassHandle klass = method->method_holder();
   Handle holder_name = VmIds::toString<Handle>(klass->name(), CHECK_NULL);
-  oop holder = GraalCompiler::createHotSpotTypeResolved(klass, holder_name, CHECK_NULL);
-  HotSpotMethodResolved::set_holder(obj, holder);
+  Handle holder = GraalCompiler::createHotSpotTypeResolved(klass, holder_name, CHECK_NULL);
+  HotSpotMethodResolved::set_holder(obj, holder());
   
   HotSpotMethodResolved::set_codeSize(obj, method->code_size());
   HotSpotMethodResolved::set_accessFlags(obj, method->access_flags().as_int());

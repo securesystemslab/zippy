@@ -634,7 +634,7 @@ class instanceKlass: public Klass {
   void process_interfaces(Thread *thread);
 
   // virtual operations from Klass
-  bool is_leaf_class() const               { return _subklass == NULL; }
+  bool is_leaf_class() const               { return _subklass == NULL && _nof_implementors == 0; }
   objArrayOop compute_secondary_supers(int num_extra_slots, TRAPS);
   bool compute_is_subtype_of(klassOop k);
   bool can_be_primary_super_slow() const;

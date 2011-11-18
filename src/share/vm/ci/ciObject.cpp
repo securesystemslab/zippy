@@ -73,12 +73,7 @@ ciObject::ciObject(oop o) {
 ciObject::ciObject(Handle h) {
   ASSERT_IN_VM;
   if (ciObjectFactory::is_initialized()) {
-    if (UseGraal) {
-      _handle = JNIHandles::make_global(h);
-      _temp_global = true;
-    } else {
-      _handle = JNIHandles::make_local(h());
-    }
+    _handle = JNIHandles::make_local(h());
   } else {
     _handle = JNIHandles::make_global(h);
   }

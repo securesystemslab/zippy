@@ -716,6 +716,7 @@ class JavaThread: public Thread {
   // (tw) Necessary for holding a compilation buffer and ci environment. Moved from CompilerThread to JavaThread in order to enable code installation from Java application code.
   BufferBlob*   _buffer_blob;
   ciEnv*        _env;
+  bool          _is_compiling;
 
 #ifdef ASSERT
  private:
@@ -853,9 +854,6 @@ class JavaThread: public Thread {
   volatile int     _exception_stack_size;        // Size of frame where exception happened
   volatile int     _is_method_handle_return;     // true (== 1) if the current exception PC is a MethodHandle call site.
 
-  // support for compilation
-  bool    _is_compiling;                         // is true if a compilation is active inthis thread (one compilation per thread possible)
-
   // support for JNI critical regions
   jint    _jni_active_critical;                  // count of entries into JNI critical region
 
@@ -916,6 +914,9 @@ class JavaThread: public Thread {
     return (struct JNINativeInterface_ *)_jni_environment.functions;
   }
   
+  bool is_compiling() const                      { return _is_compiling; }
+  void set_compiling(bool b)                     { _is_compiling = b; }
+
   // Get/set the thread's compilation environment.
   ciEnv*        env()                            { return _env; }
   void          set_env(ciEnv* env)              { _env = env; }
@@ -941,10 +942,6 @@ class JavaThread: public Thread {
 
   // Testers
   virtual bool is_Java_thread() const            { return true;  }
-
-  // compilation
-  void set_is_compiling(bool f)                  { _is_compiling = f; }
-  bool is_compiling() const                      { return _is_compiling; }
 
   // Thread chain operations
   JavaThread* next() const                       { return _next; }
@@ -1716,7 +1713,6 @@ class CompilerThread : public JavaThread {
   CompileLog*   _log;
   CompileTask*  _task;
   CompileQueue* _queue;
-  bool          _is_compiling;
 
   nmethod*      _scanned_nmethod;  // nmethod being scanned by the sweeper
 
@@ -1726,8 +1722,6 @@ class CompilerThread : public JavaThread {
 
   CompilerThread(CompileQueue* queue, CompilerCounters* counters);
 
-  bool is_compiling() const                      { return _is_compiling; }
-  void set_compiling(bool b)                     { _is_compiling = b; }
   bool is_Compiler_thread() const                { return true; }
   // Hide this compiler thread from external view.
   // (tw) For Graal, the compiler thread should be visible.

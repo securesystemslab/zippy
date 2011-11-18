@@ -2938,7 +2938,7 @@ klassOop JavaThread::security_get_caller_class(int depth) {
 
 static void compiler_thread_entry(JavaThread* thread, TRAPS) {
   assert(thread->is_Compiler_thread(), "must be compiler thread");
-  CompileBroker::compiler_thread_loop();
+  //CompileBroker::compiler_thread_loop();
 }
 
 // Create a CompilerThread
@@ -2948,7 +2948,6 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
   _task  = NULL;
   _queue = queue;
   _counters = counters;
-  _is_compiling = false;
   _scanned_nmethod = NULL;
 
 #ifndef PRODUCT

@@ -591,8 +591,6 @@ void CompileQueue::remove(CompileTask* task)
     _last = task->prev();
   }
 
-  // (tw) Immediately set compiling flag.
-  JavaThread::current()->as_CompilerThread()->set_compiling(true);
   --_size;
 }
 
@@ -656,70 +654,6 @@ void CompileBroker::add_method_to_queue(klassOop k, Symbol* name, Symbol* signat
     fatal("error inserting method into compile queue");
   }
 }
-
-// Bootstrap the graal compiler. Compiles all methods until compile queue is empty and no compilation is active.
-void CompileBroker::bootstrap_graal() {
-  HandleMark hm;
-  Thread* THREAD = Thread::current();
-  tty->print_cr("Bootstrapping graal....");
-
-  GraalCompiler* compiler = GraalCompiler::instance();
-  assert(compiler != NULL, "just checking");
-
-  jlong start = os::javaTimeMillis();
-  add_method_to_queue(SystemDictionary::Object_klass(), vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
-  add_method_to_queue(SystemDictionary::Object_klass(), vmSymbols::equals_name(), vmSymbols::object_boolean_signature());
-  add_method_to_queue(SystemDictionary::String_klass(), vmSymbols::length_name(), vmSymbols::void_int_signature());
-  add_method_to_queue(SystemDictionary::String_klass(), vmSymbols::object_initializer_name(), vmSymbols::void_method_signature());
-
-  int z = 0;
-  while (true) {
-    {
-      HandleMark hm;
-      ResourceMark rm;
-      MutexLocker locker(_c1_method_queue->lock(), Thread::current());
-      if (_c1_method_queue->is_empty()) {
-        MutexLocker mu(Threads_lock); // grab Threads_lock
-        JavaThread* current = Threads::first();
-        bool compiling = false;
-        while (current != NULL) {
-          if (current->is_Compiler_thread()) {
-            CompilerThread* comp_thread = current->as_CompilerThread();
-            if (comp_thread->is_compiling()) {
-              if (TraceGraal >= 4) {
-                tty->print_cr("Compile queue empty, but following thread is still compiling:");
-                comp_thread->print();
-              }
-              compiling = true;
-            }
-          }
-          current = current->next();
-        }
-        if (!compiling) {
-          break;
-        }
-      }
-      if (TraceGraal >= 5) {
-        _c1_method_queue->print();
-      }
-    }
-
-    {
-      //ThreadToNativeFromVM trans(JavaThread::current());
-      os::sleep(THREAD, 10, true);
-    }
-    ++z;
-  }
-
-  // Do a full garbage collection.
-  Universe::heap()->collect(GCCause::_java_lang_system_gc);
-
-  jlong diff = os::javaTimeMillis() - start;
-  tty->print_cr("Finished bootstrap in %d ms", diff);
-  if (CITime) CompileBroker::print_times();
-  tty->print_cr("===========================================================================");
-}
-
 
 void CompileBroker::notify_java_queue() {
   HandleMark hm;
@@ -1111,7 +1045,7 @@ void CompileBroker::compile_method_base(methodHandle method,
   {
     MutexLocker locker(queue->lock(), THREAD);
 
-    if (Thread::current()->is_Compiler_thread() && CompilerThread::current()->is_compiling() && !BackgroundCompilation) {
+    if (JavaThread::current()->is_compiling() && !BackgroundCompilation) {
 
       TRACE_graal_1("Recursive compile %s!", method->name_and_sig_as_C_string());
       method->set_not_compilable();
@@ -1182,16 +1116,23 @@ void CompileBroker::compile_method_base(methodHandle method,
     // and in that case it's best to protect both the testing (here) of
     // these bits, and their updating (here and elsewhere) under a
     // common lock.
-    task = create_compile_task(queue,
+    /*task = create_compile_task(queue,
                                compile_id, method,
                                osr_bci, comp_level,
                                hot_method, hot_count, comment,
-                               blocking);
+                               blocking);*/
   }
 
-  if (blocking) {
-    wait_for_completion(task);
+  if (!JavaThread::current()->is_compiling()) {
+    method->set_queued_for_compilation();
+    GraalCompiler::instance()->compile_method(method, osr_bci, blocking);
+  } else {
+    // Recursive compile request => ignore.
   }
+
+  /*if (blocking) {
+    wait_for_completion(task);
+  }*/
 }
 
 
@@ -1574,17 +1515,9 @@ void CompileBroker::compiler_thread_loop() {
     log->stamp();
     log->end_elem();
   }
-  
-  if (UseGraal) {
-    thread->set_compiling(true); // Prevent recursive compilations while the compiler is initializing.
-    ThreadToNativeFromVM trans(JavaThread::current());
-    GraalCompiler::instance()->initialize();
-  }
 
   while (true) {
     {
-      // Unset compiling flag.
-      thread->set_compiling(false);
 
       // We need this HandleMark to avoid leaking VM handles.
       HandleMark hm(thread);
@@ -1809,12 +1742,13 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
 
     compiler(task->comp_level())->compile_method(&ci_env, target, osr_bci);
 
-    if (!ci_env.failing() && task->code() == NULL) {
+    // TODO (tw): Check if this is OK.
+    /*if (!ci_env.failing() && task->code() == NULL) {
       //assert(false, "compiler should always document failure");
       // The compiler elected, without comment, not to register a result.
       // Do not attempt further compilations of this method.
       ci_env.record_method_not_compilable("compile failed", !TieredCompilation);
-    }
+    }*/
 
     if (ci_env.failing()) {
       // Copy this bit to the enclosing block:
