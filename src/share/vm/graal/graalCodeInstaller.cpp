@@ -608,8 +608,13 @@ address CodeInstaller::runtime_call_target_address(oop runtime_call) {
     TRACE_graal_3("CiRuntimeCall::ArithmeticTan()");
   } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
     target_addr = Runtime1::entry_for(Runtime1::register_finalizer_id);
+    TRACE_graal_3("CiRuntimeCall::RegisterFinalizer()");
   } else if (runtime_call == CiRuntimeCall::Deoptimize()) {
     target_addr = SharedRuntime::deopt_blob()->uncommon_trap();
+    TRACE_graal_3("CiRuntimeCall::Deoptimize()");
+  } else if (runtime_call == CiRuntimeCall::GenericCallback()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_generic_callback_id);
+    TRACE_graal_3("CiRuntimeCall::GenericCallback()");
   } else {
     runtime_call->print();
     fatal("runtime_call not implemented");

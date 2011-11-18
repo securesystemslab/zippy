@@ -78,6 +78,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotCompiledMethod)                                                    \
     long_field(HotSpotCompiledMethod, nmethod)                                          \
+    oop_field(HotSpotCompiledMethod, method, "Lcom/sun/cri/ri/RiResolvedMethod;")       \
   end_class                                                                             \
   start_class(HotSpotProxy)                                                             \
     static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \
@@ -195,6 +196,7 @@ void graal_compute_offsets();
     static_oop_field(CiRuntimeCall, ArithmeticLog10, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, ArithmeticSin, "Lcom/sun/cri/ci/CiRuntimeCall;");   \
     static_oop_field(CiRuntimeCall, Deoptimize, "Lcom/sun/cri/ci/CiRuntimeCall;");      \
+    static_oop_field(CiRuntimeCall, GenericCallback, "Lcom/sun/cri/ci/CiRuntimeCall;"); \
   end_class                                                                             \
   start_class(RiMethod)                                                                 \
   end_class                                                                             \

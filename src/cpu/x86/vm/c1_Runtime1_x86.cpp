@@ -1058,6 +1058,39 @@ JRT_ENTRY(void, graal_create_out_of_bounds_exception(JavaThread* thread, jint in
   thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
 JRT_END
 
+JRT_ENTRY(void, graal_generic_callback(JavaThread* thread, oop _callback, oop _argument))
+  HandleMark hm;
+  Handle callback(_callback);
+  Handle argument(_argument);
+
+  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_cri_ci_CiGenericCallback(), SystemDictionary::java_system_loader(), NULL, thread);
+  if (klass.is_null()) {
+    tty->print_cr("couldn't resolve com_sun_cri_ci_CiGenericCallback");
+  }
+
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(Handle(callback));
+  args.push_oop(Handle(argument));
+  JavaCalls::call_interface(&result, klass, vmSymbols::callback_name(), vmSymbols::callback_signature(), &args, thread);
+
+  if (thread->has_pending_exception()) {
+    Handle exception = PENDING_EXCEPTION;
+    CLEAR_PENDING_EXCEPTION;
+
+    assert(exception->is_a(SystemDictionary::Throwable_klass()), "Throwable instance expected");
+    JavaValue result(T_VOID);
+    JavaCalls::call_virtual(&result,
+                            exception,
+                            KlassHandle(THREAD,
+                            SystemDictionary::Throwable_klass()),
+                            vmSymbols::printStackTrace_name(),
+                            vmSymbols::void_method_signature(),
+                            THREAD);
+  }
+  thread->set_vm_result((oop) result.get_jobject());
+JRT_END
+
 
 
 
@@ -1946,6 +1979,17 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 		oop_maps->add_gc_map(call_offset, oop_map);
 		__ leave();
 		__ ret(0);
+      break;
+    }
+
+    case graal_generic_callback_id: {
+    __ enter();
+    oop_maps = new OopMapSet();
+    OopMap* oop_map = save_live_registers(sasm, 0);
+    int call_offset = __ call_RT(rax, noreg, (address)graal_generic_callback, j_rarg0, j_rarg1);
+    oop_maps->add_gc_map(call_offset, oop_map);
+    __ leave();
+    __ ret(0);
       break;
     }
 

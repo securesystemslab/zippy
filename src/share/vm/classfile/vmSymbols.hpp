@@ -281,6 +281,7 @@
   template(com_sun_cri_ci_CiAssumptions,              "com/sun/cri/ci/CiAssumptions")                                   \
   template(com_sun_cri_ci_CiAssumptions_ConcreteSubtype, "com/sun/cri/ci/CiAssumptions$ConcreteSubtype")                \
   template(com_sun_cri_ci_CiAssumptions_ConcreteMethod, "com/sun/cri/ci/CiAssumptions$ConcreteMethod")                  \
+  template(com_sun_cri_ci_CiGenericCallback,          "com/sun/cri/ci/CiGenericCallback")                               \
   template(com_sun_cri_ci_CiTargetMethod,             "com/sun/cri/ci/CiTargetMethod")                                  \
   template(com_sun_cri_ci_CiTargetMethod_Site,        "com/sun/cri/ci/CiTargetMethod$Site")                             \
   template(com_sun_cri_ci_CiTargetMethod_Call,        "com/sun/cri/ci/CiTargetMethod$Call")                             \
@@ -337,6 +338,8 @@
   template(initialize_name,                           "initialize")                                                     \
   template(getInstance_signature,                     "()Lcom/oracle/max/graal/hotspot/Compiler;")                      \
   template(forObject_name,                            "forObject")                                                      \
+  template(callback_name,                             "callback")                                                       \
+  template(callback_signature,                        "(Ljava/lang/Object;)Ljava/lang/Object;")                         \
                                                                                                                         \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \
