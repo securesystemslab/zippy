@@ -723,7 +723,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayO
   TRACE_graal_3("VMEntries::RiType_arrayOf");
   VM_ENTRY_MARK;
 
-  tty->print_cr("entering");
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
   KlassHandle arr = klass_handle->array_klass(THREAD);
   Handle name = VmIds::toString<Handle>(arr->name(), CHECK_NULL);
