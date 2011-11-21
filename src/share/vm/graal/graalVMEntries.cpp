@@ -496,7 +496,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
 
 // public void RiConstantPool_loadReferencedType(long vmId, int cpi);
 JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1loadReferencedType(JNIEnv *env, jobject, jobject type, jint index, jbyte op) {
-  TRACE_graal_3("VMEntries::RiConstantPool_lookupType");
+  TRACE_graal_3("VMEntries::RiConstantPool_loadReferencedType");
   VM_ENTRY_MARK;
   
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
@@ -723,10 +723,12 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayO
   TRACE_graal_3("VMEntries::RiType_arrayOf");
   VM_ENTRY_MARK;
 
+  tty->print_cr("entering");
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
-  KlassHandle array = klass_handle->array_klass(THREAD);
-  Handle name = VmIds::toString<Handle>(array->name(), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, GraalCompiler::createHotSpotTypeResolved(array, name, THREAD)());
+  KlassHandle arr = klass_handle->array_klass(THREAD);
+  Handle name = VmIds::toString<Handle>(arr->name(), CHECK_NULL);
+  assert(arr->oop_is_array(), "");
+  return JNIHandles::make_local(THREAD, GraalCompiler::createHotSpotTypeResolved(arr, name, THREAD)());
 }
 
 // public RiField[] RiType_fields(HotSpotTypeResolved klass);

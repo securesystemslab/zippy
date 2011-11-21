@@ -49,7 +49,7 @@
 //
 // Note: the logic of this method should mirror the logic of
 // constantPoolOopDesc::verify_constant_pool_resolve.
-bool GraalEnv::check_klass_accessibility(KlassHandle& accessing_klass, KlassHandle& resolved_klass) {
+bool GraalEnv::check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klass) {
   if (accessing_klass->oop_is_objArray()) {
     accessing_klass = objArrayKlass::cast(accessing_klass())->bottom_klass();
   }
@@ -203,12 +203,15 @@ KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle& cpool,
     if (k.is_null()) {
       is_accessible = false;
     } else if (k->class_loader() != accessor->class_loader() &&
-               get_klass_by_name_impl(accessor, cpool, k->name(), true) == NULL) {
+               get_klass_by_name_impl(accessor, cpool, k->name(), true).is_null()) {
       // Loaded only remotely.  Not linked yet.
       is_accessible = false;
     } else {
       // Linked locally, and we must also check public/private, etc.
       is_accessible = check_klass_accessibility(accessor, k);
+    }
+    if (!is_accessible) {
+      return KlassHandle();
     }
     return k;
   }
@@ -227,7 +230,8 @@ KlassHandle GraalEnv::get_klass_by_index(constantPoolHandle& cpool,
                                    bool& is_accessible,
                                    KlassHandle& accessor) {
   ResourceMark rm;
-  return get_klass_by_index_impl(cpool, index, is_accessible, accessor);
+  KlassHandle result = get_klass_by_index_impl(cpool, index, is_accessible, accessor);
+  return result;
 }
 
 // ------------------------------------------------------------------

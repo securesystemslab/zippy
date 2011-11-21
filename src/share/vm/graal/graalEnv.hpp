@@ -91,7 +91,7 @@ private:
                                       instanceKlassHandle& loading_klass);
 
   // Helper methods
-  static bool       check_klass_accessibility(KlassHandle& accessing_klass, KlassHandle& resolved_klassOop);
+  static bool       check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klassOop);
   static methodHandle  lookup_method(instanceKlassHandle&  accessor,
                            instanceKlassHandle&  holder,
                            Symbol*         name,
