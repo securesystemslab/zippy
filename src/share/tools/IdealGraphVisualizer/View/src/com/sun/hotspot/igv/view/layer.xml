@@ -63,14 +63,18 @@
         </folder>
     </folder>
 
-    
     <folder name="QuickSearch">
         <folder name="Nodes">
             <attr name="command" stringvalue="n"/>
             <attr name="position" intvalue="0"/>
-            <file name="com-sun-hotspot-igv-view-NodeQuickSearch.instance">
-                <attr name="SystemFileSystem.localizingBundle" stringvalue="com.sun.hotspot.igv.view.Bundle"/>
-            </file>
+            <file name="com-sun-hotspot-igv-view-NodeQuickSearch.instance" />
         </folder>
+    </folder>
+    
+    <folder name="QuickSearchShadow">
+        <file name="org-netbeans-modules-quicksearch-QuickSearchAction.shadow">
+            <attr name="originalFile" stringvalue="Actions/Edit/org-netbeans-modules-quicksearch-QuickSearchAction.instance"/>
+            
+        </file>    
     </folder>
 </filesystem>

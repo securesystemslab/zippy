@@ -54,6 +54,7 @@ import com.sun.hotspot.igv.view.actions.SelectionModeAction;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Graphics2D;
 import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
@@ -74,6 +75,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.swing.Action;
+import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -96,6 +98,8 @@ import org.openide.windows.Mode;
 import org.openide.windows.TopComponent;
 import org.openide.windows.WindowManager;
 import org.openide.NotifyDescriptor;
+import org.openide.util.Utilities;
+import org.openide.util.actions.Presenter;
 
 /**
  * 
@@ -235,7 +239,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         rangeSliderModel.getDiagramChangedEvent().addListener(diagramChangedListener);
         rangeSliderModel.selectGraph(diagram.getGraph());
 
-
         toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
         toolBar.add(PrevDiagramAction.get(PrevDiagramAction.class));
         toolBar.addSeparator();
@@ -284,6 +287,11 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         interactionButtons.add(button);
         toolBar.add(button);
         selectionModeAction.addPropertyChangeListener(this);
+        
+        toolBar.add(Box.createHorizontalGlue());
+        Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
+        Component quicksearch = ((Presenter.Toolbar) action).getToolbarPresenter();
+        toolBar.add(quicksearch, BorderLayout.CENTER);
 
         centerPanel = new JPanel();
         this.add(centerPanel, BorderLayout.CENTER);

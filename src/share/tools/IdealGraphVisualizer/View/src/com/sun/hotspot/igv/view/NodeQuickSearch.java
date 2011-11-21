@@ -23,11 +23,9 @@
  */
 package com.sun.hotspot.igv.view;
 
-import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Properties.RegexpPropertyMatcher;
-import com.sun.hotspot.igv.data.Property;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import com.sun.hotspot.igv.util.LookupHistory;
 import java.util.HashSet;
