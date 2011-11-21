@@ -2074,9 +2074,9 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
   PCONTEXT ctx = exceptionInfo->ContextRecord;
   address pc = (address)ctx->Rip;
   NOT_PRODUCT(Events::log("idiv overflow exception at " INTPTR_FORMAT , pc));
-  assert(pc[0] == 0xF7, "not an idiv opcode");
-  assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
-  assert(ctx->Rax == min_jint, "unexpected idiv exception");
+  assert(pc[0] == 0xF7 || (pc[1] == 0xF7 && pc[0] == 0x41), "not an idiv opcode");
+  //assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
+  assert((long)ctx->Rax == (long)min_jint, "unexpected idiv exception");
   // set correct result values and continue after idiv instruction
   ctx->Rip = (DWORD)pc + 2;        // idiv reg, reg  is 2 bytes
   ctx->Rax = (DWORD)min_jint;      // result
