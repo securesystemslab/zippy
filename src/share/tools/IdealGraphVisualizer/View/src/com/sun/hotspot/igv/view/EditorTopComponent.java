@@ -287,11 +287,12 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         interactionButtons.add(button);
         toolBar.add(button);
         selectionModeAction.addPropertyChangeListener(this);
-        
+
         toolBar.add(Box.createHorizontalGlue());
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
         Component quicksearch = ((Presenter.Toolbar) action).getToolbarPresenter();
-        toolBar.add(quicksearch, BorderLayout.CENTER);
+        quicksearch.setMinimumSize(quicksearch.getPreferredSize()); // necessary for GTK LAF
+        toolBar.add(quicksearch);
 
         centerPanel = new JPanel();
         this.add(centerPanel, BorderLayout.CENTER);
