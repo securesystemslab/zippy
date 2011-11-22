@@ -46,11 +46,11 @@ define_pd_global(intx, BackEdgeThreshold,            100000);
 define_pd_global(intx, OnStackReplacePercentage,     933  );
 define_pd_global(intx, FreqInlineSize,               325  );
 define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
-define_pd_global(intx, InitialCodeCacheSize,         160*K);
-define_pd_global(intx, ReservedCodeCacheSize,        32*M );
+define_pd_global(intx, InitialCodeCacheSize,         4*M);      // changed for GRAAL
+define_pd_global(intx, ReservedCodeCacheSize,        50*M );
 define_pd_global(bool, ProfileInterpreter,           true );    // changed for GRAAL
-define_pd_global(intx, CodeCacheExpansionSize,       32*K );
-define_pd_global(uintx,CodeCacheMinBlockLength,      1);
+define_pd_global(intx, CodeCacheExpansionSize,       64*K );    // changed for GRAAL
+define_pd_global(uintx,CodeCacheMinBlockLength,      4);        // changed for GRAAL
 define_pd_global(uintx,PermSize,                     12*M );
 define_pd_global(uintx,MaxPermSize,                  64*M );
 define_pd_global(bool, NeverActAsServerClassMachine, true );
