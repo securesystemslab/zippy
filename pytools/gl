@@ -1,0 +1,21 @@
+#!/bin/bash
+
+dir=`/bin/pwd`
+while [ ! \( -f "$dir/pytools/gl.py" -a -f "$dir/GRAAL_README" \) ]; do
+    dir="$(dirname $dir)"
+    if [ "$dir" = "/" ]; then 
+        echo "Cannot find 'pytools/gl.py' in `/bin/pwd` or any of it's parents"
+        exit 1
+    fi
+done
+
+python <<END
+import sys
+major, minor, micro, _, _ = sys.version_info
+if major != 2 or minor != 7:
+    raise SystemExit('The gl.py script requires Python 2.7, not {0}.{1}.{2}'.format(major, minor, micro))
+END
+if [ $? -eq 0 ]; then
+    exec python "$dir/pytools/gl.py" "$@"
+fi
+
