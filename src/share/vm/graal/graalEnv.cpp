@@ -27,6 +27,7 @@
 #include "classfile/systemDictionary.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "code/scopeDesc.hpp"
+#include "runtime/sweeper.hpp"
 #include "compiler/compileBroker.hpp"
 #include "compiler/compileLog.hpp"
 #include "compiler/compilerOracle.hpp"
@@ -447,6 +448,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
                                 bool has_unsafe_access,
                                 bool install_code) {
   EXCEPTION_CONTEXT;
+  NMethodSweeper::possibly_sweep();
   nmethod* nm = NULL;
   int comp_level = CompLevel_simple;
   {

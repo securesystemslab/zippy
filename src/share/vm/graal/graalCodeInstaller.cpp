@@ -265,7 +265,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_c
   methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(JNIHandles::resolve(target_method_obj))); 
   {
     nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-      &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, false, install_code);
+      &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, install_code);
   }
   method->clear_queued_for_compilation();
 }
