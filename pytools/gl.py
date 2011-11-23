@@ -56,6 +56,7 @@ class Env(ArgumentParser):
         self.dacapo = os.getenv('DACAPO')
         self.jdk7 = os.getenv('JDK7')
         self.maxine = os.getenv('MAXINE')
+        self._mx = None
         
         ArgumentParser.__init__(self, prog='gl')
     
@@ -194,6 +195,16 @@ class Env(ArgumentParser):
     def abort(self, code):
         """ raises a SystemExit exception with the provided exit code """
         raise SystemExit(code)
+
+    def mx(self):
+        if (self._mx is None):
+            p = join(self.maxine, 'com.oracle.max.shell')
+            sys.path.insert(0, p)
+            import mx
+            self._mx = mx.Env()
+            self._mx.maxine_home = self.maxine
+            self._mx.parse_cmd_line([])
+        return self._mx
 
 def main(env):
     configFile = join(dirname(sys.argv[0]), 'glrc')

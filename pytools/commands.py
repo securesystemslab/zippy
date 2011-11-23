@@ -38,6 +38,9 @@ def clean(env, args):
 def bootstrap(env, args):
     return env.run_vm(args + ['-version'])
 
+def safeadd(env, args):
+    return env.run_vm(args + ['-cp', env.mx().pdb().classpath('com.oracle.max.graal.examples.safeadd'), '-Xcomp', '-G:+PrintCompilation', '-G:+Extend', '-G:-Inline', '-XX:CompileOnly=Main', 'com.oracle.max.graal.examples.safeadd.Main'])
+    
 def avrora(env, args):
     return env.run_dacapo(args + ['Harness', '--preserve', '-n', '20', 'avrora'])
 
@@ -166,6 +169,7 @@ def vm(env, args):
 # Extensions should update this table directly
 table = {
     'avrora': [avrora, ''],
+    'safeadd': [safeadd, ''],
     'batik': [batik, ''],
     'bootstrap': [bootstrap, ''],
     'clean': [clean, ''],
