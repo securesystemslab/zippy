@@ -38,29 +38,46 @@ def clean(env, args):
 def bootstrap(env, args):
     return env.run_vm(args + ['-version'])
 
-def _example(env, args, project, mainClass):
-    cp = env.mx().pdb().classpath(project)
-    sharedArgs = ['-Xcomp', '-XX:CompileOnly=Main', mainClass]
-    
-    res = []
-    print "=== Server VM ==="
-    res.append(env.run_vm(['-cp', cp,] + sharedArgs, vm="-server"))
-    print "=== Graal VM ==="
-    res.append(env.run_vm(['-cp', cp, '-G:+PrintCompilation', '-G:-Extend', '-G:-Inline'] + sharedArgs))
-    print "=== Graal VM with extensions ==="
-    res.append(env.run_vm(['-cp', cp, '-G:+PrintCompilation', '-G:+Extend', '-G:-Inline'] + sharedArgs))
-    
-    if len([x for x in res if x != 0]) != 0:
-        return 1
-    return 0
+def example(env, args):
+    """run some or all Graal examples"""
+    examples = {
+        'safeadd': ['com.oracle.max.graal.examples.safeadd', 'com.oracle.max.graal.examples.safeadd.Main'],
+        'vectorlib': ['com.oracle.max.graal.examples.vectorlib', 'com.oracle.max.graal.examples.vectorlib.Main'],
+    }
 
-def safeadd(env, args):
-    """run the SafeAdd example"""
-    return _example(env, args, 'com.oracle.max.graal.examples.safeadd', 'com.oracle.max.graal.examples.safeadd.Main')
+    def run_example(env, verbose, project, mainClass):
+        cp = env.mx().pdb().classpath(project)
+        sharedArgs = ['-Xcomp', '-XX:CompileOnly=Main', mainClass]
+        
+        res = []
+        env.log("=== Server VM ===")
+        printArg = '-XX:+PrintCompilation' if verbose else '-XX:-PrintCompilation'
+        res.append(env.run_vm(['-cp', cp, printArg] + sharedArgs, vm="-server"))
+        env.log("=== Graal VM ===")
+        printArg = '-G:+PrintCompilation' if verbose else '-G:-PrintCompilation'
+        res.append(env.run_vm(['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
+        env.log("=== Graal VM with extensions ===")
+        res.append(env.run_vm(['-cp', cp, printArg, '-G:+Extend', '-G:-Inline'] + sharedArgs))
+        
+        if len([x for x in res if x != 0]) != 0:
+            return 1
+        return 0
 
-def vectorlib(env, args):
-    """run the VectorLib example"""
-    return _example(env, args, 'com.oracle.max.graal.examples.vectorlib', 'com.oracle.max.graal.examples.vectorlib.Main')
+    verbose = False
+    if '-v' in args:
+        verbose = True
+        args = [a for a in args if a != '-v']
+
+    if len(args) == 0:
+        args = examples.keys()
+    for a in args:
+        config = examples.get(a)
+        if config is None:
+            env.log('unknown example: ' + a + '  {available examples = ' + str(examples.keys()) + '}')
+        else:
+            env.log('--------- ' + a + ' ------------')
+            project, mainClass = config
+            run_example(env, verbose, project, mainClass)
 
 def dacapo(env, args):
     """run a DaCapo benchmark"""
@@ -185,12 +202,11 @@ def vm(env, args):
 # Extensions should update this table directly
 table = {
     'dacapo': [dacapo, 'benchmark [VM options]'],
+    'example': [example, '[-v] example names...'],
     'bootstrap': [bootstrap, ''],
     'clean': [clean, ''],
     'help': [help_, '[command]'],
     'make': [make, ''],
-    'safeadd': [safeadd, ''],
     'tests': [tests, ''],
-    'vectorlib': [vectorlib, ''],
     'vm': [vm, ''],
 }
