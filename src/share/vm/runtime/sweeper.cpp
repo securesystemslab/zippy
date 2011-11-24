@@ -310,10 +310,10 @@ void NMethodSweeper::sweep_code_cache() {
 
 class NMethodMarker: public StackObj {
  private:
-  CompilerThread* _thread;
+  JavaThread* _thread;
  public:
   NMethodMarker(nmethod* nm) {
-    _thread = CompilerThread::current();
+    _thread = JavaThread::current();
     _thread->set_scanned_nmethod(nm);
   }
   ~NMethodMarker() {

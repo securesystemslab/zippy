@@ -1292,6 +1292,7 @@ void JavaThread::initialize() {
   _do_not_unlock_if_synchronized = false;
   _cached_monitor_info = NULL;
   _parker = Parker::Allocate(this) ;
+  _scanned_nmethod = NULL;
 
 #ifndef PRODUCT
   _jmp_ring_index = 0;
@@ -2558,6 +2559,13 @@ void JavaThread::oops_do(OopClosure* f, CodeBlobClosure* cf) {
   if (jvmti_thread_state() != NULL) {
     jvmti_thread_state()->oops_do(f);
   }
+
+  if (_scanned_nmethod != NULL && cf != NULL) {
+      // Safepoints can occur when the sweeper is scanning an nmethod so
+      // process it here to make sure it isn't unloaded in the middle of
+      // a scan.
+      cf->do_code_blob(_scanned_nmethod);
+    }
 }
 
 void JavaThread::nmethods_do(CodeBlobClosure* cf) {
@@ -2948,21 +2956,10 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
   _task  = NULL;
   _queue = queue;
   _counters = counters;
-  _scanned_nmethod = NULL;
 
 #ifndef PRODUCT
   _ideal_graph_printer = NULL;
 #endif
-}
-
-void CompilerThread::oops_do(OopClosure* f, CodeBlobClosure* cf) {
-  JavaThread::oops_do(f, cf);
-  if (_scanned_nmethod != NULL && cf != NULL) {
-    // Safepoints can occur when the sweeper is scanning an nmethod so
-    // process it here to make sure it isn't unloaded in the middle of
-    // a scan.
-    cf->do_code_blob(_scanned_nmethod);
-  }
 }
 
 // ======= Threads ========
