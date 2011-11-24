@@ -110,11 +110,13 @@ class Env(ArgumentParser):
         return name
 
     def run_dacapo(self, args):
+        if self.dacapo is None:
+            self.abort('Need to specify DaCapo jar with --dacapo option or DACAPO environment variable')
         if not isfile(self.dacapo) or not self.dacapo.endswith('.jar'):
             self.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + self.dacapo)
         return self.run_vm(['-Xms1g', '-Xmx2g', '-esa', '-XX:-GraalBailoutIsFatal', '-G:-QuietBailout', '-cp', self.dacapo] + args)
 
-    def run_vm(self, args):
+    def run_vm(self, args, vm='-graal'):
         if self.maxine is None:
             configFile = join(dirname(sys.argv[0]), 'glrc')
             self.abort('Path to Maxine code base must be specified with -M option or MAXINE environment variable (in ' + configFile + ')')
@@ -123,7 +125,7 @@ class Env(ArgumentParser):
             
         os.environ['MAXINE'] = self.maxine
         exe = join(self.jdk7, 'bin', self.exe('java'))
-        return self.run([exe, '-graal'] + args)
+        return self.run([exe, vm] + args)
 
     def run(self, args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
         """
