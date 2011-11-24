@@ -671,6 +671,11 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1compon
   TRACE_graal_3("VMEntries::RiType_componentType");
   VM_ENTRY_MARK;
   KlassHandle array_klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
+  if(array_klass->oop_is_typeArray()) {
+    BasicType t = typeArrayKlass::cast(array_klass())->element_type();
+    oop primitive_type = VMExits::createRiTypePrimitive((int) t, CHECK_NULL);
+    return JNIHandles::make_local(primitive_type);
+  }
   assert(array_klass->oop_is_objArray(), "just checking");
   klassOop element_type = objArrayKlass::cast(array_klass())->element_klass();
   assert(JNIHandles::resolve(klass) != NULL, "");
