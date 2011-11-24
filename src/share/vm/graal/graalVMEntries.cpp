@@ -91,7 +91,12 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_
       constantPoolOop cp = instanceKlass::cast(method->method_holder())->constants();
       KlassHandle loading_klass = method->method_holder();
       Handle catch_class = GraalCompiler::get_RiType(cp, catch_class_index, loading_klass, CHECK_NULL);
-      HotSpotExceptionHandler::set_catchClass(entry, catch_class());
+      if (catch_class->klass() == HotSpotTypeResolved::klass() && java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(catch_class)) == SystemDictionary::Throwable_klass()) {
+        HotSpotExceptionHandler::set_catchClass(entry, NULL);
+        HotSpotExceptionHandler::set_catchClassIndex(entry, 0);
+      } else {
+        HotSpotExceptionHandler::set_catchClass(entry, catch_class());
+      }
     }
     array->obj_at_put(i, entry());
   }
