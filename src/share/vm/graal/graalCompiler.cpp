@@ -80,11 +80,12 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
-    VMExits::startCompiler();
-  
-    _initialized = true;
-    if (BootstrapGraal) {
-      VMExits::bootstrap();
+    if (UseCompiler) {
+      VMExits::startCompiler();
+      _initialized = true;
+      if (BootstrapGraal) {
+        VMExits::bootstrap();
+      }
     }
   }
 }
