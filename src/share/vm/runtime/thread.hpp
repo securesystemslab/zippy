@@ -845,6 +845,8 @@ class JavaThread: public Thread {
 
   StackGuardState        _stack_guard_state;
 
+  nmethod*      _scanned_nmethod;  // nmethod being scanned by the sweeper
+
   // Compiler exception handling (NOTE: The _exception_oop is *NOT* the same as _pending_exception. It is
   // used to temp. parsing values into and out of the runtime system during exception handling for compiled
   // code)
@@ -939,6 +941,12 @@ class JavaThread: public Thread {
   void exit(bool destroy_vm, ExitType exit_type = normal_exit);
 
   void cleanup_failed_attach_current_thread();
+
+  // Track the nmethod currently being scanned by the sweeper
+  void          set_scanned_nmethod(nmethod* nm) {
+    assert(_scanned_nmethod == NULL || nm == NULL, "should reset to NULL before writing a new value");
+    _scanned_nmethod = nm;
+  }
 
   // Testers
   virtual bool is_Java_thread() const            { return true;  }
@@ -1714,7 +1722,6 @@ class CompilerThread : public JavaThread {
   CompileTask*  _task;
   CompileQueue* _queue;
 
-  nmethod*      _scanned_nmethod;  // nmethod being scanned by the sweeper
 
  public:
 
@@ -1738,11 +1745,6 @@ class CompilerThread : public JavaThread {
     _log = log;
   }
 
-  // GC support
-  // Apply "f->do_oop" to all root oops in "this".
-  // Apply "cf->do_code_blob" (if !NULL) to all code blobs active in frames
-  void oops_do(OopClosure* f, CodeBlobClosure* cf);
-
 #ifndef PRODUCT
 private:
   IdealGraphPrinter *_ideal_graph_printer;
@@ -1754,12 +1756,6 @@ public:
   // Get/set the thread's current task
   CompileTask*  task()                           { return _task; }
   void          set_task(CompileTask* task)      { _task = task; }
-
-  // Track the nmethod currently being scanned by the sweeper
-  void          set_scanned_nmethod(nmethod* nm) {
-    assert(_scanned_nmethod == NULL || nm == NULL, "should reset to NULL before writing a new value");
-    _scanned_nmethod = nm;
-  }
 };
 
 inline CompilerThread* CompilerThread::current() {
