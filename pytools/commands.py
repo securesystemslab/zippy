@@ -38,36 +38,72 @@ def clean(env, args):
 def bootstrap(env, args):
     return env.run_vm(args + ['-version'])
 
-def avrora(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '20', 'avrora'])
+def example(env, args):
+    """run some or all Graal examples"""
+    examples = {
+        'safeadd': ['com.oracle.max.graal.examples.safeadd', 'com.oracle.max.graal.examples.safeadd.Main'],
+        'vectorlib': ['com.oracle.max.graal.examples.vectorlib', 'com.oracle.max.graal.examples.vectorlib.Main'],
+    }
 
-def batik(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '20', 'batik'])
+    def run_example(env, verbose, project, mainClass):
+        cp = env.mx().pdb().classpath(project)
+        sharedArgs = ['-Xcomp', '-XX:CompileOnly=Main', mainClass]
+        
+        res = []
+        env.log("=== Server VM ===")
+        printArg = '-XX:+PrintCompilation' if verbose else '-XX:-PrintCompilation'
+        res.append(env.run_vm(['-cp', cp, printArg] + sharedArgs, vm="-server"))
+        env.log("=== Graal VM ===")
+        printArg = '-G:+PrintCompilation' if verbose else '-G:-PrintCompilation'
+        res.append(env.run_vm(['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
+        env.log("=== Graal VM with extensions ===")
+        res.append(env.run_vm(['-cp', cp, printArg, '-G:+Extend', '-G:-Inline'] + sharedArgs))
+        
+        if len([x for x in res if x != 0]) != 0:
+            return 1
+        return 0
 
-def eclipse(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '20', 'eclipse'])
+    verbose = False
+    if '-v' in args:
+        verbose = True
+        args = [a for a in args if a != '-v']
 
-def fop(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '100', 'fop'])
+    if len(args) == 0:
+        args = examples.keys()
+    for a in args:
+        config = examples.get(a)
+        if config is None:
+            env.log('unknown example: ' + a + '  {available examples = ' + str(examples.keys()) + '}')
+        else:
+            env.log('--------- ' + a + ' ------------')
+            project, mainClass = config
+            run_example(env, verbose, project, mainClass)
 
-def h2(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '10', 'h2'])
-
-def jython(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '10', 'jython'])
-
-def lusearch(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '5', 'lusearch'])
-
-def pmd(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '10', 'pmd'])
-
-def tradebeans(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '20', 'tradebeans'])
-
-def xalan(env, args):
-    return env.run_dacapo(args + ['Harness', '--preserve', '-n', '20', 'xalan'])
-
+def dacapo(env, args):
+    """run a DaCapo benchmark"""
+    
+    benchmarks = {
+        'avrora': ['--preserve', '-n', '20'],
+        'batik': ['-n', '20'],
+        'eclipse': ['-n', '20'],
+        'fop': ['-n', '100'],
+        'h2': ['-n', '10'],
+        'jython': ['-n', '10'],
+        'lusearch': ['-n', '5'],
+        'pmd': ['-n', '10'],
+        'tradebeans': ['-n', '20'],
+        'xalan': ['-n', '20'],
+    }
+    
+    if len(args) == 0:
+        env.abort('which benchmark?\nselect one of: ' + str(benchmarks.keys()))
+    bm = args[0]
+    config = benchmarks.get(bm)
+    if (config is None):
+        env.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
+    args = args[1:]
+    return env.run_dacapo(args + ['Harness'] + config + [bm])
+    
 def tests(env, args):
     """run a selection of the Maxine JTT tests in Graal"""
     
@@ -165,19 +201,12 @@ def vm(env, args):
 # used in the call to str.format().  
 # Extensions should update this table directly
 table = {
-    'avrora': [avrora, ''],
-    'batik': [batik, ''],
+    'dacapo': [dacapo, 'benchmark [VM options]'],
+    'example': [example, '[-v] example names...'],
     'bootstrap': [bootstrap, ''],
     'clean': [clean, ''],
-    'fop': [fop, ''],
-    'h2': [h2, ''],
-    'jython': [jython, ''],
-    'lusearch': [lusearch, ''],
-    'pmd': [pmd, ''],
-    'tradebeans': [tradebeans, ''],
-    'tests': [tests, ''],
     'help': [help_, '[command]'],
     'make': [make, ''],
-    'xalan': [xalan, ''],
+    'tests': [tests, ''],
     'vm': [vm, ''],
 }
