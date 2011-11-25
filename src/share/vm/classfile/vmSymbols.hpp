@@ -273,7 +273,7 @@
   template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/hotspot/Compiler")                          \
   template(com_sun_hotspot_graal_CompilerImpl,        "com/oracle/max/graal/hotspot/CompilerImpl")                      \
   template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
-  template(com_sun_cri_ri_RiField,                    "com/sun/cri/ri/RiField")                                         \
+  template(com_sun_cri_ri_RiResolvedField,            "com/sun/cri/ri/RiResolvedField")                                 \
   template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
   template(com_sun_cri_ri_RiTypeProfile,              "com/sun/cri/ri/RiTypeProfile")                                   \
   template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                                  \

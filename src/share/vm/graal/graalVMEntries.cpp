@@ -740,7 +740,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayO
   return JNIHandles::make_local(THREAD, GraalCompiler::createHotSpotTypeResolved(arr, name, THREAD)());
 }
 
-// public RiField[] RiType_fields(HotSpotTypeResolved klass);
+// public RiResolvedField[] RiType_fields(HotSpotTypeResolved klass);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("VMEntries::RiType_fields");
   VM_ENTRY_MARK;
@@ -767,7 +767,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields
   };
   MyFieldClosure closure(k, JNIHandles::resolve(klass));
   k->do_nonstatic_fields(&closure);
-  objArrayHandle field_array = oopFactory::new_objArray(SystemDictionary::RiField_klass(), closure._field_array.length(), CHECK_NULL);
+  objArrayHandle field_array = oopFactory::new_objArray(SystemDictionary::RiResolvedField_klass(), closure._field_array.length(), CHECK_NULL);
   for (int i=0; i<closure._field_array.length(); ++i) {
     field_array->obj_at_put(i, closure._field_array.at(i)());
   }
@@ -1005,6 +1005,7 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue(J
 #define TYPE_PROFILE    "Lcom/sun/cri/ri/RiTypeProfile;"
 #define SIGNATURE       "Lcom/sun/cri/ri/RiSignature;"
 #define FIELD           "Lcom/sun/cri/ri/RiField;"
+#define RESOLVED_FIELD  "Lcom/sun/cri/ri/RiResolvedField;"
 #define CONSTANT_POOL   "Lcom/sun/cri/ri/RiConstantPool;"
 #define EXCEPTION_HANDLERS "[Lcom/sun/cri/ri/RiExceptionHandler;"
 #define TARGET_METHOD   "Lcom/oracle/max/graal/hotspot/HotSpotTargetMethod;"
@@ -1043,7 +1044,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"RiType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1uniqueConcreteSubtype)},
   {CC"RiType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1superType)},
   {CC"RiType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayOf)},
-  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["FIELD,                FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields)},
+  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,       FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields)},
   {CC"RiType_isInitialized",              CC"("RESOLVED_TYPE")Z",                     FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1isInitialized)},
   {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getPrimitiveArrayType)},
   {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getMaxCallTargetOffset)},
