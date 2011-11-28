@@ -65,7 +65,12 @@ public class GraalEdgeColorFilter extends AbstractFilter {
 
                 is.setColor(color);
                 for (Connection c : is.getConnections()) {
-                    c.setColor(color);
+                    if (!c.getLabel().endsWith("#NDF")) {
+                        c.setColor(color);
+                    } else if ("EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))
+                            || "EndNode".equals(c.getOutputSlot().getProperties().get("class"))) {
+                        c.setColor(successorColor);
+                    }
                 }
             }
         }
