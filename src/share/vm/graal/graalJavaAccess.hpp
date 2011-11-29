@@ -112,8 +112,9 @@ void graal_compute_offsets();
     oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/sun/cri/ri/RiResolvedType;")\
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteMethod)                                             \
-    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/sun/cri/ri/RiMethod;")       \
-    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/sun/cri/ri/RiMethod;")        \
+  oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/sun/cri/ri/RiResolvedMethod;")       \
+    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/sun/cri/ri/RiResolvedType;")       \
+    oop_field(CiAssumptions_ConcreteMethod, impl, "Lcom/sun/cri/ri/RiResolvedMethod;")        \
   end_class                                                                             \
   start_class(CiTargetMethod_Site)                                                      \
     int_field(CiTargetMethod_Site, pcOffset)                                            \

@@ -373,15 +373,13 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
 }
 
 void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
-  Handle method_handle = CiAssumptions_ConcreteMethod::method(assumption());
-  methodHandle method = getMethodFromHotSpotMethod(method_handle());
-  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
+  Handle impl_handle = CiAssumptions_ConcreteMethod::impl(assumption());
+  methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
+  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(impl());
   
   Handle context_handle = CiAssumptions_ConcreteMethod::context(assumption());
-  methodHandle context = getMethodFromHotSpotMethod(context_handle());
-  ciMethod* c = (ciMethod*) CURRENT_ENV->get_object(context());
-  ciKlass* context_klass = c->holder();
-  _dependencies->assert_unique_concrete_method(context_klass, m);
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_handle)));
+  _dependencies->assert_unique_concrete_method(context, m);
 }
 
 void CodeInstaller::process_exception_handlers() {
