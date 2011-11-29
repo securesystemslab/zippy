@@ -79,3 +79,4 @@ inline jlong VmIds::getBoxedLong(oop obj) {
   assert(obj->is_oop(true), "cannot unbox null or non-oop");
   return obj->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
 }
+

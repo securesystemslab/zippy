@@ -1059,3 +1059,4 @@ JNINativeMethod VMEntries_methods[] = {
 int VMEntries_methods_count() {
   return sizeof(VMEntries_methods) / sizeof(JNINativeMethod);
 }
+

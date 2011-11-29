@@ -314,3 +314,4 @@ void GraalCompiler::poll_java_queue() {
     }
   }
 }
+

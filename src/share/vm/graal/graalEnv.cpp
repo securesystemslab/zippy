@@ -565,3 +565,4 @@ nmethod* GraalEnv::register_method(methodHandle& method,
 
   return nm;
 }
+

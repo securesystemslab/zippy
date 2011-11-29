@@ -1,6 +1,7 @@
 ^build/
 ^dist/
 ^java/
+^jdk1.7.0/
 ^java64/
 ^work/
 \.metadata/

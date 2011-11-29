@@ -285,3 +285,4 @@ oop VMExits::createCiConstantObject(Handle object, TRAPS) {
   check_pending_exception("Error while calling CiConstant.forObject");
   return (oop) result.get_jobject();
 }
+

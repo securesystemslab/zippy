@@ -125,3 +125,4 @@ inline void check_not_null(void* value, const char* message, bool dump_core = fa
     vm_abort(dump_core);
   }
 }
+
