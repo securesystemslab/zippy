@@ -1072,22 +1072,8 @@ JRT_ENTRY(void, graal_generic_callback(JavaThread* thread, oop _callback, oop _a
   JavaCallArguments args;
   args.push_oop(Handle(callback));
   args.push_oop(Handle(argument));
-  JavaCalls::call_interface(&result, klass, vmSymbols::callback_name(), vmSymbols::callback_signature(), &args, thread);
+  JavaCalls::call_virtual(&result, klass, vmSymbols::callbackInternal_name(), vmSymbols::callback_signature(), &args, thread);
 
-  if (thread->has_pending_exception()) {
-    Handle exception = PENDING_EXCEPTION;
-    CLEAR_PENDING_EXCEPTION;
-
-    assert(exception->is_a(SystemDictionary::Throwable_klass()), "Throwable instance expected");
-    JavaValue result(T_VOID);
-    JavaCalls::call_virtual(&result,
-                            exception,
-                            KlassHandle(THREAD,
-                            SystemDictionary::Throwable_klass()),
-                            vmSymbols::printStackTrace_name(),
-                            vmSymbols::void_method_signature(),
-                            THREAD);
-  }
   thread->set_vm_result((oop) result.get_jobject());
 JRT_END
 

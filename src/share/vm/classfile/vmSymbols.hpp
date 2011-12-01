@@ -339,7 +339,7 @@
   template(initialize_name,                           "initialize")                                                     \
   template(getInstance_signature,                     "()Lcom/oracle/max/graal/hotspot/Compiler;")                      \
   template(forObject_name,                            "forObject")                                                      \
-  template(callback_name,                             "callback")                                                       \
+  template(callbackInternal_name,                     "callbackInternal")                                               \
   template(callback_signature,                        "(Ljava/lang/Object;)Ljava/lang/Object;")                         \
                                                                                                                         \
   /* common method and field names */                                                             \
