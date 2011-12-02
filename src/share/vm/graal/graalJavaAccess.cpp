@@ -28,7 +28,7 @@
 // This function is similar to javaClasses.cpp, it computes the field offset of a (static or instance) field.
 // It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.
 
-static void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
+void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
   Symbol* name_symbol = SymbolTable::probe(name, (int)strlen(name));
   Symbol* signature_symbol = SymbolTable::probe(signature, (int)strlen(signature));
 #ifdef DEBUG

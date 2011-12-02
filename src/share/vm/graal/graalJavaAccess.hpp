@@ -285,4 +285,4 @@ COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD
 #undef OOP_FIELD
 #undef STATIC_OOP_FIELD
 
-
+void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field);

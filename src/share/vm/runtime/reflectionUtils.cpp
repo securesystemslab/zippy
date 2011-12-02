@@ -26,6 +26,9 @@
 #include "classfile/javaClasses.hpp"
 #include "memory/universe.inline.hpp"
 #include "runtime/reflectionUtils.hpp"
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 KlassStream::KlassStream(instanceKlassHandle klass, bool local_only, bool classes_only) {
   _klass = klass;
@@ -75,6 +78,12 @@ void FilteredFieldsMap::initialize() {
     offset = sun_reflect_UnsafeStaticFieldAccessorImpl::base_offset();
     _filtered_fields->append(new FilteredField(SystemDictionary::reflect_UnsafeStaticFieldAccessorImpl_klass(), offset));
   }
+#ifdef GRAAL
+  if (UseGraal) {
+    compute_offset(offset, SystemDictionary::HotSpotMethodResolved_klass(), "javaMirror", "Ljava/lang/Object;", false);
+    _filtered_fields->append(new FilteredField(SystemDictionary::HotSpotMethodResolved_klass(), offset));
+  }
+#endif
 }
 
 int FilteredFieldStream::field_count() {
