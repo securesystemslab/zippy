@@ -186,7 +186,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   } else if (value->is_a(CiVirtualObject::klass())) {
     oop type = CiVirtualObject::type(value);
     int id = CiVirtualObject::id(value);
-    instanceKlass* klass = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)));
+    klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type));
 
     for (jint i = 0; i < objects->length(); i++) {
       ObjectValue* obj = (ObjectValue*) objects->at(i);
@@ -195,7 +195,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
       }
     }
 
-    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), klass->as_klassOop())));
+    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), klass)));
 
     arrayOop values = (arrayOop) CiVirtualObject::values(value);
     for (jint i = 0; i < values->length(); i++) {
