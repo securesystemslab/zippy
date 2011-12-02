@@ -57,8 +57,6 @@
           "Use graal instead of C1")                                        \
   product(bool, DebugGraal, true,                                           \
           "Enable JVMTI for the compiler thread")                           \
-  product(bool, GraalBailoutIsFatal, false,                                 \
-          "Abort the VM on graal bailout")                                  \
   product(bool, BootstrapGraal, true,                                       \
           "Bootstrap graal before running Java main method")                \
   product(intx, TraceGraal, 0,                                              \

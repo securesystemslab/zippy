@@ -974,17 +974,6 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIE
   return id;
 }
 
-// public void recordBailout(String reason);
-JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_recordBailout(JNIEnv *jniEnv, jobject, jobject message) {
-  if (GraalBailoutIsFatal) {
-    Handle msg = JNIHandles::resolve(message);
-    if (!msg.is_null()) {
-      java_lang_String::print(msg, tty);
-    }
-    vm_abort(false);
-  }
-}
-
 // public void notifyJavaQueue();
 JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue(JNIEnv *jniEnv, jobject) {
   CompileBroker::notify_java_queue();
@@ -1052,7 +1041,6 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getConfiguration)},
   {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,       FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installMethod)},
   {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installStub)},
-  {CC"recordBailout",                     CC"("STRING")V",                            FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_recordBailout)},
   {CC"notifyJavaQueue",                   CC"()V",                                    FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue)}
 };
 
