@@ -29,5 +29,9 @@
         <file name="Graal Mark FrameState With Lock" url="filters/framestatelocks.filter">
             <attr name="enabled" boolvalue="false"/>
         </file>
+        
+        <file name="Graal Call Analysis" url="filters/callgraph.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
     </folder>
 </filesystem>
