@@ -125,6 +125,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \
     oop_field(CiTargetMethod_DataPatch, constant, "Lcom/sun/cri/ci/CiConstant;")        \
+    int_field(CiTargetMethod_DataPatch, alignment)                                      \
   end_class                                                                             \
   start_class(CiTargetMethod_Safepoint)                                                 \
     oop_field(CiTargetMethod_Safepoint, debugInfo, "Lcom/sun/cri/ci/CiDebugInfo;")      \

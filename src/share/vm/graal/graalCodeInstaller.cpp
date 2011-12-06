@@ -735,6 +735,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop constant = CiTargetMethod_DataPatch::constant(site);
+  int alignment = CiTargetMethod_DataPatch::alignment(site);
   oop kind = CiConstant::kind(constant);
 
   address instruction = _instructions->start() + pc_offset;
@@ -754,11 +755,12 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
     case 'd': {
       address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
       address next_instruction = Assembler::locate_next_instruction(instruction);
-      // we don't care if this is a long/double/etc., the primitive field contains the right bits
       int size = _constants->size();
-      if (typeChar == 'd' || typeChar == 'j') {
-        size = _constants->align_at_start(size);
+      if (alignment > 0) {
+        guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+        size = align_size_up(size, alignment);
       }
+      // we don't care if this is a long/double/etc., the primitive field contains the right bits
       address dest = _constants->start() + size;
       _constants->set_end(dest + BytesPerLong);
       *(jlong*) dest = CiConstant::primitive(constant);
