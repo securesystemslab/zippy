@@ -684,7 +684,6 @@ JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDes
 #ifdef ASSERT
   if (TraceGraal >= 3) {
     tty->print_cr("exiting locking");
-    lock->lock()->print_on(tty);
     tty->print_cr("");
     tty->print_cr("done");
   }
