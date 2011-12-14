@@ -658,6 +658,68 @@ JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* thre
 JRT_END
 
 
+JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
+  NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
+#ifdef ASSERT
+  if (TraceGraal >= 3) {
+    tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, lock);
+  }
+  if (PrintBiasedLockingStatistics) {
+    Atomic::inc(BiasedLocking::slow_path_entry_count_addr());
+  }
+#endif
+  Handle h_obj(thread, obj);
+  assert(h_obj()->is_oop(), "must be NULL or an object");
+  if (UseBiasedLocking) {
+    // Retry fast entry if bias is revoked to avoid unnecessary inflation
+    ObjectSynchronizer::fast_enter(h_obj, lock, true, CHECK);
+  } else {
+    if (UseFastLocking) {
+      // When using fast locking, the compiled code has already tried the fast case
+      ObjectSynchronizer::slow_enter(h_obj, lock, THREAD);
+    } else {
+      ObjectSynchronizer::fast_enter(h_obj, lock, false, THREAD);
+    }
+  }
+#ifdef ASSERT
+  if (TraceGraal >= 3) {
+    tty->print_cr("exiting locking");
+    lock->lock()->print_on(tty);
+    tty->print_cr("");
+    tty->print_cr("done");
+  }
+#endif
+JRT_END
+
+
+JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
+  NOT_PRODUCT(_monitorexit_slowcase_cnt++;)
+  assert(thread == JavaThread::current(), "threads must correspond");
+  assert(thread->last_Java_sp(), "last_Java_sp must be set");
+  // monitorexit is non-blocking (leaf routine) => no exceptions can be thrown
+  EXCEPTION_MARK;
+
+#ifdef DEBUG
+  if (!obj->is_oop()) {
+    ResetNoHandleMark rhm;
+    nmethod* method = thread->last_frame().cb()->as_nmethod_or_null();
+    if (method != NULL) {
+      tty->print_cr("ERROR in monitorexit in method %s wrong obj " INTPTR_FORMAT, method->name(), obj);
+    }
+    thread->print_stack_on(tty);
+    assert(false, "invalid lock object pointer dected");
+  }
+#endif
+
+  if (UseFastLocking) {
+    // When using fast locking, the compiled code has already tried the fast case
+    ObjectSynchronizer::slow_exit(obj, lock, THREAD);
+  } else {
+    ObjectSynchronizer::fast_exit(obj, lock, THREAD);
+  }
+JRT_END
+
+
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT

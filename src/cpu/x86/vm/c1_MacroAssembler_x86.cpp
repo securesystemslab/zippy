@@ -35,7 +35,7 @@
 #include "runtime/os.hpp"
 #include "runtime/stubRoutines.hpp"
 
-int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr, Register scratch, Label& slow_case) {
+int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr, Register scratch, Label& slow_case, bool use_basic_object_lock) {
   const int aligned_mask = BytesPerWord -1;
   const int hdr_offset = oopDesc::mark_offset_in_bytes();
   assert(hdr == rax, "hdr must be rax, for the cmpxchg instruction");
@@ -45,8 +45,10 @@ int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr
 
   verify_oop(obj);
 
-  // save object being locked into the BasicObjectLock
-  movptr(Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()), obj);
+  if (use_basic_object_lock) {
+    // save object being locked into the BasicObjectLock
+    movptr(Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()), obj);
+  }
 
   if (UseBiasedLocking) {
     assert(scratch != noreg, "should have scratch register at this point");
@@ -98,7 +100,7 @@ int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr
 }
 
 
-void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_hdr, Label& slow_case) {
+void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_hdr, Label& slow_case, bool use_basic_object_lock) {
   const int aligned_mask = BytesPerWord -1;
   const int hdr_offset = oopDesc::mark_offset_in_bytes();
   assert(disp_hdr == rax, "disp_hdr must be rax, for the cmpxchg instruction");
@@ -106,8 +108,10 @@ void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_
   Label done;
 
   if (UseBiasedLocking) {
-    // load object
-    movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
+    if (use_basic_object_lock) {
+      // load object
+      movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
+    }
     biased_locking_exit(obj, hdr, done);
   }
 
@@ -118,8 +122,10 @@ void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_
   // if we had recursive locking, we are done
   jcc(Assembler::zero, done);
   if (!UseBiasedLocking) {
-    // load object
-    movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
+    if (use_basic_object_lock) {
+      // load object
+      movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
+    }
   }
   verify_oop(obj);
   // test if object header is pointing to the displaced header, and if so, restore

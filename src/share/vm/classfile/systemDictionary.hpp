@@ -212,6 +212,7 @@ class SymbolPropertyTable;
   template(CiCodePos_klass,              com_sun_cri_ci_CiCodePos,                                  Opt) \
   template(CiConstant_klass,             com_sun_cri_ci_CiConstant,                                 Opt) \
   template(CiVirtualObject_klass,        com_sun_cri_ci_CiVirtualObject,                            Opt) \
+  template(CiMonitorValue_klass,         com_sun_cri_ci_CiMonitorValue,                             Opt) \
   template(CiKind_klass,                 com_sun_cri_ci_CiKind,                                     Opt) \
   template(CiRuntimeCall_klass,          com_sun_cri_ci_CiRuntimeCall,                              Opt) \
   template(RiMethod_klass,               com_sun_cri_ri_RiMethod,                                   Opt) \

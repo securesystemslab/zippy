@@ -2067,17 +2067,17 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       // copied from LIR_Assembler::emit_lock
       if (UseFastLocking) {
         assert(BasicLock::displaced_header_offset_in_bytes() == 0, "lock_reg must point to the displaced header");
-        __ lock_object(scratch1, obj, lock, scratch2, slow_case);
+        __ lock_object(scratch1, obj, lock, scratch2, slow_case, false);
       __ ret(0);
       }
 
       __ bind(slow_case);
       {
         StubFrame f(sasm, "graal_monitorenter", dont_gc_arguments);
-        OopMap* map = save_live_registers(sasm, 1, save_fpu_registers);
+        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
         // Called with store_parameter and not C abi
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorenter), obj, lock);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_monitorenter), obj, lock);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
@@ -2101,7 +2101,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       // copied from LIR_Assembler::emit_lock
       if (UseFastLocking) {
         assert(BasicLock::displaced_header_offset_in_bytes() == 0, "lock_reg must point to the displaced header");
-        __ unlock_object(scratch1, obj, lock2, slow_case);
+        __ unlock_object(scratch1, obj, lock2, slow_case, false);
       __ ret(0);
       }
 
@@ -2113,7 +2113,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         // note: really a leaf routine but must setup last java sp
         //       => use call_RT for now (speed can be improved by
         //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorexit), lock);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_monitorexit), obj, lock);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);

@@ -221,6 +221,23 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   return NULL;
 }
 
+static MonitorValue* get_monitor_value(oop value, int frame_size, GrowableArray<ScopeValue*>* objects) {
+  guarantee(value->is_a(CiMonitorValue::klass()), "Monitors must be of type CiMonitorValue");
+
+  ScopeValue* second = NULL;
+  ScopeValue* owner_value = get_hotspot_value(CiMonitorValue::owner(value), frame_size, objects, second);
+  assert(second == NULL, "monitor cannot occupy two stack slots");
+
+  ScopeValue* lock_data_value = get_hotspot_value(CiMonitorValue::lockData(value), frame_size, objects, second);
+  assert(second == NULL, "monitor cannot occupy two stack slots");
+  assert(lock_data_value->is_location(), "invalid monitor location");
+  Location lock_data_loc = ((LocationValue*)lock_data_value)->location();
+
+  bool eliminated = CiMonitorValue::eliminated(value);
+
+  return new MonitorValue(owner_value, lock_data_loc, eliminated);
+}
+
 void CodeInstaller::initialize_assumptions(oop target_method) {
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
@@ -488,26 +505,22 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
 
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* second = NULL;
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], _frame_size, objects, second);
+      oop value = ((oop*) values->base(T_OBJECT))[i];
 
       if (i < local_count) {
+        ScopeValue* first = get_hotspot_value(value, _frame_size, objects, second);
         if (second != NULL) {
           locals->append(second);
         }
-        locals->append(value);
+        locals->append(first);
       } else if (i < local_count + expression_count) {
+        ScopeValue* first = get_hotspot_value(value, _frame_size, objects, second);
         if (second != NULL) {
-          expressions->append(value);
+          expressions->append(second);
         }
-        expressions->append(value);
+        expressions->append(first);
       } else {
-        assert(second == NULL, "monitor cannot occupy two stack slots");
-        assert(value->is_location(), "invalid monitor location");
-        LocationValue* loc = (LocationValue*)value;
-        int monitor_offset = loc->location().stack_offset();
-        LocationValue* obj = new LocationValue(Location::new_stk_loc(Location::oop, monitor_offset + BasicObjectLock::obj_offset_in_bytes()));
-        bool eliminated = value->is_object();
-        monitors->append(new MonitorValue(obj, Location::new_stk_loc(Location::normal, monitor_offset  + BasicObjectLock::lock_offset_in_bytes()), eliminated));
+        monitors->append(get_monitor_value(value, _frame_size, objects));
       }
       if (second != NULL) {
         i++;

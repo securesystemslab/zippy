@@ -300,6 +300,7 @@
   template(com_sun_cri_ci_CiCodePos,                  "com/sun/cri/ci/CiCodePos")                                       \
   template(com_sun_cri_ci_CiConstant,                 "com/sun/cri/ci/CiConstant")                                      \
   template(com_sun_cri_ci_CiVirtualObject,            "com/sun/cri/ci/CiVirtualObject")                                 \
+  template(com_sun_cri_ci_CiMonitorValue,             "com/sun/cri/ci/CiMonitorValue")                                  \
   template(com_sun_cri_ci_CiKind,                     "com/sun/cri/ci/CiKind")                                          \
   template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
   template(startCompiler_name,                        "startCompiler")                                                  \

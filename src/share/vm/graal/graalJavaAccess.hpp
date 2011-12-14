@@ -220,6 +220,11 @@ void graal_compute_offsets();
     oop_field(CiVirtualObject, type, "Lcom/sun/cri/ri/RiType;")                         \
     oop_field(CiVirtualObject, values, "[Lcom/sun/cri/ci/CiValue;")                     \
   end_class                                                                             \
+  start_class(CiMonitorValue)                                                           \
+    oop_field(CiMonitorValue, owner, "Lcom/sun/cri/ci/CiValue;")                        \
+    oop_field(CiMonitorValue, lockData, "Lcom/sun/cri/ci/CiValue;")                     \
+    boolean_field(CiMonitorValue, eliminated)                                           \
+  end_class                                                                             \
   start_class(RiTypeProfile)                                                            \
     int_field(RiTypeProfile, count)                                                     \
     int_field(RiTypeProfile, morphism)                                                  \
