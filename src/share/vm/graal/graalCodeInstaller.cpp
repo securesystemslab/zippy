@@ -233,7 +233,10 @@ static MonitorValue* get_monitor_value(oop value, int frame_size, GrowableArray<
   assert(lock_data_value->is_location(), "invalid monitor location");
   Location lock_data_loc = ((LocationValue*)lock_data_value)->location();
 
-  bool eliminated = CiMonitorValue::eliminated(value);
+  bool eliminated = false;
+  if (CiMonitorValue::eliminated(value)) {
+    eliminated = true;
+  }
 
   return new MonitorValue(owner_value, lock_data_loc, eliminated);
 }
