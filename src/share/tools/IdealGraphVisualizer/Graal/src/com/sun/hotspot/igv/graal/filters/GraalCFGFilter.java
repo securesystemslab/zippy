@@ -29,9 +29,7 @@ import com.sun.hotspot.igv.graph.Connection;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
-import java.awt.Color;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class GraalCFGFilter extends AbstractFilter {

@@ -54,7 +54,12 @@ public class GraalEdgeColorFilter extends AbstractFilter {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {
             Properties p = f.getProperties();
-            int predCount = Integer.parseInt(p.get("predecessorCount"));
+            int predCount;
+            if (p.get("predecessorCount") != null) {
+                predCount = Integer.parseInt(p.get("predecessorCount"));
+            } else {
+                predCount = 0;
+            }
             for (InputSlot is : f.getInputSlots()) {
                 Color color;
                 if (is.getPosition() < predCount) {
@@ -65,7 +70,7 @@ public class GraalEdgeColorFilter extends AbstractFilter {
 
                 is.setColor(color);
                 for (Connection c : is.getConnections()) {
-                    if (!c.getLabel().endsWith("#NDF")) {
+                    if (c.getLabel() == null || !c.getLabel().endsWith("#NDF")) {
                         c.setColor(color);
                     } else if ("EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))
                             || "EndNode".equals(c.getOutputSlot().getProperties().get("class"))) {

@@ -33,5 +33,9 @@
         <file name="Graal Call Analysis" url="filters/callgraph.filter">
             <attr name="enabled" boolvalue="false"/>
         </file>
+        
+        <file name="Graal CFG-only" url="filters/cfg.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
     </folder>
 </filesystem>
