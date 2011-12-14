@@ -83,26 +83,34 @@ def dacapo(env, args):
     """run a DaCapo benchmark"""
     
     benchmarks = {
-        'avrora': ['--preserve', '-n', '20'],
-        'batik': ['-n', '20'],
-        'eclipse': ['-n', '20'],
-        'fop': ['-n', '100'],
-        'h2': ['-n', '10'],
-        'jython': ['-n', '10'],
+        'avrora': ['-n', '5'],
+        'batik': ['-n', '5'],
+        'eclipse': ['-n', '5'],
+        'fop': ['-n', '5'],
+        'h2': ['-n', '5'],
+        'jython': ['-n', '5'],
+        'luindex': ['-n', '5'],
         'lusearch': ['-n', '5'],
-        'pmd': ['-n', '10'],
-        'tradebeans': ['-n', '20'],
-        'xalan': ['-n', '20'],
+        'pmd': ['-n', '5'],
+        'sunflow': ['-n', '5'],
+        'tomcat': ['-n', '5'],
+        'tradebeans': ['-n', '5'],
+        'tradesoap': ['-n', '5'],
+        'xalan': ['-n', '5'],
     }
     
     if len(args) == 0:
-        env.abort('which benchmark?\nselect one of: ' + str(benchmarks.keys()))
-    bm = args[0]
-    config = benchmarks.get(bm)
-    if (config is None):
-        env.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
-    args = args[1:]
-    return env.run_dacapo(args + ['Harness'] + config + [bm])
+        args = args[0:]
+        for bm in benchmarks:
+            env.run_dacapo(args + ['Harness', '-n', '2'] + [bm])
+        return 
+    else:
+        bm = args[0]
+        config = benchmarks.get(bm)
+        if (config is None):
+            env.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
+        args = args[1:]
+        return env.run_dacapo(args + ['Harness'] + config + [bm])
     
 def tests(env, args):
     """run a selection of the Maxine JTT tests in Graal"""

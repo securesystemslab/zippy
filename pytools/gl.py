@@ -61,6 +61,7 @@ class Env(ArgumentParser):
         ArgumentParser.__init__(self, prog='gl')
     
         self.add_argument('-v', action='store_true', dest='verbose', help='enable verbose output')
+        self.add_argument('-d', action='store_true', dest='java_dbg', help='make Java processes wait on port 8000 for a debugger')
         self.add_argument('--dacapo', help='path to DaCapo 9.12 jar file', metavar='<path>')
         self.add_argument('--jdk7', help='JDK7 in which the GraalVM will be installed', metavar='<path>')
         self.add_argument('-M', dest='maxine', help='path to Maxine code base', metavar='<path>')
@@ -114,7 +115,7 @@ class Env(ArgumentParser):
             self.abort('Need to specify DaCapo jar with --dacapo option or DACAPO environment variable')
         if not isfile(self.dacapo) or not self.dacapo.endswith('.jar'):
             self.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + self.dacapo)
-        return self.run_vm(['-Xms1g', '-Xmx2g', '-esa', '-XX:-GraalBailoutIsFatal', '-G:-QuietBailout', '-cp', self.dacapo] + args)
+        return self.run_vm(['-Xms1g', '-Xmx2g', '-esa', '-cp', self.dacapo] + args)
 
     def run_vm(self, args, vm='-graal'):
         if self.maxine is None:
@@ -123,6 +124,9 @@ class Env(ArgumentParser):
         if not exists(join(self.maxine, 'com.oracle.max.graal.hotspot', 'bin', 'com', 'oracle', 'max', 'graal', 'hotspot', 'VMEntriesNative.class')):
             self.abort('Maxine code base path specified -M option or MAXINE environment variable does not contain com.oracle.max.graal.hotspot/bin/com/oracle/max/graal/hotspot/VMEntriesNative.class: ' + self.maxine)
             
+        if self.java_dbg:
+            args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
+
         os.environ['MAXINE'] = self.maxine
         exe = join(self.jdk7, 'bin', self.exe('java'))
         return self.run([exe, vm] + args)
