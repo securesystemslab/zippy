@@ -26,8 +26,8 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys
-from os.path import join, exists, dirname, isfile
+import os, sys, shutil
+from os.path import join, exists, dirname, isfile, isdir
 
 graal_home = dirname(dirname(__file__))
 
@@ -135,18 +135,32 @@ def tests(env, args):
                         jtt('threads'), 
                         jtt('hotspot')])
 
-def _jdk7(env, build='product'):
+def _jdk7(env, build='product', create=False):
     jdk7 = env.check_get_env('JDK7')
+    jre = join(jdk7, 'jre')
+    if not exists(jre) or not isdir(jre):
+        env.abort(jdk7 + ' does not appear to be a valid JDK directory ("jre" sub-directory is missing)')
+    
     if build == 'product':
-        pass
+        return jdk7
     elif build in ['debug', 'fastdebug', 'optimized']:
-        jdk7 = join(jdk7, build)
+        res = join(jdk7, build)
+        if not exists(res):
+            if not create:
+                env.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
+            env.log('[creating ' + res + '...]')
+            os.mkdir(res)
+            for d in ['jre', 'lib', 'bin', 'include']:
+                shutil.copytree(join(jdk7, d), join(res, d))
+        return res
     else:
         env.abort('Unknown build type: ' + build)
-    return jdk7
     
 def make(env, args):
-    """builds the GraalVM binary"""
+    """builds the GraalVM binary
+    
+    The optional argument specifies what type of VM to build.
+    """
 
     def fix_jvm_cfg(env, jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
@@ -165,18 +179,11 @@ def make(env, args):
                 f.write('-graal KNOWN\n')
 
     build = 'product' if len(args) == 0 else args[0]
-    jdk7 = _jdk7(env, build)
+    jdk7 = _jdk7(env, build, True)
     if build == 'debug':
         build = 'jvmg'
     
     fix_jvm_cfg(env, jdk7)
-
-    if env.os != 'windows':
-        javaLink = join(graal_home, 'hotspot', 'java')
-        if not exists(javaLink):
-            javaExe = join(jdk7, 'jre', 'bin', 'java')
-            env.log('Creating link: ' + javaLink + ' -> ' + javaExe)
-            os.symlink(javaExe, javaLink)
 
     graalVmDir = join(jdk7, 'jre', 'lib', 'amd64', 'graal')
     if not exists(graalVmDir):
@@ -190,37 +197,37 @@ def make(env, args):
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk7, INSTALL='y')
     env.run([env.gmake_cmd(), build + 'graal'], cwd=join(graal_home, 'make'), err=filterXusage)
     
-def vm(env, args, vm='-graal', build='product'):
-    """run the GraalVM"""
+def vm(env, args, vm='-graal'):
+    """run the GraalVM
+    
+    The optional leading argument specifies an alternative to the
+    product build should be run: @g = debug, @f = fastdebug, @o = optimized"""
+    
+    build = 'product'
+    buildOpts = {
+        '@g': 'debug',
+        '@f': 'fastdebug',
+        '@o': 'optimized'
+    }
+        
+    if len(args) and args[0] in buildOpts.iterkeys():
+        build = buildOpts[args[0]]
+        del args[0]
+    
     if env.java_dbg:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     os.environ['MAXINE'] = env.check_get_env('GRAAL_HOME')
     exe = join(_jdk7(env, build), 'bin', env.exe_suffix('java'))
     return env.run([exe, vm] + args)
 
-def vm_g(env, args):
-    """run the debug GraalVM"""
-    return vm(env, args, build='debug')
-
-def vm_f(env, args):
-    """run the fastdebug GraalVM"""
-    return vm(env, args, build='fastdebug')
-
-def vm_o(env, args):
-    """run the optimized GraalVM"""
-    return vm(env, args, build='optimized')
-
 def mx_init(env):
     commands = {
         'dacapo': [dacapo, 'benchmark [VM options]'],
         'example': [example, '[-v] example names...'],
         'clean': [clean, ''],
-        'make': [make, ''],
+        'make': [make, '[product|debug|fastdebug|optimized]'],
         'tests': [tests, ''],
-        'vm_g': [vm_g, ''],
-        'vm_f': [vm_f, ''],
-        'vm_o': [vm_o, ''],
-        'vm': [vm, ''],
+        'vm': [vm, '[@g|@f|@o] [-options] class [args...]'],
     }
     env.commands.update(commands)
 
