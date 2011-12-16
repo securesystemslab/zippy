@@ -33,7 +33,6 @@ java\.hprof\.txt$
 ^scratch/
 scratch/
 bin/
-pytools/glrc
 ^local/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
