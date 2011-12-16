@@ -1,0 +1,3 @@
+mxtools/mx make
+mxtools/mx --debug make
+
