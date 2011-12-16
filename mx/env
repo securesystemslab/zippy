@@ -1,6 +1,0 @@
-GRAAL_HOME=$HOME/linz/maxine-safe
-MAXINE_HOME=$HOME/linz/maxine-safe
-JDK7=$HOME/jdk1.7.0
-JDK7G=$HOME/jdk1.7.0/fastdebug
-DACAPO_CP=$DACAPOBACH_JAR
-
