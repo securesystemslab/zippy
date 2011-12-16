@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil
+import os, sys, shutil, tarfile
 from os.path import join, exists, dirname, isfile, isdir
 
 graal_home = dirname(dirname(__file__))
@@ -145,8 +145,40 @@ def tests(env, args):
                         jtt('threads'), 
                         jtt('hotspot')])
 
+
+def _download_and_extract_targz_jdk7(env, url, dst):
+    assert url.endswith('.tar.gz')
+    dl = join(graal_home, 'jdk7.tar.gz')
+    try:
+        if not exists(dl):
+            env.download(dl, [url])
+        tmp = join(graal_home, 'tmp')
+        if not exists(tmp):
+            os.mkdir(tmp)
+        with tarfile.open(dl, mode='r:gz') as f:
+            env.log('Extracting ' + dl)
+            f.extractall(path=tmp)
+        jdk = os.listdir(tmp)[0]
+        shutil.move(join(tmp, jdk), dst)
+        os.rmdir(tmp)
+        os.remove(dl)
+    except SystemExit:
+        env.abort('Could not download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html.\n' + 
+                  'Please do this manually and install it at ' + dst + ' or set the JDK7 environment variable to the install location.')
+    
+
 def _jdk7(env, build='product', create=False):
-    jdk7 = env.check_get_env('JDK7')
+    jdk7 = os.environ.get('JDK7')
+    if jdk7 is None:
+        jdk7 = join(graal_home, 'jdk7')
+        if not exists(jdk7):
+            # Try to download it
+            if env.os == 'linux':
+                _download_and_extract_targz_jdk7(env, 'http://download.oracle.com/otn-pub/java/jdk/7u2-b13/jdk-7u2-linux-x64.tar.gz', jdk7)
+            else:
+                env.abort('Download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html\n' + 
+                          'and install it at ' + jdk7 + ' or set the JDK7 environment variable to the JDK7 install location.')
+        
     jre = join(jdk7, 'jre')
     if not exists(jre) or not isdir(jre):
         env.abort(jdk7 + ' does not appear to be a valid JDK directory ("jre" sub-directory is missing)')
