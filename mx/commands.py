@@ -78,7 +78,7 @@ def example(env, args):
             run_example(env, verbose, project, mainClass)
 
 def dacapo(env, args):
-    """run a DaCapo benchmark"""
+    """run one or all DaCapo benchmarks"""
     
     benchmarks = {
         'avrora': ['-n', '5'],
@@ -97,18 +97,28 @@ def dacapo(env, args):
         'xalan': ['-n', '5'],
     }
     
-    if len(args) == 0:
-        args = args[0:]
-        for bm in benchmarks:
-            run_dacapo(env, args + ['Harness', '-n', '2'] + [bm])
-        return 
-    else:
+    dacapo = env.check_get_env('DACAPO_CP')
+    if not isfile(dacapo) or not dacapo.endswith('.jar'):
+        env.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
+            
+    vmOpts = ['-Xms1g', '-Xmx2g', '-esa', '-cp', dacapo]
+
+    runs = dict()    
+    while len(args) != 0 and not args[0].startswith('-'):
         bm = args[0]
-        config = benchmarks.get(bm)
+        del args[0]
+        config = benchmarks.get(bm) 
         if (config is None):
             env.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
-        args = args[1:]
-        return run_dacapo(env, args + ['Harness'] + config + [bm])
+        runs[bm] = config
+    
+    if len(runs) == 0:
+        runs = benchmarks
+        
+    vmOpts += args
+    for bm in runs:
+        config = benchmarks.get(bm)
+        vm(env, vmOpts + ['Harness'] + config + [bm])
     
 def tests(env, args):
     """run a selection of the Maxine JTT tests in Graal"""
@@ -159,8 +169,7 @@ def _jdk7(env, build='product', create=False):
 def make(env, args):
     """builds the GraalVM binary
     
-    The optional argument specifies what type of VM to build.
-    """
+    The optional argument specifies what type of VM to build."""
 
     def fix_jvm_cfg(env, jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
@@ -198,22 +207,9 @@ def make(env, args):
     env.run([env.gmake_cmd(), build + 'graal'], cwd=join(graal_home, 'make'), err=filterXusage)
     
 def vm(env, args, vm='-graal'):
-    """run the GraalVM
-    
-    The optional leading argument specifies an alternative to the
-    product build should be run: @g = debug, @f = fastdebug, @o = optimized"""
-    
-    build = 'product'
-    buildOpts = {
-        '@g': 'debug',
-        '@f': 'fastdebug',
-        '@o': 'optimized'
-    }
-        
-    if len(args) and args[0] in buildOpts.iterkeys():
-        build = buildOpts[args[0]]
-        del args[0]
-    
+    """run the GraalVM"""
+  
+    build = env.vmbuild
     if env.java_dbg:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     os.environ['MAXINE'] = env.check_get_env('GRAAL_HOME')
@@ -221,18 +217,17 @@ def vm(env, args, vm='-graal'):
     return env.run([exe, vm] + args)
 
 def mx_init(env):
+    env.vmbuild = 'product'
+    env.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
+    env.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
+    env.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
+    env.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
     commands = {
-        'dacapo': [dacapo, 'benchmark [VM options]'],
+        'dacapo': [dacapo, '[benchmark] [VM options]'],
         'example': [example, '[-v] example names...'],
         'clean': [clean, ''],
         'make': [make, '[product|debug|fastdebug|optimized]'],
         'tests': [tests, ''],
-        'vm': [vm, '[@g|@f|@o] [-options] class [args...]'],
+        'vm': [vm, '[-options] class [args...]'],
     }
     env.commands.update(commands)
-
-def run_dacapo(env, args):
-    dacapo = env.check_get_env('DACAPO_CP')
-    if not isfile(dacapo) or not dacapo.endswith('.jar'):
-        env.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
-    return vm(env, ['-Xms1g', '-Xmx2g', '-esa', '-cp', dacapo] + args)
