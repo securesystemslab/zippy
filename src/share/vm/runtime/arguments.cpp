@@ -2021,39 +2021,35 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
       tty->print_cr("Running Graal VM... ");
     }
     const int BUFFER_SIZE = 1024;
-    char maxine_dir[BUFFER_SIZE];
+    char graal_dir[BUFFER_SIZE];
     char temp[BUFFER_SIZE];
-    if (!os::getenv("MAXINE", maxine_dir, sizeof(maxine_dir))) {
-      jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The MAXINE environment variable needs to point to a Maxine repository.\n");
+    if (!os::getenv("GRAAL", graal_dir, sizeof(graal_dir))) {
+      jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The GRAAL environment variable needs to point to the directory containing the Graal projects.\n");
       vm_exit(0);
     }
-    if (PrintVMOptions) tty->print_cr("MAXINE=%s", maxine_dir);
+    if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
       SysClassPath scp_compiler(Arguments::get_sysclasspath());
-      sprintf(temp, "%s/com.oracle.max.cri/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.cri/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.criutils/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.criutils/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.base/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.base/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.asmdis/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.asmdis/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.asm/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.asm/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.graph/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.graal.graph/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.compiler/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.graal.compiler/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.nodes/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.graal.nodes/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.snippets/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.graal.snippets/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.criutils/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.graal.criutils/bin", graal_dir);
       scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.extensions/bin", maxine_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.hotspot/bin", maxine_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.graphviz/bin", maxine_dir);
+      sprintf(temp, "%s/com.oracle.max.graal.hotspot/bin", graal_dir);
       scp_compiler.add_prefix(temp);
       scp_compiler.expand_endorsed();
       Arguments::set_compilerclasspath(scp_compiler.combined_path());

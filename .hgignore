@@ -3,6 +3,7 @@
 ^build/
 ^dist/
 ^java/
+^lib/
 ^jdk1.7.0/`
 ^java64/
 ^work/

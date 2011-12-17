@@ -244,7 +244,7 @@ def vm(env, args, vm='-graal'):
     build = env.vmbuild
     if env.java_dbg:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
-    os.environ['MAXINE'] = env.check_get_env('GRAAL_HOME')
+    os.environ['GRAAL'] = join(env.check_get_env('GRAAL_HOME'), 'graal')
     exe = join(_jdk7(env, build), 'bin', env.exe_suffix('java'))
     return env.run([exe, vm] + args)
 
