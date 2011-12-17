@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, tarfile
+import os, sys, shutil, tarfile, StringIO
 from os.path import join, exists, dirname, isfile, isdir
 
 graal_home = dirname(dirname(__file__))
@@ -248,6 +248,157 @@ def vm(env, args, vm='-graal'):
     exe = join(_jdk7(env, build), 'bin', env.exe_suffix('java'))
     return env.run([exe, vm] + args)
 
+def eclipseprojects(env, args):
+    """(re)generate Eclipse project configurations
+
+    The exit code of this command reflects how many files were updated."""
+
+    def println(out, obj):
+        out.write(str(obj) + '\n')
+        
+    pdb = env.pdb
+    for p in pdb.projects.values():
+        if p.native:
+            continue
+        
+        d = join(p.baseDir, p.name)
+        if not exists(d):
+            os.makedirs(d)
+
+        changedFiles = 0
+
+        out = StringIO.StringIO()
+        
+        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+        println(out, '<classpath>')
+        for src in p.srcDirs:
+            srcDir = join(d, src)
+            if not exists(srcDir):
+                os.mkdir(srcDir)
+            println(out, '\t<classpathentry kind="src" path="' + src + '"/>')
+    
+        # Every Java program depends on the JRE
+        println(out, '\t<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>')
+        
+        for dep in p.all_deps([], pdb, True):
+            if dep == p:
+                continue;
+            
+            if dep.isLibrary():
+                if hasattr(dep, 'eclipse.container'):
+                    println(out, '\t<classpathentry exported="true" kind="con" path="' + getattr(dep, 'eclipse.container') + '"/>')
+                elif hasattr(dep, 'eclipse.project'):
+                    println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + getattr(dep, 'eclipse.project') + '"/>')
+                else:
+                    path = dep.path
+                    if dep.mustExist:
+                        if os.path.isabs(path):
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
+                        else:
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="/' + path + '"/>')
+            else:
+                println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + dep.name + '"/>')
+                        
+        println(out, '\t<classpathentry kind="output" path="' + getattr(p, 'eclipse.output', 'bin') + '"/>')
+        println(out, '</classpath>')
+        
+        if env.update_file(join(p.baseDir, p.name, '.classpath'), out.getvalue()):
+            changedFiles += 1
+            
+        out.close()
+
+        csConfig = join(p.baseDir, p.checkstyleProj, '.checkstyle_checks.xml')
+        if exists(csConfig):
+            out = StringIO.StringIO()
+            
+            dotCheckstyle = join(d, ".checkstyle")
+            checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
+            println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+            println(out, '<fileset-config file-format-version="1.2.0" simple-config="true">')
+            println(out, '\t<local-check-config name="Maxine Checks" location="' + checkstyleConfigPath + '" type="project" description="">')
+            println(out, '\t\t<additional-data name="protect-config-file" value="false"/>')
+            println(out, '\t</local-check-config>')
+            println(out, '\t<fileset name="all" enabled="true" check-config-name="Maxine Checks" local="true">')
+            println(out, '\t\t<file-match-pattern match-pattern="." include-pattern="true"/>')
+            println(out, '\t</fileset>')
+            println(out, '\t<filter name="FileTypesFilter" enabled="true">')
+            println(out, '\t\t<filter-data value="java"/>')
+            println(out, '\t</filter>')
+
+            exclude = join(d, '.checkstyle.exclude')
+            if exists(exclude):
+                println(out, '\t<filter name="FilesFromPackage" enabled="true">')
+                with open(exclude) as f:
+                    for line in f:
+                        if not line.startswith('#'):
+                            line = line.strip()
+                            exclDir = join(d, line)
+                            assert isdir(exclDir), 'excluded source directory listed in ' + exclude + ' does not exist or is not a directory: ' + exclDir
+                        println(out, '\t\t<filter-data value="' + line + '"/>')
+                println(out, '\t</filter>')
+                        
+            println(out, '</fileset-config>')
+            
+            if env.update_file(dotCheckstyle, out.getvalue()):
+                changedFiles += 1
+                
+            out.close()
+        
+
+        out = StringIO.StringIO()
+        
+        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+        println(out, '<projectDescription>')
+        println(out, '\t<name>' + p.name + '</name>')
+        println(out, '\t<comment></comment>')
+        println(out, '\t<projects>')
+        println(out, '\t</projects>')
+        println(out, '\t<buildSpec>')
+        println(out, '\t\t<buildCommand>')
+        println(out, '\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>')
+        println(out, '\t\t\t<arguments>')
+        println(out, '\t\t\t</arguments>')
+        println(out, '\t\t</buildCommand>')
+        if exists(csConfig):
+            println(out, '\t\t<buildCommand>')
+            println(out, '\t\t\t<name>net.sf.eclipsecs.core.CheckstyleBuilder</name>')
+            println(out, '\t\t\t<arguments>')
+            println(out, '\t\t\t</arguments>')
+            println(out, '\t\t</buildCommand>')
+        println(out, '\t</buildSpec>')
+        println(out, '\t<natures>')
+        println(out, '\t\t<nature>org.eclipse.jdt.core.javanature</nature>')
+        if exists(csConfig):
+            println(out, '\t\t<nature>net.sf.eclipsecs.core.CheckstyleNature</nature>')
+        println(out, '\t</natures>')
+        println(out, '</projectDescription>')
+        
+        if env.update_file(join(d, '.project'), out.getvalue()):
+            changedFiles += 1
+            
+        out.close()
+
+        out = StringIO.StringIO()
+        
+        settingsDir = join(d, ".settings")
+        if not exists(settingsDir):
+            os.mkdir(settingsDir)
+
+        myDir = dirname(__file__)
+        
+        with open(join(myDir, 'org.eclipse.jdt.core.prefs')) as f:
+            content = f.read()
+        if env.update_file(join(settingsDir, 'org.eclipse.jdt.core.prefs'), content):
+            changedFiles += 1
+            
+        with open(join(myDir, 'org.eclipse.jdt.ui.prefs')) as f:
+            content = f.read()
+        if env.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content):
+            changedFiles += 1
+        
+    if changedFiles != 0:
+        env.abort(changedFiles)
+
 def mx_init(env):
     env.vmbuild = 'product'
     env.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
@@ -261,5 +412,6 @@ def mx_init(env):
         'make': [make, '[product|debug|fastdebug|optimized]'],
         'tests': [tests, ''],
         'vm': [vm, '[-options] class [args...]'],
+	'eclipseprojects': [eclipseprojects, ''],
     }
     env.commands.update(commands)

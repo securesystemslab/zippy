@@ -259,7 +259,8 @@ class ProjectsDB():
                 env.abort('cannot override project  ' + name + ' in ' + self.project(name).baseDir + " with project of the same name in  " + mxDir)
             srcDirs = pop_list(attrs, 'sourceDirs')
             deps = pop_list(attrs, 'dependencies')
-            p = Project(baseDir, name, srcDirs, deps)
+            subDir = attrs.pop('subDir', '');
+            p = Project(join(baseDir, subDir), name, srcDirs, deps)
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             p.__dict__.update(attrs)
@@ -704,13 +705,13 @@ class Env(ArgumentParser):
         try:
             old = None
             if existed:
-                with open(path) as f:
+                with open(path, 'rb') as f:
                     old = f.read()
             
             if old == content:
                 return False
                 
-            with open(path, 'w') as f:
+            with open(path, 'wb') as f:
                 f.write(content)
                 
             self.log(('modified ' if existed else 'created ') + path)
