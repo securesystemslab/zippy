@@ -291,13 +291,6 @@ void Rewriter::scan_method(methodOop method, bool reverse) {
 #endif
           break;
         }
-        case Bytecodes::_fast_linearswitch:
-        case Bytecodes::_fast_binaryswitch: {
-#ifndef CC_INTERP
-          (*bcp) = Bytecodes::_lookupswitch;
-#endif
-          break;
-        }
         case Bytecodes::_getstatic      : // fall through
         case Bytecodes::_putstatic      : // fall through
         case Bytecodes::_getfield       : // fall through

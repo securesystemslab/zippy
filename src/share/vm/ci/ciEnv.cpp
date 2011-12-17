@@ -949,7 +949,7 @@ void ciEnv::validate_compile_task_dependencies(ciMethod* target) {
 
 // ------------------------------------------------------------------
 // ciEnv::register_method
-void ciEnv::register_method(ciMethod* target,
+nmethod* ciEnv::register_method(ciMethod* target,
                             int entry_bci,
                             CodeOffsets* offsets,
                             int orig_pc_offset,
@@ -1060,43 +1060,41 @@ void ciEnv::register_method(ciMethod* target,
       // (Put nm into the task handle *before* publishing to the Java heap.)
       if (task() != NULL)  task()->set_code(nm);
 
-      if (install_code) {
-        if (entry_bci == InvocationEntryBci) {
-          if (TieredCompilation) {
-            // If there is an old version we're done with it
-            nmethod* old = method->code();
-            if (TraceMethodReplacement && old != NULL) {
-              ResourceMark rm;
-              char *method_name = method->name_and_sig_as_C_string();
-              tty->print_cr("Replacing method %s", method_name);
-            }
-            if (old != NULL ) {
-              old->make_not_entrant();
-            }
-          }
-          if (TraceNMethodInstalls ) {
+      if (entry_bci == InvocationEntryBci) {
+        if (TieredCompilation) {
+          // If there is an old version we're done with it
+          nmethod* old = method->code();
+          if (TraceMethodReplacement && old != NULL) {
             ResourceMark rm;
             char *method_name = method->name_and_sig_as_C_string();
-            ttyLocker ttyl;
-            tty->print_cr("Installing method (%d) %s ",
-                          comp_level,
-                          method_name);
+            tty->print_cr("Replacing method %s", method_name);
           }
-          // Allow the code to be executed
-          method->set_code(method, nm);
-        } else {
-          if (TraceNMethodInstalls ) {
-            ResourceMark rm;
-            char *method_name = method->name_and_sig_as_C_string();
-            ttyLocker ttyl;
-            tty->print_cr("Installing osr method (%d) %s @ %d",
-                          comp_level,
-                          method_name,
-                          entry_bci);
+          if (old != NULL ) {
+            old->make_not_entrant();
           }
-          instanceKlass::cast(method->method_holder())->add_osr_nmethod(nm);
-
         }
+        if (TraceNMethodInstalls ) {
+          ResourceMark rm;
+          char *method_name = method->name_and_sig_as_C_string();
+          ttyLocker ttyl;
+          tty->print_cr("Installing method (%d) %s ",
+                        comp_level,
+                        method_name);
+        }
+        // Allow the code to be executed
+        method->set_code(method, nm);
+      } else {
+        if (TraceNMethodInstalls ) {
+          ResourceMark rm;
+          char *method_name = method->name_and_sig_as_C_string();
+          ttyLocker ttyl;
+          tty->print_cr("Installing osr method (%d) %s @ %d",
+                        comp_level,
+                        method_name,
+                        entry_bci);
+        }
+        instanceKlass::cast(method->method_holder())->add_osr_nmethod(nm);
+
       }
     }
   }

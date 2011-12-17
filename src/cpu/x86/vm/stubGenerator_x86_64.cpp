@@ -2944,7 +2944,6 @@ class StubGenerator: public StubCodeGenerator {
   // caller saved registers were assumed volatile in the compiler.
   address generate_throw_exception(const char* name,
                                    address runtime_entry,
-                                   bool restore_saved_exception_pc,
                                    Register arg1 = noreg,
                                    Register arg2 = noreg) {
     // Information about frame layout at time of blocking runtime call.
@@ -3072,7 +3071,7 @@ class StubGenerator: public StubCodeGenerator {
     StubRoutines::_throw_WrongMethodTypeException_entry =
       generate_throw_exception("WrongMethodTypeException throw_exception",
                                CAST_FROM_FN_PTR(address, SharedRuntime::throw_WrongMethodTypeException),
-                               false, rax, rcx);
+                               rax, rcx);
   }
 
   void generate_all() {

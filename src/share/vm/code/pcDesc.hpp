@@ -72,7 +72,7 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   };
 
   // Flags
-  bool     rethrow_exception()              const { return _flags & PCDESC_rethrow_exception; }
+  bool     rethrow_exception()              const { return (_flags & PCDESC_rethrow_exception) != 0; }
   void set_rethrow_exception(bool z)              { set_flag(PCDESC_rethrow_exception, z);    }
   bool     should_reexecute()              const { return (_flags & PCDESC_reexecute) != 0; }
   void set_should_reexecute(bool z)              { set_flag(PCDESC_reexecute, z); }
