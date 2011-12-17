@@ -62,9 +62,6 @@ public:
   // public abstract void bootstrap();
   static void bootstrap();
 
-  // public abstract void pollJavaQueue();
-  static void pollJavaQueue();
-
   // public abstract RiMethod createRiMethodResolved(long vmId, String name);
   static oop createRiMethodResolved(jlong vmId, Handle name, TRAPS);
 

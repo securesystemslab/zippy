@@ -61,7 +61,7 @@ class fieldDescriptor VALUE_OBJ_CLASS_SPEC {
   Symbol* signature() const {
     return field()->signature(_cp);
   }
-  int signature_index() const            { return field()->signature_index(); }
+  int signature_index() const          { return field()->signature_index(); }
   klassOop field_holder() const        { return _cp->pool_holder(); }
   constantPoolOop constants() const    { return _cp(); }
   AccessFlags access_flags() const     { return _access_flags; }

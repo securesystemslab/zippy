@@ -189,7 +189,6 @@ CompileTask*  CompileBroker::_task_free_list = NULL;
 
 GrowableArray<CompilerThread*>* CompileBroker::_method_threads = NULL;
 
-bool CompileBroker::_poll_java_queue = false;
 
 CompileTaskWrapper::CompileTaskWrapper(CompileTask* task) {
   CompilerThread* thread = CompilerThread::current();
@@ -574,15 +573,12 @@ void CompileQueue::add(CompileTask* task) {
 // CompileQueue::get
 //
 // Get the next CompileTask from a CompileQueue
-CompileTask* CompileQueue::get(bool& interrupt) {
+CompileTask* CompileQueue::get() {
   NMethodSweeper::possibly_sweep();
 
   MutexLocker locker(lock());
   // Wait for an available CompileTask.
   while (_first == NULL) {
-    if (interrupt) {
-      return NULL;
-    }
     // There is no work to be done right now.  Wait.
     if (UseCodeCacheFlushing && (!CompileBroker::should_compile_new_jobs() || CodeCache::needs_flushing())) {
       // During the emergency sweeping periods, wake up and sweep occasionally
@@ -620,7 +616,6 @@ void CompileQueue::remove(CompileTask* task)
     assert(task == _last, "Sanity");
     _last = task->prev();
   }
-
   --_size;
 }
 
@@ -674,31 +669,6 @@ CompilerCounters::CompilerCounters(const char* thread_name, int instance, TRAPS)
   }
 }
 
-void CompileBroker::add_method_to_queue(klassOop k, Symbol* name, Symbol* signature) {
-  Thread* THREAD = Thread::current();
-  instanceKlass* klass = instanceKlass::cast(k);
-  methodOop method = klass->find_method(name, signature);
-  CompileBroker::compile_method(method, -1, 0, method, 0, "initial compile of object initializer", THREAD);
-  if (HAS_PENDING_EXCEPTION) {
-    CLEAR_PENDING_EXCEPTION;
-    fatal("error inserting method into compile queue");
-  }
-}
-
-void CompileBroker::notify_java_queue() {
-  HandleMark hm;
-  ResourceMark rm;
-
-  _poll_java_queue = true;
-  {
-    ThreadInVMfromNative tivm(JavaThread::current());
-    MutexLocker locker(_c1_method_queue->lock(), Thread::current());
-
-    _c1_method_queue->lock()->notify_all();
-  }
-}
-
-
 // ------------------------------------------------------------------
 // CompileBroker::compilation_init
 //
@@ -716,9 +686,6 @@ void CompileBroker::compilation_init() {
   } else if (c1_count > 0) {
 	  _compilers[0] = new Compiler();
   }
-#ifndef COMPILER2
-  _compilers[1] = _compilers[0];
-#endif
 #endif // COMPILER1
 
 #ifdef COMPILER2
@@ -1548,7 +1515,6 @@ void CompileBroker::compiler_thread_loop() {
 
   while (true) {
     {
-
       // We need this HandleMark to avoid leaking VM handles.
       HandleMark hm(thread);
 
@@ -1560,58 +1526,49 @@ void CompileBroker::compiler_thread_loop() {
         NMethodSweeper::handle_full_code_cache(false);
       }
 
-      CompileTask* task = queue->get(_poll_java_queue);
+      CompileTask* task = queue->get();
 
-      if (task != NULL) {
-        // Give compiler threads an extra quanta.  They tend to be bursty and
-        // this helps the compiler to finish up the job.
-        if( CompilerThreadHintNoPreempt )
-          os::hint_no_preempt();
+      // Give compiler threads an extra quanta.  They tend to be bursty and
+      // this helps the compiler to finish up the job.
+      if( CompilerThreadHintNoPreempt )
+        os::hint_no_preempt();
 
-        // trace per thread time and compile statistics
-        CompilerCounters* counters = ((CompilerThread*)thread)->counters();
-        PerfTraceTimedEvent(counters->time_counter(), counters->compile_counter());
+      // trace per thread time and compile statistics
+      CompilerCounters* counters = ((CompilerThread*)thread)->counters();
+      PerfTraceTimedEvent(counters->time_counter(), counters->compile_counter());
 
-        // Assign the task to the current thread.  Mark this compilation
-        // thread as active for the profiler.
-        CompileTaskWrapper ctw(task);
-        nmethodLocker result_handle;  // (handle for the nmethod produced by this task)
-        task->set_code_handle(&result_handle);
-        methodHandle method(thread,
-                       (methodOop)JNIHandles::resolve(task->method_handle()));
+      // Assign the task to the current thread.  Mark this compilation
+      // thread as active for the profiler.
+      CompileTaskWrapper ctw(task);
+      nmethodLocker result_handle;  // (handle for the nmethod produced by this task)
+      task->set_code_handle(&result_handle);
+      methodHandle method(thread,
+                     (methodOop)JNIHandles::resolve(task->method_handle()));
 
-        // Never compile a method if breakpoints are present in it
-        if (method()->number_of_breakpoints() == 0) {
-          // Compile the method.
-          if ((UseCompiler || AlwaysCompileLoopMethods) && CompileBroker::should_compile_new_jobs()) {
-  #ifdef COMPILER1
-            // Allow repeating compilations for the purpose of benchmarking
-            // compile speed. This is not useful for customers.
-            if (CompilationRepeat != 0) {
-              int compile_count = CompilationRepeat;
-              while (compile_count > 0) {
-                invoke_compiler_on_method(task);
-                nmethod* nm = method->code();
-                if (nm != NULL) {
-                  nm->make_zombie();
-                  method->clear_code();
-                }
-                compile_count--;
+      // Never compile a method if breakpoints are present in it
+      if (method()->number_of_breakpoints() == 0) {
+        // Compile the method.
+        if ((UseCompiler || AlwaysCompileLoopMethods) && CompileBroker::should_compile_new_jobs()) {
+#ifdef COMPILER1
+          // Allow repeating compilations for the purpose of benchmarking
+          // compile speed. This is not useful for customers.
+          if (CompilationRepeat != 0) {
+            int compile_count = CompilationRepeat;
+            while (compile_count > 0) {
+              invoke_compiler_on_method(task);
+              nmethod* nm = method->code();
+              if (nm != NULL) {
+                nm->make_zombie();
+                method->clear_code();
               }
+              compile_count--;
             }
-  #endif /* COMPILER1 */
-            invoke_compiler_on_method(task);
-          } else {
-            // After compilation is disabled, remove remaining methods from queue
-            method->clear_queued_for_compilation();
           }
-        }
-      }
-
-      if (_poll_java_queue) {
-        _poll_java_queue = false;
-        if (UseGraal) {
-          GraalCompiler::instance()->poll_java_queue();
+#endif /* COMPILER1 */
+          invoke_compiler_on_method(task);
+        } else {
+          // After compilation is disabled, remove remaining methods from queue
+          method->clear_queued_for_compilation();
         }
       }
     }
@@ -1701,7 +1658,6 @@ void CompileBroker::maybe_block() {
 void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
   if (PrintCompilation) {
     ResourceMark rm;
-    tty->print("%s: ", compiler(task->comp_level())->name());
     task->print_line();
   }
   elapsedTimer time;
@@ -1737,17 +1693,15 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
   // Allocate a new set of JNI handles.
   push_jni_handle_block();
   jobject target_handle = JNIHandles::make_local(thread, JNIHandles::resolve(task->method_handle()));
-  int compilable = ciEnv::MethodCompilable_never;
-  if (MaxCompilationID == -1 || compile_id <= (uint)MaxCompilationID) {
-    compilable = ciEnv::MethodCompilable;
+  int compilable = ciEnv::MethodCompilable;
+  {
     int system_dictionary_modification_counter;
     {
       MutexLocker locker(Compile_lock, thread);
       system_dictionary_modification_counter = SystemDictionary::number_of_modifications();
     }
 
-	// (tw) Check if we may do this?
-    // NoHandleMark  nhm;
+    NoHandleMark  nhm;
     ThreadToNativeFromVM ttn(thread);
 
     ciEnv ci_env(task, system_dictionary_modification_counter);
@@ -1772,13 +1726,12 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
 
     compiler(task->comp_level())->compile_method(&ci_env, target, osr_bci);
 
-    // TODO (tw): Check if this is OK.
-    /*if (!ci_env.failing() && task->code() == NULL) {
+    if (!ci_env.failing() && task->code() == NULL) {
       //assert(false, "compiler should always document failure");
       // The compiler elected, without comment, not to register a result.
       // Do not attempt further compilations of this method.
       ci_env.record_method_not_compilable("compile failed", !TieredCompilation);
-    }*/
+    }
 
     if (ci_env.failing()) {
       // Copy this bit to the enclosing block:

@@ -148,15 +148,6 @@ void VMExits::bootstrap() {
   check_pending_exception("Error while calling boostrap");
 }
 
-void VMExits::pollJavaQueue() {
-  JavaThread* THREAD = JavaThread::current();
-  JavaValue result(T_VOID);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::pollJavaQueue_name(), vmSymbols::void_method_signature(), &args, THREAD);
-  check_pending_exception("Error while calling pollJavaQueue");
-}
-
 oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);

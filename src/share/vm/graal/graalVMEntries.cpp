@@ -974,12 +974,6 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIE
   return id;
 }
 
-// public void notifyJavaQueue();
-JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue(JNIEnv *jniEnv, jobject) {
-  CompileBroker::notify_java_queue();
-}
-
-
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
@@ -1040,8 +1034,7 @@ JNINativeMethod VMEntries_methods[] = {
   {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getType)},
   {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getConfiguration)},
   {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,       FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installMethod)},
-  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installStub)},
-  {CC"notifyJavaQueue",                   CC"()V",                                    FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_notifyJavaQueue)}
+  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installStub)}
 };
 
 int VMEntries_methods_count() {

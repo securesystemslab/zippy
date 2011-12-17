@@ -197,7 +197,7 @@ class CompileQueue : public CHeapObj {
   CompileTask* first()                           { return _first; }
   CompileTask* last()                            { return _last;  }
 
-  CompileTask* get(bool& interrupt);
+  CompileTask* get();
 
   bool         is_empty() const                  { return _first == NULL; }
   int          size()     const                  { return _size;          }
@@ -407,8 +407,6 @@ class CompileBroker: AllStatic {
   static void print_compiler_threads_on(outputStream* st);
 
   static void add_method_to_queue(klassOop k, Symbol* name, Symbol* signature);
-
-  static void notify_java_queue();
 };
 
 #endif // SHARE_VM_COMPILER_COMPILEBROKER_HPP
