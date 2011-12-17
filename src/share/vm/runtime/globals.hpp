@@ -50,6 +50,9 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "globals_windows.hpp"
 #endif
+#ifdef TARGET_OS_FAMILY_bsd
+# include "globals_bsd.hpp"
+#endif
 #ifdef TARGET_OS_ARCH_linux_x86
 # include "globals_linux_x86.hpp"
 #endif
@@ -74,6 +77,12 @@
 #ifdef TARGET_OS_ARCH_linux_ppc
 # include "globals_linux_ppc.hpp"
 #endif
+#ifdef TARGET_OS_ARCH_bsd_x86
+# include "globals_bsd_x86.hpp"
+#endif
+#ifdef TARGET_OS_ARCH_bsd_zero
+# include "globals_bsd_zero.hpp"
+#endif
 #ifdef COMPILER1
 #ifdef TARGET_ARCH_x86
 # include "c1_globals_x86.hpp"
@@ -96,6 +105,9 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "c1_globals_windows.hpp"
 #endif
+#ifdef TARGET_OS_FAMILY_bsd
+# include "c1_globals_bsd.hpp"
+#endif
 #endif
 #ifdef COMPILER2
 #ifdef TARGET_ARCH_x86
@@ -115,6 +127,9 @@
 #endif
 #ifdef TARGET_OS_FAMILY_windows
 # include "c2_globals_windows.hpp"
+#endif
+#ifdef TARGET_OS_FAMILY_bsd
+# include "c2_globals_bsd.hpp"
 #endif
 #endif
 #ifdef SHARK
@@ -227,6 +242,9 @@ struct Flag {
   bool is_unlocked() const;
   bool is_writeable() const;
   bool is_external() const;
+
+  bool is_unlocker_ext() const;
+  bool is_unlocked_ext() const;
 
   void print_on(outputStream* st, bool withComments = false );
   void print_as_flag(outputStream* st);
@@ -343,6 +361,12 @@ class CommandLineFlags {
 #define falseInTiered true
 #endif
 
+#ifdef JAVASE_EMBEDDED
+#define falseInEmbedded false
+#else
+#define falseInEmbedded true
+#endif
+
 // develop flags are settable / visible only during development and are constant in the PRODUCT version
 // product flags are always settable / visible
 // notproduct flags are settable / visible only during development and are not declared in the PRODUCT version
@@ -438,6 +462,9 @@ class CommandLineFlags {
   product(bool, UsePPCLWSYNC, true,                                         \
           "Use lwsync instruction if true, else use slower sync")           \
                                                                             \
+  develop(bool, CleanChunkPoolAsync, falseInEmbedded,                       \
+          "Whether to clean the chunk pool asynchronously")                 \
+                                                                            \
   /* Temporary: See 6948537 */                                             \
   experimental(bool, UseMemSetInBOT, true,                                  \
           "(Unstable) uses memset in BOT updates in GC code")               \
@@ -466,6 +493,12 @@ class CommandLineFlags {
   product(bool, UseNUMA, false,                                             \
           "Use NUMA if available")                                          \
                                                                             \
+  product(bool, UseNUMAInterleaving, false,                                 \
+          "Interleave memory across NUMA nodes if available")               \
+                                                                            \
+  product(uintx, NUMAInterleaveGranularity, 2*M,                            \
+          "Granularity to use for NUMA interleaving on Windows OS")         \
+                                                                            \
   product(bool, ForceNUMA, false,                                           \
           "Force NUMA optimizations on single-node/UMA systems")            \
                                                                             \
@@ -491,6 +524,9 @@ class CommandLineFlags {
                                                                             \
   product(intx, UseSSE, 99,                                                 \
           "Highest supported SSE instructions set on x86/x64")              \
+                                                                            \
+  product(intx, UseVIS, 99,                                                 \
+          "Highest supported VIS instructions set on Sparc")                \
                                                                             \
   product(uintx, LargePageSizeInBytes, 0,                                   \
           "Large page size (0 to let VM choose the page size")              \
@@ -544,8 +580,8 @@ class CommandLineFlags {
   develop(bool, VerifyStack, false,                                         \
           "Verify stack of each thread when it is entering a runtime call") \
                                                                             \
-  develop(bool, ForceUnreachable, false,                                    \
-          "(amd64) Make all non code cache addresses to be unreachable with rip-rel forcing use of 64bit literal fixups") \
+  diagnostic(bool, ForceUnreachable, false,                                 \
+          "Make all non code cache addresses to be unreachable with forcing use of 64bit literal fixups") \
                                                                             \
   notproduct(bool, StressDerivedPointers, false,                            \
           "Force scavenge when a derived pointers is detected on stack "    \
@@ -644,7 +680,7 @@ class CommandLineFlags {
   notproduct(bool, WalkStackALot, false,                                    \
           "trace stack (no print) at every exit from the runtime system")   \
                                                                             \
-  develop(bool, Debugging, false,                                           \
+  product(bool, Debugging, false,                                           \
           "set when executing debug methods in debug.ccp "                  \
           "(to prevent triggering assertions)")                             \
                                                                             \
@@ -857,7 +893,7 @@ class CommandLineFlags {
   diagnostic(bool, TraceNMethodInstalls, false,                             \
              "Trace nmethod intallation")                                   \
                                                                             \
-  diagnostic(intx, ScavengeRootsInCode, 1,                                  \
+  diagnostic(intx, ScavengeRootsInCode, 2,                                  \
              "0: do not allow scavengable oops in the code cache; "         \
              "1: allow scavenging from the code cache; "                    \
              "2: emit as many constants as the compiler can see")           \
@@ -874,7 +910,7 @@ class CommandLineFlags {
   product(bool, AlwaysRestoreFPU, false,                                    \
           "Restore the FPU control word after every JNI call (expensive)")  \
                                                                             \
-  notproduct(bool, PrintCompilation2, false,                                \
+  diagnostic(bool, PrintCompilation2, false,                                \
           "Print additional statistics per compilation")                    \
                                                                             \
   diagnostic(bool, PrintAdapterHandlers, false,                             \
@@ -1196,6 +1232,9 @@ class CommandLineFlags {
   product(bool, UseUnalignedLoadStores, false,                              \
           "Use SSE2 MOVDQU instruction for Arraycopy")                      \
                                                                             \
+  product(bool, UseCBCond, false,                                           \
+          "Use compare and branch instruction on SPARC")                    \
+                                                                            \
   product(intx, FieldsAllocationStyle, 1,                                   \
           "0 - type based with oops first, 1 - with oops last, "            \
           "2 - oops in super and sub classes are together")                 \
@@ -1382,6 +1421,21 @@ class CommandLineFlags {
                                                                             \
   product(uintx, ParallelGCThreads, 0,                                      \
           "Number of parallel threads parallel gc will use")                \
+                                                                            \
+  product(bool, UseDynamicNumberOfGCThreads, false,                         \
+          "Dynamically choose the number of parallel threads "              \
+          "parallel gc will use")                                           \
+                                                                            \
+  diagnostic(bool, ForceDynamicNumberOfGCThreads, false,                    \
+          "Force dynamic selection of the number of"                        \
+          "parallel threads parallel gc will use to aid debugging")         \
+                                                                            \
+  product(uintx, HeapSizePerGCThread, ScaleForWordSize(64*M),               \
+          "Size of heap (bytes) per GC thread used in calculating the "     \
+          "number of GC threads")                                           \
+                                                                            \
+  product(bool, TraceDynamicGCThreads, false,                               \
+          "Trace the dynamic GC thread usage")                              \
                                                                             \
   develop(bool, ParallelOldGCSplitALot, false,                              \
           "Provoke splitting (copying data from a young gen space to"       \
@@ -1947,6 +2001,9 @@ class CommandLineFlags {
           "Number of ObjArray elements to push onto the marking stack"      \
           "before pushing a continuation entry")                            \
                                                                             \
+  notproduct(bool, ExecuteInternalVMTests, false,                           \
+          "Enable execution of internal VM tests.")                         \
+                                                                            \
   product_pd(bool, UseTLAB, "Use thread-local object allocation")           \
                                                                             \
   product_pd(bool, ResizeTLAB,                                              \
@@ -1963,6 +2020,18 @@ class CommandLineFlags {
                                                                             \
   product(bool, TLABStats, true,                                            \
           "Print various TLAB related information")                         \
+                                                                            \
+  product(bool, UseBlockZeroing, false,                                     \
+          "Use special cpu instructions for block zeroing")                 \
+                                                                            \
+  product(intx, BlockZeroingLowLimit, 2048,                                 \
+          "Minimum size in bytes when block zeroing will be used")          \
+                                                                            \
+  product(bool, UseBlockCopy, false,                                        \
+          "Use special cpu instructions for block copy")                    \
+                                                                            \
+  product(intx, BlockCopyLowLimit, 2048,                                    \
+          "Minimum size in bytes when block copy will be used")             \
                                                                             \
   product(bool, PrintRevisitStats, false,                                   \
           "Print revisit (klass and MDO) stack related information")        \
@@ -2309,7 +2378,7 @@ class CommandLineFlags {
   develop(bool, TraceGCTaskQueue, false,                                    \
           "Trace actions of the GC task queues")                            \
                                                                             \
-  develop(bool, TraceGCTaskThread, false,                                   \
+  diagnostic(bool, TraceGCTaskThread, false,                                   \
           "Trace actions of the GC task threads")                           \
                                                                             \
   product(bool, PrintParallelOldGCPhaseTimes, false,                        \
@@ -2334,6 +2403,20 @@ class CommandLineFlags {
   product(bool, PrintJNIGCStalls, false,                                    \
           "Print diagnostic message when GC is stalled"                     \
           "by JNI critical section")                                        \
+                                                                            \
+  /* GC log rotation setting */                                             \
+                                                                            \
+  product(bool, UseGCLogFileRotation, false,                                \
+          "Prevent large gclog file for long running app. "                 \
+          "Requires -Xloggc:<filename>")                                    \
+                                                                            \
+  product(uintx, NumberOfGCLogFiles, 0,                                     \
+          "Number of gclog files in rotation, "                             \
+          "Default: 0, no rotation")                                        \
+                                                                            \
+  product(uintx, GCLogFileSize, 0,                                          \
+          "GC log file size, Default: 0 bytes, no rotation "                \
+          "Only valid with UseGCLogFileRotation")                           \
                                                                             \
   /* JVMTI heap profiling */                                                \
                                                                             \
@@ -2518,7 +2601,7 @@ class CommandLineFlags {
   diagnostic(bool, DebugInlinedCalls, true,                                 \
          "If false, restricts profiled locations to the root method only")  \
                                                                             \
-  product(bool, PrintVMOptions, trueInDebug,                                \
+  product(bool, PrintVMOptions, false,                                      \
          "Print flags that appeared on the command line")                   \
                                                                             \
   product(bool, IgnoreUnrecognizedVMOptions, false,                         \
@@ -2868,8 +2951,11 @@ class CommandLineFlags {
   product(intx,  AllocatePrefetchDistance, -1,                              \
           "Distance to prefetch ahead of allocation pointer")               \
                                                                             \
-  product(intx,  AllocatePrefetchLines, 1,                                  \
-          "Number of lines to prefetch ahead of allocation pointer")        \
+  product(intx,  AllocatePrefetchLines, 3,                                  \
+          "Number of lines to prefetch ahead of array allocation pointer")  \
+                                                                            \
+  product(intx,  AllocateInstancePrefetchLines, 1,                          \
+          "Number of lines to prefetch ahead of instance allocation pointer") \
                                                                             \
   product(intx,  AllocatePrefetchStepSize, 16,                              \
           "Step size in bytes of sequential prefetch instructions")         \
@@ -2879,6 +2965,12 @@ class CommandLineFlags {
                                                                             \
   product(intx,  ReadPrefetchInstr, 0,                                      \
           "Prefetch instruction to prefetch ahead")                         \
+                                                                            \
+  product(uintx,  ArraycopySrcPrefetchDistance, 0,                          \
+          "Distance to prefetch source array in arracopy")                  \
+                                                                            \
+  product(uintx,  ArraycopyDstPrefetchDistance, 0,                          \
+          "Distance to prefetch destination array in arracopy")             \
                                                                             \
   /* deoptimization */                                                      \
   product(bool, TraceDeoptimization, false,                                 \
@@ -3293,7 +3385,7 @@ class CommandLineFlags {
   notproduct(bool, ExitOnFullCodeCache, false,                              \
           "Exit the VM if we fill the code cache.")                         \
                                                                             \
-  product(bool, UseCodeCacheFlushing, false,                                \
+  product(bool, UseCodeCacheFlushing, true,                                 \
           "Attempt to clean the code cache before shutting off compiler")   \
                                                                             \
   product(intx,  MinCodeCacheFlushingInterval, 30,                          \
@@ -3450,6 +3542,9 @@ class CommandLineFlags {
           "C1 with MDO profiling (tier 3) invocation notification "         \
           "frequency.")                                                     \
                                                                             \
+  product(intx, Tier23InlineeNotifyFreqLog, 20,                             \
+          "Inlinee invocation (tiers 2 and 3) notification frequency")      \
+                                                                            \
   product(intx, Tier0BackedgeNotifyFreqLog, 10,                             \
           "Interpreter (tier 0) invocation notification frequency.")        \
                                                                             \
@@ -3597,13 +3692,9 @@ class CommandLineFlags {
                                                                             \
   /* flags for performance data collection */                               \
                                                                             \
-  NOT_EMBEDDED(product(bool, UsePerfData, true,                             \
+  product(bool, UsePerfData, falseInEmbedded,                               \
           "Flag to disable jvmstat instrumentation for performance testing" \
-          "and problem isolation purposes."))                               \
-                                                                            \
-  EMBEDDED_ONLY(product(bool, UsePerfData, false,                           \
-          "Flag to disable jvmstat instrumentation for performance testing" \
-          "and problem isolation purposes."))                               \
+          "and problem isolation purposes.")                                \
                                                                             \
   product(bool, PerfDataSaveToFile, false,                                  \
           "Save PerfData memory to hsperfdata_<pid> file on exit")          \
@@ -3836,5 +3927,9 @@ class CommandLineFlags {
 RUNTIME_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PD_DEVELOPER_FLAG, DECLARE_PRODUCT_FLAG, DECLARE_PD_PRODUCT_FLAG, DECLARE_DIAGNOSTIC_FLAG, DECLARE_EXPERIMENTAL_FLAG, DECLARE_NOTPRODUCT_FLAG, DECLARE_MANAGEABLE_FLAG, DECLARE_PRODUCT_RW_FLAG, DECLARE_LP64_PRODUCT_FLAG)
 
 RUNTIME_OS_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PD_DEVELOPER_FLAG, DECLARE_PRODUCT_FLAG, DECLARE_PD_PRODUCT_FLAG, DECLARE_DIAGNOSTIC_FLAG, DECLARE_NOTPRODUCT_FLAG)
+
+// Extensions
+
+#include "runtime/globals_ext.hpp"
 
 #endif // SHARE_VM_RUNTIME_GLOBALS_HPP

@@ -2004,7 +2004,7 @@ void CMSCollector::do_compaction_work(bool clear_all_soft_refs) {
   ReferenceProcessorMTDiscoveryMutator rp_mut_discovery(ref_processor(), false);
 
   ref_processor()->set_enqueuing_is_done(false);
-  ref_processor()->enable_discovery();
+  ref_processor()->enable_discovery(false /*verify_disabled*/, false /*check_no_refs*/);
   ref_processor()->setup_policy(clear_all_soft_refs);
   // If an asynchronous collection finishes, the _modUnionTable is
   // all clear.  If we are assuming the collection from an asynchronous
@@ -2025,9 +2025,6 @@ void CMSCollector::do_compaction_work(bool clear_all_soft_refs) {
                                             _intra_sweep_estimate.padded_average());
   }
 
-  {
-    TraceCMSMemoryManagerStats tmms(gch->gc_cause());
-  }
   GenMarkSweep::invoke_at_safepoint(_cmsGen->level(),
     ref_processor(), clear_all_soft_refs);
   #ifdef ASSERT
@@ -2715,6 +2712,10 @@ void CMSCollector::gc_epilogue(bool full) {
 
   bitMapLock()->unlock();
   releaseFreelistLocks();
+
+  if (!CleanChunkPoolAsync) {
+    Chunk::clean_chunk_pool();
+  }
 
   _between_prologue_and_epilogue = false;  // ready for next cycle
 }
@@ -3489,8 +3490,8 @@ void CMSCollector::checkpointRootsInitial(bool asynch) {
     MutexLockerEx x(bitMapLock(),
                     Mutex::_no_safepoint_check_flag);
     checkpointRootsInitialWork(asynch);
-    rp->verify_no_references_recorded();
-    rp->enable_discovery(); // enable ("weak") refs discovery
+    // enable ("weak") refs discovery
+    rp->enable_discovery(true /*verify_disabled*/, true /*check_no_refs*/);
     _collectorState = Marking;
   } else {
     // (Weak) Refs discovery: this is controlled from genCollectedHeap::do_collection
@@ -3502,7 +3503,8 @@ void CMSCollector::checkpointRootsInitial(bool asynch) {
            "ref discovery for this generation kind");
     // already have locks
     checkpointRootsInitialWork(asynch);
-    rp->enable_discovery(); // now enable ("weak") refs discovery
+    // now enable ("weak") refs discovery
+    rp->enable_discovery(true /*verify_disabled*/, false /*verify_no_refs*/);
     _collectorState = Marking;
   }
   SpecializationStats::print();
@@ -3579,16 +3581,6 @@ void CMSCollector::checkpointRootsInitialWork(bool asynch) {
        "Was cleared in most recent final checkpoint phase"
        " or no bits are set in the gc_prologue before the start of the next "
        "subsequent marking phase.");
-
-  // Temporarily disabled, since pre/post-consumption closures don't
-  // care about precleaned cards
-  #if 0
-  {
-    MemRegion mr = MemRegion((HeapWord*)_virtual_space.low(),
-                             (HeapWord*)_virtual_space.high());
-    _ct->ct_bs()->preclean_dirty_cards(mr);
-  }
-  #endif
 
   // Save the end of the used_region of the constituent generations
   // to be used to limit the extent of sweep in each generation.
@@ -4060,7 +4052,7 @@ class Par_ConcMarkingClosure: public Par_KlassRememberingOopClosure {
   Par_ConcMarkingClosure(CMSCollector* collector, CMSConcMarkingTask* task, OopTaskQueue* work_queue,
                          CMSBitMap* bit_map, CMSMarkStack* overflow_stack,
                          CMSMarkStack* revisit_stack):
-    Par_KlassRememberingOopClosure(collector, NULL, revisit_stack),
+    Par_KlassRememberingOopClosure(collector, collector->ref_processor(), revisit_stack),
     _task(task),
     _span(collector->_span),
     _work_queue(work_queue),
@@ -4242,9 +4234,11 @@ void CMSConcMarkingTask::coordinator_yield() {
 
 bool CMSCollector::do_marking_mt(bool asynch) {
   assert(ConcGCThreads > 0 && conc_workers() != NULL, "precondition");
-  // In the future this would be determined ergonomically, based
-  // on #cpu's, # active mutator threads (and load), and mutation rate.
-  int num_workers = ConcGCThreads;
+  int num_workers = AdaptiveSizePolicy::calc_active_conc_workers(
+                                       conc_workers()->total_workers(),
+                                       conc_workers()->active_workers(),
+                                       Threads::number_of_non_daemon_threads());
+  conc_workers()->set_active_workers(num_workers);
 
   CompactibleFreeListSpace* cms_space  = _cmsGen->cmsSpace();
   CompactibleFreeListSpace* perm_space = _permGen->cmsSpace();
@@ -5060,6 +5054,8 @@ class CMSParRemarkTask: public AbstractGangTask {
   ParallelTaskTerminator _term;
 
  public:
+  // A value of 0 passed to n_workers will cause the number of
+  // workers to be taken from the active workers in the work gang.
   CMSParRemarkTask(CMSCollector* collector,
                    CompactibleFreeListSpace* cms_space,
                    CompactibleFreeListSpace* perm_space,
@@ -5542,7 +5538,15 @@ void CMSCollector::do_remark_parallel() {
   GenCollectedHeap* gch = GenCollectedHeap::heap();
   FlexibleWorkGang* workers = gch->workers();
   assert(workers != NULL, "Need parallel worker threads.");
-  int n_workers = workers->total_workers();
+  // Choose to use the number of GC workers most recently set
+  // into "active_workers".  If active_workers is not set, set it
+  // to ParallelGCThreads.
+  int n_workers = workers->active_workers();
+  if (n_workers == 0) {
+    assert(n_workers > 0, "Should have been set during scavenge");
+    n_workers = ParallelGCThreads;
+    workers->set_active_workers(n_workers);
+  }
   CompactibleFreeListSpace* cms_space  = _cmsGen->cmsSpace();
   CompactibleFreeListSpace* perm_space = _permGen->cmsSpace();
 
@@ -5882,8 +5886,17 @@ void CMSCollector::refProcessingWork(bool asynch, bool clear_all_soft_refs) {
       // and a different number of discovered lists may have Ref objects.
       // That is OK as long as the Reference lists are balanced (see
       // balance_all_queues() and balance_queues()).
-
-      rp->set_active_mt_degree(ParallelGCThreads);
+      GenCollectedHeap* gch = GenCollectedHeap::heap();
+      int active_workers = ParallelGCThreads;
+      FlexibleWorkGang* workers = gch->workers();
+      if (workers != NULL) {
+        active_workers = workers->active_workers();
+        // The expectation is that active_workers will have already
+        // been set to a reasonable value.  If it has not been set,
+        // investigate.
+        assert(active_workers > 0, "Should have been set during scavenge");
+      }
+      rp->set_active_mt_degree(active_workers);
       CMSRefProcTaskExecutor task_executor(*this);
       rp->process_discovered_references(&_is_alive_closure,
                                         &cmsKeepAliveClosure,
@@ -9341,15 +9354,3 @@ TraceCMSMemoryManagerStats::TraceCMSMemoryManagerStats(CMSCollector::CollectorSt
   }
 }
 
-// when bailing out of cms in concurrent mode failure
-TraceCMSMemoryManagerStats::TraceCMSMemoryManagerStats(GCCause::Cause cause): TraceMemoryManagerStats() {
-  initialize(true /* fullGC */ ,
-             cause /* cause of the GC */,
-             true /* recordGCBeginTime */,
-             true /* recordPreGCUsage */,
-             true /* recordPeakUsage */,
-             true /* recordPostGCusage */,
-             true /* recordAccumulatedGCTime */,
-             true /* recordGCEndTime */,
-             true /* countCollection */ );
-}

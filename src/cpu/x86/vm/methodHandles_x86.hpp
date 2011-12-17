@@ -27,7 +27,7 @@
 
 // Adapters
 enum /* platform_dependent_constants */ {
-  adapter_code_size = NOT_LP64(30000 DEBUG_ONLY(+ 10000)) LP64_ONLY(80000 DEBUG_ONLY(+ 120000))
+  adapter_code_size = NOT_LP64(16000 DEBUG_ONLY(+ 15000)) LP64_ONLY(32000 DEBUG_ONLY(+ 120000))
 };
 
 public:
@@ -110,6 +110,7 @@ public:
 
 class RicochetFrame {
   friend class MethodHandles;
+  friend class VMStructs;
 
  private:
   intptr_t* _continuation;          // what to do when control gets back here
@@ -131,7 +132,10 @@ class RicochetFrame {
   intptr_t* sender_link() const         { return _sender_link; }
   address   sender_pc() const           { return _sender_pc; }
 
-  intptr_t* extended_sender_sp() const  { return saved_args_base(); }
+  intptr_t* extended_sender_sp() const {
+    // The extended sender SP is above the current RicochetFrame.
+    return (intptr_t*) (((address) this) + sizeof(RicochetFrame));
+  }
 
   intptr_t  return_value_slot_number() const {
     return adapter_conversion_vminfo(conversion());
@@ -290,6 +294,10 @@ public:
     verify_klass(_masm, mh_reg, SystemDictionaryHandles::MethodHandle_klass(),
                  "reference is a MH");
   }
+
+  // Similar to InterpreterMacroAssembler::jump_from_interpreted.
+  // Takes care of special dispatch from single stepping too.
+  static void jump_from_method_handle(MacroAssembler* _masm, Register method, Register temp);
 
   static void trace_method_handle(MacroAssembler* _masm, const char* adaptername) PRODUCT_RETURN;
 

@@ -507,8 +507,11 @@ void encode_CopyXD( CodeBuffer &cbuf, int dst_encoding, int src_encoding ) {
 
 
 //=============================================================================
-const bool Matcher::constant_table_absolute_addressing = true;
 const RegMask& MachConstantBaseNode::_out_RegMask = RegMask::Empty;
+
+int Compile::ConstantTable::calculate_table_base_offset() const {
+  return 0;  // absolute addressing, no offset
+}
 
 void MachConstantBaseNode::emit(CodeBuffer& cbuf, PhaseRegAlloc* ra_) const {
   // Empty encoding
@@ -639,6 +642,12 @@ void MachPrologNode::emit(CodeBuffer &cbuf, PhaseRegAlloc *ra_) const {
   }
 #endif
 
+  if (C->has_mach_constant_base_node()) {
+    // NOTE: We set the table base offset here because users might be
+    // emitted before MachConstantBaseNode.
+    Compile::ConstantTable& constant_table = C->constant_table();
+    constant_table.set_table_base_offset(constant_table.calculate_table_base_offset());
+  }
 }
 
 uint MachPrologNode::size(PhaseRegAlloc *ra_) const {
@@ -1369,7 +1378,12 @@ const uint Matcher::vector_ideal_reg(void) {
 //
 // NOTE: If the platform does not provide any short branch variants, then
 //       this method should return false for offset 0.
-bool Matcher::is_short_branch_offset(int rule, int offset) {
+bool Matcher::is_short_branch_offset(int rule, int br_size, int offset) {
+  // The passed offset is relative to address of the branch.
+  // On 86 a branch displacement is calculated relative to address
+  // of a next instruction.
+  offset -= br_size;
+
   // the short version of jmpConUCF2 contains multiple branches,
   // making the reach slightly less
   if (rule == jmpConUCF2_rule)
@@ -1387,6 +1401,12 @@ const bool Matcher::init_array_count_is_in_bytes = false;
 
 // Threshold size for cleararray.
 const int Matcher::init_array_short_size = 8 * BytesPerLong;
+
+// Needs 2 CMOV's for longs.
+const int Matcher::long_cmove_cost() { return 1; }
+
+// No CMOVF/CMOVD with SSE/SSE2
+const int Matcher::float_cmove_cost() { return (UseSSE>=1) ? ConditionalMoveLimit : 0; }
 
 // Should the Matcher clone shifts on addressing modes, expecting them to
 // be subsumed into complex addressing expressions or compute them into
@@ -1504,12 +1524,12 @@ bool Matcher::use_asm_for_ldiv_by_con( jlong divisor ) {
 
 // Register for DIVI projection of divmodI
 RegMask Matcher::divI_proj_mask() {
-  return EAX_REG_mask;
+  return EAX_REG_mask();
 }
 
 // Register for MODI projection of divmodI
 RegMask Matcher::modI_proj_mask() {
-  return EDX_REG_mask;
+  return EDX_REG_mask();
 }
 
 // Register for DIVL projection of divmodL
@@ -1525,7 +1545,7 @@ RegMask Matcher::modL_proj_mask() {
 }
 
 const RegMask Matcher::method_handle_invoke_SP_save_mask() {
-  return EBP_REG_mask;
+  return EBP_REG_mask();
 }
 
 // Returns true if the high 32 bits of the value is known to be zero.
@@ -1713,18 +1733,6 @@ encode %{
     else                               emit_d32(cbuf,con);
   %}
 
-  enc_class Lbl (label labl) %{ // JMP, CALL
-    Label *l = $labl$$label;
-    emit_d32(cbuf, l ? (l->loc_pos() - (cbuf.insts_size()+4)) : 0);
-  %}
-
-  enc_class LblShort (label labl) %{ // JMP, CALL
-    Label *l = $labl$$label;
-    int disp = l ? (l->loc_pos() - (cbuf.insts_size()+1)) : 0;
-    assert(-128 <= disp && disp <= 127, "Displacement too large for short jmp");
-    emit_d8(cbuf, disp);
-  %}
-
   enc_class OpcSReg (eRegI dst) %{    // BSWAP
     emit_cc(cbuf, $secondary, $dst$$reg );
   %}
@@ -1745,21 +1753,6 @@ encode %{
 
   enc_class RegOpc (eRegI div) %{    // IDIV, IMOD, JMP indirect, ...
     emit_rm(cbuf, 0x3, $secondary, $div$$reg );
-  %}
-
-  enc_class Jcc (cmpOp cop, label labl) %{    // JCC
-    Label *l = $labl$$label;
-    $$$emit8$primary;
-    emit_cc(cbuf, $secondary, $cop$$cmpcode);
-    emit_d32(cbuf, l ? (l->loc_pos() - (cbuf.insts_size()+4)) : 0);
-  %}
-
-  enc_class JccShort (cmpOp cop, label labl) %{    // JCC
-    Label *l = $labl$$label;
-    emit_cc(cbuf, $primary, $cop$$cmpcode);
-    int disp = l ? (l->loc_pos() - (cbuf.insts_size()+1)) : 0;
-    assert(-128 <= disp && disp <= 127, "Displacement too large for short jmp");
-    emit_d8(cbuf, disp);
   %}
 
   enc_class enc_cmov(cmpOp cop ) %{ // CMOV
@@ -4496,7 +4489,6 @@ op_attrib op_cost(0);        // Required cost attribute
 //----------Instruction Attributes---------------------------------------------
 ins_attrib ins_cost(100);       // Required cost attribute
 ins_attrib ins_size(8);         // Required size attribute (in bits)
-ins_attrib ins_pc_relative(0);  // Required PC Relative flag
 ins_attrib ins_short_branch(0); // Required flag: is this instruction a
                                 // non-matching short branch variant of some
                                                             // long branch?
@@ -7348,8 +7340,9 @@ instruct prefetchr( memory mem ) %{
   ins_cost(100);
 
   format %{ "PREFETCHR $mem\t! Prefetch into level 1 cache for read" %}
-  opcode(0x0F, 0x0d);     /* Opcode 0F 0d /0 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x00,mem));
+  ins_encode %{
+    __ prefetchr($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
@@ -7359,8 +7352,9 @@ instruct prefetchrNTA( memory mem ) %{
   ins_cost(100);
 
   format %{ "PREFETCHNTA $mem\t! Prefetch into non-temporal cache for read" %}
-  opcode(0x0F, 0x18);     /* Opcode 0F 18 /0 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x00,mem));
+  ins_encode %{
+    __ prefetchnta($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
@@ -7370,8 +7364,9 @@ instruct prefetchrT0( memory mem ) %{
   ins_cost(100);
 
   format %{ "PREFETCHT0 $mem\t! Prefetch into L1 and L2 caches for read" %}
-  opcode(0x0F, 0x18);     /* Opcode 0F 18 /1 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x01,mem));
+  ins_encode %{
+    __ prefetcht0($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
@@ -7381,8 +7376,9 @@ instruct prefetchrT2( memory mem ) %{
   ins_cost(100);
 
   format %{ "PREFETCHT2 $mem\t! Prefetch into L2 cache for read" %}
-  opcode(0x0F, 0x18);     /* Opcode 0F 18 /3 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x03,mem));
+  ins_encode %{
+    __ prefetcht2($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
@@ -7397,46 +7393,86 @@ instruct prefetchw0( memory mem ) %{
 %}
 
 instruct prefetchw( memory mem ) %{
-  predicate(UseSSE==0 && VM_Version::supports_3dnow_prefetch() || AllocatePrefetchInstr==3);
+  predicate(UseSSE==0 && VM_Version::supports_3dnow_prefetch());
   match( PrefetchWrite mem );
   ins_cost(100);
 
   format %{ "PREFETCHW $mem\t! Prefetch into L1 cache and mark modified" %}
-  opcode(0x0F, 0x0D);     /* Opcode 0F 0D /1 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x01,mem));
+  ins_encode %{
+    __ prefetchw($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
 instruct prefetchwNTA( memory mem ) %{
-  predicate(UseSSE>=1 && AllocatePrefetchInstr==0);
+  predicate(UseSSE>=1);
   match(PrefetchWrite mem);
   ins_cost(100);
 
   format %{ "PREFETCHNTA $mem\t! Prefetch into non-temporal cache for write" %}
-  opcode(0x0F, 0x18);     /* Opcode 0F 18 /0 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x00,mem));
+  ins_encode %{
+    __ prefetchnta($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
-instruct prefetchwT0( memory mem ) %{
+// Prefetch instructions for allocation.
+
+instruct prefetchAlloc0( memory mem ) %{
+  predicate(UseSSE==0 && AllocatePrefetchInstr!=3);
+  match(PrefetchAllocation mem);
+  ins_cost(0);
+  size(0);
+  format %{ "Prefetch allocation (non-SSE is empty encoding)" %}
+  ins_encode();
+  ins_pipe(empty);
+%}
+
+instruct prefetchAlloc( memory mem ) %{
+  predicate(AllocatePrefetchInstr==3);
+  match( PrefetchAllocation mem );
+  ins_cost(100);
+
+  format %{ "PREFETCHW $mem\t! Prefetch allocation into L1 cache and mark modified" %}
+  ins_encode %{
+    __ prefetchw($mem$$Address);
+  %}
+  ins_pipe(ialu_mem);
+%}
+
+instruct prefetchAllocNTA( memory mem ) %{
+  predicate(UseSSE>=1 && AllocatePrefetchInstr==0);
+  match(PrefetchAllocation mem);
+  ins_cost(100);
+
+  format %{ "PREFETCHNTA $mem\t! Prefetch allocation into non-temporal cache for write" %}
+  ins_encode %{
+    __ prefetchnta($mem$$Address);
+  %}
+  ins_pipe(ialu_mem);
+%}
+
+instruct prefetchAllocT0( memory mem ) %{
   predicate(UseSSE>=1 && AllocatePrefetchInstr==1);
-  match(PrefetchWrite mem);
+  match(PrefetchAllocation mem);
   ins_cost(100);
 
-  format %{ "PREFETCHT0 $mem\t! Prefetch into L1 and L2 caches for write" %}
-  opcode(0x0F, 0x18);     /* Opcode 0F 18 /1 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x01,mem));
+  format %{ "PREFETCHT0 $mem\t! Prefetch allocation into L1 and L2 caches for write" %}
+  ins_encode %{
+    __ prefetcht0($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
-instruct prefetchwT2( memory mem ) %{
+instruct prefetchAllocT2( memory mem ) %{
   predicate(UseSSE>=1 && AllocatePrefetchInstr==2);
-  match(PrefetchWrite mem);
+  match(PrefetchAllocation mem);
   ins_cost(100);
 
-  format %{ "PREFETCHT2 $mem\t! Prefetch into L2 cache for write" %}
-  opcode(0x0F, 0x18);     /* Opcode 0F 18 /3 */
-  ins_encode(OpcP, OpcS, RMopc_Mem(0x03,mem));
+  format %{ "PREFETCHT2 $mem\t! Prefetch allocation into L2 cache for write" %}
+  ins_encode %{
+    __ prefetcht2($mem$$Address);
+  %}
   ins_pipe(ialu_mem);
 %}
 
@@ -7806,8 +7842,7 @@ instruct membar_acquire() %{
 %}
 
 instruct membar_acquire_lock() %{
-  match(MemBarAcquire);
-  predicate(Matcher::prior_fast_lock(n));
+  match(MemBarAcquireLock);
   ins_cost(0);
 
   size(0);
@@ -7827,8 +7862,7 @@ instruct membar_release() %{
 %}
 
 instruct membar_release_lock() %{
-  match(MemBarRelease);
-  predicate(Matcher::post_fast_unlock(n));
+  match(MemBarReleaseLock);
   ins_cost(0);
 
   size(0);
@@ -7886,6 +7920,40 @@ instruct castP2X(eRegI dst, eRegP src ) %{
 
 //----------Conditional Move---------------------------------------------------
 // Conditional move
+instruct jmovI_reg(cmpOp cop, eFlagsReg cr, eRegI dst, eRegI src) %{
+  predicate(!VM_Version::supports_cmov() );
+  match(Set dst (CMoveI (Binary cop cr) (Binary dst src)));
+  ins_cost(200);
+  format %{ "J$cop,us skip\t# signed cmove\n\t"
+            "MOV    $dst,$src\n"
+      "skip:" %}
+  ins_encode %{
+    Label Lskip;
+    // Invert sense of branch from sense of CMOV
+    __ jccb((Assembler::Condition)($cop$$cmpcode^1), Lskip);
+    __ movl($dst$$Register, $src$$Register);
+    __ bind(Lskip);
+  %}
+  ins_pipe( pipe_cmov_reg );
+%}
+
+instruct jmovI_regU(cmpOpU cop, eFlagsRegU cr, eRegI dst, eRegI src) %{
+  predicate(!VM_Version::supports_cmov() );
+  match(Set dst (CMoveI (Binary cop cr) (Binary dst src)));
+  ins_cost(200);
+  format %{ "J$cop,us skip\t# unsigned cmove\n\t"
+            "MOV    $dst,$src\n"
+      "skip:" %}
+  ins_encode %{
+    Label Lskip;
+    // Invert sense of branch from sense of CMOV
+    __ jccb((Assembler::Condition)($cop$$cmpcode^1), Lskip);
+    __ movl($dst$$Register, $src$$Register);
+    __ bind(Lskip);
+  %}
+  ins_pipe( pipe_cmov_reg );
+%}
+
 instruct cmovI_reg(eRegI dst, eRegI src, eFlagsReg cr, cmpOp cop ) %{
   predicate(VM_Version::supports_cmov() );
   match(Set dst (CMoveI (Binary cop cr) (Binary dst src)));
@@ -13047,7 +13115,6 @@ instruct jumpXtnd(eRegI switch_val) %{
     Address index(noreg, $switch_val$$Register, Address::times_1);
     __ jump(ArrayAddress($constantaddress, index));
   %}
-  ins_pc_relative(1);
   ins_pipe(pipe_jmp);
 %}
 
@@ -13059,10 +13126,11 @@ instruct jmpDir(label labl) %{
   ins_cost(300);
   format %{ "JMP    $labl" %}
   size(5);
-  opcode(0xE9);
-  ins_encode( OpcP, Lbl( labl ) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jmp(*L, false); // Always long jump
+  %}
   ins_pipe( pipe_jmp );
-  ins_pc_relative(1);
 %}
 
 // Jump Direct Conditional - Label defines a relative address from Jcc+1
@@ -13073,10 +13141,11 @@ instruct jmpCon(cmpOp cop, eFlagsReg cr, label labl) %{
   ins_cost(300);
   format %{ "J$cop    $labl" %}
   size(6);
-  opcode(0x0F, 0x80);
-  ins_encode( Jcc( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
 %}
 
 // Jump Direct Conditional - Label defines a relative address from Jcc+1
@@ -13087,10 +13156,11 @@ instruct jmpLoopEnd(cmpOp cop, eFlagsReg cr, label labl) %{
   ins_cost(300);
   format %{ "J$cop    $labl\t# Loop end" %}
   size(6);
-  opcode(0x0F, 0x80);
-  ins_encode( Jcc( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
 %}
 
 // Jump Direct Conditional - Label defines a relative address from Jcc+1
@@ -13101,10 +13171,11 @@ instruct jmpLoopEndU(cmpOpU cop, eFlagsRegU cmp, label labl) %{
   ins_cost(300);
   format %{ "J$cop,u  $labl\t# Loop end" %}
   size(6);
-  opcode(0x0F, 0x80);
-  ins_encode( Jcc( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
 %}
 
 instruct jmpLoopEndUCF(cmpOpUCF cop, eFlagsRegUCF cmp, label labl) %{
@@ -13114,10 +13185,11 @@ instruct jmpLoopEndUCF(cmpOpUCF cop, eFlagsRegUCF cmp, label labl) %{
   ins_cost(200);
   format %{ "J$cop,u  $labl\t# Loop end" %}
   size(6);
-  opcode(0x0F, 0x80);
-  ins_encode( Jcc( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
 %}
 
 // Jump Direct Conditional - using unsigned comparison
@@ -13128,10 +13200,11 @@ instruct jmpConU(cmpOpU cop, eFlagsRegU cmp, label labl) %{
   ins_cost(300);
   format %{ "J$cop,u  $labl" %}
   size(6);
-  opcode(0x0F, 0x80);
-  ins_encode(Jcc(cop, labl));
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+  %}
   ins_pipe(pipe_jcc);
-  ins_pc_relative(1);
 %}
 
 instruct jmpConUCF(cmpOpUCF cop, eFlagsRegUCF cmp, label labl) %{
@@ -13141,10 +13214,11 @@ instruct jmpConUCF(cmpOpUCF cop, eFlagsRegUCF cmp, label labl) %{
   ins_cost(200);
   format %{ "J$cop,u  $labl" %}
   size(6);
-  opcode(0x0F, 0x80);
-  ins_encode(Jcc(cop, labl));
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jcc((Assembler::Condition)($cop$$cmpcode), *L, false); // Always long jump
+  %}
   ins_pipe(pipe_jcc);
-  ins_pc_relative(1);
 %}
 
 instruct jmpConUCF2(cmpOpUCF2 cop, eFlagsRegUCF cmp, label labl) %{
@@ -13162,31 +13236,21 @@ instruct jmpConUCF2(cmpOpUCF2 cop, eFlagsRegUCF cmp, label labl) %{
       $$emit$$"done:"
     }
   %}
-  size(12);
-  opcode(0x0F, 0x80);
   ins_encode %{
     Label* l = $labl$$label;
-    $$$emit8$primary;
-    emit_cc(cbuf, $secondary, Assembler::parity);
-    int parity_disp = -1;
-    bool ok = false;
     if ($cop$$cmpcode == Assembler::notEqual) {
-       // the two jumps 6 bytes apart so the jump distances are too
-       parity_disp = l ? (l->loc_pos() - (cbuf.insts_size() + 4)) : 0;
+      __ jcc(Assembler::parity, *l, false);
+      __ jcc(Assembler::notEqual, *l, false);
     } else if ($cop$$cmpcode == Assembler::equal) {
-       parity_disp = 6;
-       ok = true;
+      Label done;
+      __ jccb(Assembler::parity, done);
+      __ jcc(Assembler::equal, *l, false);
+      __ bind(done);
     } else {
        ShouldNotReachHere();
     }
-    emit_d32(cbuf, parity_disp);
-    $$$emit8$primary;
-    emit_cc(cbuf, $secondary, $cop$$cmpcode);
-    int disp = l ? (l->loc_pos() - (cbuf.insts_size() + 4)) : 0;
-    emit_d32(cbuf, disp);
   %}
   ins_pipe(pipe_jcc);
-  ins_pc_relative(1);
 %}
 
 // ============================================================================
@@ -13251,10 +13315,11 @@ instruct jmpDir_short(label labl) %{
   ins_cost(300);
   format %{ "JMP,s  $labl" %}
   size(2);
-  opcode(0xEB);
-  ins_encode( OpcP, LblShort( labl ) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jmpb(*L);
+  %}
   ins_pipe( pipe_jmp );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13266,10 +13331,11 @@ instruct jmpCon_short(cmpOp cop, eFlagsReg cr, label labl) %{
   ins_cost(300);
   format %{ "J$cop,s  $labl" %}
   size(2);
-  opcode(0x70);
-  ins_encode( JccShort( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13281,10 +13347,11 @@ instruct jmpLoopEnd_short(cmpOp cop, eFlagsReg cr, label labl) %{
   ins_cost(300);
   format %{ "J$cop,s  $labl\t# Loop end" %}
   size(2);
-  opcode(0x70);
-  ins_encode( JccShort( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13296,10 +13363,11 @@ instruct jmpLoopEndU_short(cmpOpU cop, eFlagsRegU cmp, label labl) %{
   ins_cost(300);
   format %{ "J$cop,us $labl\t# Loop end" %}
   size(2);
-  opcode(0x70);
-  ins_encode( JccShort( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13310,10 +13378,11 @@ instruct jmpLoopEndUCF_short(cmpOpUCF cop, eFlagsRegUCF cmp, label labl) %{
   ins_cost(300);
   format %{ "J$cop,us $labl\t# Loop end" %}
   size(2);
-  opcode(0x70);
-  ins_encode( JccShort( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13325,10 +13394,11 @@ instruct jmpConU_short(cmpOpU cop, eFlagsRegU cmp, label labl) %{
   ins_cost(300);
   format %{ "J$cop,us $labl" %}
   size(2);
-  opcode(0x70);
-  ins_encode( JccShort( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13339,10 +13409,11 @@ instruct jmpConUCF_short(cmpOpUCF cop, eFlagsRegUCF cmp, label labl) %{
   ins_cost(300);
   format %{ "J$cop,us $labl" %}
   size(2);
-  opcode(0x70);
-  ins_encode( JccShort( cop, labl) );
+  ins_encode %{
+    Label* L = $labl$$label;
+    __ jccb((Assembler::Condition)($cop$$cmpcode), *L);
+  %}
   ins_pipe( pipe_jcc );
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13362,27 +13433,21 @@ instruct jmpConUCF2_short(cmpOpUCF2 cop, eFlagsRegUCF cmp, label labl) %{
     }
   %}
   size(4);
-  opcode(0x70);
   ins_encode %{
     Label* l = $labl$$label;
-    emit_cc(cbuf, $primary, Assembler::parity);
-    int parity_disp = -1;
     if ($cop$$cmpcode == Assembler::notEqual) {
-      parity_disp = l ? (l->loc_pos() - (cbuf.insts_size() + 1)) : 0;
+      __ jccb(Assembler::parity, *l);
+      __ jccb(Assembler::notEqual, *l);
     } else if ($cop$$cmpcode == Assembler::equal) {
-      parity_disp = 2;
+      Label done;
+      __ jccb(Assembler::parity, done);
+      __ jccb(Assembler::equal, *l);
+      __ bind(done);
     } else {
-      ShouldNotReachHere();
+       ShouldNotReachHere();
     }
-    emit_d8(cbuf, parity_disp);
-    emit_cc(cbuf, $primary, $cop$$cmpcode);
-    int disp = l ? (l->loc_pos() - (cbuf.insts_size() + 1)) : 0;
-    emit_d8(cbuf, disp);
-    assert(-128 <= disp && disp <= 127, "Displacement too large for short jmp");
-    assert(-128 <= parity_disp && parity_disp <= 127, "Displacement too large for short jmp");
   %}
   ins_pipe(pipe_jcc);
-  ins_pc_relative(1);
   ins_short_branch(1);
 %}
 
@@ -13855,7 +13920,6 @@ instruct CallStaticJavaDirect(method meth) %{
               call_epilog,
               post_call_FPU );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
   ins_alignment(4);
 %}
 
@@ -13879,7 +13943,6 @@ instruct CallStaticJavaHandle(method meth, eBPRegP ebp_mh_SP_save) %{
               call_epilog,
               post_call_FPU );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
   ins_alignment(4);
 %}
 
@@ -13899,7 +13962,6 @@ instruct CallDynamicJavaDirect(method meth) %{
               call_epilog,
               post_call_FPU );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
   ins_alignment(4);
 %}
 
@@ -13917,7 +13979,6 @@ instruct CallRuntimeDirect(method meth) %{
               Java_To_Runtime( meth ),
               post_call_FPU );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
 %}
 
 // Call runtime without safepoint
@@ -13933,7 +13994,6 @@ instruct CallLeafDirect(method meth) %{
               Java_To_Runtime( meth ),
               Verify_FPU_For_Leaf, post_call_FPU );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
 %}
 
 instruct CallLeafNoFPDirect(method meth) %{
@@ -13945,7 +14005,6 @@ instruct CallLeafNoFPDirect(method meth) %{
   opcode(0xE8); /* E8 cd */
   ins_encode(Java_To_Runtime(meth));
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
 %}
 
 
@@ -14024,7 +14083,6 @@ instruct cmpFastLock( eFlagsReg cr, eRegP object, eRegP box, eAXRegI tmp, eRegP 
   format %{ "FASTLOCK $object, $box KILLS $tmp,$scr" %}
   ins_encode( Fast_Lock(object,box,tmp,scr) );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
 %}
 
 instruct cmpFastUnlock( eFlagsReg cr, eRegP object, eAXRegP box, eRegP tmp ) %{
@@ -14034,7 +14092,6 @@ instruct cmpFastUnlock( eFlagsReg cr, eRegP object, eAXRegP box, eRegP tmp ) %{
   format %{ "FASTUNLOCK $object, $box, $tmp" %}
   ins_encode( Fast_Unlock(object,box,tmp) );
   ins_pipe( pipe_slow );
-  ins_pc_relative(1);
 %}
 
 

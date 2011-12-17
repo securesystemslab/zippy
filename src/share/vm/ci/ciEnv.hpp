@@ -157,7 +157,8 @@ private:
                                       int method_index, Bytecodes::Code bc,
                                       ciInstanceKlass* loading_klass);
   ciMethod*  get_fake_invokedynamic_method_impl(constantPoolHandle cpool,
-                                                int index, Bytecodes::Code bc);
+                                                int index, Bytecodes::Code bc,
+                                                ciInstanceKlass* accessor);
 
   // Helper methods
   bool       check_klass_accessibility(ciKlass* accessing_klass,
@@ -198,13 +199,14 @@ private:
   // the result.
   ciMethod* get_unloaded_method(ciInstanceKlass* holder,
                                 ciSymbol*        name,
-                                ciSymbol*        signature) {
-    return _factory->get_unloaded_method(holder, name, signature);
+                                ciSymbol*        signature,
+                                ciInstanceKlass* accessor) {
+    return _factory->get_unloaded_method(holder, name, signature, accessor);
   }
 
   // Get a ciKlass representing an unloaded klass.
   // Ensures uniqueness of the result.
-  ciKlass* get_unloaded_klass(ciKlass* accessing_klass,
+  ciKlass* get_unloaded_klass(ciKlass*  accessing_klass,
                               ciSymbol* name) {
     return _factory->get_unloaded_klass(accessing_klass, name, true);
   }
@@ -230,7 +232,7 @@ private:
 
   // See if we already have an unloaded klass for the given name
   // or return NULL if not.
-  ciKlass *check_get_unloaded_klass(ciKlass* accessing_klass, ciSymbol* name) {
+  ciKlass *check_get_unloaded_klass(ciKlass*  accessing_klass, ciSymbol* name) {
     return _factory->get_unloaded_klass(accessing_klass, name, false);
   }
 
@@ -253,9 +255,9 @@ private:
   // Is this thread currently in the VM state?
   static bool is_in_vm();
 
-  // Helper routine for determining the validity of a compilation
-  // with respect to concurrent class loading.
-  void check_for_system_dictionary_modification(ciMethod* target);
+  // Helper routine for determining the validity of a compilation with
+  // respect to method dependencies (e.g. concurrent class loading).
+  void validate_compile_task_dependencies(ciMethod* target);
 
 public:
   enum {
@@ -323,9 +325,7 @@ public:
                        ImplicitExceptionTable*   inc_table,
                        AbstractCompiler*         compiler,
                        int                       comp_level,
-                       bool                      has_debug_info = true,
-                       bool                      has_unsafe_access = false,
-                       bool                      install_code = true);
+                       bool                      has_unsafe_access);
 
 
   // Access to certain well known ciObjects.

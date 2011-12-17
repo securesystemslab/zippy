@@ -104,8 +104,6 @@ public:
   void scanRS(OopsInHeapRegionClosure* oc, int worker_i);
   void updateRS(DirtyCardQueue* into_cset_dcq, int worker_i);
 
-  HeapRegion* calculateStartRegion(int i);
-
   CardTableModRefBS* ct_bs() { return _ct_bs; }
   size_t cardsScanned() { return _total_cards_scanned; }
 
@@ -141,8 +139,6 @@ public:
   // Prepare remembered set for verification.
   virtual void prepare_for_verify();
 };
-
-#define G1_REM_SET_LOGGING 0
 
 class CountNonCleanMemRegionClosure: public MemRegionClosure {
   G1CollectedHeap* _g1;

@@ -44,6 +44,9 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "thread_windows.inline.hpp"
 #endif
+#ifdef TARGET_OS_FAMILY_bsd
+# include "thread_bsd.inline.hpp"
+#endif
 #ifndef SERIALGC
 #include "gc_implementation/parNew/parOopClosures.inline.hpp"
 #include "gc_implementation/parallelScavenge/psPromotionManager.inline.hpp"
@@ -529,7 +532,7 @@ void constantPoolKlass::preload_and_initialize_all_classes(oop obj, TRAPS) {
     if (cp->tag_at(i).is_unresolved_klass()) {
       // This will force loading of the class
       klassOop klass = cp->klass_at(i, CHECK);
-      if (klass->is_instance()) {
+      if (klass->klass_part()->oop_is_instance()) {
         // Force initialization of class
         instanceKlass::cast(klass)->initialize(CHECK);
       }

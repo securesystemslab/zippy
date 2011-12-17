@@ -103,7 +103,7 @@ Deoptimization::UnrollBlock::UnrollBlock(int  size_of_deoptimized_frame,
   _frame_pcs                 = frame_pcs;
   _register_block            = NEW_C_HEAP_ARRAY(intptr_t, RegisterMap::reg_count * 2);
   _return_type               = return_type;
-  _initial_fp                = 0;
+  _initial_info              = 0;
   // PD (x86 only)
   _counter_temp              = 0;
   _unpack_kind               = 0;
@@ -366,8 +366,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   intptr_t* frame_sizes = NEW_C_HEAP_ARRAY(intptr_t, number_of_frames);
   // +1 because we always have an interpreter return address for the final slot.
   address* frame_pcs = NEW_C_HEAP_ARRAY(address, number_of_frames + 1);
-  int callee_parameters = 0;
-  int callee_locals = 0;
   int popframe_extra_args = 0;
   // Create an interpreter return address for the stub to use as its return
   // address so the skeletal frames are perfectly walkable
@@ -391,14 +389,16 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // handles are used.  If the caller is interpreted get the real
   // value so that the proper amount of space can be added to it's
   // frame.
-  int caller_actual_parameters = callee_parameters;
+  bool caller_was_method_handle = false;
   if (deopt_sender.is_interpreted_frame()) {
     methodHandle method = deopt_sender.interpreter_frame_method();
-    Bytecode_invoke cur = Bytecode_invoke_check(method,
-                                                deopt_sender.interpreter_frame_bci());
-    Symbol* signature = method->constants()->signature_ref_at(cur.index());
-    ArgumentSizeComputer asc(signature);
-    caller_actual_parameters = asc.size() + (cur.has_receiver() ? 1 : 0);
+    Bytecode_invoke cur = Bytecode_invoke_check(method, deopt_sender.interpreter_frame_bci());
+    if (cur.is_method_handle_invoke()) {
+      // Method handle invokes may involve fairly arbitrary chains of
+      // calls so it's impossible to know how much actual space the
+      // caller has for locals.
+      caller_was_method_handle = true;
+    }
   }
 
   //
@@ -415,14 +415,15 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // in the frame_sizes/frame_pcs so the assembly code can do a trivial walk.
   // so things look a little strange in this loop.
   //
+  int callee_parameters = 0;
+  int callee_locals = 0;
   for (int index = 0; index < array->frames(); index++ ) {
     // frame[number_of_frames - 1 ] = on_stack_size(youngest)
     // frame[number_of_frames - 2 ] = on_stack_size(sender(youngest))
     // frame[number_of_frames - 3 ] = on_stack_size(sender(sender(youngest)))
     int caller_parms = callee_parameters;
-    if (index == array->frames() - 1) {
-      // Use the value from the interpreted caller
-      caller_parms = caller_actual_parameters;
+    if ((index == array->frames() - 1) && caller_was_method_handle) {
+      caller_parms = 0;
     }
     frame_sizes[number_of_frames - 1 - index] = BytesPerWord * array->element(index)->on_stack_size(caller_parms,
                                                                                                     callee_parameters,
@@ -464,13 +465,13 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // QQQ I'd rather see this pushed down into last_frame_adjust
   // and have it take the sender (aka caller).
 
-  if (deopt_sender.is_compiled_frame()) {
+  if (deopt_sender.is_compiled_frame() || caller_was_method_handle) {
     caller_adjustment = last_frame_adjust(0, callee_locals);
-  } else if (callee_locals > caller_actual_parameters) {
+  } else if (callee_locals > callee_parameters) {
     // The caller frame may need extending to accommodate
     // non-parameter locals of the first unpacked interpreted frame.
     // Compute that adjustment.
-    caller_adjustment = last_frame_adjust(caller_actual_parameters, callee_locals);
+    caller_adjustment = last_frame_adjust(callee_parameters, callee_locals);
   }
 
   // If the sender is deoptimized the we must retrieve the address of the handler
@@ -485,14 +486,15 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 
   UnrollBlock* info = new UnrollBlock(array->frame_size() * BytesPerWord,
                                       caller_adjustment * BytesPerWord,
-                                      caller_actual_parameters,
+                                      caller_was_method_handle ? 0 : callee_parameters,
                                       number_of_frames,
                                       frame_sizes,
                                       frame_pcs,
                                       return_type);
-  // On some platforms, we need a way to pass fp to the unpacking code
-  // so the skeletal frames come out correct.
-  info->set_initial_fp((intptr_t) array->sender().fp());
+  // On some platforms, we need a way to pass some platform dependent
+  // information to the unpacking code so the skeletal frames come out
+  // correct (initial fp value, unextended sp, ...)
+  info->set_initial_info((intptr_t) array->sender().initial_deoptimization_info());
 
   if (array->frames() > 1) {
     if (VerifyStack && TraceDeoptimization) {

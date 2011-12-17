@@ -45,6 +45,9 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/ad_arm.hpp"
 #endif
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "adfiles/ad_ppc.hpp"
+#endif
 
 // Optimization - Graph Style
 
@@ -322,7 +325,7 @@ void Block::implicit_null_check(PhaseCFG *cfg, Node *proj, Node *val, int allowe
       // that also need to be hoisted.
       for (DUIterator_Fast jmax, j = val->fast_outs(jmax); j < jmax; j++) {
         Node* n = val->fast_out(j);
-        if( n->Opcode() == Op_MachProj ) {
+        if( n->is_MachProj() ) {
           cfg->_bbs[n->_idx]->find_remove(n);
           this->add_inst(n);
           cfg->_bbs.map(n->_idx,this);
@@ -344,7 +347,7 @@ void Block::implicit_null_check(PhaseCFG *cfg, Node *proj, Node *val, int allowe
   // Should be DU safe because no edge updates.
   for (DUIterator_Fast jmax, j = best->fast_outs(jmax); j < jmax; j++) {
     Node* n = best->fast_out(j);
-    if( n->Opcode() == Op_MachProj ) {
+    if( n->is_MachProj() ) {
       cfg->_bbs[n->_idx]->find_remove(n);
       add_inst(n);
       cfg->_bbs.map(n->_idx,this);
@@ -536,7 +539,7 @@ void Block::needed_for_next_call(Node *this_call, VectorSet &next_call, Block_Ar
     Node* m = this_call->fast_out(i);
     if( bbs[m->_idx] == this && // Local-block user
         m != this_call &&       // Not self-start node
-        m->is_Call() )
+        m->is_MachCall() )
       call = m;
       break;
   }
@@ -544,6 +547,22 @@ void Block::needed_for_next_call(Node *this_call, VectorSet &next_call, Block_Ar
   // Set next-call for all inputs to this call
   set_next_call(call, next_call, bbs);
 }
+
+//------------------------------add_call_kills-------------------------------------
+void Block::add_call_kills(MachProjNode *proj, RegMask& regs, const char* save_policy, bool exclude_soe) {
+  // Fill in the kill mask for the call
+  for( OptoReg::Name r = OptoReg::Name(0); r < _last_Mach_Reg; r=OptoReg::add(r,1) ) {
+    if( !regs.Member(r) ) {     // Not already defined by the call
+      // Save-on-call register?
+      if ((save_policy[r] == 'C') ||
+          (save_policy[r] == 'A') ||
+          ((save_policy[r] == 'E') && exclude_soe)) {
+        proj->_rout.Insert(r);
+      }
+    }
+  }
+}
+
 
 //------------------------------sched_call-------------------------------------
 uint Block::sched_call( Matcher &matcher, Block_Array &bbs, uint node_cnt, Node_List &worklist, int *ready_cnt, MachCallNode *mcall, VectorSet &next_call ) {
@@ -554,7 +573,7 @@ uint Block::sched_call( Matcher &matcher, Block_Array &bbs, uint node_cnt, Node_
   // Collect all the defined registers.
   for (DUIterator_Fast imax, i = mcall->fast_outs(imax); i < imax; i++) {
     Node* n = mcall->fast_out(i);
-    assert( n->Opcode()==Op_MachProj, "" );
+    assert( n->is_MachProj(), "" );
     --ready_cnt[n->_idx];
     assert( !ready_cnt[n->_idx], "" );
     // Schedule next to call
@@ -628,17 +647,7 @@ uint Block::sched_call( Matcher &matcher, Block_Array &bbs, uint node_cnt, Node_
       proj->_rout.OR(Matcher::method_handle_invoke_SP_save_mask());
   }
 
-  // Fill in the kill mask for the call
-  for( OptoReg::Name r = OptoReg::Name(0); r < _last_Mach_Reg; r=OptoReg::add(r,1) ) {
-    if( !regs.Member(r) ) {     // Not already defined by the call
-      // Save-on-call register?
-      if ((save_policy[r] == 'C') ||
-          (save_policy[r] == 'A') ||
-          ((save_policy[r] == 'E') && exclude_soe)) {
-        proj->_rout.Insert(r);
-      }
-    }
-  }
+  add_call_kills(proj, regs, save_policy, exclude_soe);
 
   return node_cnt;
 }
@@ -773,6 +782,7 @@ bool Block::schedule_local(PhaseCFG *cfg, Matcher &matcher, int *ready_cnt, Vect
     }
 #endif
 
+  uint max_idx = matcher.C->unique();
   // Pull from worklist and schedule
   while( worklist.size() ) {    // Worklist is not ready
 
@@ -812,11 +822,28 @@ bool Block::schedule_local(PhaseCFG *cfg, Matcher &matcher, int *ready_cnt, Vect
       phi_cnt = sched_call(matcher, cfg->_bbs, phi_cnt, worklist, ready_cnt, mcall, next_call);
       continue;
     }
+
+    if (n->is_Mach() && n->as_Mach()->has_call()) {
+      RegMask regs;
+      regs.Insert(matcher.c_frame_pointer());
+      regs.OR(n->out_RegMask());
+
+      MachProjNode *proj = new (matcher.C, 1) MachProjNode( n, 1, RegMask::Empty, MachProjNode::fat_proj );
+      cfg->_bbs.map(proj->_idx,this);
+      _nodes.insert(phi_cnt++, proj);
+
+      add_call_kills(proj, regs, matcher._c_reg_save_policy, false);
+    }
+
     // Children are now all ready
     for (DUIterator_Fast i5max, i5 = n->fast_outs(i5max); i5 < i5max; i5++) {
       Node* m = n->fast_out(i5); // Get user
       if( cfg->_bbs[m->_idx] != this ) continue;
       if( m->is_Phi() ) continue;
+      if (m->_idx > max_idx) { // new node, skip it
+        assert(m->is_MachProj() && n->is_Mach() && n->as_Mach()->has_call(), "unexpected node types");
+        continue;
+      }
       if( !--ready_cnt[m->_idx] )
         worklist.push(m);
     }
@@ -972,8 +999,8 @@ void Block::call_catch_cleanup(Block_Array &bbs) {
   if( !_nodes[end]->is_Catch() ) return;
   // Start of region to clone
   uint beg = end;
-  while( _nodes[beg-1]->Opcode() != Op_MachProj ||
-        !_nodes[beg-1]->in(0)->is_Call() ) {
+  while(!_nodes[beg-1]->is_MachProj() ||
+        !_nodes[beg-1]->in(0)->is_MachCall() ) {
     beg--;
     assert(beg > 0,"Catch cleanup walking beyond block boundary");
   }

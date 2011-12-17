@@ -1339,9 +1339,8 @@ void Assembler::incl(Address dst) {
   emit_operand(rax, dst);
 }
 
-void Assembler::jcc(Condition cc, Label& L, relocInfo::relocType rtype) {
+void Assembler::jcc(Condition cc, Label& L, bool maybe_short) {
   InstructionMark im(this);
-  relocate(rtype);
   assert((0 <= cc) && (cc < 16), "illegal cc");
   if (L.is_bound()) {
     address dst = target(L);
@@ -1350,7 +1349,7 @@ void Assembler::jcc(Condition cc, Label& L, relocInfo::relocType rtype) {
     const int short_size = 2;
     const int long_size = 6;
     intptr_t offs = (intptr_t)dst - (intptr_t)_code_pos;
-    if (rtype == relocInfo::none && is8bit(offs - short_size)) {
+    if (maybe_short && is8bit(offs - short_size)) {
       // 0111 tttn #8-bit disp
       emit_byte(0x70 | cc);
       emit_byte((offs - short_size) & 0xFF);
@@ -1399,7 +1398,7 @@ void Assembler::jmp(Address adr) {
   emit_operand(rsp, adr);
 }
 
-void Assembler::jmp(Label& L, relocInfo::relocType rtype) {
+void Assembler::jmp(Label& L, bool maybe_short) {
   if (L.is_bound()) {
     address entry = target(L);
     assert(entry != NULL, "jmp most probably wrong");
@@ -1407,7 +1406,7 @@ void Assembler::jmp(Label& L, relocInfo::relocType rtype) {
     const int short_size = 2;
     const int long_size = 5;
     intptr_t offs = entry - _code_pos;
-    if (rtype == relocInfo::none && is8bit(offs - short_size)) {
+    if (maybe_short && is8bit(offs - short_size)) {
       emit_byte(0xEB);
       emit_byte((offs - short_size) & 0xFF);
     } else {
@@ -1420,7 +1419,6 @@ void Assembler::jmp(Label& L, relocInfo::relocType rtype) {
     // the forward jump will not run beyond 256 bytes, use jmpb to
     // force an 8-bit displacement.
     InstructionMark im(this);
-    relocate(rtype);
     L.add_patch_at(code(), locator());
     emit_byte(0xE9);
     emit_long(0);
@@ -2309,7 +2307,7 @@ void Assembler::prefetch_prefix(Address src) {
 }
 
 void Assembler::prefetchnta(Address src) {
-  NOT_LP64(assert(VM_Version::supports_sse2(), "must support"));
+  NOT_LP64(assert(VM_Version::supports_sse(), "must support"));
   InstructionMark im(this);
   prefetch_prefix(src);
   emit_byte(0x18);
@@ -2317,7 +2315,7 @@ void Assembler::prefetchnta(Address src) {
 }
 
 void Assembler::prefetchr(Address src) {
-  NOT_LP64(assert(VM_Version::supports_3dnow_prefetch(), "must support"));
+  assert(VM_Version::supports_3dnow_prefetch(), "must support");
   InstructionMark im(this);
   prefetch_prefix(src);
   emit_byte(0x0D);
@@ -2349,7 +2347,7 @@ void Assembler::prefetcht2(Address src) {
 }
 
 void Assembler::prefetchw(Address src) {
-  NOT_LP64(assert(VM_Version::supports_3dnow_prefetch(), "must support"));
+  assert(VM_Version::supports_3dnow_prefetch(), "must support");
   InstructionMark im(this);
   prefetch_prefix(src);
   emit_byte(0x0D);
@@ -3537,7 +3535,8 @@ bool Assembler::reachable(AddressLiteral adr) {
 // addressing.
 bool Assembler::is_polling_page_far() {
   intptr_t addr = (intptr_t)os::get_polling_page();
-  return !is_simm32(addr - (intptr_t)CodeCache::low_bound()) ||
+  return ForceUnreachable ||
+         !is_simm32(addr - (intptr_t)CodeCache::low_bound()) ||
          !is_simm32(addr - (intptr_t)CodeCache::high_bound());
 }
 
@@ -3674,7 +3673,7 @@ void Assembler::prefix(Address adr, Register reg, bool byteinst) {
     } else {
       if (adr.index_needs_rex()) {
         prefix(REX_X);
-      } else if (reg->encoding() >= 4 ) {
+      } else if (byteinst && reg->encoding() >= 4 ) {
         prefix(REX);
       }
     }
@@ -8006,15 +8005,10 @@ void MacroAssembler::load_method_handle_vmslots(Register vmslots_reg, Register m
                                                 Register temp_reg) {
   assert_different_registers(vmslots_reg, mh_reg, temp_reg);
   // load mh.type.form.vmslots
-  if (java_lang_invoke_MethodHandle::vmslots_offset_in_bytes() != 0) {
-    // hoist vmslots into every mh to avoid dependent load chain
-    movl(vmslots_reg, Address(mh_reg, delayed_value(java_lang_invoke_MethodHandle::vmslots_offset_in_bytes, temp_reg)));
-  } else {
-    Register temp2_reg = vmslots_reg;
-    load_heap_oop(temp2_reg, Address(mh_reg,    delayed_value(java_lang_invoke_MethodHandle::type_offset_in_bytes, temp_reg)));
-    load_heap_oop(temp2_reg, Address(temp2_reg, delayed_value(java_lang_invoke_MethodType::form_offset_in_bytes, temp_reg)));
-    movl(vmslots_reg, Address(temp2_reg, delayed_value(java_lang_invoke_MethodTypeForm::vmslots_offset_in_bytes, temp_reg)));
-  }
+  Register temp2_reg = vmslots_reg;
+  load_heap_oop(temp2_reg, Address(mh_reg,    delayed_value(java_lang_invoke_MethodHandle::type_offset_in_bytes, temp_reg)));
+  load_heap_oop(temp2_reg, Address(temp2_reg, delayed_value(java_lang_invoke_MethodType::form_offset_in_bytes, temp_reg)));
+  movl(vmslots_reg, Address(temp2_reg, delayed_value(java_lang_invoke_MethodTypeForm::vmslots_offset_in_bytes, temp_reg)));
 }
 
 

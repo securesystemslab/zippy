@@ -221,6 +221,10 @@ class frame VALUE_OBJ_CLASS_SPEC {
   // returns the stack pointer of the calling frame
   intptr_t* sender_sp() const;
 
+  // Deoptimization info, if needed (platform dependent).
+  // Stored in the initial_info field of the unroll info, to be used by
+  // the platform dependent deoptimization blobs.
+  intptr_t *initial_deoptimization_info();
 
   // Interpreter frames:
 
@@ -512,7 +516,7 @@ class FrameValues {
   void describe(int owner, intptr_t* location, const char* description, int priority = 0);
 
   void validate();
-  void print();
+  void print(JavaThread* thread);
 };
 
 #endif

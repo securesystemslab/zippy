@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -93,7 +93,7 @@ class CollectedHeap : public CHeapObj {
   // pure virtual.
   void pre_initialize();
 
-  // Create a new tlab
+  // Create a new tlab. All TLAB allocations must go through this.
   virtual HeapWord* allocate_new_tlab(size_t size);
 
   // Accumulate statistics on all tlabs.
@@ -109,11 +109,11 @@ class CollectedHeap : public CHeapObj {
 
   // Allocate an uninitialized block of the given size, or returns NULL if
   // this is impossible.
-  inline static HeapWord* common_mem_allocate_noinit(size_t size, bool is_noref, TRAPS);
+  inline static HeapWord* common_mem_allocate_noinit(size_t size, TRAPS);
 
   // Like allocate_init, but the block returned by a successful allocation
   // is guaranteed initialized to zeros.
-  inline static HeapWord* common_mem_allocate_init(size_t size, bool is_noref, TRAPS);
+  inline static HeapWord* common_mem_allocate_init(size_t size, TRAPS);
 
   // Same as common_mem version, except memory is allocated in the permanent area
   // If there is no permanent area, revert to common_mem_allocate_noinit
@@ -319,10 +319,13 @@ class CollectedHeap : public CHeapObj {
   // VM (then terminate).
   virtual void preload_and_dump(TRAPS) { ShouldNotReachHere(); }
 
+  // Allocate and initialize instances of Class
+  static oop Class_obj_allocate(KlassHandle klass, int size, KlassHandle real_klass, TRAPS);
+
   // General obj/array allocation facilities.
   inline static oop obj_allocate(KlassHandle klass, int size, TRAPS);
   inline static oop array_allocate(KlassHandle klass, int size, int length, TRAPS);
-  inline static oop large_typearray_allocate(KlassHandle klass, int size, int length, TRAPS);
+  inline static oop array_allocate_nozero(KlassHandle klass, int size, int length, TRAPS);
 
   // Special obj/array allocation facilities.
   // Some heaps may want to manage "permanent" data uniquely. These default
@@ -345,15 +348,11 @@ class CollectedHeap : public CHeapObj {
   // Raw memory allocation facilities
   // The obj and array allocate methods are covers for these methods.
   // The permanent allocation method should default to mem_allocate if
-  // permanent memory isn't supported.
+  // permanent memory isn't supported. mem_allocate() should never be
+  // called to allocate TLABs, only individual objects.
   virtual HeapWord* mem_allocate(size_t size,
-                                 bool is_noref,
-                                 bool is_tlab,
                                  bool* gc_overhead_limit_was_exceeded) = 0;
   virtual HeapWord* permanent_mem_allocate(size_t size) = 0;
-
-  // The boundary between a "large" and "small" array of primitives, in words.
-  virtual size_t large_typearray_limit() = 0;
 
   // Utilities for turning raw memory into filler objects.
   //
@@ -591,13 +590,27 @@ class CollectedHeap : public CHeapObj {
   void pre_full_gc_dump();
   void post_full_gc_dump();
 
-  virtual void print() const = 0;
+  // Print heap information on the given outputStream.
   virtual void print_on(outputStream* st) const = 0;
+  // The default behavior is to call print_on() on tty.
+  virtual void print() const {
+    print_on(tty);
+  }
+  // Print more detailed heap information on the given
+  // outputStream. The default behaviour is to call print_on(). It is
+  // up to each subclass to override it and add any additional output
+  // it needs.
+  virtual void print_extended_on(outputStream* st) const {
+    print_on(st);
+  }
 
   // Print all GC threads (other than the VM thread)
   // used by this heap.
   virtual void print_gc_threads_on(outputStream* st) const = 0;
-  void print_gc_threads() { print_gc_threads_on(tty); }
+  // The default behavior is to call print_gc_threads_on() on tty.
+  void print_gc_threads() {
+    print_gc_threads_on(tty);
+  }
   // Iterator for all GC threads (other than VM thread)
   virtual void gc_threads_do(ThreadClosure* tc) const = 0;
 
@@ -606,7 +619,7 @@ class CollectedHeap : public CHeapObj {
   virtual void print_tracing_info() const = 0;
 
   // Heap verification
-  virtual void verify(bool allow_dirty, bool silent, bool option) = 0;
+  virtual void verify(bool allow_dirty, bool silent, VerifyOption option) = 0;
 
   // Non product verification and debugging.
 #ifndef PRODUCT

@@ -265,6 +265,13 @@ Node *MemNode::Ideal_common(PhaseGVN *phase, bool can_reshape) {
   if( phase->type( mem ) == Type::TOP ) return NodeSentinel; // caller will return NULL
   assert( mem != this, "dead loop in MemNode::Ideal" );
 
+  if (can_reshape && igvn != NULL && igvn->_worklist.member(mem)) {
+    // This memory slice may be dead.
+    // Delay this mem node transformation until the memory is processed.
+    phase->is_IterGVN()->_worklist.push(this);
+    return NodeSentinel; // caller will return NULL
+  }
+
   Node *address = in(MemNode::Address);
   const Type *t_adr = phase->type( address );
   if( t_adr == Type::TOP )              return NodeSentinel; // caller will return NULL
@@ -925,8 +932,9 @@ Node* MemNode::can_see_stored_value(Node* st, PhaseTransform* phase) const {
     // a synchronized region.
     while (current->is_Proj()) {
       int opc = current->in(0)->Opcode();
-      if ((final && opc == Op_MemBarAcquire) ||
-          opc == Op_MemBarRelease || opc == Op_MemBarCPUOrder) {
+      if ((final && (opc == Op_MemBarAcquire || opc == Op_MemBarAcquireLock)) ||
+          opc == Op_MemBarRelease || opc == Op_MemBarCPUOrder ||
+          opc == Op_MemBarReleaseLock) {
         Node* mem = current->in(0)->in(TypeFunc::Memory);
         if (mem->is_MergeMem()) {
           MergeMemNode* merge = mem->as_MergeMem();
@@ -1420,6 +1428,12 @@ Node *LoadNode::Ideal(PhaseGVN *phase, bool can_reshape) {
     const TypeOopPtr *t_oop = addr_t->isa_oopptr();
     if (can_reshape && opt_mem->is_Phi() &&
         (t_oop != NULL) && t_oop->is_known_instance_field()) {
+      PhaseIterGVN *igvn = phase->is_IterGVN();
+      if (igvn != NULL && igvn->_worklist.member(opt_mem)) {
+        // Delay this transformation until memory Phi is processed.
+        phase->is_IterGVN()->_worklist.push(this);
+        return NULL;
+      }
       // Split instance field load through Phi.
       Node* result = split_through_phi(phase);
       if (result != NULL) return result;
@@ -1492,6 +1506,7 @@ const Type *LoadNode::Value( PhaseTransform *phase ) const {
   if (tp == NULL || tp->empty())  return Type::TOP;
   int off = tp->offset();
   assert(off != Type::OffsetTop, "case covered by TypePtr::empty");
+  Compile* C = phase->C;
 
   // Try to guess loaded type from pointer type
   if (tp->base() == Type::AryPtr) {
@@ -1535,7 +1550,7 @@ const Type *LoadNode::Value( PhaseTransform *phase ) const {
           Node* base = adr->in(AddPNode::Base);
           if (base != NULL &&
               !phase->type(base)->higher_equal(TypePtr::NULL_PTR)) {
-            Compile::AliasType* atp = phase->C->alias_type(base->adr_type());
+            Compile::AliasType* atp = C->alias_type(base->adr_type());
             if (is_autobox_cache(atp)) {
               return jt->join(TypePtr::NOTNULL)->is_ptr();
             }
@@ -1545,22 +1560,23 @@ const Type *LoadNode::Value( PhaseTransform *phase ) const {
       }
     }
   } else if (tp->base() == Type::InstPtr) {
+    ciEnv* env = C->env();
     const TypeInstPtr* tinst = tp->is_instptr();
     ciKlass* klass = tinst->klass();
     assert( off != Type::OffsetBot ||
             // arrays can be cast to Objects
             tp->is_oopptr()->klass()->is_java_lang_Object() ||
             // unsafe field access may not have a constant offset
-            phase->C->has_unsafe_access(),
+            C->has_unsafe_access(),
             "Field accesses must be precise" );
     // For oop loads, we expect the _type to be precise
-    if (klass == phase->C->env()->String_klass() &&
+    if (klass == env->String_klass() &&
         adr->is_AddP() && off != Type::OffsetBot) {
       // For constant Strings treat the final fields as compile time constants.
       Node* base = adr->in(AddPNode::Base);
       const TypeOopPtr* t = phase->type(base)->isa_oopptr();
       if (t != NULL && t->singleton()) {
-        ciField* field = phase->C->env()->String_klass()->get_field_by_offset(off, false);
+        ciField* field = env->String_klass()->get_field_by_offset(off, false);
         if (field != NULL && field->is_final()) {
           ciObject* string = t->const_oop();
           ciConstant constant = string->as_instance()->field_value(field);
@@ -1572,6 +1588,32 @@ const Type *LoadNode::Value( PhaseTransform *phase ) const {
             } else {
               return TypeOopPtr::make_from_constant(constant.as_object(), true);
             }
+          }
+        }
+      }
+    }
+    // Optimizations for constant objects
+    ciObject* const_oop = tinst->const_oop();
+    if (const_oop != NULL) {
+      // For constant CallSites treat the target field as a compile time constant.
+      if (const_oop->is_call_site()) {
+        ciCallSite* call_site = const_oop->as_call_site();
+        ciField* field = call_site->klass()->as_instance_klass()->get_field_by_offset(off, /*is_static=*/ false);
+        if (field != NULL && field->is_call_site_target()) {
+          ciMethodHandle* target = call_site->get_target();
+          if (target != NULL) {  // just in case
+            ciConstant constant(T_OBJECT, target);
+            const Type* t;
+            if (adr->bottom_type()->is_ptr_to_narrowoop()) {
+              t = TypeNarrowOop::make_from_constant(constant.as_object(), true);
+            } else {
+              t = TypeOopPtr::make_from_constant(constant.as_object(), true);
+            }
+            // Add a dependence for invalidation of the optimization.
+            if (!call_site->is_constant_call_site()) {
+              C->dependencies()->assert_call_site_target_value(call_site, target);
+            }
+            return t;
           }
         }
       }
@@ -2626,6 +2668,8 @@ uint StrIntrinsicNode::match_edge(uint idx) const {
 // control copies
 Node *StrIntrinsicNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   if (remove_dead_region(phase, can_reshape)) return this;
+  // Don't bother trying to transform a dead node
+  if (in(0) && in(0)->is_top())  return NULL;
 
   if (can_reshape) {
     Node* mem = phase->transform(in(MemNode::Memory));
@@ -2638,6 +2682,12 @@ Node *StrIntrinsicNode::Ideal(PhaseGVN *phase, bool can_reshape) {
     }
   }
   return NULL;
+}
+
+//------------------------------Value------------------------------------------
+const Type *StrIntrinsicNode::Value( PhaseTransform *phase ) const {
+  if (in(0) && phase->type(in(0)) == Type::TOP) return Type::TOP;
+  return bottom_type();
 }
 
 //=============================================================================
@@ -2666,6 +2716,8 @@ MemBarNode* MemBarNode::make(Compile* C, int opcode, int atp, Node* pn) {
   switch (opcode) {
   case Op_MemBarAcquire:   return new(C, len) MemBarAcquireNode(C,  atp, pn);
   case Op_MemBarRelease:   return new(C, len) MemBarReleaseNode(C,  atp, pn);
+  case Op_MemBarAcquireLock: return new(C, len) MemBarAcquireLockNode(C,  atp, pn);
+  case Op_MemBarReleaseLock: return new(C, len) MemBarReleaseLockNode(C,  atp, pn);
   case Op_MemBarVolatile:  return new(C, len) MemBarVolatileNode(C, atp, pn);
   case Op_MemBarCPUOrder:  return new(C, len) MemBarCPUOrderNode(C, atp, pn);
   case Op_Initialize:      return new(C, len) InitializeNode(C,     atp, pn);
@@ -2678,6 +2730,8 @@ MemBarNode* MemBarNode::make(Compile* C, int opcode, int atp, Node* pn) {
 // control copies
 Node *MemBarNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   if (remove_dead_region(phase, can_reshape)) return this;
+  // Don't bother trying to transform a dead node
+  if (in(0) && in(0)->is_top())  return NULL;
 
   // Eliminate volatile MemBars for scalar replaced objects.
   if (can_reshape && req() == (Precedent+1) &&
@@ -2816,7 +2870,7 @@ Node *MemBarNode::match( const ProjNode *proj, const Matcher *m ) {
 
 //---------------------------InitializeNode------------------------------------
 InitializeNode::InitializeNode(Compile* C, int adr_type, Node* rawoop)
-  : _is_complete(false),
+  : _is_complete(Incomplete),
     MemBarNode(C, adr_type, rawoop)
 {
   init_class_id(Class_Initialize);
@@ -2854,7 +2908,7 @@ bool InitializeNode::is_non_zero() {
 
 void InitializeNode::set_complete(PhaseGVN* phase) {
   assert(!is_complete(), "caller responsibility");
-  _is_complete = true;
+  _is_complete = Complete;
 
   // After this node is complete, it contains a bunch of
   // raw-memory initializations.  There is no need for

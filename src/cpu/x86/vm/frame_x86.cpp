@@ -232,11 +232,15 @@ bool frame::safe_for_sender(JavaThread *thread) {
 
 
 void frame::patch_pc(Thread* thread, address pc) {
+  address* pc_addr = &(((address*) sp())[-1]);
   if (TracePcPatching) {
-    tty->print_cr("patch_pc at address" INTPTR_FORMAT " [" INTPTR_FORMAT " -> " INTPTR_FORMAT "] ",
-                  &((address *)sp())[-1], ((address *)sp())[-1], pc);
+    tty->print_cr("patch_pc at address " INTPTR_FORMAT " [" INTPTR_FORMAT " -> " INTPTR_FORMAT "]",
+                  pc_addr, *pc_addr, pc);
   }
-  ((address *)sp())[-1] = pc;
+  // Either the return address is the original one or we are going to
+  // patch in the same address that's already there.
+  assert(_pc == *pc_addr || pc == *pc_addr, "must be");
+  *pc_addr = pc;
   _cb = CodeCache::find_blob(pc);
   address original_pc = nmethod::get_deopt_original_pc(this);
   if (original_pc != NULL) {
@@ -666,3 +670,8 @@ void frame::describe_pd(FrameValues& values, int frame_no) {
 
 }
 #endif
+
+intptr_t *frame::initial_deoptimization_info() {
+  // used to reset the saved FP
+  return fp();
+}

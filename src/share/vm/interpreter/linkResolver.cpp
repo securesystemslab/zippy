@@ -52,6 +52,9 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "thread_windows.inline.hpp"
 #endif
+#ifdef TARGET_OS_FAMILY_bsd
+# include "thread_bsd.inline.hpp"
+#endif
 
 //------------------------------------------------------------------------------------------------------------------------
 // Implementation of FieldAccessInfo
@@ -132,7 +135,7 @@ void CallInfo::set_common(KlassHandle resolved_klass, KlassHandle selected_klass
       return;
     }
     CompileBroker::compile_method(selected_method, InvocationEntryBci,
-                                  CompLevel_initial_compile,
+                                  CompilationPolicy::policy()->initial_compile_level(),
                                   methodHandle(), 0, "must_be_compiled", CHECK);
   }
 }

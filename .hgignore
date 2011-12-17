@@ -39,5 +39,4 @@ bin/
 ^src/share/tools/IdealGraphVisualizer/build/
 ^src/share/tools/IdealGraphVisualizer/dist/
 ^.hgtip
-^make/solaris/solaris_amd64_compiler1/
-^RemoteSystemsTempFiles/
+.DS_Store

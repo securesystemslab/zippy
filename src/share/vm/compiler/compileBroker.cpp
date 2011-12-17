@@ -59,6 +59,7 @@
 
 // Only bother with this argument setup if dtrace is available
 
+#ifndef USDT2
 HS_DTRACE_PROBE_DECL8(hotspot, method__compile__begin,
   char*, intptr_t, char*, intptr_t, char*, intptr_t, char*, intptr_t);
 HS_DTRACE_PROBE_DECL9(hotspot, method__compile__end,
@@ -89,6 +90,35 @@ HS_DTRACE_PROBE_DECL9(hotspot, method__compile__end,
       name->bytes(), name->utf8_length(),                                \
       signature->bytes(), signature->utf8_length(), (success));          \
   }
+
+#else /* USDT2 */
+
+#define DTRACE_METHOD_COMPILE_BEGIN_PROBE(compiler, method)              \
+  {                                                                      \
+    char* comp_name = (char*)(compiler)->name();                         \
+    Symbol* klass_name = (method)->klass_name();                         \
+    Symbol* name = (method)->name();                                     \
+    Symbol* signature = (method)->signature();                           \
+    HOTSPOT_METHOD_COMPILE_BEGIN(                                       \
+      comp_name, strlen(comp_name),                                      \
+      (char *) klass_name->bytes(), klass_name->utf8_length(),          \
+      (char *) name->bytes(), name->utf8_length(),                       \
+      (char *) signature->bytes(), signature->utf8_length());            \
+  }
+
+#define DTRACE_METHOD_COMPILE_END_PROBE(compiler, method, success)       \
+  {                                                                      \
+    char* comp_name = (char*)(compiler)->name();                         \
+    Symbol* klass_name = (method)->klass_name();                         \
+    Symbol* name = (method)->name();                                     \
+    Symbol* signature = (method)->signature();                           \
+    HOTSPOT_METHOD_COMPILE_END(                                          \
+      comp_name, strlen(comp_name),                                      \
+      (char *) klass_name->bytes(), klass_name->utf8_length(),           \
+      (char *) name->bytes(), name->utf8_length(),                       \
+      (char *) signature->bytes(), signature->utf8_length(), (success)); \
+  }
+#endif /* USDT2 */
 
 #else //  ndef DTRACE_ENABLED
 
@@ -1756,11 +1786,11 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
       if (PrintCompilation) {
         const char* reason = ci_env.failure_reason();
         if (compilable == ciEnv::MethodCompilable_not_at_tier) {
-            tty->print_cr("%3d   COMPILE SKIPPED: %s (retry at different tier)", compile_id, reason);
+          tty->print_cr("%4d   COMPILE SKIPPED: %s (retry at different tier)", compile_id, reason);
         } else if (compilable == ciEnv::MethodCompilable_never) {
-          tty->print_cr("%3d   COMPILE SKIPPED: %s (not retryable)", compile_id, reason);
+          tty->print_cr("%4d   COMPILE SKIPPED: %s (not retryable)", compile_id, reason);
         } else if (compilable == ciEnv::MethodCompilable) {
-          tty->print_cr("%3d   COMPILE SKIPPED: %s", compile_id, reason);
+          tty->print_cr("%4d   COMPILE SKIPPED: %s", compile_id, reason);
         }
       }
     } else {
@@ -1776,6 +1806,14 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
   DTRACE_METHOD_COMPILE_END_PROBE(compiler(task->comp_level()), method, task->is_success());
 
   collect_statistics(thread, time, task);
+
+  if (PrintCompilation && PrintCompilation2) {
+    tty->print("%7d ", (int) tty->time_stamp().milliseconds());  // print timestamp
+    tty->print("%4d ", compile_id);    // print compilation number
+    tty->print("%s ", (is_osr ? "%" : " "));
+    int code_size = (task->code() == NULL) ? 0 : task->code()->total_size();
+    tty->print_cr("size: %d time: %d inlined: %d bytes", code_size, (int)time.milliseconds(), task->num_inlined_bytecodes());
+  }
 
   if (compilable == ciEnv::MethodCompilable_never) {
     if (is_osr) {

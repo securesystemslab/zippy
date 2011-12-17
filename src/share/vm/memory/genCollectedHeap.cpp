@@ -434,11 +434,9 @@ HeapWord* GenCollectedHeap::attempt_allocation(size_t size,
 }
 
 HeapWord* GenCollectedHeap::mem_allocate(size_t size,
-                                         bool is_large_noref,
-                                         bool is_tlab,
                                          bool* gc_overhead_limit_was_exceeded) {
   return collector_policy()->mem_allocate_work(size,
-                                               is_tlab,
+                                               false /* is_tlab */,
                                                gc_overhead_limit_was_exceeded);
 }
 
@@ -601,8 +599,7 @@ void GenCollectedHeap::do_collection(bool  full,
           // atomic wrt other collectors in this configuration, we
           // are guaranteed to have empty discovered ref lists.
           if (rp->discovery_is_atomic()) {
-            rp->verify_no_references_recorded();
-            rp->enable_discovery();
+            rp->enable_discovery(true /*verify_disabled*/, true /*verify_no_refs*/);
             rp->setup_policy(do_clear_all_soft_refs);
           } else {
             // collect() below will enable discovery as appropriate
@@ -1120,11 +1117,9 @@ size_t GenCollectedHeap::unsafe_max_tlab_alloc(Thread* thr) const {
 
 HeapWord* GenCollectedHeap::allocate_new_tlab(size_t size) {
   bool gc_overhead_limit_was_exceeded;
-  HeapWord* result = mem_allocate(size   /* size */,
-                                  false  /* is_large_noref */,
-                                  true   /* is_tlab */,
-                                  &gc_overhead_limit_was_exceeded);
-  return result;
+  return collector_policy()->mem_allocate_work(size /* size */,
+                                               true /* is_tlab */,
+                                               &gc_overhead_limit_was_exceeded);
 }
 
 // Requires "*prev_ptr" to be non-NULL.  Deletes and a block of minimal size
@@ -1177,10 +1172,6 @@ void GenCollectedHeap::release_scratch() {
   for (int i = 0; i < _n_gens; i++) {
     _gens[i]->reset_scratch();
   }
-}
-
-size_t GenCollectedHeap::large_typearray_limit() {
-  return gen_policy()->large_typearray_limit();
 }
 
 class GenPrepareForVerifyClosure: public GenCollectedHeap::GenClosure {
@@ -1260,7 +1251,7 @@ GCStats* GenCollectedHeap::gc_stats(int level) const {
   return _gens[level]->gc_stats();
 }
 
-void GenCollectedHeap::verify(bool allow_dirty, bool silent, bool option /* ignored */) {
+void GenCollectedHeap::verify(bool allow_dirty, bool silent, VerifyOption option /* ignored */) {
   if (!silent) {
     gclog_or_tty->print("permgen ");
   }
@@ -1277,13 +1268,8 @@ void GenCollectedHeap::verify(bool allow_dirty, bool silent, bool option /* igno
     gclog_or_tty->print("remset ");
   }
   rem_set()->verify();
-  if (!silent) {
-     gclog_or_tty->print("ref_proc ");
-  }
-  ReferenceProcessor::verify();
 }
 
-void GenCollectedHeap::print() const { print_on(tty); }
 void GenCollectedHeap::print_on(outputStream* st) const {
   for (int i = 0; i < _n_gens; i++) {
     _gens[i]->print_on(st);
@@ -1391,6 +1377,10 @@ void GenCollectedHeap::gc_epilogue(bool full) {
   GenGCEpilogueClosure blk(full);
   generation_iterate(&blk, false);  // not old-to-young.
   perm_gen()->gc_epilogue(full);
+
+  if (!CleanChunkPoolAsync) {
+    Chunk::clean_chunk_pool();
+  }
 
   always_do_update_barrier = UseConcMarkSweepGC;
 };

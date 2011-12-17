@@ -44,6 +44,9 @@
 #ifdef TARGET_OS_FAMILY_windows
 # include "c2_globals_windows.hpp"
 #endif
+#ifdef TARGET_OS_FAMILY_bsd
+# include "c2_globals_bsd.hpp"
+#endif
 
 //
 // Defines all globals flags used by the server compiler.
@@ -198,7 +201,7 @@
   diagnostic(bool, UnrollLimitCheck, true,                                  \
           "Additional overflow checks during loop unroll")                  \
                                                                             \
-  product(bool, OptimizeFill, false,                                        \
+  product(bool, OptimizeFill, true,                                         \
           "convert fill/copy loops into intrinsic")                         \
                                                                             \
   develop(bool, TraceOptimizeFill, false,                                   \
@@ -453,10 +456,16 @@
   product(intx, EliminateAllocationArraySizeLimit, 64,                      \
           "Array size (number of elements) limit for scalar replacement")   \
                                                                             \
+  product(bool, OptimizePtrCompare, true,                                   \
+          "Use escape analysis to optimize pointers compare")               \
+                                                                            \
+  notproduct(bool, PrintOptimizePtrCompare, false,                          \
+          "Print information about optimized pointers compare")             \
+                                                                            \
   product(bool, UseOptoBiasInlining, true,                                  \
           "Generate biased locking code in C2 ideal graph")                 \
                                                                             \
-  product(bool, OptimizeStringConcat, false,                                \
+  product(bool, OptimizeStringConcat, true,                                 \
           "Optimize the construction of Strings by StringBuilder")          \
                                                                             \
   notproduct(bool, PrintOptimizeStringConcat, false,                        \

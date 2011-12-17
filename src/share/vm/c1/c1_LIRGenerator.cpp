@@ -429,7 +429,7 @@ CodeEmitInfo* LIRGenerator::state_for(Instruction* x, ValueStack* state, bool ig
         // all locals are dead on exit from the synthetic unlocker
         liveness.clear();
       } else {
-        assert(x->as_MonitorEnter(), "only other case is MonitorEnter");
+        assert(x->as_MonitorEnter() || x->as_ProfileInvoke(), "only other cases are MonitorEnter and ProfileInvoke");
       }
     }
     if (!liveness.is_valid()) {
@@ -2493,7 +2493,7 @@ void LIRGenerator::do_Goto(Goto* x) {
 
     // increment backedge counter if needed
     CodeEmitInfo* info = state_for(x, state);
-    increment_backedge_counter(info, info->stack()->bci());
+    increment_backedge_counter(info, x->profiled_bci());
     CodeEmitInfo* safepoint_info = state_for(x, state);
     __ safepoint(safepoint_poll_register(), safepoint_info);
   }
@@ -2970,8 +2970,8 @@ void LIRGenerator::do_ProfileInvoke(ProfileInvoke* x) {
   // accessors are also always mature.
   if (!x->inlinee()->is_accessor()) {
     CodeEmitInfo* info = state_for(x, x->state(), true);
-    // Increment invocation counter, don't notify the runtime, because we don't inline loops,
-    increment_event_counter_impl(info, x->inlinee(), 0, InvocationEntryBci, false, false);
+    // Notify the runtime very infrequently only to take care of counter overflows
+    increment_event_counter_impl(info, x->inlinee(), (1 << Tier23InlineeNotifyFreqLog) - 1, InvocationEntryBci, false, true);
   }
 }
 
