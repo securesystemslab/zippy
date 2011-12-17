@@ -16,6 +16,7 @@
 \.aux$
 \.pdf$
 \.dot$
+\.pyc$
 ^doc/.*/dot_temp_
 ^doc/doxygen/.*$
 \.orig$
