@@ -471,7 +471,7 @@ void CompilerOracle::parse_from_line(char* line) {
   line += bytes_read;
 
   if (command == UnknownCommand) {
-    tty->print_cr("CompilerOracle: UnknownCommand");
+    tty->print_cr("CompilerOracle: unrecognized line");
     tty->print_cr("  \"%s\"", original_line);
     return;
   }

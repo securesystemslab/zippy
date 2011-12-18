@@ -884,9 +884,6 @@ class CommandLineFlags {
   diagnostic(bool, LogCompilation, false,                                   \
           "Log compilation activity in detail to hotspot.log or LogFile")   \
                                                                             \
-  product(intx, MaxCompilationID, -1,                                       \
-          "All methods with greater compilation ID are skipped")            \
-                                                                            \
   product(bool, PrintCompilation, false,                                    \
           "Print compilations")                                             \
                                                                             \

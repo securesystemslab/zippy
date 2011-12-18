@@ -299,8 +299,6 @@ class CompileBroker: AllStatic {
   static int _sum_nmethod_size;
   static int _sum_nmethod_code_size;
 
-  static bool _poll_java_queue;
-
   static CompilerThread* make_compiler_thread(const char* name, CompileQueue* queue, CompilerCounters* counters, TRAPS);
   static void init_compiler_threads(int c1_compiler_count, int c2_compiler_count);
   static bool compilation_is_complete  (methodHandle method, int osr_bci, int comp_level);
@@ -405,8 +403,6 @@ class CompileBroker: AllStatic {
   static void print_last_compile();
 
   static void print_compiler_threads_on(outputStream* st);
-
-  static void add_method_to_queue(klassOop k, Symbol* name, Symbol* signature);
 };
 
 #endif // SHARE_VM_COMPILER_COMPILEBROKER_HPP

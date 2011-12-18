@@ -37,7 +37,7 @@ define_pd_global(bool, UseTLAB,                      true );
 define_pd_global(bool, ResizeTLAB,                   true );
 define_pd_global(bool, InlineIntrinsics,             true );
 define_pd_global(bool, PreferInterpreterNativeStubs, false);
-define_pd_global(bool, ProfileTraps,                 true );
+define_pd_global(bool, ProfileTraps,                 true );   // changed for GRAAL
 define_pd_global(bool, UseOnStackReplacement,        true );
 define_pd_global(bool, TieredCompilation,            false);
 define_pd_global(intx, CompileThreshold,             4500 );   // changed for GRAAL
@@ -47,7 +47,7 @@ define_pd_global(intx, OnStackReplacePercentage,     933  );
 define_pd_global(intx, FreqInlineSize,               325  );
 define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
 define_pd_global(intx, InitialCodeCacheSize,         4*M);      // changed for GRAAL
-define_pd_global(intx, ReservedCodeCacheSize,        50*M );
+define_pd_global(intx, ReservedCodeCacheSize,        50*M );    // changed for GRAAL
 define_pd_global(bool, ProfileInterpreter,           true );    // changed for GRAAL
 define_pd_global(intx, CodeCacheExpansionSize,       64*K );    // changed for GRAAL
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);        // changed for GRAAL

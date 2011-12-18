@@ -1841,7 +1841,6 @@ void MacroAssembler::_verify_oop_addr(Address addr, const char* msg, const char 
   delayed()->nop();
   // recover frame size
   add(SP, 8*8,SP);
-  BLOCK_COMMENT("} verify_oop");
 }
 
 // side-door communication with signalHandler in os_solaris.cpp

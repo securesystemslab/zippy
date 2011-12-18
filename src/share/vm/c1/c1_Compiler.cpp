@@ -90,7 +90,6 @@ BufferBlob* Compiler::build_buffer_blob() {
 
 
 void Compiler::compile_method(ciEnv* env, ciMethod* method, int entry_bci) {
-  assert(!UseGraal, "c1 called in UseGraal mode!");
   // Allocate buffer blob once at startup since allocation for each
   // compilation seems to be too expensive (at least on Intel win32).
   BufferBlob* buffer_blob = CompilerThread::current()->get_buffer_blob();

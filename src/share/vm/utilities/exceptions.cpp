@@ -95,7 +95,7 @@ bool Exceptions::special_exception(Thread* thread, const char* file, int line, H
 #endif // ASSERT
 
   if (thread->is_VM_thread()
-	  // (tw) May we do this?
+	  // TODO(tw): May we do this?
       /*|| thread->is_Compiler_thread()*/ ) {
     // We do not care what kind of exception we get for the vm-thread or a thread which
     // is compiling.  We just install a dummy exception object
@@ -119,7 +119,7 @@ bool Exceptions::special_exception(Thread* thread, const char* file, int line, S
   }
 
   if (thread->is_VM_thread()
-	  // (tw) May we do this?
+	  // TODO(tw): May we do this?
      /* || thread->is_Compiler_thread()*/ ) {
     // We do not care what kind of exception we get for the vm-thread or a thread which
     // is compiling.  We just install a dummy exception object
