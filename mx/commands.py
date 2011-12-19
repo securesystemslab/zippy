@@ -180,7 +180,12 @@ def build(args):
     
     The optional argument specifies what type of VM to build."""
 
-    mx.build([])
+    build = 'product'
+    if len(args) != 0 and not args[len(args) - 1].startswith('-'):
+        build = args.pop()
+
+    # Call mx.build to compile the Java sources        
+    mx.build(args)
 
     def fix_jvm_cfg(jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
@@ -198,7 +203,7 @@ def build(args):
             with open(jvmCfg, 'a') as f:
                 f.write('-graal KNOWN\n')
 
-    build = 'product' if len(args) == 0 else args[0]
+    
     jdk7 = _jdk7(build, True)
     if build == 'debug':
         build = 'jvmg'
