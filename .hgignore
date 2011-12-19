@@ -4,7 +4,7 @@
 ^dist/
 ^java/
 ^lib/
-^jdk1.7.0/`
+^jdk1.7.0/
 ^java64/
 ^work/
 \.checkstyle$

@@ -122,37 +122,12 @@ def dacapo(args):
         config = benchmarks.get(bm)
         vm(vmOpts + ['Harness'] + config + [bm])
     
-def tests(args):
-    """run a selection of the Maxine JTT tests in Graal"""
-    
-    maxine = mx.check_get_env('MAXINE_HOME')
-    def jtt(name):
-        return join(maxine, 'com.oracle.max.vm', 'test', 'jtt', name)
-    
-    return vm(['-ea', '-esa', '-Xcomp', '-XX:+PrintCompilation', '-XX:CompileOnly=jtt'] + args +
-                       ['-Xbootclasspath/p:' + join(maxine, 'com.oracle.max.vm', 'bin'), 
-                        '-Xbootclasspath/p:' + join(maxine, 'com.oracle.max.base', 'bin'),
-                        'test.com.sun.max.vm.compiler.JavaTester',
-                        '-verbose=1', '-gen-run-scheme=false', '-run-scheme-package=all',
-                        jtt('bytecode'),
-                        jtt('except'), 
-                        jtt('jdk'), 
-                        jtt('hotpath'), 
-                        jtt('jdk'), 
-                        jtt('lang'), 
-                        jtt('loop'), 
-                        jtt('micro'), 
-                        jtt('optimize'), 
-                        jtt('reflect'), 
-                        jtt('threads'), 
-                        jtt('hotspot')])
-
-
 def _download_and_extract_targz_jdk7(url, dst):
     assert url.endswith('.tar.gz')
     dl = join(_graal_home, 'jdk7.tar.gz')
     try:
         if not exists(dl):
+            mx.log('Downloading ' + url)
             mx.download(dl, [url])
         tmp = join(_graal_home, 'tmp')
         if not exists(tmp):
@@ -172,7 +147,7 @@ def _download_and_extract_targz_jdk7(url, dst):
 def _jdk7(build='product', create=False):
     jdk7 = os.environ.get('JDK7')
     if jdk7 is None:
-        jdk7 = join(_graal_home, 'jdk7')
+        jdk7 = join(_graal_home, 'jdk1.7.0')
         if not exists(jdk7):
             # Try to download it
             if mx.get_os() == 'linux':
@@ -200,10 +175,12 @@ def _jdk7(build='product', create=False):
     else:
         mx.abort('Unknown build type: ' + build)
     
-def make(args):
-    """builds the GraalVM binary
+def build(args):
+    """builds the GraalVM binary and compiles the Graal classes
     
     The optional argument specifies what type of VM to build."""
+
+    mx.build([])
 
     def fix_jvm_cfg(jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
@@ -243,14 +220,14 @@ def make(args):
 def vm(args, vm='-graal'):
     """run the GraalVM"""
   
-    build = mx.vmbuild
-    if mx.java_dbg:
+    build = _vmbuild
+    if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
-    os.environ['GRAAL'] = join(mx.check_get_env('GRAAL_HOME'), 'graal')
+    os.environ['GRAAL'] = join(_graal_home, 'graal')
     exe = join(_jdk7(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, vm] + args)
 
-def eclipseprojects(args):
+def ideinit(args):
     """(re)generate Eclipse project configurations
 
     The exit code of this command reflects how many files were updated."""
@@ -407,13 +384,12 @@ def mx_init():
     mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
     mx.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
     commands = {
+        'build': [build, '[product|debug|fastdebug|optimized]'],
         'dacapo': [dacapo, '[benchmark] [VM options]'],
         'example': [example, '[-v] example names...'],
         'clean': [clean, ''],
-        'make': [make, '[product|debug|fastdebug|optimized]'],
-        'tests': [tests, ''],
         'vm': [vm, '[-options] class [args...]'],
-	    'eclipseprojects': [eclipseprojects, ''],
+	    'ideinit': [ideinit, ''],
     }
     mx.commands.update(commands)
 
