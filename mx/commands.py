@@ -35,6 +35,7 @@ _vmbuild = 'product'
 
 def clean(args):
     """cleans the GraalVM source tree"""
+    mx.clean(args)
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
     mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
 
@@ -181,11 +182,11 @@ def build(args):
     The optional argument specifies what type of VM to build."""
 
     build = 'product'
-    if len(args) != 0 and not args[len(args) - 1].startswith('-'):
-        build = args.pop()
+    if len(args) != 0 and not args[0].startswith('-'):
+        build = args.pop(0)
 
     # Call mx.build to compile the Java sources        
-    mx.build(args)
+    mx.build(args + ['--source', '1.7'])
 
     def fix_jvm_cfg(jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
