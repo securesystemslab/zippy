@@ -27,35 +27,37 @@
 # ----------------------------------------------------------------------------------------------------
 
 import os, sys, shutil, tarfile, StringIO
-from os.path import join, exists, dirname, isfile, isdir
+from os.path import join, exists, dirname, isfile, isdir, isabs
+import mx
 
-graal_home = dirname(dirname(__file__))
+_graal_home = dirname(dirname(__file__))
+_vmbuild = 'product'
 
-def clean(env, args):
+def clean(args):
     """cleans the GraalVM source tree"""
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
-    env.run([env.gmake_cmd(), 'clean'], cwd=join(graal_home, 'make'))
+    mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
 
-def example(env, args):
+def example(args):
     """run some or all Graal examples"""
     examples = {
         'safeadd': ['com.oracle.max.graal.examples.safeadd', 'com.oracle.max.graal.examples.safeadd.Main'],
         'vectorlib': ['com.oracle.max.graal.examples.vectorlib', 'com.oracle.max.graal.examples.vectorlib.Main'],
     }
 
-    def run_example(env, verbose, project, mainClass):
-        cp = env.pdb.classpath(project)
+    def run_example(verbose, project, mainClass):
+        cp = mx.classpath(project)
         sharedArgs = ['-Xcomp', '-XX:CompileOnly=Main', mainClass]
         
         res = []
-        env.log("=== Server VM ===")
+        mx.log("=== Server VM ===")
         printArg = '-XX:+PrintCompilation' if verbose else '-XX:-PrintCompilation'
-        res.append(vm(env, ['-cp', cp, printArg] + sharedArgs, vm="-server"))
-        env.log("=== Graal VM ===")
+        res.append(vm(['-cp', cp, printArg] + sharedArgs, vm="-server"))
+        mx.log("=== Graal VM ===")
         printArg = '-G:+PrintCompilation' if verbose else '-G:-PrintCompilation'
-        res.append(vm(env, ['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
-        env.log("=== Graal VM with extensions ===")
-        res.append(vm(env, ['-cp', cp, printArg, '-G:+Extend', '-G:-Inline'] + sharedArgs))
+        res.append(vm(['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
+        mx.log("=== Graal VM with extensions ===")
+        res.append(vm(['-cp', cp, printArg, '-G:+Extend', '-G:-Inline'] + sharedArgs))
         
         if len([x for x in res if x != 0]) != 0:
             return 1
@@ -71,13 +73,13 @@ def example(env, args):
     for a in args:
         config = examples.get(a)
         if config is None:
-            env.log('unknown example: ' + a + '  {available examples = ' + str(examples.keys()) + '}')
+            mx.log('unknown example: ' + a + '  {available examples = ' + str(examples.keys()) + '}')
         else:
-            env.log('--------- ' + a + ' ------------')
+            mx.log('--------- ' + a + ' ------------')
             project, mainClass = config
-            run_example(env, verbose, project, mainClass)
+            run_example(verbose, project, mainClass)
 
-def dacapo(env, args):
+def dacapo(args):
     """run one or all DaCapo benchmarks"""
     
     benchmarks = {
@@ -97,9 +99,9 @@ def dacapo(env, args):
         'xalan': ['-n', '5'],
     }
     
-    dacapo = env.check_get_env('DACAPO_CP')
+    dacapo = mx.check_get_env('DACAPO_CP')
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
-        env.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
+        mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
             
     vmOpts = ['-Xms1g', '-Xmx2g', '-esa', '-cp', dacapo]
 
@@ -109,7 +111,7 @@ def dacapo(env, args):
         del args[0]
         config = benchmarks.get(bm) 
         if (config is None):
-            env.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
+            mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
         runs[bm] = config
     
     if len(runs) == 0:
@@ -118,16 +120,16 @@ def dacapo(env, args):
     vmOpts += args
     for bm in runs:
         config = benchmarks.get(bm)
-        vm(env, vmOpts + ['Harness'] + config + [bm])
+        vm(vmOpts + ['Harness'] + config + [bm])
     
-def tests(env, args):
+def tests(args):
     """run a selection of the Maxine JTT tests in Graal"""
     
-    maxine = env.check_get_env('MAXINE_HOME')
+    maxine = mx.check_get_env('MAXINE_HOME')
     def jtt(name):
         return join(maxine, 'com.oracle.max.vm', 'test', 'jtt', name)
     
-    return vm(env, ['-ea', '-esa', '-Xcomp', '-XX:+PrintCompilation', '-XX:CompileOnly=jtt'] + args +
+    return vm(['-ea', '-esa', '-Xcomp', '-XX:+PrintCompilation', '-XX:CompileOnly=jtt'] + args +
                        ['-Xbootclasspath/p:' + join(maxine, 'com.oracle.max.vm', 'bin'), 
                         '-Xbootclasspath/p:' + join(maxine, 'com.oracle.max.base', 'bin'),
                         'test.com.sun.max.vm.compiler.JavaTester',
@@ -146,42 +148,42 @@ def tests(env, args):
                         jtt('hotspot')])
 
 
-def _download_and_extract_targz_jdk7(env, url, dst):
+def _download_and_extract_targz_jdk7(url, dst):
     assert url.endswith('.tar.gz')
-    dl = join(graal_home, 'jdk7.tar.gz')
+    dl = join(_graal_home, 'jdk7.tar.gz')
     try:
         if not exists(dl):
-            env.download(dl, [url])
-        tmp = join(graal_home, 'tmp')
+            mx.download(dl, [url])
+        tmp = join(_graal_home, 'tmp')
         if not exists(tmp):
             os.mkdir(tmp)
         with tarfile.open(dl, mode='r:gz') as f:
-            env.log('Extracting ' + dl)
+            mx.log('Extracting ' + dl)
             f.extractall(path=tmp)
         jdk = os.listdir(tmp)[0]
         shutil.move(join(tmp, jdk), dst)
         os.rmdir(tmp)
         os.remove(dl)
     except SystemExit:
-        env.abort('Could not download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html.\n' + 
+        mx.abort('Could not download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html.\n' + 
                   'Please do this manually and install it at ' + dst + ' or set the JDK7 environment variable to the install location.')
     
 
-def _jdk7(env, build='product', create=False):
+def _jdk7(build='product', create=False):
     jdk7 = os.environ.get('JDK7')
     if jdk7 is None:
-        jdk7 = join(graal_home, 'jdk7')
+        jdk7 = join(_graal_home, 'jdk7')
         if not exists(jdk7):
             # Try to download it
-            if env.os == 'linux':
-                _download_and_extract_targz_jdk7(env, 'http://download.oracle.com/otn-pub/java/jdk/7u2-b13/jdk-7u2-linux-x64.tar.gz', jdk7)
+            if mx.get_os() == 'linux':
+                _download_and_extract_targz_jdk7('http://download.oracle.com/otn-pub/java/jdk/7u2-b13/jdk-7u2-linux-x64.tar.gz', jdk7)
             else:
-                env.abort('Download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html\n' + 
+                mx.abort('Download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html\n' + 
                           'and install it at ' + jdk7 + ' or set the JDK7 environment variable to the JDK7 install location.')
         
     jre = join(jdk7, 'jre')
     if not exists(jre) or not isdir(jre):
-        env.abort(jdk7 + ' does not appear to be a valid JDK directory ("jre" sub-directory is missing)')
+        mx.abort(jdk7 + ' does not appear to be a valid JDK directory ("jre" sub-directory is missing)')
     
     if build == 'product':
         return jdk7
@@ -189,25 +191,25 @@ def _jdk7(env, build='product', create=False):
         res = join(jdk7, build)
         if not exists(res):
             if not create:
-                env.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
-            env.log('[creating ' + res + '...]')
+                mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
+            mx.log('[creating ' + res + '...]')
             os.mkdir(res)
             for d in ['jre', 'lib', 'bin', 'include']:
                 shutil.copytree(join(jdk7, d), join(res, d))
         return res
     else:
-        env.abort('Unknown build type: ' + build)
+        mx.abort('Unknown build type: ' + build)
     
-def make(env, args):
+def make(args):
     """builds the GraalVM binary
     
     The optional argument specifies what type of VM to build."""
 
-    def fix_jvm_cfg(env, jdk):
+    def fix_jvm_cfg(jdk):
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
         found = False
         if not exists(jvmCfg):
-            env.abort(jvmCfg + ' does not exist')
+            mx.abort(jvmCfg + ' does not exist')
             
         with open(jvmCfg) as f:
             for line in f:
@@ -215,20 +217,20 @@ def make(env, args):
                     found = True
                     break
         if not found:
-            env.log('Appending "-graal KNOWN" to ' + jvmCfg)
+            mx.log('Appending "-graal KNOWN" to ' + jvmCfg)
             with open(jvmCfg, 'a') as f:
                 f.write('-graal KNOWN\n')
 
     build = 'product' if len(args) == 0 else args[0]
-    jdk7 = _jdk7(env, build, True)
+    jdk7 = _jdk7(build, True)
     if build == 'debug':
         build = 'jvmg'
     
-    fix_jvm_cfg(env, jdk7)
+    fix_jvm_cfg(jdk7)
 
     graalVmDir = join(jdk7, 'jre', 'lib', 'amd64', 'graal')
     if not exists(graalVmDir):
-        env.log('Creating Graal directory in JDK7: ' + graalVmDir)
+        mx.log('Creating Graal directory in JDK7: ' + graalVmDir)
         os.makedirs(graalVmDir)
 
     def filterXusage(line):
@@ -236,34 +238,33 @@ def make(env, args):
             sys.stderr.write(line + os.linesep)
             
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk7, INSTALL='y')
-    env.run([env.gmake_cmd(), build + 'graal'], cwd=join(graal_home, 'make'), err=filterXusage)
+    mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
-def vm(env, args, vm='-graal'):
+def vm(args, vm='-graal'):
     """run the GraalVM"""
   
-    build = env.vmbuild
-    if env.java_dbg:
+    build = mx.vmbuild
+    if mx.java_dbg:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
-    os.environ['GRAAL'] = join(env.check_get_env('GRAAL_HOME'), 'graal')
-    exe = join(_jdk7(env, build), 'bin', env.exe_suffix('java'))
-    return env.run([exe, vm] + args)
+    os.environ['GRAAL'] = join(mx.check_get_env('GRAAL_HOME'), 'graal')
+    exe = join(_jdk7(build), 'bin', mx.exe_suffix('java'))
+    return mx.run([exe, vm] + args)
 
-def eclipseprojects(env, args):
+def eclipseprojects(args):
     """(re)generate Eclipse project configurations
 
     The exit code of this command reflects how many files were updated."""
 
+
     def println(out, obj):
         out.write(str(obj) + '\n')
         
-    pdb = env.pdb
-    for p in pdb.projects.values():
+    for p in mx.projects():
         if p.native:
             continue
         
-        d = join(p.baseDir, p.name)
-        if not exists(d):
-            os.makedirs(d)
+        if not exists(p.dir):
+            os.makedirs(p.dir)
 
         changedFiles = 0
 
@@ -272,7 +273,7 @@ def eclipseprojects(env, args):
         println(out, '<?xml version="1.0" encoding="UTF-8"?>')
         println(out, '<classpath>')
         for src in p.srcDirs:
-            srcDir = join(d, src)
+            srcDir = join(p.dir, src)
             if not exists(srcDir):
                 os.mkdir(srcDir)
             println(out, '\t<classpathentry kind="src" path="' + src + '"/>')
@@ -280,7 +281,7 @@ def eclipseprojects(env, args):
         # Every Java program depends on the JRE
         println(out, '\t<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>')
         
-        for dep in p.all_deps([], pdb, True):
+        for dep in p.all_deps([], True):
             if dep == p:
                 continue;
             
@@ -292,7 +293,7 @@ def eclipseprojects(env, args):
                 else:
                     path = dep.path
                     if dep.mustExist:
-                        if os.path.isabs(path):
+                        if isabs(path):
                             println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
                         else:
                             println(out, '\t<classpathentry exported="true" kind="lib" path="/' + path + '"/>')
@@ -302,44 +303,44 @@ def eclipseprojects(env, args):
         println(out, '\t<classpathentry kind="output" path="' + getattr(p, 'eclipse.output', 'bin') + '"/>')
         println(out, '</classpath>')
         
-        if env.update_file(join(p.baseDir, p.name, '.classpath'), out.getvalue()):
+        if mx.update_file(join(p.dir, '.classpath'), out.getvalue()):
             changedFiles += 1
             
         out.close()
 
-        csConfig = join(p.baseDir, p.checkstyleProj, '.checkstyle_checks.xml')
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
         if exists(csConfig):
             out = StringIO.StringIO()
             
-            dotCheckstyle = join(d, ".checkstyle")
+            dotCheckstyle = join(p.dir, ".checkstyle")
             checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
             println(out, '<?xml version="1.0" encoding="UTF-8"?>')
             println(out, '<fileset-config file-format-version="1.2.0" simple-config="true">')
-            println(out, '\t<local-check-config name="Maxine Checks" location="' + checkstyleConfigPath + '" type="project" description="">')
+            println(out, '\t<local-check-config name="Graal Checks" location="' + checkstyleConfigPath + '" type="project" description="">')
             println(out, '\t\t<additional-data name="protect-config-file" value="false"/>')
             println(out, '\t</local-check-config>')
-            println(out, '\t<fileset name="all" enabled="true" check-config-name="Maxine Checks" local="true">')
+            println(out, '\t<fileset name="all" enabled="true" check-config-name="Graal Checks" local="true">')
             println(out, '\t\t<file-match-pattern match-pattern="." include-pattern="true"/>')
             println(out, '\t</fileset>')
             println(out, '\t<filter name="FileTypesFilter" enabled="true">')
             println(out, '\t\t<filter-data value="java"/>')
             println(out, '\t</filter>')
 
-            exclude = join(d, '.checkstyle.exclude')
+            exclude = join(p.dir, '.checkstyle.exclude')
             if exists(exclude):
                 println(out, '\t<filter name="FilesFromPackage" enabled="true">')
                 with open(exclude) as f:
                     for line in f:
                         if not line.startswith('#'):
                             line = line.strip()
-                            exclDir = join(d, line)
+                            exclDir = join(p.dir, line)
                             assert isdir(exclDir), 'excluded source directory listed in ' + exclude + ' does not exist or is not a directory: ' + exclDir
                         println(out, '\t\t<filter-data value="' + line + '"/>')
                 println(out, '\t</filter>')
                         
             println(out, '</fileset-config>')
             
-            if env.update_file(dotCheckstyle, out.getvalue()):
+            if mx.update_file(dotCheckstyle, out.getvalue()):
                 changedFiles += 1
                 
             out.close()
@@ -373,14 +374,14 @@ def eclipseprojects(env, args):
         println(out, '\t</natures>')
         println(out, '</projectDescription>')
         
-        if env.update_file(join(d, '.project'), out.getvalue()):
+        if mx.update_file(join(p.dir, '.project'), out.getvalue()):
             changedFiles += 1
             
         out.close()
 
         out = StringIO.StringIO()
         
-        settingsDir = join(d, ".settings")
+        settingsDir = join(p.dir, ".settings")
         if not exists(settingsDir):
             os.mkdir(settingsDir)
 
@@ -388,23 +389,23 @@ def eclipseprojects(env, args):
         
         with open(join(myDir, 'org.eclipse.jdt.core.prefs')) as f:
             content = f.read()
-        if env.update_file(join(settingsDir, 'org.eclipse.jdt.core.prefs'), content):
+        if mx.update_file(join(settingsDir, 'org.eclipse.jdt.core.prefs'), content):
             changedFiles += 1
             
         with open(join(myDir, 'org.eclipse.jdt.ui.prefs')) as f:
             content = f.read()
-        if env.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content):
+        if mx.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content):
             changedFiles += 1
         
     if changedFiles != 0:
-        env.abort(changedFiles)
+        mx.abort(changedFiles)
 
-def mx_init(env):
-    env.vmbuild = 'product'
-    env.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
-    env.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
-    env.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
-    env.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
+def mx_init():
+    _vmbuild = 'product'
+    mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
+    mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
+    mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
+    mx.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
     commands = {
         'dacapo': [dacapo, '[benchmark] [VM options]'],
         'example': [example, '[-v] example names...'],
@@ -412,6 +413,11 @@ def mx_init(env):
         'make': [make, '[product|debug|fastdebug|optimized]'],
         'tests': [tests, ''],
         'vm': [vm, '[-options] class [args...]'],
-	'eclipseprojects': [eclipseprojects, ''],
+	    'eclipseprojects': [eclipseprojects, ''],
     }
-    env.commands.update(commands)
+    mx.commands.update(commands)
+
+def mx_post_parse_cmd_line(opts):
+    global _vmbuild
+    if not opts.vmbuild is None:
+        _vmbuild = opts.vmbuild
