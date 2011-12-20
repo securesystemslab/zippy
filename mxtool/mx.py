@@ -461,7 +461,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Jp', action='append', dest='java_args_pfx', help='prefix Java VM arguments (e.g. --Jp @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
-        self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>', default=_default_java_home())
+        self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         
     def _parse_cmd_line(self, args=None):
         if args is None:
@@ -470,7 +470,10 @@ class ArgParser(ArgumentParser):
         self.add_argument('commandAndArgs', nargs=REMAINDER, metavar='command args...')
         
         opts = self.parse_args()
-        
+
+        if opts.java_home is None:
+            opts.java_home = os.environ.get('JAVA_HOME')
+
         if opts.java_home is None or opts.java_home == '':
             abort('Could not find Java home. Use --java-home option or ensure JAVA_HOME environment variable is set.')
 
@@ -598,17 +601,6 @@ class JavaConfig:
     def format_cmd(self, args):
         return [self.java] + self.java_args_pfx + self.java_args + self.java_args_sfx + args
     
-def _default_java_home():
-    javaHome = os.getenv('JAVA_HOME')
-    if javaHome is None:
-        if exists('/usr/lib/java/java-6-sun'):
-            javaHome = '/usr/lib/java/java-6-sun'
-        elif exists('/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home'):
-            javaHome = '/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home'
-        elif exists('/usr/jdk/latest'):
-            javaHome = '/usr/jdk/latest'
-    return javaHome
-
 def check_get_env(key):
     """
     Gets an environment variable, aborting with a useful message if it is not set.
