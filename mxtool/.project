@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>mx</name>
+	<name>mxtool</name>
 	<comment></comment>
 	<projects>
-		<project>mxtool</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, tarfile, StringIO
+import os, sys, shutil, StringIO
 from os.path import join, exists, dirname, isfile, isdir, isabs
 import mx
 
