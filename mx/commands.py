@@ -29,6 +29,7 @@
 import os, sys, shutil, tarfile, StringIO
 from os.path import join, exists, dirname, isfile, isdir, isabs
 import mx
+import sanitycheck
 
 _graal_home = dirname(dirname(__file__))
 _vmbuild = 'product'
@@ -82,46 +83,29 @@ def example(args):
 
 def dacapo(args):
     """run one or all DaCapo benchmarks"""
-    
-    benchmarks = {
-        'avrora': ['-n', '5'],
-        'batik': ['-n', '5'],
-        'eclipse': ['-n', '5'],
-        'fop': ['-n', '5'],
-        'h2': ['-n', '5'],
-        'jython': ['-n', '5'],
-        'luindex': ['-n', '5'],
-        'lusearch': ['-n', '5'],
-        'pmd': ['-n', '5'],
-        'sunflow': ['-n', '5'],
-        'tomcat': ['-n', '5'],
-        'tradebeans': ['-n', '5'],
-        'tradesoap': ['-n', '5'],
-        'xalan': ['-n', '5'],
-    }
-    
-    dacapo = mx.check_get_env('DACAPO_CP')
-    if not isfile(dacapo) or not dacapo.endswith('.jar'):
-        mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
-            
-    vmOpts = ['-Xms1g', '-Xmx2g', '-esa', '-cp', dacapo]
-
     runs = dict()    
     while len(args) != 0 and not args[0].startswith('-'):
         bm = args[0]
         del args[0]
-        config = benchmarks.get(bm) 
-        if (config is None):
-            mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks.keys()))
-        runs[bm] = config
+        n = sanitycheck.dacapoSanityWarmup.get(bm)[sanitycheck.SanityCheckLevel.Normal]
+        if (n is None):
+            mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoSanityWarmup.keys()))
+        runs[bm] = n
     
     if len(runs) == 0:
-        runs = benchmarks
-        
-    vmOpts += args
-    for bm in runs:
-        config = benchmarks.get(bm)
-        vm(vmOpts + ['Harness'] + config + [bm])
+        for (key, ns) in sanitycheck.dacapoSanityWarmup.items():
+            runs[key] = ns[sanitycheck.SanityCheckLevel.Normal] 
+
+    for (bench, n) in runs.items():
+        vm(args + sanitycheck.getDacapoCmd(bench, n=n))
+
+def sanitychecks(args):
+    """runs sanity checks"""
+    checks = sanitycheck.getSanityChecks(sanitycheck.SanityCheckLevel.Gate)
+    for check in checks:
+        if not sanitycheck.runSanityCheck(check['cmd'], check['success']):
+            mx.abort("Sanity checks FAILED")
+    mx.log("Sanity checks PASSED")
     
 def _jdk7(build='product', create=False):
     jdk7 = join(_graal_home, 'jdk1.7.0')
@@ -200,7 +184,7 @@ def build(args):
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk7, INSTALL='y')
     mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
-def vm(args, vm='-graal'):
+def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None):
     """run the GraalVM"""
   
     build = _vmbuild
@@ -208,7 +192,7 @@ def vm(args, vm='-graal'):
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     os.environ['GRAAL'] = join(_graal_home, 'graal')
     exe = join(_jdk7(build), 'bin', mx.exe_suffix('java'))
-    return mx.run([exe, vm] + args)
+    return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
 def ideinit(args):
     """(re)generate Eclipse project configurations
@@ -373,6 +357,7 @@ def mx_init():
         'clean': [clean, ''],
         'vm': [vm, '[-options] class [args...]'],
 	    'ideinit': [ideinit, ''],
+        'sanity' : [sanitychecks, ''],
     }
     mx.commands.update(commands)
 
