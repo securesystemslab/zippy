@@ -123,43 +123,20 @@ def dacapo(args):
         config = benchmarks.get(bm)
         vm(vmOpts + ['Harness'] + config + [bm])
     
-def _download_and_extract_targz_jdk7(url, dst):
-    assert url.endswith('.tar.gz')
-    dl = join(_graal_home, 'jdk7.tar.gz')
-    try:
-        if not exists(dl):
-            mx.log('Downloading ' + url)
-            mx.download(dl, [url])
-        tmp = join(_graal_home, 'tmp')
-        if not exists(tmp):
-            os.mkdir(tmp)
-        with tarfile.open(dl, mode='r:gz') as f:
-            mx.log('Extracting ' + dl)
-            f.extractall(path=tmp)
-        jdk = os.listdir(tmp)[0]
-        shutil.move(join(tmp, jdk), dst)
-        os.rmdir(tmp)
-        os.remove(dl)
-    except SystemExit:
-        mx.abort('Could not download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html.\n' + 
-                  'Please do this manually and install it at ' + dst + ' or set the JDK7 environment variable to the install location.')
-    
-
 def _jdk7(build='product', create=False):
-    jdk7 = os.environ.get('JDK7')
-    if jdk7 is None:
-        jdk7 = join(_graal_home, 'jdk1.7.0')
-        if not exists(jdk7):
-            # Try to download it
-            if mx.get_os() == 'linux':
-                _download_and_extract_targz_jdk7('http://download.oracle.com/otn-pub/java/jdk/7u2-b13/jdk-7u2-linux-x64.tar.gz', jdk7)
-            else:
-                mx.abort('Download JDK7 from http://www.oracle.com/technetwork/java/javase/downloads/index.html\n' + 
-                          'and install it at ' + jdk7 + ' or set the JDK7 environment variable to the JDK7 install location.')
-        
-    jre = join(jdk7, 'jre')
-    if not exists(jre) or not isdir(jre):
-        mx.abort(jdk7 + ' does not appear to be a valid JDK directory ("jre" sub-directory is missing)')
+    jdk7 = join(_graal_home, 'jdk1.7.0')
+    if not exists(jdk7):
+        # Assume we are running with a JDK7
+        assert mx.java().version.startswith('1.7')
+        srcJdk = mx.java().jdk
+        mx.log('Creating ' + jdk7 + ' from ' + srcJdk)
+        os.mkdir(jdk7)
+        for d in ['bin', 'db', 'include', 'jre', 'lib', 'man']:
+            src = join(srcJdk, d)
+            dst = join(jdk7, d)
+            if not exists(src):
+                mx.abort('Host JDK 7 directory is missing: ' + src)
+            shutil.copytree(src, dst)
     
     if build == 'product':
         return jdk7
@@ -168,9 +145,9 @@ def _jdk7(build='product', create=False):
         if not exists(res):
             if not create:
                 mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
-            mx.log('[creating ' + res + '...]')
+            mx.log('Creating ' + res)
             os.mkdir(res)
-            for d in ['jre', 'lib', 'bin', 'include']:
+            for d in ['bin', 'db', 'include', 'jre', 'lib', 'man']:
                 shutil.copytree(join(jdk7, d), join(res, d))
         return res
     else:
@@ -400,6 +377,15 @@ def mx_init():
     mx.commands.update(commands)
 
 def mx_post_parse_cmd_line(opts):
+    version = mx.java().version
+    parts = version.split('.')
+    assert len(parts) >= 2
+    assert parts[0] == '1'
+    major = int(parts[1])
+    if not major >= 7:
+        mx.abort('Requires Java version 1.7 or greater, got version ' + version)
+
+    
     global _vmbuild
     if not opts.vmbuild is None:
         _vmbuild = opts.vmbuild
