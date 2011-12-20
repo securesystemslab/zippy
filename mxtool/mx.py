@@ -335,9 +335,9 @@ class Suite:
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
         
     def _load(self, mxDir, primary):
+        self._load_env(mxDir)
         self._load_includes(mxDir)
         self._load_projects(mxDir)
-        self._load_env(mxDir)
         if primary:
             self._load_commands(mxDir)
         
