@@ -26,12 +26,14 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, StringIO
-from os.path import join, exists, dirname, isfile, isdir, isabs
+import os, sys, shutil, StringIO, zipfile, tempfile
+from os.path import join, exists, dirname, isdir, isabs, basename
+from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
 
 _graal_home = dirname(dirname(__file__))
+_vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
 _vmbuild = 'product'
 
 def clean(args):
@@ -39,6 +41,50 @@ def clean(args):
     mx.clean(args)
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
     mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
+
+def export(args):
+    """create a GraalVM zip file for distribution"""
+    
+    parser = ArgumentParser(prog='mx export');
+    parser.add_argument('--omit-vm-build', action='store_false', dest='vmbuild', help='omit VM build step')
+    parser.add_argument('--omit-dist-init', action='store_false', dest='distInit', help='omit class files and IDE configurations from distribution')
+    parser.add_argument('zipfile', nargs=REMAINDER, metavar='zipfile')
+
+    args = parser.parse_args(args)
+    
+    tmp = tempfile.mkdtemp(prefix='tmp', dir=_graal_home)
+    if args.vmbuild:
+        # Make sure the product VM binary is up to date
+        build(['product'])
+        
+    mx.log('Copying Java sources and mx files...')
+    mx.run(('hg archive -I graal -I mx -I mxtool -I mx.sh ' + tmp).split())
+    
+    # Copy the GraalVM JDK
+    mx.log('Copying GraalVM JDK...')
+    src = _jdk()
+    dst = join(tmp, basename(src))
+    shutil.copytree(src, dst)
+    zfName = join(_graal_home, 'graalvm-' + mx.get_os() + '.zip')
+    zf = zipfile.ZipFile(zfName, 'w')
+    for root, _, files in os.walk(tmp):
+        for f in files:
+            name = join(root, f)
+            arcname = name[len(tmp) + 1:]
+            zf.write(join(tmp, name), arcname)
+
+    # create class files and IDE configurations
+    if args.distInit:
+        mx.log('Creating class files...')
+        mx.run('mx build'.split(), cwd=tmp)
+        mx.log('Creating IDE configurations...')
+        mx.run('mx ideinit'.split(), cwd=tmp)
+        
+    # clean up temp directory
+    mx.log('Cleaning up...')
+    shutil.rmtree(tmp)
+    
+    mx.log('Created distribution in ' + zfName)
 
 def example(args):
     """run some or all Graal examples"""
@@ -165,6 +211,9 @@ def build(args):
     # Call mx.build to compile the Java sources        
     mx.build(args + ['--source', '1.7'])
 
+    if not _vmSourcesAvailable:
+        return
+        
     jdk = _jdk(build, True)
     if build == 'debug':
         build = 'jvmg'
@@ -184,16 +233,14 @@ def build(args):
 def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None):
     """run the GraalVM"""
   
-    build = _vmbuild
+    build = _vmbuild if _vmSourcesAvailable else 'product'
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
 def ideinit(args):
-    """(re)generate Eclipse project configurations
-
-    The exit code of this command reflects how many files were updated."""
+    """(re)generate Eclipse project configurations"""
 
 
     def println(out, obj):
@@ -205,8 +252,6 @@ def ideinit(args):
         
         if not exists(p.dir):
             os.makedirs(p.dir)
-
-        changedFiles = 0
 
         out = StringIO.StringIO()
         
@@ -242,10 +287,7 @@ def ideinit(args):
                         
         println(out, '\t<classpathentry kind="output" path="' + getattr(p, 'eclipse.output', 'bin') + '"/>')
         println(out, '</classpath>')
-        
-        if mx.update_file(join(p.dir, '.classpath'), out.getvalue()):
-            changedFiles += 1
-            
+        mx.update_file(join(p.dir, '.classpath'), out.getvalue())
         out.close()
 
         csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
@@ -279,10 +321,7 @@ def ideinit(args):
                 println(out, '\t</filter>')
                         
             println(out, '</fileset-config>')
-            
-            if mx.update_file(dotCheckstyle, out.getvalue()):
-                changedFiles += 1
-                
+            mx.update_file(dotCheckstyle, out.getvalue())
             out.close()
         
 
@@ -313,14 +352,10 @@ def ideinit(args):
             println(out, '\t\t<nature>net.sf.eclipsecs.core.CheckstyleNature</nature>')
         println(out, '\t</natures>')
         println(out, '</projectDescription>')
-        
-        if mx.update_file(join(p.dir, '.project'), out.getvalue()):
-            changedFiles += 1
-            
+        mx.update_file(join(p.dir, '.project'), out.getvalue())
         out.close()
 
         out = StringIO.StringIO()
-        
         settingsDir = join(p.dir, ".settings")
         if not exists(settingsDir):
             os.mkdir(settingsDir)
@@ -329,32 +364,35 @@ def ideinit(args):
         
         with open(join(myDir, 'org.eclipse.jdt.core.prefs')) as f:
             content = f.read()
-        if mx.update_file(join(settingsDir, 'org.eclipse.jdt.core.prefs'), content):
-            changedFiles += 1
+        mx.update_file(join(settingsDir, 'org.eclipse.jdt.core.prefs'), content)
             
         with open(join(myDir, 'org.eclipse.jdt.ui.prefs')) as f:
             content = f.read()
-        if mx.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content):
-            changedFiles += 1
-        
-    if changedFiles != 0:
-        mx.abort(changedFiles)
+        mx.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content)
 
 def mx_init():
     _vmbuild = 'product'
-    mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
-    mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
-    mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
-    mx.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
     commands = {
-        'build': [build, '[product|debug|fastdebug|optimized]'],
+        'clean': [clean, ''],
+        'build': [build, ''],
         'dacapo': [dacapo, '[benchmark] [VM options]'],
         'example': [example, '[-v] example names...'],
-        'clean': [clean, ''],
         'vm': [vm, '[-options] class [args...]'],
-	    'ideinit': [ideinit, ''],
-        'sanity' : [sanitychecks, ''],
+        'ideinit': [ideinit, '']
     }
+
+    if (_vmSourcesAvailable):
+        mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
+        mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
+        mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
+        mx.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
+        
+        commands.update({
+            'export': [export, '[-options] [zipfile]'],
+            'build': [build, '[product|debug|fastdebug|optimized]'],
+            'sanity' : [sanitychecks, ''],
+        })
+    
     mx.commands.update(commands)
 
 def mx_post_parse_cmd_line(opts):
@@ -366,7 +404,7 @@ def mx_post_parse_cmd_line(opts):
     if not major >= 7:
         mx.abort('Requires Java version 1.7 or greater, got version ' + version)
 
-    
-    global _vmbuild
-    if not opts.vmbuild is None:
-        _vmbuild = opts.vmbuild
+    if (_vmSourcesAvailable):
+        global _vmbuild
+        if not opts.vmbuild is None:
+            _vmbuild = opts.vmbuild
