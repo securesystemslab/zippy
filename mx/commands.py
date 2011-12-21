@@ -26,11 +26,10 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, StringIO, zipfile, tempfile
-from os.path import join, exists, dirname, isdir, isabs, basename
+import os, sys, shutil, StringIO, zipfile, tempfile, re
+from os.path import join, exists, dirname, isdir, isfile, isabs, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
-import sanitycheck
 
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
@@ -128,31 +127,67 @@ def example(args):
             run_example(verbose, project, mainClass)
 
 def dacapo(args):
-    """run one or all DaCapo benchmarks"""
-    runs = dict()    
-    while len(args) != 0 and not args[0].startswith('-'):
+    """run one or all DaCapo benchmarks
+    
+    DaCapo options are distinguised from VM options by a '@' prefix.
+    For example, '@--iterations @5' will pass '--iterations 5' to the
+    DaCapo harness."""
+    
+    benchmarks = [
+        'avrora',
+        'batik',
+        'eclipse',
+        'fop',
+        'h2',
+        'jython',
+        'luindex',
+        'lusearch',
+        'pmd',
+        'sunflow',
+        'tomcat',
+        'tradebeans',
+        'tradesoap',
+        'xalan'
+    ]
+    
+    dacapo = mx.check_get_env('DACAPO_CP')
+    if not isfile(dacapo) or not dacapo.endswith('.jar'):
+        mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
+            
+    vmOpts = ['-Xms1g', '-Xmx2g', '-cp', dacapo]
+
+    selected = []
+    while len(args) != 0 and args[0][0] not in ['-', '@']:
         bm = args[0]
         del args[0]
-        n = sanitycheck.dacapoSanityWarmup.get(bm)[sanitycheck.SanityCheckLevel.Normal]
-        if (n is None):
-            mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoSanityWarmup.keys()))
-        runs[bm] = n
+        if bm not in benchmarks:
+            mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks))
+        selected.append(bm)
     
-    if len(runs) == 0:
-        for (key, ns) in sanitycheck.dacapoSanityWarmup.items():
-            runs[key] = ns[sanitycheck.SanityCheckLevel.Normal] 
-
-    for (bench, n) in runs.items():
-        vm(args + sanitycheck.getDacapoCmd(bench, n=n))
-
-def sanitychecks(args):
-    """runs sanity checks"""
-    checks = sanitycheck.getSanityChecks(sanitycheck.SanityCheckLevel.Gate)
-    for check in checks:
-        if not sanitycheck.runSanityCheck(check['cmd'], check['success']):
-            mx.abort("Sanity checks FAILED")
-    mx.log("Sanity checks PASSED")
+    if len(selected) != 0:    
+        benchmarks = selected
     
+    # Extract DaCapo options
+    dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
+    
+    # The remainder are VM options 
+    vmOpts += [arg for arg in args if not arg.startswith('@')]
+
+    dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$")
+    passed = []
+        
+    for bm in benchmarks:
+        def errFilter(line):
+            if dacapoSuccess.match(line):
+                passed.append(bm)
+            sys.stderr.write(line)
+        vm(vmOpts + ['Harness'] + dacapoArgs + [bm], err=errFilter)
+        
+    failed = list(set(benchmarks).difference(set(passed)))
+    
+    if len(failed) != 0:
+        mx.abort('Benchmark failures: ' + str(failed))
+ 
 def _jdk(build='product', create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
@@ -375,7 +410,7 @@ def mx_init():
     commands = {
         'clean': [clean, ''],
         'build': [build, ''],
-        'dacapo': [dacapo, '[benchmark] [VM options]'],
+        'dacapo': [dacapo, '[benchmark] [VM options|DaCapo options]'],
         'example': [example, '[-v] example names...'],
         'vm': [vm, '[-options] class [args...]'],
         'ideinit': [ideinit, '']
@@ -389,8 +424,7 @@ def mx_init():
         
         commands.update({
             'export': [export, '[-options] [zipfile]'],
-            'build': [build, '[product|debug|fastdebug|optimized]'],
-            'sanity' : [sanitychecks, ''],
+            'build': [build, '[product|debug|fastdebug|optimized]']
         })
     
     mx.commands.update(commands)
