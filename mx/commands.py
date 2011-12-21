@@ -107,32 +107,48 @@ def sanitychecks(args):
             mx.abort("Sanity checks FAILED")
     mx.log("Sanity checks PASSED")
     
-def _jdk7(build='product', create=False):
-    jdk7 = join(_graal_home, 'jdk1.7.0')
-    if not exists(jdk7):
-        # Assume we are running with a JDK7
-        assert mx.java().version.startswith('1.7')
+def _jdk(build='product', create=False):
+    """
+    Get the JDK into which Graal is installed, creating it first if necessary.
+    """
+    jdk = join(_graal_home, 'jdk' + mx.java().version)
+    if not exists(jdk):
         srcJdk = mx.java().jdk
-        mx.log('Creating ' + jdk7 + ' from ' + srcJdk)
-        os.mkdir(jdk7)
+        mx.log('Creating ' + jdk + ' from ' + srcJdk)
+        os.mkdir(jdk)
         for d in ['bin', 'db', 'include', 'jre', 'lib', 'man']:
             src = join(srcJdk, d)
-            dst = join(jdk7, d)
+            dst = join(jdk, d)
             if not exists(src):
-                mx.abort('Host JDK 7 directory is missing: ' + src)
+                mx.abort('Host JDK directory is missing: ' + src)
             shutil.copytree(src, dst)
     
+    jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+    found = False
+    if not exists(jvmCfg):
+        mx.abort(jvmCfg + ' does not exist')
+        
+    with open(jvmCfg) as f:
+        for line in f:
+            if '-graal KNOWN' in line:
+                found = True
+                break
+    if not found:
+        mx.log('Appending "-graal KNOWN" to ' + jvmCfg)
+        with open(jvmCfg, 'a') as f:
+            f.write('-graal KNOWN\n')
+    
     if build == 'product':
-        return jdk7
+        return jdk
     elif build in ['debug', 'fastdebug', 'optimized']:
-        res = join(jdk7, build)
+        res = join(jdk, build)
         if not exists(res):
             if not create:
                 mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
             mx.log('Creating ' + res)
             os.mkdir(res)
             for d in ['bin', 'db', 'include', 'jre', 'lib', 'man']:
-                shutil.copytree(join(jdk7, d), join(res, d))
+                shutil.copytree(join(jdk, d), join(res, d))
         return res
     else:
         mx.abort('Unknown build type: ' + build)
@@ -149,30 +165,11 @@ def build(args):
     # Call mx.build to compile the Java sources        
     mx.build(args + ['--source', '1.7'])
 
-    def fix_jvm_cfg(jdk):
-        jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
-        found = False
-        if not exists(jvmCfg):
-            mx.abort(jvmCfg + ' does not exist')
-            
-        with open(jvmCfg) as f:
-            for line in f:
-                if '-graal KNOWN' in line:
-                    found = True
-                    break
-        if not found:
-            mx.log('Appending "-graal KNOWN" to ' + jvmCfg)
-            with open(jvmCfg, 'a') as f:
-                f.write('-graal KNOWN\n')
-
-    
-    jdk7 = _jdk7(build, True)
+    jdk = _jdk(build, True)
     if build == 'debug':
         build = 'jvmg'
     
-    fix_jvm_cfg(jdk7)
-
-    graalVmDir = join(jdk7, 'jre', 'lib', 'amd64', 'graal')
+    graalVmDir = join(jdk, 'jre', 'lib', 'amd64', 'graal')
     if not exists(graalVmDir):
         mx.log('Creating Graal directory in JDK7: ' + graalVmDir)
         os.makedirs(graalVmDir)
@@ -181,7 +178,7 @@ def build(args):
         if not 'Xusage.txt' in line:
             sys.stderr.write(line + os.linesep)
             
-    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk7, INSTALL='y')
+    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk, INSTALL='y')
     mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
 def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None):
@@ -190,8 +187,7 @@ def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None):
     build = _vmbuild
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
-    os.environ['GRAAL'] = join(_graal_home, 'graal')
-    exe = join(_jdk7(build), 'bin', mx.exe_suffix('java'))
+    exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
 def ideinit(args):

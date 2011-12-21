@@ -2011,6 +2011,45 @@ Arguments::ArgsRange Arguments::parse_memory_size(const char* s,
 
 // Parse JavaVMInitArgs structure
 
+static void prepend_to_graal_classpath(SysClassPath &cp, const char* graal_dir, const char* project) {
+  const int BUFFER_SIZE = 1024;
+  char path[BUFFER_SIZE];
+
+  sprintf(path, "%s/%s/bin", graal_dir, project);
+  DIR* dir = os::opendir(path);
+  if (dir == NULL) {
+    jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The Graal class directory %s could not be opened.\n", path);
+    vm_exit(1);
+  }
+  os::closedir(dir);
+  cp.add_prefix(path);
+}
+
+// Walk up the directory hierarchy starting from JAVA_HOME looking
+// for a directory named "graal". If found, then the full path to
+// this directory is returned in graal_dir.
+static bool find_graal_dir(char* graal_dir) {
+  strcpy(graal_dir, Arguments::get_java_home());
+  char* end = graal_dir + strlen(graal_dir);
+  while (end != graal_dir) {
+    strcat(graal_dir, "/graal");
+    DIR* dir = os::opendir(graal_dir);
+    if (dir != NULL) {
+      os::closedir(dir);
+      return true;
+    }
+    *end = 0;
+    while (end != graal_dir) {
+      if (*end == '/') {
+        *end = 0;
+        break;
+      }
+      end--;
+    }
+  }
+  return false;
+}
+
 jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
   // For components of the system classpath.
   SysClassPath scp(Arguments::get_sysclasspath());
@@ -2043,37 +2082,28 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     }
     const int BUFFER_SIZE = 1024;
     char graal_dir[BUFFER_SIZE];
-    char temp[BUFFER_SIZE];
     if (!os::getenv("GRAAL", graal_dir, sizeof(graal_dir))) {
-      jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The GRAAL environment variable needs to point to the directory containing the Graal projects.\n");
-      vm_exit(0);
+      if (find_graal_dir(graal_dir) == false) {
+        jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The GRAAL environment variable needs to point to the directory containing the Graal projects.\n");
+        vm_exit(0);
+      }
     }
     if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
-      SysClassPath scp_compiler(Arguments::get_sysclasspath());
-      sprintf(temp, "%s/com.oracle.max.cri/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.criutils/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.base/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.asmdis/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.asm/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.graph/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.compiler/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.nodes/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.snippets/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.criutils/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      sprintf(temp, "%s/com.oracle.max.graal.hotspot/bin", graal_dir);
-      scp_compiler.add_prefix(temp);
-      scp_compiler.expand_endorsed();
-      Arguments::set_compilerclasspath(scp_compiler.combined_path());
+
+    SysClassPath scp_compiler(Arguments::get_sysclasspath());
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.cri");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.criutils");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.base");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asmdis");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asm");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.graph");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.nodes");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.hotspot");
+    scp_compiler.expand_endorsed();
+
+    Arguments::set_compilerclasspath(scp_compiler.combined_path());
   }
 
   if (AggressiveOpts) {
