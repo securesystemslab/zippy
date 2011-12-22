@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, StringIO, zipfile, tempfile, re
+import os, sys, shutil, StringIO, zipfile, tempfile, re, time, datetime
 from os.path import join, exists, dirname, isdir, isfile, isabs, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
@@ -265,14 +265,14 @@ def build(args):
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk, INSTALL='y')
     mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
-def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None):
+def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     """run the GraalVM"""
   
     build = _vmbuild if _vmSourcesAvailable else 'product'
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
-    return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
+    return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def ideinit(args):
     """(re)generate Eclipse project configurations"""
@@ -405,13 +405,116 @@ def ideinit(args):
             content = f.read()
         mx.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content)
 
+# Table of unit tests.
+# Keys are project names, values are package name lists.
+# All source files in the given (project,package) pairs are scanned for lines
+# containing '@Test'. These are then detemrined to be the classes defining
+# unit tests.
+_unittests = {
+    'com.oracle.max.graal.tests': ['com.oracle.max.graal.compiler.tests'],
+}
+
+def _add_test_classes(testClassList, searchDir, pkgRoot):
+    pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
+    for root, _, files in os.walk(searchDir):
+        for name in files:
+            if name.endswith('.java') and name != 'package-info.java':
+                hasTest = False
+                with open(join(root, name)) as f:
+                    pkg = None
+                    for line in f:
+                        if line.startswith("package "):
+                            match = pkgDecl.match(line)
+                            if match:
+                                pkg = match.group(1)
+                        else:
+                            if line.strip().startswith('@Test'):
+                                hasTest = True
+                                break
+                if hasTest:
+                    assert pkg is not None
+                    testClassList.append(pkg + '.' + name[:-len('.java')])
+
+def unittest(args):
+    """run the Graal Compiler Unit Tests in the GraalVM
+    
+    If filters are supplied, only tests whose fully qualified name
+    include a filter as a substring are run. Negative filters are
+    those with a '-' prefix."""
+    
+    pos = [a for a in args if a[0] != '-']
+    neg = [a[1:] for a in args if a[0] == '-']
+
+    def containsAny(c, substrings):
+        for s in substrings:
+            if s in c:
+                return True
+        return False
+    
+    for proj in _unittests.iterkeys():
+        p = mx.project(proj)
+        classes = []
+        for pkg in _unittests[proj]:
+            _add_test_classes(classes, join(p.dir, 'src'), pkg)
+    
+        if len(pos) != 0:
+            classes = [c for c in classes if containsAny(c, pos)]
+        if len(neg) != 0:
+            classes = [c for c in classes if not containsAny(c, neg)]
+            
+        # (ds) The boot class path must be used for some reason I don't quite understand
+        vm(['-XX:-BootstrapGraal', '-esa', '-Xbootclasspath/a:' + mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+    
+def gate(args):
+    """run the tests used to validate a push
+
+    If this commands exits with a 0 exit code, then the source code is in
+    a state that would be accepted for integration into the main repository."""
+    
+    start = time.time()
+    
+    # 1. Checkstyle
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running Checkstyle...'))
+    if mx.checkstyle([]) != 0:
+        mx.abort('Checkstyle warnings were found')
+
+    # 2. Canonical mx/projects
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
+    if mx.canonicalizeprojects([]) != 0:
+        mx.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
+
+    # 3. Build
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Build...'))
+    build([])
+    
+    # 4. Bootstrap with system assertions enabled
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Bootstrap with -esa...'))
+    vm(['-esa', '-version'])
+    
+    # 5. Run unittests
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running unit tests...'))
+    unittest([])
+    
+    # 6. Run selected DaCapo benchmarks
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running DaCapo benchmarks...'))
+    dacapo(['eclipse'])
+    #dacapo(['tradesoap'])
+    dacapo(['batik'])
+    dacapo(['avrora'])
+    dacapo(['fop'])
+
+    duration = datetime.timedelta(seconds=time.time() - start)
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Gate done (duration - ' + str(duration) + ')'))
+    
 def mx_init():
     _vmbuild = 'product'
     commands = {
-        'clean': [clean, ''],
         'build': [build, ''],
+        'clean': [clean, ''],
         'dacapo': [dacapo, '[benchmark] [VM options|DaCapo options]'],
         'example': [example, '[-v] example names...'],
+        'gate' : [gate, ''],
+        'unittest' : [unittest, '[filters...]'],
         'vm': [vm, '[-options] class [args...]'],
         'ideinit': [ideinit, '']
     }
