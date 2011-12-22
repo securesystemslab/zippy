@@ -87,20 +87,12 @@
 #
 # Values can use environment variables with Bash syntax (e.g. ${HOME}).
 
-import sys
-import os
-import subprocess
+import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile 
+import shutil, fnmatch, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
 from os.path import join, dirname, exists, getmtime, isabs, expandvars, isdir
-import shlex
-import types
-import urllib2
-import contextlib
-import StringIO
-import zipfile
-import shutil, fnmatch, re, xml.dom.minidom
 
 DEFAULT_JAVA_ARGS = '-ea -Xss2m -Xmx1g'
 
@@ -462,6 +454,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
+        self.add_argument('--timeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
         
     def _parse_cmd_line(self, args=None):
         if args is None:
@@ -506,10 +499,33 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
     return run(java().format_cmd(args), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
-def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
+def _waitWithTimeout(process, args, timeout):
+    def _waitpid(pid):
+        while True:
+            try:
+                return os.waitpid(pid, os.WNOHANG)
+            except OSError, e:
+                if e.errno == errno.EINTR:
+                    continue
+                raise
+    
+    end = time.time() + timeout
+    delay = 0.0005
+    while True:
+        (pid, _) = _waitpid(process.pid)
+        if pid == process.pid:
+            return process.wait()
+        remaining = end - time.time()
+        if remaining <= 0:
+            process.kill()
+            abort('Process timed out after {0} seconds: {1}'.format(timeout, ' '.join(args)))
+        delay = min(delay * 2, remaining, .05)
+        time.sleep(delay)
+
+def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     """
     Run a command in a subprocess, wait for it to complete and return the exit status of the process.
-    If the exit status is non-zero and `nonZeroIsFatal` is true, then the program is exited with
+    If the exit status is non-zero and `nonZeroIsFatal` is true, then mx is exited with
     the same exit status.
     Each line of the standard output and error streams of the subprocess are redirected to the
     provided out and err functions if they are not None.
@@ -522,8 +538,11 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
     if _opts.verbose:
         log(' '.join(args))
         
+    if timeout is None and _opts.timeout != 0:
+        timeout = _opts.timeout
+    
     try:
-        if out is None and err is None:
+        if out is None and err is None and timeout is None:
             retcode = subprocess.call(args, cwd=cwd)
         else:
             def redirect(stream, f):
@@ -539,7 +558,12 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
                 t = Thread(target=redirect, args=(p.stderr, err))
                 t.daemon = True # thread dies with the program
                 t.start()
-            retcode = p.wait()
+            if timeout is None:
+                retcode = p.wait()
+            else:
+                if get_os() == 'windows':
+                    abort('Use of timeout not (yet) supported on Windows')
+                retcode = _waitWithTimeout(p, args, timeout)
     except OSError as e:
         log('Error executing \'' + ' '.join(args) + '\': ' + str(e))
         if _opts.verbose:
