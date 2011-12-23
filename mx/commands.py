@@ -473,29 +473,32 @@ def gate(args):
     
     start = time.time()
     
-    # 1. Checkstyle
+    # 1. Clean
+    clean([])
+    
+    # 2. Checkstyle
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running Checkstyle...'))
     if mx.checkstyle([]) != 0:
         mx.abort('Checkstyle warnings were found')
 
-    # 2. Canonical mx/projects
+    # 3. Canonical mx/projects
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
     if mx.canonicalizeprojects([]) != 0:
         mx.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
 
-    # 3. Build
+    # 4. Build
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Build...'))
     build([])
     
-    # 4. Bootstrap with system assertions enabled
+    # 5. Bootstrap with system assertions enabled
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Bootstrap with -esa...'))
     vm(['-esa', '-version'])
     
-    # 5. Run unittests
+    # 6. Run unittests
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running unit tests...'))
     unittest([])
     
-    # 6. Run selected DaCapo benchmarks
+    # 7. Run selected DaCapo benchmarks
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running DaCapo benchmarks...'))
     dacapo(['eclipse'])
     #dacapo(['tradesoap'])
