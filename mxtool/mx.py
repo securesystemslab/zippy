@@ -558,7 +558,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 t = Thread(target=redirect, args=(p.stderr, err))
                 t.daemon = True # thread dies with the program
                 t.start()
-            if timeout is None:
+            if timeout is None or timeout == 0:
                 retcode = p.wait()
             else:
                 if get_os() == 'windows':
