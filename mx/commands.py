@@ -474,7 +474,7 @@ def gate(args):
     start = time.time()
     
     # 1. Clean
-    clean([])
+    #clean([])
     
     # 2. Checkstyle
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running Checkstyle...'))
