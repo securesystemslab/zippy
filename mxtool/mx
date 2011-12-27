@@ -47,3 +47,4 @@ if [ $? -eq 0 ]; then
     exec python "$dir/mx.py" "$@"
 fi
 
+#end of file
