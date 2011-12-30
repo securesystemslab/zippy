@@ -61,7 +61,7 @@ private:
 
   arrayOop      _code;
   jint          _code_size;
-  jint          _frame_size;
+  jint          _total_frame_size;
   jint          _custom_stack_area_offset;
   jint          _parameter_count;
   jint          _constants_size;

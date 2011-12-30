@@ -68,8 +68,8 @@ static bool is_bit_set(oop bit_map, int i) {
 }
 
 // creates a hotspot oop map out of the byte arrays provided by CiDebugInfo
-static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_info) {
-  OopMap* map = new OopMap(frame_size, parameter_count);
+static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
+  OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop register_map = (oop) CiDebugInfo::registerRefMap(debug_info);
   oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
 
@@ -87,28 +87,22 @@ static OopMap* create_oop_map(jint frame_size, jint parameter_count, oop debug_i
     }
   }
 
-  if (frame_size > 0) {
-    assert(GraalBitMap::size(frame_map) == frame_size / HeapWordSize, "unexpected frame_map length");
-
-    for (jint i = 0; i < frame_size / HeapWordSize; i++) {
-      bool is_oop = is_bit_set(frame_map, i);
-      // hotspot stack slots are 4 bytes
-      VMReg reg = VMRegImpl::stack2reg(i * 2);
-      if (is_oop) {
-        map->set_oop(reg);
-      } else {
-        map->set_value(reg);
-      }
+  for (jint i = 0; i < GraalBitMap::size(frame_map); i++) {
+    bool is_oop = is_bit_set(frame_map, i);
+    // hotspot stack slots are 4 bytes
+    VMReg reg = VMRegImpl::stack2reg(i * 2);
+    if (is_oop) {
+      map->set_oop(reg);
+    } else {
+      map->set_value(reg);
     }
-  } else {
-    assert(frame_map == NULL || GraalBitMap::size(frame_map) == 0, "cannot have frame_map for frames with size 0");
   }
 
   return map;
 }
 
 // TODO: finish this - graal doesn't provide any scope values at the moment
-static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
+static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
   second = NULL;
   if (value == CiValue::IllegalValue()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
@@ -158,7 +152,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
     if (index >= 0) {
       value = new LocationValue(Location::new_stk_loc(locationType, index * HeapWordSize));
     } else {
-      value = new LocationValue(Location::new_stk_loc(locationType, -(index * HeapWordSize) + frame_size));
+      value = new LocationValue(Location::new_stk_loc(locationType, -((index + 1) * HeapWordSize) + total_frame_size));
     }
     if (type == T_DOUBLE || type == T_LONG) {
       second = value;
@@ -204,7 +198,7 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
 
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], frame_size, objects, cur_second);
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second);
       
       if (cur_second != NULL) {
         sv->field_values()->append(cur_second);
@@ -221,15 +215,15 @@ static ScopeValue* get_hotspot_value(oop value, int frame_size, GrowableArray<Sc
   return NULL;
 }
 
-static MonitorValue* get_monitor_value(oop value, int frame_size, GrowableArray<ScopeValue*>* objects) {
+static MonitorValue* get_monitor_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects) {
   guarantee(value->is_a(CiMonitorValue::klass()), "Monitors must be of type CiMonitorValue");
 
   ScopeValue* second = NULL;
-  ScopeValue* owner_value = get_hotspot_value(CiMonitorValue::owner(value), frame_size, objects, second);
+  ScopeValue* owner_value = get_hotspot_value(CiMonitorValue::owner(value), total_frame_size, objects, second);
   assert(second == NULL, "monitor cannot occupy two stack slots");
 
-  ScopeValue* lock_data_value = get_hotspot_value(CiMonitorValue::lockData(value), frame_size, objects, second);
-  assert(second == NULL, "monitor cannot occupy two stack slots");
+  ScopeValue* lock_data_value = get_hotspot_value(CiMonitorValue::lockData(value), total_frame_size, objects, second);
+  assert(second == lock_data_value, "monitor is LONG value that occupies two stack slots");
   assert(lock_data_value->is_location(), "invalid monitor location");
   Location lock_data_loc = ((LocationValue*)lock_data_value)->location();
 
@@ -281,7 +275,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_c
     process_exception_handlers();
   }
 
-  int stack_slots = (_frame_size / HeapWordSize) + 2; // conversion to words, need to add two slots for ret address and frame pointer
+  int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
   methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(JNIHandles::resolve(target_method_obj))); 
   {
     nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
@@ -323,7 +317,8 @@ void CodeInstaller::initialize_fields(oop target_method) {
 
   _code = (arrayOop) CiTargetMethod::targetCode(_citarget_method);
   _code_size = CiTargetMethod::targetCodeSize(_citarget_method);
-  _frame_size = CiTargetMethod::frameSize(_citarget_method);
+  // The frame size we get from the target method does not include the return address, so add one word for it here.
+  _total_frame_size = CiTargetMethod::frameSize(_citarget_method) + HeapWordSize;
   _custom_stack_area_offset = CiTargetMethod::customStackAreaOffset(_citarget_method);
 
 
@@ -511,19 +506,19 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
       oop value = ((oop*) values->base(T_OBJECT))[i];
 
       if (i < local_count) {
-        ScopeValue* first = get_hotspot_value(value, _frame_size, objects, second);
+        ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
         if (second != NULL) {
           locals->append(second);
         }
         locals->append(first);
       } else if (i < local_count + expression_count) {
-        ScopeValue* first = get_hotspot_value(value, _frame_size, objects, second);
+        ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
         if (second != NULL) {
           expressions->append(second);
         }
         expressions->append(first);
       } else {
-        monitors->append(get_monitor_value(value, _frame_size, objects));
+        monitors->append(get_monitor_value(value, _total_frame_size, objects));
       }
       if (second != NULL) {
         i++;
@@ -555,7 +550,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 
   // address instruction = _instructions->start() + pc_offset;
   // jint next_pc_offset = Assembler::locate_next_instruction(instruction) - _instructions->start();
-  _debug_recorder->add_safepoint(pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
+  _debug_recorder->add_safepoint(pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
 
   oop code_pos = CiDebugInfo::codePos(debug_info);
   record_scope(pc_offset, code_pos, new GrowableArray<ScopeValue*>());
@@ -666,7 +661,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (debug_info != NULL) {
-    _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_frame_size, _parameter_count, debug_info));
+    _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
     oop code_pos = CiDebugInfo::codePos(debug_info);
     record_scope(next_pc_offset, code_pos, new GrowableArray<ScopeValue*>());
   }

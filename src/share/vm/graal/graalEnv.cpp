@@ -511,7 +511,6 @@ nmethod* GraalEnv::register_method(methodHandle& method,
         CompileBroker::handle_full_code_cache();
       }
     } else {
-      NOT_PRODUCT(nm->set_has_debug_info(has_debug_info); )
       nm->set_has_unsafe_access(has_unsafe_access);
 
       // Record successful registration.
