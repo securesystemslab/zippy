@@ -23,16 +23,18 @@
  */
 package com.sun.hotspot.igv.coordinator.actions;
 
+import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.InputGraph;
 import org.openide.DialogDescriptor;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 
 public class GraphRemoveCookie implements RemoveCookie {
-
+    private final GraphDocument document;
     private final InputGraph graph;
 
-    public GraphRemoveCookie(InputGraph graph) {
+    public GraphRemoveCookie(GraphDocument document, InputGraph graph) {
+        this.document = document;
         this.graph = graph;
     }
 
@@ -46,6 +48,11 @@ public class GraphRemoveCookie implements RemoveCookie {
             }
         }
 
-        graph.getGroup().removeGraph(graph);
+        if (graph.getGroup().getGraphsCount() > 1) {
+            graph.getGroup().removeGraph(graph);
+        } else {
+            // Last graph, remove the entire group
+            document.removeGroup(graph.getGroup());
+        }
     }
 }
