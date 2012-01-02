@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, StringIO, zipfile, tempfile, re, time, datetime
+import os, sys, shutil, StringIO, zipfile, tempfile, re, time, datetime, platform, subprocess
 from os.path import join, exists, dirname, isdir, isfile, isabs, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
@@ -34,6 +34,8 @@ import mx
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
 _vmbuild = 'product'
+_winSDK = 'C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\'
+_mksHome = 'C:\\cygwin\\bin'
 
 def clean(args):
     """cleans the GraalVM source tree"""
@@ -233,6 +235,41 @@ def _jdk(build='product', create=False):
         return res
     else:
         mx.abort('Unknown build type: ' + build)
+
+# run a command in the windows SDK Debug Shell
+def runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
+    newLine = os.linesep
+    STARTTOKEN = 'RUNINDEBUGSHELL_STARTSEQUENCE'
+    ENDTOKEN = 'RUNINDEBUGSHELL_ENDSEQUENCE'
+    p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + _winSDK + '/Bin/SetEnv.cmd" & echo ' + STARTTOKEN + '"', \
+            shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = p.stdout
+    input = p.stdin
+    if logFile:
+        log = open(logFile, 'w')
+    ret = False
+    while True:
+        line = output.readline().decode()
+        if logFile:
+            log.write(line)
+        line = line.strip()
+        mx.log(line)
+        if line == STARTTOKEN:
+            input.write('cd /D ' + workingDir + ' & ' + cmd + ' & echo ' + ENDTOKEN + newLine)
+        for regex in respondTo.keys():
+            match = regex.search(line)
+            if match:
+                input.write(respondTo[regex] + newLine)
+        if findInOutput:
+            match = findInOutput.search(line)
+            if match:
+                ret = True
+        if line == ENDTOKEN:
+            break
+    input.write('exit' + newLine)
+    if logFile:
+        log.close()
+    return ret
     
 def build(args):
     """builds the GraalVM binary and compiles the Graal classes
@@ -262,8 +299,23 @@ def build(args):
         if not 'Xusage.txt' in line:
             sys.stderr.write(line + os.linesep)
             
-    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk, INSTALL='y')
-    mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
+    if platform.system() == 'Windows':
+        compilelogfile = _graal_home + '/graalCompile.log'
+        runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
+        winCompileCmd = r'set HotSpotMksHome=' + _mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
+        print(winCompileCmd)
+        winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
+        if not runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
+            mx.log('Error executing create command')
+            return 
+        winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=compiler1_product /p:Platform=x64'
+        winBuildSuccess = re.compile('Build succeeded.')
+        if not runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
+            mx.log('Error building project')
+            return 
+    else:
+        os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk, INSTALL='y')
+        mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
 def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     """run the GraalVM"""

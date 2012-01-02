@@ -63,20 +63,21 @@ class BuildConfig {
         // ones mentioned above were needed to expand format
         String buildBase = expandFormat(getFieldString(null, "BuildBase"));
         String sourceBase = getFieldString(null, "SourceBase");
-        String outDir = sourceBase + Util.sep + "java";
-	if (!platformName.equals("Win32")) {
-		outDir += "64";
-	}
-	if (!build.equals("product")) {
-		outDir += Util.sep + "fastdebug";
-	}
-	outDir += Util.sep + "jre" + Util.sep + "bin";
-	if (flavour.equals("compiler1")) {
-		outDir += Util.sep + "graal";
-	} else {
-		outDir += Util.sep + "server";
-	}
-	buildBase = outDir;
+        String outDir = buildBase;
+        String value = System.getenv("OUT_DIR");
+        if (value != null) {
+            outDir = value;
+        }
+        if (!build.equals("product")) {
+            outDir += Util.sep + "fastdebug";
+        }
+        outDir += Util.sep + "jre" + Util.sep + "bin";
+        if (flavour.equals("compiler1")) {
+            outDir += Util.sep + "graal";
+        } else {
+            outDir += Util.sep + "server";
+        }
+        buildBase = outDir;
 
         put("Id", flavourBuild);
         put("OutputDir", outDir);
