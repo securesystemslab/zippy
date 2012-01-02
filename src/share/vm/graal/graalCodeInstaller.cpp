@@ -147,13 +147,11 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     } else if (type == T_LONG) {
       locationType = Location::lng;
     }
-    jint index = CiStackSlot::index(value);
-    ScopeValue* value;
-    if (index >= 0) {
-      value = new LocationValue(Location::new_stk_loc(locationType, index * HeapWordSize));
-    } else {
-      value = new LocationValue(Location::new_stk_loc(locationType, -((index + 1) * HeapWordSize) + total_frame_size));
+    jint offset = CiStackSlot::offset(value);
+    if (CiStackSlot::addFrameSize(value)) {
+      offset += total_frame_size;
     }
+    ScopeValue* value = new LocationValue(Location::new_stk_loc(locationType, offset));
     if (type == T_DOUBLE || type == T_LONG) {
       second = value;
     }

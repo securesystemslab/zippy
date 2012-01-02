@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2012 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,13 +31,13 @@
 void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
   Symbol* name_symbol = SymbolTable::probe(name, (int)strlen(name));
   Symbol* signature_symbol = SymbolTable::probe(signature, (int)strlen(signature));
-#ifdef DEBUG
+#ifndef PRODUCT
   if (name_symbol == NULL) {
     tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass_oop->klass_part()->name()->as_C_string());
   }
 #endif
-  assert(name_symbol != NULL, "symbol not found - class layout changed?");
-  assert(signature_symbol != NULL, "symbol not found - class layout changed?");
+  guarantee(name_symbol != NULL, "symbol not found - class layout changed?");
+  guarantee(signature_symbol != NULL, "symbol not found - class layout changed?");
 
   instanceKlass* ik = instanceKlass::cast(klass_oop);
   fieldDescriptor fd;
@@ -46,7 +46,7 @@ void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, cons
     tty->print_cr("Invalid layout of %s at %s", name_symbol->as_C_string(), ik->external_name());
     fatal("Invalid layout of preloaded class");
   }
-  assert(fd.is_static() == static_field, "static/instance mismatch");
+  guarantee(fd.is_static() == static_field, "static/instance mismatch");
   dest_offset = fd.offset();
 }
 

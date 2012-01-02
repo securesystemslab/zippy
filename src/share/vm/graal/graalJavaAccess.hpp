@@ -213,7 +213,8 @@ void graal_compute_offsets();
     int_field(CiRegister, number)                                                       \
   end_class                                                                             \
   start_class(CiStackSlot)                                                              \
-    int_field(CiStackSlot, index)                                                       \
+    int_field(CiStackSlot, offset)                                                      \
+    boolean_field(CiStackSlot, addFrameSize)                                            \
   end_class                                                                             \
   start_class(CiVirtualObject)                                                          \
     int_field(CiVirtualObject, id)                                                      \
