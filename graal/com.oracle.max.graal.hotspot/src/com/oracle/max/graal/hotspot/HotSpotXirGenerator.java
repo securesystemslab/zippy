@@ -119,7 +119,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
                 XirOperand cache = asm.createRegisterTemp("cache (rax)", target.wordKind, AMD64.rax);
 
                 CiCallingConvention conventions = registerConfig.getCallingConvention(JavaCallee, new CiKind[] {CiKind.Object}, target, false);
-                XirOperand receiver = asm.createRegisterTemp("receiver", target.wordKind, conventions.locations[0].asRegister());
+                XirOperand receiver = asm.createRegister("receiver", target.wordKind, conventions.locations[0].asRegister());
 
                 asm.pload(target.wordKind, temp, receiver, asm.i(config.hubOffset), false);
                 asm.jneq(unverifiedStub, cache, temp);
@@ -129,6 +129,8 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.stackOverflowCheck();
             asm.push(framePointer);
             asm.mov(framePointer, stackPointer);
+            // Compensate for the push of framePointer (the XIR instruction pushFrame is not flexible enough to reduce the frame size, wait until XIR goes away to fix this).
+            asm.add(stackPointer, stackPointer,  asm.i(8));
             asm.pushFrame();
 
             // -- out of line -------------------------------------------------------
@@ -169,9 +171,10 @@ public class HotSpotXirGenerator implements RiXirGenerator {
         protected XirTemplate create(CiXirAssembler asm, long flags) {
             asm.restart(CiKind.Void);
             XirOperand framePointer = asm.createRegisterTemp("frame pointer", target.wordKind, AMD64.rbp);
+            XirOperand stackPointer = asm.createRegisterTemp("stack pointer", target.wordKind, AMD64.rsp);
 
             asm.popFrame();
-            asm.pop(framePointer);
+            asm.pload(CiKind.Long, framePointer, stackPointer, asm.i(-8), false);
 
             if (GraalOptions.GenSafepoints) {
                 XirOperand temp = asm.createRegisterTemp("temp", target.wordKind, AMD64.r10);
@@ -639,7 +642,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
 
         @Override
         protected XirTemplate create(CiXirAssembler asm, long flags) {
-            asm.restart();
+            asm.restart(CiKind.Void);
             XirParameter object = asm.createInputParameter("object", CiKind.Object);
             final XirOperand hub;
             hub = asm.createConstantInputParameter("hub", CiKind.Object);
@@ -669,7 +672,7 @@ public class HotSpotXirGenerator implements RiXirGenerator {
             asm.callRuntime(CiRuntimeCall.Deoptimize, null);
             asm.shouldNotReachHere();
 
-            return asm.finishTemplate(object, "checkcast");
+            return asm.finishTemplate("checkcast");
         }
     };
 

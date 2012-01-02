@@ -69,17 +69,18 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         this.colorChangedEvent = new ChangedEvent<RangeSliderModel>(this);
         setPositions(positions);
     }
-    
+
     protected void setPositions(List<String> positions) {
         this.positions = positions;
-         colors = new ArrayList<Color>();
-         for (int i = 0; i < positions.size(); i++) {
-             colors.add(Color.black);
-         }
+        colors = new ArrayList<Color>();
+        for (int i = 0; i < positions.size(); i++) {
+            colors.add(Color.black);
+        }
+        firstPosition = Math.min(firstPosition, positions.size() - 1);
+        secondPosition = Math.min(secondPosition, positions.size() - 1);
         changedEvent.fire();
         colorChangedEvent.fire();
-     }
-
+    }
 
     public void setColors(List<Color> colors) {
         this.colors = colors;
@@ -92,9 +93,7 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
 
     public RangeSliderModel copy() {
         RangeSliderModel newModel = new RangeSliderModel(positions);
-        newModel.firstPosition = firstPosition;
-        newModel.secondPosition = secondPosition;
-        newModel.colors = colors;
+        newModel.setData(this);
         return newModel;
     }
 

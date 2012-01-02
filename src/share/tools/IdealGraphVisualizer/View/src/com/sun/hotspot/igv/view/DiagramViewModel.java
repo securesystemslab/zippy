@@ -33,7 +33,6 @@ import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.data.ChangedEvent;
 import com.sun.hotspot.igv.util.RangeSliderModel;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -340,13 +339,18 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     public InputGraph getFirstGraph() {
-        return group.getGraphs().get(getFirstPosition());
+        List<InputGraph> graphs = group.getGraphs();
+        if (getFirstPosition() < graphs.size()) {
+            return graphs.get(getFirstPosition());
+        }
+        return graphs.get(graphs.size() - 1);
     }
 
     public InputGraph getSecondGraph() {
         List<InputGraph> graphs = group.getGraphs();
-        if (graphs.size() >= getSecondPosition())
-            return group.getGraphs().get(getSecondPosition());
+        if (getSecondPosition() < graphs.size()) {
+            return graphs.get(getSecondPosition());
+        }
         return getFirstGraph();
     }
 

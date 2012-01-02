@@ -23,13 +23,11 @@
 package com.sun.cri.ci;
 
 public final class CiMonitorValue extends CiValue {
-    /**
-     * 
-     */
     private static final long serialVersionUID = 8241681800464483691L;
-    public final CiValue owner;
-    public final CiValue lockData;
-    public final boolean eliminated;
+
+    public CiValue owner;
+    public CiValue lockData;
+    public boolean eliminated;
 
     public CiMonitorValue(CiValue owner, CiValue lockData, boolean eliminated) {
         super(CiKind.Illegal);
@@ -40,22 +38,7 @@ public final class CiMonitorValue extends CiValue {
     }
 
     @Override
-    public String name() {
-        return "monitor";
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return this == obj;
-    }
-
-    @Override
-    public boolean equalsIgnoringKind(CiValue other) {
-        return this == other;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
+    public String toString() {
+        return "monitor[" + owner + (lockData != null ? ", " + lockData : "") + (eliminated ? ", eliminated" : "") + "]";
     }
 }

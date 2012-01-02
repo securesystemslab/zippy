@@ -56,7 +56,7 @@ public class FolderNode extends AbstractNode {
 
         private FolderNode parent;
         private List<Group> registeredGroups;
-        private GraphDocument document;
+        private final GraphDocument document;
 
         public FolderChildren(GraphDocument document) {
             this.document = document;
@@ -80,7 +80,7 @@ public class FolderNode extends AbstractNode {
                 List<Node> curNodes = new ArrayList<Node>();
                 for (Group g : p.getRight()) {
                     for (InputGraph graph : g.getGraphListCopy()) {
-                        curNodes.add(new GraphNode(graph));
+                        curNodes.add(new GraphNode(document, graph));
                     }
                     g.getChangedEvent().addListener(this);
                     registeredGroups.add(g);

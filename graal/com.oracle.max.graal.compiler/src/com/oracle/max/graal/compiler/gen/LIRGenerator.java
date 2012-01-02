@@ -22,6 +22,7 @@
  */
 package com.oracle.max.graal.compiler.gen;
 
+import static com.oracle.max.graal.alloc.util.ValueUtil.*;
 import static com.oracle.max.cri.intrinsics.MemoryBarriers.*;
 import static com.sun.cri.ci.CiCallingConvention.Type.*;
 import static com.sun.cri.ci.CiValue.*;
@@ -345,10 +346,9 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         CiCallingConvention args = compilation.frameMap().incomingArguments();
         for (LocalNode local : compilation.graph.getNodes(LocalNode.class)) {
             int i = local.index();
-            CiValue src = args.locations[i];
+            CiValue src = toStackKind(args.locations[i]);
             CiVariable dest = emitMove(src);
-            assert src.isLegal() : "check";
-            assert src.kind.stackKind() == local.kind().stackKind() : "local type check failed";
+            assert src.kind == local.kind().stackKind() : "local type check failed";
             setResult(local, dest);
         }
     }
@@ -384,6 +384,8 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
     public void visitCheckCast(CheckCastNode x) {
         XirSnippet snippet = xir.genCheckCast(site(x), toXirArgument(x.object()), toXirArgument(x.targetClassInstruction()), x.targetClass());
         emitXir(snippet, x, state(), null, true);
+        // The result of a checkcast is the unmodified object, so no need to allocate a new variable for it.
+        setResult(x, operand(x.object()));
     }
 
     @Override
@@ -773,26 +775,39 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         }
     }
 
+    private static CiValue toStackKind(CiValue value) {
+        if (value.kind.stackKind() != value.kind) {
+            // We only have stack-kinds in the LIR, so convert the operand kind for values from the calling convention.
+            if (isRegister(value)) {
+                return asRegister(value).asValue(value.kind.stackKind());
+            } else if (isStackSlot(value)) {
+                return CiStackSlot.get(value.kind.stackKind(), asStackSlot(value).index(), asStackSlot(value).inCallerFrame());
+            } else {
+                throw Util.shouldNotReachHere();
+            }
+        }
+        return value;
+    }
+
     public List<CiValue> visitInvokeArguments(CiCallingConvention cc, Iterable<ValueNode> arguments, List<CiStackSlot> pointerSlots) {
         // for each argument, load it into the correct location
         List<CiValue> argList = new ArrayList<>();
         int j = 0;
         for (ValueNode arg : arguments) {
             if (arg != null) {
-                CiValue operand = cc.locations[j++];
-                if (operand.isRegister()) {
-                    emitMove(operand(arg), operand.asRegister().asValue(operand.kind.stackKind()));
-                } else {
-                    assert !((CiStackSlot) operand).inCallerFrame();
-                    CiValue param = loadForStore(operand(arg), operand.kind);
-                    emitMove(param, operand);
+                CiValue operand = toStackKind(cc.locations[j++]);
 
-                    if (arg.kind() == CiKind.Object && pointerSlots != null) {
-                        // This slot must be marked explicitly in the pointer map.
-                        pointerSlots.add((CiStackSlot) operand);
-                    }
+                if (isStackSlot(operand) && operand.kind == CiKind.Object && pointerSlots != null) {
+                    assert !asStackSlot(operand).inCallerFrame();
+                    // This slot must be marked explicitly in the pointer map.
+                    pointerSlots.add(asStackSlot(operand));
                 }
+
+                emitMove(operand(arg), operand);
                 argList.add(operand);
+
+            } else {
+                throw Util.shouldNotReachHere("I thought we no longer have null entries for two-slot types...");
             }
         }
         return argList;

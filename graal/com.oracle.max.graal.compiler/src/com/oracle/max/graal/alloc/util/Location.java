@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,17 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.hotspot;
+package com.oracle.max.graal.alloc.util;
 
 import com.sun.cri.ci.*;
 
-/**
- * HotSpot-specific CiTarget.
- * TODO currently empty class, so check if it can be deleted.
- */
-public class HotSpotTarget extends CiTarget {
+public class Location extends CiValue {
+    private static final long serialVersionUID = -1786677729152726126L;
 
-    public HotSpotTarget(CiArchitecture arch, boolean isMP, int spillSlotSize, int stackAlignment, int pageSize, int cacheAlignment, boolean inlineObjects) {
-        super(arch, isMP, spillSlotSize, stackAlignment, pageSize, cacheAlignment, inlineObjects, true, true);
+    public final CiVariable variable;
+    public final CiValue location;
+
+    public Location(CiVariable variable, CiValue location) {
+        super(variable.kind);
+        this.variable = variable;
+        this.location = location;
+
+        assert variable.kind == location.kind;
+    }
+
+    @Override
+    public String toString() {
+        return variable + "[" + location + "]";
     }
 }

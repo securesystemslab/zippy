@@ -515,7 +515,7 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1l
     tag = cp->tag_at(index);
   }
 
-  if (tag.is_unresolved_klass()) {
+  if (tag.is_unresolved_klass() || tag.is_klass()) {
     klassOop klass = cp->klass_at(index, CHECK);
     if (klass->klass_part()->oop_is_instance()) {
       instanceKlass::cast(klass)->initialize(CHECK);
