@@ -230,7 +230,8 @@ class Suite:
         self.libs = []
         self.includes = []
         self.commands = None
-        self._load(join(dir, 'mx'), primary=primary)
+        self.primary = primary
+        self._load_env(join(dir, 'mx'))
 
     def _load_projects(self, mxDir):
         libsMap = dict()
@@ -327,13 +328,25 @@ class Suite:
                     if len(line) != 0 and line[0] != '#':
                         key, value = line.split('=', 1)
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
-        
-    def _load(self, mxDir, primary):
-        self._load_env(mxDir)
+    
+    def _post_init(self, opts):
+        mxDir = join(self.dir, 'mx')
         self._load_includes(mxDir)
         self._load_projects(mxDir)
-        if primary:
+        if self.primary:
             self._load_commands(mxDir)
+        if commands is not None and hasattr(commands, 'mx_post_parse_cmd_line'):
+            commands.mx_post_parse_cmd_line(opts)
+        for p in self.projects:
+            existing = _projects.get(p.name)
+            if existing is not None:
+                abort('cannot override project  ' + p.name + ' in ' + p.dir + " with project of the same name in  " + existing.dir)
+            _projects[p.name] = p
+        for l in self.libs:
+            existing = _libs.get(l.name)
+            if existing is not None:
+                abort('cannot redefine library  ' + l.name)
+            _libs[l.name] = l
         
 def get_os():
     """
@@ -357,16 +370,6 @@ def _loadSuite(dir, primary=False):
     if not _suites.has_key(dir):
         suite = Suite(dir, primary)
         _suites[dir] = suite 
-        for p in suite.projects:
-            existing = _projects.get(p.name)
-            if existing is not None:
-                abort('cannot override project  ' + p.name + ' in ' + p.dir + " with project of the same name in  " + existing.dir)
-            _projects[p.name] = p
-        for l in suite.libs:
-            existing = _libs.get(l.name)
-            if existing is not None:
-                abort('cannot redefine library  ' + l.name)
-            _libs[l.name] = l
 
 def suites():
     """
@@ -1148,6 +1151,8 @@ def main():
                 _loadSuite(path)
                 
     cwdMxDir = join(os.getcwd(), 'mx')
+    if exists(cwdMxDir) and isdir(cwdMxDir):
+        _loadSuite(os.getcwd(), True)
             
     opts, commandAndArgs = _argParser._parse_cmd_line()
     
@@ -1155,12 +1160,8 @@ def main():
     _opts = opts
     _java = JavaConfig(opts)
     
-    if exists(cwdMxDir) and isdir(cwdMxDir):
-        _loadSuite(os.getcwd(), True)
-    
     for s in suites():
-        if s.commands is not None and hasattr(s.commands, 'mx_post_parse_cmd_line'):
-            s.commands.mx_post_parse_cmd_line(opts)
+        s._post_init(opts)
     
     if len(commandAndArgs) == 0:
         _argParser.print_help()
