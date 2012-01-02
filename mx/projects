@@ -27,6 +27,7 @@
 # Values can use environment variables with the syntax used in a Bash shell script.
 #
 
+
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
 library@JDK_TOOLS@optional=true
 
@@ -36,6 +37,9 @@ library@JUNIT@eclipse.container=org.eclipse.jdt.junit.JUNIT_CONTAINER/4
 
 library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar
+
+library@DACAPO@path=lib/dacapo-9.12-bach.jar
+library@DACAPO@urls=http://dfn.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
 
 # graal.hotspot
 project@com.oracle.max.graal.hotspot@subDir=graal

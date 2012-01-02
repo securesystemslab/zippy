@@ -152,10 +152,13 @@ def dacapo(args):
         'xalan'
     ]
     
-    dacapo = mx.check_get_env('DACAPO_CP')
+    dacapo = mx.get_env('DACAPO_CP')
+    if dacapo is None:
+        dacapo = _graal_home + r'/lib/dacapo-9.12-bach.jar'
+    
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
-            
+        
     vmOpts = ['-Xms1g', '-Xmx2g', '-cp', dacapo]
 
     selected = []
@@ -597,6 +600,6 @@ def mx_post_parse_cmd_line(opts):
         mx.abort('Requires Java version 1.7 or greater, got version ' + version)
 
     if (_vmSourcesAvailable):
-        global _vmbuild
-        if not opts.vmbuild is None:
+        if hasattr(opts, 'vmbuild'):
+            global _vmbuild
             _vmbuild = opts.vmbuild

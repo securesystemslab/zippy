@@ -214,6 +214,7 @@ class Library(Dependency):
             path = join(self.suite.dir, path)
         if resolve and self.mustExist and not exists(path):
             assert not len(self.urls) == 0, 'cannot find required library  ' + self.name + " " + path;
+            print('Downloading ' + self.name + ' from ' + str(self.urls))
             download(path, self.urls)
         return path
         
@@ -290,6 +291,7 @@ class Suite:
             urls = pop_list(attrs, 'urls')
             l = Library(self, name, path, mustExist, urls)
             l.__dict__.update(attrs)
+            l.get_path(True)
             self.libs.append(l)
         
     def _load_commands(self, mxDir):
@@ -629,9 +631,16 @@ def check_get_env(key):
     """
     Gets an environment variable, aborting with a useful message if it is not set.
     """
-    value = os.environ.get(key)
+    value = get_env(key)
     if value is None:
         abort('Required environment variable ' + key + ' must be set')
+    return value
+
+def get_env(key):
+    """
+    Gets an environment variable.
+    """
+    value = os.environ.get(key)
     return value
 
 def log(msg=None):
@@ -719,12 +728,12 @@ def download(path, urls, verbose=False):
             
                 zf = zipfile.ZipFile(zipdata, 'r')
                 data = zf.read(entry)
-                with open(path, 'w') as f:
+                with open(path, 'wb') as f:
                     f.write(data)
             else:
                 with contextlib.closing(url_open(url)) as f:
                     data = f.read()
-                with open(path, 'w') as f:
+                with open(path, 'wb') as f:
                     f.write(data)
             return
         except IOError as e:
@@ -849,7 +858,7 @@ def build(args):
             built.add(p.name)
 
             argfileName = join(p.dir, 'javafilelist.txt')
-            argfile = open(argfileName, 'w')
+            argfile = open(argfileName, 'wb')
             argfile.write('\n'.join(javafilelist))
             argfile.close()
             
@@ -1139,14 +1148,15 @@ def main():
                 _loadSuite(path)
                 
     cwdMxDir = join(os.getcwd(), 'mx')
-    if exists(cwdMxDir) and isdir(cwdMxDir):
-        _loadSuite(os.getcwd(), True)
             
     opts, commandAndArgs = _argParser._parse_cmd_line()
     
     global _opts, _java
     _opts = opts
     _java = JavaConfig(opts)
+    
+    if exists(cwdMxDir) and isdir(cwdMxDir):
+        _loadSuite(os.getcwd(), True)
     
     for s in suites():
         if s.commands is not None and hasattr(s.commands, 'mx_post_parse_cmd_line'):
