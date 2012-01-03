@@ -2101,6 +2101,8 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.nodes");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.hotspot");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.printer");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.java");
     scp_compiler.expand_endorsed();
 
     Arguments::set_compilerclasspath(scp_compiler.combined_path());

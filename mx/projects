@@ -70,10 +70,16 @@ project@com.oracle.max.graal.compiler@sourceDirs=src
 project@com.oracle.max.graal.compiler@dependencies=com.oracle.max.asm,com.oracle.max.graal.nodes
 project@com.oracle.max.graal.compiler@checkstyle=com.oracle.max.graal.graph
 
+# graal.java
+project@com.oracle.max.graal.java@subDir=graal
+project@com.oracle.max.graal.java@sourceDirs=src
+project@com.oracle.max.graal.java@dependencies=com.oracle.max.graal.compiler
+project@com.oracle.max.graal.java@checkstyle=com.oracle.max.graal.graph
+
 # graal.printer
 project@com.oracle.max.graal.printer@subDir=graal
 project@com.oracle.max.graal.printer@sourceDirs=src
-project@com.oracle.max.graal.printer@dependencies=com.oracle.max.graal.compiler
+project@com.oracle.max.graal.printer@dependencies=com.oracle.max.graal.java
 project@com.oracle.max.graal.printer@checkstyle=com.oracle.max.graal.graph
 
 # graal.test
