@@ -558,7 +558,9 @@ def gate(args):
         revTip = int(subprocess.check_output(['hg', 'tip', '--template', "'{rev}'"]).strip("'"))
         revLast = int(subprocess.check_output(['hg', 'log', '-r', hgNode, '--template', "'{rev}'"]).strip("'"))
         changesetCount = revTip - revLast + 1
+        mx.log(time.strftime('Checking ' + str(changesetCount) + ' changesets...'))
         copyrightcheck(['-last=' + str(changesetCount), '-reporterrors=true', '-continueonerror'])
+        raise SystemExit('forced exit')
     
     # 6. Bootstrap with system assertions enabled
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Bootstrap with -esa...'))
