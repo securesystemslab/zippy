@@ -43,6 +43,10 @@ def clean(args):
     os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
     mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
 
+def copyrightcheck(args):
+    """run copyright check on the Mercurial controlled source files"""
+    mx.run_java(['-cp', mx.classpath('com.oracle.max.base', resolve=False), 'com.sun.max.tools.CheckCopyright', '-cfp=' + join(mx.project('com.oracle.max.base').dir, '.copyright.regex')] + args)
+
 def export(args):
     """create a GraalVM zip file for distribution"""
     
@@ -545,15 +549,26 @@ def gate(args):
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Build...'))
     build([])
     
-    # 5. Bootstrap with system assertions enabled
+    # 5 Copyright check
+    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running copyright check...'))
+    hgNode = mx.get_env('hg_node')
+    if hgNode is None:
+        copyrightcheck(['-modified', '-reporterrors=true', '-continueonerror'])
+    else:
+        revTip = int(subprocess.check_output(['hg', 'tip', '--template', "'{rev}'"]).strip("'"))
+        revLast = int(subprocess.check_output(['hg', 'log', '-r', hgNode, '--template', "'{rev}'"]).strip("'"))
+        changesetCount = revTip - revLast + 1
+        copyrightcheck(['-last=' + str(changesetCount), '-reporterrors=true', '-continueonerror'])
+    
+    # 6. Bootstrap with system assertions enabled
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Bootstrap with -esa...'))
     vm(['-esa', '-version'])
     
-    # 6. Run unittests
+    # 7. Run unittests
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running unit tests...'))
     unittest([])
     
-    # 7. Run selected DaCapo benchmarks
+    # 8. Run selected DaCapo benchmarks
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running DaCapo benchmarks...'))
     dacapo(['eclipse'])
     #dacapo(['tradesoap'])
@@ -569,6 +584,7 @@ def mx_init():
     commands = {
         'build': [build, ''],
         'clean': [clean, ''],
+        'copyrightcheck': [copyrightcheck, ''],
         'dacapo': [dacapo, '[benchmark] [VM options|DaCapo options]'],
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
