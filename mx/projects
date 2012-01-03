@@ -44,7 +44,7 @@ library@DACAPO@urls=http://dfn.dl.sourceforge.net/project/dacapobench/9.12-bach/
 # graal.hotspot
 project@com.oracle.max.graal.hotspot@subDir=graal
 project@com.oracle.max.graal.hotspot@sourceDirs=src
-project@com.oracle.max.graal.hotspot@dependencies=com.oracle.max.graal.snippets,com.oracle.max.asmdis,com.oracle.max.graal.printer
+project@com.oracle.max.graal.hotspot@dependencies=com.oracle.max.graal.snippets,com.oracle.max.asmdis
 project@com.oracle.max.graal.hotspot@checkstyle=com.oracle.max.graal.graph
 
 # graal.graph
@@ -55,7 +55,7 @@ project@com.oracle.max.graal.graph@dependencies=JUNIT
 # graal.snippets
 project@com.oracle.max.graal.snippets@subDir=graal
 project@com.oracle.max.graal.snippets@sourceDirs=src,test
-project@com.oracle.max.graal.snippets@dependencies=com.oracle.max.graal.printer,com.oracle.max.graal.compiler
+project@com.oracle.max.graal.snippets@dependencies=com.oracle.max.graal.printer
 project@com.oracle.max.graal.snippets@checkstyle=com.oracle.max.graal.graph
 
 # graal.nodes
@@ -73,13 +73,13 @@ project@com.oracle.max.graal.compiler@checkstyle=com.oracle.max.graal.graph
 # graal.printer
 project@com.oracle.max.graal.printer@subDir=graal
 project@com.oracle.max.graal.printer@sourceDirs=src
-project@com.oracle.max.graal.printer@dependencies=com.oracle.max.graal.compiler,com.oracle.max.asm,com.oracle.max.graal.nodes
+project@com.oracle.max.graal.printer@dependencies=com.oracle.max.graal.compiler
 project@com.oracle.max.graal.printer@checkstyle=com.oracle.max.graal.graph
 
 # graal.test
 project@com.oracle.max.graal.tests@subDir=graal
 project@com.oracle.max.graal.tests@sourceDirs=src
-project@com.oracle.max.graal.tests@dependencies=com.oracle.max.graal.compiler,com.oracle.max.graal.printer
+project@com.oracle.max.graal.tests@dependencies=com.oracle.max.graal.printer
 project@com.oracle.max.graal.tests@checkstyle=com.oracle.max.graal.graph
 
 # max.asm
