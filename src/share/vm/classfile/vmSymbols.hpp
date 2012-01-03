@@ -282,37 +282,37 @@
   template(com_sun_hotspot_graal_HotSpotProxy,        "com/oracle/max/graal/hotspot/HotSpotProxy")                      \
   template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/hotspot/Compiler")                          \
   template(com_sun_hotspot_graal_CompilerImpl,        "com/oracle/max/graal/hotspot/CompilerImpl")                      \
-  template(com_sun_cri_ri_RiMethod,                   "com/sun/cri/ri/RiMethod")                                        \
-  template(com_sun_cri_ri_RiResolvedField,            "com/sun/cri/ri/RiResolvedField")                                 \
-  template(com_sun_cri_ri_RiType,                     "com/sun/cri/ri/RiType")                                          \
-  template(com_sun_cri_ri_RiTypeProfile,              "com/sun/cri/ri/RiTypeProfile")                                   \
-  template(com_sun_cri_ri_RiConstantPool,             "com/sun/cri/ri/RiConstantPool")                                  \
-  template(com_sun_cri_ri_RiExceptionHandler,         "com/sun/cri/ri/RiExceptionHandler")                              \
-  template(com_sun_cri_ci_CiAssumptions,              "com/sun/cri/ci/CiAssumptions")                                   \
-  template(com_sun_cri_ci_CiAssumptions_ConcreteSubtype, "com/sun/cri/ci/CiAssumptions$ConcreteSubtype")                \
-  template(com_sun_cri_ci_CiAssumptions_ConcreteMethod, "com/sun/cri/ci/CiAssumptions$ConcreteMethod")                  \
-  template(com_sun_cri_ci_CiGenericCallback,          "com/sun/cri/ci/CiGenericCallback")                               \
-  template(com_sun_cri_ci_CiTargetMethod,             "com/sun/cri/ci/CiTargetMethod")                                  \
-  template(com_sun_cri_ci_CiTargetMethod_Site,        "com/sun/cri/ci/CiTargetMethod$Site")                             \
-  template(com_sun_cri_ci_CiTargetMethod_Call,        "com/sun/cri/ci/CiTargetMethod$Call")                             \
-  template(com_sun_cri_ci_CiTargetMethod_DataPatch,   "com/sun/cri/ci/CiTargetMethod$DataPatch")                        \
-  template(com_sun_cri_ci_CiTargetMethod_Safepoint,   "com/sun/cri/ci/CiTargetMethod$Safepoint")                        \
-  template(com_sun_cri_ci_CiTargetMethod_ExceptionHandler, "com/sun/cri/ci/CiTargetMethod$ExceptionHandler")            \
-  template(com_sun_cri_ci_CiTargetMethod_Mark,        "com/sun/cri/ci/CiTargetMethod$Mark")                             \
+  template(com_sun_cri_ri_RiMethod,                   "com/oracle/max/cri/ri/RiMethod")                                        \
+  template(com_sun_cri_ri_RiResolvedField,            "com/oracle/max/cri/ri/RiResolvedField")                                 \
+  template(com_sun_cri_ri_RiType,                     "com/oracle/max/cri/ri/RiType")                                          \
+  template(com_sun_cri_ri_RiTypeProfile,              "com/oracle/max/cri/ri/RiTypeProfile")                                   \
+  template(com_sun_cri_ri_RiConstantPool,             "com/oracle/max/cri/ri/RiConstantPool")                                  \
+  template(com_sun_cri_ri_RiExceptionHandler,         "com/oracle/max/cri/ri/RiExceptionHandler")                              \
+  template(com_sun_cri_ci_CiAssumptions,              "com/oracle/max/cri/ci/CiAssumptions")                                   \
+  template(com_sun_cri_ci_CiAssumptions_ConcreteSubtype, "com/oracle/max/cri/ci/CiAssumptions$ConcreteSubtype")                \
+  template(com_sun_cri_ci_CiAssumptions_ConcreteMethod, "com/oracle/max/cri/ci/CiAssumptions$ConcreteMethod")                  \
+  template(com_sun_cri_ci_CiGenericCallback,          "com/oracle/max/cri/ci/CiGenericCallback")                               \
+  template(com_sun_cri_ci_CiTargetMethod,             "com/oracle/max/cri/ci/CiTargetMethod")                                  \
+  template(com_sun_cri_ci_CiTargetMethod_Site,        "com/oracle/max/cri/ci/CiTargetMethod$Site")                             \
+  template(com_sun_cri_ci_CiTargetMethod_Call,        "com/oracle/max/cri/ci/CiTargetMethod$Call")                             \
+  template(com_sun_cri_ci_CiTargetMethod_DataPatch,   "com/oracle/max/cri/ci/CiTargetMethod$DataPatch")                        \
+  template(com_sun_cri_ci_CiTargetMethod_Safepoint,   "com/oracle/max/cri/ci/CiTargetMethod$Safepoint")                        \
+  template(com_sun_cri_ci_CiTargetMethod_ExceptionHandler, "com/oracle/max/cri/ci/CiTargetMethod$ExceptionHandler")            \
+  template(com_sun_cri_ci_CiTargetMethod_Mark,        "com/oracle/max/cri/ci/CiTargetMethod$Mark")                             \
   template(com_oracle_max_graal_graph_BitMap,         "com/oracle/max/graal/graph/BitMap")                              \
-  template(com_sun_cri_ci_CiBitMap,	                  "com/sun/cri/ci/CiBitMap")                                        \
-  template(com_sun_cri_ci_CiDebugInfo,                "com/sun/cri/ci/CiDebugInfo")                                     \
-  template(com_sun_cri_ci_CiFrame,                    "com/sun/cri/ci/CiFrame")                                         \
-  template(com_sun_cri_ci_CiValue,                    "com/sun/cri/ci/CiValue")                                         \
-  template(com_sun_cri_ci_CiStackSlot,                "com/sun/cri/ci/CiStackSlot")                                     \
-  template(com_sun_cri_ci_CiRegisterValue,            "com/sun/cri/ci/CiRegisterValue")                                 \
-  template(com_sun_cri_ci_CiRegister,                 "com/sun/cri/ci/CiRegister")                                      \
-  template(com_sun_cri_ci_CiCodePos,                  "com/sun/cri/ci/CiCodePos")                                       \
-  template(com_sun_cri_ci_CiConstant,                 "com/sun/cri/ci/CiConstant")                                      \
-  template(com_sun_cri_ci_CiVirtualObject,            "com/sun/cri/ci/CiVirtualObject")                                 \
-  template(com_sun_cri_ci_CiMonitorValue,             "com/sun/cri/ci/CiMonitorValue")                                  \
-  template(com_sun_cri_ci_CiKind,                     "com/sun/cri/ci/CiKind")                                          \
-  template(com_sun_cri_ci_CiRuntimeCall,              "com/sun/cri/ci/CiRuntimeCall")                                   \
+  template(com_sun_cri_ci_CiBitMap,	                  "com/oracle/max/cri/ci/CiBitMap")                                        \
+  template(com_sun_cri_ci_CiDebugInfo,                "com/oracle/max/cri/ci/CiDebugInfo")                                     \
+  template(com_sun_cri_ci_CiFrame,                    "com/oracle/max/cri/ci/CiFrame")                                         \
+  template(com_sun_cri_ci_CiValue,                    "com/oracle/max/cri/ci/CiValue")                                         \
+  template(com_sun_cri_ci_CiStackSlot,                "com/oracle/max/cri/ci/CiStackSlot")                                     \
+  template(com_sun_cri_ci_CiRegisterValue,            "com/oracle/max/cri/ci/CiRegisterValue")                                 \
+  template(com_sun_cri_ci_CiRegister,                 "com/oracle/max/cri/ci/CiRegister")                                      \
+  template(com_sun_cri_ci_CiCodePos,                  "com/oracle/max/cri/ci/CiCodePos")                                       \
+  template(com_sun_cri_ci_CiConstant,                 "com/oracle/max/cri/ci/CiConstant")                                      \
+  template(com_sun_cri_ci_CiVirtualObject,            "com/oracle/max/cri/ci/CiVirtualObject")                                 \
+  template(com_sun_cri_ci_CiMonitorValue,             "com/oracle/max/cri/ci/CiMonitorValue")                                  \
+  template(com_sun_cri_ci_CiKind,                     "com/oracle/max/cri/ci/CiKind")                                          \
+  template(com_sun_cri_ci_CiRuntimeCall,              "com/oracle/max/cri/ci/CiRuntimeCall")                                   \
   template(startCompiler_name,                        "startCompiler")                                                  \
   template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
@@ -322,27 +322,27 @@
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
   template(createRiMethodResolved_name,               "createRiMethodResolved")                                         \
-  template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/sun/cri/ri/RiMethod;")                 \
+  template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/oracle/max/cri/ri/RiMethod;")                 \
   template(createRiMethodUnresolved_name,             "createRiMethodUnresolved")                                       \
-  template(createRiMethodUnresolved_signature,        "(Ljava/lang/String;Ljava/lang/String;Lcom/sun/cri/ri/RiType;)Lcom/sun/cri/ri/RiMethod;") \
+  template(createRiMethodUnresolved_signature,        "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/max/cri/ri/RiType;)Lcom/oracle/max/cri/ri/RiMethod;") \
   template(createRiSignature_name,                    "createRiSignature")                                              \
-  template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/sun/cri/ri/RiSignature;")               \
+  template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/oracle/max/cri/ri/RiSignature;")               \
   template(createRiField_name,                        "createRiField")                                                  \
-  template(createRiField_signature,                   "(Lcom/sun/cri/ri/RiType;Ljava/lang/String;Lcom/sun/cri/ri/RiType;II)Lcom/sun/cri/ri/RiField;") \
+  template(createRiField_signature,                   "(Lcom/oracle/max/cri/ri/RiType;Ljava/lang/String;Lcom/oracle/max/cri/ri/RiType;II)Lcom/oracle/max/cri/ri/RiField;") \
   template(createRiType_name,                         "createRiType")                                                   \
-  template(createRiType_signature,                    "(JLjava/lang/String;)Lcom/sun/cri/ri/RiType;")                   \
+  template(createRiType_signature,                    "(JLjava/lang/String;)Lcom/oracle/max/cri/ri/RiType;")                   \
   template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \
-  template(createRiTypePrimitive_signature,           "(I)Lcom/sun/cri/ri/RiType;")                                     \
+  template(createRiTypePrimitive_signature,           "(I)Lcom/oracle/max/cri/ri/RiType;")                                     \
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
-  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/sun/cri/ri/RiType;")                    \
+  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/oracle/max/cri/ri/RiType;")                    \
   template(createCiConstant_name,                     "createCiConstant")                                               \
-  template(createCiConstant_signature,                "(Lcom/sun/cri/ci/CiKind;J)Lcom/sun/cri/ci/CiConstant;")          \
+  template(createCiConstant_signature,                "(Lcom/oracle/max/cri/ci/CiKind;J)Lcom/oracle/max/cri/ci/CiConstant;")          \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
-  template(createCiConstantFloat_signature,           "(F)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstantFloat_signature,           "(F)Lcom/oracle/max/cri/ci/CiConstant;")                                 \
   template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \
-  template(createCiConstantDouble_signature,          "(D)Lcom/sun/cri/ci/CiConstant;")                                 \
+  template(createCiConstantDouble_signature,          "(D)Lcom/oracle/max/cri/ci/CiConstant;")                                 \
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
-  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/sun/cri/ci/CiConstant;")                \
+  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/max/cri/ci/CiConstant;")                \
   template(getVMExits_name,                           "getVMExits")                                                     \
   template(getVMExits_signature,                      "()Lcom/oracle/max/graal/hotspot/VMExits;")                       \
   template(getInstance_name,                          "getInstance")                                                    \
