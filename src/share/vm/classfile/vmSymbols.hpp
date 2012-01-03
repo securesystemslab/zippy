@@ -270,14 +270,14 @@
                                                                                                                         \
   /* support for graal */                                                                                               \
   template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/hotspot/VMExits")                           \
-  template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/hotspot/HotSpotMethodResolvedImpl")       \
+  template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/hotspot/ri/HotSpotMethodResolvedImpl")       \
   template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/hotspot/HotSpotTargetMethod")               \
   template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/hotspot/HotSpotField")                      \
   template(com_sun_hotspot_graal_HotSpotCompiledMethod, "com/oracle/max/graal/hotspot/HotSpotCompiledMethod")           \
   template(com_sun_graal_graalOptions,                "com/sun/graal/graalOptions")                                     \
   template(com_sun_hotspot_graal_HotSpotOptions,      "com/oracle/max/graal/hotspot/HotSpotOptions")                    \
-  template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/hotspot/HotSpotTypeResolvedImpl")           \
-  template(com_sun_hotspot_graal_HotSpotType,         "com/oracle/max/graal/hotspot/HotSpotType")                       \
+  template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/hotspot/ri/HotSpotTypeResolvedImpl")           \
+  template(com_sun_hotspot_graal_HotSpotType,         "com/oracle/max/graal/hotspot/ri/HotSpotType")                       \
   template(com_sun_hotspot_graal_HotSpotExceptionHandler,"com/oracle/max/graal/hotspot/HotSpotExceptionHandler")        \
   template(com_sun_hotspot_graal_HotSpotProxy,        "com/oracle/max/graal/hotspot/HotSpotProxy")                      \
   template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/hotspot/Compiler")                          \
@@ -317,7 +317,7 @@
   template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
-  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/HotSpotMethodResolved;IZ)V")      \
+  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;IZ)V")      \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
