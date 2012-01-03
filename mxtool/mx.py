@@ -710,6 +710,16 @@ def download(path, urls, verbose=False):
     if d != '' and not exists(d):
         os.makedirs(d)
         
+    # Try it with the Java tool first since it can show a progress counter
+    myDir = dirname(__file__)
+    
+    javaSource = join(myDir, 'URLConnectionDownload.java')
+    javaClass = join(myDir, 'URLConnectionDownload.class')
+    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+        subprocess.check_call([java().javac, '-d', myDir, javaSource])
+    if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls) == 0:
+        return
+        
     def url_open(url):
         userAgent = 'Mozilla/5.0 (compatible)'
         headers = { 'User-Agent' : userAgent }
@@ -744,17 +754,9 @@ def download(path, urls, verbose=False):
         except zipfile.BadZipfile as e:
             log('Error in zip file downloaded from ' + url + ': ' + str(e))
             
-    # now try it with Java - urllib2 does not handle meta refreshes which are used by Sourceforge
-    myDir = dirname(__file__)
-    
-    javaSource = join(myDir, 'URLConnectionDownload.java')
-    javaClass = join(myDir, 'URLConnectionDownload.class')
-    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-        subprocess.check_call([java().javac, '-d', myDir, javaSource])
-    if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls) != 0:
-        abort('Could not download to ' + path + ' from any of the following URLs:\n\n    ' +
-                  '\n    '.join(urls) + '\n\nPlease use a web browser to do the download manually')
-
+    abort('Could not download to ' + path + ' from any of the following URLs:\n\n    ' +
+              '\n    '.join(urls) + '\n\nPlease use a web browser to do the download manually')
+            
 def update_file(path, content):
     """
     Updates a file with some given content if the content differs from what's in
