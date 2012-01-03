@@ -3,7 +3,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 #
-# Copyright (c) 2007, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -45,7 +45,9 @@ def clean(args):
 
 def copyrightcheck(args):
     """run copyright check on the Mercurial controlled source files"""
-    mx.run_java(['-cp', mx.classpath('com.oracle.max.base', resolve=False), 'com.sun.max.tools.CheckCopyright', '-cfp=' + join(mx.project('com.oracle.max.base').dir, '.copyright.regex')] + args)
+    res = mx.run_java(['-cp', mx.classpath('com.oracle.max.base', resolve=False), 'com.sun.max.tools.CheckCopyright', '-cfp=' + join(mx.project('com.oracle.max.base').dir, '.copyright.regex')] + args)
+    mx.log("copyright check result = " + str(res))
+    return res
 
 def export(args):
     """create a GraalVM zip file for distribution"""
@@ -549,18 +551,17 @@ def gate(args):
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Build...'))
     build([])
     
-    # 5 Copyright check
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running copyright check...'))
-    hgNode = mx.get_env('hg_node')
-    if hgNode is None:
-        copyrightcheck(['-modified', '-reporterrors=true', '-continueonerror'])
-    else:
-        revTip = int(subprocess.check_output(['hg', 'tip', '--template', "'{rev}'"]).strip("'"))
-        revLast = int(subprocess.check_output(['hg', 'log', '-r', hgNode, '--template', "'{rev}'"]).strip("'"))
-        changesetCount = revTip - revLast + 1
-        mx.log(time.strftime('Checking ' + str(changesetCount) + ' changesets...'))
-        copyrightcheck(['-last=' + str(changesetCount), '-reporterrors=true', '-continueonerror'])
-        raise SystemExit('forced exit')
+    # 5 Copyright check (disabled until the copyrght notices in the HotSpot source files are supported by the CheckCopyright tool)
+    #mx.log(time.strftime('%d %b %Y %H:%M:%S - Running copyright check...'))
+    #hgNode = mx.get_env('hg_node')
+    #if hgNode is None:
+    #    copyrightcheck(['-modified', '-reporterrors=true', '-continueonerror'])
+    #else:
+    #    revTip = int(subprocess.check_output(['hg', 'tip', '--template', "'{rev}'"]).strip("'"))
+    #    revLast = int(subprocess.check_output(['hg', 'log', '-r', hgNode, '--template', "'{rev}'"]).strip("'"))
+    #    changesetCount = revTip - revLast + 1
+    #    mx.log(time.strftime('Checking ' + str(changesetCount) + ' changesets...'))
+    #    copyrightcheck(['-last=' + str(changesetCount), '-reporterrors=true', '-continueonerror'])
     
     # 6. Bootstrap with system assertions enabled
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Bootstrap with -esa...'))
