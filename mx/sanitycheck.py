@@ -25,16 +25,16 @@ dacapoSanityWarmup = {
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive = range(4)
 
-def getDacapos(level=SanityCheckLevel.Normal, dacapoArgs=None):
-    checks = {}
+def getDacapos(level=SanityCheckLevel.Normal, dacapoArgs=[]):
+    checks = []
     
     for (bench, ns) in dacapoSanityWarmup.items():
         if ns[level] > 0:
-            checks[bench] = getDacapo(bench, ns[level], dacapoArgs)
+            checks.append(getDacapo(bench, ns[level], dacapoArgs))
     
     return checks
 
-def getDacapo(name, n, dacapoArgs=None):
+def getDacapo(name, n, dacapoArgs=[]):
     dacapo = mx.get_env('DACAPO_CP')
     if dacapo is None:
         dacapo = commands._graal_home + r'/lib/dacapo-9.12-bach.jar'
@@ -48,10 +48,10 @@ def getDacapo(name, n, dacapoArgs=None):
     
     dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], dacapoMatcher, ['-Xms1g', '-Xmx2g', '-XX:MaxPermSize=256m'])
+    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms1g', '-Xmx2g', '-XX:MaxPermSize=256m'])
 
 class Test:
-    def __init__(self, name, group, cmd, succesREs=None, failureREs=None, scoreMatchers=None, vmOpts=None):
+    def __init__(self, name, group, cmd, succesREs=[], failureREs=[], scoreMatchers=[], vmOpts=[]):
         self.name = name
         self.group = group
         self.succesREs = succesREs
@@ -60,7 +60,7 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
     
-    def test(self, vm, cwd=None, opts=None):
+    def test(self, vm, cwd=None, opts=[]):
         parser = OutputParser(nonZeroIsFatal = False)
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
         parser.addMatcher(Matcher(jvmError, {'const:jvmError' : 'jvmerror'}))
@@ -91,13 +91,15 @@ class Test:
         
         return result['retcode'] is 0 and parsed.has_key('passed') and parsed['passed'] is '1'
     
-    def bench(self, vm, cwd=None, opts=None):
+    def bench(self, vm, cwd=None, opts=[]):
         parser = OutputParser(nonZeroIsFatal = False)
         
         for scoreMatcher in self.scoreMatchers:
             parser.addMatcher(scoreMatcher)
             
-        result = parser.parse(self.vmOpts + opts + self.cmd, vm, cwd)
+        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd)
+        if result['retcode'] is not 0:
+            return {}
         
         parsed = result['parsed']
         
