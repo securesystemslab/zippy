@@ -269,7 +269,7 @@
   template(selectAlternative_signature, "(ZLjava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodHandle;)Ljava/lang/invoke/MethodHandle;") \
                                                                                                                         \
   /* support for graal */                                                                                               \
-  template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/hotspot/VMExits")                           \
+  template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/hotspot/bridge/VMToCompiler")                           \
   template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/hotspot/ri/HotSpotMethodResolvedImpl")       \
   template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/hotspot/HotSpotTargetMethod")               \
   template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/hotspot/ri/HotSpotField")                      \
@@ -343,7 +343,7 @@
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/max/cri/ci/CiConstant;")                \
   template(getVMExits_name,                           "getVMExits")                                                     \
-  template(getVMExits_signature,                      "()Lcom/oracle/max/graal/hotspot/VMExits;")                       \
+  template(getVMExits_signature,                      "()Lcom/oracle/max/graal/hotspot/VMToCompiler;")                       \
   template(getInstance_name,                          "getInstance")                                                    \
   template(initialize_name,                           "initialize")                                                     \
   template(getInstance_signature,                     "()Lcom/oracle/max/graal/hotspot/Compiler;")                      \

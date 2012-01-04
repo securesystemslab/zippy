@@ -24,8 +24,8 @@
 #include "precompiled.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalJavaAccess.hpp"
-#include "graal/graalVMExits.hpp"
-#include "graal/graalVMEntries.hpp"
+#include "graal/graalVMToCompiler.hpp"
+#include "graal/graalCompilerToVM.hpp"
 #include "graal/graalVmIds.hpp"
 #include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
@@ -50,12 +50,12 @@ void GraalCompiler::initialize() {
   Runtime1::initialize(THREAD->get_buffer_blob());
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
-  jclass klass = env->FindClass("com/oracle/max/graal/hotspot/VMEntriesNative");
+  jclass klass = env->FindClass("com/oracle/max/graal/hotspot/bridge/CompilerToVMImpl");
   if (klass == NULL) {
-    tty->print_cr("graal VMEntries class not found");
+    tty->print_cr("graal CompilerToVMImpl class not found");
     vm_abort(false);
   }
-  env->RegisterNatives(klass, VMEntries_methods, VMEntries_methods_count());
+  env->RegisterNatives(klass, CompilerToVM_methods, CompilerToVM_methods_count());
 
   ResourceMark rm;
   HandleMark hm;
@@ -69,22 +69,22 @@ void GraalCompiler::initialize() {
   {
     VM_ENTRY_MARK;
     HandleMark hm;
-    VMExits::initializeCompiler();
-    VMExits::setDefaultOptions();
+    VMToCompiler::initializeCompiler();
+    VMToCompiler::setDefaultOptions();
     for (int i = 0; i < Arguments::num_graal_args(); ++i) {
       const char* arg = Arguments::graal_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);
-      jboolean result = VMExits::setOption(option);
+      jboolean result = VMToCompiler::setOption(option);
       if (!result) {
         tty->print_cr("Invalid option for graal!");
         vm_abort(false);
       }
     }
     if (UseCompiler) {
-      VMExits::startCompiler();
+      VMToCompiler::startCompiler();
       _initialized = true;
       if (BootstrapGraal) {
-        VMExits::bootstrap();
+        VMToCompiler::bootstrap();
       }
     }
   }
@@ -119,7 +119,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   JavaThread::current()->set_env(NULL);
   JavaThread::current()->set_compiling(true);
   Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
-  VMExits::compileMethod(hotspot_method, entry_bci, blocking);
+  VMToCompiler::compileMethod(hotspot_method, entry_bci, blocking);
   JavaThread::current()->set_compiling(false);
   JavaThread::current()->set_env(current_env);
 }
@@ -131,7 +131,7 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
 
 void GraalCompiler::exit() {
   if (_initialized) {
-    VMExits::shutdownCompiler();
+    VMToCompiler::shutdownCompiler();
   }
 }
 
@@ -141,7 +141,7 @@ void GraalCompiler::print_timers() {
 }
 
 Handle GraalCompiler::get_RiType(Symbol* klass_name, TRAPS) {
-   return VMExits::createRiTypeUnresolved(VmIds::toString<Handle>(klass_name, THREAD), THREAD);
+   return VMToCompiler::createRiTypeUnresolved(VmIds::toString<Handle>(klass_name, THREAD), THREAD);
 }
 
 Handle GraalCompiler::get_RiTypeFromSignature(constantPoolHandle cp, int index, KlassHandle loading_klass, TRAPS) {
@@ -158,7 +158,7 @@ Handle GraalCompiler::get_RiTypeFromSignature(constantPoolHandle cp, int index, 
       return get_RiType(handle, CHECK_NULL);
     }
   } else {
-    return VMExits::createRiTypePrimitive(field_type, CHECK_NULL);
+    return VMToCompiler::createRiTypePrimitive(field_type, CHECK_NULL);
   }
 }
 
@@ -197,7 +197,7 @@ Handle GraalCompiler::get_RiType(KlassHandle klass, TRAPS) {
 
 Handle GraalCompiler::get_RiField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS) {
   Handle name = VmIds::toString<Handle>(field_name, CHECK_NULL);
-  return VMExits::createRiField(field_holder, name, field_type, offset, flags, CHECK_NULL);
+  return VMToCompiler::createRiField(field_holder, name, field_type, offset, flags, CHECK_NULL);
 }
 
 Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
@@ -209,7 +209,7 @@ Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, 
   Handle obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
   assert(obj() != NULL, "must succeed in allocating instance");
 
-  HotSpotTypeResolved::set_compiler(obj, VMExits::compilerInstance()());
+  HotSpotTypeResolved::set_compiler(obj, VMToCompiler::compilerInstance()());
 
   if (klass->oop_is_instance()) {
     ResourceMark rm;
@@ -255,7 +255,7 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   Handle obj = instanceKlass::cast(HotSpotMethodResolved::klass())->allocate_instance(CHECK_NULL);
   assert(obj() != NULL, "must succeed in allocating instance");
   
-  HotSpotMethodResolved::set_compiler(obj, VMExits::compilerInstance()());
+  HotSpotMethodResolved::set_compiler(obj, VMToCompiler::compilerInstance()());
   // (tw) Cannot use reflection here, because the compiler thread could dead lock with the running application.
   // oop reflected = getReflectedMethod(method(), CHECK_NULL);
   HotSpotMethodResolved::set_javaMirror(obj, method());

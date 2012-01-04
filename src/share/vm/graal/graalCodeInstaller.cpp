@@ -25,7 +25,7 @@
 #include "graal/graalCompiler.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalJavaAccess.hpp"
-#include "graal/graalVMEntries.hpp"
+#include "graal/graalCompilerToVM.hpp"
 #include "graal/graalVmIds.hpp"
 #include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
@@ -670,7 +670,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
       if (inst->is_call()) {
         // NOTE: for call without a mov, the offset must fit a 32-bit immediate
-        //       see also VMEntries.getMaxCallTargetOffset()
+        //       see also CompilerToVM.getMaxCallTargetOffset()
         NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
         call->set_destination(target_addr);
         _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
