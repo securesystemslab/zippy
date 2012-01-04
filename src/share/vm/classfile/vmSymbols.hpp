@@ -272,14 +272,13 @@
   template(com_sun_hotspot_graal_VMExits,             "com/oracle/max/graal/hotspot/VMExits")                           \
   template(com_sun_hotspot_graal_HotSpotMethodResolved, "com/oracle/max/graal/hotspot/ri/HotSpotMethodResolvedImpl")       \
   template(com_sun_hotspot_graal_HotSpotTargetMethod, "com/oracle/max/graal/hotspot/HotSpotTargetMethod")               \
-  template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/hotspot/HotSpotField")                      \
-  template(com_sun_hotspot_graal_HotSpotCompiledMethod, "com/oracle/max/graal/hotspot/HotSpotCompiledMethod")           \
+  template(com_sun_hotspot_graal_HotSpotField,        "com/oracle/max/graal/hotspot/ri/HotSpotField")                      \
+  template(com_sun_hotspot_graal_HotSpotCompiledMethod, "com/oracle/max/graal/hotspot/ri/HotSpotCompiledMethod")           \
   template(com_sun_graal_graalOptions,                "com/sun/graal/graalOptions")                                     \
   template(com_sun_hotspot_graal_HotSpotOptions,      "com/oracle/max/graal/hotspot/HotSpotOptions")                    \
   template(com_sun_hotspot_graal_HotSpotTypeResolved, "com/oracle/max/graal/hotspot/ri/HotSpotTypeResolvedImpl")           \
   template(com_sun_hotspot_graal_HotSpotType,         "com/oracle/max/graal/hotspot/ri/HotSpotType")                       \
-  template(com_sun_hotspot_graal_HotSpotExceptionHandler,"com/oracle/max/graal/hotspot/HotSpotExceptionHandler")        \
-  template(com_sun_hotspot_graal_HotSpotProxy,        "com/oracle/max/graal/hotspot/HotSpotProxy")                      \
+  template(com_sun_hotspot_graal_HotSpotExceptionHandler,"com/oracle/max/graal/hotspot/ri/HotSpotExceptionHandler")        \
   template(com_sun_hotspot_graal_Compiler,            "com/oracle/max/graal/hotspot/Compiler")                          \
   template(com_sun_hotspot_graal_CompilerImpl,        "com/oracle/max/graal/hotspot/CompilerImpl")                      \
   template(com_sun_cri_ri_RiMethod,                   "com/oracle/max/cri/ri/RiMethod")                                        \

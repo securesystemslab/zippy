@@ -29,7 +29,7 @@
 #include "runtime/jniHandles.hpp"
 #include "runtime/javaCalls.hpp"
 
-class VMExits : public AllStatic {
+class VMToCompiler : public AllStatic {
 
 private:
   static jobject _compilerPermObject;

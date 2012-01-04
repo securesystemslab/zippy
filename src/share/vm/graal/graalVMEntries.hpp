@@ -23,8 +23,8 @@
 
 #include "prims/jni.h"
 
-extern JNINativeMethod VMEntries_methods[];
-int VMEntries_methods_count();
+extern JNINativeMethod CompilerToVM_methods[];
+int CompilerToVM_methods_count();
 
 methodOop getMethodFromHotSpotMethod(oop hotspotMethod);
 

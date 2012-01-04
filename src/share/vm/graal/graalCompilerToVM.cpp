@@ -45,8 +45,8 @@ methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
 }
 
 // public byte[] RiMethod_code(HotSpotResolvedMethod method);
-JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_code");
+JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_code");
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   int code_size = method->code_size();
   jbyteArray result = env->NewByteArray(code_size);
@@ -55,8 +55,8 @@ JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1c
 }
 
 // public String RiMethod_signature(HotSpotResolvedMethod method);
-JNIEXPORT jstring JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1signature(JNIEnv *env, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_signature");
+JNIEXPORT jstring JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1signature(JNIEnv *env, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_signature");
   VM_ENTRY_MARK
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   assert(method != NULL && method->signature() != NULL, "signature required");
@@ -64,8 +64,8 @@ JNIEXPORT jstring JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1sign
 }
 
 // public RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
-JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1exceptionHandlers(JNIEnv *, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_exceptionHandlers");
+JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1exceptionHandlers(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_exceptionHandlers");
   VM_ENTRY_MARK
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
@@ -105,8 +105,8 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_
 }
 
 // public boolean RiMethod_hasBalancedMonitors(long vmId);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1hasBalancedMonitors(JNIEnv *, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_hasBalancedMonitors");
+JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1hasBalancedMonitors(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_hasBalancedMonitors");
 
   VM_ENTRY_MARK;
 
@@ -133,8 +133,8 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1hasBala
 }
 
 // public RiMethod getRiMethod(java.lang.reflect.Method reflectionMethod);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getRiMethod(JNIEnv *, jobject, jobject reflection_method_handle) {
-  TRACE_graal_3("VMEntries::getRiMethod");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getRiMethod(JNIEnv *, jobject, jobject reflection_method_handle) {
+  TRACE_graal_3("CompilerToVM::getRiMethod");
   VM_ENTRY_MARK;
   oop reflection_method = JNIHandles::resolve(reflection_method_handle);
   oop reflection_holder = java_lang_reflect_Method::clazz(reflection_method);
@@ -146,8 +146,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getRiMethod(JN
 }
 
 // public boolean RiMethod_uniqueConcreteMethod(long vmId);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_uniqueConcreteMethod");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_uniqueConcreteMethod");
 
   VM_ENTRY_MARK;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
@@ -177,14 +177,14 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1uniq
 }
 
 // public native int RiMethod_invocationCount(long vmId);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1invocationCount(JNIEnv *, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_invocationCount");
+JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1invocationCount(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_invocationCount");
   return getMethodFromHotSpotMethod(hotspot_method)->invocation_count();
 }
 
 // public native int RiMethod_exceptionProbability(long vmId, int bci);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("VMEntries::RiMethod_exceptionProbability");
+JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+  TRACE_graal_3("CompilerToVM::RiMethod_exceptionProbability");
   VM_ENTRY_MARK;
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
@@ -231,8 +231,8 @@ int scale_count(methodDataOop method_data, int count) {
 }
 
 // public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+  TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
   VM_ENTRY_MARK;
   Handle obj;
   
@@ -290,8 +290,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2type
   return JNIHandles::make_local(obj());
 }
 
-JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+  TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   methodDataHandle method_data = method->method_data();
@@ -323,8 +323,8 @@ JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2bran
   }
 }
 
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("VMEntries::RiMethod_typeProfile");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+  TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
   VM_ENTRY_MARK;
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
@@ -362,14 +362,14 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2swit
 }
 
 // public native boolean RiMethod_hasCompiledCode(HotSpotMethodResolved method);
-JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1hasCompiledCode(JNIEnv *, jobject, jobject hotspot_method) {
-  TRACE_graal_3("VMEntries::RiMethod_hasCompiledCode");
+JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1hasCompiledCode(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_hasCompiledCode");
   return getMethodFromHotSpotMethod(hotspot_method)->has_compiled_code();
 }
 
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
-  TRACE_graal_3("VMEntries::RiSignature_lookupType");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
+  TRACE_graal_3("CompilerToVM::RiSignature_lookupType");
   VM_ENTRY_MARK;
   ResourceMark rm;
 
@@ -378,21 +378,21 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiSignature_1l
 
   oop result;
   if (nameSymbol == vmSymbols::int_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_INT, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_INT, THREAD);
   } else if (nameSymbol == vmSymbols::long_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_LONG, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_LONG, THREAD);
   } else if (nameSymbol == vmSymbols::bool_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_BOOLEAN, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_BOOLEAN, THREAD);
   } else if (nameSymbol == vmSymbols::char_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_CHAR, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_CHAR, THREAD);
   } else if (nameSymbol == vmSymbols::short_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_SHORT, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_SHORT, THREAD);
   } else if (nameSymbol == vmSymbols::byte_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_BYTE, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_BYTE, THREAD);
   } else if (nameSymbol == vmSymbols::double_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_DOUBLE, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_DOUBLE, THREAD);
   } else if (nameSymbol == vmSymbols::float_signature()) {
-    result = VMExits::createRiTypePrimitive((int) T_FLOAT, THREAD);
+    result = VMToCompiler::createRiTypePrimitive((int) T_FLOAT, THREAD);
   } else {
     klassOop resolved_type = NULL;
     // if the name isn't in the symbol table then the class isn't loaded anyway...
@@ -413,7 +413,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiSignature_1l
       Handle type = GraalCompiler::createHotSpotTypeResolved(resolved_type, name, CHECK_NULL);
       result = type();
     } else {
-      Handle type = VMExits::createRiTypeUnresolved(name, THREAD);
+      Handle type = VMToCompiler::createRiTypeUnresolved(name, THREAD);
       result = type();
     }
   }
@@ -422,8 +422,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiSignature_1l
 }
 
 // public Object RiConstantPool_lookupConstant(HotSpotTypeResolved type, int cpi);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupConstant(JNIEnv *env, jobject, jobject type, jint index) {
-  TRACE_graal_3("VMEntries::RiConstantPool_lookupConstant");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupConstant(JNIEnv *env, jobject, jobject type, jint index) {
+  TRACE_graal_3("CompilerToVM::RiConstantPool_lookupConstant");
   VM_ENTRY_MARK;
 
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
@@ -431,13 +431,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
   if (tag.is_int()) {
-    result = VMExits::createCiConstant(CiKind::Int(), cp->int_at(index), CHECK_0);
+    result = VMToCompiler::createCiConstant(CiKind::Int(), cp->int_at(index), CHECK_0);
   } else if (tag.is_long()) {
-    result = VMExits::createCiConstant(CiKind::Long(), cp->long_at(index), CHECK_0);
+    result = VMToCompiler::createCiConstant(CiKind::Long(), cp->long_at(index), CHECK_0);
   } else if (tag.is_float()) {
-    result = VMExits::createCiConstantFloat(cp->float_at(index), CHECK_0);
+    result = VMToCompiler::createCiConstantFloat(cp->float_at(index), CHECK_0);
   } else if (tag.is_double()) {
-    result = VMExits::createCiConstantDouble(cp->double_at(index), CHECK_0);
+    result = VMToCompiler::createCiConstantDouble(cp->double_at(index), CHECK_0);
   } else if (tag.is_string() || tag.is_unresolved_string()) {
     oop string = NULL;
     if (cp->is_pseudo_string_at(index)) {
@@ -451,14 +451,14 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
         return NULL;
       }
     }
-    result = VMExits::createCiConstantObject(string, CHECK_0);
+    result = VMToCompiler::createCiConstantObject(string, CHECK_0);
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
     Handle type = GraalCompiler::get_RiType(cp, index, cp->pool_holder(), CHECK_NULL);
     result = type();
   } else if (tag.is_object()) {
     oop obj = cp->object_at(index);
     assert(obj->is_instance(), "must be an instance");
-    result = VMExits::createCiConstantObject(obj, CHECK_NULL);
+    result = VMToCompiler::createCiConstantObject(obj, CHECK_NULL);
   } else {
     ShouldNotReachHere();
   }
@@ -467,8 +467,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
 }
 
 // public RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jobject type, jint index, jbyte byteCode) {
-  TRACE_graal_3("VMEntries::RiConstantPool_lookupMethod");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jobject type, jint index, jbyte byteCode) {
+  TRACE_graal_3("CompilerToVM::RiConstantPool_lookupMethod");
   VM_ENTRY_MARK;
   index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
@@ -485,13 +485,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
     Handle signature  = VmIds::toString<Handle>(cp->signature_ref_at(index), CHECK_NULL);
     int holder_index = cp->klass_ref_index_at(index);
     Handle type = GraalCompiler::get_RiType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
-    return JNIHandles::make_local(THREAD, VMExits::createRiMethodUnresolved(name, signature, type, THREAD));
+    return JNIHandles::make_local(THREAD, VMToCompiler::createRiMethodUnresolved(name, signature, type, THREAD));
   }
 }
 
 // public RiType RiConstantPool_lookupType(long vmId, int cpi);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupType(JNIEnv *env, jobject, jobject type, jint index) {
-  TRACE_graal_3("VMEntries::RiConstantPool_lookupType");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupType(JNIEnv *env, jobject, jobject type, jint index) {
+  TRACE_graal_3("CompilerToVM::RiConstantPool_lookupType");
   VM_ENTRY_MARK;
 
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
@@ -500,8 +500,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
 }
 
 // public void RiConstantPool_loadReferencedType(long vmId, int cpi);
-JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1loadReferencedType(JNIEnv *env, jobject, jobject type, jint index, jbyte op) {
-  TRACE_graal_3("VMEntries::RiConstantPool_loadReferencedType");
+JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1loadReferencedType(JNIEnv *env, jobject, jobject type, jint index, jbyte op) {
+  TRACE_graal_3("CompilerToVM::RiConstantPool_loadReferencedType");
   VM_ENTRY_MARK;
   
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
@@ -524,8 +524,8 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1l
 }
 
 // public RiField RiConstantPool_lookupField(long vmId, int cpi);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupField(JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode) {
-  TRACE_graal_3("VMEntries::RiConstantPool_lookupField");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupField(JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode) {
+  TRACE_graal_3("CompilerToVM::RiConstantPool_lookupField");
   VM_ENTRY_MARK;
   ResourceMark rm;
 
@@ -594,31 +594,31 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
       switch(basic_type) {
         case T_OBJECT:
         case T_ARRAY:
-          constant_object = VMExits::createCiConstantObject(mirror->obj_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstantObject(mirror->obj_field(offset), CHECK_0);
           break;
         case T_DOUBLE:
-          constant_object = VMExits::createCiConstantDouble(mirror->double_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstantDouble(mirror->double_field(offset), CHECK_0);
           break;
         case T_FLOAT:
-          constant_object = VMExits::createCiConstantFloat(mirror->float_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstantFloat(mirror->float_field(offset), CHECK_0);
           break;
         case T_LONG:
-          constant_object = VMExits::createCiConstant(CiKind::Long(), mirror->long_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstant(CiKind::Long(), mirror->long_field(offset), CHECK_0);
           break;
         case T_INT:
-          constant_object = VMExits::createCiConstant(CiKind::Int(), mirror->int_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstant(CiKind::Int(), mirror->int_field(offset), CHECK_0);
           break;
         case T_SHORT:
-          constant_object = VMExits::createCiConstant(CiKind::Short(), mirror->short_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstant(CiKind::Short(), mirror->short_field(offset), CHECK_0);
           break;
         case T_CHAR:
-          constant_object = VMExits::createCiConstant(CiKind::Char(), mirror->char_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstant(CiKind::Char(), mirror->char_field(offset), CHECK_0);
           break;
         case T_BYTE:
-          constant_object = VMExits::createCiConstant(CiKind::Byte(), mirror->byte_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstant(CiKind::Byte(), mirror->byte_field(offset), CHECK_0);
           break;
         case T_BOOLEAN:
-          constant_object = VMExits::createCiConstant(CiKind::Boolean(), mirror->bool_field(offset), CHECK_0);
+          constant_object = VMToCompiler::createCiConstant(CiKind::Boolean(), mirror->bool_field(offset), CHECK_0);
           break;
         default:
           fatal("Unhandled constant");
@@ -633,8 +633,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool
 }
 
 // public RiMethod RiType_resolveMethodImpl(HotSpotTypeResolved klass, String name, String signature);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_3resolveMethodImpl(JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature) {
-  TRACE_graal_3("VMEntries::RiType_resolveMethodImpl");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_3resolveMethodImpl(JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature) {
+  TRACE_graal_3("CompilerToVM::RiType_resolveMethodImpl");
   VM_ENTRY_MARK;
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
@@ -654,8 +654,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_3resolv
 }
 
 // public boolean RiType_isSubtypeOf(HotSpotTypeResolved klass, RiType other);
-JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_2isSubtypeOf(JNIEnv *, jobject, jobject klass, jobject jother) {
-  TRACE_graal_3("VMEntries::RiType_isSubtypeOf");
+JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_2isSubtypeOf(JNIEnv *, jobject, jobject klass, jobject jother) {
+  TRACE_graal_3("CompilerToVM::RiType_isSubtypeOf");
   oop other = JNIHandles::resolve(jother);
   assert(other->is_a(HotSpotTypeResolved::klass()), "resolved hotspot type expected");
   assert(JNIHandles::resolve(klass) != NULL, "");
@@ -672,13 +672,13 @@ JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_2isSub
 }
 
 // public RiType RiType_componentType(HotSpotResolvedType klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1componentType(JNIEnv *, jobject, jobject klass) {
-  TRACE_graal_3("VMEntries::RiType_componentType");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1componentType(JNIEnv *, jobject, jobject klass) {
+  TRACE_graal_3("CompilerToVM::RiType_componentType");
   VM_ENTRY_MARK;
   KlassHandle array_klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
   if(array_klass->oop_is_typeArray()) {
     BasicType t = typeArrayKlass::cast(array_klass())->element_type();
-    oop primitive_type = VMExits::createRiTypePrimitive((int) t, CHECK_NULL);
+    oop primitive_type = VMToCompiler::createRiTypePrimitive((int) t, CHECK_NULL);
     return JNIHandles::make_local(primitive_type);
   }
   assert(array_klass->oop_is_objArray(), "just checking");
@@ -688,8 +688,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1compon
 }
 
 // public RiType RiType_superType(HotSpotResolvedType klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1superType(JNIEnv *, jobject, jobject klass) {
-  TRACE_graal_3("VMEntries::RiType_superType");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1superType(JNIEnv *, jobject, jobject klass) {
+  TRACE_graal_3("CompilerToVM::RiType_superType");
   VM_ENTRY_MARK;
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
   klassOop k;
@@ -709,8 +709,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1superT
 }
 
 // public RiType RiType_uniqueConcreteSubtype(HotSpotResolvedType klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1uniqueConcreteSubtype(JNIEnv *, jobject, jobject klass) {
-  TRACE_graal_3("VMEntries::RiType_uniqueConcreteSubtype");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1uniqueConcreteSubtype(JNIEnv *, jobject, jobject klass) {
+  TRACE_graal_3("CompilerToVM::RiType_uniqueConcreteSubtype");
   VM_ENTRY_MARK;
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
   Klass *up_cast = klass_handle->up_cast_abstract();
@@ -721,16 +721,16 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1unique
 }
 
 // public bool RiType_isInitialized(HotSpotResolvedType klass);
-JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1isInitialized(JNIEnv *, jobject, jobject hotspot_klass) {
-  TRACE_graal_3("VMEntries::RiType_isInitialized");
+JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1isInitialized(JNIEnv *, jobject, jobject hotspot_klass) {
+  TRACE_graal_3("CompilerToVM::RiType_isInitialized");
   klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return instanceKlass::cast(klass)->is_initialized();
 }
 
 // public RiType RiType_arrayOf(HotSpotTypeResolved klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayOf(JNIEnv *, jobject, jobject klass) {
-  TRACE_graal_3("VMEntries::RiType_arrayOf");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1arrayOf(JNIEnv *, jobject, jobject klass) {
+  TRACE_graal_3("CompilerToVM::RiType_arrayOf");
   VM_ENTRY_MARK;
 
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
@@ -741,8 +741,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayO
 }
 
 // public RiResolvedField[] RiType_fields(HotSpotTypeResolved klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields(JNIEnv *, jobject, jobject klass) {
-  TRACE_graal_3("VMEntries::RiType_fields");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1fields(JNIEnv *, jobject, jobject klass) {
+  TRACE_graal_3("CompilerToVM::RiType_fields");
   VM_ENTRY_MARK;
   ResourceMark rm;
 
@@ -759,7 +759,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields
       if (!Thread::current()->has_pending_exception()) {
         if (fd->field_holder() == _holder()) {
           Handle type = GraalCompiler::get_RiTypeFromSignature(fd->constants(), fd->signature_index(), fd->field_holder(), Thread::current());
-          Handle field = VMExits::createRiField(_resolved_type_holder, VmIds::toString<Handle>(fd->name(), Thread::current()), type, fd->offset(), fd->access_flags().as_int(), Thread::current());
+          Handle field = VMToCompiler::createRiField(_resolved_type_holder, VmIds::toString<Handle>(fd->name(), Thread::current()), type, fd->offset(), fd->access_flags().as_int(), Thread::current());
           _field_array.append(field());
         }
       }
@@ -775,8 +775,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields
 }
 
 // public RiType getPrimitiveArrayType(CiKind kind);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getPrimitiveArrayType(JNIEnv *env, jobject, jobject kind) {
-  TRACE_graal_3("VMEntries::VMEntries_getPrimitiveArrayType");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getPrimitiveArrayType(JNIEnv *env, jobject, jobject kind) {
+  TRACE_graal_3("CompilerToVM::getPrimitiveArrayType");
   VM_ENTRY_MARK;
   BasicType type = GraalCompiler::kindToBasicType(CiKind::typeChar(kind));
   assert(type != T_OBJECT, "primitive type expecteds");
@@ -785,8 +785,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getPrimitiveAr
 }
 
 // public long getMaxCallTargetOffset(CiRuntimeCall rtcall);
-JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_getMaxCallTargetOffset(JNIEnv *env, jobject, jobject rtcall) {
-  TRACE_graal_3("VMEntries::VMEntries_getMaxCallTargetOffset");
+JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getMaxCallTargetOffset(JNIEnv *env, jobject, jobject rtcall) {
+  TRACE_graal_3("CompilerToVM::getMaxCallTargetOffset");
   VM_ENTRY_MARK;
   oop call = JNIHandles::resolve(rtcall);
   address target_addr = CodeInstaller::runtime_call_target_address(call);
@@ -799,16 +799,16 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_getMaxCallTarget
 }
 
 // public RiType getType(Class<?> javaClass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getType(JNIEnv *env, jobject, jobject javaClass) {
-  TRACE_graal_3("VMEntries::VMEntries_getType");
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getType(JNIEnv *env, jobject, jobject javaClass) {
+  TRACE_graal_3("CompilerToVM::getType");
   VM_ENTRY_MARK;
   oop javaClassOop = JNIHandles::resolve(javaClass);
   if (javaClassOop == NULL) {
-    fatal("argument to VMEntries.getType must not be NULL");
+    fatal("argument to CompilerToVM.getType must not be NULL");
     return NULL;
   } else if (java_lang_Class::is_primitive(javaClassOop)) {
     BasicType basicType = java_lang_Class::primitive_type(javaClassOop);
-    return JNIHandles::make_local(THREAD, VMExits::createRiTypePrimitive((int) basicType, THREAD));
+    return JNIHandles::make_local(THREAD, VMToCompiler::createRiTypePrimitive((int) basicType, THREAD));
   } else {
     KlassHandle klass = java_lang_Class::as_klassOop(javaClassOop);
     Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
@@ -845,7 +845,7 @@ BasicType basicTypes[] = { T_BOOLEAN, T_BYTE, T_SHORT, T_CHAR, T_INT, T_FLOAT, T
 int basicTypeCount = sizeof(basicTypes) / sizeof(BasicType);
 
 // public HotSpotVMConfig getConfiguration();
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getConfiguration(JNIEnv *env, jobject) {
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getConfiguration(JNIEnv *env, jobject) {
   jclass klass = env->FindClass("com/oracle/max/graal/hotspot/HotSpotVMConfig");
   assert(klass != NULL, "HotSpot vm config class not found");
   jobject config = env->AllocObject(klass);
@@ -937,7 +937,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_getConfigurati
 }
 
 // public HotSpotCompiledMethod installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -961,8 +961,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_VMEntries_installMethod(
   }
 }
 
-// public HotSpotProxy installStub(HotSpotTargetMethod targetMethod, String name);
-JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
+// public long installStub(HotSpotTargetMethod targetMethod, String name);
+JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -977,7 +977,7 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIE
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
-#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &f)
+#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_##f))
 
 #define PROXY           "J"
 #define TYPE            "Lcom/oracle/max/cri/ri/RiType;"
@@ -994,7 +994,7 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIE
 #define TARGET_METHOD   "Lcom/oracle/max/graal/hotspot/HotSpotTargetMethod;"
 #define CONFIG          "Lcom/oracle/max/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD       "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethod;"
-#define HS_COMP_METHOD  "Lcom/oracle/max/graal/hotspot/HotSpotCompiledMethod;"
+#define HS_COMP_METHOD  "Lcom/oracle/max/graal/hotspot/ri/HotSpotCompiledMethod;"
 #define CI_CONSTANT     "Lcom/oracle/max/cri/ci/CiConstant;"
 #define CI_KIND         "Lcom/oracle/max/cri/ci/CiKind;"
 #define CI_RUNTIME_CALL "Lcom/oracle/max/cri/ci/CiRuntimeCall;"
@@ -1002,42 +1002,42 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_VMEntries_installStub(JNIE
 #define OBJECT          "Ljava/lang/Object;"
 #define CLASS           "Ljava/lang/Class;"
 
-JNINativeMethod VMEntries_methods[] = {
-  {CC"RiMethod_code",                     CC"("RESOLVED_METHOD")[B",                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1code)},
-  {CC"RiMethod_signature",                CC"("RESOLVED_METHOD")"STRING,              FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1signature)},
-  {CC"RiMethod_exceptionHandlers",        CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1exceptionHandlers)},
-  {CC"RiMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1hasBalancedMonitors)},
-  {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1uniqueConcreteMethod)},
-  {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getRiMethod)},
-  {CC"RiMethod_typeProfile",              CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2typeProfile)},
-  {CC"RiMethod_branchProbability",        CC"("RESOLVED_METHOD"I)D",                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2branchProbability)},
-  {CC"RiMethod_switchProbability",        CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2switchProbability)},
-  {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1invocationCount)},
-  {CC"RiMethod_exceptionProbability",     CC"("RESOLVED_METHOD"I)I",                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_2exceptionProbability)},
-  {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiMethod_1hasCompiledCode)},
-  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiSignature_1lookupType)},
-  {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupConstant)},
-  {CC"RiConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,              FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupMethod)},
-  {CC"RiConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupType)},
-  {CC"RiConstantPool_loadReferencedType", CC"("RESOLVED_TYPE"IB)V",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1loadReferencedType)},
-  {CC"RiConstantPool_lookupField",        CC"("RESOLVED_TYPE"IB)"FIELD,               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiConstantPool_1lookupField)},
-  {CC"RiType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_3resolveMethodImpl)},
-  {CC"RiType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_2isSubtypeOf)},
-  {CC"RiType_componentType",              CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1componentType)},
-  {CC"RiType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1uniqueConcreteSubtype)},
-  {CC"RiType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1superType)},
-  {CC"RiType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1arrayOf)},
-  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,       FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1fields)},
-  {CC"RiType_isInitialized",              CC"("RESOLVED_TYPE")Z",                     FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_RiType_1isInitialized)},
-  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                        FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                   FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getMaxCallTargetOffset)},
-  {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getType)},
-  {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_getConfiguration)},
-  {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,       FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installMethod)},
-  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(Java_com_oracle_graal_hotspot_VMEntries_installStub)}
+JNINativeMethod CompilerToVM_methods[] = {
+  {CC"RiMethod_code",                     CC"("RESOLVED_METHOD")[B",                  FN_PTR(RiMethod_1code)},
+  {CC"RiMethod_signature",                CC"("RESOLVED_METHOD")"STRING,              FN_PTR(RiMethod_1signature)},
+  {CC"RiMethod_exceptionHandlers",        CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(RiMethod_1exceptionHandlers)},
+  {CC"RiMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasBalancedMonitors)},
+  {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(RiMethod_1uniqueConcreteMethod)},
+  {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(getRiMethod)},
+  {CC"RiMethod_typeProfile",              CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(RiMethod_2typeProfile)},
+  {CC"RiMethod_branchProbability",        CC"("RESOLVED_METHOD"I)D",                  FN_PTR(RiMethod_2branchProbability)},
+  {CC"RiMethod_switchProbability",        CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(RiMethod_2switchProbability)},
+  {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
+  {CC"RiMethod_exceptionProbability",     CC"("RESOLVED_METHOD"I)I",                  FN_PTR(RiMethod_2exceptionProbability)},
+  {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
+  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(RiSignature_1lookupType)},
+  {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,               FN_PTR(RiConstantPool_1lookupConstant)},
+  {CC"RiConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,              FN_PTR(RiConstantPool_1lookupMethod)},
+  {CC"RiConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                 FN_PTR(RiConstantPool_1lookupType)},
+  {CC"RiConstantPool_loadReferencedType", CC"("RESOLVED_TYPE"IB)V",                   FN_PTR(RiConstantPool_1loadReferencedType)},
+  {CC"RiConstantPool_lookupField",        CC"("RESOLVED_TYPE"IB)"FIELD,               FN_PTR(RiConstantPool_1lookupField)},
+  {CC"RiType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,  FN_PTR(RiType_3resolveMethodImpl)},
+  {CC"RiType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(RiType_2isSubtypeOf)},
+  {CC"RiType_componentType",              CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1componentType)},
+  {CC"RiType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1uniqueConcreteSubtype)},
+  {CC"RiType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1superType)},
+  {CC"RiType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1arrayOf)},
+  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,       FN_PTR(RiType_1fields)},
+  {CC"RiType_isInitialized",              CC"("RESOLVED_TYPE")Z",                     FN_PTR(RiType_1isInitialized)},
+  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                        FN_PTR(getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                   FN_PTR(getMaxCallTargetOffset)},
+  {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(getType)},
+  {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(getConfiguration)},
+  {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,       FN_PTR(installMethod)},
+  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(installStub)}
 };
 
-int VMEntries_methods_count() {
-  return sizeof(VMEntries_methods) / sizeof(JNINativeMethod);
+int CompilerToVM_methods_count() {
+  return sizeof(CompilerToVM_methods) / sizeof(JNINativeMethod);
 }
 

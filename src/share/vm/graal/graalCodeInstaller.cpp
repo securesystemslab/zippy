@@ -792,12 +792,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_graal_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
       } else {
-        jobject value;
-        if (obj() == HotSpotProxy::DUMMY_CONSTANT_OBJ()) {
-          value = (jobject) Universe::non_oop_word();
-        } else {
-          value = JNIHandles::make_local(obj());
-        }
+        jobject value = JNIHandles::make_local(obj());
         *((jobject*) operand) = value;
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);

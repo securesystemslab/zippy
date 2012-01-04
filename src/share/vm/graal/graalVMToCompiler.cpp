@@ -22,23 +22,23 @@
  */
 
 #include "precompiled.hpp"
-#include "graal/graalVMExits.hpp"
+#include "graal/graalVMToCompiler.hpp"
 
 // this is a *global* handle
-jobject VMExits::_compilerPermObject = NULL;
-jobject VMExits::_vmExitsPermObject = NULL;
-jobject VMExits::_vmExitsPermKlass = NULL;
+jobject VMToCompiler::_compilerPermObject = NULL;
+jobject VMToCompiler::_vmExitsPermObject = NULL;
+jobject VMToCompiler::_vmExitsPermKlass = NULL;
 
-KlassHandle VMExits::vmExitsKlass() {
+KlassHandle VMToCompiler::vmExitsKlass() {
   if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
     klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_VMExits(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(result, "Couldn't find class com.sun.hotspot.graal.VMExits");
+    check_not_null(result, "Couldn't find class com.oracle.max.graal.hotspot.bridge.VMToCompiler");
     _vmExitsPermKlass = JNIHandles::make_global(result);
   }
   return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmExitsPermKlass));
 }
 
-Handle VMExits::compilerInstance() {
+Handle VMToCompiler::compilerInstance() {
   if (JNIHandles::resolve(_compilerPermObject) == NULL) {
     KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
@@ -51,7 +51,7 @@ Handle VMExits::compilerInstance() {
   return Handle(JNIHandles::resolve_non_null(_compilerPermObject));
 }
 
-Handle VMExits::instance() {
+Handle VMToCompiler::instance() {
   if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
     KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.Compiler");
@@ -66,7 +66,7 @@ Handle VMExits::instance() {
   return Handle(JNIHandles::resolve_non_null(_vmExitsPermObject));
 }
 
-void VMExits::initializeCompiler() {
+void VMToCompiler::initializeCompiler() {
   KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
 
@@ -75,7 +75,7 @@ void VMExits::initializeCompiler() {
   check_pending_exception("Couldn't initialize compiler");
 }
 
-jboolean VMExits::setOption(Handle option) {
+jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
   KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
@@ -87,7 +87,7 @@ jboolean VMExits::setOption(Handle option) {
   return result.get_jboolean();
 }
 
-void VMExits::setDefaultOptions() {
+void VMToCompiler::setDefaultOptions() {
   KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_hotspot_graal_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
 
@@ -97,7 +97,7 @@ void VMExits::setDefaultOptions() {
   check_pending_exception("Error while calling setDefaultOptions");
 }
 
-void VMExits::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking) {
+void VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking) {
   assert(!hotspot_method.is_null(), "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
@@ -110,7 +110,7 @@ void VMExits::compileMethod(Handle hotspot_method, int entry_bci, jboolean block
   check_pending_exception("Error while calling compileMethod");
 }
 
-void VMExits::shutdownCompiler() {
+void VMToCompiler::shutdownCompiler() {
   if (_compilerPermObject != NULL) {
     HandleMark hm;
     JavaThread* THREAD = JavaThread::current();
@@ -130,7 +130,7 @@ void VMExits::shutdownCompiler() {
   }
 }
 
-void VMExits::startCompiler() {
+void VMToCompiler::startCompiler() {
   JavaThread* THREAD = JavaThread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
@@ -139,7 +139,7 @@ void VMExits::startCompiler() {
   check_pending_exception("Error while calling startCompiler");
 }
 
-void VMExits::bootstrap() {
+void VMToCompiler::bootstrap() {
   JavaThread* THREAD = JavaThread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
@@ -148,7 +148,7 @@ void VMExits::bootstrap() {
   check_pending_exception("Error while calling boostrap");
 }
 
-oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
+oop VMToCompiler::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
@@ -160,7 +160,7 @@ oop VMExits::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS) {
+oop VMToCompiler::createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
@@ -173,7 +173,7 @@ oop VMExits::createRiMethodUnresolved(Handle name, Handle signature, Handle hold
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS) {
+oop VMToCompiler::createRiField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS) {
   assert(!holder.is_null(), "just checking");
   assert(!name.is_null(), "just checking");
   assert(!type.is_null(), "just checking");
@@ -191,7 +191,7 @@ oop VMExits::createRiField(Handle holder, Handle name, Handle type, int index, i
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiType(jlong vmId, Handle name, TRAPS) {
+oop VMToCompiler::createRiType(jlong vmId, Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
@@ -203,7 +203,7 @@ oop VMExits::createRiType(jlong vmId, Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiTypePrimitive(int basic_type, TRAPS) {
+oop VMToCompiler::createRiTypePrimitive(int basic_type, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
@@ -213,7 +213,7 @@ oop VMExits::createRiTypePrimitive(int basic_type, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiTypeUnresolved(Handle name, TRAPS) {
+oop VMToCompiler::createRiTypeUnresolved(Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
@@ -224,7 +224,7 @@ oop VMExits::createRiTypeUnresolved(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createRiSignature(Handle name, TRAPS) {
+oop VMToCompiler::createRiSignature(Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
@@ -235,7 +235,7 @@ oop VMExits::createRiSignature(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createCiConstant(Handle kind, jlong value, TRAPS) {
+oop VMToCompiler::createCiConstant(Handle kind, jlong value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
@@ -247,7 +247,7 @@ oop VMExits::createCiConstant(Handle kind, jlong value, TRAPS) {
 
 }
 
-oop VMExits::createCiConstantFloat(jfloat value, TRAPS) {
+oop VMToCompiler::createCiConstantFloat(jfloat value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
@@ -258,7 +258,7 @@ oop VMExits::createCiConstantFloat(jfloat value, TRAPS) {
 
 }
 
-oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
+oop VMToCompiler::createCiConstantDouble(jdouble value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
@@ -268,7 +268,7 @@ oop VMExits::createCiConstantDouble(jdouble value, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMExits::createCiConstantObject(Handle object, TRAPS) {
+oop VMToCompiler::createCiConstantObject(Handle object, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_cri_ci_CiConstant(), SystemDictionary::java_system_loader(), NULL, Thread::current());
