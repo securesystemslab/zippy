@@ -463,7 +463,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
     record_scope(pc_offset, caller_pos, objects);
   }
   oop frame = NULL;
-  if (code_pos->klass()->klass_part()->name() == vmSymbols::com_sun_cri_ci_CiFrame()) {
+  if (code_pos->klass()->klass_part()->name() == vmSymbols::com_oracle_max_cri_ci_CiFrame()) {
     frame = code_pos;
   }
 
@@ -622,7 +622,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
     global_stub = target;
-  } else if (target_klass->name() == vmSymbols::com_sun_cri_ci_CiRuntimeCall()) {
+  } else if (target_klass->name() == vmSymbols::com_oracle_max_cri_ci_CiRuntimeCall()) {
     runtime_call = target;
   } else {
     hotspot_method = target;

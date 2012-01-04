@@ -186,43 +186,43 @@ class SymbolPropertyTable;
   template(Short_klass,                  java_lang_Short,                Pre) \
   template(Integer_klass,                java_lang_Integer,              Pre) \
   template(Long_klass,                   java_lang_Long,                 Pre) \
-                                                                              \
-  template(graalOptions_klass,           com_sun_graal_graalOptions,                                Opt) \
-  template(HotSpotTypeResolved_klass,    com_sun_hotspot_graal_HotSpotTypeResolved,                 Opt) \
-  template(HotSpotType_klass,            com_sun_hotspot_graal_HotSpotType,                         Opt) \
-  template(HotSpotField_klass,           com_sun_hotspot_graal_HotSpotField,                        Opt) \
-  template(HotSpotCompiledMethod_klass,  com_sun_hotspot_graal_HotSpotCompiledMethod,               Opt) \
-  template(HotSpotMethodResolved_klass,  com_sun_hotspot_graal_HotSpotMethodResolved,               Opt) \
-  template(HotSpotTargetMethod_klass,    com_sun_hotspot_graal_HotSpotTargetMethod,                 Opt) \
-  template(HotSpotExceptionHandler_klass,com_sun_hotspot_graal_HotSpotExceptionHandler,             Opt) \
-  template(CiAssumptions_klass,          com_sun_cri_ci_CiAssumptions,                              Opt) \
-  template(CiAssumptions_ConcreteSubtype_klass, com_sun_cri_ci_CiAssumptions_ConcreteSubtype,       Opt) \
-  template(CiAssumptions_ConcreteMethod_klass,  com_sun_cri_ci_CiAssumptions_ConcreteMethod,        Opt) \
-  template(CiTargetMethod_klass,         com_sun_cri_ci_CiTargetMethod,                             Opt) \
-  template(CiTargetMethod_Site_klass,    com_sun_cri_ci_CiTargetMethod_Site,                        Opt) \
-  template(CiTargetMethod_Call_klass,    com_sun_cri_ci_CiTargetMethod_Call,                        Opt) \
-  template(CiTargetMethod_DataPatch_klass, com_sun_cri_ci_CiTargetMethod_DataPatch,                 Opt) \
-  template(CiTargetMethod_Safepoint_klass, com_sun_cri_ci_CiTargetMethod_Safepoint,                 Opt) \
-  template(CiTargetMethod_ExceptionHandler_klass, com_sun_cri_ci_CiTargetMethod_ExceptionHandler,   Opt) \
-  template(CiTargetMethod_Mark_klass,    com_sun_cri_ci_CiTargetMethod_Mark,                        Opt) \
-  template(GraalBitMap_klass,            com_sun_cri_ci_CiBitMap,                                   Opt) \
-  template(CiDebugInfo_klass,            com_sun_cri_ci_CiDebugInfo,                                Opt) \
-  template(CiFrame_klass,                com_sun_cri_ci_CiFrame,                                    Opt) \
-  template(CiValue_klass,                com_sun_cri_ci_CiValue,                                    Opt) \
-  template(CiStackSlot_klass,            com_sun_cri_ci_CiStackSlot,                                Opt) \
-  template(CiRegisterValue_klass,        com_sun_cri_ci_CiRegisterValue,                            Opt) \
-  template(CiRegister_klass,             com_sun_cri_ci_CiRegister,                                 Opt) \
-  template(CiCodePos_klass,              com_sun_cri_ci_CiCodePos,                                  Opt) \
-  template(CiConstant_klass,             com_sun_cri_ci_CiConstant,                                 Opt) \
-  template(CiVirtualObject_klass,        com_sun_cri_ci_CiVirtualObject,                            Opt) \
-  template(CiMonitorValue_klass,         com_sun_cri_ci_CiMonitorValue,                             Opt) \
-  template(CiKind_klass,                 com_sun_cri_ci_CiKind,                                     Opt) \
-  template(CiRuntimeCall_klass,          com_sun_cri_ci_CiRuntimeCall,                              Opt) \
-  template(RiMethod_klass,               com_sun_cri_ri_RiMethod,                                   Opt) \
-  template(RiType_klass,                 com_sun_cri_ri_RiType,                                     Opt) \
-  template(RiResolvedField_klass,        com_sun_cri_ri_RiResolvedField,                            Opt) \
-  template(RiExceptionHandler_klass,     com_sun_cri_ri_RiExceptionHandler,                         Opt) \
-  template(RiTypeProfile_klass,          com_sun_cri_ri_RiTypeProfile,                              Opt) \
+                                                                                                                         \
+  /* Support for Graal */                                                                                                \
+  template(HotSpotTypeResolved_klass,             com_oracle_max_graal_hotspot_HotSpotTypeResolved,                 Opt) \
+  template(HotSpotType_klass,                     com_oracle_max_graal_hotspot_HotSpotType,                         Opt) \
+  template(HotSpotField_klass,                    com_oracle_max_graal_hotspot_HotSpotField,                        Opt) \
+  template(HotSpotCompiledMethod_klass,           com_oracle_max_graal_hotspot_HotSpotCompiledMethod,               Opt) \
+  template(HotSpotMethodResolved_klass,           com_oracle_max_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
+  template(HotSpotTargetMethod_klass,             com_oracle_max_graal_hotspot_HotSpotTargetMethod,                 Opt) \
+  template(HotSpotExceptionHandler_klass,         com_oracle_max_graal_hotspot_HotSpotExceptionHandler,             Opt) \
+  template(CiAssumptions_klass,                   com_oracle_max_cri_ci_CiAssumptions,                              Opt) \
+  template(CiAssumptions_ConcreteSubtype_klass,   com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,              Opt) \
+  template(CiAssumptions_ConcreteMethod_klass,    com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,               Opt) \
+  template(CiTargetMethod_klass,                  com_oracle_max_cri_ci_CiTargetMethod,                             Opt) \
+  template(CiTargetMethod_Site_klass,             com_oracle_max_cri_ci_CiTargetMethod_Site,                        Opt) \
+  template(CiTargetMethod_Call_klass,             com_oracle_max_cri_ci_CiTargetMethod_Call,                        Opt) \
+  template(CiTargetMethod_DataPatch_klass,        com_oracle_max_cri_ci_CiTargetMethod_DataPatch,                   Opt) \
+  template(CiTargetMethod_Safepoint_klass,        com_oracle_max_cri_ci_CiTargetMethod_Safepoint,                   Opt) \
+  template(CiTargetMethod_ExceptionHandler_klass, com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,            Opt) \
+  template(CiTargetMethod_Mark_klass,             com_oracle_max_cri_ci_CiTargetMethod_Mark,                        Opt) \
+  template(GraalBitMap_klass,                    com_oracle_max_cri_ci_CiBitMap,                                    Opt) \
+  template(CiDebugInfo_klass,                     com_oracle_max_cri_ci_CiDebugInfo,                                Opt) \
+  template(CiFrame_klass,                         com_oracle_max_cri_ci_CiFrame,                                    Opt) \
+  template(CiValue_klass,                         com_oracle_max_cri_ci_CiValue,                                    Opt) \
+  template(CiStackSlot_klass,                     com_oracle_max_cri_ci_CiStackSlot,                                Opt) \
+  template(CiRegisterValue_klass,                 com_oracle_max_cri_ci_CiRegisterValue,                            Opt) \
+  template(CiRegister_klass,                      com_oracle_max_cri_ci_CiRegister,                                 Opt) \
+  template(CiCodePos_klass,                       com_oracle_max_cri_ci_CiCodePos,                                  Opt) \
+  template(CiConstant_klass,                      com_oracle_max_cri_ci_CiConstant,                                 Opt) \
+  template(CiVirtualObject_klass,                 com_oracle_max_cri_ci_CiVirtualObject,                            Opt) \
+  template(CiMonitorValue_klass,                  com_oracle_max_cri_ci_CiMonitorValue,                             Opt) \
+  template(CiKind_klass,                          com_oracle_max_cri_ci_CiKind,                                     Opt) \
+  template(CiRuntimeCall_klass,                   com_oracle_max_cri_ci_CiRuntimeCall,                              Opt) \
+  template(RiMethod_klass,                        com_oracle_max_cri_ri_RiMethod,                                   Opt) \
+  template(RiType_klass,                          com_oracle_max_cri_ri_RiType,                                     Opt) \
+  template(RiResolvedField_klass,                 com_oracle_max_cri_ri_RiResolvedField,                            Opt) \
+  template(RiExceptionHandler_klass,              com_oracle_max_cri_ri_RiExceptionHandler,                         Opt) \
+  template(RiTypeProfile_klass,                   com_oracle_max_cri_ri_RiTypeProfile,                              Opt) \
 
   /*end*/
 

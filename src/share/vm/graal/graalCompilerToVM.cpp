@@ -45,7 +45,7 @@ methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
 }
 
 // public byte[] RiMethod_code(HotSpotResolvedMethod method);
-JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
+JNIEXPORT jbyteArray JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_code");
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   int code_size = method->code_size();
@@ -55,7 +55,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMIm
 }
 
 // public String RiMethod_signature(HotSpotResolvedMethod method);
-JNIEXPORT jstring JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1signature(JNIEnv *env, jobject, jobject hotspot_method) {
+JNIEXPORT jstring JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1signature(JNIEnv *env, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_signature");
   VM_ENTRY_MARK
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
@@ -64,7 +64,7 @@ JNIEXPORT jstring JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiExceptionHandler[] RiMethod_exceptionHandlers(long vmId);
-JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1exceptionHandlers(JNIEnv *, jobject, jobject hotspot_method) {
+JNIEXPORT jobjectArray JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1exceptionHandlers(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_exceptionHandlers");
   VM_ENTRY_MARK
   ResourceMark rm;
@@ -105,7 +105,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVM
 }
 
 // public boolean RiMethod_hasBalancedMonitors(long vmId);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1hasBalancedMonitors(JNIEnv *, jobject, jobject hotspot_method) {
+JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1hasBalancedMonitors(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_hasBalancedMonitors");
 
   VM_ENTRY_MARK;
@@ -133,7 +133,7 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiM
 }
 
 // public RiMethod getRiMethod(java.lang.reflect.Method reflectionMethod);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getRiMethod(JNIEnv *, jobject, jobject reflection_method_handle) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_getRiMethod(JNIEnv *, jobject, jobject reflection_method_handle) {
   TRACE_graal_3("CompilerToVM::getRiMethod");
   VM_ENTRY_MARK;
   oop reflection_method = JNIHandles::resolve(reflection_method_handle);
@@ -146,7 +146,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public boolean RiMethod_uniqueConcreteMethod(long vmId);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jobject hotspot_method) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1uniqueConcreteMethod(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_uniqueConcreteMethod");
 
   VM_ENTRY_MARK;
@@ -177,13 +177,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public native int RiMethod_invocationCount(long vmId);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1invocationCount(JNIEnv *, jobject, jobject hotspot_method) {
+JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1invocationCount(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_invocationCount");
   return getMethodFromHotSpotMethod(hotspot_method)->invocation_count();
 }
 
 // public native int RiMethod_exceptionProbability(long vmId, int bci);
-JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("CompilerToVM::RiMethod_exceptionProbability");
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -231,7 +231,7 @@ int scale_count(methodDataOop method_data, int count) {
 }
 
 // public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
   VM_ENTRY_MARK;
   Handle obj;
@@ -290,7 +290,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(obj());
 }
 
-JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jdouble JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
@@ -323,7 +323,7 @@ JNIEXPORT jdouble JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   }
 }
 
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
   TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -362,13 +362,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public native boolean RiMethod_hasCompiledCode(HotSpotMethodResolved method);
-JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1hasCompiledCode(JNIEnv *, jobject, jobject hotspot_method) {
+JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1hasCompiledCode(JNIEnv *, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_hasCompiledCode");
   return getMethodFromHotSpotMethod(hotspot_method)->has_compiled_code();
 }
 
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
   TRACE_graal_3("CompilerToVM::RiSignature_lookupType");
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -422,7 +422,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public Object RiConstantPool_lookupConstant(HotSpotTypeResolved type, int cpi);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupConstant(JNIEnv *env, jobject, jobject type, jint index) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupConstant(JNIEnv *env, jobject, jobject type, jint index) {
   TRACE_graal_3("CompilerToVM::RiConstantPool_lookupConstant");
   VM_ENTRY_MARK;
 
@@ -467,7 +467,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiMethod RiConstantPool_lookupMethod(long vmId, int cpi, byte byteCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jobject type, jint index, jbyte byteCode) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupMethod(JNIEnv *env, jobject, jobject type, jint index, jbyte byteCode) {
   TRACE_graal_3("CompilerToVM::RiConstantPool_lookupMethod");
   VM_ENTRY_MARK;
   index = GraalCompiler::to_cp_index_u2(index);
@@ -490,7 +490,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiType RiConstantPool_lookupType(long vmId, int cpi);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupType(JNIEnv *env, jobject, jobject type, jint index) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupType(JNIEnv *env, jobject, jobject type, jint index) {
   TRACE_graal_3("CompilerToVM::RiConstantPool_lookupType");
   VM_ENTRY_MARK;
 
@@ -500,7 +500,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public void RiConstantPool_loadReferencedType(long vmId, int cpi);
-JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1loadReferencedType(JNIEnv *env, jobject, jobject type, jint index, jbyte op) {
+JNIEXPORT void JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1loadReferencedType(JNIEnv *env, jobject, jobject type, jint index, jbyte op) {
   TRACE_graal_3("CompilerToVM::RiConstantPool_loadReferencedType");
   VM_ENTRY_MARK;
   
@@ -524,7 +524,7 @@ JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiC
 }
 
 // public RiField RiConstantPool_lookupField(long vmId, int cpi);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupField(JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiConstantPool_1lookupField(JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode) {
   TRACE_graal_3("CompilerToVM::RiConstantPool_lookupField");
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -633,7 +633,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiMethod RiType_resolveMethodImpl(HotSpotTypeResolved klass, String name, String signature);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_3resolveMethodImpl(JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_3resolveMethodImpl(JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature) {
   TRACE_graal_3("CompilerToVM::RiType_resolveMethodImpl");
   VM_ENTRY_MARK;
 
@@ -654,7 +654,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public boolean RiType_isSubtypeOf(HotSpotTypeResolved klass, RiType other);
-JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_2isSubtypeOf(JNIEnv *, jobject, jobject klass, jobject jother) {
+JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_2isSubtypeOf(JNIEnv *, jobject, jobject klass, jobject jother) {
   TRACE_graal_3("CompilerToVM::RiType_isSubtypeOf");
   oop other = JNIHandles::resolve(jother);
   assert(other->is_a(HotSpotTypeResolved::klass()), "resolved hotspot type expected");
@@ -672,7 +672,7 @@ JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl
 }
 
 // public RiType RiType_componentType(HotSpotResolvedType klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1componentType(JNIEnv *, jobject, jobject klass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_1componentType(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("CompilerToVM::RiType_componentType");
   VM_ENTRY_MARK;
   KlassHandle array_klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass));
@@ -688,7 +688,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiType RiType_superType(HotSpotResolvedType klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1superType(JNIEnv *, jobject, jobject klass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_1superType(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("CompilerToVM::RiType_superType");
   VM_ENTRY_MARK;
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
@@ -709,7 +709,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiType RiType_uniqueConcreteSubtype(HotSpotResolvedType klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1uniqueConcreteSubtype(JNIEnv *, jobject, jobject klass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_1uniqueConcreteSubtype(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("CompilerToVM::RiType_uniqueConcreteSubtype");
   VM_ENTRY_MARK;
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(klass)));
@@ -721,7 +721,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public bool RiType_isInitialized(HotSpotResolvedType klass);
-JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1isInitialized(JNIEnv *, jobject, jobject hotspot_klass) {
+JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_1isInitialized(JNIEnv *, jobject, jobject hotspot_klass) {
   TRACE_graal_3("CompilerToVM::RiType_isInitialized");
   klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
@@ -729,7 +729,7 @@ JNIEXPORT jboolean JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl
 }
 
 // public RiType RiType_arrayOf(HotSpotTypeResolved klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1arrayOf(JNIEnv *, jobject, jobject klass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_1arrayOf(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("CompilerToVM::RiType_arrayOf");
   VM_ENTRY_MARK;
 
@@ -741,7 +741,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiResolvedField[] RiType_fields(HotSpotTypeResolved klass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1fields(JNIEnv *, jobject, jobject klass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_1fields(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("CompilerToVM::RiType_fields");
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -775,7 +775,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public RiType getPrimitiveArrayType(CiKind kind);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getPrimitiveArrayType(JNIEnv *env, jobject, jobject kind) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_getPrimitiveArrayType(JNIEnv *env, jobject, jobject kind) {
   TRACE_graal_3("CompilerToVM::getPrimitiveArrayType");
   VM_ENTRY_MARK;
   BasicType type = GraalCompiler::kindToBasicType(CiKind::typeChar(kind));
@@ -785,7 +785,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public long getMaxCallTargetOffset(CiRuntimeCall rtcall);
-JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getMaxCallTargetOffset(JNIEnv *env, jobject, jobject rtcall) {
+JNIEXPORT jlong JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_getMaxCallTargetOffset(JNIEnv *env, jobject, jobject rtcall) {
   TRACE_graal_3("CompilerToVM::getMaxCallTargetOffset");
   VM_ENTRY_MARK;
   oop call = JNIHandles::resolve(rtcall);
@@ -799,7 +799,7 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_ge
 }
 
 // public RiType getType(Class<?> javaClass);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getType(JNIEnv *env, jobject, jobject javaClass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_getType(JNIEnv *env, jobject, jobject javaClass) {
   TRACE_graal_3("CompilerToVM::getType");
   VM_ENTRY_MARK;
   oop javaClassOop = JNIHandles::resolve(javaClass);
@@ -845,7 +845,7 @@ BasicType basicTypes[] = { T_BOOLEAN, T_BYTE, T_SHORT, T_CHAR, T_INT, T_FLOAT, T
 int basicTypeCount = sizeof(basicTypes) / sizeof(BasicType);
 
 // public HotSpotVMConfig getConfiguration();
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getConfiguration(JNIEnv *env, jobject) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_getConfiguration(JNIEnv *env, jobject) {
   jclass klass = env->FindClass("com/oracle/max/graal/hotspot/HotSpotVMConfig");
   assert(klass != NULL, "HotSpot vm config class not found");
   jobject config = env->AllocObject(klass);
@@ -937,7 +937,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public HotSpotCompiledMethod installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -962,7 +962,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public long installStub(HotSpotTargetMethod targetMethod, String name);
-JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
+JNIEXPORT jlong JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -977,7 +977,7 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_in
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
-#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_##f))
+#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_##f))
 
 #define PROXY           "J"
 #define TYPE            "Lcom/oracle/max/cri/ri/RiType;"

@@ -1063,9 +1063,9 @@ JRT_ENTRY(void, graal_generic_callback(JavaThread* thread, oop _callback, oop _a
   Handle callback(_callback);
   Handle argument(_argument);
 
-  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_sun_cri_ci_CiGenericCallback(), SystemDictionary::java_system_loader(), NULL, thread);
+  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_cri_ci_CiGenericCallback(), SystemDictionary::java_system_loader(), NULL, thread);
   if (klass.is_null()) {
-    tty->print_cr("couldn't resolve com_sun_cri_ci_CiGenericCallback");
+    tty->print_cr("couldn't resolve com_oracle_max_cri_ci_CiGenericCallback");
   }
 
   JavaValue result(T_OBJECT);
