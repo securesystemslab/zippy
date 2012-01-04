@@ -313,10 +313,10 @@ def build(args):
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk, INSTALL='y')
         mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
-def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
+def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the GraalVM"""
-  
-    build = _vmbuild if _vmSourcesAvailable else 'product'
+
+    build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
@@ -570,9 +570,17 @@ def gate(args):
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Gate done (duration - ' + str(duration) + ')'))
 
 def bench(args):
+    results = {}
+    #DaCapo
+    benchmarks = sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
+    #Bootstrap
+    benchmarks += sanitycheck.getBootstraps()
     
-    for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Fast):
-        print test.bench('-graal')
+    for test in benchmarks:
+        if not results.has_key(test.group):
+            results[test.group] = {}
+        results[test.group].update(test.bench('-graal'))
+    print results
     
 def mx_init():
     _vmbuild = 'product'

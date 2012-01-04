@@ -6,24 +6,28 @@ import commands
 from os.path import isfile
 
 dacapoSanityWarmup = {
-    'avrora': [0, 0, 3, 6],
-    'batik': [0 , 0, 5, 5],
-    'eclipse': [2 , 4, 5, 10],
-    'fop': [4 , 8, 10, 20],
-    'h2': [0 , 0, 5, 5],
-    'jython': [0 , 0, 5, 10],
-    'luindex': [0 , 0, 5, 10],
-    'lusearch': [0 , 4, 5, 10],
-    'pmd': [0 , 0, 5, 10],
-    'sunflow': [0 , 0, 5, 10],
-    'tomcat': [0 , 0, 5, 10],
-    'tradebeans': [0 , 0, 5, 10],
-    'tradesoap': [2 , 4, 5, 10],
-    'xalan': [0 , 0, 5, 10],
+    'avrora': [0, 0, 3, 6, 10],
+    'batik': [0 , 0, 5, 5, 20],
+    'eclipse': [2 , 4, 5, 10, 13],
+    'fop': [4 , 8, 10, 20, 30],
+    'h2': [0 , 0, 5, 5, 5],
+    'jython': [0 , 0, 5, 10, 10],
+    'luindex': [0 , 0, 5, 10, 10],
+    'lusearch': [0 , 4, 5, 5, 5],
+    'pmd': [0 , 0, 5, 10, 10],
+    'sunflow': [0 , 0, 5, 10, 15],
+    'tomcat': [0 , 0, 5, 10, 10],
+    'tradebeans': [0 , 0, 5, 10, 10],
+    'tradesoap': [2 , 4, 5, 10, 10],
+    'xalan': [0 , 0, 5, 10, 15],
 }
 
 class SanityCheckLevel:
-    Fast, Gate, Normal, Extensive = range(4)
+    Fast, Gate, Normal, Extensive, Benchmark = range(5)
+    
+def getSPECjvm2008():
+    score = re.compile(r"^((Score on|Noncompliant) )?(?P<benchmark>[a-zA-Z0-9\.-]+)( result)?: (?P<score>[0-9]+,[0-9]+)( SPECjvm2008 Base)? ops/m$")
+    matcher = Matcher(score, {'const:name' : 'benchmark', 'const:score' : 'score'})
 
 def getDacapos(level=SanityCheckLevel.Normal, dacapoArgs=[]):
     checks = []
@@ -50,6 +54,14 @@ def getDacapo(name, n, dacapoArgs=[]):
     
     return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms1g', '-Xmx2g', '-XX:MaxPermSize=256m'])
 
+def getBootstraps():
+    time = re.compile(r"Bootstrapping Graal............... in (?P<time>[0-9]+) ms")
+    scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
+    tests = []
+    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher]))
+    tests.append(Test("Bootstrap", "Bootstrap-bigHeap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
+    return tests
+
 class Test:
     def __init__(self, name, group, cmd, succesREs=[], failureREs=[], scoreMatchers=[], vmOpts=[]):
         self.name = name
@@ -60,7 +72,7 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
     
-    def test(self, vm, cwd=None, opts=[]):
+    def test(self, vm, cwd=None, opts=[], vmbuild=None):
         parser = OutputParser(nonZeroIsFatal = False)
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
         parser.addMatcher(Matcher(jvmError, {'const:jvmError' : 'jvmerror'}))
@@ -70,7 +82,7 @@ class Test:
         for failureRE in self.failureREs:
             parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
         
-        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd)
+        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
         
         parsedLines = result['parsed']
         assert len(parsedLines) == 1, 'Test matchers should not return more than one line'
@@ -91,13 +103,13 @@ class Test:
         
         return result['retcode'] is 0 and parsed.has_key('passed') and parsed['passed'] is '1'
     
-    def bench(self, vm, cwd=None, opts=[]):
+    def bench(self, vm, cwd=None, opts=[], vmbuild=None):
         parser = OutputParser(nonZeroIsFatal = False)
         
         for scoreMatcher in self.scoreMatchers:
             parser.addMatcher(scoreMatcher)
             
-        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd)
+        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
         if result['retcode'] is not 0:
             return {}
         

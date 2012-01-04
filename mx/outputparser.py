@@ -10,7 +10,7 @@ class OutputParser:
     def addMatcher(self, matcher):
         self.matchers.append(matcher)
     
-    def parse(self, vm, cmd, cwd=None):
+    def parse(self, vm, cmd, cwd=None, vmbuild=None):
         ret = [{}]
         
         def parseLine(line):
@@ -27,7 +27,7 @@ class OutputParser:
             else :
                 mx.log( line.rstrip())
         
-        retcode = commands.vm(cmd, nonZeroIsFatal=self.nonZeroIsFatal, out=parseLine, err=parseLine, cwd=cwd)
+        retcode = commands.vm(cmd, vm, nonZeroIsFatal=self.nonZeroIsFatal, out=parseLine, err=parseLine, cwd=cwd, vmbuild=vmbuild)
         return {'parsed' : ret, 'retcode' : retcode}
 
 class Matcher:

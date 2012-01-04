@@ -134,7 +134,7 @@ class Project(Dependency):
         self.native = False
         self.dir = dir
         
-    def all_deps(self, deps, includeLibs):
+    def all_deps(self, deps, includeLibs, includeSelf=True):
         """
         Add the transitive set of dependencies for this project, including
         libraries if 'includeLibs' is true, to the 'deps' list.
@@ -151,7 +151,7 @@ class Project(Dependency):
                 dep = project(name)
                 if not dep in deps:
                     dep.all_deps(deps, includeLibs)
-        if not self in deps:
+        if not self in deps and includeSelf:
             deps.append(self)
         return deps
     
@@ -416,7 +416,7 @@ def _as_classpath(deps, resolve):
         cp += [_opts.cp_suffix]
     return os.pathsep.join(cp)
 
-def classpath(names=None, resolve=True):
+def classpath(names=None, resolve=True, includeSelf=True):
     """
     Get the class path for a list of given projects, resolving each entry in the
     path (e.g. downloading a missing library) if 'resolve' is true.
@@ -425,10 +425,10 @@ def classpath(names=None, resolve=True):
         return _as_classpath(sorted_deps(True), resolve)
     deps = []
     if isinstance(names, types.StringTypes):
-        project(names).all_deps(deps, True)
+        project(names).all_deps(deps, True, includeSelf)
     else:
         for n in names:
-            project(n).all_deps(deps, True)
+            project(n).all_deps(deps, True, includeSelf)
     return _as_classpath(deps, resolve)
     
 def sorted_deps(includeLibs=False):
@@ -833,7 +833,7 @@ def build(args):
         else:
             os.mkdir(outputDir)
 
-        cp = classpath(p.name)
+        cp = classpath(p.name, includeSelf=False)
         sourceDirs = p.source_dirs()
         mustBuild = args.force
         if not mustBuild:
@@ -890,7 +890,7 @@ def build(args):
                                 elif self.c != 0:
                                     self.c -= 1
                                 else:
-                                    print line.rstrip()
+                                    log(line.rstrip())
                         errFilt=Filter().eat
                         
                     run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
