@@ -231,7 +231,10 @@ class Suite:
         self.includes = []
         self.commands = None
         self.primary = primary
-        self._load_env(join(dir, 'mx'))
+        mxDir = join(dir, 'mx')
+        self._load_env(mxDir)
+        if primary:
+            self._load_commands(mxDir)
 
     def _load_projects(self, mxDir):
         libsMap = dict()
@@ -308,6 +311,8 @@ class Suite:
 
             if not hasattr(mod, 'mx_init'):
                 abort(commands + ' must define an mx_init(env) function')
+            if hasattr(mod, 'mx_post_parse_cmd_line'):
+                self.mx_post_parse_cmd_line = mod.mx_post_parse_cmd_line
                 
             mod.mx_init()
             self.commands = mod
@@ -333,10 +338,8 @@ class Suite:
         mxDir = join(self.dir, 'mx')
         self._load_includes(mxDir)
         self._load_projects(mxDir)
-        if self.primary:
-            self._load_commands(mxDir)
-        if commands is not None and hasattr(commands, 'mx_post_parse_cmd_line'):
-            commands.mx_post_parse_cmd_line(opts)
+        if self.mx_post_parse_cmd_line is not None:
+            self.mx_post_parse_cmd_line(opts)
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:

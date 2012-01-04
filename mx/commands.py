@@ -27,9 +27,10 @@
 # ----------------------------------------------------------------------------------------------------
 
 import os, sys, shutil, StringIO, zipfile, tempfile, re, time, datetime, platform, subprocess
-from os.path import join, exists, dirname, isdir, isfile, isabs, basename
+from os.path import join, exists, dirname, isdir, isabs, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
+import sanitycheck
 
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
@@ -140,64 +141,50 @@ def dacapo(args):
     DaCapo options are distinguised from VM options by a '@' prefix.
     For example, '@--iterations @5' will pass '--iterations 5' to the
     DaCapo harness."""
-    
-    benchmarks = [
-        'avrora',
-        'batik',
-        'eclipse',
-        'fop',
-        'h2',
-        'jython',
-        'luindex',
-        'lusearch',
-        'pmd',
-        'sunflow',
-        'tomcat',
-        'tradebeans',
-        'tradesoap',
-        'xalan'
-    ]
-    
-    dacapo = mx.get_env('DACAPO_CP')
-    if dacapo is None:
-        dacapo = _graal_home + r'/lib/dacapo-9.12-bach.jar'
-    
-    if not isfile(dacapo) or not dacapo.endswith('.jar'):
-        mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
-        
-    vmOpts = ['-Xms1g', '-Xmx2g', '-cp', dacapo]
 
-    selected = []
-    while len(args) != 0 and args[0][0] not in ['-', '@']:
-        bm = args[0]
-        del args[0]
-        if bm not in benchmarks:
-            mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(benchmarks))
-        selected.append(bm)
+    numTests = {}
     
-    if len(selected) != 0:    
-        benchmarks = selected
+    if len(args) > 0:
+        level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
+        if level is not None:
+            del args[0]
+            for (bench, ns) in sanitycheck.dacapoSanityWarmup.items():
+                if ns[level] > 0:
+                    numTests[bench] = ns[level]
+        else:
+            while len(args) != 0 and args[0][0] not in ['-', '@']:
+                n = 1
+                if args[0].isdigit():
+                    n = int(args[0])
+                    assert len(args) > 1 and args[1][0] not in ['-', '@'] and not args[1].isdigit()
+                    bm = args[1]
+                    del args[0]
+                else:
+                    bm = args[0]
+                
+                del args[0]
+                if bm not in sanitycheck.dacapoSanityWarmup.keys():
+                    mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoSanityWarmup.keys()))
+                numTests[bm] = n
+    
+    if len(numTests) is 0:    
+        for bench in sanitycheck.dacapoSanityWarmup.keys():
+            numTests[bench] = 1
     
     # Extract DaCapo options
     dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
     
     # The remainder are VM options 
-    vmOpts += [arg for arg in args if not arg.startswith('@')]
-
-    dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$")
-    passed = []
-        
-    for bm in benchmarks:
-        def errFilter(line):
-            if dacapoSuccess.match(line):
-                passed.append(bm)
-            sys.stderr.write(line)
-        vm(vmOpts + ['Harness'] + dacapoArgs + [bm], err=errFilter)
-        
-    failed = list(set(benchmarks).difference(set(passed)))
+    vmOpts = [arg for arg in args if not arg.startswith('@')]
+    
+    failed = []
+    print str(numTests)
+    for (test, n) in numTests.items():
+        if not sanitycheck.getDacapo(test, n, dacapoArgs).test('-graal', opts=vmOpts):
+            failed.append(test)
     
     if len(failed) != 0:
-        mx.abort('Benchmark failures: ' + str(failed))
+        mx.abort('DaCapo failures: ' + str(failed))
  
 def _jdk(build='product', create=False):
     """
@@ -246,7 +233,7 @@ def _jdk(build='product', create=False):
         mx.abort('Unknown build type: ' + build)
 
 # run a command in the windows SDK Debug Shell
-def runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
+def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
     newLine = os.linesep
     STARTTOKEN = 'RUNINDEBUGSHELL_STARTSEQUENCE'
     ENDTOKEN = 'RUNINDEBUGSHELL_ENDSEQUENCE'
@@ -310,16 +297,16 @@ def build(args):
             
     if platform.system() == 'Windows':
         compilelogfile = _graal_home + '/graalCompile.log'
-        runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
+        _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
         winCompileCmd = r'set HotSpotMksHome=' + _mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
         print(winCompileCmd)
         winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
-        if not runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
+        if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
             mx.log('Error executing create command')
             return 
         winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=compiler1_product /p:Platform=x64'
         winBuildSuccess = re.compile('Build succeeded.')
-        if not runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
+        if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
             mx.log('Error building project')
             return 
     else:
@@ -581,6 +568,11 @@ def gate(args):
 
     duration = datetime.timedelta(seconds=time.time() - start)
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Gate done (duration - ' + str(duration) + ')'))
+
+def bench(args):
+    
+    for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Fast):
+        print test.bench('-graal')
     
 def mx_init():
     _vmbuild = 'product'
@@ -591,6 +583,7 @@ def mx_init():
         'dacapo': [dacapo, '[benchmark] [VM options|DaCapo options]'],
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
+        'bench' : [bench, ''],
         'unittest' : [unittest, '[filters...]'],
         'vm': [vm, '[-options] class [args...]'],
         'ideinit': [ideinit, '']
@@ -617,7 +610,7 @@ def mx_post_parse_cmd_line(opts):
     major = int(parts[1])
     if not major >= 7:
         mx.abort('Requires Java version 1.7 or greater, got version ' + version)
-
+    
     if (_vmSourcesAvailable):
         if hasattr(opts, 'vmbuild'):
             global _vmbuild
