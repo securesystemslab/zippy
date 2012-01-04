@@ -612,6 +612,6 @@ def mx_post_parse_cmd_line(opts):
         mx.abort('Requires Java version 1.7 or greater, got version ' + version)
     
     if (_vmSourcesAvailable):
-        if hasattr(opts, 'vmbuild'):
+        if hasattr(opts, 'vmbuild') and opts.vmbuild is not None:
             global _vmbuild
             _vmbuild = opts.vmbuild
