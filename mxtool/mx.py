@@ -134,7 +134,7 @@ class Project(Dependency):
         self.native = False
         self.dir = dir
         
-    def all_deps(self, deps, includeLibs):
+    def all_deps(self, deps, includeLibs, includeSelf=True):
         """
         Add the transitive set of dependencies for this project, including
         libraries if 'includeLibs' is true, to the 'deps' list.
@@ -151,7 +151,7 @@ class Project(Dependency):
                 dep = project(name)
                 if not dep in deps:
                     dep.all_deps(deps, includeLibs)
-        if not self in deps:
+        if not self in deps and includeSelf:
             deps.append(self)
         return deps
     
@@ -231,7 +231,10 @@ class Suite:
         self.includes = []
         self.commands = None
         self.primary = primary
-        self._load_env(join(dir, 'mx'))
+        mxDir = join(dir, 'mx')
+        self._load_env(mxDir)
+        if primary:
+            self._load_commands(mxDir)
 
     def _load_projects(self, mxDir):
         libsMap = dict()
@@ -308,6 +311,8 @@ class Suite:
 
             if not hasattr(mod, 'mx_init'):
                 abort(commands + ' must define an mx_init(env) function')
+            if hasattr(mod, 'mx_post_parse_cmd_line'):
+                self.mx_post_parse_cmd_line = mod.mx_post_parse_cmd_line
                 
             mod.mx_init()
             self.commands = mod
@@ -333,10 +338,8 @@ class Suite:
         mxDir = join(self.dir, 'mx')
         self._load_includes(mxDir)
         self._load_projects(mxDir)
-        if self.primary:
-            self._load_commands(mxDir)
-        if commands is not None and hasattr(commands, 'mx_post_parse_cmd_line'):
-            commands.mx_post_parse_cmd_line(opts)
+        if self.mx_post_parse_cmd_line is not None:
+            self.mx_post_parse_cmd_line(opts)
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -413,7 +416,7 @@ def _as_classpath(deps, resolve):
         cp += [_opts.cp_suffix]
     return os.pathsep.join(cp)
 
-def classpath(names=None, resolve=True):
+def classpath(names=None, resolve=True, includeSelf=True):
     """
     Get the class path for a list of given projects, resolving each entry in the
     path (e.g. downloading a missing library) if 'resolve' is true.
@@ -422,10 +425,10 @@ def classpath(names=None, resolve=True):
         return _as_classpath(sorted_deps(True), resolve)
     deps = []
     if isinstance(names, types.StringTypes):
-        project(names).all_deps(deps, True)
+        project(names).all_deps(deps, True, includeSelf)
     else:
         for n in names:
-            project(n).all_deps(deps, True)
+            project(n).all_deps(deps, True, includeSelf)
     return _as_classpath(deps, resolve)
     
 def sorted_deps(includeLibs=False):
@@ -830,7 +833,7 @@ def build(args):
         else:
             os.mkdir(outputDir)
 
-        cp = classpath(p.name)
+        cp = classpath(p.name, includeSelf=False)
         sourceDirs = p.source_dirs()
         mustBuild = args.force
         if not mustBuild:
@@ -887,7 +890,7 @@ def build(args):
                                 elif self.c != 0:
                                     self.c -= 1
                                 else:
-                                    print line.rstrip()
+                                    log(line.rstrip())
                         errFilt=Filter().eat
                         
                     run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
