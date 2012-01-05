@@ -179,7 +179,6 @@ def dacapo(args):
     vmOpts = [arg for arg in args if not arg.startswith('@')]
     
     failed = []
-    print str(numTests)
     for (test, n) in numTests.items():
         if not sanitycheck.getDacapo(test, n, dacapoArgs).test('-graal', opts=vmOpts):
             failed.append(test)
@@ -566,11 +565,9 @@ def gate(args):
     
     # 8. Run selected DaCapo benchmarks
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running DaCapo benchmarks...'))
-    dacapo(['eclipse'])
-    #dacapo(['tradesoap'])
-    dacapo(['batik'])
-    dacapo(['avrora'])
-    dacapo(['fop'])
+    for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate):
+        if not test.test('-graal'):
+            mx.abort(test.group + ' ' + test.name + ' Failed')
 
     duration = datetime.timedelta(seconds=time.time() - start)
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Gate done (duration - ' + str(duration) + ')'))
@@ -581,6 +578,8 @@ def bench(args):
     benchmarks = sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     #Bootstrap
     benchmarks += sanitycheck.getBootstraps()
+    #SPECjvm2008
+    benchmarks += [sanitycheck.getSPECjvm2008(True, 60, 120)]
     
     for test in benchmarks:
         if not results.has_key(test.group):

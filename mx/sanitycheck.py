@@ -64,9 +64,9 @@ def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None)
     
     opts = []
     if warmupTime is not None:
-        opts +0 ['-wt', str(warmupTime)]
+        opts += ['-wt', str(warmupTime)]
     if iterationTime is not None:
-        opts +0 ['-it', str(iterationTime)]
+        opts += ['-it', str(iterationTime)]
     if skipKitValidation:
         opts += ['-ikv']
     
@@ -101,8 +101,8 @@ def getBootstraps():
     time = re.compile(r"Bootstrapping Graal............... in (?P<time>[0-9]+) ms")
     scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     tests = []
-    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher]))
-    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
+    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher]))
+    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
     return tests
 
 """
