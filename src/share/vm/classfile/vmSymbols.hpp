@@ -278,6 +278,7 @@
   template(com_oracle_max_graal_hotspot_HotSpotTypeResolved,          "com/oracle/max/graal/hotspot/ri/HotSpotTypeResolvedImpl")          \
   template(com_oracle_max_graal_hotspot_HotSpotType,                  "com/oracle/max/graal/hotspot/ri/HotSpotType")                      \
   template(com_oracle_max_graal_hotspot_HotSpotExceptionHandler,      "com/oracle/max/graal/hotspot/ri/HotSpotExceptionHandler")          \
+  template(com_oracle_max_graal_hotspot_HotSpotProxy,                 "com/oracle/max/graal/hotspot/HotSpotProxy")                        \
   template(com_oracle_max_graal_hotspot_Compiler,                     "com/oracle/max/graal/hotspot/Compiler")                            \
   template(com_oracle_max_graal_hotspot_CompilerImpl,                 "com/oracle/max/graal/hotspot/CompilerImpl")                        \
   template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/max/cri/ri/RiMethod")                                   \

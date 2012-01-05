@@ -80,6 +80,9 @@ void graal_compute_offsets();
     long_field(HotSpotCompiledMethod, nmethod)                                          \
     oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
   end_class                                                                             \
+  start_class(HotSpotProxy)                                                             \
+    static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \
+  end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/oracle/max/cri/ci/CiTargetMethod;") \
     oop_field(HotSpotTargetMethod, method, "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;") \

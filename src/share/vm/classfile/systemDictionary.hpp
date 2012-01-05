@@ -195,6 +195,7 @@ class SymbolPropertyTable;
   template(HotSpotMethodResolved_klass,           com_oracle_max_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
   template(HotSpotTargetMethod_klass,             com_oracle_max_graal_hotspot_HotSpotTargetMethod,                 Opt) \
   template(HotSpotExceptionHandler_klass,         com_oracle_max_graal_hotspot_HotSpotExceptionHandler,             Opt) \
+  template(HotSpotProxy_klass,                    com_oracle_max_graal_hotspot_HotSpotProxy,                        Opt) \
   template(CiAssumptions_klass,                   com_oracle_max_cri_ci_CiAssumptions,                              Opt) \
   template(CiAssumptions_ConcreteSubtype_klass,   com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,              Opt) \
   template(CiAssumptions_ConcreteMethod_klass,    com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,               Opt) \
@@ -205,7 +206,7 @@ class SymbolPropertyTable;
   template(CiTargetMethod_Safepoint_klass,        com_oracle_max_cri_ci_CiTargetMethod_Safepoint,                   Opt) \
   template(CiTargetMethod_ExceptionHandler_klass, com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,            Opt) \
   template(CiTargetMethod_Mark_klass,             com_oracle_max_cri_ci_CiTargetMethod_Mark,                        Opt) \
-  template(GraalBitMap_klass,                    com_oracle_max_cri_ci_CiBitMap,                                    Opt) \
+  template(GraalBitMap_klass,                     com_oracle_max_cri_ci_CiBitMap,                                   Opt) \
   template(CiDebugInfo_klass,                     com_oracle_max_cri_ci_CiDebugInfo,                                Opt) \
   template(CiFrame_klass,                         com_oracle_max_cri_ci_CiFrame,                                    Opt) \
   template(CiValue_klass,                         com_oracle_max_cri_ci_CiValue,                                    Opt) \
