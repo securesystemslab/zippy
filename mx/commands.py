@@ -40,9 +40,10 @@ _mksHome = 'C:\\cygwin\\bin'
 
 def clean(args):
     """cleans the GraalVM source tree"""
-    mx.clean(args)
-    os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
-    mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
+    opts = mx.clean(args)
+    if opts.native:
+        os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
+        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
 
 def copyrightcheck(args):
     """run copyright check on the Mercurial controlled source files"""
@@ -270,16 +271,16 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 def build(args):
     """builds the GraalVM binary and compiles the Graal classes
     
-    The optional argument specifies what type of VM to build."""
+    The optional last argument specifies what type of VM to build."""
 
     build = 'product'
     if len(args) != 0 and not args[0].startswith('-'):
         build = args.pop(0)
 
     # Call mx.build to compile the Java sources        
-    mx.build(args + ['--source', '1.7'])
+    opts = mx.build(args + ['--source', '1.7'])
 
-    if not _vmSourcesAvailable:
+    if not _vmSourcesAvailable or not opts.native:
         return
         
     jdk = _jdk(build, True)
@@ -521,8 +522,8 @@ def gate(args):
     
     start = time.time()
     
-    # 1. Clean
-    # clean([])
+    # 1. Clean (cleaning of native code disabled as gate machine takes too long to do a clean HotSpot build)
+    clean(['--no-native'])
     
     # 2. Checkstyle
     mx.log(time.strftime('%d %b %Y %H:%M:%S - Running Checkstyle...'))
@@ -585,7 +586,7 @@ def bench(args):
 def mx_init():
     _vmbuild = 'product'
     commands = {
-        'build': [build, ''],
+        'build': [build, '[-options]'],
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
         'dacapo': [dacapo, '[benchmark] [VM options|DaCapo options]'],
@@ -605,7 +606,7 @@ def mx_init():
         
         commands.update({
             'export': [export, '[-options] [zipfile]'],
-            'build': [build, '[product|debug|fastdebug|optimized]']
+            'build': [build, '[-options] [product|debug|fastdebug|optimized]']
         })
     
     mx.commands.update(commands)

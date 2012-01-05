@@ -787,17 +787,18 @@ def update_file(path, content):
 
 # Builtin commands
             
-def build(args):
+def build(args, parser=None):
     """compile the Java and C sources, linking the latter
 
     Compile all the Java source code using the appropriate compilers
     and linkers for the various source code types."""
     
-    parser = ArgumentParser(prog='mx build');
+    parser = parser if parser is not None else ArgumentParser(prog='mx build');
     parser.add_argument('-f', action='store_true', dest='force', help='force compilation even if class files are up to date')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
     parser.add_argument('--source', dest='compliance', help='Java compliance level', default='1.6')
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
+    parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
     parser.add_argument('--jdt', help='Eclipse installation or path to ecj.jar for using the Eclipse batch compiler instead of javac', metavar='<path>')
 
@@ -817,14 +818,19 @@ def build(args):
     for p in sorted_deps():
         
         if p.native:
-            log('Calling GNU make {0}...'.format(p.dir))
-
-            if args.clean:
-                run([gmake_cmd(), 'clean'], cwd=p.dir)
-                
-            run([gmake_cmd()], cwd=p.dir)
-            built.add(p.name)
+            if args.native:
+                log('Calling GNU make {0}...'.format(p.dir))
+    
+                if args.clean:
+                    run([gmake_cmd(), 'clean'], cwd=p.dir)
+                    
+                run([gmake_cmd()], cwd=p.dir)
+                built.add(p.name)
             continue
+        else:
+            if not args.java:
+                continue
+
         
         outputDir = p.output_dir()
         if exists(outputDir):
@@ -915,6 +921,7 @@ def build(args):
                 dst = join(outputDir, name[len(sourceDir) + 1:])
                 if exists(dirname(dst)):
                     shutil.copyfile(name, dst)
+    return args
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -1056,21 +1063,30 @@ If no projects are given, then all Java projects are checked."""
                     os.unlink(auditfileName)
     return 0
 
-def clean(args):
+def clean(args, parser=None):
     """remove all class files, images, and executables
 
     Removes all files created by a build, including Java class files, executables, and
     generated images.
     """
     
+    parser = parser if parser is not None else ArgumentParser(prog='mx build');
+    parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
+    parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
+
+    args = parser.parse_args(args)
+    
     for p in projects():
         if p.native:
-            run([gmake_cmd(), '-C', p.dir, 'clean'])
+            if args.native:
+                run([gmake_cmd(), '-C', p.dir, 'clean'])
         else:
-            outputDir = p.output_dir()
-            if outputDir != '' and exists(outputDir):
-                log('Removing {0}...'.format(outputDir))
-                shutil.rmtree(outputDir)
+            if args.java:
+                outputDir = p.output_dir()
+                if outputDir != '' and exists(outputDir):
+                    log('Removing {0}...'.format(outputDir))
+                    shutil.rmtree(outputDir)
+    return args
     
 def help_(args):
     """show help for a given command
@@ -1138,8 +1154,8 @@ def add_argument(*args, **kwargs):
 # used in the call to str.format().  
 # Extensions should update this table directly
 commands = {
-    'build': [build, '[options] projects...'],
-    'checkstyle': [checkstyle, 'projects...'],
+    'build': [build, '[options]'],
+    'checkstyle': [checkstyle, ''],
     'canonicalizeprojects': [canonicalizeprojects, ''],
     'clean': [clean, ''],
     'help': [help_, '[command]'],
