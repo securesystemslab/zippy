@@ -1,3 +1,28 @@
+# ----------------------------------------------------------------------------------------------------
+#
+# Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+# This code is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 only, as
+# published by the Free Software Foundation.
+#
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
+#
+# You should have received a copy of the GNU General Public License version
+# 2 along with this work; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+# or visit www.oracle.com if you need additional information or have any
+# questions.
+#
+# ----------------------------------------------------------------------------------------------------
+
 from outputparser import OutputParser, Matcher
 import re
 import mx
@@ -62,23 +87,29 @@ def getBootstraps():
     tests.append(Test("Bootstrap", "Bootstrap-bigHeap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
     return tests
 
+"""
+Encapsulates a single program that is a sanity test and/or a benchmark.
+"""
 class Test:
-    def __init__(self, name, group, cmd, succesREs=[], failureREs=[], scoreMatchers=[], vmOpts=[]):
+    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[]):
         self.name = name
         self.group = group
-        self.succesREs = succesREs
+        self.successREs = successREs
         self.failureREs = failureREs
         self.scoreMatchers = scoreMatchers
         self.vmOpts = vmOpts
         self.cmd = cmd
     
     def test(self, vm, cwd=None, opts=[], vmbuild=None):
+        """
+        Run this program as a sanity test.
+        """
         parser = OutputParser(nonZeroIsFatal = False)
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
         parser.addMatcher(Matcher(jvmError, {'const:jvmError' : 'jvmerror'}))
         
-        for succesRE in self.succesREs:
-            parser.addMatcher(Matcher(succesRE, {'const:passed' : 'const:1'}))
+        for successRE in self.successREs:
+            parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
         for failureRE in self.failureREs:
             parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
         
@@ -104,6 +135,9 @@ class Test:
         return result['retcode'] is 0 and parsed.has_key('passed') and parsed['passed'] is '1'
     
     def bench(self, vm, cwd=None, opts=[], vmbuild=None):
+        """
+        Run this program as a benchmark.
+        """
         parser = OutputParser(nonZeroIsFatal = False)
         
         for scoreMatcher in self.scoreMatchers:

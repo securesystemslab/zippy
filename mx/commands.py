@@ -1,5 +1,5 @@
 #
-# commands.py - the default commands available to gl.py
+# commands.py - the GraalVM specific commands
 #
 # ----------------------------------------------------------------------------------------------------
 #

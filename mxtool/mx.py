@@ -535,8 +535,8 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     Run a command in a subprocess, wait for it to complete and return the exit status of the process.
     If the exit status is non-zero and `nonZeroIsFatal` is true, then mx is exited with
     the same exit status.
-    Each line of the standard output and error streams of the subprocess are redirected to the
-    provided out and err functions if they are not None.
+    Each line of the standard output and error streams of the subprocess are redirected to
+    out and err if they are callable objects.
     """
     
     assert isinstance(args, types.ListType), "'args' must be a list: " + str(args)
@@ -550,19 +550,21 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         timeout = _opts.timeout
     
     try:
-        if out is None and err is None and timeout is None:
+        if not callable(out) and not callable(err) and timeout is None:
             retcode = subprocess.call(args, cwd=cwd)
         else:
             def redirect(stream, f):
                 for line in iter(stream.readline, ''):
                     f(line)
                 stream.close()
-            p = subprocess.Popen(args, cwd=cwd, stdout=None if out is None else subprocess.PIPE, stderr=None if err is None else subprocess.PIPE)
-            if out is not None:
+            stdout=out if not callable(out) else subprocess.PIPE
+            stderr=err if not callable(err) else subprocess.PIPE
+            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr)
+            if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
                 t.daemon = True # thread dies with the program
                 t.start()
-            if err is not None:
+            if callable(err):
                 t = Thread(target=redirect, args=(p.stderr, err))
                 t.daemon = True # thread dies with the program
                 t.start()
@@ -833,7 +835,7 @@ def build(args):
         else:
             os.mkdir(outputDir)
 
-        cp = classpath(p.name, includeSelf=False)
+        cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
         mustBuild = args.force
         if not mustBuild:
@@ -885,7 +887,7 @@ def build(args):
                                 self.c = 0
                             
                             def eat(self, line):
-                                if 'proprietary API':
+                                if 'proprietary API' in line:
                                     self.c = 2
                                 elif self.c != 0:
                                     self.c -= 1
