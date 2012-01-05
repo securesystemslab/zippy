@@ -644,11 +644,11 @@ def check_get_env(key):
         abort('Required environment variable ' + key + ' must be set')
     return value
 
-def get_env(key):
+def get_env(key, default=None):
     """
     Gets an environment variable.
     """
-    value = os.environ.get(key)
+    value = os.environ.get(key, default)
     return value
 
 def log(msg=None):

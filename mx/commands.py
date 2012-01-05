@@ -311,7 +311,12 @@ def build(args):
             mx.log('Error building project')
             return 
     else:
-        os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='3', ALT_BOOTDIR=jdk, INSTALL='y')
+        env = os.environ
+        env.setdefault('ARCH_DATA_MODEL', '64')
+        env.setdefault('LANG', 'C')
+        env.setdefault('HOTSPOT_BUILD_JOBS', '3')
+        env.setdefault('ALT_BOOTDIR', jdk)
+        env.setdefault('INSTALL', 'y')
         mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
 def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
