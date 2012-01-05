@@ -28,31 +28,49 @@ import re
 import mx
 import os
 import commands
-from os.path import isfile
+from os.path import isfile, join, exists
 
 dacapoSanityWarmup = {
-    'avrora': [0, 0, 3, 6, 10],
-    'batik': [0 , 0, 5, 5, 20],
-    'eclipse': [2 , 4, 5, 10, 13],
-    'fop': [4 , 8, 10, 20, 30],
-    'h2': [0 , 0, 5, 5, 5],
-    'jython': [0 , 0, 5, 10, 10],
-    'luindex': [0 , 0, 5, 10, 10],
-    'lusearch': [0 , 4, 5, 5, 5],
-    'pmd': [0 , 0, 5, 10, 10],
-    'sunflow': [0 , 0, 5, 10, 15],
-    'tomcat': [0 , 0, 5, 10, 10],
-    'tradebeans': [0 , 0, 5, 10, 10],
-    'tradesoap': [2 , 4, 5, 10, 10],
-    'xalan': [0 , 0, 5, 10, 15],
+    'avrora':     [0, 0,  3,  6, 10],
+    'batik':      [0, 0,  5,  5, 20],
+    'eclipse':    [2, 4,  5, 10, 13],
+    'fop':        [4, 8, 10, 20, 30],
+    'h2':         [0, 0,  5,  5,  5],
+    'jython':     [0, 0,  5, 10, 10],
+    'luindex':    [0, 0,  5, 10, 10],
+    'lusearch':   [0, 4,  5,  5,  5],
+    'pmd':        [0, 0,  5, 10, 10],
+    'sunflow':    [0, 0,  5, 10, 15],
+    'tomcat':     [0, 0,  5, 10, 10],
+    'tradebeans': [0, 0,  5, 10, 10],
+    'tradesoap':  [2, 4,  5, 10, 10],
+    'xalan':      [0, 0,  5, 10, 15],
 }
 
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
-def getSPECjvm2008():
-    score = re.compile(r"^((Score on|Noncompliant) )?(?P<benchmark>[a-zA-Z0-9\.-]+)( result)?: (?P<score>[0-9]+,[0-9]+)( SPECjvm2008 Base)? ops/m$")
-    matcher = Matcher(score, {'const:name' : 'benchmark', 'const:score' : 'score'})
+def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None):
+    
+    specjvm2008 = mx.get_env('SPECJVM2008')
+    if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
+        mx.abort('Please set the SPECJVM2008 environment variable to a SPECjvm2008 directory')
+    
+    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\.\-]+)( result)?: (?P<score>[0-9]+(,|\.)[0-9]+)( SPECjvm2008 Base)? ops/m$")
+    error = re.compile(r"^Errors in benchmark: ")
+    # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
+    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+,[0-9]+( SPECjvm2008 (Base|Peak))? ops/m$")
+    matcher = Matcher(score, {'const:name' : 'benchmark', 'const:score' : 'score'}, startNewLine=True)
+    
+    opts = []
+    if warmupTime is not None:
+        opts +0 ['-wt', str(warmupTime)]
+    if iterationTime is not None:
+        opts +0 ['-it', str(iterationTime)]
+    if skipKitValidation:
+        opts += ['-ikv']
+    
+    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts, [success], [error], [matcher], vmOpts=['-Xms2g'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, dacapoArgs=[]):
     checks = []
@@ -84,14 +102,14 @@ def getBootstraps():
     scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     tests = []
     tests.append(Test("Bootstrap", "Bootstrap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher]))
-    tests.append(Test("Bootstrap", "Bootstrap-bigHeap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
+    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], succesREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
     return tests
 
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[]):
+    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None):
         self.name = name
         self.group = group
         self.successREs = successREs
@@ -99,11 +117,14 @@ class Test:
         self.scoreMatchers = scoreMatchers
         self.vmOpts = vmOpts
         self.cmd = cmd
+        self.defaultCwd = defaultCwd
     
     def test(self, vm, cwd=None, opts=[], vmbuild=None):
         """
         Run this program as a sanity test.
         """
+        if cwd is None:
+            cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
         parser.addMatcher(Matcher(jvmError, {'const:jvmError' : 'jvmerror'}))
@@ -138,8 +159,12 @@ class Test:
         """
         Run this program as a benchmark.
         """
+        if cwd is None:
+            cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
         
+        for failureRE in self.failureREs:
+            parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
         for scoreMatcher in self.scoreMatchers:
             parser.addMatcher(scoreMatcher)
             
@@ -153,7 +178,8 @@ class Test:
         
         for line in parsed:
             assert line.has_key('name') and line.has_key('score')
+            if line.has_key('failed') and parsed['failed'] is 1:
+                return {}
             ret[line['name']] = line['score']
         
         return ret
-        

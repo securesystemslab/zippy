@@ -588,13 +588,17 @@ def bench(args):
         results[test.group].update(test.bench('-graal'))
     print results
     
+def specjvm2008(args):
+    sanitycheck.getSPECjvm2008().bench('-graal')
+    
 def mx_init():
     _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
-        'dacapo': [dacapo, '[benchmark] [VM options|DaCapo options]'],
+        'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
+        'specjvm2008': [specjvm2008, ''],
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
         'bench' : [bench, ''],
