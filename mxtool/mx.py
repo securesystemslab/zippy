@@ -87,7 +87,7 @@
 #
 # Values can use environment variables with Bash syntax (e.g. ${HOME}).
 
-import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile 
+import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal
 import shutil, fnmatch, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
@@ -462,7 +462,11 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
-        self.add_argument('--timeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
+        if get_os() != 'windows':
+            # Time outs are (currently) implemented with Unix specific functionality
+            self.add_argument('--timeout', help='Timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
+            self.add_argument('--ptimeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
+        
         
     def _parse_cmd_line(self, args=None):
         if args is None:
@@ -1214,6 +1218,11 @@ def main():
         
     c, _ = commands[command][:2]
     try:
+        if opts.timeout != 0:
+            def alarm_handler(signum, frame):
+                abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
+            signal.signal(signal.SIGALRM, alarm_handler)
+            signal.alarm(opts.timeout)
         retcode = c(command_args)
         if retcode is not None and retcode != 0:
             abort(retcode)
