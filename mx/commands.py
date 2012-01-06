@@ -580,11 +580,11 @@ def gate(args):
             unittest([])
             t.stop()
             
-            t = Task('DaCapoBenchmarks:' + vmbuild)
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate):
+                t = Task(str(test) + ':' + vmbuild)
                 if not test.test('-graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
-            t.stop()
+                t.stop()
     except Exception as e:
         total.abort(str(e))
 

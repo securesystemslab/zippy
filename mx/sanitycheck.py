@@ -118,6 +118,9 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
         self.defaultCwd = defaultCwd
+        
+    def __str__(self):
+        return self.name
     
     def test(self, vm, cwd=None, opts=[], vmbuild=None):
         """
