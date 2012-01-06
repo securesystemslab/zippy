@@ -517,12 +517,21 @@ def _waitWithTimeout(process, args, timeout):
                     continue
                 raise
     
+    def _returncode(status):
+        if os.WIFSIGNALED(status):
+            return -os.WTERMSIG(status)
+        elif os.WIFEXITED(status):
+            return os.WEXITSTATUS(status)
+        else:
+            # Should never happen
+            raise RuntimeError("Unknown child exit status!")
+        
     end = time.time() + timeout
     delay = 0.0005
     while True:
-        (pid, _) = _waitpid(process.pid)
+        (pid, status) = _waitpid(process.pid)
         if pid == process.pid:
-            return process.wait()
+            return _returncode(status)
         remaining = end - time.time()
         if remaining <= 0:
             process.kill()
