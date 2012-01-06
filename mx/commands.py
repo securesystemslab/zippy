@@ -545,9 +545,9 @@ def gate(args):
     total = Task('Gate')
     try:
         
-        #t = Task('CleanJava')
-        #clean(['--no-native'])
-        #t.stop()
+        t = Task('CleanJava')
+        clean(['--no-native'])
+        t.stop()
         
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
