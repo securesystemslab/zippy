@@ -511,6 +511,15 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
     return run(java().format_cmd(args), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
+def _kill_process_group(pid):
+    pgid = os.getpgid(pid)
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+        return True
+    except:
+        log('Error killing subprocess ' + str(pgid) + ': ' + str(sys.exc_info()[1]))
+        return False
+
 def _waitWithTimeout(process, args, timeout):
     def _waitpid(pid):
         while True:
@@ -538,10 +547,14 @@ def _waitWithTimeout(process, args, timeout):
             return _returncode(status)
         remaining = end - time.time()
         if remaining <= 0:
-            process.kill()
             abort('Process timed out after {0} seconds: {1}'.format(timeout, ' '.join(args)))
+            _kill_process_group(process.pid)
         delay = min(delay * 2, remaining, .05)
         time.sleep(delay)
+
+# Makes the current subprocess accessible to the timeout alarm handler
+# This is a tuple of the process object and args.
+_currentSubprocess = None
 
 def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     """
@@ -559,12 +572,21 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     if _opts.verbose:
         log(' '.join(args))
         
-    if timeout is None and _opts.timeout != 0:
-        timeout = _opts.timeout
-    
+    if timeout is None and _opts.ptimeout != 0:
+        timeout = _opts.ptimeout
+
+    global _currentSubprocess    
+        
     try:
+        # On Unix, the new subprocess should be in a separate group so that a timeout alarm
+        # can use os.killpg() to kill the whole subprocess group
+        preexec_fn = os.setsid if get_os() != 'windows' else None
+        
         if not callable(out) and not callable(err) and timeout is None:
-            retcode = subprocess.call(args, cwd=cwd)
+            # The preexec_fn=os.setsid
+            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn)
+            _currentSubprocess = (p, args) 
+            retcode = p.wait()
         else:
             def redirect(stream, f):
                 for line in iter(stream.readline, ''):
@@ -572,7 +594,8 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 stream.close()
             stdout=out if not callable(out) else subprocess.PIPE
             stderr=err if not callable(err) else subprocess.PIPE
-            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr)
+            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn)
+            _currentSubprocess = (p, args)
             if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
                 t.daemon = True # thread dies with the program
@@ -592,6 +615,8 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         if _opts.verbose:
             raise e
         abort(e.errno)
+    finally:
+        _currentSubprocess = None
     
 
     if retcode and nonZeroIsFatal:
@@ -1185,7 +1210,7 @@ commands = {
 
 _argParser = ArgParser()
 
-def main():    
+def main():
     MX_INCLUDES = os.environ.get('MX_INCLUDES', None)
     if MX_INCLUDES is not None:
         for path in MX_INCLUDES.split(os.pathsep):
@@ -1220,6 +1245,13 @@ def main():
     try:
         if opts.timeout != 0:
             def alarm_handler(signum, frame):
+                #import traceback
+                #traceback.print_stack()
+                currentSubprocess = _currentSubprocess
+                if currentSubprocess is not None:
+                    p, args = currentSubprocess
+                    log('Killing subprocess due to command timeout: ' + ' '.join(args))
+                    _kill_process_group(p.pid)
                 abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
             signal.signal(signal.SIGALRM, alarm_handler)
             signal.alarm(opts.timeout)
