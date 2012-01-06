@@ -793,7 +793,11 @@ def build(args, parser=None):
     Compile all the Java source code using the appropriate compilers
     and linkers for the various source code types."""
     
-    parser = parser if parser is not None else ArgumentParser(prog='mx build');
+    suppliedParser = parser is not None
+    if not suppliedParser:
+        parser = ArgumentParser(prog='mx build')
+    
+    parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force compilation even if class files are up to date')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
     parser.add_argument('--source', dest='compliance', help='Java compliance level', default='1.6')
@@ -801,6 +805,9 @@ def build(args, parser=None):
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
     parser.add_argument('--jdt', help='Eclipse installation or path to ecj.jar for using the Eclipse batch compiler instead of javac', metavar='<path>')
+    
+    if suppliedParser:
+        parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
 
     args = parser.parse_args(args)
     

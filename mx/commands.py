@@ -272,51 +272,56 @@ def build(args):
     
     The optional last argument specifies what type of VM to build."""
 
-    build = 'product'
-    if len(args) != 0 and not args[0].startswith('-'):
-        build = args.pop(0)
 
+    parser = ArgumentParser(prog='mx build');
+    
     # Call mx.build to compile the Java sources        
-    opts = mx.build(args + ['--source', '1.7'])
+    opts = mx.build(['--source', '1.7'] + args, parser=parser)
 
     if not _vmSourcesAvailable or not opts.native:
         return
-        
-    jdk = _jdk(build, True)
-    if build == 'debug':
-        build = 'jvmg'
-    
-    graalVmDir = join(jdk, 'jre', 'lib', 'amd64', 'graal')
-    if not exists(graalVmDir):
-        mx.log('Creating Graal directory in JDK7: ' + graalVmDir)
-        os.makedirs(graalVmDir)
 
-    def filterXusage(line):
-        if not 'Xusage.txt' in line:
-            sys.stderr.write(line + os.linesep)
-            
-    if platform.system() == 'Windows':
-        compilelogfile = _graal_home + '/graalCompile.log'
-        _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
-        winCompileCmd = r'set HotSpotMksHome=' + _mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
-        print(winCompileCmd)
-        winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
-        if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
-            mx.log('Error executing create command')
-            return 
-        winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=compiler1_product /p:Platform=x64'
-        winBuildSuccess = re.compile('Build succeeded.')
-        if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
-            mx.log('Error building project')
-            return 
-    else:
-        env = os.environ
-        env.setdefault('ARCH_DATA_MODEL', '64')
-        env.setdefault('LANG', 'C')
-        env.setdefault('HOTSPOT_BUILD_JOBS', '3')
-        env.setdefault('ALT_BOOTDIR', jdk)
-        env.setdefault('INSTALL', 'y')
-        mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
+    builds = opts.remainder
+    if len(builds) == 0:
+        builds = ['product']
+
+    for build in builds:
+
+        jdk = _jdk(build, True)
+        if build == 'debug':
+            build = 'jvmg'
+        
+        graalVmDir = join(jdk, 'jre', 'lib', 'amd64', 'graal')
+        if not exists(graalVmDir):
+            mx.log('Creating Graal directory in JDK7: ' + graalVmDir)
+            os.makedirs(graalVmDir)
+    
+        def filterXusage(line):
+            if not 'Xusage.txt' in line:
+                sys.stderr.write(line + os.linesep)
+                
+        if platform.system() == 'Windows':
+            compilelogfile = _graal_home + '/graalCompile.log'
+            _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
+            winCompileCmd = r'set HotSpotMksHome=' + _mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
+            print(winCompileCmd)
+            winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
+            if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
+                mx.log('Error executing create command')
+                return 
+            winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=compiler1_product /p:Platform=x64'
+            winBuildSuccess = re.compile('Build succeeded.')
+            if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
+                mx.log('Error building project')
+                return 
+        else:
+            env = os.environ
+            env.setdefault('ARCH_DATA_MODEL', '64')
+            env.setdefault('LANG', 'C')
+            env.setdefault('HOTSPOT_BUILD_JOBS', '3')
+            env.setdefault('ALT_BOOTDIR', jdk)
+            env.setdefault('INSTALL', 'y')
+            mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
 def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the GraalVM"""
@@ -524,53 +529,66 @@ def gate(args):
     If this commands exits with a 0 exit code, then the source code is in
     a state that would be accepted for integration into the main repository."""
     
-    start = time.time()
+    class Task:
+        def __init__(self, title):
+            self.start = time.time()
+            self.title = title
+            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: BEGIN: ') + title)
+        def stop(self):
+            duration = datetime.timedelta(seconds=time.time() - self.start)
+            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: END:   ') + self.title + ' [' + str(duration) + ']')
+        def abort(self, codeOrMessage):
+            duration = datetime.timedelta(seconds=time.time() - self.start)
+            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(duration) + ']')
+            mx.abort(codeOrMessage)
+             
+    total = Task('Gate')
+    try:
+        
+        #t = Task('CleanJava')
+        #clean(['--no-native'])
+        #t.stop()
+        
+        t = Task('Checkstyle')
+        if mx.checkstyle([]) != 0:
+            t.abort('Checkstyle warnings were found')
+        t.stop()
     
-    # 1. Clean (cleaning of native code disabled as gate machine takes too long to do a clean HotSpot build)
-    clean(['--no-native'])
+        t = Task('Canonicalization Check')
+        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
+        if mx.canonicalizeprojects([]) != 0:
+            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
+        t.stop()
     
-    # 2. Checkstyle
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running Checkstyle...'))
-    if mx.checkstyle([]) != 0:
-        mx.abort('Checkstyle warnings were found')
+        t = Task('BuildJava')
+        build(['--no-native'])
+        t.stop()
+    
+        for vmbuild in ['product', 'fastdebug']:
+            global _vmbuild
+            _vmbuild = vmbuild
+            
+            t = Task('BuildHotSpot:' + vmbuild)
+            build(['--no-java', vmbuild])
+            t.stop()
+            
+            t = Task('BootstrapWithSystemAssertions:' + vmbuild)
+            vm(['-esa', '-version'])
+            t.stop()
+            
+            t = Task('UnitTests:' + vmbuild)
+            unittest([])
+            t.stop()
+            
+            t = Task('DaCapoBenchmarks:' + vmbuild)
+            for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate):
+                if not test.test('-graal'):
+                    t.abort(test.group + ' ' + test.name + ' Failed')
+            t.stop()
+    except Exception as e:
+        total.abort(str(e))
 
-    # 3. Canonical mx/projects
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
-    if mx.canonicalizeprojects([]) != 0:
-        mx.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
-
-    # 4. Build
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Build...'))
-    build([])
-    
-    # 5 Copyright check (disabled until the copyrght notices in the HotSpot source files are supported by the CheckCopyright tool)
-    #mx.log(time.strftime('%d %b %Y %H:%M:%S - Running copyright check...'))
-    #hgNode = mx.get_env('hg_node')
-    #if hgNode is None:
-    #    copyrightcheck(['-modified', '-reporterrors=true', '-continueonerror'])
-    #else:
-    #    revTip = int(subprocess.check_output(['hg', 'tip', '--template', "'{rev}'"]).strip("'"))
-    #    revLast = int(subprocess.check_output(['hg', 'log', '-r', hgNode, '--template', "'{rev}'"]).strip("'"))
-    #    changesetCount = revTip - revLast + 1
-    #    mx.log(time.strftime('Checking ' + str(changesetCount) + ' changesets...'))
-    #    copyrightcheck(['-last=' + str(changesetCount), '-reporterrors=true', '-continueonerror'])
-    
-    # 6. Bootstrap with system assertions enabled
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Bootstrap with -esa...'))
-    vm(['-esa', '-version'])
-    
-    # 7. Run unittests
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running unit tests...'))
-    unittest([])
-    
-    # 8. Run selected DaCapo benchmarks
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Running DaCapo benchmarks...'))
-    for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate):
-        if not test.test('-graal'):
-            mx.abort(test.group + ' ' + test.name + ' Failed')
-
-    duration = datetime.timedelta(seconds=time.time() - start)
-    mx.log(time.strftime('%d %b %Y %H:%M:%S - Gate done (duration - ' + str(duration) + ')'))
+    total.stop()
 
 def bench(args):
     results = {}
@@ -614,7 +632,7 @@ def mx_init():
         
         commands.update({
             'export': [export, '[-options] [zipfile]'],
-            'build': [build, '[-options] [product|debug|fastdebug|optimized]']
+            'build': [build, '[-options] [product|debug|fastdebug|optimized]...']
         })
     
     mx.commands.update(commands)
