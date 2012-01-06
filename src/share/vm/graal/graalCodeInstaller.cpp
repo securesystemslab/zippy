@@ -115,7 +115,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
   if (value->is_a(CiRegisterValue::klass())) {
     jint number = CiRegister::number(CiRegisterValue::reg(value));
     if (number < 16) {
-      if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
+      if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
         locationType = Location::int_in_long;
       } else if (type == T_LONG) {
         locationType = Location::lng;
