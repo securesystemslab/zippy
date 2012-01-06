@@ -47,6 +47,23 @@ dacapoSanityWarmup = {
     'xalan':      [0, 0,  5, 10, 15],
 }
 
+dacapoGateBuildLevels = {
+    'avrora':     ['product', 'fastdebug', 'debug'],
+    'batik':      ['product', 'fastdebug', 'debug'],
+    'eclipse':    ['product'],
+    'fop':        ['product', 'fastdebug', 'debug'],
+    'h2':         ['product', 'fastdebug', 'debug'],
+    'jython':     ['product', 'fastdebug', 'debug'],
+    'luindex':    ['product', 'fastdebug', 'debug'],
+    'lusearch':   ['product'],
+    'pmd':        ['product', 'fastdebug', 'debug'],
+    'sunflow':    ['product', 'fastdebug', 'debug'],
+    'tomcat':     ['product', 'fastdebug', 'debug'],
+    'tradebeans': ['product', 'fastdebug', 'debug'],
+    'tradesoap':  ['product', 'fastdebug', 'debug'],
+    'xalan':      ['product', 'fastdebug', 'debug'],
+}
+
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
@@ -72,12 +89,13 @@ def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None)
     
     return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts, [success], [error], [matcher], vmOpts=['-Xms2g'], defaultCwd=specjvm2008)
 
-def getDacapos(level=SanityCheckLevel.Normal, dacapoArgs=[]):
+def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
     
     for (bench, ns) in dacapoSanityWarmup.items():
         if ns[level] > 0:
-            checks.append(getDacapo(bench, ns[level], dacapoArgs))
+            if gateBuildLevel is None or gateBuildLevel in dacapoGateBuildLevels[bench]:
+                checks.append(getDacapo(bench, ns[level], dacapoArgs))
     
     return checks
 
