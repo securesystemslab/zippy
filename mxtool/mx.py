@@ -295,7 +295,6 @@ class Suite:
             urls = pop_list(attrs, 'urls')
             l = Library(self, name, path, mustExist, urls)
             l.__dict__.update(attrs)
-            l.get_path(True)
             self.libs.append(l)
         
     def _load_commands(self, mxDir):
@@ -552,8 +551,8 @@ def _waitWithTimeout(process, args, timeout):
         delay = min(delay * 2, remaining, .05)
         time.sleep(delay)
 
-# Makes the current subprocess accessible to the timeout alarm handler
-# This is a tuple of the process object and args.
+# Makes the current subprocess accessible to the abort() function
+# This is a tuple of the Popen object and args.
 _currentSubprocess = None
 
 def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
@@ -585,7 +584,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         if not callable(out) and not callable(err) and timeout is None:
             # The preexec_fn=os.setsid
             p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn)
-            _currentSubprocess = (p, args) 
+            _currentSubprocess = (p, args)
             retcode = p.wait()
         else:
             def redirect(stream, f):
@@ -615,9 +614,10 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         if _opts.verbose:
             raise e
         abort(e.errno)
+    except KeyboardInterrupt:
+        abort(1)
     finally:
         _currentSubprocess = None
-    
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -741,6 +741,14 @@ def abort(codeOrMessage):
     if it is None, the exit status is zero; if it has another type (such as a string),
     the object's value is printed and the exit status is one.
     """
+    
+    #import traceback
+    #traceback.print_stack()
+    currentSubprocess = _currentSubprocess
+    if currentSubprocess is not None:
+        p, _ = currentSubprocess
+        _kill_process_group(p.pid)
+    
     raise SystemExit(codeOrMessage)
 
 def download(path, urls, verbose=False):
@@ -1245,13 +1253,6 @@ def main():
     try:
         if opts.timeout != 0:
             def alarm_handler(signum, frame):
-                #import traceback
-                #traceback.print_stack()
-                currentSubprocess = _currentSubprocess
-                if currentSubprocess is not None:
-                    p, args = currentSubprocess
-                    log('Killing subprocess due to command timeout: ' + ' '.join(args))
-                    _kill_process_group(p.pid)
                 abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
             signal.signal(signal.SIGALRM, alarm_handler)
             signal.alarm(opts.timeout)
@@ -1265,5 +1266,5 @@ def main():
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules
     sys.modules['mx'] = sys.modules.pop('__main__')
-    
+
     main()
