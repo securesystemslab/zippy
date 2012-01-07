@@ -139,7 +139,7 @@ def example(args):
 def dacapo(args):
     """run one or all DaCapo benchmarks
     
-    DaCapo options are distinguised from VM options by a '@' prefix.
+    DaCapo options are distinguished from VM options by a '@' prefix.
     For example, '@--iterations @5' will pass '--iterations 5' to the
     DaCapo harness."""
 

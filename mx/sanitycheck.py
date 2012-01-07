@@ -102,7 +102,11 @@ def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]
 def getDacapo(name, n, dacapoArgs=[]):
     dacapo = mx.get_env('DACAPO_CP')
     if dacapo is None:
-        dacapo = commands._graal_home + r'/lib/dacapo-9.12-bach.jar'
+        l = mx.library('DACAPO', False)
+        if l is not None:
+            dacapo = l.get_path(True)
+        else:
+            mx.abort('DaCapo 9.12 jar file must be specified with DACAPO_CP environment variable or as DACAPO library')
     
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
