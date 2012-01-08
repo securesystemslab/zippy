@@ -47,6 +47,23 @@ dacapoSanityWarmup = {
     'xalan':      [0, 0,  5, 10, 15],
 }
 
+dacapoGateBuildLevels = {
+    'avrora':     ['product', 'fastdebug', 'debug'],
+    'batik':      ['product', 'fastdebug', 'debug'],
+    'eclipse':    ['product'],
+    'fop':        ['product', 'fastdebug', 'debug'],
+    'h2':         ['product', 'fastdebug', 'debug'],
+    'jython':     ['product', 'fastdebug', 'debug'],
+    'luindex':    ['product', 'fastdebug', 'debug'],
+    'lusearch':   ['product'],
+    'pmd':        ['product', 'fastdebug', 'debug'],
+    'sunflow':    ['product', 'fastdebug', 'debug'],
+    'tomcat':     ['product', 'fastdebug', 'debug'],
+    'tradebeans': ['product', 'fastdebug', 'debug'],
+    'tradesoap':  ['product', 'fastdebug', 'debug'],
+    'xalan':      ['product', 'fastdebug', 'debug'],
+}
+
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
@@ -72,19 +89,24 @@ def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None)
     
     return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts, [success], [error], [matcher], vmOpts=['-Xms2g'], defaultCwd=specjvm2008)
 
-def getDacapos(level=SanityCheckLevel.Normal, dacapoArgs=[]):
+def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
     
     for (bench, ns) in dacapoSanityWarmup.items():
         if ns[level] > 0:
-            checks.append(getDacapo(bench, ns[level], dacapoArgs))
+            if gateBuildLevel is None or gateBuildLevel in dacapoGateBuildLevels[bench]:
+                checks.append(getDacapo(bench, ns[level], dacapoArgs))
     
     return checks
 
 def getDacapo(name, n, dacapoArgs=[]):
     dacapo = mx.get_env('DACAPO_CP')
     if dacapo is None:
-        dacapo = commands._graal_home + r'/lib/dacapo-9.12-bach.jar'
+        l = mx.library('DACAPO', False)
+        if l is not None:
+            dacapo = l.get_path(True)
+        else:
+            mx.abort('DaCapo 9.12 jar file must be specified with DACAPO_CP environment variable or as DACAPO library')
     
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
@@ -118,6 +140,9 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
         self.defaultCwd = defaultCwd
+        
+    def __str__(self):
+        return self.name
     
     def test(self, vm, cwd=None, opts=[], vmbuild=None):
         """

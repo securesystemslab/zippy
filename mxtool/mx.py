@@ -87,7 +87,7 @@
 #
 # Values can use environment variables with Bash syntax (e.g. ${HOME}).
 
-import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile 
+import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal
 import shutil, fnmatch, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
@@ -295,7 +295,6 @@ class Suite:
             urls = pop_list(attrs, 'urls')
             l = Library(self, name, path, mustExist, urls)
             l.__dict__.update(attrs)
-            l.get_path(True)
             self.libs.append(l)
         
     def _load_commands(self, mxDir):
@@ -462,7 +461,11 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
-        self.add_argument('--timeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
+        if get_os() != 'windows':
+            # Time outs are (currently) implemented with Unix specific functionality
+            self.add_argument('--timeout', help='Timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
+            self.add_argument('--ptimeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
+        
         
     def _parse_cmd_line(self, args=None):
         if args is None:
@@ -507,6 +510,15 @@ def java():
 def run_java(args, nonZeroIsFatal=True, out=None, err=None, cwd=None):
     return run(java().format_cmd(args), nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd)
 
+def _kill_process_group(pid):
+    pgid = os.getpgid(pid)
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+        return True
+    except:
+        log('Error killing subprocess ' + str(pgid) + ': ' + str(sys.exc_info()[1]))
+        return False
+
 def _waitWithTimeout(process, args, timeout):
     def _waitpid(pid):
         while True:
@@ -534,10 +546,14 @@ def _waitWithTimeout(process, args, timeout):
             return _returncode(status)
         remaining = end - time.time()
         if remaining <= 0:
-            process.kill()
             abort('Process timed out after {0} seconds: {1}'.format(timeout, ' '.join(args)))
+            _kill_process_group(process.pid)
         delay = min(delay * 2, remaining, .05)
         time.sleep(delay)
+
+# Makes the current subprocess accessible to the abort() function
+# This is a tuple of the Popen object and args.
+_currentSubprocess = None
 
 def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     """
@@ -555,12 +571,21 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     if _opts.verbose:
         log(' '.join(args))
         
-    if timeout is None and _opts.timeout != 0:
-        timeout = _opts.timeout
-    
+    if timeout is None and _opts.ptimeout != 0:
+        timeout = _opts.ptimeout
+
+    global _currentSubprocess    
+        
     try:
+        # On Unix, the new subprocess should be in a separate group so that a timeout alarm
+        # can use os.killpg() to kill the whole subprocess group
+        preexec_fn = os.setsid if get_os() != 'windows' else None
+        
         if not callable(out) and not callable(err) and timeout is None:
-            retcode = subprocess.call(args, cwd=cwd)
+            # The preexec_fn=os.setsid
+            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn)
+            _currentSubprocess = (p, args)
+            retcode = p.wait()
         else:
             def redirect(stream, f):
                 for line in iter(stream.readline, ''):
@@ -568,7 +593,8 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 stream.close()
             stdout=out if not callable(out) else subprocess.PIPE
             stderr=err if not callable(err) else subprocess.PIPE
-            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr)
+            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn)
+            _currentSubprocess = (p, args)
             if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
                 t.daemon = True # thread dies with the program
@@ -588,7 +614,10 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         if _opts.verbose:
             raise e
         abort(e.errno)
-    
+    except KeyboardInterrupt:
+        abort(1)
+    finally:
+        _currentSubprocess = None
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -712,6 +741,14 @@ def abort(codeOrMessage):
     if it is None, the exit status is zero; if it has another type (such as a string),
     the object's value is printed and the exit status is one.
     """
+    
+    #import traceback
+    #traceback.print_stack()
+    currentSubprocess = _currentSubprocess
+    if currentSubprocess is not None:
+        p, _ = currentSubprocess
+        _kill_process_group(p.pid)
+    
     raise SystemExit(codeOrMessage)
 
 def download(path, urls, verbose=False):
@@ -1181,7 +1218,7 @@ commands = {
 
 _argParser = ArgParser()
 
-def main():    
+def main():
     MX_INCLUDES = os.environ.get('MX_INCLUDES', None)
     if MX_INCLUDES is not None:
         for path in MX_INCLUDES.split(os.pathsep):
@@ -1214,6 +1251,11 @@ def main():
         
     c, _ = commands[command][:2]
     try:
+        if opts.timeout != 0:
+            def alarm_handler(signum, frame):
+                abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
+            signal.signal(signal.SIGALRM, alarm_handler)
+            signal.alarm(opts.timeout)
         retcode = c(command_args)
         if retcode is not None and retcode != 0:
             abort(retcode)
@@ -1224,5 +1266,5 @@ def main():
 if __name__ == '__main__':
     # rename this module as 'mx' so it is not imported twice by the commands.py modules
     sys.modules['mx'] = sys.modules.pop('__main__')
-    
+
     main()

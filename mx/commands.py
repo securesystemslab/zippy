@@ -139,7 +139,7 @@ def example(args):
 def dacapo(args):
     """run one or all DaCapo benchmarks
     
-    DaCapo options are distinguised from VM options by a '@' prefix.
+    DaCapo options are distinguished from VM options by a '@' prefix.
     For example, '@--iterations @5' will pass '--iterations 5' to the
     DaCapo harness."""
 
@@ -219,7 +219,7 @@ def _jdk(build='product', create=False):
     
     if build == 'product':
         return jdk
-    elif build in ['debug', 'fastdebug', 'optimized']:
+    elif build in ['debug', 'fastdebug']:
         res = join(jdk, build)
         if not exists(res):
             if not create:
@@ -580,11 +580,11 @@ def gate(args):
             unittest([])
             t.stop()
             
-            t = Task('DaCapoBenchmarks:' + vmbuild)
-            for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate):
+            for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
+                t = Task(str(test) + ':' + vmbuild)
                 if not test.test('-graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
-            t.stop()
+                t.stop()
     except Exception as e:
         total.abort(str(e))
 
@@ -628,11 +628,10 @@ def mx_init():
         mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
         mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
         mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
-        mx.add_argument('--optimized', action='store_const', dest='vmbuild', const='optimized', help='select the optimized VM')
         
         commands.update({
             'export': [export, '[-options] [zipfile]'],
-            'build': [build, '[-options] [product|debug|fastdebug|optimized]...']
+            'build': [build, '[-options] [product|debug|fastdebug]...']
         })
     
     mx.commands.update(commands)
