@@ -93,7 +93,7 @@
 		<link>
 			<name>generated</name>
 			<type>2</type>
-			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_compiler1/generated</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_graal/generated</locationURI>
 		</link>
 		<link>
 			<name>os</name>
