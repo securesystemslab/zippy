@@ -40,7 +40,7 @@ _mksHome = 'C:\\cygwin\\bin'
 
 def clean(args):
     """cleans the GraalVM source tree"""
-    opts = mx.clean(args)
+    opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
         mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
@@ -585,7 +585,12 @@ def gate(args):
                 if not test.test('-graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
                 t.stop()
+    except KeyboardInterrupt:
+        total.abort(1)
+    
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         total.abort(str(e))
 
     total.stop()
