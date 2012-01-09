@@ -568,7 +568,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     if _opts.verbose:
         log(' '.join(args))
         
-    if timeout is None and _opts.ptimeout != 0:
+    if timeout is None and hasattr(_opts, 'ptimeout') and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
 
     global _currentSubprocess    
@@ -1249,7 +1249,7 @@ def main():
         
     c, _ = commands[command][:2]
     try:
-        if opts.timeout != 0:
+        if hasattr(opts, 'timeout') and opts.timeout != 0:
             def alarm_handler(signum, frame):
                 abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
             signal.signal(signal.SIGALRM, alarm_handler)
