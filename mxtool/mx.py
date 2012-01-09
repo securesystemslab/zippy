@@ -544,7 +544,6 @@ def _waitWithTimeout(process, args, timeout):
         remaining = end - time.time()
         if remaining <= 0:
             abort('Process timed out after {0} seconds: {1}'.format(timeout, ' '.join(args)))
-            _kill_process_group(process.pid)
         delay = min(delay * 2, remaining, .05)
         time.sleep(delay)
 
@@ -576,11 +575,16 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     try:
         # On Unix, the new subprocess should be in a separate group so that a timeout alarm
         # can use os.killpg() to kill the whole subprocess group
-        preexec_fn = os.setsid if get_os() != 'windows' else None
+        preexec_fn = None
+        creationflags = 0
+        if get_os() == 'windows':
+            creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            preexec_fn = os.setsid  
         
         if not callable(out) and not callable(err) and timeout is None:
             # The preexec_fn=os.setsid
-            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn)
+            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn, creationflags=creationflags)
             _currentSubprocess = (p, args)
             retcode = p.wait()
         else:
@@ -590,7 +594,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 stream.close()
             stdout=out if not callable(out) else subprocess.PIPE
             stderr=err if not callable(err) else subprocess.PIPE
-            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn)
+            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags)
             _currentSubprocess = (p, args)
             if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
@@ -744,7 +748,10 @@ def abort(codeOrMessage):
     currentSubprocess = _currentSubprocess
     if currentSubprocess is not None:
         p, _ = currentSubprocess
-        _kill_process_group(p.pid)
+        if get_os() == 'windows':
+            p.kill()
+        else:
+            _kill_process_group(p.pid)
     
     raise SystemExit(codeOrMessage)
 

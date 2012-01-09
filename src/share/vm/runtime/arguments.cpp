@@ -2015,7 +2015,8 @@ static void prepend_to_graal_classpath(SysClassPath &cp, const char* graal_dir, 
   const int BUFFER_SIZE = 1024;
   char path[BUFFER_SIZE];
 
-  sprintf(path, "%s/%s/bin", graal_dir, project);
+  const char fileSep = *os::file_separator();
+  sprintf(path, "%s%c%s%cbin", graal_dir, fileSep, project, fileSep);
   DIR* dir = os::opendir(path);
   if (dir == NULL) {
     jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The Graal class directory %s could not be opened.\n", path);
@@ -2031,8 +2032,14 @@ static void prepend_to_graal_classpath(SysClassPath &cp, const char* graal_dir, 
 static bool find_graal_dir(char* graal_dir) {
   strcpy(graal_dir, Arguments::get_java_home());
   char* end = graal_dir + strlen(graal_dir);
+  const char fileSep = *os::file_separator();
   while (end != graal_dir) {
-    strcat(graal_dir, "/graal");
+    if (fileSep == '/') 
+      strcat(graal_dir, "/graal");
+    else {
+      assert(fileSep == '\\', "unexpected separator char");
+      strcat(graal_dir, "\\graal");
+    }
     DIR* dir = os::opendir(graal_dir);
     if (dir != NULL) {
       os::closedir(dir);
@@ -2040,7 +2047,7 @@ static bool find_graal_dir(char* graal_dir) {
     }
     *end = 0;
     while (end != graal_dir) {
-      if (*end == '/') {
+      if (*end == fileSep) {
         *end = 0;
         break;
       }
