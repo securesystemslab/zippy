@@ -377,10 +377,11 @@ def ideinit(args):
                 else:
                     path = dep.path
                     if dep.mustExist:
+                        dep.get_path(resolve=True)
                         if isabs(path):
                             println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
                         else:
-                            println(out, '\t<classpathentry exported="true" kind="lib" path="/' + path + '"/>')
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + join(_graal_home, path) + '"/>')
             else:
                 println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + dep.name + '"/>')
                         

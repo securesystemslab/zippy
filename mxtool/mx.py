@@ -646,6 +646,9 @@ class JavaConfig:
         self.javac = exe_suffix(join(self.jdk, 'bin', 'javac'))
         self.javap = exe_suffix(join(self.jdk, 'bin', 'javap'))
 
+        if not exists(self.java):
+            abort('Java launcher derived from JAVA_HOME does not exist: ' + self.java)
+
         def delAtAndSplit(s):
             return shlex.split(s.lstrip('@'))
         
