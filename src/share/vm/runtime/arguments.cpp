@@ -2096,20 +2096,22 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
       }
     }
     if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
-
+    
     SysClassPath scp_compiler(Arguments::get_sysclasspath());
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.cri");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.criutils");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.base");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asmdis");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asm");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.graph");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.nodes");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.hotspot");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.printer");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.java");
+    struct dirent* dentry;
+    char* tdbuf = NEW_C_HEAP_ARRAY(char, os::readdir_buf_size(graal_dir));
+    errno = 0;
+    DIR* graal_dir_handle = os::opendir(graal_dir);
+    while ((dentry = os::readdir(graal_dir_handle, (struct dirent *)tdbuf)) != NULL) {
+      if (strcmp(dentry->d_name, ".") != 0 && strcmp(dentry->d_name, "..")) {
+        prepend_to_graal_classpath(scp_compiler, graal_dir, dentry->d_name);
+        if (PrintVMOptions) {
+          tty->print_cr("Adding project directory %s to bootclasspath", dentry->d_name);
+        }
+      }
+    }
+    os::closedir(graal_dir_handle);
+    FREE_C_HEAP_ARRAY(char, tdbuf);
     scp_compiler.expand_endorsed();
 
     Arguments::set_compilerclasspath(scp_compiler.combined_path());
