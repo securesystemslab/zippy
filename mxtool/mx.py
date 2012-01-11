@@ -631,7 +631,7 @@ def exe_suffix(name):
     """
     Gets the platform specific suffix for an executable 
     """
-    if os == 'windows':
+    if get_os() == 'windows':
         return name + '.exe'
     return name
 
