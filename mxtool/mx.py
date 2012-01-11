@@ -202,7 +202,7 @@ class Project(Dependency):
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls):
         Dependency.__init__(self, suite, name)
-        self.path = path
+        self.path = path.replace('/', os.sep)
         self.urls = urls
         self.mustExist = mustExist
     
@@ -214,6 +214,7 @@ class Library(Dependency):
             assert not len(self.urls) == 0, 'cannot find required library  ' + self.name + " " + path;
             print('Downloading ' + self.name + ' from ' + str(self.urls))
             download(path, self.urls)
+            
         return path
         
     def append_to_classpath(self, cp, resolve):
@@ -288,7 +289,7 @@ class Suite:
             self.projects.append(p)
 
         for name, attrs in libsMap.iteritems():
-            path = attrs['path']
+            path = attrs.pop('path')
             mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
             l = Library(self, name, path, mustExist, urls)
@@ -1320,7 +1321,7 @@ def eclipseinit(args, suite=None):
                 if isfile(path):
                     with open(join(eclipseSettingsDir, name)) as f:
                         content = f.read()
-                    update_file(path, content)
+                    update_file(join(settingsDir, name), content)
 
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
@@ -1491,20 +1492,20 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 continue;
             
             if dep.isLibrary():
-                path = dep.path
-                if dep.mustExist:
-                    dep.get_path(resolve=True)
-                if not isabs(path):
-                    path = join(suite.dir, path)
+                if not dep.mustExist:
+                    continue
+                path = dep.get_path(resolve=True)
+                if os.sep == '\\':
+                    path = path.replace('\\', '\\\\')
                 ref = 'file.reference.' + dep.name + '-bin'
                 println(out, ref + '=' + path)
                     
             else:
                 n = dep.name.replace('.', '_')
-                relDepPath = os.path.relpath(dep.dir, p.dir)
+                relDepPath = os.path.relpath(dep.dir, p.dir).replace(os.sep, '/')
                 ref = 'reference.' + n + '.jar'
                 println(out, 'project.' + n + '=' + relDepPath)
-                println(out, ref + '=' + join('${project.' + n + '}', 'dist', dep.name + '.jar'))
+                println(out, ref + '=${project.' + n + '}/dist/' + dep.name + '.jar')
                 
             javacClasspath.append('${' + ref + '}')
             
@@ -1519,6 +1520,23 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         log('  1. Ensure that a platform named "JDK ' + java().version + '" is defined (Tools -> Java Platforms)')
         log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
+def ideclean(args, suite=None):
+    """remove all Eclipse and NetBeans project configurations"""
+    
+    def rm(path):
+        if exists(path):
+            os.remove(path)
+    
+    for p in projects():
+        if p.native:
+            continue
+        
+        shutil.rmtree(join(p.dir, '.settings'), ignore_errors=True)
+        shutil.rmtree(join(p.dir, 'nbproject'), ignore_errors=True)
+        rm(join(p.dir, '.classpath'))
+        rm(join(p.dir, '.project'))
+        rm(join(p.dir, 'build.xml'))
+        
 def ideinit(args, suite=None):
     """(re)generate Eclipse and NetBeans project configurations"""
     eclipseinit(args, suite)
@@ -1565,6 +1583,7 @@ commands = {
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
     'help': [help_, '[command]'],
+    'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
     'javap': [javap, ''],
     'netbeansinit': [netbeansinit, ''],
