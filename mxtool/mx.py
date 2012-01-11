@@ -465,7 +465,6 @@ class ArgParser(ArgumentParser):
             self.add_argument('--timeout', help='Timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
             self.add_argument('--ptimeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
         
-        
     def _parse_cmd_line(self, args=None):
         if args is None:
             args = sys.argv[1:]
@@ -473,6 +472,10 @@ class ArgParser(ArgumentParser):
         self.add_argument('commandAndArgs', nargs=REMAINDER, metavar='command args...')
         
         opts = self.parse_args()
+        
+        # Give the timeout options a default value to avoid the need for hasattr() tests
+        opts.__dict__.setdefault('timeout', 0)
+        opts.__dict__.setdefault('ptimeout', 0)
 
         if opts.java_home is None:
             opts.java_home = os.environ.get('JAVA_HOME')
@@ -569,7 +572,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     if _opts.verbose:
         log(' '.join(args))
         
-    if timeout is None and hasattr(_opts, 'ptimeout') and _opts.ptimeout != 0:
+    if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
 
     global _currentSubprocess    
@@ -1349,19 +1352,43 @@ def netbeansinit(args, suite=None):
         out = StringIO.StringIO()
         println(out, '<?xml version="1.0" encoding="UTF-8"?>')
         println(out, '<project xmlns="http://www.netbeans.org/ns/project/1">')
-        println(out, '\t<type>org.netbeans.modules.java.j2seproject</type>')
-        println(out, '\t<configuration>')
-        println(out, '\t\t<data xmlns="http://www.netbeans.org/ns/j2se-project/3">')
-        println(out, '\t\t\t<name>' + p.name + '</name>')
-        println(out, '\t\t\t<explicit-platform explicit-source-supported="true"/>')
-        println(out, '\t\t\t<source-roots>')
-        println(out, '\t\t\t\t<root id="src.dir"/>')
-        println(out, '\t\t\t</source-roots>')
-        println(out, '\t\t\t<test-roots>')
-        println(out, '\t\t\t\t<root id="test.src.dir"/>')
-        println(out, '\t\t\t</test-roots>')
-        println(out, '\t\t</data>')
-        println(out, '\t</configuration>')
+        println(out, '    <type>org.netbeans.modules.java.j2seproject</type>')
+        println(out, '    <configuration>')
+        println(out, '        <data xmlns="http://www.netbeans.org/ns/j2se-project/3">')
+        println(out, '            <name>' + p.name+ '</name>')
+        println(out, '            <explicit-platform explicit-source-supported="true"/>')
+        println(out, '            <source-roots>')
+        println(out, '                <root id="src.dir"/>')
+        println(out, '            </source-roots>')
+        println(out, '            <test-roots>')
+        println(out, '                <root id="test.src.dir"/>')
+        println(out, '            </test-roots>')
+        println(out, '        </data>')
+        
+        firstDep = True
+        for dep in p.all_deps([], True):
+            if dep == p:
+                continue;
+            
+            if not dep.isLibrary():
+                n = dep.name.replace('.', '_')
+                if firstDep:
+                    println(out, '        <references xmlns="http://www.netbeans.org/ns/ant-project-references/1">')
+                    firstDep = False
+                    
+                println(out, '            <reference>')
+                println(out, '                <foreign-project>' + n + '</foreign-project>')
+                println(out, '                <artifact-type>jar</artifact-type>')
+                println(out, '                <script>build.xml</script>')
+                println(out, '                <target>jar</target>')
+                println(out, '                <clean-target>clean</clean-target>')
+                println(out, '                <id>jar</id>')
+                println(out, '            </reference>')
+            
+        if not firstDep:
+            println(out, '        </references>')
+            
+        println(out, '    </configuration>')
         println(out, '</project>')
         updated = update_file(join(p.dir, 'nbproject', 'project.xml'), out.getvalue()) or updated
         out.close()
@@ -1428,7 +1455,7 @@ javadoc.windowtitle=
 main.class=
 manifest.file=manifest.mf
 meta.inf.dir=${src.dir}/META-INF
-mkdist.disabled=true
+mkdist.disabled=false
 platforms.""" + jdkPlatform + """.home=""" + java().jdk + """
 platform.active=""" + jdkPlatform + """
 run.classpath=\\
@@ -1469,12 +1496,16 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                     dep.get_path(resolve=True)
                 if not isabs(path):
                     path = join(suite.dir, path)
+                ref = 'file.reference.' + dep.name + '-bin'
+                println(out, ref + '=' + path)
                     
             else:
-                path = dep.output_dir()
+                n = dep.name.replace('.', '_')
+                relDepPath = os.path.relpath(dep.dir, p.dir)
+                ref = 'reference.' + n + '.jar'
+                println(out, 'project.' + n + '=' + relDepPath)
+                println(out, ref + '=' + join('${project.' + n + '}', 'dist', dep.name + '.jar'))
                 
-            ref = 'file.reference.' + dep.name + '-bin'
-            println(out, ref + '=' + path)
             javacClasspath.append('${' + ref + '}')
             
         println(out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath))
@@ -1484,7 +1515,9 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         out.close()
     
     if updated:
-        log('If using NetBeans, ensure that a platform name ' + jdkPlatform + ' is defined (Tools -> Java Platforms)')
+        log('If using NetBeans:')
+        log('  1. Ensure that a platform named "JDK ' + java().version + '" is defined (Tools -> Java Platforms)')
+        log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
 def ideinit(args, suite=None):
     """(re)generate Eclipse and NetBeans project configurations"""
@@ -1534,6 +1567,7 @@ commands = {
     'help': [help_, '[command]'],
     'ideinit': [ideinit, ''],
     'javap': [javap, ''],
+    'netbeansinit': [netbeansinit, ''],
     'projects': [show_projects, ''],
 }
 
@@ -1566,7 +1600,7 @@ def main():
         
     c, _ = commands[command][:2]
     try:
-        if hasattr(opts, 'timeout') and opts.timeout != 0:
+        if opts.timeout != 0:
             def alarm_handler(signum, frame):
                 abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
             signal.signal(signal.SIGALRM, alarm_handler)
