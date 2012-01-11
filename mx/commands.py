@@ -35,12 +35,10 @@ import sanitycheck
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
 _vmbuild = 'product'
-_winSDK = 'C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\'
-_mksHome = 'C:\\cygwin\\bin'
 
 def clean(args):
     """cleans the GraalVM source tree"""
-    opts = mx.clean(args)
+    opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
         mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
@@ -191,11 +189,14 @@ def _jdk(build='product', create=False):
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
     jdk = join(_graal_home, 'jdk' + mx.java().version)
+    jdkContents = ['bin', 'db', 'include', 'jre', 'lib']
+    if mx.get_os() != 'windows':
+        jdkContents.append('man')
     if not exists(jdk):
         srcJdk = mx.java().jdk
         mx.log('Creating ' + jdk + ' from ' + srcJdk)
         os.mkdir(jdk)
-        for d in ['bin', 'db', 'include', 'jre', 'lib', 'man']:
+        for d in jdkContents:
             src = join(srcJdk, d)
             dst = join(jdk, d)
             if not exists(src):
@@ -226,7 +227,7 @@ def _jdk(build='product', create=False):
                 mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
             mx.log('Creating ' + res)
             os.mkdir(res)
-            for d in ['bin', 'db', 'include', 'jre', 'lib', 'man']:
+            for d in jdkContents:
                 shutil.copytree(join(jdk, d), join(res, d))
         return res
     else:
@@ -237,8 +238,11 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
     newLine = os.linesep
     STARTTOKEN = 'RUNINDEBUGSHELL_STARTSEQUENCE'
     ENDTOKEN = 'RUNINDEBUGSHELL_ENDSEQUENCE'
-    p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + _winSDK + '/Bin/SetEnv.cmd" & echo ' + STARTTOKEN + '"', \
-            shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    
+    winSDK = mx.get_env('WIN_SDK', 'C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\')
+
+    p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + winSDK + '/Bin/SetEnv.cmd" & echo ' + STARTTOKEN + '"', \
+            shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     output = p.stdout
     input = p.stdin
     if logFile:
@@ -302,8 +306,10 @@ def build(args):
                 
         if platform.system() == 'Windows':
             compilelogfile = _graal_home + '/graalCompile.log'
+            mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')
+
             _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
-            winCompileCmd = r'set HotSpotMksHome=' + _mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
+            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
             print(winCompileCmd)
             winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
             if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
@@ -371,10 +377,11 @@ def ideinit(args):
                 else:
                     path = dep.path
                     if dep.mustExist:
+                        dep.get_path(resolve=True)
                         if isabs(path):
                             println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
                         else:
-                            println(out, '\t<classpathentry exported="true" kind="lib" path="/' + path + '"/>')
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + join(_graal_home, path) + '"/>')
             else:
                 println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + dep.name + '"/>')
                         
@@ -585,7 +592,12 @@ def gate(args):
                 if not test.test('-graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
                 t.stop()
+    except KeyboardInterrupt:
+        total.abort(1)
+    
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         total.abort(str(e))
 
     total.stop()

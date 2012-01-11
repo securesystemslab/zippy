@@ -45,11 +45,8 @@
 #   projects    - Defines the projects and libraries in the suite and the dependencies between them
 #   commands.py - Suite specific extensions to the commands available to mx. This is only processed
 #                 for the primary suite.
-#   includes    - Other suites to be loaded. This is a recursive. 
+#   includes    - Other suites to be loaded. This is recursive. 
 #   env         - A set of environment variable definitions.
-#
-# The MX_INCLUDES environment variable can also be used to specify other suites.
-# This value of this variable has the same format as a Java class path.
 #
 # The includes and env files are typically not put under version control
 # as they usually contain local file-system paths.
@@ -547,7 +544,6 @@ def _waitWithTimeout(process, args, timeout):
         remaining = end - time.time()
         if remaining <= 0:
             abort('Process timed out after {0} seconds: {1}'.format(timeout, ' '.join(args)))
-            _kill_process_group(process.pid)
         delay = min(delay * 2, remaining, .05)
         time.sleep(delay)
 
@@ -571,7 +567,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     if _opts.verbose:
         log(' '.join(args))
         
-    if timeout is None and _opts.ptimeout != 0:
+    if timeout is None and hasattr(_opts, 'ptimeout') and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
 
     global _currentSubprocess    
@@ -579,11 +575,16 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     try:
         # On Unix, the new subprocess should be in a separate group so that a timeout alarm
         # can use os.killpg() to kill the whole subprocess group
-        preexec_fn = os.setsid if get_os() != 'windows' else None
+        preexec_fn = None
+        creationflags = 0
+        if get_os() == 'windows':
+            creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            preexec_fn = os.setsid  
         
         if not callable(out) and not callable(err) and timeout is None:
             # The preexec_fn=os.setsid
-            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn)
+            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn, creationflags=creationflags)
             _currentSubprocess = (p, args)
             retcode = p.wait()
         else:
@@ -593,7 +594,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 stream.close()
             stdout=out if not callable(out) else subprocess.PIPE
             stderr=err if not callable(err) else subprocess.PIPE
-            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn)
+            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags)
             _currentSubprocess = (p, args)
             if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
@@ -630,7 +631,7 @@ def exe_suffix(name):
     """
     Gets the platform specific suffix for an executable 
     """
-    if os == 'windows':
+    if get_os() == 'windows':
         return name + '.exe'
     return name
 
@@ -644,6 +645,9 @@ class JavaConfig:
         self.java =  exe_suffix(join(self.jdk, 'bin', 'java'))
         self.javac = exe_suffix(join(self.jdk, 'bin', 'javac'))
         self.javap = exe_suffix(join(self.jdk, 'bin', 'javap'))
+
+        if not exists(self.java):
+            abort('Java launcher derived from JAVA_HOME does not exist: ' + self.java)
 
         def delAtAndSplit(s):
             return shlex.split(s.lstrip('@'))
@@ -747,7 +751,10 @@ def abort(codeOrMessage):
     currentSubprocess = _currentSubprocess
     if currentSubprocess is not None:
         p, _ = currentSubprocess
-        _kill_process_group(p.pid)
+        if get_os() == 'windows':
+            p.kill()
+        else:
+            _kill_process_group(p.pid)
     
     raise SystemExit(codeOrMessage)
 
@@ -902,13 +909,20 @@ def build(args, parser=None):
                 if dep.name in built:
                     mustBuild = True
             
+        javafilelist = []
+        nonjavafilelistdst = []
         for sourceDir in sourceDirs:
-            javafilelist = []
-            nonjavafilelist = []
             for root, _, files in os.walk(sourceDir):
                 javafiles = [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']
                 javafilelist += javafiles
-                nonjavafilelist += [join(root, name) for name in files if not name.endswith('.java')]
+                
+                # Copy all non Java resources
+                nonjavafilelist = [join(root, name) for name in files if not name.endswith('.java')]
+                for src in nonjavafilelist:
+                    dst = join(outputDir, src[len(sourceDir) + 1:])
+                    if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) != os.path.getmtime(src)):
+                        shutil.copyfile(src, dst)
+                
                 if not mustBuild:
                     for javafile in javafiles:
                         classfile = outputDir + javafile[len(sourceDir):-len('java')] + 'class'
@@ -916,65 +930,62 @@ def build(args, parser=None):
                             mustBuild = True
                             break
                 
-            if not mustBuild:
-                log('[all class files in {0} are up to date - skipping]'.format(sourceDir))
-                continue
-                
-            if len(javafilelist) == 0:
-                log('[no Java sources in {0} - skipping]'.format(sourceDir))
-                continue
-
-            built.add(p.name)
-
-            argfileName = join(p.dir, 'javafilelist.txt')
-            argfile = open(argfileName, 'wb')
-            argfile.write('\n'.join(javafilelist))
-            argfile.close()
+        if not mustBuild:
+            log('[all class files for {0} are up to date - skipping]'.format(p.name))
+            continue
             
-            try:
-                if jdtJar is None:
-                    log('Compiling Java sources in {0} with javac...'.format(sourceDir))
-                    errFilt = None
-                    if not args.warnAPI:
-                        class Filter:
-                            """
-                            Class to errFilt the 'is Sun proprietary API and may be removed in a future release'
-                            warning when compiling the VM classes.
-                            
-                            """
-                            def __init__(self):
-                                self.c = 0
-                            
-                            def eat(self, line):
-                                if 'proprietary API' in line:
-                                    self.c = 2
-                                elif self.c != 0:
-                                    self.c -= 1
-                                else:
-                                    log(line.rstrip())
-                        errFilt=Filter().eat
+        if len(javafilelist) == 0:
+            log('[no Java sources for {0} - skipping]'.format(p.name))
+            continue
+
+        built.add(p.name)
+
+        argfileName = join(p.dir, 'javafilelist.txt')
+        argfile = open(argfileName, 'wb')
+        argfile.write('\n'.join(javafilelist))
+        argfile.close()
+        
+        try:
+            if jdtJar is None:
+                log('Compiling Java sources for {0} with javac...'.format(p.name))
+                errFilt = None
+                if not args.warnAPI:
+                    class Filter:
+                        """
+                        Class to errFilt the 'is Sun proprietary API and may be removed in a future release'
+                        warning when compiling the VM classes.
                         
-                    run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
-                else:
-                    log('Compiling Java sources in {0} with JDT...'.format(sourceDir))
-                    jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
-                    if not exists(jdtProperties):
-                        raise SystemError('JDT properties file {0} not found'.format(jdtProperties))
-                    run([java().java, '-Xmx1g', '-jar', jdtJar,
-                             '-properties', jdtProperties,
-                             '-' + args.compliance,
-                             '-cp', cp, '-g',
-                             '-warn:-unusedImport,-unchecked',
-                             '-d', outputDir, '@' + argfile.name])
-            finally:
-                os.remove(argfileName)
+                        """
+                        def __init__(self):
+                            self.c = 0
                         
-                
-            for name in nonjavafilelist:
-                dst = join(outputDir, name[len(sourceDir) + 1:])
-                if exists(dirname(dst)):
-                    shutil.copyfile(name, dst)
-    return args
+                        def eat(self, line):
+                            if 'proprietary API' in line:
+                                self.c = 2
+                            elif self.c != 0:
+                                self.c -= 1
+                            else:
+                                log(line.rstrip())
+                    errFilt=Filter().eat
+                    
+                run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
+            else:
+                log('Compiling Java sources for {0} with JDT...'.format(p.name))
+                jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
+                if not exists(jdtProperties):
+                    raise SystemError('JDT properties file {0} not found'.format(jdtProperties))
+                run([java().java, '-Xmx1g', '-jar', jdtJar,
+                         '-properties', jdtProperties,
+                         '-' + args.compliance,
+                         '-cp', cp, '-g',
+                         '-warn:-unusedImport,-unchecked',
+                         '-d', outputDir, '@' + argfile.name])
+        finally:
+            os.remove(argfileName)
+                    
+    if suppliedParser:
+        return args
+    return None
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -1122,8 +1133,10 @@ def clean(args, parser=None):
     Removes all files created by a build, including Java class files, executables, and
     generated images.
     """
+
+    suppliedParser = parser is not None
     
-    parser = parser if parser is not None else ArgumentParser(prog='mx build');
+    parser = parser if suppliedParser else ArgumentParser(prog='mx build');
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
 
@@ -1139,7 +1152,9 @@ def clean(args, parser=None):
                 if outputDir != '' and exists(outputDir):
                     log('Removing {0}...'.format(outputDir))
                     shutil.rmtree(outputDir)
-    return args
+                    
+    if suppliedParser:
+        return args
     
 def help_(args):
     """show help for a given command
@@ -1219,13 +1234,6 @@ commands = {
 _argParser = ArgParser()
 
 def main():
-    MX_INCLUDES = os.environ.get('MX_INCLUDES', None)
-    if MX_INCLUDES is not None:
-        for path in MX_INCLUDES.split(os.pathsep):
-            d = join(path, 'mx')
-            if exists(d) and isdir(d):
-                _loadSuite(path)
-                
     cwdMxDir = join(os.getcwd(), 'mx')
     if exists(cwdMxDir) and isdir(cwdMxDir):
         _loadSuite(os.getcwd(), True)
@@ -1251,7 +1259,7 @@ def main():
         
     c, _ = commands[command][:2]
     try:
-        if opts.timeout != 0:
+        if hasattr(opts, 'timeout') and opts.timeout != 0:
             def alarm_handler(signum, frame):
                 abort('Command timed out after ' + str(opts.timeout) + ' seconds: ' + ' '.join(commandAndArgs))
             signal.signal(signal.SIGALRM, alarm_handler)
