@@ -89,13 +89,14 @@ import shutil, fnmatch, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
-from os.path import join, dirname, exists, getmtime, isabs, expandvars, isdir
+from os.path import join, dirname, exists, getmtime, isabs, expandvars, isdir, isfile
 
 DEFAULT_JAVA_ARGS = '-ea -Xss2m -Xmx1g'
 
 _projects = dict()
 _libs = dict()
 _suites = dict()
+_mainSuite = None
 _opts = None
 _java = None
 
@@ -365,10 +366,11 @@ def get_os():
 def _loadSuite(dir, primary=False):
     mxDir = join(dir, 'mx')
     if not exists(mxDir) or not isdir(mxDir):
-        return
+        return None
     if not _suites.has_key(dir):
         suite = Suite(dir, primary)
-        _suites[dir] = suite 
+        _suites[dir] = suite
+        return suite 
 
 def suites():
     """
@@ -910,7 +912,6 @@ def build(args, parser=None):
                     mustBuild = True
             
         javafilelist = []
-        nonjavafilelistdst = []
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
                 javafiles = [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']
@@ -1185,7 +1186,310 @@ Given a command name, print help for that command."""
     print 'mx {0} {1}\n\n{2}\n'.format(name, usage, doc)
 
 
-# Commands are in alphabetical order in this file.
+def eclipseinit(args, suite=None):
+    """(re)generate Eclipse project configurations"""
+
+    if suite is None:
+        suite = _mainSuite
+        
+    def println(out, obj):
+        out.write(str(obj) + '\n')
+        
+    for p in projects():
+        if p.native:
+            continue
+        
+        if not exists(p.dir):
+            os.makedirs(p.dir)
+
+        out = StringIO.StringIO()
+        
+        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+        println(out, '<classpath>')
+        for src in p.srcDirs:
+            srcDir = join(p.dir, src)
+            if not exists(srcDir):
+                os.mkdir(srcDir)
+            println(out, '\t<classpathentry kind="src" path="' + src + '"/>')
+    
+        # Every Java program depends on the JRE
+        println(out, '\t<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>')
+        
+        for dep in p.all_deps([], True):
+            if dep == p:
+                continue;
+            
+            if dep.isLibrary():
+                if hasattr(dep, 'eclipse.container'):
+                    println(out, '\t<classpathentry exported="true" kind="con" path="' + getattr(dep, 'eclipse.container') + '"/>')
+                elif hasattr(dep, 'eclipse.project'):
+                    println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + getattr(dep, 'eclipse.project') + '"/>')
+                else:
+                    path = dep.path
+                    if dep.mustExist:
+                        dep.get_path(resolve=True)
+                        if isabs(path):
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
+                        else:
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + join(suite.dir, path) + '"/>')
+            else:
+                println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + dep.name + '"/>')
+                        
+        println(out, '\t<classpathentry kind="output" path="' + getattr(p, 'eclipse.output', 'bin') + '"/>')
+        println(out, '</classpath>')
+        update_file(join(p.dir, '.classpath'), out.getvalue())
+        out.close()
+
+        csConfig = join(project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
+        if exists(csConfig):
+            out = StringIO.StringIO()
+            
+            dotCheckstyle = join(p.dir, ".checkstyle")
+            checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
+            println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+            println(out, '<fileset-config file-format-version="1.2.0" simple-config="true">')
+            println(out, '\t<local-check-config name="Checks" location="' + checkstyleConfigPath + '" type="project" description="">')
+            println(out, '\t\t<additional-data name="protect-config-file" value="false"/>')
+            println(out, '\t</local-check-config>')
+            println(out, '\t<fileset name="all" enabled="true" check-config-name="Checks" local="true">')
+            println(out, '\t\t<file-match-pattern match-pattern="." include-pattern="true"/>')
+            println(out, '\t</fileset>')
+            println(out, '\t<filter name="FileTypesFilter" enabled="true">')
+            println(out, '\t\t<filter-data value="java"/>')
+            println(out, '\t</filter>')
+
+            exclude = join(p.dir, '.checkstyle.exclude')
+            if exists(exclude):
+                println(out, '\t<filter name="FilesFromPackage" enabled="true">')
+                with open(exclude) as f:
+                    for line in f:
+                        if not line.startswith('#'):
+                            line = line.strip()
+                            exclDir = join(p.dir, line)
+                            assert isdir(exclDir), 'excluded source directory listed in ' + exclude + ' does not exist or is not a directory: ' + exclDir
+                        println(out, '\t\t<filter-data value="' + line + '"/>')
+                println(out, '\t</filter>')
+                        
+            println(out, '</fileset-config>')
+            update_file(dotCheckstyle, out.getvalue())
+            out.close()
+        
+
+        out = StringIO.StringIO()
+        
+        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+        println(out, '<projectDescription>')
+        println(out, '\t<name>' + p.name + '</name>')
+        println(out, '\t<comment></comment>')
+        println(out, '\t<projects>')
+        println(out, '\t</projects>')
+        println(out, '\t<buildSpec>')
+        println(out, '\t\t<buildCommand>')
+        println(out, '\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>')
+        println(out, '\t\t\t<arguments>')
+        println(out, '\t\t\t</arguments>')
+        println(out, '\t\t</buildCommand>')
+        if exists(csConfig):
+            println(out, '\t\t<buildCommand>')
+            println(out, '\t\t\t<name>net.sf.eclipsecs.core.CheckstyleBuilder</name>')
+            println(out, '\t\t\t<arguments>')
+            println(out, '\t\t\t</arguments>')
+            println(out, '\t\t</buildCommand>')
+        println(out, '\t</buildSpec>')
+        println(out, '\t<natures>')
+        println(out, '\t\t<nature>org.eclipse.jdt.core.javanature</nature>')
+        if exists(csConfig):
+            println(out, '\t\t<nature>net.sf.eclipsecs.core.CheckstyleNature</nature>')
+        println(out, '\t</natures>')
+        println(out, '</projectDescription>')
+        update_file(join(p.dir, '.project'), out.getvalue())
+        out.close()
+
+        out = StringIO.StringIO()
+        settingsDir = join(p.dir, ".settings")
+        if not exists(settingsDir):
+            os.mkdir(settingsDir)
+
+        eclipseSettingsDir = join(suite.dir, 'mx', 'eclipse-settings')
+        if exists(eclipseSettingsDir):
+            for name in os.listdir(eclipseSettingsDir):
+                path = join(eclipseSettingsDir, name)
+                if isfile(path):
+                    with open(join(eclipseSettingsDir, name)) as f:
+                        content = f.read()
+                    update_file(path, content)
+
+def netbeansinit(args, suite=None):
+    """(re)generate NetBeans project configurations"""
+
+    if suite is None:
+        suite = _mainSuite
+
+    def println(out, obj):
+        out.write(str(obj) + '\n')
+        
+    updated = False
+    for p in projects():
+        if p.native:
+            continue
+        
+        if not exists(join(p.dir, 'nbproject')):
+            os.makedirs(join(p.dir, 'nbproject'))
+
+        out = StringIO.StringIO()
+        
+        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+        println(out, '<project name="' + p.name + '" default="default" basedir=".">')
+        println(out, '\t<description>Builds, tests, and runs the project ' + p.name + '.</description>')
+        println(out, '\t<import file="nbproject/build-impl.xml"/>')
+        println(out, '</project>')
+        updated = update_file(join(p.dir, 'build.xml'), out.getvalue()) or updated
+        out.close()
+        
+        out = StringIO.StringIO()
+        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
+        println(out, '<project xmlns="http://www.netbeans.org/ns/project/1">')
+        println(out, '\t<type>org.netbeans.modules.java.j2seproject</type>')
+        println(out, '\t<configuration>')
+        println(out, '\t\t<data xmlns="http://www.netbeans.org/ns/j2se-project/3">')
+        println(out, '\t\t\t<name>' + p.name + '</name>')
+        println(out, '\t\t\t<explicit-platform explicit-source-supported="true"/>')
+        println(out, '\t\t\t<source-roots>')
+        println(out, '\t\t\t\t<root id="src.dir"/>')
+        println(out, '\t\t\t</source-roots>')
+        println(out, '\t\t\t<test-roots>')
+        println(out, '\t\t\t\t<root id="test.src.dir"/>')
+        println(out, '\t\t\t</test-roots>')
+        println(out, '\t\t</data>')
+        println(out, '\t</configuration>')
+        println(out, '</project>')
+        updated = update_file(join(p.dir, 'nbproject', 'project.xml'), out.getvalue()) or updated
+        out.close()
+        
+        out = StringIO.StringIO()
+        
+        jdkPlatform = 'JDK_' + java().version
+        
+        content = """
+annotation.processing.enabled=false
+annotation.processing.enabled.in.editor=false
+annotation.processing.processors.list=
+annotation.processing.run.all.processors=true
+annotation.processing.source.output=${build.generated.sources.dir}/ap-source-output
+application.title=""" + p.name + """
+application.vendor=mx
+build.classes.dir=${build.dir}
+build.classes.excludes=**/*.java,**/*.form
+# This directory is removed when the project is cleaned:
+build.dir=bin
+build.generated.dir=${build.dir}/generated
+build.generated.sources.dir=${build.dir}/generated-sources
+# Only compile against the classpath explicitly listed here:
+build.sysclasspath=ignore
+build.test.classes.dir=${build.dir}/test/classes
+build.test.results.dir=${build.dir}/test/results
+# Uncomment to specify the preferred debugger connection transport:
+#debug.transport=dt_socket
+debug.classpath=\\
+    ${run.classpath}
+debug.test.classpath=\\
+    ${run.test.classpath}
+# This directory is removed when the project is cleaned:
+dist.dir=dist
+dist.jar=${dist.dir}/""" + p.name + """.jar
+dist.javadoc.dir=${dist.dir}/javadoc
+endorsed.classpath=
+excludes=
+includes=**
+jar.compress=false
+# Space-separated list of extra javac options
+javac.compilerargs=
+javac.deprecation=false
+javac.processorpath=\\
+    ${javac.classpath}
+javac.source=1.7
+javac.target=1.7
+javac.test.classpath=\\
+    ${javac.classpath}:\\
+    ${build.classes.dir}
+javac.test.processorpath=\\
+    ${javac.test.classpath}
+javadoc.additionalparam=
+javadoc.author=false
+javadoc.encoding=${source.encoding}
+javadoc.noindex=false
+javadoc.nonavbar=false
+javadoc.notree=false
+javadoc.private=false
+javadoc.splitindex=true
+javadoc.use=true
+javadoc.version=false
+javadoc.windowtitle=
+main.class=
+manifest.file=manifest.mf
+meta.inf.dir=${src.dir}/META-INF
+mkdist.disabled=true
+platforms.""" + jdkPlatform + """.home=""" + java().jdk + """
+platform.active=""" + jdkPlatform + """
+run.classpath=\\
+    ${javac.classpath}:\\
+    ${build.classes.dir}
+# Space-separated list of JVM arguments used when running the project
+# (you may also define separate properties like run-sys-prop.name=value instead of -Dname=value
+# or test-sys-prop.name=value to set system properties for unit tests):
+run.jvmargs=
+run.test.classpath=\\
+    ${javac.test.classpath}:\\
+    ${build.test.classes.dir}
+test.src.dir=
+source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
+        println(out, content)
+
+        mainSrc = True
+        for src in p.srcDirs:
+            srcDir = join(p.dir, src)
+            if not exists(srcDir):
+                os.mkdir(srcDir)
+            ref = 'file.reference.' + p.name + '-' + src
+            println(out, ref + '=' + src)
+            if mainSrc:
+                println(out, 'src.dir=${' + ref + '}')
+                mainSrc = False
+            else:
+                println(out, 'src.' + src + '.dir=${' + ref + '}')
+            
+        javacClasspath = []    
+        for dep in p.all_deps([], True):
+            if dep == p:
+                continue;
+            
+            if dep.isLibrary():
+                path = dep.path
+                if dep.mustExist:
+                    dep.get_path(resolve=True)
+                if not isabs(path):
+                    path = join(suite.dir, path)
+                    
+            else:
+                path = dep.output_dir()
+                
+            ref = 'file.reference.' + dep.name + '-bin'
+            println(out, ref + '=' + path)
+            javacClasspath.append('${' + ref + '}')
+            
+        println(out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath))
+        
+
+        updated = update_file(join(p.dir, 'nbproject', 'project.properties'), out.getvalue()) or updated
+        out.close()
+    
+    if updated:
+        log('If using NetBeans, ensure that a platform name ' + jdkPlatform + ' is defined (Tools -> Java Platforms)')
+
+def ideinit(args, suite=None):
+    """(re)generate Eclipse and NetBeans project configurations"""
+    eclipseinit(args, suite)
+    netbeansinit(args, suite)
 
 def javap(args):
     """launch javap with a -classpath option denoting all available classes
@@ -1226,7 +1530,9 @@ commands = {
     'checkstyle': [checkstyle, ''],
     'canonicalizeprojects': [canonicalizeprojects, ''],
     'clean': [clean, ''],
+    'eclipseinit': [eclipseinit, ''],
     'help': [help_, '[command]'],
+    'ideinit': [ideinit, ''],
     'javap': [javap, ''],
     'projects': [show_projects, ''],
 }
@@ -1236,7 +1542,8 @@ _argParser = ArgParser()
 def main():
     cwdMxDir = join(os.getcwd(), 'mx')
     if exists(cwdMxDir) and isdir(cwdMxDir):
-        _loadSuite(os.getcwd(), True)
+        global _mainSuite
+        _mainSuite = _loadSuite(os.getcwd(), True)
             
     opts, commandAndArgs = _argParser._parse_cmd_line()
     
