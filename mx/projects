@@ -70,18 +70,6 @@ project@com.oracle.max.graal.compiler@sourceDirs=src
 project@com.oracle.max.graal.compiler@dependencies=com.oracle.max.asm,com.oracle.max.graal.nodes
 project@com.oracle.max.graal.compiler@checkstyle=com.oracle.max.graal.graph
 
-# graal.phases
-project@com.oracle.max.graal.phases@subDir=graal
-project@com.oracle.max.graal.phases@sourceDirs=src
-project@com.oracle.max.graal.phases@dependencies=com.oracle.max.graal.compiler
-project@com.oracle.max.graal.phases@checkstyle=com.oracle.max.graal.graph
-
-# graal.compilation
-project@com.oracle.max.graal.compilation@subDir=graal
-project@com.oracle.max.graal.compilation@sourceDirs=src
-project@com.oracle.max.graal.compilation@dependencies=com.oracle.max.graal.compiler
-project@com.oracle.max.graal.compilation@checkstyle=com.oracle.max.graal.graph
-
 # graal.java
 project@com.oracle.max.graal.java@subDir=graal
 project@com.oracle.max.graal.java@sourceDirs=src
