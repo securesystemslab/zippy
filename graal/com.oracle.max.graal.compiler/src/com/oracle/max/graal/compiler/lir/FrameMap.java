@@ -22,14 +22,13 @@
  */
 package com.oracle.max.graal.compiler.lir;
 
-import static com.oracle.max.graal.alloc.util.ValueUtil.*;
+import static com.oracle.max.cri.ci.CiValueUtil.*;
 
 import java.util.*;
 
 import com.oracle.max.cri.ci.*;
-import com.oracle.max.cri.ci.CiCallingConvention.*;
+import com.oracle.max.cri.ci.CiCallingConvention.Type;
 import com.oracle.max.cri.ri.*;
-import com.oracle.max.graal.compiler.stub.*;
 import com.oracle.max.graal.compiler.util.*;
 
 /**
@@ -213,18 +212,6 @@ public final class FrameMap {
     }
 
     /**
-     * Informs the frame map that the compiled code uses a particular compiler stub, which
-     * may need stack space for outgoing arguments.
-     * @param stub The compiler stub.
-     */
-    public void usesStub(CompilerStub stub) {
-        // TODO look at the actual stack slot offsets?
-        int argsSize = stub.inArgs.length * target.wordSize;
-        int resultSize = stub.resultKind.isVoid() ? 0 : target.wordSize;
-        reserveOutgoing(Math.max(argsSize, resultSize));
-    }
-
-    /**
      * Reserves space for stack-based outgoing arguments.
      * @param argsSize The amount of space (in bytes) to reserve for stack-based outgoing arguments.
      */
@@ -351,5 +338,13 @@ public final class FrameMap {
                 assert isConstant(location);
             }
         }
+    }
+
+    public CiAddress asAddress(CiValue value) {
+        if (isStackSlot(value)) {
+            CiStackSlot slot = (CiStackSlot) value;
+            return new CiAddress(slot.kind, registerConfig.getFrameRegister().asValue(), offsetForStackSlot(slot));
+        }
+        return (CiAddress) value;
     }
 }

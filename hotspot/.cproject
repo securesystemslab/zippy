@@ -36,6 +36,9 @@
 									<listOptionValue builtIn="false" value="_REENTRANT=1"/>
 									<listOptionValue builtIn="false" value="DEBUG=1"/>
 									<listOptionValue builtIn="false" value="AMD64=1"/>
+									<listOptionValue builtIn="false" value="LINUX=1"/>
+									<listOptionValue builtIn="false" value="TARGET_ARCH_x86"/>
+									<listOptionValue builtIn="false" value="TARGET_COMPILER_gcc=1"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.undef.2137486146" name="Undefined symbols (-U)" superClass="gnu.cpp.compiler.option.preprocessor.undef" valueType="undefDefinedSymbols">
 									<listOptionValue builtIn="false" value="PRODUCT"/>

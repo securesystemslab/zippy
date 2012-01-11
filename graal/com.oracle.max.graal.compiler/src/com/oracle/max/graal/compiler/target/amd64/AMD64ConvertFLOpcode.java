@@ -24,19 +24,17 @@ package com.oracle.max.graal.compiler.target.amd64;
 
 import static com.oracle.max.cri.ci.CiValueUtil.*;
 
-import com.oracle.max.asm.*;
 import com.oracle.max.asm.target.amd64.AMD64Assembler.ConditionFlag;
 import com.oracle.max.asm.target.amd64.*;
 import com.oracle.max.cri.ci.*;
 import com.oracle.max.graal.compiler.asm.*;
 import com.oracle.max.graal.compiler.lir.*;
-import com.oracle.max.graal.compiler.stub.*;
 import com.oracle.max.graal.compiler.util.*;
 
 public enum AMD64ConvertFLOpcode implements LIROpcode {
     F2L, D2L;
 
-    public LIRInstruction create(CiValue result, final CompilerStub stub, CiValue x, CiValue scratch) {
+    public LIRInstruction create(CiValue result, CiValue x, CiValue scratch) {
         CiValue[] inputs = new CiValue[] {x};
         CiValue[] temps = new CiValue[] {scratch};
         CiValue[] outputs = new CiValue[] {result};
@@ -44,27 +42,31 @@ public enum AMD64ConvertFLOpcode implements LIROpcode {
         return new AMD64LIRInstruction(this, outputs, null, inputs, LIRInstruction.NO_OPERANDS, temps) {
             @Override
             public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-                emit(tasm, masm, output(0), stub, input(0), temp(0));
+                emit(tasm, masm, output(0), input(0), temp(0));
             }
         };
     }
 
-    private void emit(TargetMethodAssembler tasm, AMD64MacroAssembler masm, CiValue result, CompilerStub stub, CiValue x, CiValue scratch) {
-        assert differentRegisters(result, scratch);
-
-        CiRegister dst = asLongReg(result);
-        CiRegister tmp = asLongReg(scratch);
+    private void emit(TargetMethodAssembler tasm, AMD64MacroAssembler masm, CiValue result, CiValue x, CiValue scratch) {
+        AMD64ConvertFSlowPath slowPath;
         switch (this) {
-            case F2L: masm.cvttss2siq(dst, asFloatReg(x)); break;
-            case D2L: masm.cvttsd2siq(dst, asDoubleReg(x)); break;
-            default: throw Util.shouldNotReachHere();
+            case F2L:
+                masm.cvttss2siq(asLongReg(result), asFloatReg(x));
+                slowPath = new AMD64ConvertFSlowPath(masm, asLongReg(result), asFloatReg(x), false, true);
+                break;
+            case D2L:
+                masm.cvttsd2siq(asLongReg(result), asDoubleReg(x));
+                slowPath = new AMD64ConvertFSlowPath(masm, asLongReg(result), asDoubleReg(x), true, true);
+                break;
+            default:
+                throw Util.shouldNotReachHere();
         }
+        tasm.slowPaths.add(slowPath);
 
-        Label endLabel = new Label();
+        CiRegister tmp = asLongReg(scratch);
         masm.movq(tmp, java.lang.Long.MIN_VALUE);
-        masm.cmpq(dst, tmp);
-        masm.jcc(ConditionFlag.notEqual, endLabel);
-        AMD64CallOpcode.callStub(tasm, masm, stub, null, result, x);
-        masm.bind(endLabel);
+        masm.cmpq(asLongReg(result), tmp);
+        masm.jcc(ConditionFlag.equal, slowPath.start);
+        masm.bind(slowPath.continuation);
     }
 }
