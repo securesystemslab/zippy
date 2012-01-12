@@ -27,10 +27,6 @@
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asmdis");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asm");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.graph");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler.infrastructure");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.lir");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compilation");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler.phases");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.nodes");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
