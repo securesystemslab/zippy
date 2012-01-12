@@ -20,17 +20,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
+ 
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.cri");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.criutils");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.base");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asmdis");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asm");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.graph");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.nodes");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.hotspot");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.printer");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.compiler");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.java");
-
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.printer");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.base");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asmdis");
+    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.hotspot");
