@@ -26,8 +26,8 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, StringIO, zipfile, tempfile, re, time, datetime, platform, subprocess
-from os.path import join, exists, dirname, isdir, isabs, basename
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, StringIO
+from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
@@ -35,6 +35,31 @@ import sanitycheck
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
 _vmbuild = 'product'
+
+_copyrightTemplate = """/*
+ * Copyright (c) {0}, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+ 
+"""
 
 def clean(args):
     """cleans the GraalVM source tree"""
@@ -243,30 +268,30 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 
     p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + winSDK + '/Bin/SetEnv.cmd" & echo ' + STARTTOKEN + '"', \
             shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
-    output = p.stdout
-    input = p.stdin
+    stdout = p.stdout
+    stdin = p.stdin
     if logFile:
         log = open(logFile, 'w')
     ret = False
     while True:
-        line = output.readline().decode()
+        line = stdout.readline().decode()
         if logFile:
             log.write(line)
         line = line.strip()
         mx.log(line)
         if line == STARTTOKEN:
-            input.write('cd /D ' + workingDir + ' & ' + cmd + ' & echo ' + ENDTOKEN + newLine)
+            stdin.write('cd /D ' + workingDir + ' & ' + cmd + ' & echo ' + ENDTOKEN + newLine)
         for regex in respondTo.keys():
             match = regex.search(line)
             if match:
-                input.write(respondTo[regex] + newLine)
+                stdin.write(respondTo[regex] + newLine)
         if findInOutput:
             match = findInOutput.search(line)
             if match:
                 ret = True
         if line == ENDTOKEN:
             break
-    input.write('exit' + newLine)
+    stdin.write('exit' + newLine)
     if logFile:
         log.close()
     return ret
@@ -304,6 +329,16 @@ def build(args):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
                 
+        # Update graal_paths.hpp
+        out = StringIO.StringIO()
+        out.write(_copyrightTemplate.format(time.strftime('%Y')))
+        for p in mx.project('com.oracle.max.graal.hotspot').all_deps([], False):
+            out.write('    prepend_to_graal_classpath(scp_compiler, graal_dir, "' + p.name + '");\n')
+        graalPaths = join(_graal_home, 'src', 'share', 'vm', 'graal', 'graal_paths.hpp')
+        assert exists(graalPaths), 'File does not exist: ' + graalPaths
+        mx.update_file(graalPaths, out.getvalue())
+        out.close()
+                
         if platform.system() == 'Windows':
             compilelogfile = _graal_home + '/graalCompile.log'
             mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')
@@ -338,136 +373,6 @@ def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, tim
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
-def ideinit(args):
-    """(re)generate Eclipse project configurations"""
-
-
-    def println(out, obj):
-        out.write(str(obj) + '\n')
-        
-    for p in mx.projects():
-        if p.native:
-            continue
-        
-        if not exists(p.dir):
-            os.makedirs(p.dir)
-
-        out = StringIO.StringIO()
-        
-        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
-        println(out, '<classpath>')
-        for src in p.srcDirs:
-            srcDir = join(p.dir, src)
-            if not exists(srcDir):
-                os.mkdir(srcDir)
-            println(out, '\t<classpathentry kind="src" path="' + src + '"/>')
-    
-        # Every Java program depends on the JRE
-        println(out, '\t<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>')
-        
-        for dep in p.all_deps([], True):
-            if dep == p:
-                continue;
-            
-            if dep.isLibrary():
-                if hasattr(dep, 'eclipse.container'):
-                    println(out, '\t<classpathentry exported="true" kind="con" path="' + getattr(dep, 'eclipse.container') + '"/>')
-                elif hasattr(dep, 'eclipse.project'):
-                    println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + getattr(dep, 'eclipse.project') + '"/>')
-                else:
-                    path = dep.path
-                    if dep.mustExist:
-                        if isabs(path):
-                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
-                        else:
-                            println(out, '\t<classpathentry exported="true" kind="lib" path="/' + path + '"/>')
-            else:
-                println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + dep.name + '"/>')
-                        
-        println(out, '\t<classpathentry kind="output" path="' + getattr(p, 'eclipse.output', 'bin') + '"/>')
-        println(out, '</classpath>')
-        mx.update_file(join(p.dir, '.classpath'), out.getvalue())
-        out.close()
-
-        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
-        if exists(csConfig):
-            out = StringIO.StringIO()
-            
-            dotCheckstyle = join(p.dir, ".checkstyle")
-            checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
-            println(out, '<?xml version="1.0" encoding="UTF-8"?>')
-            println(out, '<fileset-config file-format-version="1.2.0" simple-config="true">')
-            println(out, '\t<local-check-config name="Graal Checks" location="' + checkstyleConfigPath + '" type="project" description="">')
-            println(out, '\t\t<additional-data name="protect-config-file" value="false"/>')
-            println(out, '\t</local-check-config>')
-            println(out, '\t<fileset name="all" enabled="true" check-config-name="Graal Checks" local="true">')
-            println(out, '\t\t<file-match-pattern match-pattern="." include-pattern="true"/>')
-            println(out, '\t</fileset>')
-            println(out, '\t<filter name="FileTypesFilter" enabled="true">')
-            println(out, '\t\t<filter-data value="java"/>')
-            println(out, '\t</filter>')
-
-            exclude = join(p.dir, '.checkstyle.exclude')
-            if exists(exclude):
-                println(out, '\t<filter name="FilesFromPackage" enabled="true">')
-                with open(exclude) as f:
-                    for line in f:
-                        if not line.startswith('#'):
-                            line = line.strip()
-                            exclDir = join(p.dir, line)
-                            assert isdir(exclDir), 'excluded source directory listed in ' + exclude + ' does not exist or is not a directory: ' + exclDir
-                        println(out, '\t\t<filter-data value="' + line + '"/>')
-                println(out, '\t</filter>')
-                        
-            println(out, '</fileset-config>')
-            mx.update_file(dotCheckstyle, out.getvalue())
-            out.close()
-        
-
-        out = StringIO.StringIO()
-        
-        println(out, '<?xml version="1.0" encoding="UTF-8"?>')
-        println(out, '<projectDescription>')
-        println(out, '\t<name>' + p.name + '</name>')
-        println(out, '\t<comment></comment>')
-        println(out, '\t<projects>')
-        println(out, '\t</projects>')
-        println(out, '\t<buildSpec>')
-        println(out, '\t\t<buildCommand>')
-        println(out, '\t\t\t<name>org.eclipse.jdt.core.javabuilder</name>')
-        println(out, '\t\t\t<arguments>')
-        println(out, '\t\t\t</arguments>')
-        println(out, '\t\t</buildCommand>')
-        if exists(csConfig):
-            println(out, '\t\t<buildCommand>')
-            println(out, '\t\t\t<name>net.sf.eclipsecs.core.CheckstyleBuilder</name>')
-            println(out, '\t\t\t<arguments>')
-            println(out, '\t\t\t</arguments>')
-            println(out, '\t\t</buildCommand>')
-        println(out, '\t</buildSpec>')
-        println(out, '\t<natures>')
-        println(out, '\t\t<nature>org.eclipse.jdt.core.javanature</nature>')
-        if exists(csConfig):
-            println(out, '\t\t<nature>net.sf.eclipsecs.core.CheckstyleNature</nature>')
-        println(out, '\t</natures>')
-        println(out, '</projectDescription>')
-        mx.update_file(join(p.dir, '.project'), out.getvalue())
-        out.close()
-
-        out = StringIO.StringIO()
-        settingsDir = join(p.dir, ".settings")
-        if not exists(settingsDir):
-            os.mkdir(settingsDir)
-
-        myDir = dirname(__file__)
-        
-        with open(join(myDir, 'org.eclipse.jdt.core.prefs')) as f:
-            content = f.read()
-        mx.update_file(join(settingsDir, 'org.eclipse.jdt.core.prefs'), content)
-            
-        with open(join(myDir, 'org.eclipse.jdt.ui.prefs')) as f:
-            content = f.read()
-        mx.update_file(join(settingsDir, 'org.eclipse.jdt.ui.prefs'), content)
 
 # Table of unit tests.
 # Keys are project names, values are package name lists.
@@ -631,8 +536,7 @@ def mx_init():
         'gate' : [gate, ''],
         'bench' : [bench, ''],
         'unittest' : [unittest, '[filters...]'],
-        'vm': [vm, '[-options] class [args...]'],
-        'ideinit': [ideinit, '']
+        'vm': [vm, '[-options] class [args...]']
     }
 
     if (_vmSourcesAvailable):

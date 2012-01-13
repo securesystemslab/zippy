@@ -23,6 +23,9 @@
 \.pdf$
 \.dot$
 \.pyc$
+build.xml
+nbproject
+dist
 ^doc/.*/dot_temp_
 ^doc/doxygen/.*$
 \.orig$
