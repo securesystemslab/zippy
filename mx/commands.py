@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, StringIO
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
@@ -35,6 +35,31 @@ import sanitycheck
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
 _vmbuild = 'product'
+
+_copyrightTemplate = """/*
+ * Copyright (c) {0}, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+ 
+"""
 
 def clean(args):
     """cleans the GraalVM source tree"""
@@ -303,6 +328,16 @@ def build(args):
         def filterXusage(line):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
+                
+        # Update graal_paths.hpp
+        out = StringIO.StringIO()
+        out.write(_copyrightTemplate.format(time.strftime('%Y')))
+        for p in mx.project('com.oracle.max.graal.hotspot').all_deps([], False):
+            out.write('    prepend_to_graal_classpath(scp_compiler, graal_dir, "' + p.name + '");\n')
+        graalPaths = join(_graal_home, 'src', 'share', 'vm', 'graal', 'graal_paths.hpp')
+        assert exists(graalPaths), 'File does not exist: ' + graalPaths
+        mx.update_file(graalPaths, out.getvalue())
+        out.close()
                 
         if platform.system() == 'Windows':
             compilelogfile = _graal_home + '/graalCompile.log'

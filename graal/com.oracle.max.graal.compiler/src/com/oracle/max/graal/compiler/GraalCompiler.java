@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -305,7 +305,7 @@ public class GraalCompiler {
                 }
 
                 if (context.isObserved()) {
-                    context.observable.fireCompilationEvent("After LIR generation", graph, lir);
+                    context.observable.fireCompilationEvent("After LIR generation", graph, lir, lirGenerator);
                 }
                 if (GraalOptions.PrintLIR && !TTY.isSuppressed()) {
                     LIR.printLIR(lir.linearScanOrder());
