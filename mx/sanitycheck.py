@@ -51,7 +51,7 @@ dacapoGateBuildLevels = {
     'avrora':     ['product', 'fastdebug', 'debug'],
     'batik':      ['product', 'fastdebug', 'debug'],
     'eclipse':    ['product'],
-    'fop':        ['product', 'fastdebug', 'debug'],
+    'fop':        [           'fastdebug', 'debug'],
     'h2':         ['product', 'fastdebug', 'debug'],
     'jython':     ['product', 'fastdebug', 'debug'],
     'luindex':    ['product', 'fastdebug', 'debug'],
@@ -60,7 +60,7 @@ dacapoGateBuildLevels = {
     'sunflow':    ['product', 'fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    'tradesoap':  ['product', 'fastdebug', 'debug'],
+    'tradesoap':  ['product'],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 
