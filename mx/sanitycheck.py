@@ -51,7 +51,7 @@ dacapoGateBuildLevels = {
     'avrora':     ['product', 'fastdebug', 'debug'],
     'batik':      ['product', 'fastdebug', 'debug'],
     'eclipse':    ['product'],
-    'fop':        ['product', 'fastdebug', 'debug'],
+    'fop':        [           'fastdebug', 'debug'],
     'h2':         ['product', 'fastdebug', 'debug'],
     'jython':     ['product', 'fastdebug', 'debug'],
     'luindex':    ['product', 'fastdebug', 'debug'],
@@ -60,7 +60,7 @@ dacapoGateBuildLevels = {
     'sunflow':    ['product', 'fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    'tradesoap':  ['product', 'fastdebug', 'debug'],
+    'tradesoap':  ['product'],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 
@@ -120,7 +120,7 @@ def getDacapo(name, n, dacapoArgs=[]):
     return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms1g', '-Xmx2g', '-XX:MaxPermSize=256m'])
 
 def getBootstraps():
-    time = re.compile(r"Bootstrapping Graal............... in (?P<time>[0-9]+) ms")
+    time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
     scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     tests = []
     tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher]))

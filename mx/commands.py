@@ -31,6 +31,7 @@ from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
+import json
 
 _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
@@ -507,19 +508,50 @@ def gate(args):
     total.stop()
 
 def bench(args):
+    """run benchmarks and parse their ouput for results
+
+    Results are JSON formated : {group : {benchmark : score}}."""
+    resultFile = None
+    if '-resultfile' in args:
+        index = args.index('-resultfile')
+        if index + 1 < len(args):
+            resultFile = args[index + 1]
+	    del args[index]
+	    del args[index]
+        else:
+            mx.abort('-resultfile must be followed by a file name')
+    vm = 'graal'
+    if '-vm' in args:
+        index = args.index('-vm')
+        if index + 1 < len(args):
+            vm = args[index + 1]
+            del args[index]
+	    del args[index]
+        else:
+            mx.abort('-vm must be followed by a vm name (graal, server, client..)')
+    if len(args) is 0:
+        args += ['all']
+
     results = {}
+    benchmarks = []
     #DaCapo
-    benchmarks = sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
+    if ('dacapo' in args or 'all' in args):
+        benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     #Bootstrap
-    benchmarks += sanitycheck.getBootstraps()
+    if ('bootstrap' in args or 'all' in args):
+        benchmarks += sanitycheck.getBootstraps()
     #SPECjvm2008
-    benchmarks += [sanitycheck.getSPECjvm2008(True, 60, 120)]
+    if ('specjvm2008' in args or 'all' in args):
+        benchmarks += [sanitycheck.getSPECjvm2008(True, 60, 120)]
     
     for test in benchmarks:
         if not results.has_key(test.group):
             results[test.group] = {}
-        results[test.group].update(test.bench('-graal'))
-    print results
+        results[test.group].update(test.bench('-' + vm))
+    mx.log(json.dumps(results))
+    if resultFile:
+        with open(resultFile, 'w') as f:
+            f.write(json.dumps(results))
     
 def specjvm2008(args):
     sanitycheck.getSPECjvm2008().bench('-graal')
@@ -534,7 +566,7 @@ def mx_init():
         'specjvm2008': [specjvm2008, ''],
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
-        'bench' : [bench, ''],
+        'bench' : [bench, '[-vm vm] [-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
         'vm': [vm, '[-options] class [args...]']
     }

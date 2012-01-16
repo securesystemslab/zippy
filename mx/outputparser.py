@@ -37,7 +37,7 @@ class OutputParser:
         self.matchers.append(matcher)
     
     def parse(self, vm, cmd, cwd=None, vmbuild=None):
-        ret = [{}]
+        ret = []
         
         def parseLine(line):
             anyMatch = False
@@ -45,7 +45,7 @@ class OutputParser:
                 parsed = matcher.parse(line.strip())
                 if parsed:
                     anyMatch = True
-                    if matcher.startNewLine and len(ret[0]) > 0:
+                    if len(ret) is 0 or (matcher.startNewLine and len(ret[len(ret)-1]) > 0):
                         ret.append({})
                     ret[len(ret)-1].update(parsed)
             if anyMatch :
