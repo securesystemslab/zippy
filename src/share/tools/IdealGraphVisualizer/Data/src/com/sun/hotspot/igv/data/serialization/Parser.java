@@ -293,7 +293,7 @@ public class Parser {
         @Override
         protected InputBlock start() throws SAXException {
             InputGraph graph = getParentObject();
-            String name = readRequiredAttribute(BLOCK_NAME_PROPERTY).intern();
+            String name = readRequiredAttribute(BLOCK_NAME_PROPERTY);
             InputBlock b = graph.addBlock(name);
             for (InputNode n : b.getNodes()) {
                 assert graph.getBlock(n).equals(b);
@@ -447,12 +447,12 @@ public class Parser {
 
         @Override
         public String start() throws SAXException {
-            return readRequiredAttribute(PROPERTY_NAME_PROPERTY).intern();
+            return readRequiredAttribute(PROPERTY_NAME_PROPERTY);
          }
 
         @Override
         public void end(String text) {
-            getParentObject().getProperties().setProperty(getObject(), text.trim().intern());
+            getParentObject().getProperties().setProperty(getObject(), text.trim());
         }
     };
 
