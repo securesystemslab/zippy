@@ -1,5 +1,3 @@
-colorize("abstract", "1", yellow);
-colorize("leaf", "1", lightGray);
-
-var f = new com.sun.hotspot.igv.filter.EdgeColorIndexFilter("INPUTS", [black, pink]);
-f.apply(graph);
+colorize("name", "<init>.*", yellow);
+colorize("name", "<clinit>.*", pink);
+colorize("leaf", "1", red);
