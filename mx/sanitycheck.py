@@ -31,27 +31,27 @@ import commands
 from os.path import isfile, join, exists
 
 dacapoSanityWarmup = {
-    'avrora':     [0, 0,  3,  6, 10],
+    'avrora':     [0, 0,  3,  6, 13],
     'batik':      [0, 0,  5,  5, 20],
-    'eclipse':    [2, 4,  5, 10, 13],
+    'eclipse':    [2, 4,  5, 10, 16],
     'fop':        [4, 8, 10, 20, 30],
-    'h2':         [0, 0,  5,  5,  5],
-    'jython':     [0, 0,  5, 10, 10],
+    'h2':         [0, 0,  5,  5,  8],
+    'jython':     [0, 0,  5, 10, 13],
     'luindex':    [0, 0,  5, 10, 10],
-    'lusearch':   [0, 4,  5,  5,  5],
-    'pmd':        [0, 0,  5, 10, 10],
+    'lusearch':   [0, 4,  5,  5,  8],
+    'pmd':        [0, 0,  5, 10, 13],
     'sunflow':    [0, 0,  5, 10, 15],
-    'tomcat':     [0, 0,  5, 10, 10],
-    'tradebeans': [0, 0,  5, 10, 10],
-    'tradesoap':  [2, 4,  5, 10, 10],
-    'xalan':      [0, 0,  5, 10, 15],
+    'tomcat':     [0, 0,  5, 10, 15],
+    'tradebeans': [0, 0,  5, 10, 13],
+    'tradesoap':  [2, 4,  5, 10, 15],
+    'xalan':      [0, 0,  5, 10, 18],
 }
 
 dacapoGateBuildLevels = {
     'avrora':     ['product', 'fastdebug', 'debug'],
     'batik':      ['product', 'fastdebug', 'debug'],
     'eclipse':    ['product'],
-    'fop':        ['product', 'fastdebug', 'debug'],
+    'fop':        [           'fastdebug', 'debug'],
     'h2':         ['product', 'fastdebug', 'debug'],
     'jython':     ['product', 'fastdebug', 'debug'],
     'luindex':    ['product', 'fastdebug', 'debug'],
@@ -60,7 +60,7 @@ dacapoGateBuildLevels = {
     'sunflow':    ['product', 'fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    'tradesoap':  ['product', 'fastdebug', 'debug'],
+    'tradesoap':  ['product'],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 
@@ -87,7 +87,7 @@ def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None)
     if skipKitValidation:
         opts += ['-ikv']
     
-    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts, [success], [error], [matcher], vmOpts=['-Xms2g'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts, [success], [error], [matcher], vmOpts=['-Xms3g'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -117,10 +117,10 @@ def getDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms1g', '-Xmx2g', '-XX:MaxPermSize=256m'])
+    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m'])
 
 def getBootstraps():
-    time = re.compile(r"Bootstrapping Graal............... in (?P<time>[0-9]+) ms")
+    time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
     scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     tests = []
     tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher]))

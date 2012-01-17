@@ -150,8 +150,8 @@ public class XMLParser implements ContentHandler {
         public void processAttributesAsProperties(Properties p) {
             int length = attr.getLength();
             for (int i = 0; i < length; i++) {
-                String val = attr.getValue(i).intern();
-                String localName = attr.getLocalName(i).intern();
+                String val = attr.getValue(i);
+                String localName = attr.getLocalName(i);
                 p.setProperty(val, localName);
             }
         }
