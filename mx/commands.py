@@ -516,8 +516,8 @@ def bench(args):
         index = args.index('-resultfile')
         if index + 1 < len(args):
             resultFile = args[index + 1]
-	    del args[index]
-	    del args[index]
+            del args[index]
+            del args[index]
         else:
             mx.abort('-resultfile must be followed by a file name')
     vm = 'graal'
@@ -526,7 +526,7 @@ def bench(args):
         if index + 1 < len(args):
             vm = args[index + 1]
             del args[index]
-	    del args[index]
+            del args[index]
         else:
             mx.abort('-vm must be followed by a vm name (graal, server, client..)')
     if len(args) is 0:
