@@ -361,7 +361,7 @@ def build(args):
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', '3')
-            env.setdefault('ALT_BOOTDIR', jdk)
+            env['ALT_BOOTDIR'] = jdk
             env.setdefault('INSTALL', 'y')
             mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
     
