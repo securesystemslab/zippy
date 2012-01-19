@@ -30,6 +30,4 @@
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.java");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.printer");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.snippets");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.base");
-    prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.asmdis");
     prepend_to_graal_classpath(scp_compiler, graal_dir, "com.oracle.max.graal.hotspot");
