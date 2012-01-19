@@ -44,7 +44,7 @@ library@DACAPO@urls=http://dfn.dl.sourceforge.net/project/dacapobench/9.12-bach/
 # graal.hotspot
 project@com.oracle.max.graal.hotspot@subDir=graal
 project@com.oracle.max.graal.hotspot@sourceDirs=src
-project@com.oracle.max.graal.hotspot@dependencies=com.oracle.max.graal.snippets,com.oracle.max.asmdis
+project@com.oracle.max.graal.hotspot@dependencies=com.oracle.max.graal.snippets
 project@com.oracle.max.graal.hotspot@checkstyle=com.oracle.max.graal.graph
 
 # graal.graph
@@ -93,18 +93,6 @@ project@com.oracle.max.asm@subDir=graal
 project@com.oracle.max.asm@sourceDirs=src
 project@com.oracle.max.asm@dependencies=com.oracle.max.criutils
 project@com.oracle.max.asm@checkstyle=com.oracle.max.graal.graph
-
-# max.base
-project@com.oracle.max.base@subDir=graal
-project@com.oracle.max.base@sourceDirs=src,test
-project@com.oracle.max.base@dependencies=JUNIT
-project@com.oracle.max.base@checkstyle=com.oracle.max.graal.graph
-
-# max.asmdis
-project@com.oracle.max.asmdis@subDir=graal
-project@com.oracle.max.asmdis@sourceDirs=src,test
-project@com.oracle.max.asmdis@dependencies=com.oracle.max.base
-project@com.oracle.max.asmdis@checkstyle=com.oracle.max.graal.graph
 
 # max.cri
 project@com.oracle.max.cri@subDir=graal
