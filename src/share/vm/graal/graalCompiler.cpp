@@ -270,6 +270,7 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   HotSpotMethodResolved::set_accessFlags(obj, method->access_flags().as_int());
   HotSpotMethodResolved::set_maxLocals(obj, method->max_locals());
   HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
+  HotSpotMethodResolved::set_canBeInlined(obj, true);
   
   method->set_graal_mirror(obj());
   return obj();
