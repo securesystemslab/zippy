@@ -284,7 +284,7 @@
   template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/max/cri/ri/RiMethod")                                   \
   template(com_oracle_max_cri_ri_RiResolvedField,                     "com/oracle/max/cri/ri/RiResolvedField")                            \
   template(com_oracle_max_cri_ri_RiType,                              "com/oracle/max/cri/ri/RiType")                                     \
-  template(com_oracle_max_cri_ri_RiTypeProfile,                       "com/oracle/max/cri/ri/RiTypeProfile")                              \
+  template(com_oracle_max_cri_ri_RiProfilingInfo,                     "com/oracle/max/cri/ri/RiProfilingInfo")                            \
   template(com_oracle_max_cri_ri_RiConstantPool,                      "com/oracle/max/cri/ri/RiConstantPool")                             \
   template(com_oracle_max_cri_ri_RiExceptionHandler,                  "com/oracle/max/cri/ri/RiExceptionHandler")                         \
   template(com_oracle_max_cri_ci_CiAssumptions,                       "com/oracle/max/cri/ci/CiAssumptions")                              \

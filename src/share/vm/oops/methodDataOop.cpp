@@ -749,6 +749,7 @@ void methodDataOopDesc::initialize(methodHandle method) {
   ResourceMark rm;
   // Set the method back-pointer.
   _method = method();
+  _graal_mirror = NULL;
 
   if (TieredCompilation) {
     _invocation_counter.init();

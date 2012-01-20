@@ -223,7 +223,7 @@ class SymbolPropertyTable;
   template(RiType_klass,                          com_oracle_max_cri_ri_RiType,                                     Opt) \
   template(RiResolvedField_klass,                 com_oracle_max_cri_ri_RiResolvedField,                            Opt) \
   template(RiExceptionHandler_klass,              com_oracle_max_cri_ri_RiExceptionHandler,                         Opt) \
-  template(RiTypeProfile_klass,                   com_oracle_max_cri_ri_RiTypeProfile,                              Opt) \
+  template(RiProfilingInfo_klass,                 com_oracle_max_cri_ri_RiProfilingInfo,                            Opt) \
 
   /*end*/
 

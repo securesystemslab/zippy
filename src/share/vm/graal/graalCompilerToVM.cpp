@@ -873,6 +873,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
   set_int(env, config, "threadMultiNewArrayStorage", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
   set_int(env, config, "classMirrorOffset", klassOopDesc::klass_part_offset_in_bytes() + Klass::java_mirror_offset_in_bytes());
+  set_int(env, config, "methodDataDataOffset", in_bytes(methodDataOopDesc::data_offset));
 
   set_long(env, config, "debugStub", VmIds::addStub((address)warning));
   set_long(env, config, "instanceofStub", VmIds::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
@@ -985,7 +986,7 @@ JNIEXPORT jlong JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImp
 #define METHOD          "Lcom/oracle/max/cri/ri/RiMethod;"
 #define RESOLVED_METHOD "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;"
 #define REFLECT_METHOD  "Ljava/lang/reflect/Method;"
-#define TYPE_PROFILE    "Lcom/oracle/max/cri/ri/RiTypeProfile;"
+#define PROFILING_INFO  "Lcom/oracle/max/cri/ri/RiProfilingInfo;"
 #define SIGNATURE       "Lcom/oracle/max/cri/ri/RiSignature;"
 #define FIELD           "Lcom/oracle/max/cri/ri/RiField;"
 #define RESOLVED_FIELD  "Lcom/oracle/max/cri/ri/RiResolvedField;"

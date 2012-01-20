@@ -272,7 +272,24 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
   
   method->set_graal_mirror(obj());
-  return obj();
+  return obj;
+}
+
+Handle GraalCompiler::createHotSpotProfilingInfo(methodDataHandle method_data, TRAPS) {
+  if(method_data->graal_mirror() != NULL) {
+    assert(method_data->graal_mirror()->is_a(HotSpotProfilingInfo::klass()), "unexpected class");
+    return method_data->graal_mirror();
+  }
+
+  instanceKlass::cast(HotSpotProfilingInfo::klass())->initialize(CHECK_NULL);
+  Handle obj = instanceKlass::cast(HotSpotProfilingInfo::klass())->allocate_instance(CHECK_NULL);
+  assert(obj.not_null, "must be");
+  
+  HotSpotProfilingInfo::set_compiler(obj, VMToCompiler::compilerInstance()());
+  HotSpotProfilingInfo::set_javaMirror(obj, method_data());
+
+  method_data->set_graal_mirror(obj());
+  return obj;
 }
 
 BasicType GraalCompiler::kindToBasicType(jchar ch) {
