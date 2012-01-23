@@ -506,7 +506,9 @@ JNIEXPORT void JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl
   
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type)))->constants();
   int byteCode = (op & 0xFF);
-  if (byteCode != Bytecodes::_checkcast && byteCode != Bytecodes::_instanceof && byteCode != Bytecodes::_new && byteCode != Bytecodes::_anewarray && byteCode != Bytecodes::_multianewarray) {
+  if (byteCode != Bytecodes::_checkcast && byteCode != Bytecodes::_instanceof && byteCode != Bytecodes::_new && byteCode != Bytecodes::_anewarray
+      && byteCode != Bytecodes::_multianewarray && byteCode != Bytecodes::_ldc && byteCode != Bytecodes::_ldc_w && byteCode != Bytecodes::_ldc2_w)
+  {
     index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index_u2(index));
   }
   constantTag tag = cp->tag_at(index);
