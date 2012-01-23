@@ -272,6 +272,7 @@
   template(com_oracle_max_graal_hotspot_bridge_VMToCompiler,          "com/oracle/max/graal/hotspot/bridge/VMToCompiler")                 \
   template(com_oracle_max_graal_hotspot_ri_HotSpotMethodResolved,     "com/oracle/max/graal/hotspot/ri/HotSpotMethodResolvedImpl")        \
   template(com_oracle_max_graal_hotspot_HotSpotTargetMethod,          "com/oracle/max/graal/hotspot/HotSpotTargetMethod")                 \
+  template(com_oracle_max_graal_hotspot_HotSpotMethodData,            "com/oracle/max/graal/hotspot/HotSpotMethodData")                   \
   template(com_oracle_max_graal_hotspot_HotSpotField,                 "com/oracle/max/graal/hotspot/ri/HotSpotField")                     \
   template(com_oracle_max_graal_hotspot_HotSpotCompiledMethod,        "com/oracle/max/graal/hotspot/ri/HotSpotCompiledMethod")            \
   template(com_oracle_max_graal_hotspot_HotSpotOptions,               "com/oracle/max/graal/hotspot/HotSpotOptions")                      \
