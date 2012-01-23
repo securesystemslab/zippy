@@ -842,6 +842,42 @@ JNIEXPORT jlong JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImp
   return id;
 }
 
+// public String disassembleNative(byte[] code, long address);
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_disassembleNative(JNIEnv *jniEnv, jobject, jbyteArray code, jlong start_address) {
+  TRACE_graal_3("CompilerToVM::disassembleNative");
+  VM_ENTRY_MARK;
+  ResourceMark rm;
+  HandleMark hm;
+
+  stringStream(st);
+  arrayOop code_oop = (arrayOop) JNIHandles::resolve(code);
+  int len = code_oop->length();
+  address begin = (address) code_oop->base(T_BYTE);
+  address end = begin + len;
+  Disassembler::decode(begin, end, &st);
+
+  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
+  return JNIHandles::make_local(result());
+}
+
+// public String disassembleJava(HotSpotMethodResolved method);
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_disassembleJava(JNIEnv *env, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::disassembleJava");
+
+  // Important: The bytecode printing functions are all NOT PRODUCT code, so this method returns an empty string for a product VM build.
+
+  VM_ENTRY_MARK;
+  ResourceMark rm;
+  HandleMark hm;
+
+  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
+  // Note: cannot use resource-allocated stringStream because print_code_on has its own ResourceMark.
+  bufferedStream(st);
+  method->print_codes_on(&st);
+
+  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
+  return JNIHandles::make_local(result());
+}
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
@@ -899,7 +935,9 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(getType)},
   {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(getConfiguration)},
   {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,       FN_PTR(installMethod)},
-  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(installStub)}
+  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(installStub)},
+  {CC"disassembleNative",                 CC"([BJ)"STRING,                            FN_PTR(disassembleNative)},
+  {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,              FN_PTR(disassembleJava)},
 };
 
 int CompilerToVM_methods_count() {
