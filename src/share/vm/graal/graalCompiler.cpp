@@ -284,7 +284,7 @@ Handle GraalCompiler::createHotSpotMethodData(methodDataHandle method_data, TRAP
 
   instanceKlass::cast(HotSpotMethodData::klass())->initialize(CHECK_NULL);
   Handle obj = instanceKlass::cast(HotSpotMethodData::klass())->allocate_instance(CHECK_NULL);
-  assert(obj.not_null, "must be");
+  assert(obj.not_null(), "must succeed in allocating instance");
   
   HotSpotMethodData::set_compiler(obj, VMToCompiler::compilerInstance()());
   HotSpotMethodData::set_javaMirror(obj, method_data());

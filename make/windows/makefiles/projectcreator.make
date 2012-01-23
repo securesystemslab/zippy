@@ -89,7 +89,7 @@ ProjectCreatorIDEOptions=\
         -define ALIGN_STACK_FRAMES \
         -define VM_LITTLE_ENDIAN \
         -prelink  "" "Generating vm.def..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	$(HOTSPOTMKSHOME)\sh $(HOTSPOTWORKSPACE)\make\windows\build_vm_def.sh $(LINK_VER)" \
-        -postbuild "" "Building hotspot.exe..." "cd %o	HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	nmake -f $(HOTSPOTWORKSPACE)\make\windows\projectfiles\common\Makefile LOCAL_MAKE=$(HOTSPOTBUILDSPACE)\%f\local.make JAVA_HOME=$(HOTSPOTJDKDIST) launcher" \
+        -postbuild "" "Building hotspot.exe..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	nmake -f $(HOTSPOTWORKSPACE)\make\windows\projectfiles\common\Makefile LOCAL_MAKE=$(HOTSPOTBUILDSPACE)\%f\local.make JAVA_HOME=$(HOTSPOTJDKDIST) launcher" \
         -ignoreFile jsig.c \
         -ignoreFile jvmtiEnvRecommended.cpp \
         -ignoreFile jvmtiEnvStub.cpp \
