@@ -44,6 +44,10 @@ methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
   return (methodOop)HotSpotMethodResolved::javaMirror(hotspot_method);
 }
 
+methodDataOop getMethodDataFromHotSpotMethodData(jobject hotspot_method_data) {
+  return (methodDataOop)HotSpotMethodData::hotspotMirror(JNIHandles::resolve(hotspot_method_data));
+}
+
 // public byte[] RiMethod_code(HotSpotResolvedMethod method);
 JNIEXPORT jbyteArray JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_code");
@@ -192,11 +196,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
     return NULL;
   } else {
     Handle graalMethodData = GraalCompiler::createHotSpotMethodData(method_data, THREAD);
-    tty->print_cr("--------");
-    method_data->print_on(tty);
-    tty->print_cr("--------");
     return JNIHandles::make_local(THREAD, graalMethodData());
   }
+}
+
+JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_HotSpotMethodData_1isMature(JNIEnv *, jobject, jobject hotspot_method_data) {
+  TRACE_graal_3("CompilerToVM::HotSpotMethodData_isMature");
+  VM_ENTRY_MARK;
+  methodDataHandle method_data = getMethodDataFromHotSpotMethodData(hotspot_method_data);
+  return method_data->is_mature();
 }
 
 // ------------------------------------------------------------------
@@ -922,6 +930,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(RiMethod_1uniqueConcreteMethod)},
   {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(getRiMethod)},
   {CC"RiMethod_methodData",               CC"("RESOLVED_METHOD")"METHOD_DATA,         FN_PTR(RiMethod_1methodData)},
+  {CC"HotSpotMethodData_isMature",        CC"("METHOD_DATA")Z",                       FN_PTR(HotSpotMethodData_1isMature)},
   {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
   {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
   {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(RiSignature_1lookupType)},
