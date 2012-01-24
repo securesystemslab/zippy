@@ -127,7 +127,7 @@ bool CodeHeap::reserve(size_t reserved_size, size_t committed_size,
   assert(_number_of_reserved_segments >= _number_of_committed_segments, "just checking");
 
   // reserve space for _segmap
-  if (!_segmap.initialize(align_to_page_size(_number_of_reserved_segments), align_to_page_size(_number_of_committed_segments))) {
+  if (!_segmap.initialize(align_to_allocation_size(_number_of_reserved_segments), align_to_allocation_size(_number_of_committed_segments))) {
     return false;
   }
   assert(_segmap.committed_size() >= (size_t) _number_of_committed_segments, "could not commit  enough space for segment map");

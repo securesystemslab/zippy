@@ -68,6 +68,7 @@ void graal_compute_offsets();
     int_field(HotSpotMethodResolved, maxLocals)                                         \
     int_field(HotSpotMethodResolved, maxStackSize)                                      \
     boolean_field(HotSpotMethodResolved, canBeInlined)                                  \
+    oop_field(HotSpotMethodResolved, callback, "Lcom/oracle/max/cri/ci/CiGenericCallback;") \
   end_class                                                                             \
   start_class(HotSpotType)                                                              \
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \
