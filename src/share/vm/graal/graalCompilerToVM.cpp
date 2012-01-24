@@ -192,6 +192,9 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
     return NULL;
   } else {
     Handle graalMethodData = GraalCompiler::createHotSpotMethodData(method_data, THREAD);
+    tty->print_cr("--------");
+    method_data->print_on(tty);
+    tty->print_cr("--------");
     return JNIHandles::make_local(THREAD, graalMethodData());
   }
 }
@@ -767,7 +770,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
   set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
   set_int(env, config, "klassModifierFlagsOffset", Klass::modifier_flags_offset_in_bytes() + sizeof(oopDesc));
-  set_int(env, config, "klassOopGraalMirrorOffset", klassOopDesc::klass_part_offset_in_bytes() + Klass::java_mirror_offset_in_bytes());
+  set_int(env, config, "graalMirrorKlassOffset", klassOopDesc::klass_part_offset_in_bytes() + Klass::graal_mirror_offset_in_bytes());
   set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
 
   set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());

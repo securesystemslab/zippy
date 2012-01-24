@@ -47,7 +47,7 @@ define_pd_global(intx, OnStackReplacePercentage,     933  );
 define_pd_global(intx, FreqInlineSize,               325  );
 define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
 define_pd_global(intx, InitialCodeCacheSize,         4*M);      // changed for GRAAL
-define_pd_global(intx, ReservedCodeCacheSize,        50*M );    // changed for GRAAL
+define_pd_global(intx, ReservedCodeCacheSize,        48*M );    // changed for GRAAL
 define_pd_global(bool, ProfileInterpreter,           true );    // changed for GRAAL
 define_pd_global(intx, CodeCacheExpansionSize,       64*K );    // changed for GRAAL
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);        // changed for GRAAL

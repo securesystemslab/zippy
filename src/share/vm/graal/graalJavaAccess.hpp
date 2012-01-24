@@ -71,7 +71,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotMethodData)                                                        \
     oop_field(HotSpotMethodData, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;")   \
-    oop_field(HotSpotMethodData, javaMirror, "Ljava/lang/Object;")                      \
+    oop_field(HotSpotMethodData, hotspotMirror, "Ljava/lang/Object;")                   \
     int_field(HotSpotMethodData, normalDataSize)                                        \
     int_field(HotSpotMethodData, extraDataSize)                                         \
   end_class                                                                             \

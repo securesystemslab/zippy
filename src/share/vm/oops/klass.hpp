@@ -386,6 +386,7 @@ class Klass : public Klass_vtbl {
   static int secondary_super_cache_offset_in_bytes() { return offset_of(Klass, _secondary_super_cache); }
   static int secondary_supers_offset_in_bytes() { return offset_of(Klass, _secondary_supers); }
   static int java_mirror_offset_in_bytes()   { return offset_of(Klass, _java_mirror); }
+  static int graal_mirror_offset_in_bytes()  { return offset_of(Klass, _graal_mirror); }
   static int modifier_flags_offset_in_bytes(){ return offset_of(Klass, _modifier_flags); }
   static int layout_helper_offset_in_bytes() { return offset_of(Klass, _layout_helper); }
   static int access_flags_offset_in_bytes()  { return offset_of(Klass, _access_flags); }
