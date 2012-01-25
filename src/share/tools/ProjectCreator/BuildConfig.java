@@ -69,7 +69,7 @@ class BuildConfig {
             outDir = value;
         }
         if (!build.equals("product")) {
-            outDir += Util.sep + "fastdebug";
+            outDir += Util.sep + build;
         }
         outDir += Util.sep + "jre" + Util.sep + "bin";
         if (flavour.equals("compiler1")) {
