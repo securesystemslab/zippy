@@ -27,7 +27,6 @@ from outputparser import OutputParser, Matcher
 import re
 import mx
 import os
-import commands
 from os.path import isfile, join, exists
 
 dacapoSanityWarmup = {
