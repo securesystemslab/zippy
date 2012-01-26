@@ -425,9 +425,11 @@ void before_exit(JavaThread * thread) {
   #define BEFORE_EXIT_DONE    2
   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
 
+#ifdef GRAAL
   if (UseGraal) {
     GraalCompiler::instance()->exit();
   }
+#endif
 
   // Note: don't use a Mutex to guard the entire before_exit(), as
   // JVMTI post_thread_end_event and post_vm_death_event will run native code.
