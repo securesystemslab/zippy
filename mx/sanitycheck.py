@@ -66,7 +66,7 @@ dacapoGateBuildLevels = {
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
-def getSPECjvm2008(benchArgs = None, skipKitValidation=False, warmupTime=None, iterationTime=None):
+def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, iterationTime=None):
     
     specjvm2008 = mx.get_env('SPECJVM2008')
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
