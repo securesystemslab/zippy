@@ -550,7 +550,7 @@ def bench(args):
         benchmarks += sanitycheck.getBootstraps()
     #SPECjvm2008
     if ('specjvm2008' in args or 'all' in args):
-        benchmarks += [sanitycheck.getSPECjvm2008(None, True, 120, 120)]
+        benchmarks += [sanitycheck.getSPECjvm2008([], True, 120, 120)]
     else:
         specjvms = [a[12:] for a in args if a.startswith('specjvm2008:')]
         for specjvm in specjvms:
