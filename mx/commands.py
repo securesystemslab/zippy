@@ -538,12 +538,23 @@ def bench(args):
     #DaCapo
     if ('dacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
+    else:
+        dacapos = [a[7:] for a in args if a.startswith('dacapo:')]
+        for dacapo in dacapos:
+            if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
+                mx.abort('Unknown dacapo : ' + dacapo)
+            benchmarks += [sanitycheck.getDacapo(dacapo, sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+        
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):
         benchmarks += sanitycheck.getBootstraps()
     #SPECjvm2008
     if ('specjvm2008' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjvm2008(None, True, 120, 120)]
+    else:
+        specjvms = [a[12:] for a in args if a.startswith('specjvm2008:')]
+        for specjvm in specjvms:
+            benchmarks += [sanitycheck.getSPECjvm2008([specjvm], True, 120, 120)]
     
     for test in benchmarks:
         if not results.has_key(test.group):
