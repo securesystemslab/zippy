@@ -161,6 +161,9 @@ class Test:
         result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
         
         parsedLines = result['parsed']
+        if len(parsedLines) == 0:
+            return False
+        
         assert len(parsedLines) == 1, 'Test matchers should not return more than one line'
         
         parsed = parsedLines[0]
@@ -174,7 +177,7 @@ class Test:
             os.unlink(parsed['jvmError'])
             return False
         
-        if parsed.has_key('failed') and parsed['failed'] is 1:
+        if parsed.has_key('failed') and parsed['failed'] is '1':
             return False
         
         return result['retcode'] is 0 and parsed.has_key('passed') and parsed['passed'] is '1'
@@ -187,6 +190,8 @@ class Test:
             cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
         
+        for successRE in self.successREs:
+            parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
         for failureRE in self.failureREs:
             parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
         for scoreMatcher in self.scoreMatchers:
@@ -194,16 +199,23 @@ class Test:
             
         result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
         if result['retcode'] is not 0:
-            return {}
+            mx.abort("Benchmark failed (non-zero retcode)")
         
         parsed = result['parsed']
         
         ret = {}
         
+        passed = False;
+        
         for line in parsed:
-            assert line.has_key('name') and line.has_key('score')
-            if line.has_key('failed') and parsed['failed'] is 1:
-                return {}
+            assert (line.has_key('name') and line.has_key('score')) or line.has_key('passed')
+            if line.has_key('failed') and line['failed'] is '1':
+                mx.abort("Benchmark failed")
+            if line.has_key('passed') and line['passed'] is '1':
+                passed = True
             ret[line['name']] = line['score']
+        
+        if not passed:
+            mx.abort("Benchmark failed (not passed)")
         
         return ret
