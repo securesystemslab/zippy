@@ -369,6 +369,7 @@ def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, tim
     """run the GraalVM"""
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
+    mx.expand_project_in_args(args)  
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
@@ -508,7 +509,7 @@ def gate(args):
     total.stop()
 
 def bench(args):
-    """run benchmarks and parse their ouput for results
+    """run benchmarks and parse their output for results
 
     Results are JSON formated : {group : {benchmark : score}}."""
     resultFile = None
