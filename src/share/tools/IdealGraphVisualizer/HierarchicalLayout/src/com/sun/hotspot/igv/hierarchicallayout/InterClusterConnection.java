@@ -46,7 +46,7 @@ public class InterClusterConnection implements Link {
         this.inputSlotNode = inputSlotNode;
         this.inputSlot = inputSlotNode.getInputSlot();
         this.outputSlot = outputSlotNode.getOutputSlot();
-        intermediatePoints = new ArrayList<Point>();
+        intermediatePoints = new ArrayList<>();
     }
 
     public ClusterOutputSlotNode getOutputSlotNode() {

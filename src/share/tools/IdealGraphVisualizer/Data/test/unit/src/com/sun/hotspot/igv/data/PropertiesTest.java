@@ -246,7 +246,7 @@ public class PropertiesTest extends TestCase {
      * Test property selector
      */
     public void testPropertySelector() {
-        final Collection<Properties.Entity> c = new ArrayList<Properties.Entity>();
+        final Collection<Properties.Entity> c = new ArrayList<>();
 
         final Properties.Entity e1 = new Properties.Entity();
         e1.getProperties().setProperty("p1", "1");
@@ -264,7 +264,7 @@ public class PropertiesTest extends TestCase {
         e3.getProperties().setProperty("p4", "4");
         c.add(e3);
 
-        final PropertySelector<Properties.Entity> sel = new PropertySelector<Properties.Entity>(c);
+        final PropertySelector<Properties.Entity> sel = new PropertySelector<>(c);
 
         final StringPropertyMatcher matcher1 = new StringPropertyMatcher("p2", "2");
         assertTrue(sel.selectMultiple(matcher1).size() == 2);

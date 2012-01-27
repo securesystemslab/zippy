@@ -33,6 +33,8 @@ import java.util.Set;
 public interface Cluster extends Comparable<Cluster> {
 
     public Cluster getOuter();
+    
+    public Rectangle getBounds();
 
     public void setBounds(Rectangle r);
 

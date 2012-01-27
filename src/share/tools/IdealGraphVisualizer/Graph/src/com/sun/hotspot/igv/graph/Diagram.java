@@ -65,8 +65,8 @@ public class Diagram {
     }
     
     private Diagram() {
-        figures = new ArrayList<Figure>();
-        blocks = new LinkedHashMap<InputBlock, Block>(8);
+        figures = new ArrayList<>();
+        blocks = new LinkedHashMap<>(8);
         this.nodeText = "";
         this.font = new Font("Arial", Font.PLAIN, 13);
         this.slotFont = new Font("Arial", Font.PLAIN, 10);
@@ -119,7 +119,7 @@ public class Diagram {
     }
     
     public Map<InputNode, Set<Figure>> calcSourceToFigureRelation() {
-        Map<InputNode, Set<Figure>> map = new HashMap<InputNode, Set<Figure>>();
+        Map<InputNode, Set<Figure>> map = new HashMap<>();
         
         for(InputNode node : this.getGraph().getNodes()) {
             map.put(node, new HashSet<Figure>());
@@ -146,7 +146,7 @@ public class Diagram {
         d.updateBlocks();
 
         Collection<InputNode> nodes = graph.getNodes();
-        Hashtable<Integer, Figure> figureHash = new Hashtable<Integer, Figure>();
+        Hashtable<Integer, Figure> figureHash = new Hashtable<>();
         for (InputNode n : nodes) {
             Figure f = d.createFigure();
             f.getSource().addSourceNode(n);
@@ -194,7 +194,7 @@ public class Diagram {
             freeFigure(f);
         }
 
-        ArrayList<Figure> newFigures = new ArrayList<Figure>();
+        ArrayList<Figure> newFigures = new ArrayList<>();
         for (Figure f : this.figures) {
             if (!figuresToRemove.contains(f)) {
                 newFigures.add(f);
@@ -205,12 +205,12 @@ public class Diagram {
 
     private void freeFigure(Figure succ) {
 
-        List<InputSlot> inputSlots = new ArrayList<InputSlot>(succ.getInputSlots());
+        List<InputSlot> inputSlots = new ArrayList<>(succ.getInputSlots());
         for (InputSlot s : inputSlots) {
             succ.removeInputSlot(s);
         }
 
-        List<OutputSlot> outputSlots = new ArrayList<OutputSlot>(succ.getOutputSlots());
+        List<OutputSlot> outputSlots = new ArrayList<>(succ.getOutputSlots());
         for (OutputSlot s : outputSlots) {
             succ.removeOutputSlot(s);
         }
@@ -239,7 +239,7 @@ public class Diagram {
 
     public Set<Connection> getConnections() {
 
-        Set<Connection> connections = new HashSet<Connection>();
+        Set<Connection> connections = new HashSet<>();
         for (Figure f : figures) {
 
             for (InputSlot s : f.getInputSlots()) {
@@ -251,7 +251,7 @@ public class Diagram {
     }
 
     public Figure getRootFigure() {
-        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<Figure>(figures);
+        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(figures);
         Figure root = selector.selectSingle(new StringPropertyMatcher("name", "Root"));
         if (root == null) {
             root = selector.selectSingle(new StringPropertyMatcher("name", "Start"));
@@ -278,7 +278,7 @@ public class Diagram {
         System.out.println("Number of figures: " + tmpFigures.size());
         System.out.println("Number of connections: " + connections.size());
 
-        List<Figure> figuresSorted = new ArrayList<Figure>(tmpFigures);
+        List<Figure> figuresSorted = new ArrayList<>(tmpFigures);
         Collections.sort(figuresSorted, new Comparator<Figure>() {
 
             public int compare(Figure a, Figure b) {
@@ -303,7 +303,7 @@ public class Diagram {
     }
 
     public List<Figure> getRootFigures() {
-        ArrayList<Figure> rootFigures = new ArrayList<Figure>();
+        ArrayList<Figure> rootFigures = new ArrayList<>();
         for (Figure f : figures) {
             if (f.getPredecessors().size() == 0) {
                 rootFigures.add(f);

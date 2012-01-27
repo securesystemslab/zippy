@@ -42,13 +42,13 @@ public class Graph<N, E> {
     private List<Node<N, E>> nodeList;
 
     public Graph() {
-        nodes = new HashMap<Object, Node<N, E>>();
-        edges = new HashMap<Object, Edge<N, E>>();
-        nodeList = new ArrayList<Node<N, E>>();
+        nodes = new HashMap<>();
+        edges = new HashMap<>();
+        nodeList = new ArrayList<>();
     }
 
     public Node<N, E> createNode(N data, Object key) {
-        Node<N, E> n = new Node<N, E>(this, data);
+        Node<N, E> n = new Node<>(this, data);
         assert key == null || !nodes.containsKey(key);
         if (key != null) {
             nodes.put(key, n);
@@ -58,7 +58,7 @@ public class Graph<N, E> {
     }
 
     public Edge<N, E> createEdge(Node<N, E> source, Node<N, E> dest, E data, Object key) {
-        Edge<N, E> e = new Edge<N, E>(this, source, dest, data);
+        Edge<N, E> e = new Edge<>(this, source, dest, data);
         source.addOutEdge(e);
         dest.addInEdge(e);
         if (key != null) {
@@ -114,7 +114,7 @@ public class Graph<N, E> {
 
     public List<Node<N, E>> getNodesWithInDegree(int x, boolean countSelfLoops) {
 
-        List<Node<N, E>> result = new ArrayList<Node<N, E>>();
+        List<Node<N, E>> result = new ArrayList<>();
         for (Node<N, E> n : getNodes()) {
             if (n.getInDegree(countSelfLoops) == x) {
                 result.add(n);
@@ -126,7 +126,7 @@ public class Graph<N, E> {
     }
 
     private void markReachable(Node<N, E> startingNode) {
-        ArrayList<Node<N, E>> arr = new ArrayList<Node<N, E>>();
+        ArrayList<Node<N, E>> arr = new ArrayList<>();
         arr.add(startingNode);
         for (Node<N, E> n : getNodes()) {
             n.setReachable(false);
@@ -151,7 +151,7 @@ public class Graph<N, E> {
             n.setActive(false);
         }
 
-        Queue<Node<N, E>> queue = new LinkedList<Node<N, E>>();
+        Queue<Node<N, E>> queue = new LinkedList<>();
         queue.add(startingNode);
         startingNode.setVisited(true);
         int layer = 0;

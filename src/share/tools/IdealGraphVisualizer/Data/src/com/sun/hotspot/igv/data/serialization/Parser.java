@@ -186,7 +186,7 @@ public class Parser {
         }
     };
     // <inlined>
-    private HandoverElementHandler<InputMethod> inlinedHandler = new XMLParser.HandoverElementHandler<InputMethod>(INLINE_ELEMENT);
+    private HandoverElementHandler<InputMethod> inlinedHandler = new XMLParser.HandoverElementHandler<>(INLINE_ELEMENT);
     // <inlined><method>
     private ElementHandler<InputMethod, InputMethod> inlinedMethodHandler = new XMLParser.ElementHandler<InputMethod, InputMethod>(METHOD_ELEMENT) {
 
@@ -281,9 +281,9 @@ public class Parser {
         }
     };
     // <nodes>
-    private HandoverElementHandler<InputGraph> nodesHandler = new HandoverElementHandler<InputGraph>(NODES_ELEMENT);
+    private HandoverElementHandler<InputGraph> nodesHandler = new HandoverElementHandler<>(NODES_ELEMENT);
     // <controlFlow>
-    private HandoverElementHandler<InputGraph> controlFlowHandler = new HandoverElementHandler<InputGraph>(CONTROL_FLOW_ELEMENT);
+    private HandoverElementHandler<InputGraph> controlFlowHandler = new HandoverElementHandler<>(CONTROL_FLOW_ELEMENT);
     // <block>
     private ElementHandler<InputBlock, InputGraph> blockHandler = new ElementHandler<InputBlock, InputGraph>(BLOCK_ELEMENT) {
 
@@ -299,7 +299,7 @@ public class Parser {
         }
     };
     // <nodes>
-    private HandoverElementHandler<InputBlock> blockNodesHandler = new HandoverElementHandler<InputBlock>(NODES_ELEMENT);
+    private HandoverElementHandler<InputBlock> blockNodesHandler = new HandoverElementHandler<>(NODES_ELEMENT);
     // <node>
     private ElementHandler<InputBlock, InputBlock> blockNodeHandler = new ElementHandler<InputBlock, InputBlock>(NODE_ELEMENT) {
 
@@ -318,14 +318,14 @@ public class Parser {
         }
     };
     // <successors>
-    private HandoverElementHandler<InputBlock> successorsHandler = new HandoverElementHandler<InputBlock>(SUCCESSORS_ELEMENT);
+    private HandoverElementHandler<InputBlock> successorsHandler = new HandoverElementHandler<>(SUCCESSORS_ELEMENT);
     // <successor>
     private ElementHandler<InputBlock, InputBlock> successorHandler = new ElementHandler<InputBlock, InputBlock>(SUCCESSOR_ELEMENT) {
 
         @Override
         protected InputBlock start() throws SAXException {
             String name = readRequiredAttribute(BLOCK_NAME_PROPERTY);
-            blockConnections.add(new Pair<String, String>(getParentObject().getName(), name));
+            blockConnections.add(new Pair<>(getParentObject().getName(), name));
             return getParentObject();
         }
     };
@@ -362,7 +362,7 @@ public class Parser {
         }
     };
     // <graph>
-    private HandoverElementHandler<InputGraph> edgesHandler = new HandoverElementHandler<InputGraph>(EDGES_ELEMENT);
+    private HandoverElementHandler<InputGraph> edgesHandler = new HandoverElementHandler<>(EDGES_ELEMENT);
 
     // Local class for edge elements
     private class EdgeElementHandler extends ElementHandler<InputEdge, InputGraph> {
@@ -428,7 +428,7 @@ public class Parser {
         }
     };
     // <properties>
-    private HandoverElementHandler<Properties.Provider> propertiesHandler = new HandoverElementHandler<Properties.Provider>(PROPERTIES_ELEMENT);
+    private HandoverElementHandler<Properties.Provider> propertiesHandler = new HandoverElementHandler<>(PROPERTIES_ELEMENT);
     // <properties>
     private HandoverElementHandler<Group> groupPropertiesHandler = new HandoverElementHandler<Group>(PROPERTIES_ELEMENT) {
 

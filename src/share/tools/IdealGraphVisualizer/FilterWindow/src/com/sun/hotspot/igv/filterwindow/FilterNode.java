@@ -69,7 +69,7 @@ public class FilterNode extends CheckNode implements LookupListener, ChangedList
 
         update();
 
-        Lookup.Template<FilterChain> tpl = new Lookup.Template<FilterChain>(FilterChain.class);
+        Lookup.Template<FilterChain> tpl = new Lookup.Template<>(FilterChain.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
         result.addLookupListener(this);
 

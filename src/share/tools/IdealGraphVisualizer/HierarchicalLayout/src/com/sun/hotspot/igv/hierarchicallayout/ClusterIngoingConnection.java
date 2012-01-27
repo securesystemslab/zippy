@@ -44,7 +44,7 @@ public class ClusterIngoingConnection implements Link {
     public ClusterIngoingConnection(ClusterInputSlotNode inputSlotNode, Link c) {
         this.inputSlotNode = inputSlotNode;
         this.connection = c;
-        this.controlPoints = new ArrayList<Point>();
+        this.controlPoints = new ArrayList<>();
 
         inputSlot = c.getTo();
         outputSlot = inputSlotNode.getOutputSlot();

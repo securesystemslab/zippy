@@ -67,17 +67,21 @@ public class BlockWidget extends LabelWidget implements Vertex {
 
         final BlockWidget widget = this;
         inputSlot = new Port() {
+            @Override
             public Point getRelativePosition() {
                 return new Point((int) (getSize().getWidth() / 2), (int) (getSize().getHeight() / 2));
             }
+            @Override
             public Vertex getVertex() {
                 return widget;
             }
         };
         outputSlot = new Port() {
+            @Override
             public Point getRelativePosition() {
                 return new Point((int) (getSize().getWidth() / 2), (int) (getSize().getHeight() / 2));
             }
+            @Override
             public Vertex getVertex() {
                 return widget;
             }

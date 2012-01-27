@@ -53,7 +53,7 @@ public class Block implements Cluster {
     }
 
     public Set<? extends Cluster> getSuccessors() {
-        Set<Block> succs = new HashSet<Block>();
+        Set<Block> succs = new HashSet<>();
         for (InputBlock b : inputBlock.getSuccessors()) {
             succs.add(diagram.getBlock(b));
         }

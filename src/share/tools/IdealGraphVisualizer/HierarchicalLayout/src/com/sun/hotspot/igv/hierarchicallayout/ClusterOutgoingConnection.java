@@ -44,7 +44,7 @@ public class ClusterOutgoingConnection implements Link {
     public ClusterOutgoingConnection(ClusterOutputSlotNode outputSlotNode, Link c) {
         this.outputSlotNode = outputSlotNode;
         this.connection = c;
-        this.intermediatePoints = new ArrayList<Point>();
+        this.intermediatePoints = new ArrayList<>();
 
         outputSlot = c.getFrom();
         inputSlot = outputSlotNode.getInputSlot();

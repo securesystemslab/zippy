@@ -46,7 +46,7 @@ public class CombineFilter extends AbstractFilter {
 
     public CombineFilter(String name) {
         this.name = name;
-        rules = new ArrayList<CombineRule>();
+        rules = new ArrayList<>();
     }
 
     public String getName() {
@@ -55,14 +55,14 @@ public class CombineFilter extends AbstractFilter {
 
     public void apply(Diagram diagram) {
 
-        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<Figure>(diagram.getFigures());
+        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(diagram.getFigures());
         for (CombineRule r : rules) {
 
             List<Figure> list = selector.selectMultiple(r.getFirstMatcher());
-            Set<Figure> figuresToRemove = new HashSet<Figure>();
+            Set<Figure> figuresToRemove = new HashSet<>();
             for (Figure f : list) {
 
-                List<Figure> successors = new ArrayList<Figure>(f.getSuccessors());
+                List<Figure> successors = new ArrayList<>(f.getSuccessors());
                 if (r.isReversed()) {
                     if (successors.size() == 1) {
                         Figure succ = successors.get(0);

@@ -40,7 +40,7 @@ public class MatcherSelector implements Selector {
     }
 
     public List<Figure> selected(Diagram d) {
-        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<Figure>(d.getFigures());
+        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(d.getFigures());
         List<Figure> list = selector.selectMultiple(matcher);
         return list;
     }

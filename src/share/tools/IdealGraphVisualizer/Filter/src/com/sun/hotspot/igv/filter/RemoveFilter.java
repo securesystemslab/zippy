@@ -42,7 +42,7 @@ public class RemoveFilter extends AbstractFilter {
 
     public RemoveFilter(String name) {
         this.name = name;
-        rules = new ArrayList<RemoveRule>();
+        rules = new ArrayList<>();
     }
 
     public String getName() {
@@ -52,7 +52,7 @@ public class RemoveFilter extends AbstractFilter {
     public void apply(Diagram diagram) {
         for (RemoveRule r : rules) {
             List<Figure> selected = r.getSelector().selected(diagram);
-            Set<Figure> toRemove = new HashSet<Figure>(selected);
+            Set<Figure> toRemove = new HashSet<>(selected);
 
             if (r.getRemoveOrphans()) {
                 boolean changed;

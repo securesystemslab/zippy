@@ -55,7 +55,7 @@ public class UnconnectedSlotFilter extends AbstractFilter {
 
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {
-            List<Slot> remove = new ArrayList<Slot>();
+            List<Slot> remove = new ArrayList<>();
             if (removeInputs) {
                 for (InputSlot is : f.getInputSlots()) {
                     if (is.getConnections().isEmpty()) {

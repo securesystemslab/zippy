@@ -45,7 +45,7 @@ public class ColorFilter extends AbstractFilter {
 
     public ColorFilter(String name) {
         this.name = name;
-        colorRules = new ArrayList<ColorRule>();
+        colorRules = new ArrayList<>();
     }
 
     public String getName() {
@@ -54,7 +54,7 @@ public class ColorFilter extends AbstractFilter {
 
     public void apply(Diagram diagram) {
 
-        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<Figure>(diagram.getFigures());
+        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(diagram.getFigures());
         for (ColorRule rule : colorRules) {
             if (rule.getSelector() != null) {
                 List<Figure> figures = rule.getSelector().selected(diagram);

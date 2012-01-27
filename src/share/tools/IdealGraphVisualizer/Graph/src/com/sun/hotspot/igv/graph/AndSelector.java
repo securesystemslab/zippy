@@ -43,7 +43,7 @@ public class AndSelector implements Selector {
     public List<Figure> selected(Diagram d) {
         List<Figure> l1 = selector1.selected(d);
         List<Figure> l2 = selector2.selected(d);
-        List<Figure> result = new ArrayList<Figure>();
+        List<Figure> result = new ArrayList<>();
         for (Figure f : l2) {
             if (l1.contains(f)) {
                 result.add(f);

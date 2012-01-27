@@ -42,7 +42,7 @@ public class FilterSetting {
 
     public FilterSetting(String name) {
         this.name = name;
-        filters = new HashSet<Filter>();
+        filters = new HashSet<>();
     }
 
     public Set<Filter> getFilters() {

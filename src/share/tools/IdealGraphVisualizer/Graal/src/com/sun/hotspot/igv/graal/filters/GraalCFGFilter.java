@@ -39,8 +39,8 @@ public class GraalCFGFilter extends AbstractFilter {
     }
 
     public void apply(Diagram d) {
-        Set<Figure> figuresToRemove = new HashSet<Figure>();
-        Set<Connection> connectionsToRemove = new HashSet<Connection>();
+        Set<Figure> figuresToRemove = new HashSet<>();
+        Set<Connection> connectionsToRemove = new HashSet<>();
         for (Figure f : d.getFigures()) {
             final String prop = f.getProperties().get("probability");
             

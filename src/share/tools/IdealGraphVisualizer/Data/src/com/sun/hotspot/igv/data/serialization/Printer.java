@@ -111,8 +111,8 @@ public class Printer {
         writer.writeProperties(graph.getProperties());
         writer.startTag(Parser.NODES_ELEMENT);
 
-        Set<InputNode> removed = new HashSet<InputNode>();
-        Set<InputNode> equal = new HashSet<InputNode>();
+        Set<InputNode> removed = new HashSet<>();
+        Set<InputNode> equal = new HashSet<>();
 
         if (previous != null) {
             for (InputNode n : previous.getNodes()) {
@@ -143,8 +143,8 @@ public class Printer {
         writer.endTag();
 
         writer.startTag(Parser.EDGES_ELEMENT);
-        Set<InputEdge> removedEdges = new HashSet<InputEdge>();
-        Set<InputEdge> equalEdges = new HashSet<InputEdge>();
+        Set<InputEdge> removedEdges = new HashSet<>();
+        Set<InputEdge> equalEdges = new HashSet<>();
 
         if (previous != null) {
             for (InputEdge e : previous.getEdges()) {

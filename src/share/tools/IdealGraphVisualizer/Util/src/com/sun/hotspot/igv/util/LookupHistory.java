@@ -36,7 +36,7 @@ import org.openide.util.Utilities;
  */
 public class LookupHistory {
 
-    private static Map<Class, LookupHistoryImpl> cache = new HashMap<Class, LookupHistoryImpl>();
+    private static Map<Class, LookupHistoryImpl> cache = new HashMap<>();
 
     private static class LookupHistoryImpl<T> implements LookupListener {
 
@@ -65,7 +65,7 @@ public class LookupHistory {
 
     public static <T> void init(Class<T> klass) {
         if (!cache.containsKey(klass)) {
-            cache.put(klass, new LookupHistoryImpl<T>(klass));
+            cache.put(klass, new LookupHistoryImpl<>(klass));
         }
     }
 

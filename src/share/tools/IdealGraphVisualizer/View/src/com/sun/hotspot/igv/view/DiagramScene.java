@@ -27,9 +27,8 @@ import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.services.Scheduler;
 import com.sun.hotspot.igv.graph.*;
-import com.sun.hotspot.igv.hierarchicallayout.HierarchicalClusterLayoutManager;
 import com.sun.hotspot.igv.hierarchicallayout.HierarchicalLayoutManager;
-import com.sun.hotspot.igv.hierarchicallayout.OldHierarchicalLayoutManager;
+import com.sun.hotspot.igv.layout.Cluster;
 import com.sun.hotspot.igv.layout.LayoutGraph;
 import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.ColorIcon;
@@ -165,6 +164,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
 
 
+    @Override
     public void centerFigures(List<Figure> list) {
 
         boolean b = getUndoRedoEnabled();
@@ -174,7 +174,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
 
     private Set<Object> getObjectsFromIdSet(Set<Object> set) {
-        Set<Object> selectedObjects = new HashSet<Object>();
+        Set<Object> selectedObjects = new HashSet<>();
         for (Figure f : getModel().getDiagramToView().getFigures()) {
             if (intersects(f.getSource().getSourceNodesAsSet(), set)) {
                 selectedObjects.add(f);
@@ -197,6 +197,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     };
     private ControllableChangedListener<SelectionCoordinator> selectedCoordinatorListener = new ControllableChangedListener<SelectionCoordinator>() {
 
+        @Override
         public void filteredChanged(SelectionCoordinator source) {
             DiagramScene.this.gotoSelection(source.getSelectedObjects());
             DiagramScene.this.validate();
@@ -205,6 +206,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
     private RectangularSelectProvider rectangularSelectProvider = new RectangularSelectProvider() {
 
+        @Override
         public void performSelection(Rectangle rectangle) {
             if (rectangle.width < 0) {
                 rectangle.x += rectangle.width;
@@ -216,7 +218,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 rectangle.height *= -1;
             }
 
-            Set<Object> selectedObjects = new HashSet<Object>();
+            Set<Object> selectedObjects = new HashSet<>();
             for (Figure f : getModel().getDiagramToView().getFigures()) {
                 FigureWidget w = getWidget(f);
                 if (w != null) {
@@ -247,6 +249,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
     private MouseWheelListener mouseWheelListener = new MouseWheelListener() {
 
+        @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
             if (e.isControlDown()) {
                 DiagramScene.this.relayoutWithoutLayout(null);
@@ -296,7 +299,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
             content.set(newSet, null);
 
-            Set<Integer> nodeSelection = new HashSet<Integer>();
+            Set<Integer> nodeSelection = new HashSet<>();
             for (Object o : newSet) {
                 if (o instanceof Properties.Provider) {
                     final Properties.Provider provider = (Properties.Provider) o;
@@ -330,7 +333,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
 
         public void highlightingChanged(ObjectSceneEvent e, Set<Object> oldSet, Set<Object> newSet) {
-            Set<Integer> nodeHighlighting = new HashSet<Integer>();
+            Set<Integer> nodeHighlighting = new HashSet<>();
             for (Object o : newSet) {
                 if (o instanceof Figure) {
                     nodeHighlighting.addAll(((Figure) o).getSource().getSourceNodesAsSet());
@@ -345,7 +348,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
 
         public void hoverChanged(ObjectSceneEvent e, Object oldObject, Object newObject) {
-            Set<Object> newHighlightedObjects = new HashSet<Object>(DiagramScene.this.getHighlightedObjects());
+            Set<Object> newHighlightedObjects = new HashSet<>(DiagramScene.this.getHighlightedObjects());
             if (oldObject != null) {
                 newHighlightedObjects.remove(oldObject);
             }
@@ -485,7 +488,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         
         rebuilding = true;
 
-        Collection<Object> objects = new ArrayList<Object>(this.getObjects());
+        Collection<Object> objects = new ArrayList<>(this.getObjects());
         for (Object o : objects) {
             this.removeObject(o);
         }
@@ -569,7 +572,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         Diagram diagram = getModel().getDiagramToView();
 
-        HashSet<Figure> figures = new HashSet<Figure>();
+        HashSet<Figure> figures = new HashSet<>();
 
         for (Figure f : diagram.getFigures()) {
             FigureWidget w = getWidget(f);
@@ -578,7 +581,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             }
         }
 
-        HashSet<Connection> edges = new HashSet<Connection>();
+        HashSet<Connection> edges = new HashSet<>();
 
         for (Connection c : diagram.getConnections()) {
             if (isVisible(c)) {
@@ -586,24 +589,28 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             }
         }
 
+        HierarchicalLayoutManager manager = new HierarchicalLayoutManager(HierarchicalLayoutManager.Combine.SAME_OUTPUTS);
+        manager.setMaxLayerLength(10);
+        manager.doLayout(new LayoutGraph(edges, figures));
+        
+        
         if (getModel().getShowBlocks()) {
-            HierarchicalClusterLayoutManager m = new HierarchicalClusterLayoutManager(OldHierarchicalLayoutManager.Combine.SAME_OUTPUTS);
-            HierarchicalLayoutManager manager = new HierarchicalLayoutManager(HierarchicalLayoutManager.Combine.SAME_OUTPUTS);
-            manager.setMaxLayerLength(9);
-            manager.setMinLayerDifference(3);
-            m.setManager(manager);
-            m.setSubManager(new HierarchicalLayoutManager(HierarchicalLayoutManager.Combine.SAME_OUTPUTS));
-            m.doLayout(new LayoutGraph(edges, figures));
-
-        } else {
-            HierarchicalLayoutManager manager = new HierarchicalLayoutManager(HierarchicalLayoutManager.Combine.SAME_OUTPUTS);
-            manager.setMaxLayerLength(10);
-            manager.doLayout(new LayoutGraph(edges, figures));
+            for (Figure f : diagram.getFigures()) {
+                Cluster c = f.getCluster();
+                Rectangle r = c.getBounds();
+                Rectangle figureBounds = f.getBounds();
+                figureBounds.grow(BORDER_SIZE, BORDER_SIZE);
+                if (r != null) {
+                    figureBounds.add(r);
+                }
+                c.setBounds(figureBounds);
+            }
         }
+        
 
         relayoutWithoutLayout(oldVisibleWidgets);
     }
-    private Set<Pair<Point, Point>> lineCache = new HashSet<Pair<Point, Point>>();
+    private Set<Pair<Point, Point>> lineCache = new HashSet<>();
 
     private void relayoutWithoutLayout(Set<Widget> oldVisibleWidgets) {
 
@@ -642,8 +649,12 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 BlockWidget w = getWidget(b.getInputBlock());
                 if (w != null && w.isVisible()) {
                     Rectangle r = b.getBounds();
-                    maxX = Math.max(maxX, r.x + r.width);
-                    maxY = Math.max(maxY, r.y + r.height);
+                    if (r == null) {
+                        w.setVisible(false);
+                    } else {
+                        maxX = Math.max(maxX, r.x + r.width);
+                        maxY = Math.max(maxY, r.y + r.height);
+                    }
                 }
             }
         }
@@ -679,7 +690,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
 
         Set<Pair<Point, Point>> lastLineCache = lineCache;
-        lineCache = new HashSet<Pair<Point, Point>>();
+        lineCache = new HashSet<>();
         for (Figure f : diagram.getFigures()) {
             for (OutputSlot s : f.getOutputSlots()) {
                 SceneAnimator anim = animator;
@@ -726,7 +737,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private final Point specialNullPoint = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
 
     private void processOutputSlot(Set<Pair<Point, Point>> lastLineCache, OutputSlot s, List<Connection> connections, int controlPointIndex, Point lastPoint, LineWidget predecessor, int offx, int offy, SceneAnimator animator) {
-        Map<Point, List<Connection>> pointMap = new HashMap<Point, List<Connection>>(connections.size());
+        Map<Point, List<Connection>> pointMap = new HashMap<>(connections.size());
 
         for (Connection c : connections) {
 
@@ -751,7 +762,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             if (pointMap.containsKey(cur)) {
                 pointMap.get(cur).add(c);
             } else {
-                List<Connection> newList = new ArrayList<Connection>(2);
+                List<Connection> newList = new ArrayList<>(2);
                 newList.add(c);
                 pointMap.put(cur, newList);
             }
@@ -782,7 +793,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 Point p1 = new Point(lastPoint.x + offx, lastPoint.y + offy);
                 Point p2 = new Point(p.x + offx, p.y + offy);
 
-                Pair<Point, Point> curPair = new Pair<Point, Point>(p1, p2);
+                Pair<Point, Point> curPair = new Pair<>(p1, p2);
                 SceneAnimator curAnimator = animator;
                 if (lastLineCache.contains(curPair)) {
                     curAnimator = null;
@@ -811,7 +822,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         private Set<Connection> connections;
 
         public ConnectionSet(Collection<Connection> connections) {
-            connections = new HashSet<Connection>(connections);
+            connections = new HashSet<>(connections);
         }
 
         public Set<Connection> getConnectionSet() {
@@ -858,7 +869,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
     private Set<Object> idSetToObjectSet(Set<Object> ids) {
 
-        Set<Object> result = new HashSet<Object>();
+        Set<Object> result = new HashSet<>();
         for (Figure f : getModel().getDiagramToView().getFigures()) {
             if (DiagramScene.doesIntersect(f.getSource().getSourceNodesAsSet(), ids)) {
                 result.add(f);
@@ -876,7 +887,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     public void gotoSelection(Set<Object> ids) {
 
         Rectangle overall = null;
-        Set<Integer> hiddenNodes = new HashSet<Integer>(this.getModel().getHiddenNodes());
+        Set<Integer> hiddenNodes = new HashSet<>(this.getModel().getHiddenNodes());
         hiddenNodes.removeAll(ids);
         this.getModel().showNot(hiddenNodes);
 
@@ -945,7 +956,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
 
     public void setSelection(Collection<Figure> list) {
-        super.setSelectedObjects(new HashSet<Figure>(list));
+        super.setSelectedObjects(new HashSet<>(list));
     }
 
     private UndoRedo.Manager getUndoRedoManager() {
@@ -999,12 +1010,12 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private void updateHiddenNodes(Set<Integer> newHiddenNodes, boolean doRelayout) {
 
         System.out.println("newHiddenNodes: " + newHiddenNodes);
-        Set<InputBlock> visibleBlocks = new HashSet<InputBlock>();
+        Set<InputBlock> visibleBlocks = new HashSet<>();
 
         Diagram diagram = getModel().getDiagramToView();
         assert diagram != null;
 
-        Set<Widget> oldVisibleWidgets = new HashSet<Widget>();
+        Set<Widget> oldVisibleWidgets = new HashSet<>();
 
         for (Figure f : diagram.getFigures()) {
             FigureWidget w = getWidget(f);
@@ -1040,11 +1051,11 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
 
         if (getModel().getShowNodeHull()) {
-            List<FigureWidget> boundaries = new ArrayList<FigureWidget>();
+            List<FigureWidget> boundaries = new ArrayList<>();
             for (Figure f : diagram.getFigures()) {
                 FigureWidget w = getWidget(f);
                 if (!w.isVisible()) {
-                    Set<Figure> set = new HashSet<Figure>(f.getPredecessorSet());
+                    Set<Figure> set = new HashSet<>(f.getPredecessorSet());
                     set.addAll(f.getSuccessorSet());
 
                     boolean b = false;
@@ -1097,7 +1108,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
 
     private void showFigure(Figure f) {
-        HashSet<Integer> newHiddenNodes = new HashSet<Integer>(getModel().getHiddenNodes());
+        HashSet<Integer> newHiddenNodes = new HashSet<>(getModel().getHiddenNodes());
         newHiddenNodes.removeAll(f.getSource().getSourceNodesAsSet());
         updateHiddenNodes(newHiddenNodes, true);
     }
@@ -1107,7 +1118,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
 
     public void setSelectedObjects(Object... args) {
-        Set<Object> set = new HashSet<Object>();
+        Set<Object> set = new HashSet<>();
         for (Object o : args) {
             set.add(o);
         }

@@ -57,7 +57,7 @@ public class Connection implements Source.Provider, Link {
         this.label = label;
         this.inputSlot.connections.add(this);
         this.outputSlot.connections.add(this);
-        controlPoints = new ArrayList<Point>();
+        controlPoints = new ArrayList<>();
         Figure sourceFigure = this.outputSlot.getFigure();
         Figure destFigure = this.inputSlot.getFigure();
         sourceFigure.addSuccessor(destFigure);

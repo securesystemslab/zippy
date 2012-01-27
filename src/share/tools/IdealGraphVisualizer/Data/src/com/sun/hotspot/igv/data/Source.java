@@ -39,8 +39,8 @@ public class Source {
     private Set<Integer> set;
 
     public Source() {
-        sourceNodes = new ArrayList<InputNode>(1);
-        set = new LinkedHashSet<Integer>(1);
+        sourceNodes = new ArrayList<>(1);
+        set = new LinkedHashSet<>(1);
     }
 
     public List<InputNode> getSourceNodes() {

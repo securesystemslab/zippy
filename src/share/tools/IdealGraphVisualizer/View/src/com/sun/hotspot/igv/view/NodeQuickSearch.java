@@ -83,7 +83,7 @@ public class NodeQuickSearch implements SearchProvider {
             List<InputNode> matches = null;
             try {
                 RegexpPropertyMatcher matcher = new RegexpPropertyMatcher(name, value, Pattern.CASE_INSENSITIVE);
-                Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<InputNode>(p.getGraph().getNodes());
+                Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<>(p.getGraph().getNodes());
 
                 matches = selector.selectMultiple(matcher);
             } catch (Exception e) {
@@ -101,7 +101,7 @@ public class NodeQuickSearch implements SearchProvider {
             }
 
             if (matches != null) {
-                final Set<InputNode> set = new HashSet<InputNode>(matches);
+                final Set<InputNode> set = new HashSet<>(matches);
                 response.addResult(new Runnable() {
                         public void run() {
                             final EditorTopComponent comp = EditorTopComponent.getActive();
@@ -120,7 +120,7 @@ public class NodeQuickSearch implements SearchProvider {
                             public void run() {
                                 final EditorTopComponent comp = EditorTopComponent.getActive();
                                 if (comp != null) {
-                                    final Set<InputNode> tmpSet = new HashSet<InputNode>();
+                                    final Set<InputNode> tmpSet = new HashSet<>();
                                     tmpSet.add(n);
                                     comp.setSelectedNodes(tmpSet);
                                     comp.requestActive();

@@ -47,13 +47,13 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
     };
 
     public FilterChain() {
-        filters = new ArrayList<Filter>();
-        changedEvent = new ChangedEvent<FilterChain>(this);
+        filters = new ArrayList<>();
+        changedEvent = new ChangedEvent<>(this);
     }
 
     public FilterChain(FilterChain f) {
-        this.filters = new ArrayList<Filter>(f.filters);
-        changedEvent = new ChangedEvent<FilterChain>(this);
+        this.filters = new ArrayList<>(f.filters);
+        changedEvent = new ChangedEvent<>(this);
     }
 
     public ChangedEvent<FilterChain> getChangedEvent() {
@@ -72,7 +72,7 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
     }
 
     public void apply(Diagram d, FilterChain sequence) {
-        List<Filter> applied = new ArrayList<Filter>();
+        List<Filter> applied = new ArrayList<>();
         for (Filter f : sequence.getFilters()) {
             if (filters.contains(f)) {
                 f.apply(d);

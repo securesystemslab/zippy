@@ -147,16 +147,16 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         this.filterChain = filterChain;
         assert sequenceFilterChain != null;
         this.sequenceFilterChain = sequenceFilterChain;
-        hiddenNodes = new HashSet<Integer>();
-        onScreenNodes = new HashSet<Integer>();
-        selectedNodes = new HashSet<Integer>();
+        hiddenNodes = new HashSet<>();
+        onScreenNodes = new HashSet<>();
+        selectedNodes = new HashSet<>();
         super.getChangedEvent().addListener(this);
-        diagramChangedEvent = new ChangedEvent<DiagramViewModel>(this);
-        viewChangedEvent = new ChangedEvent<DiagramViewModel>(this);
-        hiddenNodesChangedEvent = new ChangedEvent<DiagramViewModel>(this);
-        viewPropertiesChangedEvent = new ChangedEvent<DiagramViewModel>(this);
+        diagramChangedEvent = new ChangedEvent<>(this);
+        viewChangedEvent = new ChangedEvent<>(this);
+        hiddenNodesChangedEvent = new ChangedEvent<>(this);
+        viewPropertiesChangedEvent = new ChangedEvent<>(this);
 
-        groupChangedEvent = new ChangedEvent<DiagramViewModel>(this);
+        groupChangedEvent = new ChangedEvent<>(this);
         groupChangedEvent.addListener(groupChangedListener);
         groupChangedEvent.fire();
 
@@ -214,7 +214,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
 
     public void setSelectedNodes(Set<Integer> nodes) {
         this.selectedNodes = nodes;
-        List<Color> colors = new ArrayList<Color>();
+        List<Color> colors = new ArrayList<>();
         for (String s : getPositions()) {
             colors.add(Color.black);
         }
@@ -259,7 +259,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     public void showFigures(Collection<Figure> f) {
-        HashSet<Integer> newHiddenNodes = new HashSet<Integer>(getHiddenNodes());
+        HashSet<Integer> newHiddenNodes = new HashSet<>(getHiddenNodes());
         for (Figure fig : f) {
             newHiddenNodes.removeAll(fig.getSource().getSourceNodesAsSet());
         }
@@ -268,7 +268,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
 
 
     public Set<Figure> getSelectedFigures() {
-        Set<Figure> result = new HashSet<Figure>();
+        Set<Figure> result = new HashSet<>();
         for (Figure f : diagram.getFigures()) {
             for (InputNode node : f.getSource().getSourceNodes()) {
                 if (getSelectedNodes().contains(node.getId())) {
@@ -284,7 +284,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     public void showOnly(final Set<Integer> nodes) {
-        final HashSet<Integer> allNodes = new HashSet<Integer>(getGraphToView().getGroup().getAllNodes());
+        final HashSet<Integer> allNodes = new HashSet<>(getGraphToView().getGroup().getAllNodes());
         allNodes.removeAll(nodes);
         setHiddenNodes(allNodes);
     }
@@ -331,7 +331,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     private static List<String> calculateStringList(Group g) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
         for (InputGraph graph : g.getGraphs()) {
             result.add(graph.getName());
         }
@@ -396,7 +396,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     void setSelectedFigures(List<Figure> list) {
-        Set<Integer> newSelectedNodes = new HashSet<Integer>();
+        Set<Integer> newSelectedNodes = new HashSet<>();
         for (Figure f : list) {
             newSelectedNodes.addAll(f.getSource().getSourceNodesAsSet());
         }

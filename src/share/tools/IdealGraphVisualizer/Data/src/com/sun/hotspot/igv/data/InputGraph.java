@@ -90,7 +90,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     
     public Map<InputNode, List<InputEdge>> findAllOutgoingEdges() {
         
-        Map<InputNode, List<InputEdge>> result = new HashMap<InputNode, List<InputEdge>>(getNodes().size());
+        Map<InputNode, List<InputEdge>> result = new HashMap<>(getNodes().size());
         for(InputNode n : this.getNodes()) {
             result.put(n, new ArrayList<InputEdge>());
         }
@@ -113,7 +113,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     
     public Map<InputNode, List<InputEdge>> findAllIngoingEdges() {
         
-        Map<InputNode, List<InputEdge>> result = new HashMap<InputNode, List<InputEdge>>(getNodes().size());
+        Map<InputNode, List<InputEdge>> result = new HashMap<>(getNodes().size());
         for(InputNode n : this.getNodes()) {
             result.put(n, new ArrayList<InputEdge>());
         }
@@ -135,7 +135,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
     
     public List<InputEdge> findOutgoingEdges(InputNode n) {
-        List<InputEdge> result = new ArrayList<InputEdge>();
+        List<InputEdge> result = new ArrayList<>();
         
         for(InputEdge e : this.edges) {
             if(e.getFrom() == n.getId()) {
@@ -165,7 +165,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
 
     public void ensureNodesInBlocks() {
         InputBlock noBlock = null;
-        Set<InputNode> scheduledNodes = new HashSet<InputNode>();
+        Set<InputNode> scheduledNodes = new HashSet<>();
 
         for (InputBlock b : getBlocks()) {
             for (InputNode n : b.getNodes()) {

@@ -141,7 +141,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         if (s != customFilterSetting) {
             FilterChain chain = getFilterChain();
             chain.getChangedEvent().beginAtomic();
-            List<Filter> toRemove = new ArrayList<Filter>();
+            List<Filter> toRemove = new ArrayList<>();
             for (Filter f : chain.getFilters()) {
                 if (!s.containsFilter(f)) {
                     toRemove.add(f);
@@ -270,7 +270,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
     private class FilterChildren extends Children.Keys<Filter> implements ChangedListener<CheckNode> {
 
-        private HashMap<Filter, Node> nodeHash = new HashMap<Filter, Node>();
+        private HashMap<Filter, Node> nodeHash = new HashMap<>();
 
         protected Node[] createNodes(Filter filter) {
             if (nodeHash.containsKey(filter)) {
@@ -324,7 +324,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     }
 
     private FilterTopComponent() {
-        filterSettingsChangedEvent = new ChangedEvent<FilterTopComponent>(this);
+        filterSettingsChangedEvent = new ChangedEvent<>(this);
         initComponents();
         setName(NbBundle.getMessage(FilterTopComponent.class, "CTL_FilterTopComponent"));
         setToolTipText(NbBundle.getMessage(FilterTopComponent.class, "HINT_FilterTopComponent"));
@@ -354,7 +354,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         toolBar.add(MoveFilterDownAction.get(MoveFilterDownAction.class).createContextAwareInstance(this.getLookup()));
         this.add(view, BorderLayout.CENTER);
 
-        filterSettings = new ArrayList<FilterSetting>();
+        filterSettings = new ArrayList<>();
         updateComboBox();
 
         comboBox.addActionListener(comboBoxActionListener);
@@ -423,10 +423,10 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         FileObject folder = FileUtil.getConfigRoot().getFileObject(FOLDER_ID);
         FileObject[] children = folder.getChildren();
 
-        List<CustomFilter> customFilters = new ArrayList<CustomFilter>();
-        HashMap<CustomFilter, String> afterMap = new HashMap<CustomFilter, String>();
-        Set<CustomFilter> enabledSet = new HashSet<CustomFilter>();
-        HashMap<String, CustomFilter> map = new HashMap<String, CustomFilter>();
+        List<CustomFilter> customFilters = new ArrayList<>();
+        HashMap<CustomFilter, String> afterMap = new HashMap<>();
+        Set<CustomFilter> enabledSet = new HashSet<>();
+        HashMap<String, CustomFilter> map = new HashMap<>();
 
         for (final FileObject fo : children) {
             InputStream is = null;
@@ -478,7 +478,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
         for (int j = 0; j < customFilters.size(); j++) {
             for (int i = 0; i < customFilters.size(); i++) {
-                List<CustomFilter> copiedList = new ArrayList<CustomFilter>(customFilters);
+                List<CustomFilter> copiedList = new ArrayList<>(customFilters);
                 for (CustomFilter cf : copiedList) {
 
                     String after = afterMap.get(cf);
@@ -562,7 +562,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
     @Override
     public void componentOpened() {
-        Lookup.Template<FilterChain> tpl = new Lookup.Template<FilterChain>(FilterChain.class);
+        Lookup.Template<FilterChain> tpl = new Lookup.Template<>(FilterChain.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
         result.addLookupListener(this);
     }

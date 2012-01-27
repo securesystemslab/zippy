@@ -54,8 +54,8 @@ public class ClusterNode implements Vertex {
     public static final int BORDER = 20;
 
     public ClusterNode(Cluster cluster, String name) {
-        this.subNodes = new HashSet<Vertex>();
-        this.subEdges = new HashSet<Link>();
+        this.subNodes = new HashSet<>();
+        this.subEdges = new HashSet<>();
         this.cluster = cluster;
         position = new Point(0, 0);
         this.name = name;
@@ -142,7 +142,7 @@ public class ClusterNode implements Vertex {
         }
 
         for (Link l : subEdges) {
-            List<Point> points = new ArrayList<Point>(l.getControlPoints());
+            List<Point> points = new ArrayList<>(l.getControlPoints());
             for (Point p : points) {
                 p.x -= minX;
                 p.y -= minY;
@@ -183,7 +183,7 @@ public class ClusterNode implements Vertex {
 
         for (Link e : subEdges) {
             List<Point> arr = e.getControlPoints();
-            ArrayList<Point> newArr = new ArrayList<Point>(arr.size());
+            ArrayList<Point> newArr = new ArrayList<>(arr.size());
             for (Point p : arr) {
                 if (p != null) {
                     Point p2 = new Point(p);

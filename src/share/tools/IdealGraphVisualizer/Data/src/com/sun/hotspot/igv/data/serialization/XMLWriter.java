@@ -41,7 +41,7 @@ public class XMLWriter extends Writer {
 
     public XMLWriter(Writer inner) {
         this.inner = inner;
-        elementStack = new Stack<String>();
+        elementStack = new Stack<>();
     }
 
     @Override

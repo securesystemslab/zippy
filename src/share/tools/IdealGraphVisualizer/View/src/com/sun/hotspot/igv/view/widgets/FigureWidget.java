@@ -122,7 +122,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         middleWidget.getActions().addAction(new DoubleClickAction(this));
 	middleWidget.setCheckClipping(true);
 
-        labelWidgets = new ArrayList<LabelWidget>();
+        labelWidgets = new ArrayList<>();
 
         String[] strings = figure.getLines();
 
@@ -351,16 +351,16 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
     public void handleDoubleClick(Widget w, WidgetAction.WidgetMouseEvent e) {
 
         if (diagramScene.isAllVisible()) {
-            final Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
             hiddenNodes.removeAll(this.getFigure().getSource().getSourceNodesAsSet());
             this.diagramScene.getModel().showNot(hiddenNodes);
         } else if (isBoundary()) {
 
-            final Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getHiddenNodes());
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
             hiddenNodes.removeAll(this.getFigure().getSource().getSourceNodesAsSet());
             this.diagramScene.getModel().showNot(hiddenNodes);
         } else {
-            final Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getHiddenNodes());
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
             hiddenNodes.addAll(this.getFigure().getSource().getSourceNodesAsSet());
             this.diagramScene.getModel().showNot(hiddenNodes);
         }

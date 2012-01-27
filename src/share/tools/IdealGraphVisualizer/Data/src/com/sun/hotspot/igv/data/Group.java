@@ -85,7 +85,7 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
     }
 
     public Set<Integer> getAllNodes() {
-        Set<Integer> result = new HashSet<Integer>();
+        Set<Integer> result = new HashSet<>();
         for (FolderElement e : elements) {
             if (e instanceof InputGraph) {
                 InputGraph g = (InputGraph) e;

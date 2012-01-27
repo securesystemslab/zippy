@@ -84,7 +84,7 @@ public class LineWidget extends Widget implements PopupMenuProvider {
         this.from = from;
         this.to = to;
         this.predecessor = predecessor;
-        this.successors = new ArrayList<LineWidget>();
+        this.successors = new ArrayList<>();
         if (predecessor != null) {
             predecessor.addSuccessor(this);
         }
@@ -138,7 +138,7 @@ public class LineWidget extends Widget implements PopupMenuProvider {
             }
 
             public void select(Widget arg0, Point arg1, boolean arg2) {
-                Set<Figure> set = new HashSet<Figure>();
+                Set<Figure> set = new HashSet<>();
                 for (Connection c : LineWidget.this.connections) {
                     set.add(c.getInputSlot().getFigure());
                     set.add(c.getOutputSlot().getFigure());
@@ -241,8 +241,8 @@ public class LineWidget extends Widget implements PopupMenuProvider {
 
     private void setHighlighted(boolean b) {
         this.highlighted = b;
-	Set<Object> highlightedObjects = new HashSet<Object>(scene.getHighlightedObjects());
-	Set<Object> highlightedObjectsChange = new HashSet<Object>();
+	Set<Object> highlightedObjects = new HashSet<>(scene.getHighlightedObjects());
+	Set<Object> highlightedObjectsChange = new HashSet<>();
         for (Connection c : connections) {
 		highlightedObjectsChange.add(c.getInputSlot().getFigure());
 		highlightedObjectsChange.add(c.getInputSlot());

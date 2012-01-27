@@ -55,7 +55,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 
 	protected Slot(Figure figure, int wantedIndex) {
 		this.figure = figure;
-		connections = new ArrayList<Connection>(2);
+		connections = new ArrayList<>(2);
 		source = new Source();
 		this.wantedIndex = wantedIndex;
 		text = "";
@@ -173,7 +173,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 	}
 
 	public void removeAllConnections() {
-		List<Connection> connectionsCopy = new ArrayList<Connection>(this.connections);
+		List<Connection> connectionsCopy = new ArrayList<>(this.connections);
 		for (Connection c : connectionsCopy) {
 			c.remove();
 		}

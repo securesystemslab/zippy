@@ -244,7 +244,7 @@ public class Properties implements Serializable, Iterable<Property> {
 
     @Override
     public String toString() {
-        List<String[]> pairs = new ArrayList<String[]>();
+        List<String[]> pairs = new ArrayList<>();
         for (int i = 0; i < map.length; i += 2) {
             if (map[i + 1] != null) {
                 pairs.add(new String[]{map[i], map[i + 1]});
@@ -294,7 +294,7 @@ public class Properties implements Serializable, Iterable<Property> {
         }
 
         public List<T> selectMultiple(PropertyMatcher matcher) {
-            List<T> result = new ArrayList<T>();
+            List<T> result = new ArrayList<>();
 
             for (T t : objects) {
                 Property p = t.getProperties().selectSingle(matcher);

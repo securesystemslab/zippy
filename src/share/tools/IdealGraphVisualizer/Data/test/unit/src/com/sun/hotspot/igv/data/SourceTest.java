@@ -75,14 +75,14 @@ public class SourceTest {
 
         s.addSourceNode(N1);
         assertEquals(s.getSourceNodes(), Arrays.asList(N1));
-        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<Integer>(Arrays.asList(1)));
+        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<>(Arrays.asList(1)));
 
         s.addSourceNode(N2);
         assertEquals(s.getSourceNodes(), Arrays.asList(N1, N2));
-        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<Integer>(Arrays.asList(1, 2)));
+        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<>(Arrays.asList(1, 2)));
 
         s.addSourceNode(N1);
         assertEquals(s.getSourceNodes(), Arrays.asList(N1, N2));
-        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<Integer>(Arrays.asList(1, 2)));
+        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<>(Arrays.asList(1, 2)));
     }
 }

@@ -170,7 +170,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         }
     };
 
-    private ChangedEvent<DiagramProvider> diagramChangedEvent = new ChangedEvent<DiagramProvider>(diagramProvider);
+    private ChangedEvent<DiagramProvider> diagramChangedEvent = new ChangedEvent<>(diagramProvider);
     
 
     private void updateDisplayName() {
@@ -445,7 +445,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
         public void changed(DiagramViewModel source) {
             updateDisplayName();
-            Collection<Object> list = new ArrayList<Object>();
+            Collection<Object> list = new ArrayList<>();
             list.add(new EditorInputGraphProvider(EditorTopComponent.this));
             graphContent.set(list, null);
             diagramProvider.getChangedEvent().fire();
@@ -459,7 +459,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     public void setSelection(PropertyMatcher matcher) {
 
-        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<Figure>(getModel().getDiagramToView().getFigures());
+        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(getModel().getDiagramToView().getFigures());
         List<Figure> list = selector.selectMultiple(matcher);
         setSelectedFigures(list);
     }
@@ -471,8 +471,8 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     public void setSelectedNodes(Set<InputNode> nodes) {
 
-        List<Figure> list = new ArrayList<Figure>();
-        Set<Integer> ids = new HashSet<Integer>();
+        List<Figure> list = new ArrayList<>();
+        Set<Integer> ids = new HashSet<>();
         for (InputNode n : nodes) {
             ids.add(n.getId());
         }
@@ -520,14 +520,14 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     public void hideNodes() {
         Set<Integer> selectedNodes = this.getModel().getSelectedNodes();
-        HashSet<Integer> nodes = new HashSet<Integer>(getModel().getHiddenNodes());
+        HashSet<Integer> nodes = new HashSet<>(getModel().getHiddenNodes());
         nodes.addAll(selectedNodes);
         this.getModel().showNot(nodes);
     }
 
     public void expandPredecessors() {
         Set<Figure> oldSelection = getModel().getSelectedFigures();
-        Set<Figure> figures = new HashSet<Figure>();
+        Set<Figure> figures = new HashSet<>();
 
         for (Figure f : this.getDiagramModel().getDiagramToView().getFigures()) {
             boolean ok = false;
@@ -552,7 +552,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     public void expandSuccessors() {
         Set<Figure> oldSelection = getModel().getSelectedFigures();
-        Set<Figure> figures = new HashSet<Figure>();
+        Set<Figure> figures = new HashSet<>();
 
         for (Figure f : this.getDiagramModel().getDiagramToView().getFigures()) {
             boolean ok = false;
