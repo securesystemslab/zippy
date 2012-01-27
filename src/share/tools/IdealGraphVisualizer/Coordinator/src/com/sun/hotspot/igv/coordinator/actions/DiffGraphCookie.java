@@ -60,16 +60,6 @@ public class DiffGraphCookie implements Node.Cookie {
 
     public void openDiff() {
         InputGraph other = getCurrentGraph();
-
-        if (!graph.getGroup().isComplete() || !other.getGroup().isComplete()) {
-            String msg = "One of the graphs or the groups they belong to are still being loaded. Creating a diff now can cause problems. Do you want to continue?";
-            NotifyDescriptor desc = new NotifyDescriptor(msg, "Incomplete data", NotifyDescriptor.YES_NO_OPTION, NotifyDescriptor.QUESTION_MESSAGE, null, NotifyDescriptor.NO_OPTION);
-
-            if (DialogDisplayer.getDefault().notify(desc) == DialogDescriptor.NO_OPTION) {
-                return;
-            }
-        }
-
         final GraphViewer viewer = Lookup.getDefault().lookup(GraphViewer.class);
         if (viewer != null) {
             InputGraph diffGraph = Difference.createDiffGraph(other, graph);

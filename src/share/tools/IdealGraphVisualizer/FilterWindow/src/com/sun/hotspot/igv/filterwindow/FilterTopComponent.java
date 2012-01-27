@@ -99,7 +99,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     private ExplorerManager manager;
     private FilterChain filterChain;
     private FilterChain sequence;
-    private Lookup.Result result;
+    private Lookup.Result<FilterChain> result;
     private JComboBox comboBox;
     private List<FilterSetting> filterSettings;
     private FilterSetting customFilterSetting = new FilterSetting("-- Custom --");

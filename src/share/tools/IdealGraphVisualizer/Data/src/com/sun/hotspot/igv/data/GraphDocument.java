@@ -31,18 +31,18 @@ import java.util.List;
  *
  * @author Thomas Wuerthinger
  */
-public class GraphDocument extends Properties.Entity implements ChangedEventProvider<GraphDocument> {
+public class GraphDocument extends Properties.Entity implements ChangedEventProvider<GraphDocument>, Folder {
 
-    private List<Group> groups;
+    private List<FolderElement> elements;
     private ChangedEvent<GraphDocument> changedEvent;
 
     public GraphDocument() {
-        groups = new ArrayList<Group>();
+        elements = new ArrayList<FolderElement>();
         changedEvent = new ChangedEvent<GraphDocument>(this);
     }
 
     public void clear() {
-        groups.clear();
+        elements.clear();
         getChangedEvent().fire();
     }
 
@@ -50,25 +50,9 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
         return changedEvent;
     }
 
-    public List<Group> getGroups() {
-        return Collections.unmodifiableList(groups);
-    }
-
-    public void addGroup(Group group) {
-        groups.add(group);
-        getChangedEvent().fire();
-    }
-
-    public void removeGroup(Group group) {
-        if (groups.contains(group)) {
-            groups.remove(group);
-            getChangedEvent().fire();
-        }
-    }
-
     public void addGraphDocument(GraphDocument document) {
-        for (Group g : document.groups) {
-            this.addGroup(g);
+        for (FolderElement e : document.elements) {
+            this.addElement(e);
         }
         document.clear();
         getChangedEvent().fire();
@@ -79,11 +63,29 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
         StringBuilder sb = new StringBuilder();
 
         sb.append("GraphDocument: " + getProperties().toString() + " \n\n");
-        for (Group g : getGroups()) {
+        for (FolderElement g : getElements()) {
             sb.append(g.toString());
             sb.append("\n\n");
         }
 
         return sb.toString();
+    }
+
+    @Override
+    public List<? extends FolderElement> getElements() {
+        return elements;
+    }
+
+    @Override
+    public void removeElement(FolderElement element) {
+        if (elements.remove(element)) {
+            getChangedEvent().fire();
+        }
+    }
+
+    @Override
+    public void addElement(FolderElement element) {
+        elements.add(element);
+        getChangedEvent().fire();
     }
 }

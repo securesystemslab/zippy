@@ -216,22 +216,9 @@ final class TextTopComponent extends TopComponent implements LookupListener {
         //       so use insertItemAt() instead
         sourceCombo.insertItemAt(GRAPH_TEXT_REPRESENTATION, 0);
         if (diagram != null) {
-            if (diagram.getGraph().getSourceGraphs() != null) {
-                // Diff graph with source graphs with possibly different groups:
-                // show properties from both graphs
-                Pair<InputGraph, InputGraph> sourceGraphs = diagram.getGraph().getSourceGraphs();
-                Properties props = new Properties(sourceGraphs.getLeft().getGroup().getProperties());
-                if (sourceGraphs.getLeft().getGroup() != sourceGraphs.getRight().getGroup()) {
-                    props.add(sourceGraphs.getRight().getGroup().getProperties());
-                }
-                for (Property p : props) {
-                    sourceCombo.addItem(p.getName());
-                }
-            } else {
-                // Single graph
-                for (Property p : diagram.getGraph().getGroup().getProperties()) {
-                    sourceCombo.addItem(p.getName());
-                }
+            // Single graph
+            for (Property p : diagram.getGraph().getGroup().getProperties()) {
+                sourceCombo.addItem(p.getName());
             }
         }
         // NOTE: The following triggers a display update.
@@ -246,30 +233,6 @@ final class TextTopComponent extends TopComponent implements LookupListener {
     private void displayGroupProperty(Diagram diagram, String property) {
         if (diagram == null) {
             showCard(NO_GRAPH);
-        } else if (diagram.getGraph().getSourceGraphs() != null) {
-            showCard(TWO_GRAPHS_TEXT_DIFF);
-            textDiffPanel.removeAll();
-            try {
-                Pair<InputGraph, InputGraph> sourceGraphs = diagram.getGraph().getSourceGraphs();
-
-                String ltext = sourceGraphs.getLeft().getGroup().getProperties().get(property);
-                if (ltext == null) {
-                    ltext = "";
-                }
-                StreamSource leftsrc = StreamSource.createSource("left", sourceGraphs.getLeft().getName(), "text/plain", new StringReader(ltext));
-
-                String rtext = sourceGraphs.getRight().getGroup().getProperties().get(property);
-                if (rtext == null) {
-                    rtext = "";
-                }
-                StreamSource rightsrc = StreamSource.createSource("right", sourceGraphs.getRight().getName(), "text/plain", new StringReader(rtext));
-
-                DiffView view = Diff.getDefault().createDiff(leftsrc, rightsrc);
-                textDiffPanel.add(view.getComponent(), BorderLayout.CENTER);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            textDiffPanel.revalidate(); // required when card was visible before
         } else {
             showCard(ONE_GRAPH);
             String text = diagram.getGraph().getGroup().getProperties().get(property);

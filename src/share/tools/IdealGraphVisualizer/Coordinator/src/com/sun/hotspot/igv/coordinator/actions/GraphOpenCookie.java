@@ -41,15 +41,6 @@ public class GraphOpenCookie implements OpenCookie {
     }
 
     public void open() {
-        if (!graph.getGroup().isComplete()) {
-            String msg = "This graph or the group it belongs to is still being loaded. Opening this graph now can cause problems. Do you want to continue and open the graph?";
-            NotifyDescriptor desc = new NotifyDescriptor(msg, "Incomplete data", NotifyDescriptor.YES_NO_OPTION, NotifyDescriptor.QUESTION_MESSAGE, null, NotifyDescriptor.NO_OPTION);
-
-            if (DialogDisplayer.getDefault().notify(desc) == DialogDescriptor.NO_OPTION) {
-                return;
-            }
-        }
-
         viewer.view(graph);
     }
 }

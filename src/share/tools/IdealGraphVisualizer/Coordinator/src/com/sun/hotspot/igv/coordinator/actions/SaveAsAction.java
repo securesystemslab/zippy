@@ -57,7 +57,7 @@ public final class SaveAsAction extends NodeAction {
         GraphDocument doc = new GraphDocument();
         for (Node n : activatedNodes) {
             Group group = n.getLookup().lookup(Group.class);
-            doc.addGroup(group);
+            doc.addElement(group);
         }
 
         save(doc);

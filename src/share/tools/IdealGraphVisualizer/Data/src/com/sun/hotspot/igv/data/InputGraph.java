@@ -38,7 +38,7 @@ import java.util.Set;
  *
  * @author Thomas Wuerthinger
  */
-public class InputGraph extends Properties.Entity {
+public class InputGraph extends Properties.Entity implements FolderElement {
 
     private Map<Integer, InputNode> nodes;
     private Set<InputEdge> edges;
@@ -46,17 +46,13 @@ public class InputGraph extends Properties.Entity {
     private Map<String, InputBlock> blocks;
     private Set<InputBlockEdge> blockEdges;
     private Map<Integer, InputBlock> nodeToBlock;
-    private Pair<InputGraph, InputGraph> sourceGraphs;
-    private int parentIndex;
 
-    public static InputGraph createWithoutGroup(String name, Pair<InputGraph, InputGraph> sourceGraphs) {
-        return new InputGraph(-1, null, name, sourceGraphs);
+    public InputGraph(String name) {
+        this(null, name);
     }
 
-    InputGraph(int parentIndex, Group parent, String name, Pair<InputGraph, InputGraph> sourceGraphs) {
-        this.parentIndex = parentIndex;
+    InputGraph(Group parent, String name) {
         this.parent = parent;
-        this.sourceGraphs = sourceGraphs;
         setName(name);
         nodes = new LinkedHashMap<Integer, InputNode>();
         edges = new LinkedHashSet<InputEdge>();
@@ -65,12 +61,10 @@ public class InputGraph extends Properties.Entity {
         nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
     }
     
-    public void setParent(Group parent, int parentIndex) {
+    public void setParent(Group parent) {
         assert (this.parent == null);
-        assert (this.parentIndex == -1);
 
         this.parent = parent;
-        this.parentIndex = parentIndex;
     }
 
     public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {
@@ -78,10 +72,6 @@ public class InputGraph extends Properties.Entity {
         blockEdges.add(edge);
         left.addSuccessor(right);
         return edge;
-    }
-
-    public Pair<InputGraph, InputGraph> getSourceGraphs() {
-        return sourceGraphs;
     }
     
     public List<InputNode> findRootNodes() {
@@ -213,21 +203,11 @@ public class InputGraph extends Properties.Entity {
     }
 
     public InputGraph getNext() {
-        List<InputGraph> list = parent.getGraphs();
-        if (parentIndex == list.size() - 1) {
-            return null;
-        } else {
-            return list.get(parentIndex + 1);
-        }
+        return parent.getNext(this);
     }
 
     public InputGraph getPrev() {
-        List<InputGraph> list = parent.getGraphs();
-        if (parentIndex == 0) {
-            return null;
-        } else {
-            return list.get(parentIndex - 1);
-        }
+        return parent.getPrev(this);
     }
 
     private void setName(String name) {
@@ -316,5 +296,10 @@ public class InputGraph extends Properties.Entity {
 
     public Collection<InputBlockEdge> getBlockEdges() {
         return Collections.unmodifiableSet(blockEdges);
+    }
+
+    @Override
+    public Folder getParent() {
+        return parent;
     }
 }

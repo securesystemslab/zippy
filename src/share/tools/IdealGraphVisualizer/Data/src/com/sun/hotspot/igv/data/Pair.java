@@ -61,7 +61,7 @@ public class Pair<L, R> {
         if (o == null || !(o instanceof Pair)) {
             return false;
         }
-        Pair obj = (Pair) o;
+        Pair<?,?> obj = (Pair<?,?>) o;
         boolean b1 = (l == obj.l);
         if (l != null) {
             b1 = l.equals(obj.l);

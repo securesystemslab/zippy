@@ -23,15 +23,7 @@
  */
 package com.sun.hotspot.igv.data.serialization;
 
-import com.sun.hotspot.igv.data.GraphDocument;
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputEdge;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputMethod;
-import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.data.Pair;
-import com.sun.hotspot.igv.data.Properties;
+import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.GroupCallback;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.HandoverElementHandler;
@@ -128,12 +120,11 @@ public class Parser {
         }
     };
     // <group>
-    private ElementHandler<Group, GraphDocument> groupHandler = new XMLParser.ElementHandler<Group, GraphDocument>(GROUP_ELEMENT) {
+    private ElementHandler<Group, Folder> groupHandler = new XMLParser.ElementHandler<Group, Folder>(GROUP_ELEMENT) {
 
         @Override
         protected Group start() throws SAXException {
-            Group group = new Group();
-            group.setComplete(false);
+            Group group = new Group(this.getParentObject());
             
             String differenceProperty = this.readAttribute(DIFFERENCE_PROPERTY);
             Parser.this.difference = (differenceProperty != null && (differenceProperty.equals("1") || differenceProperty.equals("true")));
@@ -149,17 +140,9 @@ public class Parser {
         @Override
         protected void end(String text) throws SAXException {
             Group group = getObject();
-            group.setComplete(true);
             if (groupCallback == null) {
-                getParentObject().addGroup(group);
+                getParentObject().addElement(group);
             }
-        }
-    };
-    private HandoverElementHandler<Group> assemblyHandler = new XMLParser.HandoverElementHandler<Group>(ASSEMBLY_ELEMENT, true) {
-
-        @Override
-        protected void end(String text) throws SAXException {
-            getParentObject().setAssembly(text);
         }
     };
     // <method>
@@ -174,7 +157,7 @@ public class Parser {
         }
     };
 
-    private InputMethod parseMethod(XMLParser.ElementHandler handler, Group group) throws SAXException {
+    private InputMethod parseMethod(XMLParser.ElementHandler<?,?> handler, Group group) throws SAXException {
         String s = handler.readRequiredAttribute(METHOD_BCI_PROPERTY);
         int bci = 0;
         try {
@@ -213,11 +196,10 @@ public class Parser {
         @Override
         protected InputGraph start() throws SAXException {
             String name = readAttribute(GRAPH_NAME_PROPERTY);
-            InputGraph curGraph = InputGraph.createWithoutGroup(name, null);
+            InputGraph curGraph = new InputGraph(name);
             if (difference) {
-                List<InputGraph> list = getParentObject().getGraphs();
-                if (list.size() > 0) {
-                    InputGraph previous = list.get(list.size() - 1);
+                InputGraph previous = getParentObject().getLastGraph();
+                if (previous != null) {
                     for (InputNode n : previous.getNodes()) {
                         curGraph.addNode(n);
                     }
@@ -280,7 +262,7 @@ public class Parser {
             blockConnections.clear();
             
             // Add to group
-            getParentObject().addGraph(graph);
+            getParentObject().addElement(graph);
         }
     };
     // <nodes>
@@ -469,8 +451,8 @@ public class Parser {
         topHandler.addChild(groupHandler);
 
         groupHandler.addChild(methodHandler);
-        groupHandler.addChild(assemblyHandler);
         groupHandler.addChild(graphHandler);
+        groupHandler.addChild(groupHandler);
 
         methodHandler.addChild(inlinedHandler);
         methodHandler.addChild(bytecodesHandler);

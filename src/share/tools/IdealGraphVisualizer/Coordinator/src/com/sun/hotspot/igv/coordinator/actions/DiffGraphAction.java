@@ -62,8 +62,8 @@ public final class DiffGraphAction extends CookieAction {
         return NbBundle.getMessage(DiffGraphAction.class, "CTL_DiffGraphAction");
     }
 
-    protected Class[] cookieClasses() {
-        return new Class[]{
+    protected Class<?>[] cookieClasses() {
+        return new Class<?>[]{
             DiffGraphCookie.class
         };
     }

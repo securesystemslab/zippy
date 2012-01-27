@@ -28,12 +28,10 @@ import com.sun.hotspot.igv.coordinator.actions.RemoveAction;
 import com.sun.hotspot.igv.coordinator.actions.RemoveAllAction;
 import com.sun.hotspot.igv.coordinator.actions.SaveAllAction;
 import com.sun.hotspot.igv.coordinator.actions.SaveAsAction;
-import com.sun.hotspot.igv.coordinator.actions.StructuredViewAction;
 import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.services.GroupCallback;
-import com.sun.hotspot.igv.data.services.GroupOrganizer;
 import com.sun.hotspot.igv.data.services.GroupReceiver;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -72,7 +70,6 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private ExplorerManager manager;
     private GraphDocument document;
     private FolderNode root;
-    private GroupOrganizer organizer;
 
     private OutlineTopComponent() {
         initComponents();
@@ -88,17 +85,9 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
     private void initListView() {
         manager = new ExplorerManager();
-        organizer = new StandardGroupOrganizer();
-        root = new FolderNode(document, "", organizer, new ArrayList<String>(), document.getGroups());
+        root = new FolderNode(document);
         manager.setRootContext(root);
         ((BeanTreeView) this.treeView).setRootVisible(false);
-
-        document.getChangedEvent().addListener(new ChangedListener<GraphDocument>() {
-
-            public void changed(GraphDocument document) {
-                updateStructure();
-            }
-        });
 
         associateLookup(ExplorerUtils.createLookup(manager, getActionMap()));
     }
@@ -118,16 +107,9 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         toolbar.add(((NodeAction) RemoveAction.get(RemoveAction.class)).createContextAwareInstance(this.getLookup()));
         toolbar.add(RemoveAllAction.get(RemoveAllAction.class));
 
-        toolbar.add(StructuredViewAction.get(StructuredViewAction.class).getToolbarPresenter());
-
         for (Toolbar tb : ToolbarPool.getDefault().getToolbars()) {
             tb.setVisible(false);
         }
-    }
-
-    public void setOrganizer(GroupOrganizer organizer) {
-        this.organizer = organizer;
-        updateStructure();
     }
 
     private void initReceivers() {
@@ -135,7 +117,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         final GroupCallback callback = new GroupCallback() {
 
             public void started(Group g) {
-                getDocument().addGroup(g);
+                getDocument().addElement(g);
             }
         };
 
@@ -151,10 +133,6 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
             jPanel2.add(panel, BorderLayout.PAGE_START);
         }
-    }
-
-    private void updateStructure() {
-        root.init("", organizer, new ArrayList<String>(), document.getGroups());
     }
 
     public void clear() {

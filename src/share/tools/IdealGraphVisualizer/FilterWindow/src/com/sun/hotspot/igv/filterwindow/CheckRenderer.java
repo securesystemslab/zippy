@@ -37,12 +37,12 @@ import javax.swing.ListCellRenderer;
 /**
  * @author Thomas Wuerthinger
  */
-public class CheckRenderer extends JCheckBox implements ListCellRenderer {
+public class CheckRenderer extends JCheckBox implements ListCellRenderer<Object> {
 
-    private JList list;
+    private JList<Object> list;
     private Color startBackground;
 
-    public CheckRenderer(final JList list) {
+    public CheckRenderer(final JList<Object> list) {
         this.list = list;
         list.addMouseListener(
                 new MouseAdapter() {
@@ -65,7 +65,7 @@ public class CheckRenderer extends JCheckBox implements ListCellRenderer {
         startBackground = this.getBackground();
     }
 
-    public Component getListCellRendererComponent(final JList list, Object value, final int index, boolean isSelected, boolean cellHasFocus) {
+    public Component getListCellRendererComponent(final JList<? extends Object> list, Object value, final int index, boolean isSelected, boolean cellHasFocus) {
         setText(value.toString());
         CheckNode node = ((CheckNodeListModel) list.getModel()).getCheckNodeAt(index);
         this.setSelected(node.isSelected());

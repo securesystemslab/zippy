@@ -90,16 +90,6 @@ public class Util {
                 fail();
             }
         }
-
-        if (a.getAssembly() == null || b.getAssembly() == null) {
-            if (a.getAssembly() != b.getAssembly()) {
-                fail();
-            }
-        } else {
-            if (!a.getAssembly().equals(b.getAssembly())) {
-                fail();
-            }
-        }
     }
 
     public static void assertGraphNotEquals(InputGraph a, InputGraph b) {
@@ -129,7 +119,5 @@ public class Util {
         for (InputNode n : a.getNodes()) {
             assertEquals(a.getBlock(n), b.getBlock(n));
         }
-
-        assertEquals(a.getSourceGraphs(), b.getSourceGraphs());
     }
 }

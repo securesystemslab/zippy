@@ -1014,7 +1014,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return true;
     }
 
-    public static boolean doesIntersect(Set s1, Set s2) {
+    public static boolean doesIntersect(Set<?> s1, Set<?> s2) {
         if (s1.size() > s2.size()) {
             Set tmp = s1;
             s1 = s2;

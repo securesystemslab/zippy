@@ -30,29 +30,13 @@ import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 
 public class GraphRemoveCookie implements RemoveCookie {
-    private final GraphDocument document;
     private final InputGraph graph;
 
-    public GraphRemoveCookie(GraphDocument document, InputGraph graph) {
-        this.document = document;
+    public GraphRemoveCookie(InputGraph graph) {
         this.graph = graph;
     }
 
     public void remove() {
-        if (!graph.getGroup().isComplete()) {
-            String msg = "This graph or the group it belongs to is still being loaded. Removing this graph now can cause problems. Do you want to continue and remove the graph?";
-            NotifyDescriptor desc = new NotifyDescriptor(msg, "Incomplete data", NotifyDescriptor.YES_NO_OPTION, NotifyDescriptor.QUESTION_MESSAGE, null, NotifyDescriptor.NO_OPTION);
-
-            if (DialogDisplayer.getDefault().notify(desc) == DialogDescriptor.NO_OPTION) {
-                return;
-            }
-        }
-
-        if (graph.getGroup().getGraphsCount() > 1) {
-            graph.getGroup().removeGraph(graph);
-        } else {
-            // Last graph, remove the entire group
-            document.removeGroup(graph.getGroup());
-        }
+        graph.getGroup().removeElement(graph);
     }
 }

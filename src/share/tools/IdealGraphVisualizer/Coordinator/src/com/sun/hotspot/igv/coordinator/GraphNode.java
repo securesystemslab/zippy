@@ -48,18 +48,15 @@ import org.openide.util.lookup.InstanceContent;
  * @author Thomas Wuerthinger
  */
 public class GraphNode extends AbstractNode {
-    private final GraphDocument document;
     private final InputGraph graph;
 
     /** Creates a new instance of GraphNode */
-    public GraphNode(GraphDocument document, InputGraph graph) {
-        this(document, graph, new InstanceContent());
+    public GraphNode(InputGraph graph) {
+        this(graph, new InstanceContent());
     }
 
-    private GraphNode(GraphDocument document, InputGraph graph, InstanceContent content) {
+    private GraphNode(InputGraph graph, InstanceContent content) {
         super(Children.LEAF, new AbstractLookup(content));
-
-        this.document = document;
         this.graph = graph;
         this.setDisplayName(graph.getName());
         content.add(graph);
@@ -72,7 +69,7 @@ public class GraphNode extends AbstractNode {
         }
 
         // Action for removing a graph
-        content.add(new GraphRemoveCookie(document, graph));
+        content.add(new GraphRemoveCookie(graph));
 
         // Action for diffing to the current graph
         content.add(new DiffGraphCookie(graph));

@@ -101,9 +101,8 @@ public class Difference {
         ensureScheduled(a);
         ensureScheduled(b);
 
-        Group g = new Group();
+        Group g = new Group(null);
         g.setMethod(a.getGroup().getMethod());
-        g.setAssembly(a.getGroup().getAssembly());
         if (a.getGroup() == b.getGroup()) {
             g.getProperties().add(a.getGroup().getProperties());
         } else {
@@ -117,7 +116,8 @@ public class Difference {
             }
         }
         g.getProperties().setProperty("name", "Difference");
-        InputGraph graph = g.addGraph(a.getName() + ", " + b.getName(), new Pair<InputGraph, InputGraph>(a, b));
+        InputGraph graph = new InputGraph(a.getName() + ", " + b.getName());
+        g.addElement(graph);
 
         Map<InputBlock, InputBlock> blocksMap = new HashMap<InputBlock, InputBlock>();
         for (InputBlock blk : a.getBlocks()) {
