@@ -77,8 +77,10 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
         elements.add(element);
         if (element instanceof InputGraph) {
             graphs.add((InputGraph) element);
-            ((InputGraph) element).setParent(this);
+        } else {
+            
         }
+        element.setParent(this);
         changedEvent.fire();
     }
 

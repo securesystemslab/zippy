@@ -24,17 +24,13 @@
  */
 package com.sun.hotspot.igv.connection;
 
-import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.services.GroupCallback;
-import com.sun.hotspot.igv.data.services.GroupReceiver;
 import com.sun.hotspot.igv.settings.Settings;
-import java.awt.Component;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
-import javax.swing.SwingUtilities;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 import org.openide.util.RequestProcessor;
@@ -101,14 +97,5 @@ public class Server implements PreferenceChangeListener {
         serverRunnable = runnable;
 
         RequestProcessor.getDefault().post(runnable, 0, Thread.MAX_PRIORITY);
-    }
-
-    public void started(final Group g) {
-        SwingUtilities.invokeLater(new Runnable() {
-
-            public void run() {
-                callback.started(g);
-            }
-        });
     }
 }

@@ -24,14 +24,12 @@
  */
 package com.sun.hotspot.igv.connection;
 
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.services.GroupCallback;
 import com.sun.hotspot.igv.data.serialization.Parser;
-import com.sun.hotspot.igv.data.Properties.RegexpPropertyMatcher;
+import com.sun.hotspot.igv.data.services.GroupCallback;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import javax.swing.JTextField;
 import org.openide.util.Exceptions;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -53,7 +51,7 @@ public class Client implements Runnable {
     public void run() {
 
         try {
-            InputStream inputStream = socket.getInputStream();
+            InputStream inputStream = new BufferedInputStream(socket.getInputStream());
             InputSource is = new InputSource(inputStream);
 
             try {

@@ -84,24 +84,25 @@ public class XMLParser implements ContentHandler {
     public static class ElementHandler<T, P> {
 
         private String name;
-        private T object;
+        private Stack<T> object = new Stack<>();
         private Attributes attr;
         private StringBuilder currentText;
         private ParseMonitor monitor;
         private HashMap<String, ElementHandler<?, ? super T>> hashtable;
         private boolean needsText;
-        private ElementHandler<P, ?> parentElement;
+        private Stack<ElementHandler<P, ?>> parentElement = new Stack<>();
+        private Stack<P> parentObject = new Stack<>();
 
         public ElementHandler(String name) {
             this(name, false);
         }
 
         public ElementHandler<P, ?> getParentElement() {
-            return parentElement;
+            return parentElement.peek();
         }
 
         public P getParentObject() {
-            return getParentElement().getObject();
+            return parentObject.peek();
         }
 
         protected boolean needsText() {
@@ -109,7 +110,7 @@ public class XMLParser implements ContentHandler {
         }
 
         public ElementHandler(String name, boolean needsText) {
-            this.hashtable = new HashMap<String, ElementHandler<?, ? super T>>();
+            this.hashtable = new HashMap<>();
             this.name = name;
             this.needsText = needsText;
         }
@@ -132,7 +133,7 @@ public class XMLParser implements ContentHandler {
         }
 
         public T getObject() {
-            return object;
+            return object.size() == 0 ? null : object.peek();
         }
 
         public String readAttribute(String name) {
@@ -160,8 +161,9 @@ public class XMLParser implements ContentHandler {
             this.currentText = new StringBuilder();
             this.attr = attr;
             this.monitor = monitor;
-            this.parentElement = parentElement;
-            object = start();
+            this.parentElement.push(parentElement);
+            parentObject.push(parentElement.getObject());
+            object.push(start());
         }
 
         protected T start() throws SAXException {
@@ -174,6 +176,9 @@ public class XMLParser implements ContentHandler {
 
         public void endElement() throws SAXException {
             end(currentText.toString());
+            object.pop();
+            parentElement.pop();
+            parentObject.pop();
         }
 
         protected void text(char[] c, int start, int length) {
@@ -185,7 +190,7 @@ public class XMLParser implements ContentHandler {
     private ParseMonitor monitor;
 
     public XMLParser(TopElementHandler rootHandler, ParseMonitor monitor) {
-        this.stack = new Stack<ElementHandler>();
+        this.stack = new Stack<>();
         this.monitor = monitor;
         this.stack.push(rootHandler);
     }
@@ -196,19 +201,24 @@ public class XMLParser implements ContentHandler {
         }
     }
 
+    @Override
     public void startDocument() throws SAXException {
     }
 
+    @Override
     public void endDocument() throws SAXException {
     }
 
+    @Override
     public void startPrefixMapping(String prefix, String uri) throws SAXException {
     }
 
+    @Override
     public void endPrefixMapping(String prefix) throws SAXException {
     }
 
     @SuppressWarnings("unchecked")
+    @Override
     public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
         assert !stack.isEmpty();
 

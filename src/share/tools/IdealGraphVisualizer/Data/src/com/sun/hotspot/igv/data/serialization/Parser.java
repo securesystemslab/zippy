@@ -92,12 +92,12 @@ public class Parser {
     public static final String SUCCESSOR_ELEMENT = "successor";
     public static final String ASSEMBLY_ELEMENT = "assembly";
     public static final String DIFFERENCE_PROPERTY = "difference";
-    private TopElementHandler<GraphDocument> xmlDocument = new TopElementHandler<GraphDocument>();
+    private TopElementHandler<GraphDocument> xmlDocument = new TopElementHandler<>();
     private Map<Group, Boolean> differenceEncoding = new HashMap<>();
     private Map<Group, InputGraph> lastParsedGraph = new HashMap<>();
     private GroupCallback groupCallback;
-    private HashMap<String, Integer> idCache = new HashMap<String, Integer>();
-    private ArrayList<Pair<String, String>> blockConnections = new ArrayList<Pair<String, String>>();
+    private HashMap<String, Integer> idCache = new HashMap<>();
+    private ArrayList<Pair<String, String>> blockConnections = new ArrayList<>();
     private int maxId = 0;
 
     private int lookupID(String i) {
