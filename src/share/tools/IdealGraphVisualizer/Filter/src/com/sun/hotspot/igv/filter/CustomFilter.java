@@ -32,6 +32,7 @@ import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.script.*;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
 import org.openide.cookies.OpenCookie;
@@ -49,7 +50,6 @@ import org.openide.util.Lookup;
 public class CustomFilter extends AbstractFilter {
 
     public static final String JAVASCRIPT_HELPER_ID = "JavaScriptHelper";
-    private static ScriptEngineAbstraction engine;
     private String code;
     private String name;
 
@@ -100,29 +100,6 @@ public class CustomFilter extends AbstractFilter {
         return getName();
     }
 
-    public static ScriptEngineAbstraction getEngine() {
-        if (engine == null) {
-
-            Collection<? extends ScriptEngineAbstraction> list = Lookup.getDefault().lookupAll(ScriptEngineAbstraction.class);
-            ScriptEngineAbstraction chosen = null;
-            for (ScriptEngineAbstraction s : list) {
-                if (s.initialize(getJsHelperText())) {
-                    chosen = s;
-                }
-            }
-
-            if (chosen == null) {
-                NotifyDescriptor message = new NotifyDescriptor.Message("Could not find a scripting engine. Please make sure that the Rhino scripting engine is available. Otherwise filter cannot be used.", NotifyDescriptor.ERROR_MESSAGE);
-                DialogDisplayer.getDefault().notifyLater(message);
-                chosen = new NullScriptEngine();
-            }
-
-            engine = chosen;
-        }
-
-        return engine;
-    }
-
     private static String getJsHelperText() {
         InputStream is = null;
         StringBuilder sb = new StringBuilder("importPackage(Packages.com.sun.hotspot.igv.filter);importPackage(Packages.com.sun.hotspot.igv.graph);importPackage(Packages.com.sun.hotspot.igv.data);importPackage(Packages.com.sun.hotspot.igv.util);importPackage(java.awt);");
@@ -149,6 +126,16 @@ public class CustomFilter extends AbstractFilter {
     }
 
     public void apply(Diagram d) {
-        getEngine().execute(d, code);
+        try {
+            ScriptEngineManager sem = new ScriptEngineManager();
+            ScriptEngine e = sem.getEngineByName("ECMAScript");
+            e.eval(getJsHelperText());
+            Bindings b = e.getContext().getBindings(ScriptContext.ENGINE_SCOPE);
+            b.put("graph", d);
+            b.put("IO", System.out);
+            e.eval(code, b);
+        } catch (ScriptException ex) {
+            Exceptions.printStackTrace(ex);
+        }
     }
 }
