@@ -62,6 +62,7 @@ public class FilterNode extends CheckNode implements LookupListener, ChangedList
         this.filter = filter;
         filter.getChangedEvent().addListener(new ChangedListener<Filter>() {
 
+            @Override
             public void changed(Filter source) {
                 update();
             }
@@ -104,10 +105,12 @@ public class FilterNode extends CheckNode implements LookupListener, ChangedList
         return OpenAction.get(OpenAction.class).createContextAwareInstance(Utilities.actionsGlobalContext());
     }
 
+    @Override
     public void resultChanged(LookupEvent lookupEvent) {
         changed(FilterTopComponent.findInstance());
     }
 
+    @Override
     public void changed(FilterTopComponent source) {
         setSelected(source.getFilterChain().containsFilter(filter));
     }

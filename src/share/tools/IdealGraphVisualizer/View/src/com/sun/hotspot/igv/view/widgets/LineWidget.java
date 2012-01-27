@@ -129,14 +129,17 @@ public class LineWidget extends Widget implements PopupMenuProvider {
 
         this.getActions().addAction(ActionFactory.createSelectAction(new SelectProvider() {
 
+            @Override
             public boolean isAimingAllowed(Widget arg0, Point arg1, boolean arg2) {
                 return true;
             }
 
+            @Override
             public boolean isSelectionAllowed(Widget arg0, Point arg1, boolean arg2) {
                 return true;
             }
 
+            @Override
             public void select(Widget arg0, Point arg1, boolean arg2) {
                 Set<Figure> set = new HashSet<>();
                 for (Connection c : LineWidget.this.connections) {
@@ -311,6 +314,7 @@ public class LineWidget extends Widget implements PopupMenuProvider {
         }
     }
 
+    @Override
     public JPopupMenu getPopupMenu(Widget widget, Point localLocation) {
         JPopupMenu menu = new JPopupMenu();
         menu.add(scene.createGotoAction(outputSlot.getFigure()));
@@ -324,14 +328,17 @@ public class LineWidget extends Widget implements PopupMenuProvider {
         final LineWidget w = this;
         menu.addPopupMenuListener(new PopupMenuListener() {
 
+            @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
                 w.setRecursivePopupVisible(true);
             }
 
+            @Override
             public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
                 w.setRecursivePopupVisible(false);
             }
 
+            @Override
             public void popupMenuCanceled(PopupMenuEvent e) {
             }
         });

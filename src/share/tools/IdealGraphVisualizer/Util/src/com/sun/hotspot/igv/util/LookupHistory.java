@@ -55,6 +55,7 @@ public class LookupHistory {
             return last;
         }
 
+        @Override
         public void resultChanged(LookupEvent ev) {
             T current = Utilities.actionsGlobalContext().lookup(klass);
             if (current != null) {

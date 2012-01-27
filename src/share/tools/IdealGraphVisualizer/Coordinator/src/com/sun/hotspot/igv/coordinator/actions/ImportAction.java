@@ -60,10 +60,12 @@ public final class ImportAction extends CallableSystemAction {
     public static FileFilter getFileFilter() {
         return new FileFilter() {
 
+            @Override
             public boolean accept(File f) {
                 return f.getName().toLowerCase().endsWith(".xml") || f.isDirectory();
             }
 
+            @Override
             public String getDescription() {
                 return "XML files (*.xml)";
             }
@@ -155,6 +157,7 @@ public final class ImportAction extends CallableSystemAction {
         }
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(ImportAction.class, "CTL_ImportAction");
     }

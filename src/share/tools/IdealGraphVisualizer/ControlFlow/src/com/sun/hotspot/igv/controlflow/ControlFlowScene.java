@@ -155,14 +155,17 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         selectionChanged();
     }
 
+    @Override
     public boolean isAimingAllowed(Widget widget, Point point, boolean b) {
         return false;
     }
 
+    @Override
     public boolean isSelectionAllowed(Widget widget, Point point, boolean b) {
         return true;
     }
 
+    @Override
     public void select(Widget widget, Point point, boolean change) {
         if (widget == this) {
             clearSelection();
@@ -185,16 +188,20 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         }
     }
 
+    @Override
     public void movementStarted(Widget widget) {
     }
 
+    @Override
     public void movementFinished(Widget widget) {
     }
 
+    @Override
     public Point getOriginalLocation(Widget widget) {
         return widget.getPreferredLocation();
     }
 
+    @Override
     public void setNewLocation(Widget widget, Point location) {
         if (selection.contains(widget)) {
             // move entire selection
@@ -211,6 +218,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         }
     }
 
+    @Override
     public Widget createSelectionWidget() {
         Widget widget = new Widget(this);
         widget.setOpaque(false);
@@ -219,6 +227,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         return widget;
     }
 
+    @Override
     public void performSelection(Rectangle rectangle) {
 
         if (rectangle.width < 0) {
@@ -257,6 +266,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
 
     }
 
+    @Override
     protected Widget attachNodeWidget(InputBlock node) {
         BlockWidget w = new BlockWidget(this, node);
         mainLayer.addChild(w);
@@ -266,6 +276,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         return w;
     }
 
+    @Override
     protected Widget attachEdgeWidget(InputBlockEdge edge) {
         BlockConnectionWidget w = new BlockConnectionWidget(this, edge);
         switch (edge.getState()) {
@@ -282,6 +293,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
         return w;
     }
 
+    @Override
     protected void attachEdgeSourceAnchor(InputBlockEdge edge, InputBlock oldSourceNode, InputBlock sourceNode) {
         Widget w = this.findWidget(edge);
         assert w instanceof ConnectionWidget;
@@ -290,6 +302,7 @@ public class ControlFlowScene extends GraphScene<InputBlock, InputBlockEdge> imp
 
     }
 
+    @Override
     protected void attachEdgeTargetAnchor(InputBlockEdge edge, InputBlock oldTargetNode, InputBlock targetNode) {
         Widget w = this.findWidget(edge);
         assert w instanceof ConnectionWidget;

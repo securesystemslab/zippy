@@ -183,10 +183,12 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         successors.remove(f);
     }
 
+    @Override
     public void setPosition(Point p) {
         this.position = p;
     }
 
+    @Override
     public Point getPosition() {
         return position;
     }
@@ -195,6 +197,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         return diagram;
     }
 
+    @Override
     public Source getSource() {
         return source;
     }
@@ -316,6 +319,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         return sb.toString();
     }
 
+    @Override
     public Dimension getSize() {
         if (VERTICAL_LAYOUT) {
             int width = Math.max(getWidth(), Figure.SLOT_WIDTH * (Math.max(inputSlots.size(), outputSlots.size()) + 1));
@@ -335,6 +339,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         return idString;
     }
 
+    @Override
     public Cluster getCluster() {
         if (getSource().getSourceNodes().size() == 0) {
             assert false : "Should never reach here, every figure must have at least one source node!";
@@ -348,6 +353,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         }
     }
 
+    @Override
     public boolean isRoot() {
   
         List<InputNode> sourceNodes = source.getSourceNodes();

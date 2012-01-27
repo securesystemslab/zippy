@@ -134,11 +134,13 @@ final class ControlFlowTopComponent extends TopComponent implements LookupListen
         result = null;
     }
 
+    @Override
     public void resultChanged(LookupEvent lookupEvent) {
         final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
         if (p != null) {
             SwingUtilities.invokeLater(new Runnable() {
 
+                @Override
                 public void run() {
                     InputGraph g = p.getGraph();
                     if (g != null) {

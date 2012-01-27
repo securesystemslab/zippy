@@ -53,18 +53,22 @@ public class InterClusterConnection implements Link {
         return outputSlotNode;
     }
 
+    @Override
     public Port getTo() {
         return inputSlot;
     }
 
+    @Override
     public Port getFrom() {
         return outputSlot;
     }
 
+    @Override
     public void setControlPoints(List<Point> p) {
         this.intermediatePoints = p;
     }
 
+    @Override
     public List<Point> getControlPoints() {
         return intermediatePoints;
     }

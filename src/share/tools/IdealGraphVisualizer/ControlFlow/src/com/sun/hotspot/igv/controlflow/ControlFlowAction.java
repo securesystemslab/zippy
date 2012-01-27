@@ -38,6 +38,7 @@ public class ControlFlowAction extends AbstractAction {
         super(NbBundle.getMessage(ControlFlowAction.class, "CTL_ControlFlowAction"));
     }
 
+    @Override
     public void actionPerformed(ActionEvent evt) {
         TopComponent win = ControlFlowTopComponent.findInstance();
         win.open();

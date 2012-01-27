@@ -61,18 +61,22 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
             this.to = to;
         }
 
+        @Override
         public Port getFrom() {
             return from.getSlot();
         }
 
+        @Override
         public Port getTo() {
             return to.getSlot();
         }
 
+        @Override
         public List<Point> getControlPoints() {
             return new ArrayList<>();
         }
 
+        @Override
         public void setControlPoints(List<Point> list) {
         // Do nothing for now
         }
@@ -91,10 +95,12 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
             final VertexWrapper vertex = this;
             this.slot = new Port() {
 
+                @Override
                 public Vertex getVertex() {
                     return vertex;
                 }
 
+                @Override
                 public Point getRelativePosition() {
                     return new Point((int) (vertex.getSize().getWidth() / 2), (int) (vertex.getSize().getHeight() / 2));
                 }
@@ -104,28 +110,34 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
             this.position = w.getPreferredLocation();
         }
 
+        @Override
         public Cluster getCluster() {
             return null;
         }
 
+        @Override
         public Dimension getSize() {
             Widget w = graph.getScene().findWidget(node);
             return w.getBounds().getSize();
         }
 
+        @Override
         public Point getPosition() {
             return position;
         }
 
+        @Override
         public void setPosition(Point p) {
             HierarchicalGraphLayout.this.setResolvedNodeLocation(graph, node, p);
             position = p;
         }
 
+        @Override
         public boolean isRoot() {
             return false;
         }
 
+        @Override
         public int compareTo(Vertex o) {
             @SuppressWarnings("unchecked")
             VertexWrapper vw = (VertexWrapper) o;
@@ -137,6 +149,7 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
         }
     }
 
+    @Override
     protected void performGraphLayout(UniversalGraph<N, E> graph) {
         
         Set<LinkWrapper> links = new LinkedHashSet<>();
@@ -162,6 +175,7 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
         m.doLayout(layoutGraph);
     }
 
+    @Override
     protected void performNodesLayout(UniversalGraph<N, E> graph, Collection<N> nodes) {
         throw new UnsupportedOperationException();
     }

@@ -39,6 +39,7 @@ public class MatcherSelector implements Selector {
         this.matcher = matcher;
     }
 
+    @Override
     public List<Figure> selected(Diagram d) {
         Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(d.getFigures());
         List<Figure> list = selector.selectMultiple(matcher);

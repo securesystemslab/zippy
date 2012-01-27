@@ -106,12 +106,14 @@ public class PropertiesTest extends TestCase {
         
         PropertyMatcher matcher = new PropertyMatcher() {
 
+            @Override
             public String getName() {
                 assertFalse(called[0]);
                 called[0] = true;
                 return n;
             }
 
+            @Override
             public boolean match(String value) {
                 assertTrue(v.equals(value));
                 return true;
@@ -129,12 +131,14 @@ public class PropertiesTest extends TestCase {
         called[0] = false;
         PropertyMatcher matcher2 = new PropertyMatcher() {
 
+            @Override
             public String getName() {
                 assertFalse(called[0]);
                 called[0] = true;
                 return n;
             }
 
+            @Override
             public boolean match(String value) {
                 return false;
             }

@@ -57,6 +57,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
         nodeToBlock = new LinkedHashMap<>();
     }
     
+    @Override
     public void setParent(Folder parent) {
         this.parent = parent;
         if (parent instanceof Group) {
@@ -212,6 +213,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
         this.getProperties().setProperty("name", name);
     }
 
+    @Override
     public String getName() {
         return getProperties().get("name");
     }

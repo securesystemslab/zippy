@@ -41,6 +41,7 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
     private transient ChangedEvent<FilterChain> changedEvent;
     
     private ChangedListener<Filter> changedListener = new ChangedListener<Filter>() {
+        @Override
         public void changed(Filter source) {
             changedEvent.fire();
         }
@@ -56,6 +57,7 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
         changedEvent = new ChangedEvent<>(this);
     }
 
+    @Override
     public ChangedEvent<FilterChain> getChangedEvent() {
         return changedEvent;
     }

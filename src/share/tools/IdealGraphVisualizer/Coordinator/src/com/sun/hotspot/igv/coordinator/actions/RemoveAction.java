@@ -36,6 +36,7 @@ import org.openide.util.actions.NodeAction;
  */
 public final class RemoveAction extends NodeAction {
 
+    @Override
     protected void performAction(Node[] activatedNodes) {
         for (Node n : activatedNodes) {
             RemoveCookie removeCookie = n.getCookie(RemoveCookie.class);
@@ -49,6 +50,7 @@ public final class RemoveAction extends NodeAction {
         putValue(Action.SHORT_DESCRIPTION, "Remove selected graphs and groups");
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(RemoveAction.class, "CTL_RemoveAction");
     }
@@ -58,6 +60,7 @@ public final class RemoveAction extends NodeAction {
         return "com/sun/hotspot/igv/coordinator/images/remove.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }
@@ -67,6 +70,7 @@ public final class RemoveAction extends NodeAction {
         return false;
     }
 
+    @Override
     protected boolean enable(Node[] nodes) {
         return nodes.length > 0;
     }

@@ -105,12 +105,14 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     
     private PopupMenuProvider popupMenuProvider = new PopupMenuProvider() {
 
+        @Override
         public JPopupMenu getPopupMenu(Widget widget, Point localLocation) {
             return DiagramScene.this.createPopupMenu();
         }
     };
     private RectangularSelectDecorator rectangularSelectDecorator = new RectangularSelectDecorator() {
 
+        @Override
         public Widget createSelectionWidget() {
             Widget widget = new Widget(DiagramScene.this);
             widget.setBorder(BorderFactory.createLineBorder(Color.black, 2));
@@ -140,6 +142,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return false;
     }
 
+    @Override
     public void zoomOut() {
         double zoom = getZoomFactor();
         Point viewPosition = getScrollPane().getViewport().getViewPosition();
@@ -151,6 +154,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
     }
 
+    @Override
     public void zoomIn() {
 
         double zoom = getZoomFactor();
@@ -190,6 +194,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
     private ControllableChangedListener<SelectionCoordinator> highlightedCoordinatorListener = new ControllableChangedListener<SelectionCoordinator>() {
 
+        @Override
         public void filteredChanged(SelectionCoordinator source) {
             DiagramScene.this.setHighlightedObjects(getObjectsFromIdSet(source.getHighlightedObjects()));
             DiagramScene.this.validate();
@@ -282,15 +287,19 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
     private ObjectSceneListener selectionChangedListener = new ObjectSceneListener() {
 
+        @Override
         public void objectAdded(ObjectSceneEvent arg0, Object arg1) {
         }
 
+        @Override
         public void objectRemoved(ObjectSceneEvent arg0, Object arg1) {
         }
 
+        @Override
         public void objectStateChanged(ObjectSceneEvent e, Object o, ObjectState oldState, ObjectState newState) {
         }
 
+        @Override
         public void selectionChanged(ObjectSceneEvent e, Set<Object> oldSet, Set<Object> newSet) {
             DiagramScene scene = (DiagramScene) e.getObjectScene();
             if (scene.isRebuilding()) {
@@ -332,6 +341,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         }
 
+        @Override
         public void highlightingChanged(ObjectSceneEvent e, Set<Object> oldSet, Set<Object> newSet) {
             Set<Integer> nodeHighlighting = new HashSet<>();
             for (Object o : newSet) {
@@ -347,6 +357,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             highlightedCoordinatorListener.setEnabled(true);
         }
 
+        @Override
         public void hoverChanged(ObjectSceneEvent e, Object oldObject, Object newObject) {
             Set<Object> newHighlightedObjects = new HashSet<>(DiagramScene.this.getHighlightedObjects());
             if (oldObject != null) {
@@ -358,6 +369,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             DiagramScene.this.setHighlightedObjects(newHighlightedObjects);
         }
 
+        @Override
         public void focusChanged(ObjectSceneEvent arg0, Object arg1, Object arg2) {
         }
     };
@@ -433,6 +445,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return scrollPane;
     }
 
+    @Override
     public Component getComponent() {
         return scrollPane;
     }
@@ -445,6 +458,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         final DiagramScene diagramScene = this;
         Action a = new AbstractAction() {
 
+            @Override
             public void actionPerformed(ActionEvent e) {
                 diagramScene.gotoFigure(f);
             }
@@ -811,6 +825,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
     }
 
+    @Override
     public void setInteractionMode(InteractionMode mode) {
         panAction.setEnabled(mode == InteractionMode.PANNING);
         // When panAction is not enabled, it does not consume the event
@@ -835,6 +850,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return lookup;
     }
 
+    @Override
     public void initialize() {
         Figure f = getModel().getDiagramToView().getRootFigure();
         if (f != null) {
@@ -955,6 +971,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
     }
 
+    @Override
     public void setSelection(Collection<Figure> list) {
         super.setSelectedObjects(new HashSet<>(list));
     }
@@ -968,6 +985,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return undoRedoManager;
     }
 
+    @Override
     public UndoRedo getUndoRedo() {
         return getUndoRedoManager();
     }
@@ -997,11 +1015,13 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return false;
     }
 
+    @Override
     public void componentHidden() {
         SelectionCoordinator.getInstance().getHighlightedChangedEvent().removeListener(highlightedCoordinatorListener);
         SelectionCoordinator.getInstance().getSelectedChangedEvent().removeListener(selectedCoordinatorListener);
     }
 
+    @Override
     public void componentShowing() {
         SelectionCoordinator.getInstance().getHighlightedChangedEvent().addListener(highlightedCoordinatorListener);
         SelectionCoordinator.getInstance().getSelectedChangedEvent().addListener(selectedCoordinatorListener);
@@ -1193,6 +1213,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
             SwingUtilities.invokeLater(new Runnable() {
 
+                @Override
                 public void run() {
                     scene.setScrollPosition(oldScrollPosition);
                 }
@@ -1201,6 +1222,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             scene.setUndoRedoEnabled(b);
         }
 
+        @Override
         public void changed(DiagramViewModel source) {
             scene.getModel().getViewChangedEvent().removeListener(this);
             if (oldModel.getHiddenNodes().equals(newModel.getHiddenNodes())) {
@@ -1221,6 +1243,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
 
     private final ChangedListener<DiagramViewModel> fullChange = new ChangedListener<DiagramViewModel>() {
+        @Override
         public void changed(DiagramViewModel source) {
             assert source == model : "Receive only changed event from current model!";
             assert source != null;
@@ -1229,6 +1252,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     };
 
     private final ChangedListener<DiagramViewModel> hiddenNodesChange = new ChangedListener<DiagramViewModel>() {
+        @Override
         public void changed(DiagramViewModel source) {
             assert source == model : "Receive only changed event from current model!";
             assert source != null;
@@ -1237,6 +1261,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     };
 
     private final ChangedListener<DiagramViewModel> selectionChange = new ChangedListener<DiagramViewModel>() {
+        @Override
         public void changed(DiagramViewModel source) {
             assert source == model : "Receive only changed event from current model!";
             assert source != null;

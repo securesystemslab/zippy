@@ -48,10 +48,12 @@ public class ColorFilter extends AbstractFilter {
         colorRules = new ArrayList<>();
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void apply(Diagram diagram) {
 
         Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(diagram.getFigures());

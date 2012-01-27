@@ -42,14 +42,17 @@ public abstract class AbstractFilter implements Filter {
         properties = new Properties();
     }
 
+    @Override
     public Properties getProperties() {
         return properties;
     }
 
+    @Override
     public OpenCookie getEditor() {
         return null;
     }
 
+    @Override
     public ChangedEvent<Filter> getChangedEvent() {
         return changedEvent;
     }

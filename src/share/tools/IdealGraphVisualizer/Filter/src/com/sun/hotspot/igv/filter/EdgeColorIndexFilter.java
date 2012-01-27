@@ -48,10 +48,12 @@ public class EdgeColorIndexFilter extends AbstractFilter {
         this.colors = color;
     }
 
+    @Override
     public String getName() {
         return "Edge Color Index Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {

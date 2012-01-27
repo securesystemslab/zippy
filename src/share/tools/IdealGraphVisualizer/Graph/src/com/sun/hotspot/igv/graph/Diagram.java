@@ -281,6 +281,7 @@ public class Diagram {
         List<Figure> figuresSorted = new ArrayList<>(tmpFigures);
         Collections.sort(figuresSorted, new Comparator<Figure>() {
 
+            @Override
             public int compare(Figure a, Figure b) {
                 return b.getPredecessors().size() + b.getSuccessors().size() - a.getPredecessors().size() - a.getSuccessors().size();
             }

@@ -41,5 +41,6 @@ public interface Filter extends Properties.Provider, ChangedEventProvider<Filter
 
     OpenCookie getEditor();
 
+    @Override
     ChangedEvent<Filter> getChangedEvent();
 }

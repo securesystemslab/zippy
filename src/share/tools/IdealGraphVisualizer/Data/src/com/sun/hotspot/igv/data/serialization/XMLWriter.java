@@ -49,6 +49,7 @@ public class XMLWriter extends Writer {
         write(arr, 0, arr.length);
     }
 
+    @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
         for (int i = off; i < off + len; i++) {
             char c = cbuf[i];
@@ -64,10 +65,12 @@ public class XMLWriter extends Writer {
         }
     }
 
+    @Override
     public void flush() throws IOException {
         inner.flush();
     }
 
+    @Override
     public void close() throws IOException {
         inner.close();
     }

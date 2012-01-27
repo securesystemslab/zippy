@@ -53,6 +53,7 @@ public class Server implements PreferenceChangeListener {
         Settings.get().addPreferenceChangeListener(this);
     }
 
+    @Override
     public void preferenceChange(PreferenceChangeEvent e) {
 
         int curPort = Integer.parseInt(Settings.get().get(Settings.PORT, Settings.PORT_DEFAULT));
@@ -75,6 +76,7 @@ public class Server implements PreferenceChangeListener {
 
         Runnable runnable = new Runnable() {
 
+            @Override
             public void run() {
                 while (true) {
                     try {

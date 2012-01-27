@@ -46,10 +46,12 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     public GraalEdgeColorFilter() {
     }
 
+    @Override
     public String getName() {
         return "Graal Edge Color Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {

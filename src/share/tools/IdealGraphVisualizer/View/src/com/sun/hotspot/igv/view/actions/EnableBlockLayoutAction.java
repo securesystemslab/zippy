@@ -45,6 +45,7 @@ public class EnableBlockLayoutAction extends AbstractAction {
         putValue(Action.SHORT_DESCRIPTION, "Cluster nodes into blocks");
     }
 
+    @Override
     public void actionPerformed(ActionEvent ev) {
         this.state = !state;
         this.putValue(STATE, state);

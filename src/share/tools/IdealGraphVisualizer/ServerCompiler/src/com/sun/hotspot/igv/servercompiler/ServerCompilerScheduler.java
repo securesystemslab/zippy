@@ -65,6 +65,7 @@ public class ServerCompilerScheduler implements Scheduler {
     private InputBlock[][] commonDominator;
     private static final Comparator<InputEdge> edgeComparator = new Comparator<InputEdge>() {
 
+        @Override
         public int compare(InputEdge o1, InputEdge o2) {
             return o1.getToIndex() - o2.getToIndex();
         }
@@ -190,6 +191,7 @@ public class ServerCompilerScheduler implements Scheduler {
         return n.getProperties().get("block");
     }
 
+    @Override
     public Collection<InputBlock> schedule(InputGraph graph) {
         if (graph.getNodes().isEmpty()) {
             return Collections.emptyList();

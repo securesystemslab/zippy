@@ -68,6 +68,7 @@ public class FolderNode extends AbstractNode {
             this.setKeys(folder.getElements());
         }
         
+        @Override
         public void changed(Object source) {
             addNotify();
          }
@@ -90,6 +91,7 @@ public class FolderNode extends AbstractNode {
             final FolderElement folderElement = (FolderElement) folder;
             this.setDisplayName(folderElement.getName());
             content.add(new RemoveCookie() {
+                @Override
                 public void remove() {
                     folderElement.getParent().removeElement(folderElement);
                 }

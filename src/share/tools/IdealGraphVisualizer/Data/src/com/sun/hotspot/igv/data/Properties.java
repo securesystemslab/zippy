@@ -119,6 +119,7 @@ public class Properties implements Serializable, Iterable<Property> {
             properties = new Properties(object.getProperties());
         }
 
+        @Override
         public Properties getProperties() {
             return properties;
         }
@@ -139,10 +140,12 @@ public class Properties implements Serializable, Iterable<Property> {
             this.matcher = matcher;
         }
 
+        @Override
         public String getName() {
             return matcher.getName();
         }
 
+        @Override
         public boolean match(String p) {
             if (p == null) {
                 return false;
@@ -167,10 +170,12 @@ public class Properties implements Serializable, Iterable<Property> {
             this.value = value;
         }
 
+        @Override
         public String getName() {
             return name;
         }
 
+        @Override
         public boolean match(String p) {
             if (p == null) {
                 throw new IllegalArgumentException("Property value must not be null!");
@@ -207,10 +212,12 @@ public class Properties implements Serializable, Iterable<Property> {
             }
         }
 
+        @Override
         public String getName() {
             return name;
         }
 
+        @Override
         public boolean match(String p) {
             if (p == null) {
                 throw new IllegalArgumentException("Property value must not be null!");
@@ -252,6 +259,7 @@ public class Properties implements Serializable, Iterable<Property> {
         }
 
         Collections.sort(pairs, new Comparator<String[]>() {
+            @Override
             public int compare(String[] o1, String[] o2) {
                 assert o1.length == 2;
                 assert o2.length == 2;
@@ -358,6 +366,7 @@ public class Properties implements Serializable, Iterable<Property> {
 
         int index;
 
+        @Override
         public boolean hasNext() {
             while (index < map.length && map[index + 1] == null) {
                 index += 2;
@@ -365,6 +374,7 @@ public class Properties implements Serializable, Iterable<Property> {
             return index < map.length;
         }
 
+        @Override
         public Property next() {
             if (index < map.length) {
                 index += 2;
@@ -373,11 +383,13 @@ public class Properties implements Serializable, Iterable<Property> {
             return null;
         }
 
+        @Override
         public void remove() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 
+    @Override
     public Iterator<Property> iterator() {
         return new PropertiesIterator();
     }

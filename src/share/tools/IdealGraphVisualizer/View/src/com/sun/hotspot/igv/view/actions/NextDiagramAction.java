@@ -51,10 +51,12 @@ public final class NextDiagramAction extends ContextAction<DiagramViewModel> imp
         putValue(Action.SMALL_ICON, new ImageIcon(ImageUtilities.loadImage("com/sun/hotspot/igv/view/images/next_diagram.png")));
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(NextDiagramAction.class, "CTL_NextDiagramAction");
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }
@@ -96,10 +98,12 @@ public final class NextDiagramAction extends ContextAction<DiagramViewModel> imp
         return model.getSecondPosition() != model.getPositions().size() - 1;
     }
 
+    @Override
     public Action createContextAwareInstance(Lookup arg0) {
         return new NextDiagramAction(arg0);
     }
 
+    @Override
     public void changed(DiagramViewModel source) {
         update(source);
     }

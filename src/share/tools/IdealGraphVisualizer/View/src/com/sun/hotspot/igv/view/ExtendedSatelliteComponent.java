@@ -48,6 +48,7 @@ public class ExtendedSatelliteComponent extends JComponent implements MouseListe
         addMouseMotionListener(this);
     }
 
+    @Override
     public void addNotify() {
         super.addNotify();
         scene.addSceneListener(this);
@@ -59,6 +60,7 @@ public class ExtendedSatelliteComponent extends JComponent implements MouseListe
         repaint();
     }
 
+    @Override
     public void removeNotify() {
         scene.getView().removeComponentListener(this);
         scene.removeSceneListener(this);
@@ -74,6 +76,7 @@ public class ExtendedSatelliteComponent extends JComponent implements MouseListe
         }
     }
 
+    @Override
     public void paint(Graphics g) {
         Graphics2D gr = (Graphics2D) g;
         super.paint(g);
@@ -122,27 +125,34 @@ public class ExtendedSatelliteComponent extends JComponent implements MouseListe
         }
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         moveVisibleRect(e.getPoint());
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {
         moveVisibleRect(e.getPoint());
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {
     }
 
+    @Override
     public void mouseExited(MouseEvent e) {
     }
 
+    @Override
     public void mouseDragged(MouseEvent e) {
         moveVisibleRect(e.getPoint());
     }
 
+    @Override
     public void mouseMoved(MouseEvent e) {
     }
 
@@ -175,27 +185,34 @@ public class ExtendedSatelliteComponent extends JComponent implements MouseListe
         this.repaint();
     }
 
+    @Override
     public void sceneRepaint() {
     //repaint ();
     }
 
+    @Override
     public void sceneValidating() {
     }
 
+    @Override
     public void sceneValidated() {
     }
 
+    @Override
     public void componentResized(ComponentEvent e) {
         repaint();
     }
 
+    @Override
     public void componentMoved(ComponentEvent e) {
         repaint();
     }
 
+    @Override
     public void componentShown(ComponentEvent e) {
     }
 
+    @Override
     public void componentHidden(ComponentEvent e) {
     }
 }

@@ -52,6 +52,7 @@ public final class SaveAsAction extends NodeAction {
         putValue(Action.SHORT_DESCRIPTION, "Save selected groups to XML file...");
     }
 
+    @Override
     protected void performAction(Node[] activatedNodes) {
 
         GraphDocument doc = new GraphDocument();
@@ -97,6 +98,7 @@ public final class SaveAsAction extends NodeAction {
         return CookieAction.MODE_SOME;
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(SaveAsAction.class, "CTL_SaveAsAction");
     }
@@ -106,6 +108,7 @@ public final class SaveAsAction extends NodeAction {
         return "com/sun/hotspot/igv/coordinator/images/save.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }
@@ -115,6 +118,7 @@ public final class SaveAsAction extends NodeAction {
         return false;
     }
 
+    @Override
     protected boolean enable(Node[] nodes) {
 
         int cnt = 0;

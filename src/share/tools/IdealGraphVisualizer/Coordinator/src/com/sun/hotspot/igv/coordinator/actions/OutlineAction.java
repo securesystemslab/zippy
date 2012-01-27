@@ -40,6 +40,7 @@ public class OutlineAction extends AbstractAction {
         super(NbBundle.getMessage(OutlineAction.class, "CTL_OutlineAction"));
     }
 
+    @Override
     public void actionPerformed(ActionEvent evt) {
         TopComponent win = OutlineTopComponent.findInstance();
         win.open();

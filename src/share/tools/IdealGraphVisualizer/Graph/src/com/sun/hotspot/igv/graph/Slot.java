@@ -63,6 +63,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 		assert figure != null;
 	}
 
+    @Override
 	public Properties getProperties() {
 		Properties p = new Properties();
 		if (source.getSourceNodes().size() > 0) {
@@ -78,12 +79,14 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 	}
 	public static final Comparator<Slot> slotIndexComparator = new Comparator<Slot>() {
 
+        @Override
 		public int compare(Slot o1, Slot o2) {
 			return o1.wantedIndex - o2.wantedIndex;
 		}
 	};
 	public static final Comparator<Slot> slotFigureComparator = new Comparator<Slot>() {
 
+        @Override
 		public int compare(Slot o1, Slot o2) {
 			return o1.figure.getId() - o2.figure.getId();
 		}
@@ -113,6 +116,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 		return wantedIndex;
 	}
 
+    @Override
 	public Source getSource() {
 		return source;
 	}
@@ -179,6 +183,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 		}
 	}
 
+    @Override
 	public Vertex getVertex() {
 		return figure;
 	}

@@ -47,10 +47,12 @@ public class SplitFilter extends AbstractFilter {
         this.propertyName = propertyName;
     }
 
+    @Override
     public String getName() {
         return name;
     }
     
+    @Override
     public void apply(Diagram d) {
         List<Figure> list = selector.selected(d);
 

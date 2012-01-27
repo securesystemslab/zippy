@@ -39,6 +39,7 @@ public class ChangedEvent<T> extends Event<ChangedListener<T>> {
         this.object = object;
     }
 
+    @Override
     protected void fire(ChangedListener<T> l) {
         l.changed(object);
     }

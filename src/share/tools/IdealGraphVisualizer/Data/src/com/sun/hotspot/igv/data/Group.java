@@ -61,10 +61,12 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
         return method;
     }
 
+    @Override
     public ChangedEvent<Group> getChangedEvent() {
         return changedEvent;
     }
 
+    @Override
     public List<FolderElement> getElements() {
         return Collections.unmodifiableList(elements);
     }
@@ -73,6 +75,7 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
         return elements.size();
     }
     
+    @Override
     public void addElement(FolderElement element) {
         elements.add(element);
         if (element instanceof InputGraph) {
@@ -106,6 +109,7 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
         return sb.toString();
     }
 
+    @Override
     public String getName() {
         return getProperties().get("name");
     }

@@ -81,10 +81,12 @@ public class ClusterNode implements Vertex {
         final ClusterNode widget = this;
         inputSlot = new Port() {
 
+            @Override
             public Point getRelativePosition() {
                 return new Point(size.width / 2, 0);
             }
 
+            @Override
             public Vertex getVertex() {
                 return widget;
             }
@@ -92,10 +94,12 @@ public class ClusterNode implements Vertex {
 
         outputSlot = new Port() {
 
+            @Override
             public Point getRelativePosition() {
                 return new Point(size.width / 2, 0);//size.height);
             }
 
+            @Override
             public Vertex getVertex() {
                 return widget;
             }
@@ -164,14 +168,17 @@ public class ClusterNode implements Vertex {
         return outputSlot;
     }
 
+    @Override
     public Dimension getSize() {
         return size;
     }
 
+    @Override
     public Point getPosition() {
         return position;
     }
 
+    @Override
     public void setPosition(Point pos) {
 
         this.position = pos;
@@ -198,6 +205,7 @@ public class ClusterNode implements Vertex {
         }
     }
 
+    @Override
     public Cluster getCluster() {
         return cluster;
     }
@@ -214,10 +222,12 @@ public class ClusterNode implements Vertex {
         root = b;
     }
 
+    @Override
     public boolean isRoot() {
         return root;
     }
 
+    @Override
     public int compareTo(Vertex o) {
         return toString().compareTo(o.toString());
     }

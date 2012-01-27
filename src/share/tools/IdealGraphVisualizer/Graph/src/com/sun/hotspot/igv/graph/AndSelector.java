@@ -40,6 +40,7 @@ public class AndSelector implements Selector {
         this.selector2 = s2;
     }
 
+    @Override
     public List<Figure> selected(Diagram d) {
         List<Figure> l1 = selector1.selected(d);
         List<Figure> l2 = selector2.selected(d);

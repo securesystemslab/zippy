@@ -42,6 +42,7 @@ public class DoubleClickSelectAction extends WidgetAction.LockedAdapter {
         this.provider = provider;
     }
 
+    @Override
     protected boolean isLocked() {
         return false;
     }

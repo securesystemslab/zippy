@@ -38,6 +38,7 @@ public class SuccessorSelector implements Selector {
         this.innerSelector = innerSelector;
     }
 
+    @Override
     public List<Figure> selected(Diagram d) {
         List<Figure> inner = innerSelector.selected(d);
         List<Figure> result = new ArrayList<>();

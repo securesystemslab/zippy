@@ -66,6 +66,7 @@ public class ChangedEventTest {
         final int[] fireCount = new int[1];
 
         e.addListener(new ChangedListener<Integer>() {
+            @Override
             public void changed(Integer s) {
                 assertEquals(s.intValue(), 5);
                 fireCount[0]++;

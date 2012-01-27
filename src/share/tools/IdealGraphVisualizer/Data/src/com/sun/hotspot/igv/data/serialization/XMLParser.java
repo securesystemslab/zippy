@@ -195,6 +195,7 @@ public class XMLParser implements ContentHandler {
         this.stack.push(rootHandler);
     }
 
+    @Override
     public void setDocumentLocator(Locator locator) {
         if (monitor != null) {
             monitor.setState("Starting parsing");
@@ -235,6 +236,7 @@ public class XMLParser implements ContentHandler {
         stack.push(null);
     }
 
+    @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
         ElementHandler handler = stack.pop();
         if (handler != null) {
@@ -242,6 +244,7 @@ public class XMLParser implements ContentHandler {
         }
     }
 
+    @Override
     public void characters(char[] ch, int start, int length) throws SAXException {
 
         assert !stack.isEmpty();
@@ -253,12 +256,15 @@ public class XMLParser implements ContentHandler {
         }
     }
 
+    @Override
     public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
     }
 
+    @Override
     public void processingInstruction(String target, String data) throws SAXException {
     }
 
+    @Override
     public void skippedEntity(String name) throws SAXException {
     }
 }

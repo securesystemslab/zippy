@@ -39,6 +39,7 @@ public class FilterAction extends AbstractAction {
         super(NbBundle.getMessage(FilterAction.class, "CTL_FilterAction"));
     }
 
+    @Override
     public void actionPerformed(ActionEvent evt) {
         TopComponent win = FilterTopComponent.findInstance();
         win.open();

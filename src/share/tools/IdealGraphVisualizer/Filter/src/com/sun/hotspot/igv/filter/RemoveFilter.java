@@ -45,10 +45,12 @@ public class RemoveFilter extends AbstractFilter {
         rules = new ArrayList<>();
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void apply(Diagram diagram) {
         for (RemoveRule r : rules) {
             List<Figure> selected = r.getSelector().selected(diagram);

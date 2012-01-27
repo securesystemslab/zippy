@@ -189,11 +189,13 @@ public class HierarchicalLayoutManager implements LayoutManager {
         minLayerDifference = v;
     }
 
+    @Override
     public void doLayout(LayoutGraph graph) {
         doLayout(graph, new HashSet<Vertex>(), new HashSet<Vertex>(), new HashSet<Link>());
 
     }
 
+    @Override
     public void doLayout(LayoutGraph graph, Set<? extends Vertex> firstLayerHint, Set<? extends Vertex> lastLayerHint, Set<? extends Link> importantLinks) {
 
         this.importantLinks = importantLinks;
@@ -263,6 +265,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         private int pointCount;
 
+        @Override
         protected void run() {
 
             HashMap<Vertex, Point> vertexPositions = new HashMap<>();
@@ -505,6 +508,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     }
     private static final Comparator<Segment> segmentComparator = new Comparator<Segment>() {
 
+        @Override
         public int compare(Segment s1, Segment s2) {
             return s1.orderNumber - s2.orderNumber;
         }
@@ -520,17 +524,20 @@ public class HierarchicalLayoutManager implements LayoutManager {
     }
     private static final Comparator<Region> regionComparator = new Comparator<Region>() {
 
+        @Override
         public int compare(Region r1, Region r2) {
             return r1.minOrderNumber - r2.minOrderNumber;
         }
     };
     private static final Comparator<LayoutNode> nodePositionComparator = new Comparator<LayoutNode>() {
 
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             return n1.pos - n2.pos;
         }
     };
     private static final Comparator<LayoutNode> nodeProcessingDownComparator = new Comparator<LayoutNode>() {
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             if (n1.vertex == null) {
                 if (n2.vertex == null) {
@@ -546,6 +553,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     };
     private static final Comparator<LayoutNode> nodeProcessingUpComparator = new Comparator<LayoutNode>() {
 
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             if (n1.vertex == null) {
                 if (n2.vertex == null) {
@@ -579,6 +587,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             upProcessingOrder = new ArrayList[layers.length];
         }
 
+        @Override
         protected void run() {
             createArrays();
 
@@ -1080,6 +1089,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
         }
 
+        @Override
         protected void run() {
 
             generateSegments();
@@ -1100,6 +1110,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     }
     private static Comparator<LayoutNode> crossingNodeComparator = new Comparator<LayoutNode>() {
 
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             return n1.crossingNumber - n2.crossingNumber;
         }
@@ -1123,6 +1134,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
         }
 
+        @Override
         protected void run() {
             createLayers();
 
@@ -1324,6 +1336,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
     private class AssignYCoordinates extends AlgorithmPart {
 
+        @Override
         protected void run() {
             int curY = 0;
 
@@ -1380,6 +1393,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
         }
 
+        @Override
         protected void run() {
             oldNodeCount = nodes.size();
 
@@ -1388,6 +1402,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 Comparator<LayoutEdge> comparator = new Comparator<LayoutEdge>() {
 
+                    @Override
                     public int compare(LayoutEdge e1, LayoutEdge e2) {
                         return e1.to.layer - e2.to.layer;
                     }
@@ -1612,6 +1627,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
         }
 
+        @Override
         protected void run() {
 
             List<LayoutNode> insertOrder = new ArrayList<>();
@@ -1718,6 +1734,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         private HashSet<LayoutNode> visited;
         private HashSet<LayoutNode> active;
 
+        @Override
         protected void run() {
 
             // Remove self-edges
@@ -1981,6 +1998,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     }
     private Comparator<Link> linkComparator = new Comparator<Link>() {
 
+        @Override
         public int compare(Link l1, Link l2) {
 
             int result = l1.getFrom().getVertex().compareTo(l2.getFrom().getVertex());
@@ -2002,6 +2020,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
     private class BuildDatastructure extends AlgorithmPart {
 
+        @Override
         protected void run() {
             // Set up nodes
             List<Vertex> vertices = new ArrayList<>(graph.getVertices());
@@ -2072,6 +2091,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         }
     }
 
+    @Override
     public void doRouting(LayoutGraph graph) {
         // Do nothing for now
     }

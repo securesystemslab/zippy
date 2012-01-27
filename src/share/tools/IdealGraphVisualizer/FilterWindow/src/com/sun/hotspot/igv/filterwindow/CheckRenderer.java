@@ -65,6 +65,7 @@ public class CheckRenderer extends JCheckBox implements ListCellRenderer<Object>
         startBackground = this.getBackground();
     }
 
+    @Override
     public Component getListCellRendererComponent(final JList<? extends Object> list, Object value, final int index, boolean isSelected, boolean cellHasFocus) {
         setText(value.toString());
         CheckNode node = ((CheckNodeListModel) list.getModel()).getCheckNodeAt(index);

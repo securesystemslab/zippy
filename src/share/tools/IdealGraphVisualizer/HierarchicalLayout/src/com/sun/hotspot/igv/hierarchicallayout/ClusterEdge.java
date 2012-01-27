@@ -45,18 +45,22 @@ public class ClusterEdge implements Link {
         this.to = to;
     }
 
+    @Override
     public Port getTo() {
         return to.getInputSlot();
     }
 
+    @Override
     public Port getFrom() {
         return from.getInputSlot();
     }
 
+    @Override
     public void setControlPoints(List<Point> p) {
         this.points = p;
     }
 
+    @Override
     public List<Point> getControlPoints() {
         return points;
     }

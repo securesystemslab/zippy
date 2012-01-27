@@ -44,10 +44,12 @@ public class RemoveSelfLoopsFilter extends AbstractFilter {
         this.name = name;
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void apply(Diagram d) {
 
         for (Figure f : d.getFigures()) {

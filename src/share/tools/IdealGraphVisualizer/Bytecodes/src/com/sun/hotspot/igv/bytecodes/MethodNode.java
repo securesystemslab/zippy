@@ -50,6 +50,7 @@ public class MethodNode extends AbstractNode {
             this.graph = graph;
         }
 
+        @Override
         protected Node[] createNodes(InputBytecode bc) {
             if (bc.getInlined() == null) {
                 return new Node[]{new BytecodeNode(bc, graph, bciString)};

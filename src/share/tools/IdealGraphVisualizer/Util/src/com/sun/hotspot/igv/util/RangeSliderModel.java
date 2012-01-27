@@ -130,6 +130,7 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         return colorChangedEvent;
     }
 
+    @Override
     public ChangedEvent<RangeSliderModel> getChangedEvent() {
         return changedEvent;
     }

@@ -58,18 +58,22 @@ public class ClusterIngoingConnection implements Link {
         return inputSlotNode;
     }
 
+    @Override
     public Port getTo() {
         return inputSlot;
     }
 
+    @Override
     public Port getFrom() {
         return outputSlot;
     }
 
+    @Override
     public void setControlPoints(List<Point> p) {
         this.controlPoints = p;
     }
 
+    @Override
     public List<Point> getControlPoints() {
         return controlPoints;
     }

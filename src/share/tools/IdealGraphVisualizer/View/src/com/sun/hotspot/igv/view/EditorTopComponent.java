@@ -127,6 +127,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     private DiagramViewModel rangeSliderModel;
     private ExportCookie exportCookie = new ExportCookie() {
 
+        @Override
         public void export(File f) {
 
             Graphics2D svgGenerator = BatikSVG.createGraphicsObject();
@@ -161,10 +162,12 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     private DiagramProvider diagramProvider = new DiagramProvider() {
 
+        @Override
         public Diagram getDiagram() {
             return getModel().getDiagramToView();
         }
 
+        @Override
         public ChangedEvent<DiagramProvider> getChangedEvent() {
             return diagramChangedEvent;
         }
@@ -309,14 +312,17 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
         scene.getComponent().addHierarchyBoundsListener(new HierarchyBoundsListener() {
 
+            @Override
             public void ancestorMoved(HierarchyEvent e) {
             }
 
+            @Override
             public void ancestorResized(HierarchyEvent e) {
                 if (!notFirstTime && scene.getComponent().getBounds().width > 0) {
                     notFirstTime = true;
                     SwingUtilities.invokeLater(new Runnable() {
 
+                        @Override
                         public void run() {
                             EditorTopComponent.this.scene.initialize();
                         }
@@ -333,9 +339,11 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     }
     private KeyListener keyListener = new KeyListener() {
 
+        @Override
         public void keyTyped(KeyEvent e) {
         }
 
+        @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_S) {
                 EditorTopComponent.this.overviewButton.setSelected(true);
@@ -343,6 +351,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
             }
         }
 
+        @Override
         public void keyReleased(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_S) {
                 EditorTopComponent.this.overviewButton.setSelected(false);
@@ -443,6 +452,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     private ChangedListener<DiagramViewModel> diagramChangedListener = new ChangedListener<DiagramViewModel>() {
 
+        @Override
         public void changed(DiagramViewModel source) {
             updateDisplayName();
             Collection<Object> list = new ArrayList<>();
@@ -489,6 +499,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         setSelectedFigures(list);
     }
 
+    @Override
     public void propertyChange(PropertyChangeEvent evt) {
         if (evt.getSource() == this.predSuccAction) {
             boolean b = (Boolean) predSuccAction.getValue(PredSuccAction.STATE);

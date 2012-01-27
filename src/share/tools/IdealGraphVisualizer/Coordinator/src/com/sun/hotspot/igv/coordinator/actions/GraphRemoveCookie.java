@@ -36,6 +36,7 @@ public class GraphRemoveCookie implements RemoveCookie {
         this.graph = graph;
     }
 
+    @Override
     public void remove() {
         graph.getGroup().removeElement(graph);
     }

@@ -40,6 +40,7 @@ public class GraphOpenCookie implements OpenCookie {
         this.graph = graph;
     }
 
+    @Override
     public void open() {
         viewer.view(graph);
     }

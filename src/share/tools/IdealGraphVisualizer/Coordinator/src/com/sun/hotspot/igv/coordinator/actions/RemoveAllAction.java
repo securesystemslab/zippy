@@ -40,6 +40,7 @@ import org.openide.util.actions.CallableSystemAction;
 public final class RemoveAllAction extends CallableSystemAction {
 
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(RemoveAllAction.class, "CTL_RemoveAllAction");
     }
@@ -54,6 +55,7 @@ public final class RemoveAllAction extends CallableSystemAction {
         return "com/sun/hotspot/igv/coordinator/images/removeall.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

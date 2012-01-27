@@ -34,10 +34,12 @@ import java.util.Set;
 
 public class GraalCFGFilter extends AbstractFilter {
     
+    @Override
     public String getName() {
         return "Graal CFG Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         Set<Figure> figuresToRemove = new HashSet<>();
         Set<Connection> connectionsToRemove = new HashSet<>();

@@ -50,18 +50,22 @@ public class ClusterOutgoingConnection implements Link {
         inputSlot = outputSlotNode.getInputSlot();
     }
 
+    @Override
     public Port getTo() {
         return inputSlot;
     }
 
+    @Override
     public Port getFrom() {
         return outputSlot;
     }
 
+    @Override
     public void setControlPoints(List<Point> p) {
         this.intermediatePoints = p;
     }
 
+    @Override
     public List<Point> getControlPoints() {
         return intermediatePoints;
     }

@@ -106,6 +106,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
     private ChangedEvent<FilterTopComponent> filterSettingsChangedEvent;
     private ActionListener comboBoxActionListener = new ActionListener() {
 
+        @Override
         public void actionPerformed(ActionEvent e) {
             comboBoxSelectionChanged();
         }
@@ -204,6 +205,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
             // Sort alphabetically
             Collections.sort(filterSettings, new Comparator<FilterSetting>() {
 
+                @Override
                 public int compare(FilterSetting o1, FilterSetting o2) {
                     return o1.getName().compareTo(o2.getName());
                 }
@@ -272,6 +274,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
 
         private HashMap<Filter, Node> nodeHash = new HashMap<>();
 
+        @Override
         protected Node[] createNodes(Filter filter) {
             if (nodeHash.containsKey(filter)) {
                 return new Node[]{nodeHash.get(filter)};
@@ -286,6 +289,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         public FilterChildren() {
             sequence.getChangedEvent().addListener(new ChangedListener<FilterChain>() {
 
+                @Override
                 public void changed(FilterChain source) {
                     addNotify();
                 }
@@ -300,6 +304,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
             updateSelection();
         }
 
+        @Override
         public void changed(CheckNode source) {
             FilterNode node = (FilterNode) source;
             Filter f = node.getFilter();
@@ -394,6 +399,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
             filter = cf;
         }
 
+        @Override
         public void changed(Filter source) {
             try {
                 if (!fileObject.getName().equals(filter.getName())) {
@@ -556,6 +562,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         return PREFERRED_ID;
     }
 
+    @Override
     public ExplorerManager getExplorerManager() {
         return manager;
     }
@@ -573,6 +580,7 @@ public final class FilterTopComponent extends TopComponent implements LookupList
         result = null;
     }
 
+    @Override
     public void resultChanged(LookupEvent lookupEvent) {
         setChain(Utilities.actionsGlobalContext().lookup(FilterChain.class));
     }

@@ -69,10 +69,12 @@ public class ClusterInputSlotNode implements Vertex {
 
         outputSlot = new Port() {
 
+            @Override
             public Point getRelativePosition() {
                 return new Point(0, 0);
             }
 
+            @Override
             public Vertex getVertex() {
                 return thisNode;
             }
@@ -85,6 +87,7 @@ public class ClusterInputSlotNode implements Vertex {
 
         inputSlot = new Port() {
 
+            @Override
             public Point getRelativePosition() {
                 Point p = new Point(thisNode.getPosition());
                 p.x += ClusterNode.BORDER;
@@ -92,6 +95,7 @@ public class ClusterInputSlotNode implements Vertex {
                 return p;
             }
 
+            @Override
             public Vertex getVertex() {
                 return thisBlockNode;
             }
@@ -115,14 +119,17 @@ public class ClusterInputSlotNode implements Vertex {
         return outputSlot;
     }
 
+    @Override
     public Dimension getSize() {
         return new Dimension(SIZE, SIZE);
     }
 
+    @Override
     public void setPosition(Point p) {
         this.position = p;
     }
 
+    @Override
     public Point getPosition() {
         return position;
     }
@@ -131,14 +138,17 @@ public class ClusterInputSlotNode implements Vertex {
         this.interBlockConnection = interBlockConnection;
     }
 
+    @Override
     public Cluster getCluster() {
         return cluster;
     }
 
+    @Override
     public boolean isRoot() {
         return true;
     }
 
+    @Override
     public int compareTo(Vertex o) {
         return toString().compareTo(o.toString());
     }

@@ -53,10 +53,12 @@ public class GradientColorFilter extends AbstractFilter {
     private int shadeCount = 8;
     private String mode = LINEAR;
 
+    @Override
     public String getName() {
         return "Gradient Color Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         boolean logarithmic = mode.equalsIgnoreCase(LOGARITHMIC);
         if (!logarithmic && !mode.equalsIgnoreCase(LINEAR)) {

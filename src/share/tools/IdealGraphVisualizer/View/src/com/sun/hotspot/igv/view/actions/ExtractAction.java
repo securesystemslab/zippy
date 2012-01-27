@@ -37,6 +37,7 @@ import org.openide.util.actions.CallableSystemAction;
  */
 public final class ExtractAction extends CallableSystemAction {
 
+    @Override
     public void performAction() {
         EditorTopComponent editor = EditorTopComponent.getActive();
         if (editor != null) {
@@ -49,6 +50,7 @@ public final class ExtractAction extends CallableSystemAction {
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_X, Event.CTRL_MASK, false));
     }
 
+    @Override
     public String getName() {
         return "Extract action";
     }
@@ -58,6 +60,7 @@ public final class ExtractAction extends CallableSystemAction {
         super.initialize();
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

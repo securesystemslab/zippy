@@ -67,6 +67,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     private boolean showNodeHull;
     private ChangedListener<FilterChain> filterChainChangedListener = new ChangedListener<FilterChain>() {
 
+        @Override
         public void changed(FilterChain source) {
             diagramChanged();
         }
@@ -167,6 +168,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
 
         private Group oldGroup;
 
+        @Override
         public void changed(DiagramViewModel source) {
             if (oldGroup != null) {
                 oldGroup.getChangedEvent().removeListener(groupContentChangedListener);
@@ -177,6 +179,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     };
     private final ChangedListener<Group> groupContentChangedListener = new ChangedListener<Group>() {
 
+        @Override
         public void changed(Group source) {
             assert source == group;
             setPositions(calculateStringList(source));
@@ -390,6 +393,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         return inputGraph;
     }
 
+    @Override
     public void changed(RangeSliderModel source) {
         inputGraph = null;
         diagramChanged();

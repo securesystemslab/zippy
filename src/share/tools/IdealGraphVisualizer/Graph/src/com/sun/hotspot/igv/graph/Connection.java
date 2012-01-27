@@ -92,6 +92,7 @@ public class Connection implements Source.Provider, Link {
         style = s;
     }
 
+    @Override
     public Source getSource() {
         return source;
     }
@@ -125,18 +126,22 @@ public class Connection implements Source.Provider, Link {
         return "Connection('" + label + "', " + getFrom().getVertex() + " to " + getTo().getVertex() + ")";
     }
 
+    @Override
     public Port getFrom() {
         return outputSlot;
     }
 
+    @Override
     public Port getTo() {
         return inputSlot;
     }
 
+    @Override
     public List<Point> getControlPoints() {
         return controlPoints;
     }
 
+    @Override
     public void setControlPoints(List<Point> list) {
         controlPoints = list;
     }

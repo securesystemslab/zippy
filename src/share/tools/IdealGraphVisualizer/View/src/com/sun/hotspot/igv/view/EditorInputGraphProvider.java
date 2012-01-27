@@ -41,10 +41,12 @@ public class EditorInputGraphProvider implements InputGraphProvider {
         this.editor = editor;
     }
     
+    @Override
     public InputGraph getGraph() {
         return editor.getDiagramModel().getGraphToView();
     }
 
+    @Override
     public void setSelectedNodes(Set<InputNode> nodes) {
         editor.setSelectedNodes(nodes);
     }

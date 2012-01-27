@@ -59,6 +59,7 @@ public class CustomFilter extends AbstractFilter {
         getProperties().setProperty("name", name);
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -81,6 +82,7 @@ public class CustomFilter extends AbstractFilter {
     public OpenCookie getEditor() {
         return new OpenCookie() {
 
+            @Override
             public void open() {
                 openInEditor();
             }
@@ -125,6 +127,7 @@ public class CustomFilter extends AbstractFilter {
         return sb.toString();
     }
 
+    @Override
     public void apply(Diagram d) {
         try {
             ScriptEngineManager sem = new ScriptEngineManager();
