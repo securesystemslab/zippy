@@ -27,7 +27,6 @@ from outputparser import OutputParser, Matcher
 import re
 import mx
 import os
-import commands
 from os.path import isfile, join, exists
 
 dacapoSanityWarmup = {
@@ -67,16 +66,16 @@ dacapoGateBuildLevels = {
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
-def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None):
+def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, iterationTime=None):
     
     specjvm2008 = mx.get_env('SPECJVM2008')
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
         mx.abort('Please set the SPECJVM2008 environment variable to a SPECjvm2008 directory')
     
-    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\.\-]+)( result)?: (?P<score>[0-9]+(,|\.)[0-9]+)( SPECjvm2008 Base)? ops/m$")
+    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\._]+)( result)?: (?P<score>[0-9]+(,|\.)[0-9]+)( SPECjvm2008 Base)? ops/m$")
     error = re.compile(r"^Errors in benchmark: ")
     # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
-    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+,[0-9]+( SPECjvm2008 (Base|Peak))? ops/m$")
+    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+(,|\.)[0-9]+( SPECjvm2008 (Base|Peak))? ops/m$")
     matcher = Matcher(score, {'const:name' : 'benchmark', 'const:score' : 'score'}, startNewLine=True)
     
     opts = []
@@ -87,7 +86,7 @@ def getSPECjvm2008(skipKitValidation=False, warmupTime=None, iterationTime=None)
     if skipKitValidation:
         opts += ['-ikv']
     
-    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts, [success], [error], [matcher], vmOpts=['-Xms3g'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -162,6 +161,9 @@ class Test:
         result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
         
         parsedLines = result['parsed']
+        if len(parsedLines) == 0:
+            return False
+        
         assert len(parsedLines) == 1, 'Test matchers should not return more than one line'
         
         parsed = parsedLines[0]
@@ -175,7 +177,7 @@ class Test:
             os.unlink(parsed['jvmError'])
             return False
         
-        if parsed.has_key('failed') and parsed['failed'] is 1:
+        if parsed.has_key('failed') and parsed['failed'] is '1':
             return False
         
         return result['retcode'] is 0 and parsed.has_key('passed') and parsed['passed'] is '1'
@@ -188,6 +190,8 @@ class Test:
             cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
         
+        for successRE in self.successREs:
+            parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
         for failureRE in self.failureREs:
             parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
         for scoreMatcher in self.scoreMatchers:
@@ -195,16 +199,23 @@ class Test:
             
         result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
         if result['retcode'] is not 0:
-            return {}
+            mx.abort("Benchmark failed (non-zero retcode)")
         
         parsed = result['parsed']
         
         ret = {}
         
+        passed = False;
+        
         for line in parsed:
-            assert line.has_key('name') and line.has_key('score')
-            if line.has_key('failed') and parsed['failed'] is 1:
-                return {}
+            assert (line.has_key('name') and line.has_key('score')) or line.has_key('passed')
+            if line.has_key('failed') and line['failed'] is '1':
+                mx.abort("Benchmark failed")
+            if line.has_key('passed') and line['passed'] is '1':
+                passed = True
             ret[line['name']] = line['score']
+        
+        if not passed:
+            mx.abort("Benchmark failed (not passed)")
         
         return ret
