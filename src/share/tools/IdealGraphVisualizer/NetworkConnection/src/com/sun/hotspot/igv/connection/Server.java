@@ -43,49 +43,18 @@ import org.openide.util.RequestProcessor;
  *
  * @author Thomas Wuerthinger
  */
-public class Server implements GroupCallback, GroupReceiver, PreferenceChangeListener {
+public class Server implements PreferenceChangeListener {
 
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JCheckBox networkCheckBox;
-    private javax.swing.JTextField networkTextField;
     private ServerSocket serverSocket;
     private GroupCallback callback;
     private int port;
     private Runnable serverRunnable;
 
-    public Component init(GroupCallback callback) {
+    public Server(GroupCallback callback) {
 
         this.callback = callback;
-
-        jPanel1 = new javax.swing.JPanel();
-        networkTextField = new javax.swing.JTextField();
-        networkCheckBox = new javax.swing.JCheckBox();
-
-
-        jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        jPanel1.setLayout(new java.awt.BorderLayout(10, 10));
-        jPanel1.add(networkTextField, java.awt.BorderLayout.CENTER);
-
-        networkCheckBox.setSelected(true);
-        org.openide.awt.Mnemonics.setLocalizedText(networkCheckBox, "Receive when name contains");
-        networkCheckBox.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        networkCheckBox.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        networkCheckBox.addChangeListener(new javax.swing.event.ChangeListener() {
-
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                networkCheckBoxChanged(evt);
-            }
-        });
-        jPanel1.add(networkCheckBox, java.awt.BorderLayout.WEST);
-        networkCheckBox.getAccessibleContext().setAccessibleName("Read from network when name contains");
-
         initializeNetwork();
         Settings.get().addPreferenceChangeListener(this);
-        return jPanel1;
-    }
-
-    private void networkCheckBoxChanged(javax.swing.event.ChangeEvent evt) {
-        networkTextField.setEnabled(networkCheckBox.isSelected());
     }
 
     public void preferenceChange(PreferenceChangeEvent e) {
@@ -118,7 +87,7 @@ public class Server implements GroupCallback, GroupReceiver, PreferenceChangeLis
                             clientSocket.close();
                             return;
                         }
-                        RequestProcessor.getDefault().post(new Client(clientSocket, networkTextField, Server.this), 0, Thread.MAX_PRIORITY);
+                        RequestProcessor.getDefault().post(new Client(clientSocket, callback), 0, Thread.MAX_PRIORITY);
                     } catch (IOException ex) {
                         serverSocket = null;
                         NotifyDescriptor message = new NotifyDescriptor.Message("Error during listening for incoming connections. Listening for incoming data is disabled.", NotifyDescriptor.ERROR_MESSAGE);

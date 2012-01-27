@@ -144,7 +144,7 @@ public class Parser {
         protected void end(String text) throws SAXException {
             final Group group = getObject();
             final Folder parent = getParentObject();
-            if (groupCallback == null) {
+            if (groupCallback == null || parent instanceof Group) {
                 SwingUtilities.invokeLater(new Runnable(){
                     @Override
                     public void run() {
@@ -434,8 +434,14 @@ public class Parser {
 
         @Override
         public void end(String text) throws SAXException {
-            if (groupCallback != null) {
-                groupCallback.started(getParentObject());
+            if (groupCallback != null && getParentObject().getParent() instanceof GraphDocument) {
+                final Group group = getParentObject();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        groupCallback.started(group);
+                    }
+                });
             }
         }
     };

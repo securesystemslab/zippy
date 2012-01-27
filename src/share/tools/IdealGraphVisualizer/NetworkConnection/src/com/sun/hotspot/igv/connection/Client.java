@@ -40,54 +40,36 @@ import org.xml.sax.SAXException;
  *
  * @author Thomas Wuerthinger
  */
-public class Client implements Runnable, GroupCallback {
+public class Client implements Runnable {
 
     private Socket socket;
-    private JTextField networkTextField;
     private GroupCallback callback;
 
-    public Client(Socket socket, JTextField networkTextField, GroupCallback callback) {
+    public Client(Socket socket, GroupCallback callback) {
         this.callback = callback;
         this.socket = socket;
-        this.networkTextField = networkTextField;
     }
 
     public void run() {
 
         try {
             InputStream inputStream = socket.getInputStream();
+            InputSource is = new InputSource(inputStream);
 
-            if (networkTextField.isEnabled()) {
-
-                socket.getOutputStream().write('y');
-                InputSource is = new InputSource(inputStream);
-
-                try {
-                    Parser parser = new Parser(this);
-                    parser.parse(is, null);
-                } catch (SAXException ex) {
-                    ex.printStackTrace();
-                }
-            } else {
-                socket.getOutputStream().write('n');
+            try {
+                Parser parser = new Parser(callback);
+                parser.parse(is, null);
+            } catch (SAXException ex) {
+                ex.printStackTrace();
             }
-
-            socket.close();
         } catch (IOException ex) {
             Exceptions.printStackTrace(ex);
-        }
-    }
-
-    public void started(final Group g) {
-        try {
-            RegexpPropertyMatcher matcher = new RegexpPropertyMatcher("name", ".*" + networkTextField.getText() + ".*");
-            if (g.getProperties().selectSingle(matcher) != null && networkTextField.isEnabled()) {
-                socket.getOutputStream().write('y');
-                callback.started(g);
-            } else {
-                socket.getOutputStream().write('n');
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException ex) {
+                Exceptions.printStackTrace(ex);
             }
-        } catch (IOException e) {
         }
     }
 }

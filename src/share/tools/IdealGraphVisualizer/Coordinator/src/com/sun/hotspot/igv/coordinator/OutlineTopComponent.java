@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.coordinator;
 
+import com.sun.hotspot.igv.connection.Server;
 import com.sun.hotspot.igv.coordinator.actions.ImportAction;
 import com.sun.hotspot.igv.coordinator.actions.RemoveAction;
 import com.sun.hotspot.igv.coordinator.actions.RemoveAllAction;
@@ -70,6 +71,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private ExplorerManager manager;
     private GraphDocument document;
     private FolderNode root;
+    private Server server;
 
     private OutlineTopComponent() {
         initComponents();
@@ -116,29 +118,20 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
         final GroupCallback callback = new GroupCallback() {
 
+            @Override
             public void started(Group g) {
                 getDocument().addElement(g);
             }
         };
-
-        Collection<? extends GroupReceiver> receivers = Lookup.getDefault().lookupAll(GroupReceiver.class);
-        if (receivers.size() > 0) {
-            JPanel panel = new JPanel();
-            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-
-            for (GroupReceiver r : receivers) {
-                Component c = r.init(callback);
-                panel.add(c);
-            }
-
-            jPanel2.add(panel, BorderLayout.PAGE_START);
-        }
+        
+        server = new Server(callback);
     }
 
     public void clear() {
         document.clear();
     }
 
+    @Override
     public ExplorerManager getExplorerManager() {
         return manager;
     }
@@ -212,6 +205,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         return super.requestFocusInWindow(temporary);
     }
 
+    @Override
     public void resultChanged(LookupEvent lookupEvent) {
     }
 
@@ -244,19 +238,13 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel2 = new javax.swing.JPanel();
         treeView = new BeanTreeView();
 
         setLayout(new java.awt.BorderLayout());
-
-        jPanel2.setLayout(new java.awt.BorderLayout());
-        jPanel2.add(treeView, java.awt.BorderLayout.CENTER);
-
-        add(jPanel2, java.awt.BorderLayout.CENTER);
+        add(treeView, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane treeView;
     // End of variables declaration//GEN-END:variables
 }
