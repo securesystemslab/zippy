@@ -408,15 +408,14 @@ public final class FilterTopComponent extends TopComponent implements LookupList
                     lock.releaseLock();
                     FileObject newFileObject = fileObject.getParent().getFileObject(filter.getName());
                     fileObject = newFileObject;
-
                 }
 
                 FileLock lock = fileObject.lock();
                 OutputStream os = fileObject.getOutputStream(lock);
-                Writer w = new OutputStreamWriter(os);
-                String s = filter.getCode();
-                w.write(s);
-                w.close();
+                try (Writer w = new OutputStreamWriter(os)) {
+                    String s = filter.getCode();
+                    w.write(s);
+                }
                 lock.releaseLock();
 
             } catch (IOException ex) {

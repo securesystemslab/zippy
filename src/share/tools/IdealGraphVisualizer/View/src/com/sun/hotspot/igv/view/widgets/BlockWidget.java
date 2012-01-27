@@ -42,7 +42,6 @@ import org.netbeans.api.visual.widget.Widget;
 public class BlockWidget extends Widget {
 
     public static final int BORDER = 20;
-    public static final Color BACKGROUND_COLOR = new Color(235, 235, 255);
     private static final Font titleFont = new Font("Serif", Font.PLAIN, 14).deriveFont(Font.BOLD);
     private InputBlock blockNode;
     private Diagram diagram;
@@ -51,8 +50,6 @@ public class BlockWidget extends Widget {
         super(scene);
         this.blockNode = blockNode;
         this.diagram = d;
-        this.setBackground(BACKGROUND_COLOR);
-        this.setOpaque(true);
         this.setCheckClipping(true);
     }
 

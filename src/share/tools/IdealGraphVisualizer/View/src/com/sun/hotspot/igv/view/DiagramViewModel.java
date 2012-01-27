@@ -142,7 +142,7 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         super(calculateStringList(g));
 
         this.showNodeHull = true;
-        this.showBlocks = true;
+        this.showBlocks = false;
         this.group = g;
         assert filterChain != null;
         this.filterChain = filterChain;
