@@ -34,6 +34,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import javax.swing.SwingUtilities;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Source;
@@ -91,7 +93,8 @@ public class Parser {
     public static final String ASSEMBLY_ELEMENT = "assembly";
     public static final String DIFFERENCE_PROPERTY = "difference";
     private TopElementHandler<GraphDocument> xmlDocument = new TopElementHandler<GraphDocument>();
-    private boolean difference;
+    private Map<Group, Boolean> differenceEncoding = new HashMap<>();
+    private Map<Group, InputGraph> lastParsedGraph = new HashMap<>();
     private GroupCallback groupCallback;
     private HashMap<String, Integer> idCache = new HashMap<String, Integer>();
     private ArrayList<Pair<String, String>> blockConnections = new ArrayList<Pair<String, String>>();
@@ -127,7 +130,7 @@ public class Parser {
             Group group = new Group(this.getParentObject());
             
             String differenceProperty = this.readAttribute(DIFFERENCE_PROPERTY);
-            Parser.this.difference = (differenceProperty != null && (differenceProperty.equals("1") || differenceProperty.equals("true")));
+            Parser.this.differenceEncoding.put(group, (differenceProperty != null && (differenceProperty.equals("1") || differenceProperty.equals("true"))));
 
             ParseMonitor monitor = getMonitor();
             if (monitor != null) {
@@ -139,9 +142,15 @@ public class Parser {
 
         @Override
         protected void end(String text) throws SAXException {
-            Group group = getObject();
+            final Group group = getObject();
+            final Folder parent = getParentObject();
             if (groupCallback == null) {
-                getParentObject().addElement(group);
+                SwingUtilities.invokeLater(new Runnable(){
+                    @Override
+                    public void run() {
+                        parent.addElement(group);
+                    }
+                });
             }
         }
     };
@@ -191,14 +200,13 @@ public class Parser {
     // <graph>
     private ElementHandler<InputGraph, Group> graphHandler = new XMLParser.ElementHandler<InputGraph, Group>(GRAPH_ELEMENT) {
 
-        private InputGraph graph;
-
         @Override
         protected InputGraph start() throws SAXException {
             String name = readAttribute(GRAPH_NAME_PROPERTY);
             InputGraph curGraph = new InputGraph(name);
-            if (difference) {
-                InputGraph previous = getParentObject().getLastGraph();
+            if (differenceEncoding.get(getParentObject())) {
+                InputGraph previous = lastParsedGraph.get(getParentObject());
+                lastParsedGraph.put(getParentObject(), curGraph);
                 if (previous != null) {
                     for (InputNode n : previous.getNodes()) {
                         curGraph.addNode(n);
@@ -208,7 +216,6 @@ public class Parser {
                     }
                 }
             }
-            this.graph = curGraph;
             return curGraph;
         }
 
@@ -221,6 +228,8 @@ public class Parser {
             //       block to some artificial block below unless blocks are
             //       defined and nodes are assigned to them.
 
+            final InputGraph graph = getObject();
+            final Group parent = getParentObject();
             if (graph.getBlocks().size() > 0) {
                 boolean blocksContainNodes = false;
                 for (InputBlock b : graph.getBlocks()) {
@@ -261,8 +270,14 @@ public class Parser {
             }
             blockConnections.clear();
             
-            // Add to group
-            getParentObject().addElement(graph);
+            SwingUtilities.invokeLater(new Runnable(){
+
+                @Override
+                public void run() {
+                    // Add to group
+                    parent.addElement(graph);
+                }
+            });
         }
     };
     // <nodes>

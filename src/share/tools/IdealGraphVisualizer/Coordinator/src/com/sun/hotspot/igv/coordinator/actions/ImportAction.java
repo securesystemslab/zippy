@@ -38,6 +38,7 @@ import java.io.IOException;
 import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
@@ -69,6 +70,7 @@ public final class ImportAction extends CallableSystemAction {
         };
     }
 
+    @Override
     public void performAction() {
 
         JFileChooser fc = new JFileChooser();
@@ -96,6 +98,7 @@ public final class ImportAction extends CallableSystemAction {
 
                 final XMLParser.ParseMonitor parseMonitor = new XMLParser.ParseMonitor() {
 
+                    @Override
                     public void setProgress(double d) {
                         try {
                             int curAvailable = inputStream.available();
@@ -105,6 +108,7 @@ public final class ImportAction extends CallableSystemAction {
                         }
                     }
 
+                    @Override
                     public void setState(String state) {
                         setProgress(0.0);
                         handle.progress(state);
@@ -117,12 +121,18 @@ public final class ImportAction extends CallableSystemAction {
 
                 RequestProcessor.getDefault().post(new Runnable() {
 
+                    @Override
                     public void run() {
-                        GraphDocument document = null;
                         try {
-                            document = parser.parse(is, parseMonitor);
+                            final GraphDocument document = parser.parse(is, parseMonitor);
                             parseMonitor.setState("Finishing");
-                            component.getDocument().addGraphDocument(document);
+                            SwingUtilities.invokeLater(new Runnable(){
+
+                                @Override
+                                public void run() {
+                                    component.getDocument().addGraphDocument(document);
+                                }
+                            });
                         } catch (SAXException ex) {
                             String s = "Exception during parsing the XML file, could not load document!";
                             if (ex instanceof XMLParser.MissingAttributeException) {
@@ -159,6 +169,7 @@ public final class ImportAction extends CallableSystemAction {
         return "com/sun/hotspot/igv/coordinator/images/import.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

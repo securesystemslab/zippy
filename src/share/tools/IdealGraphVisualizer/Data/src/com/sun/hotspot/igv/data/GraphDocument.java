@@ -37,8 +37,8 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
     private ChangedEvent<GraphDocument> changedEvent;
 
     public GraphDocument() {
-        elements = new ArrayList<FolderElement>();
-        changedEvent = new ChangedEvent<GraphDocument>(this);
+        elements = new ArrayList<>();
+        changedEvent = new ChangedEvent<>(this);
     }
 
     public void clear() {
@@ -52,6 +52,7 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
 
     public void addGraphDocument(GraphDocument document) {
         for (FolderElement e : document.elements) {
+            e.setParent(this);
             this.addElement(e);
         }
         document.clear();
@@ -62,7 +63,7 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("GraphDocument: " + getProperties().toString() + " \n\n");
+        sb.append("GraphDocument: ").append(getProperties().toString()).append(" \n\n");
         for (FolderElement g : getElements()) {
             sb.append(g.toString());
             sb.append("\n\n");

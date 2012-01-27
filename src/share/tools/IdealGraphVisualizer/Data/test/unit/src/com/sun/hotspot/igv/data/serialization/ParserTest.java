@@ -104,15 +104,16 @@ public class ParserTest {
 
         test(doc);
 
-        final Group group1 = new Group();
-        doc.addGroup(group1);
+        final Group group1 = new Group(doc);
+        doc.addElement(group1);
         test(doc);
 
-        final Group group2 = new Group();
-        doc.addGroup(group2);
+        final Group group2 = new Group(doc);
+        doc.addElement(group2);
         test(doc);
 
-        final InputGraph graph = group1.addGraph("");
+        final InputGraph graph = new InputGraph("");
+        group1.addElement(graph);
         test(doc);
 
         graph.addNode(new InputNode(0));
@@ -154,13 +155,13 @@ public class ParserTest {
         final GraphDocument document2 = new GraphDocument();
         doc.addGraphDocument(document2);
         test(doc);
-        assertTrue(doc.getGroups().size() == 2);
+        assertTrue(doc.getElements().size() == 2);
 
-        final Group group3 = new Group();
-        document2.addGroup(group3);
+        final Group group3 = new Group(document2);
+        document2.addElement(group3);
         doc.addGraphDocument(document2);
-        assertTrue(doc.getGroups().size() == 3);
-        assertTrue(document2.getGroups().size() == 0);
+        assertTrue(doc.getElements().size() == 3);
+        assertTrue(document2.getElements().size() == 0);
 
         doc.clear();
         test(doc);
@@ -170,10 +171,11 @@ public class ParserTest {
 	@Test
 	public void testSimpleExport() {
 		GraphDocument document = new GraphDocument();
-		Group g = new Group();
-		document.addGroup(g);
+		Group g = new Group(document);
+		document.addElement(g);
         
-		InputGraph graph = g.addGraph("TestGraph");
+		InputGraph graph = new InputGraph("TestGraph");
+                g.addElement(graph);
 		graph.getProperties().setProperty("testName", "testValue");
 
 		InputNode n1 = new InputNode(0);
@@ -192,10 +194,11 @@ public class ParserTest {
 	public void testComplexExport() {
 
 		GraphDocument document = new GraphDocument();
-		Group g = new Group();
-		document.addGroup(g);
+		Group g = new Group(document);
+		document.addElement(g);
 
-		InputGraph graph = g.addGraph("TestGraph");
+		InputGraph graph = new InputGraph("TestGraph");
+                g.addElement(graph);
 		graph.getProperties().setProperty("testName", "testValue");
 
 		InputNode n1 = new InputNode(0);
@@ -207,7 +210,8 @@ public class ParserTest {
 		graph.addEdge(e1);
 		graph.addEdge(e2);
 
-		InputGraph graph2 = g.addGraph("TestGraph2");
+		InputGraph graph2 = new InputGraph("TestGraph2");
+                g.addElement(graph2);
 		graph2.addNode(n1);
 		InputNode n3 = new InputNode(2);
 		graph2.addNode(n3);

@@ -45,16 +45,19 @@ public class Util {
 
     public static void assertGraphDocumentEquals(GraphDocument a, GraphDocument b) {
 
-        if (a.getGroups().size() != b.getGroups().size()) {
+        if (a.getElements().size() != b.getElements().size()) {
             fail();
         }
 
         int z = 0;
-        for (Group g : b.getGroups()) {
+        for (FolderElement e : b.getElements()) {
 
-            Group thisG = a.getGroups().get(z);
-            assertGroupEquals(thisG, g);
+            if (e instanceof Group) {
+                Group g = (Group) e;
+                Group thisG = (Group) a.getElements().get(z);
+                assertGroupEquals(thisG, g);
             z++;
+            }
         }
     }
 

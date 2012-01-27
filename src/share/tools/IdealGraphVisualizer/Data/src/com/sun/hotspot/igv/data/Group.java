@@ -36,7 +36,7 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
 
     private InputMethod method;
     private transient ChangedEvent<Group> changedEvent;
-    private final Folder parent;
+    private Folder parent;
 
     public Group(Folder parent) {
         elements = new ArrayList<>();
@@ -165,5 +165,10 @@ public class Group extends Properties.Entity implements ChangedEventProvider<Gro
 
     public List<InputGraph> getGraphs() {
         return graphs;
+    }
+
+    @Override
+    public void setParent(Folder parent) {
+        this.parent = parent;
     }
 }

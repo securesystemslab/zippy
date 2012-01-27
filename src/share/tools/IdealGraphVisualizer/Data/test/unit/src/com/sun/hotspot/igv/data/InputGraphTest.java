@@ -68,11 +68,13 @@ public class InputGraphTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        Group group = new Group();
+        Group group = new Group(null);
 
-        emptyGraph = group.addGraph("emptyGraph");
-
-        referenceGraph = group.addGraph("referenceGraph");
+        emptyGraph = new InputGraph("emptyGraph");
+        group.addElement(emptyGraph);
+        
+        referenceGraph = new InputGraph("referenceGraph");
+        group.addElement(referenceGraph);
         referenceGraph.addNode(N1);
         referenceGraph.addNode(N2);
         referenceGraph.addNode(N3);
@@ -104,13 +106,16 @@ public class InputGraphTest {
     @Test
     public void testEquals() {
 
-        Group parentA = new Group();
-        InputGraph a = parentA.addGraph("graph");
+        Group parentA = new Group(null);
+        InputGraph a = new InputGraph("graph");
+        parentA.addElement(a);
 
-        Group parentB = new Group();
-        InputGraph b = parentB.addGraph("graph");
+        Group parentB = new Group(null);
+        InputGraph b = new InputGraph("graph");
+        parentB.addElement(b);
 
-        InputGraph c = parentB.addGraph("graph");
+        InputGraph c = new InputGraph("graph");
+        parentB.addElement(b);
 
         Util.assertGraphEquals(a, b);
         Util.assertGraphEquals(b, c);
@@ -127,7 +132,7 @@ public class InputGraphTest {
      */
     @Test
     public void testFindRootNodes() {
-        assertTrue(emptyGraph.findRootNodes().size() == 0);
+        assertTrue(emptyGraph.findRootNodes().isEmpty());
 
         List<InputNode> result = referenceGraph.findRootNodes();
         assertTrue(result.size() == 2);
@@ -140,7 +145,7 @@ public class InputGraphTest {
      */
     @Test
     public void testFindAllOutgoingEdges() {
-        assertTrue(emptyGraph.findAllOutgoingEdges().size() == 0);
+        assertTrue(emptyGraph.findAllOutgoingEdges().isEmpty());
 
         Map<InputNode, List<InputEdge>> result = referenceGraph.findAllOutgoingEdges();
         assertTrue(result.size() == 5);
@@ -156,7 +161,7 @@ public class InputGraphTest {
      */
     @Test
     public void testFindAllIngoingEdges() {
-        assertTrue(emptyGraph.findAllIngoingEdges().size() == 0);
+        assertTrue(emptyGraph.findAllIngoingEdges().isEmpty());
 
         Map<InputNode, List<InputEdge>> result = referenceGraph.findAllIngoingEdges();
         assertTrue(result.size() == 5);
@@ -172,7 +177,7 @@ public class InputGraphTest {
      */
     @Test
     public void testFindOutgoingEdges() {
-        assertTrue(emptyGraph.findOutgoingEdges(new InputNode(1)).size() == 0);
+        assertTrue(emptyGraph.findOutgoingEdges(new InputNode(1)).isEmpty());
 
         assertEquals(referenceGraph.findOutgoingEdges(N1), Arrays.asList(E12, E13));
         assertEquals(referenceGraph.findOutgoingEdges(N2), Arrays.asList(E24));
@@ -186,13 +191,16 @@ public class InputGraphTest {
      */
     @Test
     public void testGetNextPrev() {
-        final Group group = new Group();
+        final Group group = new Group(null);
 
-        final InputGraph a = group.addGraph("a");
+        final InputGraph a = new InputGraph("a");
 
-        final InputGraph b = group.addGraph("b");
+        final InputGraph b = new InputGraph("b");
 
-        final InputGraph c = group.addGraph("c");
+        final InputGraph c = new InputGraph("c");
+        group.addElement(a);
+        group.addElement(b);
+        group.addElement(c);
 
         assertEquals(null, a.getPrev());
         assertEquals(b, a.getNext());

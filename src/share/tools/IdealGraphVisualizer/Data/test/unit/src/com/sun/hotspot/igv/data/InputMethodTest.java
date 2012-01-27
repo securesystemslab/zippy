@@ -72,7 +72,7 @@ public class InputMethodTest {
                              "7 iconst_0\n" +
                              "8 ireturn";
 
-        final Group g = new Group();
+        final Group g = new Group(null);
         InputMethod m = new InputMethod(g, "name", "shortName", -1);
         m.setBytecodes(input);
 

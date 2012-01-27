@@ -64,9 +64,11 @@ public class GroupTest {
      */
     @Test
     public void testGetAllNodes() {
-        final Group g = new Group();
-        final InputGraph graph1 = g.addGraph("1");
-        final InputGraph graph2 = g.addGraph("2");
+        final Group g = new Group(null);
+        final InputGraph graph1 = new InputGraph("1");
+        final InputGraph graph2 = new InputGraph("2");
+        g.addElement(graph1);
+        g.addElement(graph2);
         graph1.addNode(new InputNode(1));
         graph1.addNode(new InputNode(2));
         graph2.addNode(new InputNode(2));

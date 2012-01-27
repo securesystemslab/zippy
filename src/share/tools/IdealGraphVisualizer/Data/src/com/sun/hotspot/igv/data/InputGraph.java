@@ -42,29 +42,27 @@ public class InputGraph extends Properties.Entity implements FolderElement {
 
     private Map<Integer, InputNode> nodes;
     private Set<InputEdge> edges;
-    private Group parent;
+    private Folder parent;
+    private Group parentGroup;
     private Map<String, InputBlock> blocks;
     private Set<InputBlockEdge> blockEdges;
     private Map<Integer, InputBlock> nodeToBlock;
 
     public InputGraph(String name) {
-        this(null, name);
-    }
-
-    InputGraph(Group parent, String name) {
-        this.parent = parent;
         setName(name);
-        nodes = new LinkedHashMap<Integer, InputNode>();
-        edges = new LinkedHashSet<InputEdge>();
-        blocks = new LinkedHashMap<String, InputBlock>();
-        blockEdges = new LinkedHashSet<InputBlockEdge>();
-        nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
+        nodes = new LinkedHashMap<>();
+        edges = new LinkedHashSet<>();
+        blocks = new LinkedHashMap<>();
+        blockEdges = new LinkedHashSet<>();
+        nodeToBlock = new LinkedHashMap<>();
     }
     
-    public void setParent(Group parent) {
-        assert (this.parent == null);
-
+    public void setParent(Folder parent) {
         this.parent = parent;
+        if (parent instanceof Group) {
+            assert this.parentGroup == null;
+            this.parentGroup = (Group) parent;
+        }
     }
 
     public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {
@@ -75,8 +73,8 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
     
     public List<InputNode> findRootNodes() {
-        List<InputNode> result = new ArrayList<InputNode>();
-        Set<Integer> nonRoot = new HashSet<Integer>();
+        List<InputNode> result = new ArrayList<>();
+        Set<Integer> nonRoot = new HashSet<>();
         for(InputEdge curEdges : getEdges()) {
             nonRoot.add(curEdges.getTo());
         }
@@ -203,11 +201,11 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
 
     public InputGraph getNext() {
-        return parent.getNext(this);
+        return parentGroup.getNext(this);
     }
 
     public InputGraph getPrev() {
-        return parent.getPrev(this);
+        return parentGroup.getPrev(this);
     }
 
     private void setName(String name) {
@@ -259,13 +257,13 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
 
     public Group getGroup() {
-        return parent;
+        return parentGroup;
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Graph " + getName() + " " + getProperties().toString() + "\n");
+        sb.append("Graph ").append(getName()).append(" ").append(getProperties().toString()).append("\n");
         for (InputNode n : nodes.values()) {
             sb.append(n.toString());
             sb.append("\n");
