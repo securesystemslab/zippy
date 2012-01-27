@@ -81,10 +81,10 @@ public final class SaveAsAction extends NodeAction {
             }
             Settings.get().put(Settings.DIRECTORY, dir.getAbsolutePath());
             try {
-                Writer writer = new OutputStreamWriter(new FileOutputStream(file));
-                Printer p = new Printer();
-                p.export(writer, doc);
-                writer.close();
+                try (Writer writer = new OutputStreamWriter(new FileOutputStream(file))) {
+                    Printer p = new Printer();
+                    p.export(writer, doc);
+                }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
