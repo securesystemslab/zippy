@@ -23,11 +23,7 @@
  */
 package com.sun.hotspot.igv.coordinator.actions;
 
-import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.InputGraph;
-import org.openide.DialogDescriptor;
-import org.openide.DialogDisplayer;
-import org.openide.NotifyDescriptor;
 
 public class GraphRemoveCookie implements RemoveCookie {
     private final InputGraph graph;

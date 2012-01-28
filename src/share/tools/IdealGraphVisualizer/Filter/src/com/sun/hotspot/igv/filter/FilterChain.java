@@ -23,10 +23,10 @@
  */
 package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.data.ChangedEvent;
 import com.sun.hotspot.igv.data.ChangedEventProvider;
 import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.graph.Diagram;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

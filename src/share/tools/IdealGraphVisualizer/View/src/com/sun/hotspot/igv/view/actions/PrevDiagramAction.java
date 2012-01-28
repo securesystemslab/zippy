@@ -24,15 +24,11 @@
 package com.sun.hotspot.igv.view.actions;
 
 import com.sun.hotspot.igv.data.ChangedListener;
-import com.sun.hotspot.igv.view.DiagramViewModel;
 import com.sun.hotspot.igv.util.ContextAction;
+import com.sun.hotspot.igv.view.DiagramViewModel;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
-import org.openide.util.HelpCtx;
-import org.openide.util.ImageUtilities;
-import org.openide.util.Lookup;
-import org.openide.util.NbBundle;
-import org.openide.util.Utilities;
+import org.openide.util.*;
 
 /**
  *

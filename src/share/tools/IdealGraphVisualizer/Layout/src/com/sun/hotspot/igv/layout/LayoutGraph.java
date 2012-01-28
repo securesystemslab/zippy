@@ -23,11 +23,7 @@
  */
 package com.sun.hotspot.igv.layout;
 
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  *

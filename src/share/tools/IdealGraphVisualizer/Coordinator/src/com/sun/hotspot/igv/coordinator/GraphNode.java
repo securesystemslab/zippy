@@ -27,7 +27,6 @@ import com.sun.hotspot.igv.coordinator.actions.DiffGraphAction;
 import com.sun.hotspot.igv.coordinator.actions.DiffGraphCookie;
 import com.sun.hotspot.igv.coordinator.actions.GraphOpenCookie;
 import com.sun.hotspot.igv.coordinator.actions.GraphRemoveCookie;
-import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.services.GraphViewer;

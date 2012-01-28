@@ -23,7 +23,7 @@
  */
 package com.sun.hotspot.igv.filterwindow.actions;
 
-import com.sun.hotspot.igv.filterwindow.*;
+import com.sun.hotspot.igv.filterwindow.FilterTopComponent;
 import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import org.openide.util.NbBundle;

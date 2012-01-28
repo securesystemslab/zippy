@@ -25,11 +25,7 @@ package com.sun.hotspot.igv.filter;
 
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
-import java.awt.Color;
-import java.awt.LinearGradientPaint;
-import java.awt.PaintContext;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.Raster;
 import java.util.List;

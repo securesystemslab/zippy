@@ -23,19 +23,13 @@
  */
 package com.sun.hotspot.igv.view.widgets;
 
-import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.view.DiagramScene;
-import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.data.Properties;
+import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.util.DoubleClickAction;
+import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.util.PropertiesSheet;
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Composite;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Point;
-import java.awt.Rectangle;
+import com.sun.hotspot.igv.view.DiagramScene;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -47,10 +41,10 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import org.netbeans.api.visual.action.PopupMenuProvider;
 import org.netbeans.api.visual.action.WidgetAction;
-import org.netbeans.api.visual.model.ObjectState;
-import org.netbeans.api.visual.widget.Widget;
 import org.netbeans.api.visual.layout.LayoutFactory;
+import org.netbeans.api.visual.model.ObjectState;
 import org.netbeans.api.visual.widget.LabelWidget;
+import org.netbeans.api.visual.widget.Widget;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;

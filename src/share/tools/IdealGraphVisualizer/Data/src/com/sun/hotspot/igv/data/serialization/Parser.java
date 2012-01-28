@@ -24,16 +24,15 @@
 package com.sun.hotspot.igv.data.serialization;
 
 import com.sun.hotspot.igv.data.*;
-import com.sun.hotspot.igv.data.services.GroupCallback;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.HandoverElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ParseMonitor;
 import com.sun.hotspot.igv.data.serialization.XMLParser.TopElementHandler;
+import com.sun.hotspot.igv.data.services.GroupCallback;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.swing.SwingUtilities;
 import javax.xml.parsers.ParserConfigurationException;

@@ -23,9 +23,10 @@
  */
 package com.sun.hotspot.igv.view;
 
-import com.sun.hotspot.igv.data.*;
+import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.data.ControllableChangedListener;
+import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Properties;
-import com.sun.hotspot.igv.data.services.Scheduler;
 import com.sun.hotspot.igv.graph.*;
 import com.sun.hotspot.igv.hierarchicallayout.HierarchicalLayoutManager;
 import com.sun.hotspot.igv.layout.LayoutGraph;

@@ -23,19 +23,14 @@
  */
 package com.sun.hotspot.igv.graph;
 
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.Source;
 import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.layout.Vertex;
 import com.sun.hotspot.igv.data.Properties;
+import com.sun.hotspot.igv.data.Source;
+import com.sun.hotspot.igv.layout.Vertex;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  *

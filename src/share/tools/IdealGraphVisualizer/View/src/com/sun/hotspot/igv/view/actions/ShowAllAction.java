@@ -23,7 +23,7 @@
  */
 package com.sun.hotspot.igv.view.actions;
 
-import com.sun.hotspot.igv.view.*;
+import com.sun.hotspot.igv.view.EditorTopComponent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.Action;

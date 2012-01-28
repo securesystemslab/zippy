@@ -24,8 +24,8 @@
  */
 package com.sun.hotspot.igv.util;
 
-import com.sun.hotspot.igv.data.ChangedEventProvider;
 import com.sun.hotspot.igv.data.ChangedEvent;
+import com.sun.hotspot.igv.data.ChangedEventProvider;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;

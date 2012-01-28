@@ -25,11 +25,7 @@
 package com.sun.hotspot.igv.util;
 
 import java.awt.EventQueue;
-import org.openide.util.ContextAwareAction;
-import org.openide.util.Lookup;
-import org.openide.util.LookupEvent;
-import org.openide.util.LookupListener;
-import org.openide.util.Utilities;
+import org.openide.util.*;
 import org.openide.util.actions.CallableSystemAction;
 
 /**

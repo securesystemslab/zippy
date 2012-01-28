@@ -28,9 +28,6 @@ import com.sun.hotspot.igv.data.services.GraphViewer;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import com.sun.hotspot.igv.difference.Difference;
 import com.sun.hotspot.igv.util.LookupHistory;
-import org.openide.DialogDescriptor;
-import org.openide.DialogDisplayer;
-import org.openide.NotifyDescriptor;
 import org.openide.nodes.Node;
 import org.openide.util.Lookup;
 

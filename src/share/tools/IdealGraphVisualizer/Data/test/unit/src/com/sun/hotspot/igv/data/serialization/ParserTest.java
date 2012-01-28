@@ -25,22 +25,12 @@
 
 package com.sun.hotspot.igv.data.serialization;
 
-import com.sun.hotspot.igv.data.GraphDocument;
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputEdge;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputMethod;
-import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.data.Util;
+import com.sun.hotspot.igv.data.*;
 import java.io.CharArrayWriter;
 import java.io.StringReader;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import org.junit.*;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 

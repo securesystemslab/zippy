@@ -23,8 +23,8 @@
  */
 package com.sun.hotspot.igv.filterwindow.actions;
 
-import com.sun.hotspot.igv.filterwindow.FilterTopComponent;
 import com.sun.hotspot.igv.filter.Filter;
+import com.sun.hotspot.igv.filterwindow.FilterTopComponent;
 import javax.swing.Action;
 import javax.swing.JOptionPane;
 import org.openide.nodes.Node;

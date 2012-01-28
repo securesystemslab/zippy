@@ -23,11 +23,10 @@
  */
 package com.sun.hotspot.igv.util;
 
-import org.netbeans.api.visual.widget.Scene;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import javax.swing.JComponent;
+import org.netbeans.api.visual.widget.Scene;
 
 /**
  * @author David Kaspar

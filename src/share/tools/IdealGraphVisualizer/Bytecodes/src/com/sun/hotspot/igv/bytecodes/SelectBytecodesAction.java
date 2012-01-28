@@ -28,7 +28,6 @@ import com.sun.hotspot.igv.util.LookupHistory;
 import org.openide.nodes.Node;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle;
-import org.openide.util.Utilities;
 import org.openide.util.actions.CookieAction;
 
 /**

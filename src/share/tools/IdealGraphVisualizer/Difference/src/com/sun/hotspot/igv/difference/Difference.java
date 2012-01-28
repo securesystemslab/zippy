@@ -24,21 +24,10 @@
  */
 package com.sun.hotspot.igv.difference;
 
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputBlockEdge;
-import com.sun.hotspot.igv.data.InputEdge;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Properties;
-import com.sun.hotspot.igv.data.Property;
+import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.Scheduler;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.openide.util.Lookup;
 
 /**

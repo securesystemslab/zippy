@@ -24,24 +24,16 @@
  */
 package com.sun.hotspot.igv.view;
 
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputNode;
+import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.difference.Difference;
+import com.sun.hotspot.igv.filter.CustomFilter;
 import com.sun.hotspot.igv.filter.FilterChain;
 import com.sun.hotspot.igv.graph.Diagram;
-import com.sun.hotspot.igv.data.ChangedEvent;
-import com.sun.hotspot.igv.util.RangeSliderModel;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import com.sun.hotspot.igv.data.ChangedListener;
-import com.sun.hotspot.igv.filter.CustomFilter;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.settings.Settings;
+import com.sun.hotspot.igv.util.RangeSliderModel;
 import java.awt.Color;
-import java.util.Collection;
+import java.util.*;
 
 /**
  *
