@@ -98,6 +98,7 @@ public class Parser {
     private HashMap<String, Integer> idCache = new HashMap<>();
     private ArrayList<Pair<String, String>> blockConnections = new ArrayList<>();
     private int maxId = 0;
+    private GraphDocument graphDocument;
 
     private int lookupID(String i) {
         try {
@@ -118,7 +119,8 @@ public class Parser {
 
         @Override
         protected GraphDocument start() throws SAXException {
-            return new GraphDocument();
+            graphDocument = new GraphDocument();
+            return graphDocument;
         }
     };
     // <group>
@@ -508,7 +510,7 @@ public class Parser {
     }
 
     // Returns a new GraphDocument object deserialized from an XML input source.
-    public synchronized GraphDocument parse(InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
+    public GraphDocument parse(InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
         XMLReader reader = createReader();
 
         reader.setContentHandler(new XMLParser(xmlDocument, monitor));
@@ -518,7 +520,7 @@ public class Parser {
             throw new SAXException(ex);
         }
 
-        return topHandler.getObject();
+        return graphDocument;
     }
 
     private XMLReader createReader() throws SAXException {
