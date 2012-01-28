@@ -36,6 +36,7 @@ import java.io.Serializable;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import org.openide.ErrorManager;
+import org.openide.actions.GarbageCollectAction;
 import org.openide.awt.Toolbar;
 import org.openide.awt.ToolbarPool;
 import org.openide.explorer.ExplorerManager;
@@ -96,6 +97,8 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
         toolbar.add(((NodeAction) RemoveAction.get(RemoveAction.class)).createContextAwareInstance(this.getLookup()));
         toolbar.add(RemoveAllAction.get(RemoveAllAction.class));
+        
+        toolbar.add(GarbageCollectAction.get(GarbageCollectAction.class).getToolbarPresenter());
 
         for (Toolbar tb : ToolbarPool.getDefault().getToolbars()) {
             tb.setVisible(false);
