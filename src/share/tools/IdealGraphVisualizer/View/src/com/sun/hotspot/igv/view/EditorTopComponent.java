@@ -28,7 +28,6 @@ import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.filter.FilterChain;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.view.actions.EnableBlockLayoutAction;
 import com.sun.hotspot.igv.view.actions.ExpandPredecessorsAction;
 import com.sun.hotspot.igv.view.actions.ExpandSuccessorsAction;
 import com.sun.hotspot.igv.view.actions.ExtractAction;
@@ -110,7 +109,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     private DiagramViewer scene;
     private InstanceContent content;
     private InstanceContent graphContent;
-    private EnableBlockLayoutAction blockLayoutAction;
     private OverviewAction overviewAction;
     private PredSuccAction predSuccAction;
     private SelectionModeAction selectionModeAction;
@@ -252,12 +250,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.add(ShowAllAction.get(ZoomInAction.class));
         toolBar.add(ShowAllAction.get(ZoomOutAction.class));
 
-        blockLayoutAction = new EnableBlockLayoutAction();
-        JToggleButton button = new JToggleButton(blockLayoutAction);
-        button.setSelected(true);
-        toolBar.add(button);
-        blockLayoutAction.addPropertyChangeListener(this);
-
         overviewAction = new OverviewAction();
         overviewButton = new JToggleButton(overviewAction);
         overviewButton.setSelected(false);
@@ -265,7 +257,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         overviewAction.addPropertyChangeListener(this);
 
         predSuccAction = new PredSuccAction();
-        button = new JToggleButton(predSuccAction);
+        JToggleButton button = new JToggleButton(predSuccAction);
         button.setSelected(true);
         toolBar.add(button);
         predSuccAction.addPropertyChangeListener(this);
@@ -511,9 +503,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
             } else {
                 showScene();
             }
-        } else if (evt.getSource() == this.blockLayoutAction) {
-            boolean b = (Boolean) blockLayoutAction.getValue(EnableBlockLayoutAction.STATE);
-            this.getModel().setShowBlocks(b);
         } else if (evt.getSource() == this.selectionModeAction || evt.getSource() == this.panModeAction) {
             if (panModeAction.isSelected()) {
                 scene.setInteractionMode(DiagramViewer.InteractionMode.PANNING);

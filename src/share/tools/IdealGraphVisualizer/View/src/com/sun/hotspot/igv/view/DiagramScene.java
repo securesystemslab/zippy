@@ -28,7 +28,6 @@ import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.services.Scheduler;
 import com.sun.hotspot.igv.graph.*;
 import com.sun.hotspot.igv.hierarchicallayout.HierarchicalLayoutManager;
-import com.sun.hotspot.igv.layout.Cluster;
 import com.sun.hotspot.igv.layout.LayoutGraph;
 import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.ColorIcon;
@@ -470,13 +469,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         name += " (";
 
-        if (f.getCluster() != null) {
-            name += "B" + f.getCluster().toString();
-        }
         if (!this.getWidget(f, FigureWidget.class).isVisible()) {
-            if (f.getCluster() != null) {
-                name += ", ";
-            }
             name += "hidden";
         }
         name += ")";
@@ -509,14 +502,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         Diagram d = getModel().getDiagramToView();
 
-        if (d.getGraph().getBlocks().isEmpty()) {
-            Scheduler s = Lookup.getDefault().lookup(Scheduler.class);
-            d.getGraph().clearBlocks();
-            s.schedule(d.getGraph());
-            d.getGraph().ensureNodesInBlocks();
-            d.updateBlocks();
-        }
-
         for (Figure f : d.getFigures()) {
             FigureWidget w = new FigureWidget(f, hoverAction, selectAction, this, mainLayer);
             w.getActions().addAction(ActionFactory.createPopupMenuAction(w));
@@ -540,15 +525,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 sw.getActions().addAction(new DoubleClickAction(sw));
                 sw.getActions().addAction(hoverAction);
                 sw.getActions().addAction(selectAction);
-            }
-        }
-
-        if (getModel().getShowBlocks()) {
-            for (InputBlock bn : d.getGraph().getBlocks()) {
-                BlockWidget w = new BlockWidget(this, d, bn);
-                w.setVisible(false);
-                this.addObject(bn, w);
-                blockLayer.addChild(w);
             }
         }
         
@@ -606,22 +582,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         HierarchicalLayoutManager manager = new HierarchicalLayoutManager(HierarchicalLayoutManager.Combine.SAME_OUTPUTS);
         manager.setMaxLayerLength(10);
         manager.doLayout(new LayoutGraph(edges, figures));
-        
-        
-        if (getModel().getShowBlocks()) {
-            for (Figure f : diagram.getFigures()) {
-                Cluster c = f.getCluster();
-                Rectangle r = c.getBounds();
-                Rectangle figureBounds = f.getBounds();
-                figureBounds.grow(BORDER_SIZE, BORDER_SIZE);
-                if (r != null) {
-                    figureBounds.add(r);
-                }
-                c.setBounds(figureBounds);
-            }
-        }
-        
-
         relayoutWithoutLayout(oldVisibleWidgets);
     }
     private Set<Pair<Point, Point>> lineCache = new HashSet<>();
@@ -653,21 +613,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                     if (p != null) {
                         maxX = Math.max(maxX, p.x);
                         maxY = Math.max(maxY, p.y);
-                    }
-                }
-            }
-        }
-
-        if (getModel().getShowBlocks()) {
-            for (Block b : diagram.getBlocks()) {
-                BlockWidget w = getWidget(b.getInputBlock());
-                if (w != null && w.isVisible()) {
-                    Rectangle r = b.getBounds();
-                    if (r == null) {
-                        w.setVisible(false);
-                    } else {
-                        maxX = Math.max(maxX, r.x + r.width);
-                        maxY = Math.max(maxY, r.y + r.height);
                     }
                 }
             }
@@ -725,23 +670,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 } else {
                     w.setPreferredLocation(p2);
                     animator.animatePreferredLocation(w, p2);
-                }
-            }
-        }
-
-        if (getModel().getShowBlocks()) {
-            for (Block b : diagram.getBlocks()) {
-                BlockWidget w = getWidget(b.getInputBlock());
-                if (w != null && w.isVisible()) {
-                    Point location = new Point(b.getBounds().x + offx2, b.getBounds().y + offy2);
-                    Rectangle r = new Rectangle(location.x, location.y, b.getBounds().width, b.getBounds().height);
-                    
-                    if ((visibleFigureCount <= ANIMATION_LIMIT && oldVisibleWidgets != null && oldVisibleWidgets.contains(w))) {
-                        animator.animatePreferredBounds(w, r);
-                    } else {
-                        w.setPreferredBounds(r);
-                        animator.animatePreferredBounds(w, r);
-                    }
                 }
             }
         }
@@ -1030,7 +958,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private void updateHiddenNodes(Set<Integer> newHiddenNodes, boolean doRelayout) {
 
         System.out.println("newHiddenNodes: " + newHiddenNodes);
-        Set<InputBlock> visibleBlocks = new HashSet<>();
 
         Diagram diagram = getModel().getDiagramToView();
         assert diagram != null;
@@ -1044,15 +971,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             }
         }
 
-        if (getModel().getShowBlocks()) {
-            for (InputBlock b : diagram.getGraph().getBlocks()) {
-                BlockWidget w = getWidget(b);
-                if (w.isVisible()) {
-                    oldVisibleWidgets.add(w);
-                }
-            }
-        }
-
         for (Figure f : diagram.getFigures()) {
             boolean hiddenAfter = doesIntersect(f.getSource().getSourceNodesAsSet(), newHiddenNodes);
 
@@ -1061,9 +979,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             if (!hiddenAfter) {
                 // Figure is shown
                 w.setVisible(true);
-                for (InputNode n : f.getSource().getSourceNodes()) {
-                    visibleBlocks.add(diagram.getGraph().getBlock(n));
-                }
             } else {
                 // Figure is hidden
                 w.setVisible(false);
@@ -1089,9 +1004,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
                     if (b) {
                         w.setBoundary(true);
-                        for (InputNode n : f.getSource().getSourceNodes()) {
-                            visibleBlocks.add(diagram.getGraph().getBlock(n));
-                        }
                         boundaries.add(w);
                     }
                 }
@@ -1100,22 +1012,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             for (FigureWidget w : boundaries) {
                 if (w.isBoundary()) {
                     w.setVisible(true);
-                }
-            }
-        }
-
-        if (getModel().getShowBlocks()) {
-            for (InputBlock b : diagram.getGraph().getBlocks()) {
-
-                boolean visibleAfter = visibleBlocks.contains(b);
-
-                BlockWidget w = getWidget(b);
-                if (visibleAfter) {
-                    // Block must be shown
-                    w.setVisible(true);
-                } else {
-                    // Block must be hidden
-                    w.setVisible(false);
                 }
             }
         }

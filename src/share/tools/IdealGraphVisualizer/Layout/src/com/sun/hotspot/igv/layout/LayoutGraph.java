@@ -187,16 +187,4 @@ public class LayoutGraph {
     public Set<Vertex> findRootVertices() {
         return findRootVertices(new HashSet<Vertex>());
     }
-
-    public SortedSet<Cluster> getClusters() {
-
-        SortedSet<Cluster> clusters = new TreeSet<>();
-        for (Vertex v : getVertices()) {
-            if (v.getCluster() != null) {
-                clusters.add(v.getCluster());
-            }
-        }
-
-        return clusters;
-    }
 }

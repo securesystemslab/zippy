@@ -63,7 +63,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     private ChangedEvent<DiagramViewModel> viewChangedEvent;
     private ChangedEvent<DiagramViewModel> hiddenNodesChangedEvent;
     private ChangedEvent<DiagramViewModel> viewPropertiesChangedEvent;
-    private boolean showBlocks;
     private boolean showNodeHull;
     private ChangedListener<FilterChain> filterChainChangedListener = new ChangedListener<FilterChain>() {
 
@@ -100,8 +99,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         this.onScreenNodes = newModel.onScreenNodes;
         viewChanged |= (selectedNodes != newModel.selectedNodes);
         this.selectedNodes = newModel.selectedNodes;
-        viewPropertiesChanged |= (showBlocks != newModel.showBlocks);
-        this.showBlocks = newModel.showBlocks;
         viewPropertiesChanged |= (showNodeHull != newModel.showNodeHull);
         this.showNodeHull = newModel.showNodeHull;
 
@@ -120,15 +117,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         }
     }
 
-    public boolean getShowBlocks() {
-        return showBlocks;
-    }
-
-    public void setShowBlocks(boolean b) {
-        showBlocks = b;
-        viewPropertiesChangedEvent.fire();
-    }
-
     public boolean getShowNodeHull() {
         return showNodeHull;
     }
@@ -142,7 +130,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         super(calculateStringList(g));
 
         this.showNodeHull = true;
-        this.showBlocks = false;
         this.group = g;
         assert filterChain != null;
         this.filterChain = filterChain;

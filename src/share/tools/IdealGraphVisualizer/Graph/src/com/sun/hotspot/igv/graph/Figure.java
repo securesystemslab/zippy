@@ -26,7 +26,6 @@ package com.sun.hotspot.igv.graph;
 import com.sun.hotspot.igv.data.InputBlock;
 import com.sun.hotspot.igv.data.Source;
 import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.layout.Cluster;
 import com.sun.hotspot.igv.layout.Vertex;
 import com.sun.hotspot.igv.data.Properties;
 import java.awt.*;
@@ -337,20 +336,6 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     @Override
     public String toString() {
         return idString;
-    }
-
-    @Override
-    public Cluster getCluster() {
-        if (getSource().getSourceNodes().size() == 0) {
-            assert false : "Should never reach here, every figure must have at least one source node!";
-            return null;
-        } else {
-            final InputBlock inputBlock = diagram.getGraph().getBlock(getSource().getSourceNodes().get(0));
-            assert inputBlock != null;
-            Cluster result = diagram.getBlock(inputBlock);
-            assert result != null;
-            return result;
-        }
     }
 
     @Override

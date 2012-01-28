@@ -239,11 +239,6 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
 
     @Override
     protected void paintChildren() {
-
-        if (diagramScene.getZoomFactor() < ZOOM_FACTOR && diagramScene.getModel().getShowBlocks()) {
-            return;
-        }
-
         Composite oldComposite = null;
         if (boundary) {
             oldComposite = getScene().getGraphics().getComposite();
