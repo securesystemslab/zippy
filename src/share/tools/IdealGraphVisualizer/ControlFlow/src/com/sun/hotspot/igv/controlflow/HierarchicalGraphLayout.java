@@ -80,6 +80,11 @@ public class HierarchicalGraphLayout<N, E> extends GraphLayout<N, E> {
         public void setControlPoints(List<Point> list) {
         // Do nothing for now
         }
+
+        @Override
+        public boolean isVIP() {
+            return false;
+        }
     }
 
     private class VertexWrapper implements Vertex {

@@ -116,4 +116,9 @@ public class BlockConnectionWidget extends ConnectionWidget implements Link {
     public String toString() {
         return "Connection[ " + from.toString() + " - " + to.toString() + "]";
     }
+
+    @Override
+    public boolean isVIP() {
+        return false;
+    }
 }

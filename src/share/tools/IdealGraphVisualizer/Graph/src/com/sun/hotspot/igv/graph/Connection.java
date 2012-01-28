@@ -37,6 +37,11 @@ import java.util.List;
  */
 public class Connection implements Source.Provider, Link {
 
+    @Override
+    public boolean isVIP() {
+        return style == ConnectionStyle.BOLD;
+    }
+
     public enum ConnectionStyle {
 
         NORMAL,
