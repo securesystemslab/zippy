@@ -38,10 +38,12 @@ public class GraalColoringFilter extends AbstractFilter {
         this.colorName = colorName;
     }
 
+    @Override
     public String getName() {
         return "Graal Coloring Filter (" + colorName + ")";
     }
 
+    @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
         int colors = 0;

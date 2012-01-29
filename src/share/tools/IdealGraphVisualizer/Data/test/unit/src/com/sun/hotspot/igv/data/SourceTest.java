@@ -24,19 +24,10 @@
 
 package com.sun.hotspot.igv.data;
 
-import java.lang.Integer;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
 /**
  *
@@ -75,14 +66,14 @@ public class SourceTest {
 
         s.addSourceNode(N1);
         assertEquals(s.getSourceNodes(), Arrays.asList(N1));
-        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<Integer>(Arrays.asList(1)));
+        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<>(Arrays.asList(1)));
 
         s.addSourceNode(N2);
         assertEquals(s.getSourceNodes(), Arrays.asList(N1, N2));
-        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<Integer>(Arrays.asList(1, 2)));
+        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<>(Arrays.asList(1, 2)));
 
         s.addSourceNode(N1);
         assertEquals(s.getSourceNodes(), Arrays.asList(N1, N2));
-        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<Integer>(Arrays.asList(1, 2)));
+        assertEquals(s.getSourceNodesAsSet(), new LinkedHashSet<>(Arrays.asList(1, 2)));
     }
 }

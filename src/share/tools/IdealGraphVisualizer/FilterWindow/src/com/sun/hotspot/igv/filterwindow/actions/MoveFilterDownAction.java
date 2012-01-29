@@ -23,8 +23,8 @@
  */
 package com.sun.hotspot.igv.filterwindow.actions;
 
-import com.sun.hotspot.igv.filterwindow.FilterTopComponent;
 import com.sun.hotspot.igv.filter.Filter;
+import com.sun.hotspot.igv.filterwindow.FilterTopComponent;
 import javax.swing.Action;
 import org.openide.nodes.Node;
 import org.openide.util.HelpCtx;
@@ -37,6 +37,7 @@ import org.openide.util.actions.CookieAction;
  */
 public final class MoveFilterDownAction extends CookieAction {
 
+    @Override
     protected void performAction(Node[] activatedNodes) {
         for (Node n : activatedNodes) {
             Filter c = n.getLookup().lookup(Filter.class);
@@ -44,6 +45,7 @@ public final class MoveFilterDownAction extends CookieAction {
         }
     }
 
+    @Override
     protected int mode() {
         return CookieAction.MODE_EXACTLY_ONE;
     }
@@ -53,10 +55,12 @@ public final class MoveFilterDownAction extends CookieAction {
         putValue(Action.SHORT_DESCRIPTION, "Move selected filter downwards");
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(MoveFilterUpAction.class, "CTL_MoveFilterDownAction");
     }
 
+    @Override
     protected Class[] cookieClasses() {
         return new Class[]{
             Filter.class
@@ -74,6 +78,7 @@ public final class MoveFilterDownAction extends CookieAction {
         putValue("noIconInMenu", Boolean.TRUE);
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

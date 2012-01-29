@@ -34,13 +34,15 @@ import java.util.Set;
 
 public class GraalCFGFilter extends AbstractFilter {
     
+    @Override
     public String getName() {
         return "Graal CFG Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
-        Set<Figure> figuresToRemove = new HashSet<Figure>();
-        Set<Connection> connectionsToRemove = new HashSet<Connection>();
+        Set<Figure> figuresToRemove = new HashSet<>();
+        Set<Connection> connectionsToRemove = new HashSet<>();
         for (Figure f : d.getFigures()) {
             final String prop = f.getProperties().get("probability");
             

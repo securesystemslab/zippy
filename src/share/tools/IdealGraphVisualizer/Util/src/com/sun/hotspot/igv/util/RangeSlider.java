@@ -25,15 +25,7 @@
 package com.sun.hotspot.igv.util;
 
 import com.sun.hotspot.igv.data.ChangedListener;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -105,6 +97,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         return d;
     }
 
+    @Override
     public void changed(RangeSliderModel source) {
         update();
     }
@@ -240,6 +233,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         return false;
     }
 
+    @Override
     public void mouseDragged(MouseEvent e) {
         if (state == State.DragBar) {
             int firstX = this.getStartXPosition(model.getFirstPosition());
@@ -294,6 +288,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         return result;
     }
 
+    @Override
     public void mouseMoved(MouseEvent e) {
         isOverBar = false;
         if (model == null) {
@@ -313,6 +308,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         repaint();
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() > 1) {
             // Double click
@@ -321,6 +317,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         }
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         if (model == null) {
             return;
@@ -341,6 +338,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         tempModel = model.copy();
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {
         if (model == null || tempModel == null) {
             return;
@@ -350,9 +348,11 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         tempModel = null;
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {
     }
 
+    @Override
     public void mouseExited(MouseEvent e) {
         isOverBar = false;
         repaint();

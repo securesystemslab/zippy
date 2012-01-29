@@ -37,7 +37,7 @@ public abstract class Event<L> {
     private boolean eventWasFired;
     
     public Event() {
-        listener = new ArrayList<L>();
+        listener = new ArrayList<>();
         fireEvents = true;
     }
 
@@ -55,7 +55,7 @@ public abstract class Event<L> {
 
     public void fire() {
         if(fireEvents) {
-            List<L> tmpList = new ArrayList<L>(listener);
+            List<L> tmpList = new ArrayList<>(listener);
             for (L l : tmpList) {
                 fire(l);
             }

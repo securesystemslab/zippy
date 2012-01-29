@@ -23,12 +23,7 @@
  */
 package com.sun.hotspot.igv.data;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
@@ -63,7 +58,7 @@ public class InputBlock {
             return false;
         }
 
-        final HashSet<String> s = new HashSet<String>();
+        final HashSet<String> s = new HashSet<>();
         for (InputBlock succ : successors) {
             s.add(succ.name);
         }
@@ -80,8 +75,8 @@ public class InputBlock {
     InputBlock(InputGraph graph, String name) {
         this.graph = graph;
         this.name = name;
-        nodes = new ArrayList<InputNode>();
-        successors = new LinkedHashSet<InputBlock>(2);
+        nodes = new ArrayList<>();
+        successors = new LinkedHashSet<>(2);
     }
 
     public String getName() {

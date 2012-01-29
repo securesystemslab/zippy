@@ -106,12 +106,14 @@ public class PropertiesTest extends TestCase {
         
         PropertyMatcher matcher = new PropertyMatcher() {
 
+            @Override
             public String getName() {
                 assertFalse(called[0]);
                 called[0] = true;
                 return n;
             }
 
+            @Override
             public boolean match(String value) {
                 assertTrue(v.equals(value));
                 return true;
@@ -129,12 +131,14 @@ public class PropertiesTest extends TestCase {
         called[0] = false;
         PropertyMatcher matcher2 = new PropertyMatcher() {
 
+            @Override
             public String getName() {
                 assertFalse(called[0]);
                 called[0] = true;
                 return n;
             }
 
+            @Override
             public boolean match(String value) {
                 return false;
             }
@@ -246,7 +250,7 @@ public class PropertiesTest extends TestCase {
      * Test property selector
      */
     public void testPropertySelector() {
-        final Collection<Properties.Entity> c = new ArrayList<Properties.Entity>();
+        final Collection<Properties.Entity> c = new ArrayList<>();
 
         final Properties.Entity e1 = new Properties.Entity();
         e1.getProperties().setProperty("p1", "1");
@@ -264,7 +268,7 @@ public class PropertiesTest extends TestCase {
         e3.getProperties().setProperty("p4", "4");
         c.add(e3);
 
-        final PropertySelector<Properties.Entity> sel = new PropertySelector<Properties.Entity>(c);
+        final PropertySelector<Properties.Entity> sel = new PropertySelector<>(c);
 
         final StringPropertyMatcher matcher1 = new StringPropertyMatcher("p2", "2");
         assertTrue(sel.selectMultiple(matcher1).size() == 2);

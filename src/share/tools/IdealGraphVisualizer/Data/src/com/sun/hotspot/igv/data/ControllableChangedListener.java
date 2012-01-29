@@ -45,6 +45,7 @@ public abstract class ControllableChangedListener<T> implements ChangedListener<
 		enabled = b;
 	}
 
+    @Override
 	public void changed(T source) {
 		if(enabled) {
 			filteredChanged(source);

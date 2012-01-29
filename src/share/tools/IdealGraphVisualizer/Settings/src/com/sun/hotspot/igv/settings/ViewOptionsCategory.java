@@ -41,14 +41,17 @@ public final class ViewOptionsCategory extends OptionsCategory {
         return new ImageIcon(ImageUtilities.loadImage("com/sun/hotspot/igv/settings/settings.png"));
     }
 
+    @Override
     public String getCategoryName() {
         return NbBundle.getMessage(ViewOptionsCategory.class, "OptionsCategory_Name_View");
     }
 
+    @Override
     public String getTitle() {
         return NbBundle.getMessage(ViewOptionsCategory.class, "OptionsCategory_Title_View");
     }
 
+    @Override
     public OptionsPanelController create() {
         return new ViewOptionsPanelController();
     }

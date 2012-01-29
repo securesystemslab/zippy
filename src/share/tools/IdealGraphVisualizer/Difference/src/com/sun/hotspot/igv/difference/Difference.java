@@ -24,21 +24,10 @@
  */
 package com.sun.hotspot.igv.difference;
 
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputBlockEdge;
-import com.sun.hotspot.igv.data.InputEdge;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Properties;
-import com.sun.hotspot.igv.data.Property;
+import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.Scheduler;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.openide.util.Lookup;
 
 /**
@@ -66,14 +55,14 @@ public class Difference {
     }
 
     private static InputGraph createDiffSameGroup(InputGraph a, InputGraph b) {
-        Map<Integer, InputNode> keyMapB = new HashMap<Integer, InputNode>(b.getNodes().size());
+        Map<Integer, InputNode> keyMapB = new HashMap<>(b.getNodes().size());
         for (InputNode n : b.getNodes()) {
             Integer key = n.getId();
             assert !keyMapB.containsKey(key);
             keyMapB.put(key, n);
         }
 
-        Set<NodePair> pairs = new HashSet<NodePair>();
+        Set<NodePair> pairs = new HashSet<>();
 
         for (InputNode n : a.getNodes()) {
             Integer key = n.getId();
@@ -101,9 +90,8 @@ public class Difference {
         ensureScheduled(a);
         ensureScheduled(b);
 
-        Group g = new Group();
+        Group g = new Group(null);
         g.setMethod(a.getGroup().getMethod());
-        g.setAssembly(a.getGroup().getAssembly());
         if (a.getGroup() == b.getGroup()) {
             g.getProperties().add(a.getGroup().getProperties());
         } else {
@@ -117,9 +105,10 @@ public class Difference {
             }
         }
         g.getProperties().setProperty("name", "Difference");
-        InputGraph graph = g.addGraph(a.getName() + ", " + b.getName(), new Pair<InputGraph, InputGraph>(a, b));
+        InputGraph graph = new InputGraph(a.getName() + ", " + b.getName());
+        g.addElement(graph);
 
-        Map<InputBlock, InputBlock> blocksMap = new HashMap<InputBlock, InputBlock>();
+        Map<InputBlock, InputBlock> blocksMap = new HashMap<>();
         for (InputBlock blk : a.getBlocks()) {
             InputBlock diffblk = graph.addBlock(blk.getName());
             blocksMap.put(blk, diffblk);
@@ -133,14 +122,14 @@ public class Difference {
         }
 
         // Difference between block edges
-        Set<Pair<String, String>> aEdges = new HashSet<Pair<String, String>>();
+        Set<Pair<String, String>> aEdges = new HashSet<>();
         for (InputBlockEdge edge : a.getBlockEdges()) {
-            aEdges.add(new Pair<String, String>(edge.getFrom().getName(), edge.getTo().getName()));
+            aEdges.add(new Pair<>(edge.getFrom().getName(), edge.getTo().getName()));
         }
         for (InputBlockEdge bEdge : b.getBlockEdges()) {
             InputBlock from = bEdge.getFrom();
             InputBlock to = bEdge.getTo();
-            Pair<String, String> pair = new Pair<String, String>(from.getName(), to.getName());
+            Pair<String, String> pair = new Pair<>(from.getName(), to.getName());
             if (aEdges.contains(pair)) {
                 // same
                 graph.addBlockEdge(blocksMap.get(from), blocksMap.get(to));
@@ -159,10 +148,10 @@ public class Difference {
             edge.setState(InputBlockEdge.State.DELETED);
         }
 
-        Set<InputNode> nodesA = new HashSet<InputNode>(a.getNodes());
-        Set<InputNode> nodesB = new HashSet<InputNode>(b.getNodes());
+        Set<InputNode> nodesA = new HashSet<>(a.getNodes());
+        Set<InputNode> nodesB = new HashSet<>(b.getNodes());
 
-        Map<InputNode, InputNode> inputNodeMap = new HashMap<InputNode, InputNode>(pairs.size());
+        Map<InputNode, InputNode> inputNodeMap = new HashMap<>(pairs.size());
         for (NodePair p : pairs) {
             InputNode n = p.getLeft();
             assert nodesA.contains(n);
@@ -209,7 +198,7 @@ public class Difference {
         Collection<InputEdge> edgesA = a.getEdges();
         Collection<InputEdge> edgesB = b.getEdges();
 
-        Set<InputEdge> newEdges = new HashSet<InputEdge>();
+        Set<InputEdge> newEdges = new HashSet<>();
 
         for (InputEdge e : edgesA) {
             int from = e.getFrom();
@@ -291,9 +280,9 @@ public class Difference {
 
     private static InputGraph createDiff(InputGraph a, InputGraph b) {
 
-        Set<InputNode> matched = new HashSet<InputNode>();
+        Set<InputNode> matched = new HashSet<>();
 
-        Set<NodePair> pairs = new HashSet<NodePair>();
+        Set<NodePair> pairs = new HashSet<>();
         for (InputNode n : a.getNodes()) {
             String s = n.getProperties().get(MAIN_PROPERTY);
             if (s == null) {
@@ -312,7 +301,7 @@ public class Difference {
             }
         }
 
-        Set<NodePair> selectedPairs = new HashSet<NodePair>();
+        Set<NodePair> selectedPairs = new HashSet<>();
         while (pairs.size() > 0) {
 
             double min = Double.MAX_VALUE;
@@ -330,7 +319,7 @@ public class Difference {
             } else {
                 selectedPairs.add(minPair);
 
-                Set<NodePair> toRemove = new HashSet<NodePair>();
+                Set<NodePair> toRemove = new HashSet<>();
                 for (NodePair p : pairs) {
                     if (p.getLeft() == minPair.getLeft() || p.getRight() == minPair.getRight()) {
                         toRemove.add(p);

@@ -23,10 +23,10 @@
  */
 package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.data.ChangedEvent;
 import com.sun.hotspot.igv.data.ChangedEventProvider;
 import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.graph.Diagram;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,21 +41,23 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
     private transient ChangedEvent<FilterChain> changedEvent;
     
     private ChangedListener<Filter> changedListener = new ChangedListener<Filter>() {
+        @Override
         public void changed(Filter source) {
             changedEvent.fire();
         }
     };
 
     public FilterChain() {
-        filters = new ArrayList<Filter>();
-        changedEvent = new ChangedEvent<FilterChain>(this);
+        filters = new ArrayList<>();
+        changedEvent = new ChangedEvent<>(this);
     }
 
     public FilterChain(FilterChain f) {
-        this.filters = new ArrayList<Filter>(f.filters);
-        changedEvent = new ChangedEvent<FilterChain>(this);
+        this.filters = new ArrayList<>(f.filters);
+        changedEvent = new ChangedEvent<>(this);
     }
 
+    @Override
     public ChangedEvent<FilterChain> getChangedEvent() {
         return changedEvent;
     }
@@ -72,7 +74,7 @@ public class FilterChain implements ChangedEventProvider<FilterChain> {
     }
 
     public void apply(Diagram d, FilterChain sequence) {
-        List<Filter> applied = new ArrayList<Filter>();
+        List<Filter> applied = new ArrayList<>();
         for (Filter f : sequence.getFilters()) {
             if (filters.contains(f)) {
                 f.apply(d);

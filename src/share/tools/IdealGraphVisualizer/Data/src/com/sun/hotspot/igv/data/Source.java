@@ -23,11 +23,7 @@
  */
 package com.sun.hotspot.igv.data;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
@@ -39,8 +35,8 @@ public class Source {
     private Set<Integer> set;
 
     public Source() {
-        sourceNodes = new ArrayList<InputNode>(1);
-        set = new LinkedHashSet<Integer>(1);
+        sourceNodes = new ArrayList<>(1);
+        set = new LinkedHashSet<>(1);
     }
 
     public List<InputNode> getSourceNodes() {

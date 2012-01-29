@@ -90,8 +90,8 @@ public class Node<N, E> {
     protected Node(Graph<N, E> graph, N data) {
         setData(data);
         this.graph = graph;
-        inEdges = new ArrayList<Edge<N, E>>();
-        outEdges = new ArrayList<Edge<N, E>>();
+        inEdges = new ArrayList<>();
+        outEdges = new ArrayList<>();
     }
 
     protected void addInEdge(Edge<N, E> e) {
@@ -125,7 +125,7 @@ public class Node<N, E> {
     }
 
     public List<Node<N, E>> getSuccessors() {
-        ArrayList<Node<N, E>> succ = new ArrayList<Node<N, E>>();
+        ArrayList<Node<N, E>> succ = new ArrayList<>();
         for (Edge<N, E> e : getOutEdges()) {
             Node<N, E> n = e.getDest();
             if (!succ.contains(n)) {
@@ -136,7 +136,7 @@ public class Node<N, E> {
     }
 
     public List<Node<N, E>> getPredecessors() {
-        ArrayList<Node<N, E>> pred = new ArrayList<Node<N, E>>();
+        ArrayList<Node<N, E>> pred = new ArrayList<>();
         for (Edge<N, E> e : getInEdges()) {
             Node<N, E> n = e.getSource();
             if (!pred.contains(n)) {

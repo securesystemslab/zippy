@@ -24,13 +24,10 @@
 
 package com.sun.hotspot.igv.data;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.hamcrest.CoreMatchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import org.junit.*;
 
 /**
  *
@@ -72,7 +69,7 @@ public class InputMethodTest {
                              "7 iconst_0\n" +
                              "8 ireturn";
 
-        final Group g = new Group();
+        final Group g = new Group(null);
         InputMethod m = new InputMethod(g, "name", "shortName", -1);
         m.setBytecodes(input);
 

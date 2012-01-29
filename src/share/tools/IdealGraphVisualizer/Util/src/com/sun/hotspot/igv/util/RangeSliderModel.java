@@ -24,8 +24,8 @@
  */
 package com.sun.hotspot.igv.util;
 
-import com.sun.hotspot.igv.data.ChangedEventProvider;
 import com.sun.hotspot.igv.data.ChangedEvent;
+import com.sun.hotspot.igv.data.ChangedEventProvider;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,14 +65,14 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
 
     public RangeSliderModel(List<String> positions) {
         assert positions.size() > 0;
-        this.changedEvent = new ChangedEvent<RangeSliderModel>(this);
-        this.colorChangedEvent = new ChangedEvent<RangeSliderModel>(this);
+        this.changedEvent = new ChangedEvent<>(this);
+        this.colorChangedEvent = new ChangedEvent<>(this);
         setPositions(positions);
     }
 
     protected void setPositions(List<String> positions) {
         this.positions = positions;
-        colors = new ArrayList<Color>();
+        colors = new ArrayList<>();
         for (int i = 0; i < positions.size(); i++) {
             colors.add(Color.black);
         }
@@ -130,6 +130,7 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         return colorChangedEvent;
     }
 
+    @Override
     public ChangedEvent<RangeSliderModel> getChangedEvent() {
         return changedEvent;
     }

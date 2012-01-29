@@ -51,6 +51,7 @@ public class SelectionModeAction extends AbstractAction {
         return "com/sun/hotspot/igv/view/images/selection_mode.png";
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
     }
 }

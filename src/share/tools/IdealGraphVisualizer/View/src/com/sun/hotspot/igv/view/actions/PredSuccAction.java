@@ -45,6 +45,7 @@ public class PredSuccAction extends AbstractAction {
         putValue(Action.SHORT_DESCRIPTION, "Show neighboring nodes of fully visible nodes semi-transparent");
     }
 
+    @Override
     public void actionPerformed(ActionEvent ev) {
         this.state = !state;
         this.putValue(STATE, state);

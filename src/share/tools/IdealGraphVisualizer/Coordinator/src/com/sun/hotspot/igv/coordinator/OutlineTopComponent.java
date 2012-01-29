@@ -23,37 +23,25 @@
  */
 package com.sun.hotspot.igv.coordinator;
 
-import com.sun.hotspot.igv.coordinator.actions.ImportAction;
-import com.sun.hotspot.igv.coordinator.actions.RemoveAction;
-import com.sun.hotspot.igv.coordinator.actions.RemoveAllAction;
-import com.sun.hotspot.igv.coordinator.actions.SaveAllAction;
-import com.sun.hotspot.igv.coordinator.actions.SaveAsAction;
-import com.sun.hotspot.igv.coordinator.actions.StructuredViewAction;
+import com.sun.hotspot.igv.connection.Server;
+import com.sun.hotspot.igv.coordinator.actions.*;
 import com.sun.hotspot.igv.data.GraphDocument;
-import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.services.GroupCallback;
-import com.sun.hotspot.igv.data.services.GroupOrganizer;
-import com.sun.hotspot.igv.data.services.GroupReceiver;
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import javax.swing.BoxLayout;
-import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import org.openide.ErrorManager;
+import org.openide.actions.GarbageCollectAction;
 import org.openide.awt.Toolbar;
 import org.openide.awt.ToolbarPool;
 import org.openide.explorer.ExplorerManager;
 import org.openide.explorer.ExplorerUtils;
 import org.openide.explorer.view.BeanTreeView;
-import org.openide.util.Lookup;
 import org.openide.util.LookupEvent;
 import org.openide.util.LookupListener;
 import org.openide.util.NbBundle;
@@ -72,7 +60,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private ExplorerManager manager;
     private GraphDocument document;
     private FolderNode root;
-    private GroupOrganizer organizer;
+    private Server server;
 
     private OutlineTopComponent() {
         initComponents();
@@ -88,17 +76,9 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
     private void initListView() {
         manager = new ExplorerManager();
-        organizer = new StandardGroupOrganizer();
-        root = new FolderNode(document, "", organizer, new ArrayList<String>(), document.getGroups());
+        root = new FolderNode(document);
         manager.setRootContext(root);
         ((BeanTreeView) this.treeView).setRootVisible(false);
-
-        document.getChangedEvent().addListener(new ChangedListener<GraphDocument>() {
-
-            public void changed(GraphDocument document) {
-                updateStructure();
-            }
-        });
 
         associateLookup(ExplorerUtils.createLookup(manager, getActionMap()));
     }
@@ -117,50 +97,32 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
         toolbar.add(((NodeAction) RemoveAction.get(RemoveAction.class)).createContextAwareInstance(this.getLookup()));
         toolbar.add(RemoveAllAction.get(RemoveAllAction.class));
-
-        toolbar.add(StructuredViewAction.get(StructuredViewAction.class).getToolbarPresenter());
+        
+        toolbar.add(GarbageCollectAction.get(GarbageCollectAction.class).getToolbarPresenter());
 
         for (Toolbar tb : ToolbarPool.getDefault().getToolbars()) {
             tb.setVisible(false);
         }
     }
 
-    public void setOrganizer(GroupOrganizer organizer) {
-        this.organizer = organizer;
-        updateStructure();
-    }
-
     private void initReceivers() {
 
         final GroupCallback callback = new GroupCallback() {
 
+            @Override
             public void started(Group g) {
-                getDocument().addGroup(g);
+                getDocument().addElement(g);
             }
         };
-
-        Collection<? extends GroupReceiver> receivers = Lookup.getDefault().lookupAll(GroupReceiver.class);
-        if (receivers.size() > 0) {
-            JPanel panel = new JPanel();
-            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-
-            for (GroupReceiver r : receivers) {
-                Component c = r.init(callback);
-                panel.add(c);
-            }
-
-            jPanel2.add(panel, BorderLayout.PAGE_START);
-        }
-    }
-
-    private void updateStructure() {
-        root.init("", organizer, new ArrayList<String>(), document.getGroups());
+        
+        server = new Server(callback);
     }
 
     public void clear() {
         document.clear();
     }
 
+    @Override
     public ExplorerManager getExplorerManager() {
         return manager;
     }
@@ -234,6 +196,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         return super.requestFocusInWindow(temporary);
     }
 
+    @Override
     public void resultChanged(LookupEvent lookupEvent) {
     }
 
@@ -266,19 +229,13 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel2 = new javax.swing.JPanel();
         treeView = new BeanTreeView();
 
         setLayout(new java.awt.BorderLayout());
-
-        jPanel2.setLayout(new java.awt.BorderLayout());
-        jPanel2.add(treeView, java.awt.BorderLayout.CENTER);
-
-        add(jPanel2, java.awt.BorderLayout.CENTER);
+        add(treeView, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane treeView;
     // End of variables declaration//GEN-END:variables
 }

@@ -23,11 +23,7 @@
  */
 package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.graph.Connection;
-import com.sun.hotspot.igv.graph.Diagram;
-import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.graph.InputSlot;
-import com.sun.hotspot.igv.graph.OutputSlot;
+import com.sun.hotspot.igv.graph.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,17 +40,19 @@ public class RemoveSelfLoopsFilter extends AbstractFilter {
         this.name = name;
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void apply(Diagram d) {
 
         for (Figure f : d.getFigures()) {
 
             for (InputSlot is : f.getInputSlots()) {
 
-                List<Connection> toRemove = new ArrayList<Connection>();
+                List<Connection> toRemove = new ArrayList<>();
                 for (Connection c : is.getConnections()) {
 
                     if (c.getOutputSlot().getFigure() == f) {

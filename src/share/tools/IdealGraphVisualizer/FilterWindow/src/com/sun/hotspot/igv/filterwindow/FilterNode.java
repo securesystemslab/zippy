@@ -23,12 +23,12 @@
  */
 package com.sun.hotspot.igv.filterwindow;
 
+import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.filter.Filter;
+import com.sun.hotspot.igv.filter.FilterChain;
 import com.sun.hotspot.igv.filterwindow.actions.MoveFilterDownAction;
 import com.sun.hotspot.igv.filterwindow.actions.MoveFilterUpAction;
 import com.sun.hotspot.igv.filterwindow.actions.RemoveFilterAction;
-import com.sun.hotspot.igv.filter.Filter;
-import com.sun.hotspot.igv.filter.FilterChain;
-import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.util.PropertiesSheet;
 import javax.swing.Action;
 import org.openide.actions.OpenAction;
@@ -48,7 +48,7 @@ import org.openide.util.lookup.InstanceContent;
 public class FilterNode extends CheckNode implements LookupListener, ChangedListener<FilterTopComponent> {
 
     private Filter filter;
-    private Lookup.Result result;
+    private Lookup.Result<FilterChain> result;
 
     public FilterNode(Filter filter) {
         this(filter, new InstanceContent());
@@ -62,6 +62,7 @@ public class FilterNode extends CheckNode implements LookupListener, ChangedList
         this.filter = filter;
         filter.getChangedEvent().addListener(new ChangedListener<Filter>() {
 
+            @Override
             public void changed(Filter source) {
                 update();
             }
@@ -69,7 +70,7 @@ public class FilterNode extends CheckNode implements LookupListener, ChangedList
 
         update();
 
-        Lookup.Template<FilterChain> tpl = new Lookup.Template<FilterChain>(FilterChain.class);
+        Lookup.Template<FilterChain> tpl = new Lookup.Template<>(FilterChain.class);
         result = Utilities.actionsGlobalContext().lookup(tpl);
         result.addLookupListener(this);
 
@@ -104,10 +105,12 @@ public class FilterNode extends CheckNode implements LookupListener, ChangedList
         return OpenAction.get(OpenAction.class).createContextAwareInstance(Utilities.actionsGlobalContext());
     }
 
+    @Override
     public void resultChanged(LookupEvent lookupEvent) {
         changed(FilterTopComponent.findInstance());
     }
 
+    @Override
     public void changed(FilterTopComponent source) {
         setSelected(source.getFilterChain().containsFilter(filter));
     }

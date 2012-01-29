@@ -28,12 +28,7 @@ import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.serialization.Printer;
 import com.sun.hotspot.igv.settings.Settings;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.*;
 import javax.swing.Action;
 import javax.swing.JFileChooser;
 import org.openide.nodes.Node;
@@ -52,12 +47,13 @@ public final class SaveAsAction extends NodeAction {
         putValue(Action.SHORT_DESCRIPTION, "Save selected groups to XML file...");
     }
 
+    @Override
     protected void performAction(Node[] activatedNodes) {
 
         GraphDocument doc = new GraphDocument();
         for (Node n : activatedNodes) {
             Group group = n.getLookup().lookup(Group.class);
-            doc.addGroup(group);
+            doc.addElement(group);
         }
 
         save(doc);
@@ -80,10 +76,10 @@ public final class SaveAsAction extends NodeAction {
             }
             Settings.get().put(Settings.DIRECTORY, dir.getAbsolutePath());
             try {
-                Writer writer = new OutputStreamWriter(new FileOutputStream(file));
-                Printer p = new Printer();
-                p.export(writer, doc);
-                writer.close();
+                try (Writer writer = new OutputStreamWriter(new FileOutputStream(file))) {
+                    Printer p = new Printer();
+                    p.export(writer, doc);
+                }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -97,6 +93,7 @@ public final class SaveAsAction extends NodeAction {
         return CookieAction.MODE_SOME;
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(SaveAsAction.class, "CTL_SaveAsAction");
     }
@@ -106,6 +103,7 @@ public final class SaveAsAction extends NodeAction {
         return "com/sun/hotspot/igv/coordinator/images/save.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }
@@ -115,6 +113,7 @@ public final class SaveAsAction extends NodeAction {
         return false;
     }
 
+    @Override
     protected boolean enable(Node[] nodes) {
 
         int cnt = 0;

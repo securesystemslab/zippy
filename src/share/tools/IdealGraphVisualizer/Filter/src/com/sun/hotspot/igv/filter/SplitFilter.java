@@ -23,12 +23,7 @@
  */
 package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.graph.Connection;
-import com.sun.hotspot.igv.graph.Diagram;
-import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.graph.InputSlot;
-import com.sun.hotspot.igv.graph.OutputSlot;
-import com.sun.hotspot.igv.graph.Selector;
+import com.sun.hotspot.igv.graph.*;
 import java.util.List;
 
 /**
@@ -47,10 +42,12 @@ public class SplitFilter extends AbstractFilter {
         this.propertyName = propertyName;
     }
 
+    @Override
     public String getName() {
         return name;
     }
     
+    @Override
     public void apply(Diagram d) {
         List<Figure> list = selector.selected(d);
 

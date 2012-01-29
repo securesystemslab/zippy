@@ -38,9 +38,10 @@ public class SuccessorSelector implements Selector {
         this.innerSelector = innerSelector;
     }
 
+    @Override
     public List<Figure> selected(Diagram d) {
         List<Figure> inner = innerSelector.selected(d);
-        List<Figure> result = new ArrayList<Figure>();
+        List<Figure> result = new ArrayList<>();
         for (Figure f : d.getFigures()) {
             boolean saved = false;
             for (Figure f2 : f.getPredecessors()) {
