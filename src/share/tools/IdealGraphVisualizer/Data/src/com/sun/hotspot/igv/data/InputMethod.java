@@ -70,8 +70,8 @@ public class InputMethod extends Properties.Entity {
         this.name = name;
         this.bci = bci;
         this.shortName = shortName;
-        inlined = new ArrayList<InputMethod>();
-        bytecodes = new ArrayList<InputBytecode>();
+        inlined = new ArrayList<>();
+        bytecodes = new ArrayList<>();
     }
 
     public List<InputBytecode> getBytecodes() {

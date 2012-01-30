@@ -38,9 +38,10 @@ public class InvertSelector implements Selector {
         this.selector = selector;
     }
 
+    @Override
     public List<Figure> selected(Diagram d) {
 
-        List<Figure> result = new ArrayList<Figure>();
+        List<Figure> result = new ArrayList<>();
         List<Figure> otherResult = selector.selected(d);
         for (Figure f : d.getFigures()) {
             if (!otherResult.contains(f)) {

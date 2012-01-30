@@ -44,6 +44,7 @@ public class OverviewAction extends AbstractAction {
         setState(false);
     }
 
+    @Override
     public void actionPerformed(ActionEvent ev) {
         setState(!state);
     }

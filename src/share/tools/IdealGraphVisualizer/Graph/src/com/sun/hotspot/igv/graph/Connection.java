@@ -37,6 +37,11 @@ import java.util.List;
  */
 public class Connection implements Source.Provider, Link {
 
+    @Override
+    public boolean isVIP() {
+        return style == ConnectionStyle.BOLD;
+    }
+
     public enum ConnectionStyle {
 
         NORMAL,
@@ -57,7 +62,7 @@ public class Connection implements Source.Provider, Link {
         this.label = label;
         this.inputSlot.connections.add(this);
         this.outputSlot.connections.add(this);
-        controlPoints = new ArrayList<Point>();
+        controlPoints = new ArrayList<>();
         Figure sourceFigure = this.outputSlot.getFigure();
         Figure destFigure = this.inputSlot.getFigure();
         sourceFigure.addSuccessor(destFigure);
@@ -92,6 +97,7 @@ public class Connection implements Source.Provider, Link {
         style = s;
     }
 
+    @Override
     public Source getSource() {
         return source;
     }
@@ -125,18 +131,22 @@ public class Connection implements Source.Provider, Link {
         return "Connection('" + label + "', " + getFrom().getVertex() + " to " + getTo().getVertex() + ")";
     }
 
+    @Override
     public Port getFrom() {
         return outputSlot;
     }
 
+    @Override
     public Port getTo() {
         return inputSlot;
     }
 
+    @Override
     public List<Point> getControlPoints() {
         return controlPoints;
     }
 
+    @Override
     public void setControlPoints(List<Point> list) {
         controlPoints = list;
     }

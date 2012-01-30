@@ -23,12 +23,7 @@
  */
 package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.graph.Connection;
-import com.sun.hotspot.igv.graph.Diagram;
-import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.graph.InputSlot;
-import com.sun.hotspot.igv.graph.OutputSlot;
-import com.sun.hotspot.igv.graph.Selector;
+import com.sun.hotspot.igv.graph.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,13 +38,15 @@ public class RemoveInputsFilter extends AbstractFilter {
 
     public RemoveInputsFilter(String name) {
         this.name = name;
-        rules = new ArrayList<RemoveInputsRule>();
+        rules = new ArrayList<>();
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void apply(Diagram diagram) {
 
         for (RemoveInputsRule r : rules) {
@@ -57,7 +54,7 @@ public class RemoveInputsFilter extends AbstractFilter {
             List<Figure> list = r.getSelector().selected(diagram);
             for (Figure f : list) {
                 int z = 0;
-                List<InputSlot> last = new ArrayList<InputSlot>();
+                List<InputSlot> last = new ArrayList<>();
                 for (InputSlot is : f.getInputSlots()) {
                     if (z >= r.getStartingIndex() && z <= r.getEndIndex() && is.getConnections().size() > 0) {
                         StringBuilder sb = new StringBuilder();

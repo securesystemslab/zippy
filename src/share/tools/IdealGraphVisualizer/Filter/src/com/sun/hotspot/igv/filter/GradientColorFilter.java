@@ -25,11 +25,7 @@ package com.sun.hotspot.igv.filter;
 
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
-import java.awt.Color;
-import java.awt.LinearGradientPaint;
-import java.awt.PaintContext;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.Raster;
 import java.util.List;
@@ -53,10 +49,12 @@ public class GradientColorFilter extends AbstractFilter {
     private int shadeCount = 8;
     private String mode = LINEAR;
 
+    @Override
     public String getName() {
         return "Gradient Color Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         boolean logarithmic = mode.equalsIgnoreCase(LOGARITHMIC);
         if (!logarithmic && !mode.equalsIgnoreCase(LINEAR)) {

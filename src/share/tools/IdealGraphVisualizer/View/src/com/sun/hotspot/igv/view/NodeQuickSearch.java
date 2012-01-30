@@ -55,6 +55,7 @@ public class NodeQuickSearch implements SearchProvider {
      * @param request Search request object that contains information what to search for
      * @param response Search response object that stores search results. Note that it's important to react to return value of SearchResponse.addResult(...) method and stop computation if false value is returned.
      */
+    @Override
     public void evaluate(SearchRequest request, SearchResponse response) {
         String query = request.getText();
         if (query.trim().isEmpty()) {
@@ -83,12 +84,13 @@ public class NodeQuickSearch implements SearchProvider {
             List<InputNode> matches = null;
             try {
                 RegexpPropertyMatcher matcher = new RegexpPropertyMatcher(name, value, Pattern.CASE_INSENSITIVE);
-                Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<InputNode>(p.getGraph().getNodes());
+                Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<>(p.getGraph().getNodes());
 
                 matches = selector.selectMultiple(matcher);
             } catch (Exception e) {
                 final String msg = e.getMessage();
                 response.addResult(new Runnable() {
+                    @Override
                         public void run() {
                             Message desc = new NotifyDescriptor.Message("An exception occurred during the search, "
                                     + "perhaps due to a malformed query string:\n" + msg,
@@ -101,8 +103,9 @@ public class NodeQuickSearch implements SearchProvider {
             }
 
             if (matches != null) {
-                final Set<InputNode> set = new HashSet<InputNode>(matches);
+                final Set<InputNode> set = new HashSet<>(matches);
                 response.addResult(new Runnable() {
+                    @Override
                         public void run() {
                             final EditorTopComponent comp = EditorTopComponent.getActive();
                             if (comp != null) {
@@ -117,10 +120,11 @@ public class NodeQuickSearch implements SearchProvider {
                 // Single matches
                 for (final InputNode n : matches) {
                     response.addResult(new Runnable() {
+                        @Override
                             public void run() {
                                 final EditorTopComponent comp = EditorTopComponent.getActive();
                                 if (comp != null) {
-                                    final Set<InputNode> tmpSet = new HashSet<InputNode>();
+                                    final Set<InputNode> tmpSet = new HashSet<>();
                                     tmpSet.add(n);
                                     comp.setSelectedNodes(tmpSet);
                                     comp.requestActive();

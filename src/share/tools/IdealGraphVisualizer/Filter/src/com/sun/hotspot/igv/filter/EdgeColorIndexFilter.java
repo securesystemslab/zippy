@@ -23,12 +23,7 @@
  */
 package com.sun.hotspot.igv.filter;
 
-import com.sun.hotspot.igv.graph.Connection;
-import com.sun.hotspot.igv.graph.Diagram;
-import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.graph.InputSlot;
-import com.sun.hotspot.igv.graph.OutputSlot;
-import com.sun.hotspot.igv.graph.Slot;
+import com.sun.hotspot.igv.graph.*;
 import java.awt.Color;
 import java.util.List;
 
@@ -48,10 +43,12 @@ public class EdgeColorIndexFilter extends AbstractFilter {
         this.colors = color;
     }
 
+    @Override
     public String getName() {
         return "Edge Color Index Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {

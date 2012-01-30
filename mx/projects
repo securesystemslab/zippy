@@ -50,7 +50,12 @@ project@com.oracle.max.graal.hotspot@checkstyle=com.oracle.max.graal.graph
 # graal.graph
 project@com.oracle.max.graal.graph@subDir=graal
 project@com.oracle.max.graal.graph@sourceDirs=src
-project@com.oracle.max.graal.graph@dependencies=JUNIT
+project@com.oracle.max.graal.graph@dependencies=com.oracle.max.graal.debug,JUNIT
+
+# graal.debug
+project@com.oracle.max.graal.debug@subDir=graal
+project@com.oracle.max.graal.debug@sourceDirs=src
+project@com.oracle.max.graal.debug@checkstyle=com.oracle.max.graal.graph
 
 # graal.snippets
 project@com.oracle.max.graal.snippets@subDir=graal

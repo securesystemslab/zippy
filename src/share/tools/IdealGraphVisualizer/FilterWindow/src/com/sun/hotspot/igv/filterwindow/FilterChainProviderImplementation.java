@@ -32,10 +32,12 @@ import com.sun.hotspot.igv.filter.FilterChainProvider;
  */
 public class FilterChainProviderImplementation implements FilterChainProvider {
 
+    @Override
     public FilterChain getFilterChain() {
         return FilterTopComponent.findInstance().getFilterChain();
     }
 
+    @Override
     public FilterChain getSequence() {
         return FilterTopComponent.findInstance().getSequence();
     }

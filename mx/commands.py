@@ -330,16 +330,6 @@ def build(args):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
                 
-        # Update graal_paths.hpp
-        out = StringIO.StringIO()
-        out.write(_copyrightTemplate.format(time.strftime('%Y')))
-        for p in mx.project('com.oracle.max.graal.hotspot').all_deps([], False):
-            out.write('    prepend_to_graal_classpath(scp_compiler, graal_dir, "' + p.name + '");\n')
-        graalPaths = join(_graal_home, 'src', 'share', 'vm', 'graal', 'graal_paths.hpp')
-        assert exists(graalPaths), 'File does not exist: ' + graalPaths
-        mx.update_file(graalPaths, out.getvalue())
-        out.close()
-                
         if platform.system() == 'Windows':
             compilelogfile = _graal_home + '/graalCompile.log'
             mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')

@@ -26,13 +26,11 @@ package com.sun.hotspot.igv.view.widgets;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.OutputSlot;
 import com.sun.hotspot.igv.graph.Slot;
-import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
 import java.util.HashSet;
@@ -155,10 +153,11 @@ public abstract class SlotWidget extends Widget implements DoubleClickHandler {
         return getFigureWidget().getFigure().getWidth() / count;
     }
 
+    @Override
     public void handleDoubleClick(Widget w, WidgetAction.WidgetMouseEvent e) {
-        Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getHiddenNodes());
+        Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
         if (diagramScene.isAllVisible()) {
-            hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
+            hiddenNodes = new HashSet<>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
         } 
 
         boolean progress = false;

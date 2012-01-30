@@ -53,6 +53,7 @@ public class InputSlotWidget extends SlotWidget {
         return inputSlot;
     }
     
+    @Override
     protected int calculateSlotWidth() {
         List<InputSlot> slots = getSlot().getFigure().getInputSlots();
         assert slots.contains(getSlot());

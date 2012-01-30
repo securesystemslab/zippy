@@ -40,7 +40,7 @@ public class CheckNode extends AbstractNode {
 
     public CheckNode(Children c, Lookup lookup) {
         super(c, lookup);
-        selectionChangedEvent = new ChangedEvent<CheckNode>(this);
+        selectionChangedEvent = new ChangedEvent<>(this);
         selected = false;
         enabled = true;
     }

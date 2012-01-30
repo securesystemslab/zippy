@@ -35,15 +35,18 @@ public class OutputSlot extends Slot {
         super(figure, wantedIndex);
     }
 
+    @Override
     public int getPosition() {
         return getFigure().getOutputSlots().indexOf(this);
     }
 
+    @Override
     public void setPosition(int position) {
         OutputSlot s = getFigure().outputSlots.remove(position);
         getFigure().outputSlots.add(position, s);
     }
 
+    @Override
     public Point getRelativePosition() {
         int gap = getFigure().getWidth() - Figure.getSlotsWidth(getFigure().getOutputSlots());
         if(gap < 0) {

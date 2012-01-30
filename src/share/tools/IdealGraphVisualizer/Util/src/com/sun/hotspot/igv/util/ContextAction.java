@@ -25,11 +25,7 @@
 package com.sun.hotspot.igv.util;
 
 import java.awt.EventQueue;
-import org.openide.util.ContextAwareAction;
-import org.openide.util.Lookup;
-import org.openide.util.LookupEvent;
-import org.openide.util.LookupListener;
-import org.openide.util.Utilities;
+import org.openide.util.*;
 import org.openide.util.actions.CallableSystemAction;
 
 /**
@@ -56,6 +52,7 @@ public abstract class ContextAction<T> extends CallableSystemAction implements L
         resultChanged(null);
     }
 
+    @Override
     public void resultChanged(LookupEvent e) {
         if (result.allItems().size() != 0) {
             update(result.allInstances().iterator().next());
@@ -71,6 +68,7 @@ public abstract class ContextAction<T> extends CallableSystemAction implements L
         // Ensure it's AWT event thread
         EventQueue.invokeLater(new Runnable() {
 
+            @Override
             public void run() {
                 performAction(t);
             }

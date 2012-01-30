@@ -37,6 +37,7 @@ import org.openide.util.actions.CallableSystemAction;
  */
 public final class ZoomInAction extends CallableSystemAction {
 
+    @Override
     public void performAction() {
         EditorTopComponent editor = EditorTopComponent.getActive();
         if (editor != null) {
@@ -44,6 +45,7 @@ public final class ZoomInAction extends CallableSystemAction {
         }
     }
 
+    @Override
     public String getName() {
         return "Zoom in";
     }
@@ -53,6 +55,7 @@ public final class ZoomInAction extends CallableSystemAction {
         putValue(Action.SHORT_DESCRIPTION, "Zoom in");
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

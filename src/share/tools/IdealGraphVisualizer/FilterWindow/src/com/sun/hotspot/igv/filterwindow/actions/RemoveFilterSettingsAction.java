@@ -35,10 +35,12 @@ import org.openide.util.actions.CallableSystemAction;
  */
 public final class RemoveFilterSettingsAction extends CallableSystemAction {
 
+    @Override
     public void performAction() {
         FilterTopComponent.findInstance().removeFilterSetting();
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(RemoveFilterSettingsAction.class, "CTL_RemoveFilterSettingsAction");
     }
@@ -52,6 +54,7 @@ public final class RemoveFilterSettingsAction extends CallableSystemAction {
         super.initialize();
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

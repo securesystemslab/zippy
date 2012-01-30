@@ -23,19 +23,13 @@
  */
 package com.sun.hotspot.igv.view.widgets;
 
-import com.sun.hotspot.igv.graph.Figure;
-import com.sun.hotspot.igv.view.DiagramScene;
-import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.data.Properties;
+import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.util.DoubleClickAction;
+import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.util.PropertiesSheet;
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Composite;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Point;
-import java.awt.Rectangle;
+import com.sun.hotspot.igv.view.DiagramScene;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -47,10 +41,10 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import org.netbeans.api.visual.action.PopupMenuProvider;
 import org.netbeans.api.visual.action.WidgetAction;
-import org.netbeans.api.visual.model.ObjectState;
-import org.netbeans.api.visual.widget.Widget;
 import org.netbeans.api.visual.layout.LayoutFactory;
+import org.netbeans.api.visual.model.ObjectState;
 import org.netbeans.api.visual.widget.LabelWidget;
+import org.netbeans.api.visual.widget.Widget;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
@@ -122,7 +116,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         middleWidget.getActions().addAction(new DoubleClickAction(this));
 	middleWidget.setCheckClipping(true);
 
-        labelWidgets = new ArrayList<LabelWidget>();
+        labelWidgets = new ArrayList<>();
 
         String[] strings = figure.getLines();
 
@@ -228,6 +222,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         return getProperties().get("name");
     }
 
+    @Override
     public Properties getProperties() {
         return figure.getProperties();
     }
@@ -238,11 +233,6 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
 
     @Override
     protected void paintChildren() {
-
-        if (diagramScene.getZoomFactor() < ZOOM_FACTOR && diagramScene.getModel().getShowBlocks()) {
-            return;
-        }
-
         Composite oldComposite = null;
         if (boundary) {
             oldComposite = getScene().getGraphics().getComposite();
@@ -269,6 +259,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         }
     }
  
+    @Override
     public JPopupMenu getPopupMenu(Widget widget, Point point) {
         JPopupMenu menu = diagramScene.createPopupMenu();
         menu.addSeparator();
@@ -299,6 +290,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
             this.successors = successors;
         }
 
+        @Override
         public void menuSelected(MenuEvent e) {
             if (menu.getItemCount() > 0) {
                 // already built before
@@ -339,28 +331,31 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
             }
         }
 
+        @Override
         public void menuDeselected(MenuEvent e) {
             // ignore
         }
 
+        @Override
         public void menuCanceled(MenuEvent e) {
             // ignore
         }
     }
 
+    @Override
     public void handleDoubleClick(Widget w, WidgetAction.WidgetMouseEvent e) {
 
         if (diagramScene.isAllVisible()) {
-            final Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getGraphToView().getGroup().getAllNodes());
             hiddenNodes.removeAll(this.getFigure().getSource().getSourceNodesAsSet());
             this.diagramScene.getModel().showNot(hiddenNodes);
         } else if (isBoundary()) {
 
-            final Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getHiddenNodes());
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
             hiddenNodes.removeAll(this.getFigure().getSource().getSourceNodesAsSet());
             this.diagramScene.getModel().showNot(hiddenNodes);
         } else {
-            final Set<Integer> hiddenNodes = new HashSet<Integer>(diagramScene.getModel().getHiddenNodes());
+            final Set<Integer> hiddenNodes = new HashSet<>(diagramScene.getModel().getHiddenNodes());
             hiddenNodes.addAll(this.getFigure().getSource().getSourceNodesAsSet());
             this.diagramScene.getModel().showNot(hiddenNodes);
         }

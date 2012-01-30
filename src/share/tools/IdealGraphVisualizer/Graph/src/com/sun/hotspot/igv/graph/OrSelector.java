@@ -40,6 +40,7 @@ public class OrSelector implements Selector {
         this.selector2 = s2;
     }
 
+    @Override
     public List<Figure> selected(Diagram d) {
 
         List<Figure> l1 = selector1.selected(d);

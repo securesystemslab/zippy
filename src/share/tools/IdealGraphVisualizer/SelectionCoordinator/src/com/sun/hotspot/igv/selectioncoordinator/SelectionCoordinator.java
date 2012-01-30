@@ -46,10 +46,10 @@ public class SelectionCoordinator {
     }
 
     private SelectionCoordinator() {
-        selectedChangedEvent = new ChangedEvent<SelectionCoordinator>(this);
-        highlightedChangedEvent = new ChangedEvent<SelectionCoordinator>(this);
-        selectedObjects = new HashSet<Object>();
-        highlightedObjects = new HashSet<Object>();
+        selectedChangedEvent = new ChangedEvent<>(this);
+        highlightedChangedEvent = new ChangedEvent<>(this);
+        selectedObjects = new HashSet<>();
+        highlightedObjects = new HashSet<>();
     }
 
     public Set<Object> getSelectedObjects() {

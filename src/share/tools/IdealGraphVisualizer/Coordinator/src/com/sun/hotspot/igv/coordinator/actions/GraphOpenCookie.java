@@ -25,9 +25,6 @@ package com.sun.hotspot.igv.coordinator.actions;
 
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.GraphViewer;
-import org.openide.DialogDescriptor;
-import org.openide.DialogDisplayer;
-import org.openide.NotifyDescriptor;
 import org.openide.cookies.OpenCookie;
 
 public class GraphOpenCookie implements OpenCookie {
@@ -40,16 +37,8 @@ public class GraphOpenCookie implements OpenCookie {
         this.graph = graph;
     }
 
+    @Override
     public void open() {
-        if (!graph.getGroup().isComplete()) {
-            String msg = "This graph or the group it belongs to is still being loaded. Opening this graph now can cause problems. Do you want to continue and open the graph?";
-            NotifyDescriptor desc = new NotifyDescriptor(msg, "Incomplete data", NotifyDescriptor.YES_NO_OPTION, NotifyDescriptor.QUESTION_MESSAGE, null, NotifyDescriptor.NO_OPTION);
-
-            if (DialogDisplayer.getDefault().notify(desc) == DialogDescriptor.NO_OPTION) {
-                return;
-            }
-        }
-
         viewer.view(graph);
     }
 }

@@ -83,6 +83,7 @@ public class Edge<N, E> {
         dest.addInEdge(this);
     }
 
+    @Override
     public String toString() {
         return "Edge (" + source + " -- " + dest + "): " + data;
     }

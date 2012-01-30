@@ -24,12 +24,8 @@
 
 package com.sun.hotspot.igv.data;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
 /**
  *
@@ -62,10 +58,11 @@ public class ChangedEventTest {
     @Test
     public void testBase() {
 
-        ChangedEvent<Integer> e = new ChangedEvent<Integer>(5);
+        ChangedEvent<Integer> e = new ChangedEvent<>(5);
         final int[] fireCount = new int[1];
 
         e.addListener(new ChangedListener<Integer>() {
+            @Override
             public void changed(Integer s) {
                 assertEquals(s.intValue(), 5);
                 fireCount[0]++;

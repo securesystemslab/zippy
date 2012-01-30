@@ -54,11 +54,11 @@ public class BytecodeNode extends AbstractNode {
         bciValue = bytecode.getBci() + " " + bciValue;
         bciValue = bciValue.trim();
 
-        Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<InputNode>(graph.getNodes());
+        Properties.PropertySelector<InputNode> selector = new Properties.PropertySelector<>(graph.getNodes());
         StringPropertyMatcher matcher = new StringPropertyMatcher("bci", bciValue);
         List<InputNode> nodeList = selector.selectMultiple(matcher);
         if (nodeList.size() > 0) {
-            nodes = new LinkedHashSet<InputNode>();
+            nodes = new LinkedHashSet<>();
             for (InputNode n : nodeList) {
                 nodes.add(n);
             }

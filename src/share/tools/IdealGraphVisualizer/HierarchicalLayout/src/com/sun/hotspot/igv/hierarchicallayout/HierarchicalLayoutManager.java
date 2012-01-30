@@ -29,19 +29,7 @@ import com.sun.hotspot.igv.layout.Link;
 import com.sun.hotspot.igv.layout.Vertex;
 import java.awt.Dimension;
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.Stack;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  *
@@ -59,6 +47,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     public static final int LAYER_OFFSET = 30;
     public static final int MAX_LAYER_LENGTH = -1;
     public static final int MIN_LAYER_DIFFERENCE = 1;
+    public static final int VIP_BONUS = 10;
 
     public enum Combine {
 
@@ -103,10 +92,10 @@ public class HierarchicalLayoutManager implements LayoutManager {
         public int bottomYOffset;
         public Vertex vertex; // Only used for non-dummy nodes, otherwise null
 
-        public List<LayoutEdge> preds = new ArrayList<LayoutEdge>();
-        public List<LayoutEdge> succs = new ArrayList<LayoutEdge>();
-        public HashMap<Integer, Integer> outOffsets = new HashMap<Integer, Integer>();
-        public HashMap<Integer, Integer> inOffsets = new HashMap<Integer, Integer>();
+        public List<LayoutEdge> preds = new ArrayList<>();
+        public List<LayoutEdge> succs = new ArrayList<>();
+        public HashMap<Integer, Integer> outOffsets = new HashMap<>();
+        public HashMap<Integer, Integer> inOffsets = new HashMap<>();
         public int pos = -1; // Position within layer
 
         public int crossingNumber;
@@ -124,6 +113,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         public int relativeFrom;
         public int relativeTo;
         public Link link;
+        public boolean vip;
     }
 
     private abstract class AlgorithmPart {
@@ -174,7 +164,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         this.layerOffset = LAYER_OFFSET;
         this.maxLayerLength = MAX_LAYER_LENGTH;
         this.minLayerDifference = MIN_LAYER_DIFFERENCE;
-        this.linksToFollow = new HashSet<Link>();
+        this.linksToFollow = new HashSet<>();
     }
 
     public int getMaxLayerLength() {
@@ -189,11 +179,13 @@ public class HierarchicalLayoutManager implements LayoutManager {
         minLayerDifference = v;
     }
 
+    @Override
     public void doLayout(LayoutGraph graph) {
         doLayout(graph, new HashSet<Vertex>(), new HashSet<Vertex>(), new HashSet<Link>());
 
     }
 
+    @Override
     public void doLayout(LayoutGraph graph, Set<? extends Vertex> firstLayerHint, Set<? extends Vertex> lastLayerHint, Set<? extends Link> importantLinks) {
 
         this.importantLinks = importantLinks;
@@ -201,14 +193,14 @@ public class HierarchicalLayoutManager implements LayoutManager {
         this.firstLayerHint = firstLayerHint;
         this.lastLayerHint = lastLayerHint;
 
-        vertexToLayoutNode = new HashMap<Vertex, LayoutNode>();
-        reversedLinks = new HashSet<Link>();
-        reversedLinkStartPoints = new HashMap<Link, List<Point>>();
-        reversedLinkEndPoints = new HashMap<Link, List<Point>>();
-        bottomEdgeHash = new HashMap<LayoutEdge, LayoutEdge>();
-        nodes = new ArrayList<LayoutNode>();
-        splitStartPoints = new HashMap<Link, List<Point>>();
-        splitEndPoints = new HashMap<Link, List<Point>>();
+        vertexToLayoutNode = new HashMap<>();
+        reversedLinks = new HashSet<>();
+        reversedLinkStartPoints = new HashMap<>();
+        reversedLinkEndPoints = new HashMap<>();
+        bottomEdgeHash = new HashMap<>();
+        nodes = new ArrayList<>();
+        splitStartPoints = new HashMap<>();
+        splitEndPoints = new HashMap<>();
 
         // #############################################################
         // Step 1: Build up data structure
@@ -219,7 +211,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         new ReverseEdges().start();
 
         for (LayoutNode n : nodes) {
-            ArrayList<LayoutEdge> tmpArr = new ArrayList<LayoutEdge>();
+            ArrayList<LayoutEdge> tmpArr = new ArrayList<>();
             for (LayoutEdge e : n.succs) {
                 if (importantLinks.contains(e.link)) {
                     tmpArr.add(e);
@@ -247,8 +239,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         // #############################################################
         // STEP 7: Assign X coordinates
-        //new AssignXCoordinates().start();
-        new AssignXCoordinates2().start();
+        new AssignXCoordinates().start();
 
         // #############################################################
         // STEP 6: Assign Y coordinates
@@ -263,10 +254,11 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         private int pointCount;
 
+        @Override
         protected void run() {
 
-            HashMap<Vertex, Point> vertexPositions = new HashMap<Vertex, Point>();
-            HashMap<Link, List<Point>> linkPositions = new HashMap<Link, List<Point>>();
+            HashMap<Vertex, Point> vertexPositions = new HashMap<>();
+            HashMap<Link, List<Point>> linkPositions = new HashMap<>();
             for (Vertex v : graph.getVertices()) {
                 LayoutNode n = vertexToLayoutNode.get(v);
                 assert !vertexPositions.containsKey(v);
@@ -277,7 +269,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 for (LayoutEdge e : n.preds) {
                     if (e.link != null) {
-                        ArrayList<Point> points = new ArrayList<Point>();
+                        ArrayList<Point> points = new ArrayList<>();
 
                         Point p = new Point(e.to.x + e.relativeTo, e.to.y + e.to.yOffset + e.link.getTo().getRelativePosition().y);
                         points.add(p);
@@ -362,7 +354,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 for (LayoutEdge e : n.succs) {
                     if (e.link != null) {
-                        ArrayList<Point> points = new ArrayList<Point>();
+                        ArrayList<Point> points = new ArrayList<>();
                         Point p = new Point(e.from.x + e.relativeFrom, e.from.y + e.from.height - e.from.bottomYOffset + e.link.getFrom().getRelativePosition().y);
                         points.add(p);
                         if (e.from.outOffsets.containsKey(e.relativeFrom)) {
@@ -498,13 +490,14 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         public float d;
         public int orderNumber = -1;
-        public ArrayList<LayoutNode> nodes = new ArrayList<LayoutNode>();
-        public HashSet<Segment> succs = new HashSet<Segment>();
-        public HashSet<Segment> preds = new HashSet<Segment>();
+        public ArrayList<LayoutNode> nodes = new ArrayList<>();
+        public HashSet<Segment> succs = new HashSet<>();
+        public HashSet<Segment> preds = new HashSet<>();
         public Region region;
     }
     private static final Comparator<Segment> segmentComparator = new Comparator<Segment>() {
 
+        @Override
         public int compare(Segment s1, Segment s2) {
             return s1.orderNumber - s2.orderNumber;
         }
@@ -514,23 +507,26 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         public float d;
         public int minOrderNumber;
-        public SortedSet<Segment> segments = new TreeSet<Segment>(segmentComparator);
-        public HashSet<Region> succs = new HashSet<Region>(4);
-        public HashSet<Region> preds = new HashSet<Region>(4);
+        public SortedSet<Segment> segments = new TreeSet<>(segmentComparator);
+        public HashSet<Region> succs = new HashSet<>(4);
+        public HashSet<Region> preds = new HashSet<>(4);
     }
     private static final Comparator<Region> regionComparator = new Comparator<Region>() {
 
+        @Override
         public int compare(Region r1, Region r2) {
             return r1.minOrderNumber - r2.minOrderNumber;
         }
     };
     private static final Comparator<LayoutNode> nodePositionComparator = new Comparator<LayoutNode>() {
 
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             return n1.pos - n2.pos;
         }
     };
     private static final Comparator<LayoutNode> nodeProcessingDownComparator = new Comparator<LayoutNode>() {
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             if (n1.vertex == null) {
                 if (n2.vertex == null) {
@@ -546,6 +542,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     };
     private static final Comparator<LayoutNode> nodeProcessingUpComparator = new Comparator<LayoutNode>() {
 
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             if (n1.vertex == null) {
                 if (n2.vertex == null) {
@@ -560,7 +557,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         }
     };
 
-    private class AssignXCoordinates2 extends AlgorithmPart {
+    private class AssignXCoordinates extends AlgorithmPart {
 
         private ArrayList<Integer>[] space;
         private ArrayList<LayoutNode>[] downProcessingOrder;
@@ -579,13 +576,14 @@ public class HierarchicalLayoutManager implements LayoutManager {
             upProcessingOrder = new ArrayList[layers.length];
         }
 
+        @Override
         protected void run() {
             createArrays();
 
             for (int i = 0; i < layers.length; i++) {
-                space[i] = new ArrayList<Integer>();
-                downProcessingOrder[i] = new ArrayList<LayoutNode>();
-                upProcessingOrder[i] = new ArrayList<LayoutNode>();
+                space[i] = new ArrayList<>();
+                downProcessingOrder[i] = new ArrayList<>();
+                upProcessingOrder[i] = new ArrayList<>();
 
                 int curX = 0;
                 for (LayoutNode n : layers[i]) {
@@ -604,10 +602,11 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 sweepDown();
                 sweepUp();
             }
-
-            for (int i = 0; i < SWEEP_ITERATIONS; i++) {
-                doubleSweep();
-            }            
+ 
+            sweepDown();
+            //for (int i = 0; i < SWEEP_ITERATIONS; i++) {
+            //    doubleSweep();
+            //}            
         }
 
         private int calculateOptimalDown(LayoutNode n) {
@@ -619,6 +618,9 @@ public class HierarchicalLayoutManager implements LayoutManager {
             for (int i = 0; i < size; i++) {
                 LayoutEdge e = n.preds.get(i);
                 values[i] = e.from.x + e.relativeFrom - e.relativeTo;
+                if (e.vip) {
+                    return values[i];
+                }
             }
             return median(values);
         }
@@ -649,11 +651,15 @@ public class HierarchicalLayoutManager implements LayoutManager {
             if (size == 0) {
                 return n.x;
             }
-            long sum = 0;
-            for (LayoutEdge e : n.succs) {
-                sum += e.to.x + e.relativeTo - e.relativeFrom;
+            int[] values = new int[size];
+            for (int i = 0; i < size; i++) {
+                LayoutEdge e = n.succs.get(i);
+                values[i] = e.to.x + e.relativeTo - e.relativeFrom;
+                if (e.vip) {
+                    return values[i];
+                }
             }
-            return (int) (sum / size); // why not the median?
+            return median(values);
         }
 
         private int median(int[] values) {
@@ -673,14 +679,6 @@ public class HierarchicalLayoutManager implements LayoutManager {
                     r.insert(n, optimal);
                 }
             }
-        /*
-        for(int i=0; i<layers.length; i++) {
-        NodeRow r = new NodeRow(space[i]);
-        for(LayoutNode n : upProcessingOrder[i]) {
-        int optimal = calculateOptimalUp(n);
-        r.insert(n, optimal);
-        }
-        }*/
         }
 
         private void doubleSweep() {
@@ -710,7 +708,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         private ArrayList<Integer> space;
 
         public NodeRow(ArrayList<Integer> space) {
-            treeSet = new TreeSet<LayoutNode>(nodePositionComparator);
+            treeSet = new TreeSet<>(nodePositionComparator);
             this.space = space;
         }
 
@@ -755,351 +753,9 @@ public class HierarchicalLayoutManager implements LayoutManager {
             treeSet.add(n);
         }
     }
-
-    private class AssignXCoordinates extends AlgorithmPart {
-
-        HashMap<LayoutNode, Segment> hashMap = new HashMap<LayoutNode, Segment>();
-        ArrayList<Segment> segments = new ArrayList<Segment>();
-
-        private void generateSegments() {
-
-            for (int i = 0; i < layerCount; i++) {
-                for (LayoutNode n : layers[i]) {
-                    if (!hashMap.containsKey(n)) {
-                        Segment s = new Segment();
-                        segments.add(s);
-                        LayoutNode curNode = n;
-
-                        int maxLength = 0;
-                        while (curNode.succs.size() == 1 && curNode.preds.size() == 1) {
-                            s.nodes.add(curNode);
-                            assert !hashMap.containsKey(curNode);
-                            hashMap.put(curNode, s);
-                            curNode = curNode.succs.get(0).to;
-                            maxLength++;
-                        //if(maxLength > 10) break;
-                        }
-
-                        if (s.nodes.size() > 0 && curNode.preds.size() == 1 && curNode.vertex == null) {
-                            s.nodes.add(curNode);
-                            assert !hashMap.containsKey(curNode);
-                            hashMap.put(curNode, s);
-                        }
-
-                        if (s.nodes.size() == 0) {
-                            // Simple segment with a single node
-                            s.nodes.add(n);
-                            hashMap.put(n, s);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void addEdges() {
-
-            for (int i = 0; i < layerCount; i++) {
-                LayoutNode prev = null;
-                for (LayoutNode n : layers[i]) {
-
-                    if (prev != null) {
-                        Segment s1 = hashMap.get(prev);
-                        Segment s2 = hashMap.get(n);
-
-                        if (s1 != s2) {
-                            s1.succs.add(s2);
-                            s2.preds.add(s1);
-                        }
-                    }
-                    prev = n;
-
-                }
-            }
-        }
-
-        private void topologicalSorting() {
-
-            Queue<Segment> queue = new LinkedList<Segment>();
-
-            int index = 0;
-            ArrayList<Segment> newList = new ArrayList<Segment>();
-            for (Segment s : segments) {
-                if (s.preds.size() == 0) {
-                    s.orderNumber = index;
-                    newList.add(s);
-                    index++;
-                    queue.add(s);
-                }
-            }
-
-            while (!queue.isEmpty()) {
-                Segment s = queue.remove();
-
-                for (Segment succ : s.succs) {
-                    succ.preds.remove(s);
-                    if (succ.preds.size() == 0) {
-                        queue.add(succ);
-                        succ.orderNumber = index;
-                        newList.add(succ);
-                        index++;
-                    }
-                }
-            }
-
-            segments = newList;
-        }
-
-        private void initialPositions() {
-
-            int[] minPos = new int[layers.length];
-
-            for (Segment s : segments) {
-                int max = 0;
-                for (LayoutNode n : s.nodes) {
-                    int x = minPos[n.layer];
-                    if (x > max) {
-                        max = x;
-                    }
-                }
-
-                for (LayoutNode n : s.nodes) {
-                    minPos[n.layer] = max + n.width + xOffset;
-                    n.x = max;
-                }
-            }
-        }
-
-        private int predSum(LayoutNode n) {
-            int sum = 0;
-            for (LayoutEdge e : n.preds) {
-                assert e.to == n;
-                //sum += (e.from.x + e.relativeFrom + (int)hashMap.get(e.from).d) - (e.to.x + e.relativeTo + (int)hashMap.get(e.to).d);
-                sum += (e.from.x + e.relativeFrom) - (e.to.x + e.relativeTo);
-            }
-
-            return sum;
-        }
-
-        private int succSum(LayoutNode n) {
-            int sum = 0;
-            for (LayoutEdge e : n.succs) {
-
-                assert e.from == n;
-                sum += (e.to.x + e.relativeTo) - (e.from.x + e.relativeFrom);
-            //sum += (e.to.x + e.relativeTo + (int)hashMap.get(e.to).d) - (e.from.x + e.relativeFrom + (int)hashMap.get(e.from).d);
-            }
-
-            return sum;
-
-        }
-
-        private void downValues() {
-
-            for (Segment s : segments) {
-                downValues(s);
-
-            }
-
-        }
-
-        private void downValues(Segment s) {
-            LayoutNode n = s.nodes.get(0); // Only first node needed, all other have same coordinate
-
-            if (n.preds.size() == 0) {
-                // Value is 0.0;
-                if (n.succs.size() == 0) {
-                    s.d = 0.0f;
-                } else {
-                    s.d = (((float) succSum(n) / (float) n.succs.size())) / 2;
-                }
-            } else {
-                s.d = (float) predSum(n) / (float) n.preds.size();
-            }
-        }
-
-        private void upValues() {
-            for (Segment s : segments) {
-                upValues(s);
-            }
-        }
-
-        private void upValues(Segment s) {
-            LayoutNode n = s.nodes.get(0); // Only first node needed, all other have same coordinate
-
-            if (n.succs.size() == 0) {
-                // Value is 0.0;
-                if (n.preds.size() == 0) {
-                    s.d = 0.0f;
-                } else {
-                    s.d = (float) predSum(n) / (float) n.preds.size();
-                }
-            } else {
-                s.d = ((float) succSum(n) / (float) n.succs.size()) / 2;
-            }
-        }
-
-        private void sweep(boolean down) {
-
-            if (down) {
-                downValues();
-            } else {
-                upValues();
-            }
-
-            SortedSet<Region> regions = new TreeSet<Region>(regionComparator);
-            for (Segment s : segments) {
-                s.region = new Region();
-                s.region.minOrderNumber = s.orderNumber;
-                s.region.segments.add(s);
-                s.region.d = s.d;
-                regions.add(s.region);
-            }
-
-            for (Segment s : segments) {
-                for (LayoutNode n : s.nodes) {
-                    if (n.pos != 0) {
-                        LayoutNode prevNode = layers[n.layer].get(n.pos - 1);
-                        if (prevNode.x + prevNode.width + xOffset == n.x) {
-                            Segment other = hashMap.get(prevNode);
-                            Region r1 = s.region;
-                            Region r2 = other.region;
-                            // They are close together
-                            if (r1 != r2 && r2.d >= r1.d) {
-
-                                if (r2.segments.size() < r1.segments.size()) {
-
-                                    r1.d = (r1.d * r1.segments.size() + r2.d * r2.segments.size()) / (r1.segments.size() + r2.segments.size());
-
-                                    for (Segment tempS : r2.segments) {
-                                        r1.segments.add(tempS);
-                                        tempS.region = r1;
-                                        r1.minOrderNumber = Math.min(r1.minOrderNumber, tempS.orderNumber);
-                                    }
-
-                                    regions.remove(r2);
-                                } else {
-
-                                    r2.d = (r1.d * r1.segments.size() + r2.d * r2.segments.size()) / (r1.segments.size() + r2.segments.size());
-
-                                    for (Segment tempS : r1.segments) {
-                                        r2.segments.add(tempS);
-                                        tempS.region = r2;
-                                        r2.minOrderNumber = Math.min(r2.minOrderNumber, tempS.orderNumber);
-                                    }
-
-                                    regions.remove(r1);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-
-
-            ArrayList<Region> reversedRegions = new ArrayList<Region>();
-            for (Region r : regions) {
-                if (r.d < 0) {
-                    processRegion(r, down);
-                } else {
-                    reversedRegions.add(0, r);
-                }
-            }
-
-            for (Region r : reversedRegions) {
-                processRegion(r, down);
-            }
-
-        }
-
-        private void processRegion(Region r, boolean down) {
-
-            // Do not move
-            if ((int) r.d == 0) {
-                return;
-            }
-
-            ArrayList<Segment> arr = new ArrayList<Segment>();
-            for (Segment s : r.segments) {
-                arr.add(s);
-            }
-
-            if (r.d > 0) {
-                Collections.reverse(arr);
-            }
-
-            for (Segment s : arr) {
-
-
-                int min = (int) r.d;
-                if (min < 0) {
-                    min = -min;
-                }
-
-                for (LayoutNode n : s.nodes) {
-
-                    int layer = n.layer;
-                    int pos = n.pos;
-
-
-                    if (r.d > 0) {
-
-                        if (pos != layers[layer].size() - 1) {
-
-                            int off = layers[layer].get(pos + 1).x - n.x - xOffset - n.width;
-                            assert off >= 0;
-                            if (off < min) {
-                                min = off;
-                            }
-                        }
-
-                    } else {
-
-                        if (pos != 0) {
-
-                            int off = n.x - xOffset - layers[layer].get(pos - 1).x - layers[layer].get(pos - 1).width;
-                            assert off >= 0;
-                            if (off < min) {
-                                min = off;
-                            }
-                        }
-                    }
-                }
-
-                assert min >= 0;
-                if (min != 0) {
-                    for (LayoutNode n : s.nodes) {
-                        if (r.d > 0) {
-                            n.x += min;
-                        } else {
-                            n.x -= min;
-                        }
-
-                    }
-                }
-            }
-        }
-
-        protected void run() {
-
-            generateSegments();
-            addEdges();
-            topologicalSorting();
-            initialPositions();
-            for (int i = 0; i < SWEEP_ITERATIONS; i++) {
-
-                sweep(true);
-                sweep(true);
-                sweep(false);
-                sweep(false);
-            }
-
-            sweep(true);
-            sweep(true);
-        }
-    }
     private static Comparator<LayoutNode> crossingNodeComparator = new Comparator<LayoutNode>() {
 
+        @Override
         public int compare(LayoutNode n1, LayoutNode n2) {
             return n1.crossingNumber - n2.crossingNumber;
         }
@@ -1119,15 +775,16 @@ public class HierarchicalLayoutManager implements LayoutManager {
             layers = new List[layerCount];
 
             for (int i = 0; i < layerCount; i++) {
-                layers[i] = new ArrayList<LayoutNode>();
+                layers[i] = new ArrayList<>();
             }
         }
 
+        @Override
         protected void run() {
             createLayers();
 
             // Generate initial ordering
-            HashSet<LayoutNode> visited = new HashSet<LayoutNode>();
+            HashSet<LayoutNode> visited = new HashSet<>();
             for (LayoutNode n : nodes) {
                 if (n.layer == 0) {
                     layers[0].add(n);
@@ -1205,21 +862,20 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 for (LayoutNode n : layers[i]) {
 
                     int sum = 0;
+                    int count = 0;
                     for (LayoutEdge e : n.preds) {
                         int cur = e.from.x + e.relativeFrom;
-
-                        /*pos;
-                        if(e.from.width != 0 && e.relativeFrom != 0) {
-                        cur += (float)e.relativeFrom / (float)(e.from.width);
-                        }*/
-
-                        sum += cur;
+                        int factor = 1;
+                        if (e.vip) {
+                            factor = VIP_BONUS;
+                        }
+                        sum += cur*factor;
+                        count+=factor;
                     }
 
-                    if (n.preds.size() > 0) {
-                        sum /= n.preds.size();
+                    if (count > 0) {
+                        sum /= count;
                         n.crossingNumber = sum;
-                    //if(n.vertex == null) n.crossingNumber += layers[i].size();
                     }
                 }
 
@@ -1248,9 +904,9 @@ public class HierarchicalLayoutManager implements LayoutManager {
                     next = layers[index].get(i + 1);
                 }
 
-                boolean cond = (n.succs.size() == 0);
+                boolean cond = n.succs.isEmpty();
                 if (down) {
-                    cond = (n.preds.size() == 0);
+                    cond = n.preds.isEmpty();
                 }
 
                 if (cond) {
@@ -1276,21 +932,21 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 for (LayoutNode n : layers[i]) {
 
+                    int count = 0;
                     int sum = 0;
                     for (LayoutEdge e : n.succs) {
-                        int cur = e.to.x + e.relativeTo;//pos;
-						/*
-                        if(e.to.width != 0 && e.relativeTo != 0) {
-                        cur += (float)e.relativeTo / (float)(e.to.width);
-                        }*/
-
-                        sum += cur;
+                        int cur = e.to.x + e.relativeTo;
+                        int factor = 1;
+                        if (e.vip) {
+                            factor = VIP_BONUS;
+                        }
+                        sum += cur*factor;
+                        count+=factor;
                     }
 
-                    if (n.succs.size() > 0) {
-                        sum /= n.succs.size();
+                    if (count > 0) {
+                        sum /= count;
                         n.crossingNumber = sum;
-                    //if(n.vertex == null) n.crossingNumber += layers[i].size();
                     }
 
                 }
@@ -1310,7 +966,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         @Override
         public void postCheck() {
 
-            HashSet<LayoutNode> visited = new HashSet<LayoutNode>();
+            HashSet<LayoutNode> visited = new HashSet<>();
             for (int i = 0; i < layers.length; i++) {
                 for (LayoutNode n : layers[i]) {
                     assert !visited.contains(n);
@@ -1324,6 +980,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
     private class AssignYCoordinates extends AlgorithmPart {
 
+        @Override
         protected void run() {
             int curY = 0;
 
@@ -1380,6 +1037,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
         }
 
+        @Override
         protected void run() {
             oldNodeCount = nodes.size();
 
@@ -1388,18 +1046,19 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 Comparator<LayoutEdge> comparator = new Comparator<LayoutEdge>() {
 
+                    @Override
                     public int compare(LayoutEdge e1, LayoutEdge e2) {
                         return e1.to.layer - e2.to.layer;
                     }
                 };
-                HashMap<Integer, List<LayoutEdge>> portHash = new HashMap<Integer, List<LayoutEdge>>();
-                ArrayList<LayoutNode> currentNodes = new ArrayList<LayoutNode>(nodes);
+                HashMap<Integer, List<LayoutEdge>> portHash = new HashMap<>();
+                ArrayList<LayoutNode> currentNodes = new ArrayList<>(nodes);
                 for (LayoutNode n : currentNodes) {
                     portHash.clear();
 
-                    ArrayList<LayoutEdge> succs = new ArrayList<LayoutEdge>(n.succs);
-                    HashMap<Integer, LayoutNode> topNodeHash = new HashMap<Integer, LayoutNode>();
-                    HashMap<Integer, HashMap<Integer, LayoutNode>> bottomNodeHash = new HashMap<Integer, HashMap<Integer, LayoutNode>>();
+                    ArrayList<LayoutEdge> succs = new ArrayList<>(n.succs);
+                    HashMap<Integer, LayoutNode> topNodeHash = new HashMap<>();
+                    HashMap<Integer, HashMap<Integer, LayoutNode>> bottomNodeHash = new HashMap<>();
                     for (LayoutEdge e : succs) {
                         assert e.from.layer < e.to.layer;
                         if (e.from.layer != e.to.layer - 1) {
@@ -1418,6 +1077,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                                     topEdge.relativeTo = topNode.width / 2;
                                     topEdge.to = topNode;
                                     topEdge.link = e.link;
+                                    topEdge.vip = e.vip;
                                     e.from.succs.add(topEdge);
                                     topNode.preds.add(topEdge);
                                 } else {
@@ -1433,6 +1093,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                                     topEdge.relativeTo = topNode.width / 2;
                                     topEdge.to = topNode;
                                     topEdge.link = e.link;
+                                    topEdge.vip = e.vip;
                                     e.from.succs.add(topEdge);
                                     topNode.preds.add(topEdge);
                                     topNodeHash.put(e.relativeFrom, topNode);
@@ -1460,6 +1121,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                                 bottomEdge.relativeFrom = bottomNode.width / 2;
                                 bottomEdge.from = bottomNode;
                                 bottomEdge.link = e.link;
+                                bottomEdge.vip = e.vip;
                                 e.to.preds.add(bottomEdge);
                                 bottomEdgeHash.put(topEdge, bottomEdge);
                                 bottomNode.succs.add(bottomEdge);
@@ -1474,7 +1136,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                         }
                     }
 
-                    succs = new ArrayList<LayoutEdge>(n.succs);
+                    succs = new ArrayList<>(n.succs);
                     for (LayoutEdge e : succs) {
 
                         Integer i = e.relativeFrom;
@@ -1499,6 +1161,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                                 edges[0] = new LayoutEdge();
                                 edges[0].from = n;
                                 edges[0].relativeFrom = i;
+                                edges[0].vip = e.vip;
                                 n.succs.add(edges[0]);
 
                                 nodes[0] = new LayoutNode();
@@ -1510,6 +1173,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                                 edges[0].relativeTo = nodes[0].width / 2;
                                 for (int j = 1; j < cnt; j++) {
                                     edges[j] = new LayoutEdge();
+                                    edges[j].vip = e.vip;
                                     edges[j].from = nodes[j - 1];
                                     edges[j].relativeFrom = nodes[j - 1].width / 2;
                                     nodes[j - 1].succs.add(edges[j]);
@@ -1541,7 +1205,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             } else if (combine == Combine.SAME_INPUTS) {
                 throw new UnsupportedOperationException("Currently not supported");
             } else {
-                ArrayList<LayoutNode> currentNodes = new ArrayList<LayoutNode>(nodes);
+                ArrayList<LayoutNode> currentNodes = new ArrayList<>(nodes);
                 for (LayoutNode n : currentNodes) {
                     for (LayoutEdge e : n.succs) {
                         processSingleEdge(e);
@@ -1568,6 +1232,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             n.preds.add(e);
             nodes.add(n);
             LayoutEdge result = new LayoutEdge();
+            result.vip = e.vip;
             n.succs.add(result);
             result.from = n;
             result.relativeFrom = n.width / 2;
@@ -1587,7 +1252,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
         @Override
         public void postCheck() {
-            ArrayList<LayoutNode> currentNodes = new ArrayList<LayoutNode>(nodes);
+            ArrayList<LayoutNode> currentNodes = new ArrayList<>(nodes);
             for (LayoutNode n : currentNodes) {
                 for (LayoutEdge e : n.succs) {
                     assert e.from.layer == e.to.layer - 1;
@@ -1612,11 +1277,12 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
         }
 
+        @Override
         protected void run() {
 
-            List<LayoutNode> insertOrder = new ArrayList<LayoutNode>();
+            List<LayoutNode> insertOrder = new ArrayList<>();
 
-            HashSet<LayoutNode> set = new HashSet<LayoutNode>();
+            HashSet<LayoutNode> set = new HashSet<>();
             for (LayoutNode n : nodes) {
                 if (n.preds.size() == 0) {
                     set.add(n);
@@ -1626,8 +1292,8 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
 
             int z = minLayerDifference;
-            HashSet<LayoutNode> newSet = new HashSet<LayoutNode>();
-            HashSet<LayoutNode> failed = new HashSet<LayoutNode>();
+            HashSet<LayoutNode> newSet = new HashSet<>();
+            HashSet<LayoutNode> failed = new HashSet<>();
             while (!set.isEmpty()) {
 
                 newSet.clear();
@@ -1718,11 +1384,12 @@ public class HierarchicalLayoutManager implements LayoutManager {
         private HashSet<LayoutNode> visited;
         private HashSet<LayoutNode> active;
 
+        @Override
         protected void run() {
 
             // Remove self-edges
             for (LayoutNode node : nodes) {
-                ArrayList<LayoutEdge> succs = new ArrayList<LayoutEdge>(node.succs);
+                ArrayList<LayoutEdge> succs = new ArrayList<>(node.succs);
                 for (LayoutEdge e : succs) {
                     assert e.from == node;
                     if (e.to == node) {
@@ -1750,8 +1417,8 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
 
             // Start DFS and reverse back edges
-            visited = new HashSet<LayoutNode>();
-            active = new HashSet<LayoutNode>();
+            visited = new HashSet<>();
+            active = new HashSet<>();
             for (LayoutNode node : nodes) {
                 DFS(node);
             }
@@ -1759,7 +1426,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
             for (LayoutNode node : nodes) {
 
-                SortedSet<Integer> reversedDown = new TreeSet<Integer>();
+                SortedSet<Integer> reversedDown = new TreeSet<>();
 
                 for (LayoutEdge e : node.succs) {
                     if (reversedLinks.contains(e.link)) {
@@ -1770,9 +1437,9 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 SortedSet<Integer> reversedUp = null;
                 if (reversedDown.size() == 0) {
-                    reversedUp = new TreeSet<Integer>(Collections.reverseOrder());
+                    reversedUp = new TreeSet<>(Collections.reverseOrder());
                 } else {
-                    reversedUp = new TreeSet<Integer>();
+                    reversedUp = new TreeSet<>();
                 }
 
                 for (LayoutEdge e : node.preds) {
@@ -1786,7 +1453,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 int curX = 0;
                 int curWidth = node.width + reversedDown.size() * offset;
                 for (int pos : reversedDown) {
-                    ArrayList<LayoutEdge> reversedSuccs = new ArrayList<LayoutEdge>();
+                    ArrayList<LayoutEdge> reversedSuccs = new ArrayList<>();
                     for (LayoutEdge e : node.succs) {
                         if (e.relativeFrom == pos && reversedLinks.contains(e.link)) {
                             reversedSuccs.add(e);
@@ -1794,7 +1461,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                         }
                     }
 
-                    ArrayList<Point> startPoints = new ArrayList<Point>();
+                    ArrayList<Point> startPoints = new ArrayList<>();
                     startPoints.add(new Point(curWidth, curX));
                     startPoints.add(new Point(pos, curX));
                     startPoints.add(new Point(pos, reversedDown.size() * offset));
@@ -1824,7 +1491,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
                 int oldNodeHeight = node.height;
                 for (int pos : reversedUp) {
-                    ArrayList<LayoutEdge> reversedPreds = new ArrayList<LayoutEdge>();
+                    ArrayList<LayoutEdge> reversedPreds = new ArrayList<>();
                     for (LayoutEdge e : node.preds) {
                         if (e.relativeTo == pos && reversedLinks.contains(e.link)) {
                             if (reversedDown.size() == 0) {
@@ -1837,7 +1504,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                         }
                     }
                     node.height += offset;
-                    ArrayList<Point> endPoints = new ArrayList<Point>();
+                    ArrayList<Point> endPoints = new ArrayList<>();
 
                     if (reversedDown.size() == 0) {
 
@@ -1885,7 +1552,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 return;
             }
 
-            Stack<LayoutNode> stack = new Stack<LayoutNode>();
+            Stack<LayoutNode> stack = new Stack<>();
             stack.push(startNode);
 
             while (!stack.empty()) {
@@ -1902,7 +1569,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 visited.add(node);
                 active.add(node);
 
-                ArrayList<LayoutEdge> succs = new ArrayList<LayoutEdge>(node.succs);
+                ArrayList<LayoutEdge> succs = new ArrayList<>(node.succs);
                 for (LayoutEdge e : succs) {
                     if (active.contains(e.to)) {
                         assert visited.contains(e.to);
@@ -1957,8 +1624,8 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
             for (LayoutNode n : nodes) {
 
-                HashSet<LayoutNode> curVisited = new HashSet<LayoutNode>();
-                Queue<LayoutNode> queue = new LinkedList<LayoutNode>();
+                HashSet<LayoutNode> curVisited = new HashSet<>();
+                Queue<LayoutNode> queue = new LinkedList<>();
                 for (LayoutEdge e : n.succs) {
                     LayoutNode s = e.to;
                     queue.add(s);
@@ -1981,6 +1648,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
     }
     private Comparator<Link> linkComparator = new Comparator<Link>() {
 
+        @Override
         public int compare(Link l1, Link l2) {
 
             int result = l1.getFrom().getVertex().compareTo(l2.getFrom().getVertex());
@@ -2002,9 +1670,10 @@ public class HierarchicalLayoutManager implements LayoutManager {
 
     private class BuildDatastructure extends AlgorithmPart {
 
+        @Override
         protected void run() {
             // Set up nodes
-            List<Vertex> vertices = new ArrayList<Vertex>(graph.getVertices());
+            List<Vertex> vertices = new ArrayList<>(graph.getVertices());
             Collections.sort(vertices);
 
             for (Vertex v : vertices) {
@@ -2018,7 +1687,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
             }
 
             // Set up edges
-            List<Link> links = new ArrayList<Link>(graph.getLinks());
+            List<Link> links = new ArrayList<>(graph.getLinks());
             Collections.sort(links, linkComparator);
             for (Link l : links) {
                 LayoutEdge edge = new LayoutEdge();
@@ -2031,6 +1700,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
                 edge.link = l;
                 edge.from.succs.add(edge);
                 edge.to.preds.add(edge);
+                edge.vip = l.isVIP();
             //assert edge.from != edge.to; // No self-loops allowed
             }
 
@@ -2072,6 +1742,7 @@ public class HierarchicalLayoutManager implements LayoutManager {
         }
     }
 
+    @Override
     public void doRouting(LayoutGraph graph) {
         // Do nothing for now
     }

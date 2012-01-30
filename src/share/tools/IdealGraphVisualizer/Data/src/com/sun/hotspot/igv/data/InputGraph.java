@@ -23,54 +23,38 @@
  */
 package com.sun.hotspot.igv.data;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class InputGraph extends Properties.Entity {
+public class InputGraph extends Properties.Entity implements FolderElement {
 
     private Map<Integer, InputNode> nodes;
     private Set<InputEdge> edges;
-    private Group parent;
+    private Folder parent;
+    private Group parentGroup;
     private Map<String, InputBlock> blocks;
     private Set<InputBlockEdge> blockEdges;
     private Map<Integer, InputBlock> nodeToBlock;
-    private Pair<InputGraph, InputGraph> sourceGraphs;
-    private int parentIndex;
 
-    public static InputGraph createWithoutGroup(String name, Pair<InputGraph, InputGraph> sourceGraphs) {
-        return new InputGraph(-1, null, name, sourceGraphs);
-    }
-
-    InputGraph(int parentIndex, Group parent, String name, Pair<InputGraph, InputGraph> sourceGraphs) {
-        this.parentIndex = parentIndex;
-        this.parent = parent;
-        this.sourceGraphs = sourceGraphs;
+    public InputGraph(String name) {
         setName(name);
-        nodes = new LinkedHashMap<Integer, InputNode>();
-        edges = new LinkedHashSet<InputEdge>();
-        blocks = new LinkedHashMap<String, InputBlock>();
-        blockEdges = new LinkedHashSet<InputBlockEdge>();
-        nodeToBlock = new LinkedHashMap<Integer, InputBlock>();
+        nodes = new LinkedHashMap<>();
+        edges = new LinkedHashSet<>();
+        blocks = new LinkedHashMap<>();
+        blockEdges = new LinkedHashSet<>();
+        nodeToBlock = new LinkedHashMap<>();
     }
     
-    public void setParent(Group parent, int parentIndex) {
-        assert (this.parent == null);
-        assert (this.parentIndex == -1);
-
+    @Override
+    public void setParent(Folder parent) {
         this.parent = parent;
-        this.parentIndex = parentIndex;
+        if (parent instanceof Group) {
+            assert this.parentGroup == null;
+            this.parentGroup = (Group) parent;
+        }
     }
 
     public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {
@@ -79,14 +63,10 @@ public class InputGraph extends Properties.Entity {
         left.addSuccessor(right);
         return edge;
     }
-
-    public Pair<InputGraph, InputGraph> getSourceGraphs() {
-        return sourceGraphs;
-    }
     
     public List<InputNode> findRootNodes() {
-        List<InputNode> result = new ArrayList<InputNode>();
-        Set<Integer> nonRoot = new HashSet<Integer>();
+        List<InputNode> result = new ArrayList<>();
+        Set<Integer> nonRoot = new HashSet<>();
         for(InputEdge curEdges : getEdges()) {
             nonRoot.add(curEdges.getTo());
         }
@@ -102,7 +82,7 @@ public class InputGraph extends Properties.Entity {
     
     public Map<InputNode, List<InputEdge>> findAllOutgoingEdges() {
         
-        Map<InputNode, List<InputEdge>> result = new HashMap<InputNode, List<InputEdge>>(getNodes().size());
+        Map<InputNode, List<InputEdge>> result = new HashMap<>(getNodes().size());
         for(InputNode n : this.getNodes()) {
             result.put(n, new ArrayList<InputEdge>());
         }
@@ -125,7 +105,7 @@ public class InputGraph extends Properties.Entity {
     
     public Map<InputNode, List<InputEdge>> findAllIngoingEdges() {
         
-        Map<InputNode, List<InputEdge>> result = new HashMap<InputNode, List<InputEdge>>(getNodes().size());
+        Map<InputNode, List<InputEdge>> result = new HashMap<>(getNodes().size());
         for(InputNode n : this.getNodes()) {
             result.put(n, new ArrayList<InputEdge>());
         }
@@ -147,7 +127,7 @@ public class InputGraph extends Properties.Entity {
     }
     
     public List<InputEdge> findOutgoingEdges(InputNode n) {
-        List<InputEdge> result = new ArrayList<InputEdge>();
+        List<InputEdge> result = new ArrayList<>();
         
         for(InputEdge e : this.edges) {
             if(e.getFrom() == n.getId()) {
@@ -177,7 +157,7 @@ public class InputGraph extends Properties.Entity {
 
     public void ensureNodesInBlocks() {
         InputBlock noBlock = null;
-        Set<InputNode> scheduledNodes = new HashSet<InputNode>();
+        Set<InputNode> scheduledNodes = new HashSet<>();
 
         for (InputBlock b : getBlocks()) {
             for (InputNode n : b.getNodes()) {
@@ -213,27 +193,18 @@ public class InputGraph extends Properties.Entity {
     }
 
     public InputGraph getNext() {
-        List<InputGraph> list = parent.getGraphs();
-        if (parentIndex == list.size() - 1) {
-            return null;
-        } else {
-            return list.get(parentIndex + 1);
-        }
+        return parentGroup.getNext(this);
     }
 
     public InputGraph getPrev() {
-        List<InputGraph> list = parent.getGraphs();
-        if (parentIndex == 0) {
-            return null;
-        } else {
-            return list.get(parentIndex - 1);
-        }
+        return parentGroup.getPrev(this);
     }
 
     private void setName(String name) {
         this.getProperties().setProperty("name", name);
     }
 
+    @Override
     public String getName() {
         return getProperties().get("name");
     }
@@ -279,13 +250,13 @@ public class InputGraph extends Properties.Entity {
     }
 
     public Group getGroup() {
-        return parent;
+        return parentGroup;
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Graph " + getName() + " " + getProperties().toString() + "\n");
+        sb.append("Graph ").append(getName()).append(" ").append(getProperties().toString()).append("\n");
         for (InputNode n : nodes.values()) {
             sb.append(n.toString());
             sb.append("\n");
@@ -316,5 +287,10 @@ public class InputGraph extends Properties.Entity {
 
     public Collection<InputBlockEdge> getBlockEdges() {
         return Collections.unmodifiableSet(blockEdges);
+    }
+
+    @Override
+    public Folder getParent() {
+        return parent;
     }
 }

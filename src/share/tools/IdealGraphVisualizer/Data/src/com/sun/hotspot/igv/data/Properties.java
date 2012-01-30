@@ -24,12 +24,7 @@
 package com.sun.hotspot.igv.data;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -119,6 +114,7 @@ public class Properties implements Serializable, Iterable<Property> {
             properties = new Properties(object.getProperties());
         }
 
+        @Override
         public Properties getProperties() {
             return properties;
         }
@@ -139,10 +135,12 @@ public class Properties implements Serializable, Iterable<Property> {
             this.matcher = matcher;
         }
 
+        @Override
         public String getName() {
             return matcher.getName();
         }
 
+        @Override
         public boolean match(String p) {
             if (p == null) {
                 return false;
@@ -167,10 +165,12 @@ public class Properties implements Serializable, Iterable<Property> {
             this.value = value;
         }
 
+        @Override
         public String getName() {
             return name;
         }
 
+        @Override
         public boolean match(String p) {
             if (p == null) {
                 throw new IllegalArgumentException("Property value must not be null!");
@@ -207,10 +207,12 @@ public class Properties implements Serializable, Iterable<Property> {
             }
         }
 
+        @Override
         public String getName() {
             return name;
         }
 
+        @Override
         public boolean match(String p) {
             if (p == null) {
                 throw new IllegalArgumentException("Property value must not be null!");
@@ -244,7 +246,7 @@ public class Properties implements Serializable, Iterable<Property> {
 
     @Override
     public String toString() {
-        List<String[]> pairs = new ArrayList<String[]>();
+        List<String[]> pairs = new ArrayList<>();
         for (int i = 0; i < map.length; i += 2) {
             if (map[i + 1] != null) {
                 pairs.add(new String[]{map[i], map[i + 1]});
@@ -252,6 +254,7 @@ public class Properties implements Serializable, Iterable<Property> {
         }
 
         Collections.sort(pairs, new Comparator<String[]>() {
+            @Override
             public int compare(String[] o1, String[] o2) {
                 assert o1.length == 2;
                 assert o2.length == 2;
@@ -294,7 +297,7 @@ public class Properties implements Serializable, Iterable<Property> {
         }
 
         public List<T> selectMultiple(PropertyMatcher matcher) {
-            List<T> result = new ArrayList<T>();
+            List<T> result = new ArrayList<>();
 
             for (T t : objects) {
                 Property p = t.getProperties().selectSingle(matcher);
@@ -358,6 +361,7 @@ public class Properties implements Serializable, Iterable<Property> {
 
         int index;
 
+        @Override
         public boolean hasNext() {
             while (index < map.length && map[index + 1] == null) {
                 index += 2;
@@ -365,6 +369,7 @@ public class Properties implements Serializable, Iterable<Property> {
             return index < map.length;
         }
 
+        @Override
         public Property next() {
             if (index < map.length) {
                 index += 2;
@@ -373,11 +378,13 @@ public class Properties implements Serializable, Iterable<Property> {
             return null;
         }
 
+        @Override
         public void remove() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 
+    @Override
     public Iterator<Property> iterator() {
         return new PropertiesIterator();
     }

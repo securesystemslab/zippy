@@ -39,10 +39,12 @@ public final class NewFilterAction extends CallableSystemAction {
         putValue(Action.SHORT_DESCRIPTION, "Create new filter");
     }
 
+    @Override
     public void performAction() {
         FilterTopComponent.findInstance().newFilter();
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(SaveFilterSettingsAction.class, "CTL_NewFilterAction");
     }
@@ -52,6 +54,7 @@ public final class NewFilterAction extends CallableSystemAction {
         super.initialize();
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

@@ -24,7 +24,7 @@
 
 package com.sun.hotspot.igv.coordinator.actions;
 
-import com.sun.hotspot.igv.coordinator.*;
+import com.sun.hotspot.igv.coordinator.OutlineTopComponent;
 import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import org.openide.util.NbBundle;
@@ -40,6 +40,7 @@ public class OutlineAction extends AbstractAction {
         super(NbBundle.getMessage(OutlineAction.class, "CTL_OutlineAction"));
     }
 
+    @Override
     public void actionPerformed(ActionEvent evt) {
         TopComponent win = OutlineTopComponent.findInstance();
         win.open();

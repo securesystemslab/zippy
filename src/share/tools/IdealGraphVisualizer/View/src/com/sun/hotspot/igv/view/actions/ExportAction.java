@@ -32,12 +32,7 @@ import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileFilter;
-import org.openide.util.HelpCtx;
-import org.openide.util.Lookup;
-import org.openide.util.LookupEvent;
-import org.openide.util.LookupListener;
-import org.openide.util.NbBundle;
-import org.openide.util.Utilities;
+import org.openide.util.*;
 import org.openide.util.actions.CallableSystemAction;
 
 /**
@@ -53,24 +48,28 @@ public final class ExportAction extends CallableSystemAction implements LookupLi
         putValue(Action.SHORT_DESCRIPTION, "Export current graph as SVG file");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_MASK));
         lookup = Utilities.actionsGlobalContext();
-        result = lookup.lookup(new Lookup.Template<ExportCookie>(ExportCookie.class));
+        result = lookup.lookup(new Lookup.Template<>(ExportCookie.class));
         result.addLookupListener(this);
         resultChanged(null);
     }
 
+    @Override
     public void resultChanged(LookupEvent e) {
         super.setEnabled(result.allInstances().size() > 0);
     }
 
+    @Override
     public void performAction() {
 
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new FileFilter() {
 
+            @Override
             public boolean accept(File f) {
                 return true;
             }
 
+            @Override
             public String getDescription() {
                 return "SVG files (*.svg)";
             }
@@ -97,6 +96,7 @@ public final class ExportAction extends CallableSystemAction implements LookupLi
         }
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(ExportAction.class, "CTL_ExportAction");
     }
@@ -106,6 +106,7 @@ public final class ExportAction extends CallableSystemAction implements LookupLi
         return "com/sun/hotspot/igv/view/images/export.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }
