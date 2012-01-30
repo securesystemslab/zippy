@@ -27,9 +27,10 @@ public class IntervalListImpl extends AbstractFolderElement implements IntervalL
             interval.setParent(this);
             numLIROperations = Math.max(numLIROperations, interval.getTo());
         }
-        for (BasicBlock basicBlock : controlFlowGraph.getBasicBlocks()) {
-            numLIROperations = Math.max(numLIROperations, basicBlock.getLastLirId() + 2);
-        }
+//        for (BasicBlock basicBlock : controlFlowGraph.getBasicBlocks()) {
+//            numLIROperations = Math.max(numLIROperations, basicBlock.getLastLirId() + 2);
+//        }
+        // TODO(tw): Add number of LIR operations to output.
     }
 
 

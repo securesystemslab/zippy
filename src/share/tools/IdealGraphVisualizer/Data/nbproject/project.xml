@@ -20,6 +20,10 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
+                <package>at.ssw.visualizer.model.bc</package>
+                <package>at.ssw.visualizer.model.cfg</package>
+                <package>at.ssw.visualizer.model.interval</package>
+                <package>at.ssw.visualizer.model.nc</package>
                 <package>com.sun.hotspot.igv.data</package>
                 <package>com.sun.hotspot.igv.data.serialization</package>
                 <package>com.sun.hotspot.igv.data.services</package>

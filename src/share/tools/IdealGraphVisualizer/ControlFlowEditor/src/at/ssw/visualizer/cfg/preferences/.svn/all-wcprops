@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences
+END
+CFGOptionsPanelController.java
+K 25
+svn:wc:ra_dav:version-url
+V 146
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/CFGOptionsPanelController.java
+END
+CfgPreferences.java
+K 25
+svn:wc:ra_dav:version-url
+V 135
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/CfgPreferences.java
+END
+FlagsEditorPanel.java
+K 25
+svn:wc:ra_dav:version-url
+V 137
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/FlagsEditorPanel.java
+END
+CFGOptionsCategory.java
+K 25
+svn:wc:ra_dav:version-url
+V 139
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/CFGOptionsCategory.java
+END
+CfgPreferencesDefaults.java
+K 25
+svn:wc:ra_dav:version-url
+V 143
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/CfgPreferencesDefaults.java
+END
+FontChooserDialog.java
+K 25
+svn:wc:ra_dav:version-url
+V 137
+/svn/c1visualizer~svn/!svn/ver/24/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/FontChooserDialog.java
+END
+FlagsSetting.java
+K 25
+svn:wc:ra_dav:version-url
+V 133
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/FlagsSetting.java
+END
+CFGOptionsPanel.java
+K 25
+svn:wc:ra_dav:version-url
+V 136
+/svn/c1visualizer~svn/!svn/ver/174/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/CFGOptionsPanel.java
+END
+ColorChooserButton.java
+K 25
+svn:wc:ra_dav:version-url
+V 138
+/svn/c1visualizer~svn/!svn/ver/24/trunk/C1Visualizer/Control%20Flow%20Editor/src/at/ssw/visualizer/cfg/preferences/ColorChooserButton.java
+END

@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.coordinator.actions;
 
+import at.ssw.visualizer.cfg.editor.CfgEditorSupport;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.GraphViewer;
 import org.openide.cookies.OpenCookie;
@@ -39,6 +40,9 @@ public class GraphOpenCookie implements OpenCookie {
 
     @Override
     public void open() {
+        CfgEditorSupport support = new CfgEditorSupport(graph);
+        support.open();
+        
         viewer.view(graph);
     }
 }

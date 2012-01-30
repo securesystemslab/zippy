@@ -56,7 +56,7 @@ public class BasicBlockImpl implements BasicBlock {
         return parent;
     }
 
-    protected void setParent(ControlFlowGraphImpl parent) {
+    protected void setParent(ControlFlowGraph parent) {
         this.parent = parent;
     }
 

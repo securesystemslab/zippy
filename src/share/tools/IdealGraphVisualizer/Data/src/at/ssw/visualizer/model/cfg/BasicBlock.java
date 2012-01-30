@@ -7,19 +7,17 @@ import java.util.List;
  * @author Christian Wimmer
  */
 public interface BasicBlock {
-    public ControlFlowGraph getParent();
-
     public String getName();
 
     public int getFromBci();
 
     public int getToBci();
 
-    public List<BasicBlock> getPredecessors();
+    public List<? extends BasicBlock> getPredecessors();
 
-    public List<BasicBlock> getSuccessors();
+    public List<? extends BasicBlock> getSuccessors();
 
-    public List<BasicBlock> getXhandlers();
+    public List<? extends BasicBlock> getXhandlers();
 
     public List<String> getFlags();
 
@@ -28,10 +26,6 @@ public interface BasicBlock {
     public int getLoopIndex();
 
     public int getLoopDepth();
-
-    public int getFirstLirId();
-
-    public int getLastLirId();
 
     public boolean hasState();
 

@@ -23,18 +23,23 @@
  */
 package com.sun.hotspot.igv.data;
 
+import at.ssw.visualizer.model.cfg.BasicBlock;
+import at.ssw.visualizer.model.cfg.ControlFlowGraph;
+import at.ssw.visualizer.model.cfg.IRInstruction;
+import at.ssw.visualizer.model.cfg.State;
 import java.util.*;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class InputBlock {
+public class InputBlock implements BasicBlock {
 
     private List<InputNode> nodes;
     private String name;
     private InputGraph graph;
-    private Set<InputBlock> successors;
+    private List<InputBlock> successors;
+    private List<InputBlock> predecessors;
 
     @Override
     public int hashCode() {
@@ -76,7 +81,8 @@ public class InputBlock {
         this.graph = graph;
         this.name = name;
         nodes = new ArrayList<>();
-        successors = new LinkedHashSet<>(2);
+        successors = new ArrayList<>();
+        predecessors = new ArrayList<>();
     }
 
     public String getName() {
@@ -97,8 +103,9 @@ public class InputBlock {
         nodes.add(node);
     }
 
-    public Set<InputBlock> getSuccessors() {
-        return Collections.unmodifiableSet(successors);
+    @Override
+    public List<InputBlock> getSuccessors() {
+        return Collections.unmodifiableList(successors);
     }
 
     @Override
@@ -109,6 +116,90 @@ public class InputBlock {
     void addSuccessor(InputBlock b) {
         if (!successors.contains(b)) {
             successors.add(b);
+            b.predecessors.add(this);
         }
+    }
+
+    @Override
+    public int getFromBci() {
+        // TODO(tw): Implement.
+        return -1;
+    }
+
+    @Override
+    public int getToBci() {
+        // TODO(tw): Implement.
+        return -1;
+    }
+
+    @Override
+    public List<InputBlock> getPredecessors() {
+        return Collections.unmodifiableList(predecessors);
+    }
+
+    @Override
+    public List<BasicBlock> getXhandlers() {
+        // TODO(tw): Implement.
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<String> getFlags() {
+        // TODO(tw): Implement.
+        return Collections.emptyList();
+    }
+
+    @Override
+    public BasicBlock getDominator() {
+        // TODO(tw): Implement.
+        return null;
+    }
+
+    @Override
+    public int getLoopIndex() {
+        // TODO(tw): Implement.
+        return -1;
+    }
+
+    @Override
+    public int getLoopDepth() {
+        // TODO(tw): Implement.
+        return -1;
+    }
+
+    @Override
+    public boolean hasState() {
+        // TODO(tw): Implement.
+        return false;
+    }
+
+    @Override
+    public List<State> getStates() {
+        // TODO(tw): Implement.
+        return Collections.emptyList();
+    }
+
+    @Override
+    public boolean hasHir() {
+        // TODO(tw): Implement.
+        return false;
+    }
+
+    @Override
+    public List<IRInstruction> getHirInstructions() {
+        // TODO(tw): Implement.
+        return Collections.emptyList();
+    }
+
+    @Override
+    public boolean hasLir() {
+        // TODO(tw): Implement.
+        return false;
+    }
+
+    @Override
+    public List<IRInstruction> getLirOperations() {
+        // TODO(tw): Implement.
+        return Collections.emptyList();
     }
 }
