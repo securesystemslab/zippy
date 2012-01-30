@@ -34,7 +34,16 @@ import sanitycheck
 import json
 
 _graal_home = dirname(dirname(__file__))
+
+""" Used to distinguish an exported GraalVM (see 'mx export'). """
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src')) 
+
+""" The VM that will be run by the 'vm' command: graal(default), client or server.
+    This can be set via the global '--vm' option. """
+_vm = 'graal'
+
+""" The VM build that will be run by the 'vm' command: product(default), fastdebug or debug.
+    This can be set via the global '--fastdebug' and '--debug' options. """
 _vmbuild = 'product'
 
 _copyrightTemplate = """/*
@@ -133,7 +142,7 @@ def example(args):
         res = []
         mx.log("=== Server VM ===")
         printArg = '-XX:+PrintCompilation' if verbose else '-XX:-PrintCompilation'
-        res.append(vm(['-cp', cp, printArg] + sharedArgs, vm="-server"))
+        res.append(vm(['-cp', cp, printArg] + sharedArgs, vm='server'))
         mx.log("=== Graal VM ===")
         printArg = '-G:+PrintCompilation' if verbose else '-G:-PrintCompilation'
         res.append(vm(['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
@@ -204,7 +213,7 @@ def dacapo(args):
     
     failed = []
     for (test, n) in numTests.items():
-        if not sanitycheck.getDacapo(test, n, dacapoArgs).test('-graal', opts=vmOpts):
+        if not sanitycheck.getDacapo(test, n, dacapoArgs).test('graal', opts=vmOpts):
             failed.append(test)
     
     if len(failed) != 0:
@@ -304,6 +313,7 @@ def build(args):
 
 
     parser = ArgumentParser(prog='mx build');
+    parser.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to be built')
     
     # Call mx.build to compile the Java sources        
     opts = mx.build(['--source', '1.7'] + args, parser=parser)
@@ -315,16 +325,25 @@ def build(args):
     if len(builds) == 0:
         builds = ['product']
 
+    vm = opts.vm
+    if vm == 'server':
+        buildSuffix = ''
+    elif vm == 'client':
+        buildSuffix = '1'
+    else:
+        assert vm is 'graal'
+        buildSuffix = 'graal'
+        
     for build in builds:
 
         jdk = _jdk(build, True)
         if build == 'debug':
             build = 'jvmg'
-        
-        graalVmDir = join(jdk, 'jre', 'lib', 'amd64', 'graal')
-        if not exists(graalVmDir):
-            mx.log('Creating Graal directory in JDK7: ' + graalVmDir)
-            os.makedirs(graalVmDir)
+            
+        vmDir = join(jdk, 'jre', 'lib', 'amd64', vm)
+        if not exists(vmDir):
+            mx.log('Creating VM directory in JDK7: ' + vmDir)
+            os.makedirs(vmDir)
     
         def filterXusage(line):
             if not 'Xusage.txt' in line:
@@ -353,17 +372,20 @@ def build(args):
             env.setdefault('HOTSPOT_BUILD_JOBS', '3')
             env['ALT_BOOTDIR'] = jdk
             env.setdefault('INSTALL', 'y')
-            mx.run([mx.gmake_cmd(), build + 'graal'], cwd=join(_graal_home, 'make'), err=filterXusage)
+            mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
     
-def vm(args, vm='-graal', nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
+def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the GraalVM"""
 
+    if vm is None:
+        vm = _vm
+        
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     mx.expand_project_in_args(args)  
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
-    return mx.run([exe, vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+    return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 
 # Table of unit tests.
@@ -485,7 +507,7 @@ def gate(args):
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
-                if not test.test('-graal'):
+                if not test.test('graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
                 t.stop()
     except KeyboardInterrupt:
@@ -549,7 +571,7 @@ def bench(args):
     for test in benchmarks:
         if not results.has_key(test.group):
             results[test.group] = {}
-        results[test.group].update(test.bench('-' + vm))
+        results[test.group].update(test.bench(vm))
     mx.log(json.dumps(results))
     if resultFile:
         with open(resultFile, 'w') as f:
@@ -558,7 +580,7 @@ def bench(args):
 def specjvm2008(args):
     benchArgs = [a[1:] for a in args if a[0] == '@']
     vmArgs = [a for a in args if a[0] != '@']
-    sanitycheck.getSPECjvm2008(benchArgs).bench('-graal', opts=vmArgs)
+    sanitycheck.getSPECjvm2008(benchArgs).bench('graal', opts=vmArgs)
     
 def mx_init():
     _vmbuild = 'product'
@@ -576,9 +598,10 @@ def mx_init():
     }
 
     if (_vmSourcesAvailable):
-        mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product VM')
-        mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug VM')
-        mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug VM')
+        mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to run (default: graal)')
+        mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product build of the VM')
+        mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug build of the VM')
+        mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug build of the VM')
         
         commands.update({
             'export': [export, '[-options] [zipfile]'],
@@ -597,6 +620,8 @@ def mx_post_parse_cmd_line(opts):
         mx.abort('Requires Java version 1.7 or greater, got version ' + version)
     
     if (_vmSourcesAvailable):
+        global _vm
+        _vm = opts.vm
         if hasattr(opts, 'vmbuild') and opts.vmbuild is not None:
             global _vmbuild
             _vmbuild = opts.vmbuild
