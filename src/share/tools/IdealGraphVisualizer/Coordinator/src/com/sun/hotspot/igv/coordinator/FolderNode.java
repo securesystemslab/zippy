@@ -23,14 +23,21 @@
  */
 package com.sun.hotspot.igv.coordinator;
 
+import com.sun.hotspot.igv.coordinator.actions.DiffGraphAction;
 import com.sun.hotspot.igv.coordinator.actions.RemoveCookie;
 import com.sun.hotspot.igv.data.*;
+import com.sun.hotspot.igv.data.services.GraphViewer;
 import java.awt.Image;
+import java.util.ArrayList;
 import java.util.List;
+import javax.swing.Action;
+import org.openide.actions.OpenAction;
+import org.openide.cookies.OpenCookie;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.util.ImageUtilities;
+import org.openide.util.Lookup;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 
@@ -38,12 +45,16 @@ import org.openide.util.lookup.InstanceContent;
  *
  * @author Thomas Wuerthinger
  */
-public class FolderNode extends AbstractNode {
+public class FolderNode extends AbstractNode implements ChangedListener {
 
-    private InstanceContent content;
-    private FolderChildren children;
+    @Override
+    public void changed(Object folder) {
+        if (this.getChildren() == Children.LEAF) {
+            setChildren(createFolderChildren((Folder)folder));
+        }
+    }
 
-    private static class FolderChildren extends Children.Keys<FolderElement> implements ChangedListener {
+    private static class FolderChildren extends Children.Keys<Folder> implements ChangedListener {
 
         private final Folder folder;
 
@@ -53,25 +64,25 @@ public class FolderNode extends AbstractNode {
         }
 
         @Override
-        protected Node[] createNodes(FolderElement e) {
-             if (e instanceof InputGraph) {
-                return new Node[]{new GraphNode((InputGraph) e)};
-            } else if (e instanceof Folder) {
-                 return new Node[]{new FolderNode((Folder) e)};
-             } else {
-                return null;
-            }
+        protected Node[] createNodes(Folder e) {
+            return new Node[]{new FolderNode(e)};
         }
 
         @Override
         public void addNotify() {
-            this.setKeys(folder.getElements());
+            List<Folder> result = new ArrayList<>();
+            for (FolderElement o : folder.getElements()) {
+                if (o instanceof Folder) {
+                    result.add((Folder) o);
+                }
+            }
+            this.setKeys(result);
         }
-        
+
         @Override
         public void changed(Object source) {
             addNotify();
-         }
+        }
     }
 
     @Override
@@ -80,34 +91,54 @@ public class FolderNode extends AbstractNode {
     }
 
     protected FolderNode(Folder folder) {
-        this(folder, new FolderChildren(folder), new InstanceContent());
+        this(folder, createFolderChildren(folder), new InstanceContent());
     }
 
-    private FolderNode(final Folder folder, FolderChildren children, InstanceContent content) {
+    private static Children createFolderChildren(Folder folder) {
+        for (FolderElement elem : folder.getElements()) {
+            if (elem instanceof Folder) {
+                return new FolderChildren(folder);
+            }
+        }
+        return Children.LEAF;
+    }
+
+    private FolderNode(final Folder folder, Children children, InstanceContent content) {
         super(children, new AbstractLookup(content));
-        this.content = content;
-        this.children = children;
         if (folder instanceof FolderElement) {
             final FolderElement folderElement = (FolderElement) folder;
             this.setDisplayName(folderElement.getName());
             content.add(new RemoveCookie() {
+
                 @Override
                 public void remove() {
                     folderElement.getParent().removeElement(folderElement);
                 }
             });
         }
-    }
-
-    public void init(String name, List<Group> groups) {
-        this.setDisplayName(name);
-        children.addNotify();
-
-        for (Group g : groups) {
-            content.add(g);
+        
+        if (folder instanceof Group) {
+            content.add(new OpenCookie() {
+                @Override
+                public void open() {
+                    Lookup.getDefault().lookup(GraphViewer.class).view(((Group) folder).getGraphs().get(0));
+                }
+            });
         }
+        folder.getChangedEvent().addListener(this);
     }
 
+
+    @Override
+    public Action[] getActions(boolean b) {
+        return new Action[]{(Action) OpenAction.findObject(OpenAction.class, true)};
+    }
+
+    @Override
+    public Action getPreferredAction() {
+        return (Action) OpenAction.findObject(OpenAction.class, true);
+    }
+    
     @Override
     public Image getOpenedIcon(int i) {
         return getIcon(i);

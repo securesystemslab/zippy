@@ -38,34 +38,21 @@ import javax.swing.JComponent;
  */
 public class RangeSlider extends JComponent implements ChangedListener<RangeSliderModel>, MouseListener, MouseMotionListener {
 
-    public static final int HEIGHT = 40;
-    public static final int BAR_HEIGHT = 22;
-    public static final int BAR_SELECTION_ENDING_HEIGHT = 16;
-    public static final int BAR_SELECTION_HEIGHT = 10;
     public static final int BAR_THICKNESS = 2;
     public static final int BAR_CIRCLE_SIZE = 9;
     public static final int MOUSE_ENDING_OFFSET = 3;
     public static final Color BACKGROUND_COLOR = Color.white;
     public static final Color BAR_COLOR = Color.black;
     public static final Color BAR_SELECTION_COLOR = new Color(255, 0, 0, 120);
-    public static final Color BAR_SELECTION_COLOR_ROLLOVER = new Color(255, 0, 255, 120);
-    public static final Color BAR_SELECTION_COLOR_DRAG = new Color(0, 0, 255, 120);
+    public static final Color TEXT_SELECTION_COLOR = new Color(200, 200, 200, 255);
+    public static final int ITEM_HEIGHT = 30;
+    public static final int ITEM_WIDTH = 30;
     private RangeSliderModel model;
-    private State state;
     private Point startPoint;
     private RangeSliderModel tempModel;
-    private boolean isOverBar;
-
-    private enum State {
-
-        Initial,
-        DragBar,
-        DragFirstPosition,
-        DragSecondPosition
-    }
+    private Point lastMouseMove;
 
     public RangeSlider() {
-        state = State.Initial;
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
     }
@@ -93,7 +80,21 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
     @Override
     public Dimension getPreferredSize() {
         Dimension d = super.getPreferredSize();
-        d.height = HEIGHT;
+        Graphics g = this.getGraphics();
+
+        int maxWidth = 0;
+        List<String> list = getPaintingModel().getPositions();
+        for (int i = 0; i < list.size(); i++) {
+
+            String curS = list.get(i);
+            if (curS != null && curS.length() > 0) {
+                FontMetrics metrics = g.getFontMetrics();
+                Rectangle bounds = metrics.getStringBounds(curS, g).getBounds();
+                maxWidth = Math.max(maxWidth, (int) bounds.getWidth());
+            }
+        }
+        d.width = maxWidth + ITEM_WIDTH;
+        d.height = ITEM_HEIGHT * list.size();
         return d;
     }
 
@@ -106,23 +107,13 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         this.repaint();
     }
 
-    private int getXPosition(int index) {
-        assert index >= 0 && index < getPaintingModel().getPositions().size();
-        return getXOffset() * (index + 1);
-    }
-
-    private int getXOffset() {
-        int size = getPaintingModel().getPositions().size();
-        int width = getWidth();
-        return (width / (size + 1));
-    }
-
-    private int getEndXPosition(int index) {
-        return getXPosition(index) + getXOffset() / 2;
-    }
-
-    private int getStartXPosition(int index) {
-        return getXPosition(index) - getXOffset() / 2;
+    private Rectangle getItemBounds(int index) {
+        Rectangle r = new Rectangle();
+        r.width = ITEM_WIDTH;
+        r.height = ITEM_HEIGHT;
+        r.x = 0;
+        r.y = ITEM_HEIGHT * index;
+        return r;
     }
 
     @Override
@@ -138,214 +129,113 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         g2.fillRect(0, 0, width, height);
 
         // Nothing to paint?
-        if (getPaintingModel() == null || getPaintingModel().getPositions().size() == 0) {
+        if (getPaintingModel() == null || getPaintingModel().getPositions().isEmpty()) {
             return;
         }
 
-        int firstPos = getPaintingModel().getFirstPosition();
-        int secondPos = getPaintingModel().getSecondPosition();
-
-        paintSelected(g2, firstPos, secondPos);
+        paintSelected(g2);
         paintBar(g2);
 
     }
 
-    private int getBarStartY() {
-        return getHeight() - BAR_HEIGHT;
+    private void fillRect(Graphics2D g, int startX, int startY, int endY, int thickness) {
+        g.fillRect(startX - thickness / 2, startY, thickness, endY - startY);
     }
 
     private void paintBar(Graphics2D g) {
         List<String> list = getPaintingModel().getPositions();
-        int barStartY = getBarStartY();
 
         g.setColor(BAR_COLOR);
-        g.fillRect(getXPosition(0), barStartY + BAR_HEIGHT / 2 - BAR_THICKNESS / 2, getXPosition(list.size() - 1) - getXPosition(0), BAR_THICKNESS);
+        Rectangle firstItemBounds = getItemBounds(0);
+        Rectangle lastItemBounds = getItemBounds(list.size() - 1);
+        fillRect(g, (int) firstItemBounds.getCenterX(), (int) firstItemBounds.getCenterY(), (int) lastItemBounds.getCenterY(), BAR_THICKNESS);
 
-        int circleCenterY = barStartY + BAR_HEIGHT / 2;
         for (int i = 0; i < list.size(); i++) {
-            int curX = getXPosition(i);
+            Rectangle curItemBounds = getItemBounds(i);
             g.setColor(getPaintingModel().getColors().get(i));
-            g.fillOval(curX - BAR_CIRCLE_SIZE / 2, circleCenterY - BAR_CIRCLE_SIZE / 2, BAR_CIRCLE_SIZE, BAR_CIRCLE_SIZE);
+            g.fillOval((int) curItemBounds.getCenterX() - BAR_CIRCLE_SIZE / 2, (int) curItemBounds.getCenterY() - BAR_CIRCLE_SIZE / 2, BAR_CIRCLE_SIZE, BAR_CIRCLE_SIZE);
             g.setColor(Color.black);
-            g.drawOval(curX - BAR_CIRCLE_SIZE / 2, circleCenterY - BAR_CIRCLE_SIZE / 2, BAR_CIRCLE_SIZE, BAR_CIRCLE_SIZE);
-
+            g.drawOval((int) curItemBounds.getCenterX() - BAR_CIRCLE_SIZE / 2, (int) curItemBounds.getCenterY() - BAR_CIRCLE_SIZE / 2, BAR_CIRCLE_SIZE, BAR_CIRCLE_SIZE);
 
             String curS = list.get(i);
             if (curS != null && curS.length() > 0) {
-                int startX = getStartXPosition(i);
-                int endX = getEndXPosition(i);
                 FontMetrics metrics = g.getFontMetrics();
                 Rectangle bounds = metrics.getStringBounds(curS, g).getBounds();
-                if (bounds.width < endX - startX && bounds.height < barStartY) {
-                    g.setColor(Color.black);
-                    g.drawString(curS, startX + (endX - startX) / 2 - bounds.width / 2, barStartY / 2 + bounds.height / 2);
-                }
+                g.setColor(Color.black);
+                g.drawString(curS, curItemBounds.x + curItemBounds.width, (int) curItemBounds.getCenterY() + bounds.height / 2 - 2);
             }
         }
 
     }
 
-    private void paintSelected(Graphics2D g, int start, int end) {
-
-        int startX = getStartXPosition(start);
-        int endX = getEndXPosition(end);
-        int barStartY = getBarStartY();
-        int barSelectionEndingStartY = barStartY + BAR_HEIGHT / 2 - BAR_SELECTION_ENDING_HEIGHT / 2;
-        paintSelectedEnding(g, startX, barSelectionEndingStartY);
-        paintSelectedEnding(g, endX, barSelectionEndingStartY);
+    private void paintSelected(Graphics2D g) {
+        List<String> list = getPaintingModel().getPositions();
+        for (int i = 0; i < list.size(); i++) {
+            Rectangle curItemBounds = getItemBounds(i);
+            if (lastMouseMove != null && curItemBounds.y <= lastMouseMove.y && curItemBounds.y + curItemBounds.height >= lastMouseMove.y) {
+                g.setColor(TEXT_SELECTION_COLOR);
+                g.fillRect(0, curItemBounds.y, getWidth(), curItemBounds.height);
+            }
+        }
+        final Rectangle barBounds = getBarBounds();
 
         g.setColor(BAR_SELECTION_COLOR);
-        if (state == State.DragBar) {
-            g.setColor(BAR_SELECTION_COLOR_DRAG);
-        } else if (isOverBar) {
-            g.setColor(BAR_SELECTION_COLOR_ROLLOVER);
-        }
-        g.fillRect(startX, barStartY + BAR_HEIGHT / 2 - BAR_SELECTION_HEIGHT / 2, endX - startX, BAR_SELECTION_HEIGHT);
+        g.fill(barBounds);
     }
 
-    private void paintSelectedEnding(Graphics g, int x, int y) {
-        g.setColor(BAR_COLOR);
-        g.fillRect(x - BAR_THICKNESS / 2, y, BAR_THICKNESS, BAR_SELECTION_ENDING_HEIGHT);
-    }
-
-    private boolean isOverSecondPosition(Point p) {
-        if (p.y >= getBarStartY()) {
-            int destX = getEndXPosition(getPaintingModel().getSecondPosition());
-            int off = Math.abs(destX - p.x);
-            return off <= MOUSE_ENDING_OFFSET;
-        }
-        return false;
-    }
-
-    private boolean isOverFirstPosition(Point p) {
-        if (p.y >= getBarStartY()) {
-            int destX = getStartXPosition(getPaintingModel().getFirstPosition());
-            int off = Math.abs(destX - p.x);
-            return off <= MOUSE_ENDING_OFFSET;
-        }
-        return false;
-    }
-
-    private boolean isOverSelection(Point p) {
-        if (p.y >= getBarStartY() && !isOverFirstPosition(p) && !isOverSecondPosition(p)) {
-            return p.x > getStartXPosition(getPaintingModel().getFirstPosition()) && p.x < getEndXPosition(getPaintingModel().getSecondPosition());
-        }
-        return false;
+    private Rectangle getBarBounds() {
+        final Rectangle startItemBounds = getItemBounds(getPaintingModel().getFirstPosition());
+        final Rectangle endItemBounds = getItemBounds(getPaintingModel().getSecondPosition());
+        int startY = startItemBounds.y;
+        int endY = endItemBounds.y + endItemBounds.height;
+        return new Rectangle(0, startY, getWidth(), endY - startY);
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if (state == State.DragBar) {
-            int firstX = this.getStartXPosition(model.getFirstPosition());
-            int newFirstX = firstX + e.getPoint().x - startPoint.x;
-            int newIndex = getIndexFromPosition(newFirstX) + 1;
-            if (newIndex + model.getSecondPosition() - model.getFirstPosition() >= model.getPositions().size()) {
-                newIndex = model.getPositions().size() - (model.getSecondPosition() - model.getFirstPosition()) - 1;
-            }
-            int secondPosition = newIndex + model.getSecondPosition() - model.getFirstPosition();
-            tempModel.setPositions(newIndex, secondPosition);
-            update();
-        } else if (state == State.DragFirstPosition) {
-            int firstPosition = getIndexFromPosition(e.getPoint().x) + 1;
-            int secondPosition = model.getSecondPosition();
-            if (firstPosition > secondPosition) {
-                firstPosition--;
-            }
-            tempModel.setPositions(firstPosition, secondPosition);
-            update();
-        } else if (state == State.DragSecondPosition) {
-            int firstPosition = model.getFirstPosition();
-            int secondPosition = getIndexFromPosition(e.getPoint().x);
-            if (secondPosition < firstPosition) {
-                secondPosition++;
-            }
-            tempModel.setPositions(firstPosition, secondPosition);
-            update();
+        if (startPoint != null) {
+            int startIndex = getIndexFromPosition(startPoint.y);
+            int curIndex = getIndexFromPosition(e.getPoint().y);
+            tempModel.setPositions(startIndex, curIndex);
         }
     }
 
-    private int getIndexFromPosition(int x) {
-        if (x < getXPosition(0)) {
-            return -1;
-        }
+    private int getIndexFromPosition(int y) {
         for (int i = 0; i < getPaintingModel().getPositions().size() - 1; i++) {
-            int startX = getXPosition(i);
-            int endX = getXPosition(i + 1);
-            if (x >= startX && x <= endX) {
+            Rectangle bounds = getItemBounds(i);
+            if (bounds.y <= y && bounds.y + bounds.height >= y) {
                 return i;
             }
         }
         return getPaintingModel().getPositions().size() - 1;
     }
 
-    private int getCircleIndexFromPosition(int x) {
-        int result = 0;
-        for (int i = 1; i < getPaintingModel().getPositions().size() - 1; i++) {
-            if (x > getStartXPosition(i)) {
-                result = i;
-            }
-        }
-        return result;
-    }
-
     @Override
     public void mouseMoved(MouseEvent e) {
-        isOverBar = false;
-        if (model == null) {
-            return;
-        }
-
-
-        Point p = e.getPoint();
-        if (isOverFirstPosition(p) || isOverSecondPosition(p)) {
-            setCursor(Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR));
-        } else if (isOverSelection(p)) {
-            isOverBar = true;
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        } else {
-            this.setCursor(Cursor.getDefaultCursor());
-        }
-        repaint();
+        lastMouseMove = e.getPoint();
+        update();
     }
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (e.getClickCount() > 1) {
-            // Double click
-            int index = getCircleIndexFromPosition(e.getPoint().x);
-            model.setPositions(index, index);
-        }
+        int index = getIndexFromPosition(e.getPoint().y);
+        model.setPositions(index, index);
     }
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if (model == null) {
-            return;
-        }
-
-        Point p = e.getPoint();
-        if (isOverFirstPosition(p)) {
-            state = State.DragFirstPosition;
-        } else if (isOverSecondPosition(p)) {
-            state = State.DragSecondPosition;
-        } else if (isOverSelection(p)) {
-            state = State.DragBar;
-        } else {
-            return;
-        }
-
+        int index = getIndexFromPosition(e.getPoint().y);
         startPoint = e.getPoint();
         tempModel = model.copy();
+        tempModel.getChangedEvent().addListener(this);
+        tempModel.setPositions(index, index);
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        if (model == null || tempModel == null) {
-            return;
-        }
-        state = State.Initial;
         model.setPositions(tempModel.getFirstPosition(), tempModel.getSecondPosition());
         tempModel = null;
+        startPoint = null;
     }
 
     @Override
@@ -354,7 +244,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
 
     @Override
     public void mouseExited(MouseEvent e) {
-        isOverBar = false;
+        lastMouseMove = null;
         repaint();
     }
 }

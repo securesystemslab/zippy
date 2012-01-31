@@ -187,15 +187,12 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         Toolbar toolBar = new Toolbar();
         Border b = (Border) UIManager.get("Nb.Editor.Toolbar.border"); //NOI18N
         toolBar.setBorder(b);
-        JPanel container = new JPanel();
-        this.add(container, BorderLayout.NORTH);
-        container.setLayout(new BorderLayout());
-        container.add(BorderLayout.NORTH, toolBar);
+        this.add(BorderLayout.NORTH, toolBar);
 
         rangeSliderModel = new DiagramViewModel(diagram.getGraph().getGroup(), filterChain, sequence);
         rangeSlider = new RangeSlider();
         rangeSlider.setModel(rangeSliderModel);
-        container.add(BorderLayout.CENTER, rangeSlider);
+       // this.add(BorderLayout.WEST, rangeSlider);
 
         scene = new DiagramScene(actions, rangeSliderModel);
         content = new InstanceContent();
@@ -258,7 +255,13 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.add(quicksearch);
 
         centerPanel = new JPanel();
-        this.add(centerPanel, BorderLayout.CENTER);
+        
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+                           new JScrollPane(rangeSlider), centerPanel);
+        splitPane.setOneTouchExpandable(true);
+        splitPane.setDividerLocation(250);
+        this.add(splitPane, BorderLayout.CENTER);
+        
         cardLayout = new CardLayout();
         centerPanel.setLayout(cardLayout);
         centerPanel.add(SCENE_STRING, scene.getComponent());
