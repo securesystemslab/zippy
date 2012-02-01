@@ -21,7 +21,7 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.view;
+package com.oracle.graal.visualizer.editor;
 
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;

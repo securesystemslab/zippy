@@ -24,7 +24,7 @@
 package com.sun.hotspot.igv.view.actions;
 
 import com.sun.hotspot.igv.settings.Settings;
-import com.sun.hotspot.igv.view.ExportCookie;
+import com.oracle.graal.visualizer.editor.ExportCookie;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;

@@ -23,12 +23,15 @@
  */
 package com.sun.hotspot.igv.view.actions;
 
-import com.sun.hotspot.igv.view.EditorTopComponent;
+import com.oracle.graal.visualizer.editor.EditorTopComponent;
 import com.sun.hotspot.igv.view.scene.GraphCompilationViewer;
 import java.awt.Event;
 import java.awt.event.KeyEvent;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 import org.openide.util.HelpCtx;
 import org.openide.util.actions.CallableSystemAction;
 

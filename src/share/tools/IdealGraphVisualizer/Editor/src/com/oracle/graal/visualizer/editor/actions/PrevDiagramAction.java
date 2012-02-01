@@ -21,19 +21,25 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.view.actions;
+package com.oracle.graal.visualizer.editor.actions;
 
 import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.util.ContextAction;
-import com.sun.hotspot.igv.view.DiagramViewModel;
+import com.oracle.graal.visualizer.editor.DiagramViewModel;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 import org.openide.util.*;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
+@ActionID(id = "com.oracle.graal.visualizer.editor.actions.PrevDiagramAction", category = "View")
+@ActionRegistration(displayName = "Previous snapshot")
+@ActionReference(path = "Menu/View", position = 100)
 public final class PrevDiagramAction extends ContextAction<DiagramViewModel> implements ChangedListener<DiagramViewModel> {
 
     private DiagramViewModel model;
@@ -49,7 +55,7 @@ public final class PrevDiagramAction extends ContextAction<DiagramViewModel> imp
 
     @Override
     public String getName() {
-        return NbBundle.getMessage(PrevDiagramAction.class, "CTL_PrevDiagramAction");
+        return "Previous snapshot";
     }
 
     @Override

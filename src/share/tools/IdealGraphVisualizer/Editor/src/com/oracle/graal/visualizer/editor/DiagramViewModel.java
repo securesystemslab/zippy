@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.sun.hotspot.igv.view;
+package com.oracle.graal.visualizer.editor;
 
 import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.difference.Difference;

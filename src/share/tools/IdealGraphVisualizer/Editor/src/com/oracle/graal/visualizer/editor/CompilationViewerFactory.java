@@ -21,7 +21,7 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.view;
+package com.oracle.graal.visualizer.editor;
 
 public interface CompilationViewerFactory {
     CompilationViewer createViewer(DiagramViewModel model);

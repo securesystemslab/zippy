@@ -22,32 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.sun.hotspot.igv.view;
+package com.oracle.graal.visualizer.editor;
 
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.data.services.InputGraphProvider;
-import java.util.Set;
+import java.io.File;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class EditorInputGraphProvider implements InputGraphProvider {
+public interface ExportCookie {
 
-    private EditorTopComponent editor;
-    
-    public EditorInputGraphProvider(EditorTopComponent editor) {
-        this.editor = editor;
-    }
-    
-    @Override
-    public InputGraph getGraph() {
-        return editor.getDiagramModel().getGraphToView();
-    }
-
-    @Override
-    public void setSelectedNodes(Set<InputNode> nodes) {
-        editor.setSelectedNodes(nodes);
-    }
+    void export(File f);
 }

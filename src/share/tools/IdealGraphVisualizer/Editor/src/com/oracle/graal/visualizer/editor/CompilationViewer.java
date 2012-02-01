@@ -22,7 +22,7 @@
  *
  */
 
-package com.sun.hotspot.igv.view;
+package com.oracle.graal.visualizer.editor;
 
 import com.sun.hotspot.igv.graph.Figure;
 import java.awt.Component;

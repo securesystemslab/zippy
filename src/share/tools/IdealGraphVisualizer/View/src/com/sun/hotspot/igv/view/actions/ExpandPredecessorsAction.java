@@ -23,7 +23,7 @@
  */
 package com.sun.hotspot.igv.view.actions;
 
-import com.sun.hotspot.igv.view.EditorTopComponent;
+import com.oracle.graal.visualizer.editor.EditorTopComponent;
 import org.openide.util.HelpCtx;
 import org.openide.util.actions.CallableSystemAction;
 

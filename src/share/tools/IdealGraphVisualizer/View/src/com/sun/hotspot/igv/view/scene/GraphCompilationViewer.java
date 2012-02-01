@@ -26,9 +26,9 @@ package com.sun.hotspot.igv.view.scene;
 
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.svg.BatikSVG;
-import com.sun.hotspot.igv.view.CompilationViewer;
-import com.sun.hotspot.igv.view.DiagramViewModel;
-import com.sun.hotspot.igv.view.ExportCookie;
+import com.oracle.graal.visualizer.editor.CompilationViewer;
+import com.oracle.graal.visualizer.editor.DiagramViewModel;
+import com.oracle.graal.visualizer.editor.ExportCookie;
 import com.sun.hotspot.igv.view.actions.*;
 import java.awt.Component;
 import java.awt.Graphics2D;

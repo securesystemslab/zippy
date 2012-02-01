@@ -23,11 +23,14 @@
  */
 package com.sun.hotspot.igv.view.actions;
 
-import com.sun.hotspot.igv.view.EditorTopComponent;
+import com.oracle.graal.visualizer.editor.EditorTopComponent;
 import java.awt.Event;
 import java.awt.event.KeyEvent;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 import org.openide.util.HelpCtx;
 import org.openide.util.actions.CallableSystemAction;
 
@@ -35,6 +38,9 @@ import org.openide.util.actions.CallableSystemAction;
  *
  * @author Thomas Wuerthinger
  */
+@ActionID(id = "com.sun.hotspot.igv.view.actions.HideAction", category = "View")
+@ActionRegistration(displayName = "Hide nodes")
+@ActionReference(path = "Menu/View", position = 400)
 public final class HideAction extends CallableSystemAction {
 
     @Override

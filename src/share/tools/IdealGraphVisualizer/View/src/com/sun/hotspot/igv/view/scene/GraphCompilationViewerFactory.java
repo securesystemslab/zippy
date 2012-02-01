@@ -24,9 +24,9 @@
 
 package com.sun.hotspot.igv.view.scene;
 
-import com.sun.hotspot.igv.view.CompilationViewer;
-import com.sun.hotspot.igv.view.CompilationViewerFactory;
-import com.sun.hotspot.igv.view.DiagramViewModel;
+import com.oracle.graal.visualizer.editor.CompilationViewer;
+import com.oracle.graal.visualizer.editor.CompilationViewerFactory;
+import com.oracle.graal.visualizer.editor.DiagramViewModel;
 
 public class GraphCompilationViewerFactory implements CompilationViewerFactory{
 

@@ -23,11 +23,14 @@
  */
 package com.sun.hotspot.igv.view.actions;
 
-import com.sun.hotspot.igv.view.EditorTopComponent;
+import com.oracle.graal.visualizer.editor.EditorTopComponent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 import org.openide.util.HelpCtx;
 import org.openide.util.actions.CallableSystemAction;
 
@@ -35,6 +38,9 @@ import org.openide.util.actions.CallableSystemAction;
  *
  * @author Thomas Wuerthinger
  */
+@ActionID(id = "com.sun.hotspot.igv.view.actions.ShowAllAction", category = "View")
+@ActionRegistration(displayName = "Show all nodes")
+@ActionReference(path = "Menu/View", position = 200)
 public final class ShowAllAction extends CallableSystemAction {
 
     @Override
