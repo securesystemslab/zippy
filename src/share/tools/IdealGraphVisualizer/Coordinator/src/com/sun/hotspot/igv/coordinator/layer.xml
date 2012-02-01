@@ -43,11 +43,11 @@
             </file>
             <file name="com-sun-hotspot-igv-coordinator-actions-RemoveAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/Edit/com-sun-hotspot-igv-coordinator-actions-RemoveAction.instance"/>
-                <attr name="position" intvalue="400" />
+                <attr name="position" intvalue="400"/>
             </file>
             <file name="com-sun-hotspot-igv-coordinator-actions-RemoveAllAction.shadow">
                 <attr name="originalFile" stringvalue="Actions/Edit/com-sun-hotspot-igv-coordinator-actions-RemoveAllAction.instance"/>
-                <attr name="position" intvalue="500" />
+                <attr name="position" intvalue="500"/>
             </file>
             
             <!-- Hidden menu entries from other modules -->
@@ -184,6 +184,16 @@
         </folder>
     </folder>
     
+    <folder name="Toolbars">
+        <file name="Build_hidden"/>
+        <file name="Clipboard_hidden"/>
+        <file name="Debug_hidden"/>
+        <file name="Debugging.xml_hidden"/>
+        <file name="File_hidden"/>
+        <file name="Memory_hidden"/>
+        <file name="Standard.xml_hidden"/>
+        <file name="UndoRedo_hidden"/>
+    </folder>
     <folder name="Windows2">
         <folder name="Components">
             <file name="OutlineTopComponent.settings" url="OutlineTopComponentSettings.xml"/>
@@ -194,5 +204,11 @@
                 <file name="OutlineTopComponent.wstcref" url="OutlineTopComponentWstcref.xml"/>
             </folder>
         </folder>
+    </folder>
+    
+    <folder name="Shortcuts">
+        <file name="Delete.shadow">
+            <attr name="originalFile" stringvalue="Actions/Edit/com-sun-hotspot-igv-coordinator-actions-RemoveAction.instance"/>
+        </file>
     </folder>
 </filesystem>

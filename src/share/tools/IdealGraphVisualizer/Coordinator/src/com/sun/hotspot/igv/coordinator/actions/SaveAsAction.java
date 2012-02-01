@@ -24,11 +24,15 @@
 
 package com.sun.hotspot.igv.coordinator.actions;
 
+import com.sun.hotspot.igv.data.Folder;
+import com.sun.hotspot.igv.data.FolderElement;
 import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.serialization.Printer;
 import com.sun.hotspot.igv.settings.Settings;
 import java.io.*;
+import java.util.HashSet;
+import java.util.Set;
 import javax.swing.Action;
 import javax.swing.JFileChooser;
 import org.openide.nodes.Node;
@@ -51,9 +55,25 @@ public final class SaveAsAction extends NodeAction {
     protected void performAction(Node[] activatedNodes) {
 
         GraphDocument doc = new GraphDocument();
+        Set<FolderElement> elements = new HashSet<>();
         for (Node n : activatedNodes) {
-            Group group = n.getLookup().lookup(Group.class);
-            doc.addElement(group);
+            FolderElement element = n.getLookup().lookup(FolderElement.class);
+            elements.add(element);
+        }
+        
+        outer: for (FolderElement element : elements) {
+            Folder cur = element.getParent();
+            while (cur instanceof FolderElement) {
+                FolderElement curElement = (FolderElement) cur;
+                if (elements.contains(curElement)) {
+                    continue outer;
+                }
+                cur = curElement.getParent();
+            }
+            
+            Folder previousParent = element.getParent();
+            doc.addElement(element);
+            element.setParent(previousParent);
         }
 
         save(doc);

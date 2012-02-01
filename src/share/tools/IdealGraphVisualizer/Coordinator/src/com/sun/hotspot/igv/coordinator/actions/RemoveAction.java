@@ -24,6 +24,7 @@
 
 package com.sun.hotspot.igv.coordinator.actions;
 
+import com.sun.hotspot.igv.data.FolderElement;
 import javax.swing.Action;
 import org.openide.nodes.Node;
 import org.openide.util.HelpCtx;
@@ -39,15 +40,13 @@ public final class RemoveAction extends NodeAction {
     @Override
     protected void performAction(Node[] activatedNodes) {
         for (Node n : activatedNodes) {
-            RemoveCookie removeCookie = n.getCookie(RemoveCookie.class);
-            if (removeCookie != null) {
-                removeCookie.remove();
-            }
+            FolderElement element = n.getLookup().lookup(FolderElement.class);
+            element.getParent().removeElement(element);
         }
     }
 
     public RemoveAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Remove selected graphs and groups");
+        putValue(Action.SHORT_DESCRIPTION, getName());
     }
 
     @Override

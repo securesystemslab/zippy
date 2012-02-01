@@ -46,7 +46,7 @@ public final class RemoveAllAction extends CallableSystemAction {
     }
 
     public RemoveAllAction() {
-        putValue(Action.SHORT_DESCRIPTION, "Remove all graphs and groups");
+        putValue(Action.SHORT_DESCRIPTION, getName());
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_SHIFT, InputEvent.CTRL_MASK));
     }
 

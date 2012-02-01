@@ -172,7 +172,7 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         List<String> list = getPaintingModel().getPositions();
         for (int i = 0; i < list.size(); i++) {
             Rectangle curItemBounds = getItemBounds(i);
-            if (lastMouseMove != null && curItemBounds.y <= lastMouseMove.y && curItemBounds.y + curItemBounds.height >= lastMouseMove.y) {
+            if (lastMouseMove != null && curItemBounds.y <= lastMouseMove.y && curItemBounds.y + curItemBounds.height > lastMouseMove.y) {
                 g.setColor(TEXT_SELECTION_COLOR);
                 g.fillRect(0, curItemBounds.y, getWidth(), curItemBounds.height);
             }

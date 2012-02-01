@@ -23,14 +23,15 @@
  */
 package com.sun.hotspot.igv.coordinator;
 
-import com.sun.hotspot.igv.coordinator.actions.DiffGraphAction;
-import com.sun.hotspot.igv.coordinator.actions.RemoveCookie;
+import com.sun.hotspot.igv.coordinator.actions.RemoveAction;
+import com.sun.hotspot.igv.coordinator.actions.SaveAsAction;
 import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.GraphViewer;
 import java.awt.Image;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.Action;
+import javax.swing.JOptionPane;
 import org.openide.actions.OpenAction;
 import org.openide.cookies.OpenCookie;
 import org.openide.nodes.AbstractNode;
@@ -105,33 +106,29 @@ public class FolderNode extends AbstractNode implements ChangedListener {
 
     private FolderNode(final Folder folder, Children children, InstanceContent content) {
         super(children, new AbstractLookup(content));
-        if (folder instanceof FolderElement) {
-            final FolderElement folderElement = (FolderElement) folder;
-            this.setDisplayName(folderElement.getName());
-            content.add(new RemoveCookie() {
-
-                @Override
-                public void remove() {
-                    folderElement.getParent().removeElement(folderElement);
-                }
-            });
-        }
+        this.setDisplayName(folder.getName());
         
         if (folder instanceof Group) {
             content.add(new OpenCookie() {
                 @Override
                 public void open() {
-                    Lookup.getDefault().lookup(GraphViewer.class).view(((Group) folder).getGraphs().get(0));
+                    final List<InputGraph> graphs = ((Group) folder).getGraphs();
+                    if (graphs.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "Cannot open compilation, because there was no snapshots recorded!");
+                    } else {
+                        Lookup.getDefault().lookup(GraphViewer.class).view(graphs.get(0));
+                    }
                 }
             });
         }
+        content.add(folder);
         folder.getChangedEvent().addListener(this);
     }
 
 
     @Override
     public Action[] getActions(boolean b) {
-        return new Action[]{(Action) OpenAction.findObject(OpenAction.class, true)};
+        return new Action[]{(Action) OpenAction.findObject(OpenAction.class, true), RemoveAction.findObject(RemoveAction.class), SaveAsAction.findObject(SaveAsAction.class)};
     }
 
     @Override
