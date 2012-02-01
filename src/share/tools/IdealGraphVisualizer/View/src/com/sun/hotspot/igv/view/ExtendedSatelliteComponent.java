@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.view;
 
+import com.sun.hotspot.igv.view.scene.DiagramScene;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.JComponent;

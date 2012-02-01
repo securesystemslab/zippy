@@ -21,21 +21,35 @@
  * questions.
  *
  */
+
 package com.sun.hotspot.igv.view;
 
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.services.GraphViewer;
+import com.sun.hotspot.igv.graph.Figure;
+import java.awt.Component;
+import java.awt.Graphics2D;
+import java.util.Collection;
+import org.openide.awt.UndoRedo;
+import org.openide.util.Lookup;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class GraphViewerImplementation implements GraphViewer {
+public interface CompilationViewer {
 
-    @Override
-    public void view(InputGraph graph) {
-        EditorTopComponent tc = new EditorTopComponent(graph);
-        tc.open();
-        tc.requestActive();
-    }
+    public Lookup getLookup();
+
+    public Component getComponent();
+    
+    public Component getToolBarComponent();
+
+    public UndoRedo getUndoRedo();
+
+    public void setSelection(Collection<Figure> list);
+
+    public void paint(Graphics2D svgGenerator);
+
+    public void zoomOut();
+
+    public void zoomIn();
 }

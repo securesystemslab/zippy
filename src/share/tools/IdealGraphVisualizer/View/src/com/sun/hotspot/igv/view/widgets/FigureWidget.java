@@ -28,7 +28,7 @@ import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.util.PropertiesSheet;
-import com.sun.hotspot.igv.view.DiagramScene;
+import com.sun.hotspot.igv.view.scene.DiagramScene;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;

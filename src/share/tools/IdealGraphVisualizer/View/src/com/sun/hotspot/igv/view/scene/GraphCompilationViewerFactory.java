@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,44 +22,22 @@
  *
  */
 
-package com.sun.hotspot.igv.view;
+package com.sun.hotspot.igv.view.scene;
 
-import com.sun.hotspot.igv.graph.Figure;
-import java.awt.Component;
-import java.awt.Graphics2D;
-import java.util.Collection;
-import java.util.List;
-import javax.swing.JComponent;
-import org.openide.awt.UndoRedo;
-import org.openide.util.Lookup;
+import com.sun.hotspot.igv.view.CompilationViewer;
+import com.sun.hotspot.igv.view.CompilationViewerFactory;
+import com.sun.hotspot.igv.view.DiagramViewModel;
 
-/**
- *
- * @author Thomas Wuerthinger
- */
-interface DiagramViewer {
+public class GraphCompilationViewerFactory implements CompilationViewerFactory{
 
-    public void paint(Graphics2D svgGenerator);
+    @Override
+    public CompilationViewer createViewer(DiagramViewModel model) {
+        return new GraphCompilationViewer(model);
+    }
 
-    public Lookup getLookup();
+    @Override
+    public String getName() {
+        return "Graph";
+    }
 
-    public JComponent createSatelliteView();
-
-    public Component getComponent();
-
-    public void zoomOut();
-
-    public void zoomIn();
-
-    public UndoRedo getUndoRedo();
-
-    public void componentHidden();
-
-    public void componentShowing();
-
-    public void initialize();
-    
-    public void setSelection(Collection<Figure> list);
-
-    public void centerFigures(List<Figure> list);
 }

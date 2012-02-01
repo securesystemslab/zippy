@@ -23,9 +23,8 @@
  */
 package com.sun.hotspot.igv.view;
 
-import com.sun.hotspot.igv.data.ChangedEvent;
-import com.sun.hotspot.igv.data.ChangedListener;
-import com.sun.hotspot.igv.data.InputNode;
+import com.sun.hotspot.igv.data.*;
+import com.sun.hotspot.igv.view.scene.DiagramScene;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Properties.PropertyMatcher;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
@@ -72,49 +71,15 @@ import org.openide.windows.WindowManager;
  * 
  * @author Thomas Wuerthinger
  */
-public final class EditorTopComponent extends TopComponent implements PropertyChangeListener {
+public final class EditorTopComponent extends TopComponent {
 
-    private DiagramViewer scene;
     private InstanceContent content;
     private InstanceContent graphContent;
-    private PredSuccAction predSuccAction;
     private RangeSlider rangeSlider;
     private static final String PREFERRED_ID = "EditorTopComponent";
     private DiagramViewModel rangeSliderModel;
-    private ExportCookie exportCookie = new ExportCookie() {
-
-        @Override
-        public void export(File f) {
-
-            Graphics2D svgGenerator = BatikSVG.createGraphicsObject();
-
-            if (svgGenerator == null) {
-                NotifyDescriptor message = new NotifyDescriptor.Message("For export to SVG files the Batik SVG Toolkit must be intalled.", NotifyDescriptor.ERROR_MESSAGE);
-                DialogDisplayer.getDefault().notifyLater(message);
-            } else {
-                scene.paint(svgGenerator);
-                FileOutputStream os = null;
-                try {
-                    os = new FileOutputStream(f);
-                    Writer out = new OutputStreamWriter(os, "UTF-8");
-                    BatikSVG.printToStream(svgGenerator, out, true);
-                } catch (FileNotFoundException e) {
-                    NotifyDescriptor message = new NotifyDescriptor.Message("For export to SVG files the Batik SVG Toolkit must be intalled.", NotifyDescriptor.ERROR_MESSAGE);
-                    DialogDisplayer.getDefault().notifyLater(message);
-
-                } catch (UnsupportedEncodingException e) {
-                } finally {
-                    if (os != null) {
-                        try {
-                            os.close();
-                        } catch (IOException e) {
-                        }
-                    }
-                }
-
-            }
-        }
-    };
+    private CompilationViewer viewer;
+    
 
     private DiagramProvider diagramProvider = new DiagramProvider() {
 
@@ -136,13 +101,13 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         setDisplayName(getDiagram().getName());
     }
 
-    public EditorTopComponent(Diagram diagram) {
+    public EditorTopComponent(InputGraph graph) {
 
         LookupHistory.init(InputGraphProvider.class);
         LookupHistory.init(DiagramProvider.class);
         this.setFocusable(true);
-        FilterChain filterChain = null;
-        FilterChain sequence = null;
+        FilterChain filterChain;
+        FilterChain sequence;
         FilterChainProvider provider = Lookup.getDefault().lookup(FilterChainProvider.class);
         if (provider == null) {
             filterChain = new FilterChain();
@@ -155,22 +120,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         setName(NbBundle.getMessage(EditorTopComponent.class, "CTL_EditorTopComponent"));
         setToolTipText(NbBundle.getMessage(EditorTopComponent.class, "HINT_EditorTopComponent"));
 
-        Action[] actions = new Action[]{
-            PrevDiagramAction.get(PrevDiagramAction.class),
-            NextDiagramAction.get(NextDiagramAction.class),
-            null,
-            ExtractAction.get(ExtractAction.class),
-            ShowAllAction.get(HideAction.class),
-            ShowAllAction.get(ShowAllAction.class),
-            null,
-            ZoomInAction.get(ZoomInAction.class),
-            ZoomOutAction.get(ZoomOutAction.class),
-            null,
-            ExpandPredecessorsAction.get(ExpandPredecessorsAction.class),
-            ExpandSuccessorsAction.get(ExpandSuccessorsAction.class)
-        };
-
-
         initComponents();
 
         ToolbarPool.getDefault().setPreferredIconSize(16);
@@ -179,36 +128,23 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.setBorder(b);
         this.add(BorderLayout.NORTH, toolBar);
 
-        rangeSliderModel = new DiagramViewModel(diagram.getGraph().getGroup(), filterChain, sequence);
+        rangeSliderModel = new DiagramViewModel(graph.getGroup(), filterChain, sequence);
         rangeSlider = new RangeSlider();
         rangeSlider.setModel(rangeSliderModel);
 
-        scene = new DiagramScene(actions, rangeSliderModel);
+        CompilationViewerFactory factory = Lookup.getDefault().lookup(CompilationViewerFactory.class);
+        viewer = factory.createViewer(rangeSliderModel);
         content = new InstanceContent();
         graphContent = new InstanceContent();
-        this.associateLookup(new ProxyLookup(new Lookup[]{scene.getLookup(), new AbstractLookup(graphContent), new AbstractLookup(content)}));
-        content.add(exportCookie);
+        this.associateLookup(new ProxyLookup(new Lookup[]{viewer.getLookup(), new AbstractLookup(graphContent), new AbstractLookup(content)}));
         content.add(rangeSliderModel);
         content.add(diagramProvider);
 
         rangeSliderModel.getDiagramChangedEvent().addListener(diagramChangedListener);
-        rangeSliderModel.selectGraph(diagram.getGraph());
+        rangeSliderModel.selectGraph(graph);
 
         toolBar.add(PrevDiagramAction.get(PrevDiagramAction.class));
         toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
-        toolBar.addSeparator();
-        toolBar.add(ExtractAction.get(ExtractAction.class));
-        toolBar.add(ShowAllAction.get(HideAction.class));
-        toolBar.add(ShowAllAction.get(ShowAllAction.class));
-        toolBar.addSeparator();
-        toolBar.add(ShowAllAction.get(ZoomInAction.class));
-        toolBar.add(ShowAllAction.get(ZoomOutAction.class));
-
-        predSuccAction = new PredSuccAction();
-        JToggleButton button = new JToggleButton(predSuccAction);
-        button.setSelected(true);
-        toolBar.add(button);
-        predSuccAction.addPropertyChangeListener(this);
 
         toolBar.addSeparator();
         toolBar.add(UndoAction.get(UndoAction.class));
@@ -216,14 +152,16 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
         toolBar.addSeparator();
 
-        toolBar.add(Box.createHorizontalGlue());
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
         Component quicksearch = ((Presenter.Toolbar) action).getToolbarPresenter();
         quicksearch.setMinimumSize(quicksearch.getPreferredSize()); // necessary for GTK LAF
         toolBar.add(quicksearch);
 
+        toolBar.add(Box.createHorizontalGlue());        
+        toolBar.add(viewer.getToolBarComponent());
+
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                           new JScrollPane(rangeSlider), scene.getComponent());
+                           new JScrollPane(rangeSlider), viewer.getComponent());
         splitPane.setOneTouchExpandable(true);
         splitPane.setDividerLocation(250);
         this.add(splitPane, BorderLayout.CENTER);
@@ -233,14 +171,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
 
     public DiagramViewModel getDiagramModel() {
         return rangeSliderModel;
-    }
-
-    public void zoomOut() {
-        scene.zoomOut();
-    }
-
-    public void zoomIn() {
-        scene.zoomIn();
     }
 
     public void showPrevDiagram() {
@@ -323,20 +253,8 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         
     };
 
-    public boolean showPredSucc() {
-        return (Boolean) predSuccAction.getValue(PredSuccAction.STATE);
-    }
-
-    public void setSelection(PropertyMatcher matcher) {
-
-        Properties.PropertySelector<Figure> selector = new Properties.PropertySelector<>(getModel().getDiagramToView().getFigures());
-        List<Figure> list = selector.selectMultiple(matcher);
-        setSelectedFigures(list);
-    }
-
     public void setSelectedFigures(List<Figure> list) {
-        scene.setSelection(list);
-        scene.centerFigures(list);
+        viewer.setSelection(list);
     }
 
     public void setSelectedNodes(Set<InputNode> nodes) {
@@ -357,16 +275,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         }
 
         setSelectedFigures(list);
-    }
-
-    @Override
-    public void propertyChange(PropertyChangeEvent evt) {
-        if (evt.getSource() == this.predSuccAction) {
-            boolean b = (Boolean) predSuccAction.getValue(PredSuccAction.STATE);
-            this.getModel().setShowNodeHull(b);
-        } else {
-            assert false : "Unknown event source";
-        }
     }
 
     public void extract() {
@@ -439,27 +347,14 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     }
 
     @Override
-    protected void componentHidden() {
-        super.componentHidden();
-        scene.componentHidden();
-
-    }
-
-    @Override
-    protected void componentShowing() {
-        super.componentShowing();
-        scene.componentShowing();
-    }
-
-    @Override
     public void requestActive() {
         super.requestActive();
-        scene.getComponent().requestFocus();
+        viewer.getComponent().requestFocus();
     }
 
     @Override
     public UndoRedo getUndoRedo() {
-        return scene.getUndoRedo();
+        return viewer.getUndoRedo();
     }
 
 }

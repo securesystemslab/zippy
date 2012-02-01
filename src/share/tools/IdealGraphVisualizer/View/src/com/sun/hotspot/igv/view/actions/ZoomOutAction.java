@@ -24,6 +24,7 @@
 package com.sun.hotspot.igv.view.actions;
 
 import com.sun.hotspot.igv.view.EditorTopComponent;
+import com.sun.hotspot.igv.view.scene.GraphCompilationViewer;
 import java.awt.Event;
 import java.awt.event.KeyEvent;
 import javax.swing.Action;
@@ -36,17 +37,15 @@ import org.openide.util.actions.CallableSystemAction;
  * @author Thomas Wuerthinger
  */
 public final class ZoomOutAction extends CallableSystemAction {
+    private final GraphCompilationViewer viewer;
 
     @Override
     public void performAction() {
-        EditorTopComponent editor = EditorTopComponent.getActive();
-        if (editor != null) {
-            editor.zoomOut();
-        }
+        viewer.zoomOut();
     }
 
-    public ZoomOutAction() {
-
+    public ZoomOutAction(GraphCompilationViewer viewer) {
+        this.viewer = viewer;
         putValue(Action.SHORT_DESCRIPTION, "Zoom out");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, Event.CTRL_MASK, false));
     }

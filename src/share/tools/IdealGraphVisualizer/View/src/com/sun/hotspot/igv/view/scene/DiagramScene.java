@@ -21,7 +21,7 @@
  * questions.
  *
  */
-package com.sun.hotspot.igv.view;
+package com.sun.hotspot.igv.view.scene;
 
 import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.data.ControllableChangedListener;
@@ -34,6 +34,8 @@ import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.ColorIcon;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.PropertiesSheet;
+import com.sun.hotspot.igv.view.CompilationViewer;
+import com.sun.hotspot.igv.view.DiagramViewModel;
 import com.sun.hotspot.igv.view.actions.CustomizablePanAction;
 import com.sun.hotspot.igv.view.widgets.*;
 import java.awt.*;
@@ -63,7 +65,7 @@ import org.openide.util.lookup.InstanceContent;
  *
  * @author Thomas Wuerthinger
  */
-public class DiagramScene extends ObjectScene implements DiagramViewer {
+public class DiagramScene extends ObjectScene {
 
     private CustomizablePanAction panAction;
     private WidgetAction hoverAction;
@@ -82,18 +84,14 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private DiagramViewModel modelCopy;
     private WidgetAction zoomAction;
     private boolean rebuilding;
-    
     /**
      * The alpha level of partially visible figures.
      */
     public static final float ALPHA = 0.4f;
-    
     /**
      * The offset of the graph to the border of the window showing it.
      */
     public static final int BORDER_SIZE = 20;
-    
-    
     public static final int UNDOREDO_LIMIT = 100;
     public static final int SCROLL_UNIT_INCREMENT = 80;
     public static final int SCROLL_BLOCK_INCREMENT = 400;
@@ -102,7 +100,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     public static final float ZOOM_INCREMENT = 1.5f;
     public static final int SLOT_OFFSET = 6;
     public static final int ANIMATION_LIMIT = 40;
-    
     private PopupMenuProvider popupMenuProvider = new PopupMenuProvider() {
 
         @Override
@@ -142,8 +139,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return false;
     }
 
-    @Override
-    public void zoomOut() {
+    void zoomOut() {
         double zoom = getZoomFactor();
         Point viewPosition = getScrollPane().getViewport().getViewPosition();
         double newZoom = zoom / DiagramScene.ZOOM_INCREMENT;
@@ -154,8 +150,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
     }
 
-    @Override
-    public void zoomIn() {
+    void zoomIn() {
 
         double zoom = getZoomFactor();
         Point viewPosition = getScrollPane().getViewport().getViewPosition();
@@ -167,9 +162,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
     }
 
-
-    @Override
-    public void centerFigures(List<Figure> list) {
+    private void centerFigures(Collection<Figure> list) {
 
         boolean b = getUndoRedoEnabled();
         setUndoRedoEnabled(false);
@@ -196,19 +189,22 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         @Override
         public void filteredChanged(SelectionCoordinator source) {
-            DiagramScene.this.setHighlightedObjects(getObjectsFromIdSet(source.getHighlightedObjects()));
-            DiagramScene.this.validate();
+            if (DiagramScene.this.isVisible()) {
+                DiagramScene.this.setHighlightedObjects(getObjectsFromIdSet(source.getHighlightedObjects()));
+                DiagramScene.this.validate();
+            }
         }
     };
     private ControllableChangedListener<SelectionCoordinator> selectedCoordinatorListener = new ControllableChangedListener<SelectionCoordinator>() {
 
         @Override
         public void filteredChanged(SelectionCoordinator source) {
-            DiagramScene.this.gotoSelection(source.getSelectedObjects());
-            DiagramScene.this.validate();
+            if (DiagramScene.this.isVisible()) {
+                DiagramScene.this.gotoSelection(source.getSelectedObjects());
+                DiagramScene.this.validate();
+            }
         }
     };
-
     private RectangularSelectProvider rectangularSelectProvider = new RectangularSelectProvider() {
 
         @Override
@@ -251,7 +247,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             setSelectedObjects(selectedObjects);
         }
     };
-
     private MouseWheelListener mouseWheelListener = new MouseWheelListener() {
 
         @Override
@@ -423,7 +418,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         this.getActions().addAction(zoomAction);
         this.getView().addMouseWheelListener(mouseWheelListener);
         this.getActions().addAction(ActionFactory.createPopupMenuAction(popupMenuProvider));
-        
+
         this.getActions().addAction(ActionFactory.createWheelPanAction());
 
         LayerWidget selectLayer = new LayerWidget(this);
@@ -435,6 +430,9 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         this.setNewModel(model);
         this.setUndoRedoEnabled(b);
         this.addObjectSceneListener(selectionChangedListener, ObjectSceneEventType.OBJECT_SELECTION_CHANGED, ObjectSceneEventType.OBJECT_HIGHLIGHTING_CHANGED, ObjectSceneEventType.OBJECT_HOVER_CHANGED);
+        
+        SelectionCoordinator.getInstance().getHighlightedChangedEvent().addListener(highlightedCoordinatorListener);
+        SelectionCoordinator.getInstance().getSelectedChangedEvent().addListener(selectedCoordinatorListener);
     }
 
     public DiagramViewModel getModel() {
@@ -445,11 +443,10 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return scrollPane;
     }
 
-    @Override
-    public Component getComponent() {
+    Component getComponent() {
         return scrollPane;
     }
-    
+
     public boolean isAllVisible() {
         return getModel().getHiddenNodes().isEmpty();
     }
@@ -493,7 +490,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     private void update() {
         mainLayer.removeChildren();
         blockLayer.removeChildren();
-        
+
         rebuilding = true;
 
         Collection<Object> objects = new ArrayList<>(this.getObjects());
@@ -528,11 +525,11 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
                 sw.getActions().addAction(selectAction);
             }
         }
-        
+
         rebuilding = false;
         this.smallUpdate(true);
     }
-    
+
     public boolean isRebuilding() {
         return rebuilding;
     }
@@ -758,17 +755,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return lookup;
     }
 
-    @Override
-    public void initialize() {
-        Figure f = getModel().getDiagramToView().getRootFigure();
-        if (f != null) {
-            setUndoRedoEnabled(false);
-            gotoFigure(f);
-            setUndoRedoEnabled(true);
-        }
-    }
-
-    public void gotoFigures(final List<Figure> figures) {
+    private void gotoFigures(final Collection<Figure> figures) {
         Rectangle overall = null;
         getModel().showFigures(figures);
         for (Figure f : figures) {
@@ -879,9 +866,9 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
     }
 
-    @Override
-    public void setSelection(Collection<Figure> list) {
+    void setSelection(Collection<Figure> list) {
         super.setSelectedObjects(new HashSet<>(list));
+        centerFigures(list);
     }
 
     private UndoRedo.Manager getUndoRedoManager() {
@@ -893,8 +880,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         return undoRedoManager;
     }
 
-    @Override
-    public UndoRedo getUndoRedo() {
+    UndoRedo getUndoRedo() {
         return getUndoRedoManager();
     }
 
@@ -921,18 +907,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
         }
 
         return false;
-    }
-
-    @Override
-    public void componentHidden() {
-        SelectionCoordinator.getInstance().getHighlightedChangedEvent().removeListener(highlightedCoordinatorListener);
-        SelectionCoordinator.getInstance().getSelectedChangedEvent().removeListener(selectedCoordinatorListener);
-    }
-
-    @Override
-    public void componentShowing() {
-        SelectionCoordinator.getInstance().getHighlightedChangedEvent().addListener(highlightedCoordinatorListener);
-        SelectionCoordinator.getInstance().getSelectedChangedEvent().addListener(selectedCoordinatorListener);
     }
 
     private void updateHiddenNodes(Set<Integer> newHiddenNodes, boolean doRelayout) {
@@ -1034,8 +1008,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
         FigureWidget fw = getWidget(f);
         if (fw != null) {
-            centerWidget(fw);
-            setSelection(Arrays.asList(f));
+            setSelection(new HashSet<>(Arrays.asList(f)));
         }
     }
 
@@ -1117,8 +1090,8 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     public boolean getUndoRedoEnabled() {
         return undoRedoEnabled;
     }
-
     private final ChangedListener<DiagramViewModel> fullChange = new ChangedListener<DiagramViewModel>() {
+
         @Override
         public void changed(DiagramViewModel source) {
             assert source == model : "Receive only changed event from current model!";
@@ -1126,8 +1099,8 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             update();
         }
     };
-
     private final ChangedListener<DiagramViewModel> hiddenNodesChange = new ChangedListener<DiagramViewModel>() {
+
         @Override
         public void changed(DiagramViewModel source) {
             assert source == model : "Receive only changed event from current model!";
@@ -1135,8 +1108,8 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             smallUpdate(true);
         }
     };
-
     private final ChangedListener<DiagramViewModel> selectionChange = new ChangedListener<DiagramViewModel>() {
+
         @Override
         public void changed(DiagramViewModel source) {
             assert source == model : "Receive only changed event from current model!";
@@ -1144,7 +1117,6 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             smallUpdate(false);
         }
     };
-
 
     private void addUndo() {
 
