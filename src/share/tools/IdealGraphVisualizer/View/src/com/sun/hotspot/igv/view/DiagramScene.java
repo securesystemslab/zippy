@@ -354,7 +354,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
             boolean b = highlightedCoordinatorListener.isEnabled();
             highlightedCoordinatorListener.setEnabled(false);
             SelectionCoordinator.getInstance().setHighlightedObjects(nodeHighlighting);
-            highlightedCoordinatorListener.setEnabled(true);
+            highlightedCoordinatorListener.setEnabled(b);
         }
 
         @Override
@@ -451,7 +451,7 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
     }
     
     public boolean isAllVisible() {
-        return getModel().getHiddenNodes().size() == 0;
+        return getModel().getHiddenNodes().isEmpty();
     }
 
     public Action createGotoAction(final Figure f) {
@@ -746,31 +746,10 @@ public class DiagramScene extends ObjectScene implements DiagramViewer {
 
                 newPredecessor = w;
                 connectionLayer.addChild(w);
-                this.addObject(new ConnectionSet(connectionList), w);
                 w.getActions().addAction(hoverAction);
             }
 
             processOutputSlot(lastLineCache, s, connectionList, controlPointIndex + 1, p, newPredecessor, offx, offy, animator);
-        }
-    }
-
-    @Override
-    public void setInteractionMode(InteractionMode mode) {
-        panAction.setEnabled(mode == InteractionMode.PANNING);
-        // When panAction is not enabled, it does not consume the event
-        // and the selection action handles it instead
-    }
-
-    private class ConnectionSet {
-
-        private Set<Connection> connections;
-
-        public ConnectionSet(Collection<Connection> connections) {
-            connections = new HashSet<>(connections);
-        }
-
-        public Set<Connection> getConnectionSet() {
-            return Collections.unmodifiableSet(connections);
         }
     }
 

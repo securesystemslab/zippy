@@ -77,19 +77,9 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     private DiagramViewer scene;
     private InstanceContent content;
     private InstanceContent graphContent;
-    private OverviewAction overviewAction;
     private PredSuccAction predSuccAction;
-    private SelectionModeAction selectionModeAction;
-    private PanModeAction panModeAction;
-    private boolean notFirstTime;
-    private JComponent satelliteComponent;
-    private JPanel centerPanel;
-    private CardLayout cardLayout;
     private RangeSlider rangeSlider;
-    private JToggleButton overviewButton;
     private static final String PREFERRED_ID = "EditorTopComponent";
-    private static final String SATELLITE_STRING = "satellite";
-    private static final String SCENE_STRING = "scene";
     private DiagramViewModel rangeSliderModel;
     private ExportCookie exportCookie = new ExportCookie() {
 
@@ -192,7 +182,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         rangeSliderModel = new DiagramViewModel(diagram.getGraph().getGroup(), filterChain, sequence);
         rangeSlider = new RangeSlider();
         rangeSlider.setModel(rangeSliderModel);
-       // this.add(BorderLayout.WEST, rangeSlider);
 
         scene = new DiagramScene(actions, rangeSliderModel);
         content = new InstanceContent();
@@ -205,8 +194,8 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         rangeSliderModel.getDiagramChangedEvent().addListener(diagramChangedListener);
         rangeSliderModel.selectGraph(diagram.getGraph());
 
-        toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
         toolBar.add(PrevDiagramAction.get(PrevDiagramAction.class));
+        toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
         toolBar.addSeparator();
         toolBar.add(ExtractAction.get(ExtractAction.class));
         toolBar.add(ShowAllAction.get(HideAction.class));
@@ -214,12 +203,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.addSeparator();
         toolBar.add(ShowAllAction.get(ZoomInAction.class));
         toolBar.add(ShowAllAction.get(ZoomOutAction.class));
-
-        overviewAction = new OverviewAction();
-        overviewButton = new JToggleButton(overviewAction);
-        overviewButton.setSelected(false);
-        toolBar.add(overviewButton);
-        overviewAction.addPropertyChangeListener(this);
 
         predSuccAction = new PredSuccAction();
         JToggleButton button = new JToggleButton(predSuccAction);
@@ -232,21 +215,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.add(RedoAction.get(RedoAction.class));
 
         toolBar.addSeparator();
-        ButtonGroup interactionButtons = new ButtonGroup();
-
-        panModeAction = new PanModeAction();
-        panModeAction.setSelected(true);
-        button = new JToggleButton(panModeAction);
-        button.setSelected(true);
-        interactionButtons.add(button);
-        toolBar.add(button);
-        panModeAction.addPropertyChangeListener(this);
-
-        selectionModeAction = new SelectionModeAction();
-        button = new JToggleButton(selectionModeAction);
-        interactionButtons.add(button);
-        toolBar.add(button);
-        selectionModeAction.addPropertyChangeListener(this);
 
         toolBar.add(Box.createHorizontalGlue());
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
@@ -254,88 +222,17 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         quicksearch.setMinimumSize(quicksearch.getPreferredSize()); // necessary for GTK LAF
         toolBar.add(quicksearch);
 
-        centerPanel = new JPanel();
-        
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                           new JScrollPane(rangeSlider), centerPanel);
+                           new JScrollPane(rangeSlider), scene.getComponent());
         splitPane.setOneTouchExpandable(true);
         splitPane.setDividerLocation(250);
         this.add(splitPane, BorderLayout.CENTER);
         
-        cardLayout = new CardLayout();
-        centerPanel.setLayout(cardLayout);
-        centerPanel.add(SCENE_STRING, scene.getComponent());
-        centerPanel.setBackground(Color.WHITE);
-        satelliteComponent = scene.createSatelliteView();
-        satelliteComponent.setSize(200, 200);
-        centerPanel.add(SATELLITE_STRING, satelliteComponent);
-
-        // TODO: Fix the hot key for entering the satellite view
-        this.addKeyListener(keyListener);
-
-        scene.getComponent().addHierarchyBoundsListener(new HierarchyBoundsListener() {
-
-            @Override
-            public void ancestorMoved(HierarchyEvent e) {
-            }
-
-            @Override
-            public void ancestorResized(HierarchyEvent e) {
-                if (!notFirstTime && scene.getComponent().getBounds().width > 0) {
-                    notFirstTime = true;
-                    SwingUtilities.invokeLater(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            EditorTopComponent.this.scene.initialize();
-                        }
-                    });
-                }
-            }
-        });
-
-        if (diagram.getGraph().getGroup().getGraphsCount() == 1) {
-            rangeSlider.setVisible(false);
-        }
-
         updateDisplayName();
     }
-    private KeyListener keyListener = new KeyListener() {
-
-        @Override
-        public void keyTyped(KeyEvent e) {
-        }
-
-        @Override
-        public void keyPressed(KeyEvent e) {
-            if (e.getKeyCode() == KeyEvent.VK_S) {
-                EditorTopComponent.this.overviewButton.setSelected(true);
-                EditorTopComponent.this.overviewAction.setState(true);
-            }
-        }
-
-        @Override
-        public void keyReleased(KeyEvent e) {
-            if (e.getKeyCode() == KeyEvent.VK_S) {
-                EditorTopComponent.this.overviewButton.setSelected(false);
-                EditorTopComponent.this.overviewAction.setState(false);
-            }
-        }
-    };
 
     public DiagramViewModel getDiagramModel() {
         return rangeSliderModel;
-    }
-
-    private void showSatellite() {
-        cardLayout.show(centerPanel, SATELLITE_STRING);
-        satelliteComponent.requestFocus();
-
-    }
-
-    private void showScene() {
-        cardLayout.show(centerPanel, SCENE_STRING);
-        scene.getComponent().requestFocus();
     }
 
     public void zoomOut() {
@@ -467,19 +364,6 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         if (evt.getSource() == this.predSuccAction) {
             boolean b = (Boolean) predSuccAction.getValue(PredSuccAction.STATE);
             this.getModel().setShowNodeHull(b);
-        } else if (evt.getSource() == this.overviewAction) {
-            boolean b = (Boolean) overviewAction.getValue(OverviewAction.STATE);
-            if (b) {
-                showSatellite();
-            } else {
-                showScene();
-            }
-        } else if (evt.getSource() == this.selectionModeAction || evt.getSource() == this.panModeAction) {
-            if (panModeAction.isSelected()) {
-                scene.setInteractionMode(DiagramViewer.InteractionMode.PANNING);
-            } else if (selectionModeAction.isSelected()) {
-                scene.setInteractionMode(DiagramViewer.InteractionMode.SELECTION);
-            }
         } else {
             assert false : "Unknown event source";
         }
