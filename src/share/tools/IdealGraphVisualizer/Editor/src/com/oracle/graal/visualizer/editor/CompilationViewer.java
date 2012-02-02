@@ -42,14 +42,4 @@ public interface CompilationViewer {
     public Component getComponent();
     
     public Component getToolBarComponent();
-
-    public UndoRedo getUndoRedo();
-
-    public void setSelection(Collection<Figure> list);
-
-    public void paint(Graphics2D svgGenerator);
-
-    public void zoomOut();
-
-    public void zoomIn();
 }

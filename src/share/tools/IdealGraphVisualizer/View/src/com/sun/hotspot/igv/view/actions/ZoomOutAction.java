@@ -24,6 +24,7 @@
 package com.sun.hotspot.igv.view.actions;
 
 import com.oracle.graal.visualizer.editor.EditorTopComponent;
+import com.sun.hotspot.igv.view.scene.DiagramScene;
 import com.sun.hotspot.igv.view.scene.GraphCompilationViewer;
 import java.awt.Event;
 import java.awt.event.KeyEvent;
@@ -40,15 +41,15 @@ import org.openide.util.actions.CallableSystemAction;
  * @author Thomas Wuerthinger
  */
 public final class ZoomOutAction extends CallableSystemAction {
-    private final GraphCompilationViewer viewer;
+    private final DiagramScene scene;
 
     @Override
     public void performAction() {
-        viewer.zoomOut();
+        scene.zoomOut();
     }
 
-    public ZoomOutAction(GraphCompilationViewer viewer) {
-        this.viewer = viewer;
+    public ZoomOutAction(DiagramScene scene) {
+        this.scene = scene;
         putValue(Action.SHORT_DESCRIPTION, "Zoom out");
         putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, Event.CTRL_MASK, false));
     }

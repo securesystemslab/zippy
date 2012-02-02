@@ -27,11 +27,26 @@ package com.sun.hotspot.igv.view.scene;
 import com.oracle.graal.visualizer.editor.CompilationViewer;
 import com.oracle.graal.visualizer.editor.CompilationViewerFactory;
 import com.oracle.graal.visualizer.editor.DiagramViewModel;
+import com.sun.hotspot.igv.data.InputGraph;
+import com.sun.hotspot.igv.filter.FilterChain;
+import com.sun.hotspot.igv.filter.FilterChainProvider;
+import org.openide.util.Lookup;
 
 public class GraphCompilationViewerFactory implements CompilationViewerFactory{
 
     @Override
-    public CompilationViewer createViewer(DiagramViewModel model) {
+    public CompilationViewer createViewer(InputGraph firstGraph, InputGraph secondGraph) {
+        FilterChain filterChain;
+        FilterChain sequence;
+        FilterChainProvider provider = Lookup.getDefault().lookup(FilterChainProvider.class);
+        if (provider == null) {
+            filterChain = new FilterChain();
+            sequence = new FilterChain();
+        } else {
+            filterChain = provider.getFilterChain();
+            sequence = provider.getSequence();
+        }
+        DiagramViewModel model = new DiagramViewModel(firstGraph, secondGraph, firstGraph.getGroup(), filterChain, filterChain);
         return new GraphCompilationViewer(model);
     }
 

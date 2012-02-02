@@ -60,7 +60,7 @@ public class CfgEditorTopComponent extends CloneableTopComponent implements Prop
         this.jScrollPane.setOpaque(true);
         this.jScrollPane.setBorder(BorderFactory.createEmptyBorder());
         this.jScrollPane.setViewportBorder(BorderFactory.createEmptyBorder());
-        this.scene = new CfgScene(this);
+        this.scene = new CfgScene(jScrollPane, cfg);
         this.myView = scene.createView();
         this.jScrollPane.setViewportView(myView);
         this.setLayout(new BorderLayout());

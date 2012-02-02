@@ -24,11 +24,11 @@
 
 package com.sun.hotspot.igv.view.scene;
 
-import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.svg.BatikSVG;
 import com.oracle.graal.visualizer.editor.CompilationViewer;
 import com.oracle.graal.visualizer.editor.DiagramViewModel;
 import com.oracle.graal.visualizer.editor.ExportCookie;
+import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.view.actions.*;
 import java.awt.Component;
 import java.awt.Graphics2D;
@@ -41,7 +41,6 @@ import javax.swing.JToggleButton;
 import javax.swing.JToolBar;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
-import org.openide.awt.UndoRedo;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
@@ -90,28 +89,29 @@ public class GraphCompilationViewer implements CompilationViewer, PropertyChange
 
     GraphCompilationViewer(DiagramViewModel model) {
         
+        scene = new DiagramScene(model);
+        
         Action[] actions = new Action[]{
             ExtractAction.get(ExtractAction.class),
             ShowAllAction.get(HideAction.class),
             ShowAllAction.get(ShowAllAction.class),
             null,
-            new ZoomInAction(this),
-            new ZoomOutAction(this),
+          //  new ZoomInAction(scene),
+            //new ZoomOutAction(scene),
             null,
             ExpandPredecessorsAction.get(ExpandPredecessorsAction.class),
             ExpandSuccessorsAction.get(ExpandSuccessorsAction.class)
         };
         
-        scene = new DiagramScene(actions, model);
-        
+        scene.setActions(actions);
         
         toolBar = new JToolBar();
         toolBar.add(ExtractAction.get(ExtractAction.class));
         toolBar.add(ShowAllAction.get(HideAction.class));
         toolBar.add(ShowAllAction.get(ShowAllAction.class));
         toolBar.addSeparator();
-        toolBar.add(ShowAllAction.get(ZoomInAction.class));
-        toolBar.add(ShowAllAction.get(ZoomOutAction.class));
+        //toolBar.add(ShowAllAction.get(ZoomInAction.class));
+        //toolBar.add(ShowAllAction.get(ZoomOutAction.class));
 
         predSuccAction = new PredSuccAction();
         JToggleButton button = new JToggleButton(predSuccAction);
@@ -136,32 +136,6 @@ public class GraphCompilationViewer implements CompilationViewer, PropertyChange
     public Component getToolBarComponent() {
         return toolBar;
     }
-
-    @Override
-    public UndoRedo getUndoRedo() {
-        return scene.getUndoRedo();
-    }
-
-    @Override
-    public void setSelection(Collection<Figure> list) {
-        scene.setSelection(list);
-    }
-
-    @Override
-    public void paint(Graphics2D svgGenerator) {
-        scene.paint(svgGenerator);
-    }
-
-    @Override
-    public void zoomOut() {
-        scene.zoomOut();
-    }
-
-    @Override
-    public void zoomIn() {
-        scene.zoomIn();
-    }
-    
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {

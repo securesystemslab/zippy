@@ -31,6 +31,7 @@ import com.sun.hotspot.igv.filter.FilterChain;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.settings.Settings;
+import com.sun.hotspot.igv.util.CompilationViewModel;
 import com.sun.hotspot.igv.util.RangeSliderModel;
 import java.awt.Color;
 import java.util.*;
@@ -39,7 +40,7 @@ import java.util.*;
  *
  * @author Thomas Wuerthinger
  */
-public class DiagramViewModel extends RangeSliderModel implements ChangedListener<RangeSliderModel> {
+public class DiagramViewModel {
 
     // Warning: Update setData method if fields are added
     private Group group;
@@ -50,12 +51,13 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     private FilterChain sequenceFilterChain;
     private Diagram diagram;
     private InputGraph inputGraph;
-    private ChangedEvent<DiagramViewModel> groupChangedEvent;
     private ChangedEvent<DiagramViewModel> diagramChangedEvent;
     private ChangedEvent<DiagramViewModel> viewChangedEvent;
     private ChangedEvent<DiagramViewModel> hiddenNodesChangedEvent;
     private ChangedEvent<DiagramViewModel> viewPropertiesChangedEvent;
     private boolean showNodeHull;
+    private final InputGraph secondGraph;
+    private final InputGraph firstGraph;
     private ChangedListener<FilterChain> filterChainChangedListener = new ChangedListener<FilterChain>() {
 
         @Override
@@ -63,51 +65,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
             diagramChanged();
         }
     };
-
-    @Override
-    public DiagramViewModel copy() {
-        DiagramViewModel result = new DiagramViewModel(group, filterChain, sequenceFilterChain);
-        result.setData(this);
-        return result;
-    }
-
-    public void setData(DiagramViewModel newModel) {
-        super.setData(newModel);
-        boolean diagramChanged = false;
-        boolean viewChanged = false;
-        boolean viewPropertiesChanged = false;
-
-        boolean groupChanged = (group == newModel.group);
-        this.group = newModel.group;
-        diagramChanged |= (filterChain != newModel.filterChain);
-        this.filterChain = newModel.filterChain;
-        diagramChanged |= (sequenceFilterChain != newModel.sequenceFilterChain);
-        this.sequenceFilterChain = newModel.sequenceFilterChain;
-        diagramChanged |= (diagram != newModel.diagram);
-        this.diagram = newModel.diagram;
-        viewChanged |= (hiddenNodes != newModel.hiddenNodes);
-        this.hiddenNodes = newModel.hiddenNodes;
-        viewChanged |= (onScreenNodes != newModel.onScreenNodes);
-        this.onScreenNodes = newModel.onScreenNodes;
-        viewChanged |= (selectedNodes != newModel.selectedNodes);
-        this.selectedNodes = newModel.selectedNodes;
-        viewPropertiesChanged |= (showNodeHull != newModel.showNodeHull);
-        this.showNodeHull = newModel.showNodeHull;
-
-        if (groupChanged) {
-            groupChangedEvent.fire();
-        }
-
-        if (diagramChanged) {
-            diagramChangedEvent.fire();
-        }
-        if (viewPropertiesChanged) {
-            viewPropertiesChangedEvent.fire();
-        }
-        if (viewChanged) {
-            viewChangedEvent.fire();
-        }
-    }
 
     public boolean getShowNodeHull() {
         return showNodeHull;
@@ -118,9 +75,10 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         viewPropertiesChangedEvent.fire();
     }
 
-    public DiagramViewModel(Group g, FilterChain filterChain, FilterChain sequenceFilterChain) {
-        super(calculateStringList(g));
+    public DiagramViewModel(InputGraph firstGraph, InputGraph secondGraph, Group g, FilterChain filterChain, FilterChain sequenceFilterChain) {
 
+        this.firstGraph = firstGraph;
+        this.secondGraph = secondGraph;
         this.showNodeHull = true;
         this.group = g;
         assert filterChain != null;
@@ -130,41 +88,14 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         hiddenNodes = new HashSet<>();
         onScreenNodes = new HashSet<>();
         selectedNodes = new HashSet<>();
-        super.getChangedEvent().addListener(this);
         diagramChangedEvent = new ChangedEvent<>(this);
         viewChangedEvent = new ChangedEvent<>(this);
         hiddenNodesChangedEvent = new ChangedEvent<>(this);
         viewPropertiesChangedEvent = new ChangedEvent<>(this);
 
-        groupChangedEvent = new ChangedEvent<>(this);
-        groupChangedEvent.addListener(groupChangedListener);
-        groupChangedEvent.fire();
-
         filterChain.getChangedEvent().addListener(filterChainChangedListener);
         sequenceFilterChain.getChangedEvent().addListener(filterChainChangedListener);
     }
-    private final ChangedListener<DiagramViewModel> groupChangedListener = new ChangedListener<DiagramViewModel>() {
-
-        private Group oldGroup;
-
-        @Override
-        public void changed(DiagramViewModel source) {
-            if (oldGroup != null) {
-                oldGroup.getChangedEvent().removeListener(groupContentChangedListener);
-            }
-            group.getChangedEvent().addListener(groupContentChangedListener);
-            oldGroup = group;
-        }
-    };
-    private final ChangedListener<Group> groupContentChangedListener = new ChangedListener<Group>() {
-
-        @Override
-        public void changed(Group source) {
-            assert source == group;
-            setPositions(calculateStringList(source));
-            setSelectedNodes(selectedNodes);
-        }
-    };
 
     public ChangedEvent<DiagramViewModel> getDiagramChangedEvent() {
         return diagramChangedEvent;
@@ -196,8 +127,8 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
 
     public void setSelectedNodes(Set<Integer> nodes) {
         this.selectedNodes = nodes;
-        List<Color> colors = new ArrayList<>();
-        for (String s : getPositions()) {
+       /* List<Color> colors = new ArrayList<>();
+        for (int i = 0; i < group.getGraphs().size(); ++i) {
             colors.add(Color.black);
         }
         if (nodes.size() >= 1) {
@@ -231,7 +162,8 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
                 }
             }
         }
-        setColors(colors);
+        compilationViewModel.setColors(colors);*/
+        // TODO: Add colorization.
         viewChangedEvent.fire();
     }
 
@@ -247,7 +179,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         }
         setHiddenNodes(newHiddenNodes);
     }
-
 
     public Set<Figure> getSelectedFigures() {
         Set<Figure> result = new HashSet<>();
@@ -321,25 +252,11 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
     }
 
     public InputGraph getFirstGraph() {
-        List<InputGraph> graphs = group.getGraphs();
-        if (getFirstPosition() < graphs.size()) {
-            return graphs.get(getFirstPosition());
-        }
-        return graphs.get(graphs.size() - 1);
+        return firstGraph;
     }
 
     public InputGraph getSecondGraph() {
-        List<InputGraph> graphs = group.getGraphs();
-        if (getSecondPosition() < graphs.size()) {
-            return graphs.get(getSecondPosition());
-        }
-        return getFirstGraph();
-    }
-
-    public void selectGraph(InputGraph g) {
-        int index = group.getGraphs().indexOf(g);
-        assert index != -1;
-        setPositions(index, index);
+        return secondGraph;
     }
 
     public Diagram getDiagramToView() {
@@ -347,14 +264,14 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         if (diagram == null) {
             diagram = Diagram.createDiagram(getGraphToView(), Settings.get().get(Settings.NODE_TEXT, Settings.NODE_TEXT_DEFAULT));
             getFilterChain().apply(diagram, getSequenceFilterChain());
-            if (getFirstPosition() != getSecondPosition()) {
+            if (getFirstGraph() != getSecondGraph()) {
                 CustomFilter f = new CustomFilter(
                         "difference", "colorize('state', 'same', white);"
                         + "colorize('state', 'changed', orange);"
                         + "colorize('state', 'new', green);"
                         + "colorize('state', 'deleted', red);");
                 f.apply(diagram);
-           }
+            }
         }
 
         return diagram;
@@ -370,12 +287,6 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         }
 
         return inputGraph;
-    }
-
-    @Override
-    public void changed(RangeSliderModel source) {
-        inputGraph = null;
-        diagramChanged();
     }
 
     void setSelectedFigures(List<Figure> list) {

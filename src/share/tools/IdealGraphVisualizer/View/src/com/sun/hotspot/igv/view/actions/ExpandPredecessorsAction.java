@@ -37,7 +37,7 @@ public final class ExpandPredecessorsAction extends CallableSystemAction {
     public void performAction() {
         EditorTopComponent editor = EditorTopComponent.getActive();
         if (editor != null) {
-            editor.expandPredecessors();
+            //editor.expandPredecessors();
         }
     }
 

@@ -26,6 +26,7 @@ package com.oracle.graal.visualizer.editor.actions;
 import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.util.ContextAction;
 import com.oracle.graal.visualizer.editor.DiagramViewModel;
+import com.sun.hotspot.igv.util.RangeSliderModel;
 import javax.swing.Action;
 import javax.swing.ImageIcon;
 import org.openide.awt.ActionID;
@@ -40,9 +41,9 @@ import org.openide.util.*;
 @ActionID(id = "com.oracle.graal.visualizer.editor.actions.PrevDiagramAction", category = "View")
 @ActionRegistration(displayName = "Previous snapshot")
 @ActionReference(path = "Menu/View", position = 100)
-public final class PrevDiagramAction extends ContextAction<DiagramViewModel> implements ChangedListener<DiagramViewModel> {
+public final class PrevDiagramAction extends ContextAction<RangeSliderModel> implements ChangedListener<RangeSliderModel> {
 
-    private DiagramViewModel model;
+    private RangeSliderModel model;
 
     public PrevDiagramAction() {
         this(Utilities.actionsGlobalContext());
@@ -64,12 +65,12 @@ public final class PrevDiagramAction extends ContextAction<DiagramViewModel> imp
     }
 
     @Override
-    public Class<DiagramViewModel> contextClass() {
-        return DiagramViewModel.class;
+    public Class<RangeSliderModel> contextClass() {
+        return RangeSliderModel.class;
     }
 
     @Override
-    public void performAction(DiagramViewModel model) {
+    public void performAction(RangeSliderModel model) {
         int fp = model.getFirstPosition();
         int sp = model.getSecondPosition();
         if (fp != 0) {
@@ -80,23 +81,23 @@ public final class PrevDiagramAction extends ContextAction<DiagramViewModel> imp
     }
 
     @Override
-    public void update(DiagramViewModel model) {
+    public void update(RangeSliderModel model) {
         super.update(model);
 
         if (this.model != model) {
             if (this.model != null) {
-                this.model.getDiagramChangedEvent().removeListener(this);
+                this.model.getChangedEvent().removeListener(this);
             }
 
             this.model = model;
             if (this.model != null) {
-                this.model.getDiagramChangedEvent().addListener(this);
+                this.model.getChangedEvent().addListener(this);
             }
         }
     }
 
     @Override
-    public boolean isEnabled(DiagramViewModel model) {
+    public boolean isEnabled(RangeSliderModel model) {
         return model.getFirstPosition() != 0;
     }
 
@@ -106,7 +107,7 @@ public final class PrevDiagramAction extends ContextAction<DiagramViewModel> imp
     }
 
     @Override
-    public void changed(DiagramViewModel source) {
+    public void changed(RangeSliderModel source) {
         update(source);
     }
 }

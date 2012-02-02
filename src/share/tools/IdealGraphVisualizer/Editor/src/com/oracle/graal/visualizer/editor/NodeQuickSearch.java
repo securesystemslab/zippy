@@ -109,7 +109,8 @@ public class NodeQuickSearch implements SearchProvider {
                         public void run() {
                             final EditorTopComponent comp = EditorTopComponent.getActive();
                             if (comp != null) {
-                                comp.setSelectedNodes(set);
+                                // TODO: find connection again!
+                                //comp.setSelectedNodes(set);
                                 comp.requestActive();
                             }
                         }
@@ -126,7 +127,8 @@ public class NodeQuickSearch implements SearchProvider {
                                 if (comp != null) {
                                     final Set<InputNode> tmpSet = new HashSet<>();
                                     tmpSet.add(n);
-                                    comp.setSelectedNodes(tmpSet);
+                                    // TODO: find connection again!
+                                    //comp.setSelectedNodes(tmpSet);
                                     comp.requestActive();
                                 }
                             }

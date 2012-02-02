@@ -70,7 +70,7 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         setPositions(positions);
     }
 
-    protected void setPositions(List<String> positions) {
+    protected final void setPositions(List<String> positions) {
         this.positions = positions;
         colors = new ArrayList<>();
         for (int i = 0; i < positions.size(); i++) {

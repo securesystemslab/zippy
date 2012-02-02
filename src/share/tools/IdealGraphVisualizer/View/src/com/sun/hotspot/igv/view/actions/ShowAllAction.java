@@ -47,7 +47,7 @@ public final class ShowAllAction extends CallableSystemAction {
     public void performAction() {
         EditorTopComponent editor = EditorTopComponent.getActive();
         if (editor != null) {
-            editor.showAll();
+            //editor.showAll();
         }
     }
 

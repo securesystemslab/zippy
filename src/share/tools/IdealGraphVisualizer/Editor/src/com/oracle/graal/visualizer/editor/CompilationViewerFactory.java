@@ -23,7 +23,9 @@
  */
 package com.oracle.graal.visualizer.editor;
 
+import com.sun.hotspot.igv.data.InputGraph;
+
 public interface CompilationViewerFactory {
-    CompilationViewer createViewer(DiagramViewModel model);
+    CompilationViewer createViewer(InputGraph firstGraph, InputGraph secondGraph);
     String getName();
 }

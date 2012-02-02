@@ -17,6 +17,7 @@ import at.ssw.visualizer.cfg.visual.PolylineRouter;
 import at.ssw.visualizer.cfg.visual.PolylineRouterV2;
 import at.ssw.visualizer.cfg.visual.WidgetCollisionCollector;
 import at.ssw.visualizer.model.cfg.BasicBlock;
+import at.ssw.visualizer.model.cfg.ControlFlowGraph;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -75,21 +76,21 @@ public class CfgScene extends GraphScene<CfgNode, CfgEdge> implements ChangeList
     private CfgEnv env;
     private int currentLayout=-1;
     private int currentRouter=-1;
-    private CfgEditorTopComponent cfgtc;
+    private JScrollPane scrollPane;
     private EventListenerList listenerList = new EventListenerList();
     private WidgetAction contextPopupAction = this.createContextMenuAction(this); 
     private List<NodeWidget> nodeWidgets=null;
     private boolean loopClustersVisible = true;
     
     
-    public CfgScene(final CfgEditorTopComponent cfgtc){    
+    public CfgScene(final JScrollPane scrollPane, final ControlFlowGraph cfg){    
         addChild(clusterLayer); 
         addChild(mainLayer);       
         addChild(interractionLayer);
         addChild(connectionLayer);    
         this.loadDefaults();   
-        this.cfgtc=cfgtc;           
-        this.loadModel(new CfgEnv(cfgtc.getCfg()));     
+        this.scrollPane = scrollPane;          
+        this.loadModel(new CfgEnv(cfg));     
         this.setSceneLayout(CfgEditorContext.LAYOUT_HIERARCHICALNODELAYOUT);//default   
         this.getInputBindings().setZoomActionModifiers(0);
         this.getActions().addAction(ActionFactory.createMouseCenteredZoomAction(1.1));
@@ -561,7 +562,7 @@ public class CfgScene extends GraphScene<CfgNode, CfgEdge> implements ChangeList
     
     //animated scene Zoom to the max bounds of current viewport
     public void zoomScene(){
-        JScrollPane pane = this.cfgtc.getJScrollPanel();
+        JScrollPane pane = scrollPane;
       
         Rectangle prefBounds = this.getPreferredBounds(); 
         Dimension viewDim = pane.getViewportBorderBounds().getSize();

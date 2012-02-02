@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.view.scene;
 
+import com.oracle.graal.visualizer.editor.DiagramViewModel;
 import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.data.ControllableChangedListener;
 import com.sun.hotspot.igv.data.Pair;
@@ -30,12 +31,9 @@ import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.graph.*;
 import com.sun.hotspot.igv.hierarchicallayout.HierarchicalLayoutManager;
 import com.sun.hotspot.igv.layout.LayoutGraph;
-import com.sun.hotspot.igv.selectioncoordinator.SelectionCoordinator;
 import com.sun.hotspot.igv.util.ColorIcon;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.PropertiesSheet;
-import com.oracle.graal.visualizer.editor.CompilationViewer;
-import com.oracle.graal.visualizer.editor.DiagramViewModel;
 import com.sun.hotspot.igv.view.actions.CustomizablePanAction;
 import com.sun.hotspot.igv.view.widgets.*;
 import java.awt.*;
@@ -43,10 +41,6 @@ import java.awt.event.*;
 import java.util.List;
 import java.util.*;
 import javax.swing.*;
-import javax.swing.event.UndoableEditEvent;
-import javax.swing.undo.AbstractUndoableEdit;
-import javax.swing.undo.CannotRedoException;
-import javax.swing.undo.CannotUndoException;
 import org.netbeans.api.visual.action.*;
 import org.netbeans.api.visual.animator.SceneAnimator;
 import org.netbeans.api.visual.layout.LayoutFactory;
@@ -75,13 +69,11 @@ public class DiagramScene extends ObjectScene {
     private Action[] actions;
     private LayerWidget connectionLayer;
     private JScrollPane scrollPane;
-    private UndoRedo.Manager undoRedoManager;
     private LayerWidget mainLayer;
     private LayerWidget blockLayer;
     private Widget topLeft;
     private Widget bottomRight;
     private DiagramViewModel model;
-    private DiagramViewModel modelCopy;
     private WidgetAction zoomAction;
     private boolean rebuilding;
     /**
@@ -139,7 +131,7 @@ public class DiagramScene extends ObjectScene {
         return false;
     }
 
-    void zoomOut() {
+    public void zoomOut() {
         double zoom = getZoomFactor();
         Point viewPosition = getScrollPane().getViewport().getViewPosition();
         double newZoom = zoom / DiagramScene.ZOOM_INCREMENT;
@@ -150,7 +142,7 @@ public class DiagramScene extends ObjectScene {
         }
     }
 
-    void zoomIn() {
+    public void zoomIn() {
 
         double zoom = getZoomFactor();
         Point viewPosition = getScrollPane().getViewport().getViewPosition();
@@ -163,11 +155,7 @@ public class DiagramScene extends ObjectScene {
     }
 
     private void centerFigures(Collection<Figure> list) {
-
-        boolean b = getUndoRedoEnabled();
-        setUndoRedoEnabled(false);
         gotoFigures(list);
-        setUndoRedoEnabled(b);
     }
 
     private Set<Object> getObjectsFromIdSet(Set<Object> set) {
@@ -185,26 +173,6 @@ public class DiagramScene extends ObjectScene {
         }
         return selectedObjects;
     }
-    private ControllableChangedListener<SelectionCoordinator> highlightedCoordinatorListener = new ControllableChangedListener<SelectionCoordinator>() {
-
-        @Override
-        public void filteredChanged(SelectionCoordinator source) {
-            if (DiagramScene.this.isVisible()) {
-                DiagramScene.this.setHighlightedObjects(getObjectsFromIdSet(source.getHighlightedObjects()));
-                DiagramScene.this.validate();
-            }
-        }
-    };
-    private ControllableChangedListener<SelectionCoordinator> selectedCoordinatorListener = new ControllableChangedListener<SelectionCoordinator>() {
-
-        @Override
-        public void filteredChanged(SelectionCoordinator source) {
-            if (DiagramScene.this.isVisible()) {
-                DiagramScene.this.gotoSelection(source.getSelectedObjects());
-                DiagramScene.this.validate();
-            }
-        }
-    };
     private RectangularSelectProvider rectangularSelectProvider = new RectangularSelectProvider() {
 
         @Override
@@ -328,12 +296,6 @@ public class DiagramScene extends ObjectScene {
                 }
             }
             getModel().setSelectedNodes(nodeSelection);
-
-            boolean b = selectedCoordinatorListener.isEnabled();
-            selectedCoordinatorListener.setEnabled(false);
-            SelectionCoordinator.getInstance().setSelectedObjects(nodeSelection);
-            selectedCoordinatorListener.setEnabled(b);
-
         }
 
         @Override
@@ -346,10 +308,11 @@ public class DiagramScene extends ObjectScene {
                     nodeHighlighting.addAll(((Slot) o).getSource().getSourceNodesAsSet());
                 }
             }
-            boolean b = highlightedCoordinatorListener.isEnabled();
-            highlightedCoordinatorListener.setEnabled(false);
-            SelectionCoordinator.getInstance().setHighlightedObjects(nodeHighlighting);
-            highlightedCoordinatorListener.setEnabled(b);
+//            boolean b = highlightedCoordinatorListener.isEnabled();
+//            highlightedCoordinatorListener.setEnabled(false);
+//            SelectionCoordinator.getInstance().setHighlightedObjects(nodeHighlighting);
+//            highlightedCoordinatorListener.setEnabled(b);
+            validate();
         }
 
         @Override
@@ -369,10 +332,15 @@ public class DiagramScene extends ObjectScene {
         }
     };
 
-    public DiagramScene(Action[] actions, DiagramViewModel model) {
-
+    public void setActions(Action[] actions) {
         this.actions = actions;
+    }
+    
+    
 
+    public DiagramScene(DiagramViewModel model) {
+
+        this.model = model;
         content = new InstanceContent();
         lookup = new AbstractLookup(content);
 
@@ -425,14 +393,9 @@ public class DiagramScene extends ObjectScene {
         this.addChild(selectLayer);
         this.getActions().addAction(ActionFactory.createRectangularSelectAction(rectangularSelectDecorator, selectLayer, rectangularSelectProvider));
 
-        boolean b = this.getUndoRedoEnabled();
-        this.setUndoRedoEnabled(false);
-        this.setNewModel(model);
-        this.setUndoRedoEnabled(b);
         this.addObjectSceneListener(selectionChangedListener, ObjectSceneEventType.OBJECT_SELECTION_CHANGED, ObjectSceneEventType.OBJECT_HIGHLIGHTING_CHANGED, ObjectSceneEventType.OBJECT_HOVER_CHANGED);
         
-        SelectionCoordinator.getInstance().getHighlightedChangedEvent().addListener(highlightedCoordinatorListener);
-        SelectionCoordinator.getInstance().getSelectedChangedEvent().addListener(selectedCoordinatorListener);
+        update();
     }
 
     public DiagramViewModel getModel() {
@@ -473,18 +436,6 @@ public class DiagramScene extends ObjectScene {
         name += ")";
         a.putValue(Action.NAME, name);
         return a;
-    }
-
-    public void setNewModel(DiagramViewModel model) {
-        assert this.model == null : "can set model only once!";
-        this.model = model;
-        this.modelCopy = null;
-
-        model.getDiagramChangedEvent().addListener(fullChange);
-        model.getViewPropertiesChangedEvent().addListener(fullChange);
-        model.getViewChangedEvent().addListener(selectionChange);
-        model.getHiddenNodesChangedEvent().addListener(hiddenNodesChange);
-        update();
     }
 
     private void update() {
@@ -536,11 +487,7 @@ public class DiagramScene extends ObjectScene {
 
     private void smallUpdate(boolean relayout) {
 
-        System.out.println("smallUpdate " + relayout);
         this.updateHiddenNodes(model.getHiddenNodes(), relayout);
-        boolean b = this.getUndoRedoEnabled();
-        this.setUndoRedoEnabled(false);
-        this.setUndoRedoEnabled(b);
         this.validate();
     }
 
@@ -871,19 +818,6 @@ public class DiagramScene extends ObjectScene {
         centerFigures(list);
     }
 
-    private UndoRedo.Manager getUndoRedoManager() {
-        if (undoRedoManager == null) {
-            undoRedoManager = new UndoRedo.Manager();
-            undoRedoManager.setLimit(UNDOREDO_LIMIT);
-        }
-
-        return undoRedoManager;
-    }
-
-    UndoRedo getUndoRedo() {
-        return getUndoRedoManager();
-    }
-
     private boolean isVisible(Figure f) {
         for (Integer n : f.getSource().getSourceNodesAsSet()) {
             if (getModel().getHiddenNodes().contains(n)) {
@@ -974,7 +908,6 @@ public class DiagramScene extends ObjectScene {
             relayout(oldVisibleWidgets);
         }
         this.validate();
-        addUndo();
     }
 
     private void showFigure(Figure f) {
@@ -1023,73 +956,7 @@ public class DiagramScene extends ObjectScene {
         }
         return menu;
     }
-
-    private static class DiagramUndoRedo extends AbstractUndoableEdit implements ChangedListener<DiagramViewModel> {
-
-        private DiagramViewModel oldModel;
-        private DiagramViewModel newModel;
-        private Point oldScrollPosition;
-        private DiagramScene scene;
-
-        public DiagramUndoRedo(DiagramScene scene, Point oldScrollPosition, DiagramViewModel oldModel, DiagramViewModel newModel) {
-            assert oldModel != null;
-            assert newModel != null;
-            this.oldModel = oldModel;
-            this.newModel = newModel;
-            this.scene = scene;
-            this.oldScrollPosition = oldScrollPosition;
-        }
-
-        @Override
-        public void redo() throws CannotRedoException {
-            super.redo();
-            boolean b = scene.getUndoRedoEnabled();
-            scene.setUndoRedoEnabled(false);
-            scene.getModel().getViewChangedEvent().addListener(this);
-            scene.getModel().setData(newModel);
-            scene.getModel().getViewChangedEvent().removeListener(this);
-            scene.setUndoRedoEnabled(b);
-        }
-
-        @Override
-        public void undo() throws CannotUndoException {
-            super.undo();
-            boolean b = scene.getUndoRedoEnabled();
-            scene.setUndoRedoEnabled(false);
-            scene.getModel().getViewChangedEvent().addListener(this);
-            scene.getModel().setData(oldModel);
-            scene.getModel().getViewChangedEvent().removeListener(this);
-
-            SwingUtilities.invokeLater(new Runnable() {
-
-                @Override
-                public void run() {
-                    scene.setScrollPosition(oldScrollPosition);
-                }
-            });
-
-            scene.setUndoRedoEnabled(b);
-        }
-
-        @Override
-        public void changed(DiagramViewModel source) {
-            scene.getModel().getViewChangedEvent().removeListener(this);
-            if (oldModel.getHiddenNodes().equals(newModel.getHiddenNodes())) {
-                scene.smallUpdate(false);
-            } else {
-                scene.smallUpdate(true);
-            }
-        }
-    }
-    private boolean undoRedoEnabled = true;
-
-    public void setUndoRedoEnabled(boolean b) {
-        this.undoRedoEnabled = b;
-    }
-
-    public boolean getUndoRedoEnabled() {
-        return undoRedoEnabled;
-    }
+    
     private final ChangedListener<DiagramViewModel> fullChange = new ChangedListener<DiagramViewModel>() {
 
         @Override
@@ -1117,15 +984,4 @@ public class DiagramScene extends ObjectScene {
             smallUpdate(false);
         }
     };
-
-    private void addUndo() {
-
-        DiagramViewModel newModelCopy = model.copy();
-
-        if (undoRedoEnabled) {
-            this.getUndoRedoManager().undoableEditHappened(new UndoableEditEvent(this, new DiagramUndoRedo(this, this.getScrollPosition(), modelCopy, newModelCopy)));
-        }
-
-        this.modelCopy = newModelCopy;
-    }
 }

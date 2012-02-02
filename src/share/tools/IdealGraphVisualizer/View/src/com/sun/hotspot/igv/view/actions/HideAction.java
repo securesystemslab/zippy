@@ -47,7 +47,7 @@ public final class HideAction extends CallableSystemAction {
     public void performAction() {
         EditorTopComponent editor = EditorTopComponent.getActive();
         if (editor != null) {
-            editor.hideNodes();
+            //editor.hideNodes();
         }
     }
 

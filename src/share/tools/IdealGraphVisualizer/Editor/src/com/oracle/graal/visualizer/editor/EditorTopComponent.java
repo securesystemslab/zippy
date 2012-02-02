@@ -25,10 +25,7 @@ package com.oracle.graal.visualizer.editor;
 
 import com.oracle.graal.visualizer.editor.actions.NextDiagramAction;
 import com.oracle.graal.visualizer.editor.actions.PrevDiagramAction;
-import com.sun.hotspot.igv.data.ChangedEvent;
-import com.sun.hotspot.igv.data.ChangedListener;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputNode;
+import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import com.sun.hotspot.igv.filter.FilterChain;
 import com.sun.hotspot.igv.filter.FilterChainProvider;
@@ -37,8 +34,12 @@ import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.services.DiagramProvider;
 import com.sun.hotspot.igv.util.LookupHistory;
 import com.sun.hotspot.igv.util.RangeSlider;
+import com.sun.hotspot.igv.util.RangeSliderModel;
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -48,11 +49,13 @@ import org.openide.awt.Toolbar;
 import org.openide.awt.ToolbarPool;
 import org.openide.awt.UndoRedo;
 import org.openide.util.Lookup;
+import org.openide.util.Lookup.Provider;
 import org.openide.util.NbBundle;
 import org.openide.util.Utilities;
 import org.openide.util.actions.Presenter;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
+import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
 import org.openide.windows.Mode;
 import org.openide.windows.TopComponent;
@@ -65,31 +68,40 @@ import org.openide.windows.WindowManager;
 public final class EditorTopComponent extends TopComponent {
 
     private InstanceContent content;
-    private InstanceContent graphContent;
     private RangeSlider rangeSlider;
     private static final String PREFERRED_ID = "EditorTopComponent";
-    private DiagramViewModel rangeSliderModel;
-    private CompilationViewer viewer;
+    private RangeSliderModel rangeSliderModel;
+    private CompilationViewer activeViewer;
+    private CompilationViewerFactory activeFactory;
+    private Group group;
+    private final JPanel viewerToolBarPanel;
+    private final CardLayout viewerToolBarPanelCardLayout;
+    private final JPanel viewerPanel;
+    private final CardLayout viewerPanelCardLayout;
+    private final Map<String, CompilationViewer> createdComponents = new HashMap<>();
+    private final Lookup proxyLookup;
     
-
-    private DiagramProvider diagramProvider = new DiagramProvider() {
-
-        @Override
-        public Diagram getDiagram() {
-            return getModel().getDiagramToView();
-        }
+    private final Lookup.Provider currentViewLookupProvider = new Lookup.Provider() {
 
         @Override
-        public ChangedEvent<DiagramProvider> getChangedEvent() {
-            return diagramChangedEvent;
+        public Lookup getLookup() {
+            return (activeViewer == null) ? Lookups.fixed() : activeViewer.getLookup();
         }
     };
-
-    private ChangedEvent<DiagramProvider> diagramChangedEvent = new ChangedEvent<>(diagramProvider);
     
-
     private void updateDisplayName() {
-        setDisplayName(getDiagram().getName());
+        int first = getModel().getFirstPosition();
+        int second = getModel().getSecondPosition();
+        if (first == second) {
+            setDisplayName(getModel().getPositions().get(first));
+        } else {
+            setDisplayName(String.format("%s: %s - %s", activeFactory.getName(), getModel().getPositions().get(first), getModel().getPositions().get(second)));
+        }
+    }
+    
+    private void activateFactory(CompilationViewerFactory factory) {
+        this.activeFactory = factory;
+        updateView();
     }
 
     public EditorTopComponent(InputGraph graph) {
@@ -97,16 +109,6 @@ public final class EditorTopComponent extends TopComponent {
         LookupHistory.init(InputGraphProvider.class);
         LookupHistory.init(DiagramProvider.class);
         this.setFocusable(true);
-        FilterChain filterChain;
-        FilterChain sequence;
-        FilterChainProvider provider = Lookup.getDefault().lookup(FilterChainProvider.class);
-        if (provider == null) {
-            filterChain = new FilterChain();
-            sequence = new FilterChain();
-        } else {
-            filterChain = provider.getFilterChain();
-            sequence = provider.getSequence();
-        }
 
         setName(NbBundle.getMessage(EditorTopComponent.class, "CTL_EditorTopComponent"));
         setToolTipText(NbBundle.getMessage(EditorTopComponent.class, "HINT_EditorTopComponent"));
@@ -119,20 +121,19 @@ public final class EditorTopComponent extends TopComponent {
         toolBar.setBorder(b);
         this.add(BorderLayout.NORTH, toolBar);
 
-        rangeSliderModel = new DiagramViewModel(graph.getGroup(), filterChain, sequence);
+        this.group = graph.getGroup();
+        rangeSliderModel = new RangeSliderModel(calculateStringList(group));
+        int graphPos = group.getGraphs().indexOf(graph);
+        rangeSliderModel.setPositions(graphPos, graphPos);
         rangeSlider = new RangeSlider();
         rangeSlider.setModel(rangeSliderModel);
 
-        CompilationViewerFactory factory = Lookup.getDefault().lookup(CompilationViewerFactory.class);
-        viewer = factory.createViewer(rangeSliderModel);
+        Collection<? extends CompilationViewerFactory> factories = Lookup.getDefault().lookupAll(CompilationViewerFactory.class);
         content = new InstanceContent();
-        graphContent = new InstanceContent();
-        this.associateLookup(new ProxyLookup(new Lookup[]{viewer.getLookup(), new AbstractLookup(graphContent), new AbstractLookup(content)}));
-        content.add(rangeSliderModel);
-        content.add(diagramProvider);
+        proxyLookup = Lookups.proxy(currentViewLookupProvider);
+        this.associateLookup(new ProxyLookup(new Lookup[]{proxyLookup, new AbstractLookup(content)}));
 
-        rangeSliderModel.getDiagramChangedEvent().addListener(diagramChangedListener);
-        rangeSliderModel.selectGraph(graph);
+        rangeSliderModel.getChangedEvent().addListener(rangeSliderListener);
 
         toolBar.add(PrevDiagramAction.get(PrevDiagramAction.class));
         toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
@@ -140,7 +141,13 @@ public final class EditorTopComponent extends TopComponent {
         toolBar.addSeparator();
         toolBar.add(UndoAction.get(UndoAction.class));
         toolBar.add(RedoAction.get(RedoAction.class));
-
+        
+        ButtonGroup factoryButtonGroup = new ButtonGroup();
+        for (CompilationViewerFactory factory : factories) {
+            AbstractButton button = createFactoryChangeButton(factory);
+            factoryButtonGroup.add(button);
+            toolBar.add(button);
+        }
         toolBar.addSeparator();
 
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
@@ -149,19 +156,31 @@ public final class EditorTopComponent extends TopComponent {
         toolBar.add(quicksearch);
 
         toolBar.add(Box.createHorizontalGlue());        
-        toolBar.add(viewer.getToolBarComponent());
+        viewerToolBarPanel = new JPanel();
+        viewerToolBarPanelCardLayout = new CardLayout();
+        viewerToolBarPanel.setLayout(viewerToolBarPanelCardLayout);
+        toolBar.add(viewerToolBarPanel);
 
+        viewerPanel = new JPanel();
+        viewerPanelCardLayout = new CardLayout();
+        viewerPanel.setLayout(viewerPanelCardLayout);
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                           new JScrollPane(rangeSlider), viewer.getComponent());
+                           new JScrollPane(rangeSlider), viewerPanel);
         splitPane.setOneTouchExpandable(true);
         splitPane.setDividerLocation(250);
         this.add(splitPane, BorderLayout.CENTER);
         
-        updateDisplayName();
+        ((JToggleButton)factoryButtonGroup.getElements().nextElement()).setSelected(true);
+        activeFactory = factories.iterator().next();
+        updateView();
     }
-
-    public DiagramViewModel getDiagramModel() {
-        return rangeSliderModel;
+    
+    private static List<String> calculateStringList(Group g) {
+        List<String> result = new ArrayList<>();
+        for (InputGraph graph : g.getGraphs()) {
+            result.add(graph.getName());
+        }
+        return result;
     }
 
     public void showPrevDiagram() {
@@ -174,12 +193,8 @@ public final class EditorTopComponent extends TopComponent {
         }
     }
 
-    public DiagramViewModel getModel() {
+    private RangeSliderModel getModel() {
         return rangeSliderModel;
-    }
-
-    public FilterChain getFilterChain() {
-        return getModel().getFilterChain();
     }
 
     public static EditorTopComponent getActive() {
@@ -231,121 +246,55 @@ public final class EditorTopComponent extends TopComponent {
         return PREFERRED_ID;
     }
 
-    private ChangedListener<DiagramViewModel> diagramChangedListener = new ChangedListener<DiagramViewModel>() {
+    private ChangedListener<RangeSliderModel> rangeSliderListener = new ChangedListener<RangeSliderModel>() {
 
         @Override
-        public void changed(DiagramViewModel source) {
-            updateDisplayName();
-            Collection<Object> list = new ArrayList<>();
-            list.add(new EditorInputGraphProvider(EditorTopComponent.this));
-            graphContent.set(list, null);
-            diagramProvider.getChangedEvent().fire();
+        public void changed(RangeSliderModel source) {
+            updateView();
         }
         
     };
 
-    public void setSelectedFigures(List<Figure> list) {
-        viewer.setSelection(list);
-    }
-
-    public void setSelectedNodes(Set<InputNode> nodes) {
-
-        List<Figure> list = new ArrayList<>();
-        Set<Integer> ids = new HashSet<>();
-        for (InputNode n : nodes) {
-            ids.add(n.getId());
+    private void updateView() {
+        updateDisplayName();
+        String id = getViewStringIdentifier();
+        if (!createdComponents.containsKey(id)) {
+            CompilationViewer newViewer = createViewer(activeFactory, getModel().getFirstPosition(), getModel().getSecondPosition());
+            createdComponents.put(id, newViewer);
+            viewerPanel.add(newViewer.getComponent(), id);
+            viewerToolBarPanel.add(newViewer.getToolBarComponent(), id);
         }
-
-        for (Figure f : getModel().getDiagramToView().getFigures()) {
-            for (InputNode n : f.getSource().getSourceNodes()) {
-                if (ids.contains(n.getId())) {
-                    list.add(f);
-                    break;
-                }
-            }
+        
+        CompilationViewer newViewer = createdComponents.get(id);
+        if (newViewer != activeViewer) {
+            activeViewer = newViewer;
+            viewerPanelCardLayout.show(viewerPanel, id);
+            viewerToolBarPanelCardLayout.show(viewerToolBarPanel, id);
+            
+            // Make sure that lookup is updated.
+            proxyLookup.lookup(Object.class);
         }
-
-        setSelectedFigures(list);
+    }
+    
+    private String getViewStringIdentifier() {
+        return String.format("%s/%d/%d", activeFactory.getName(), getModel().getFirstPosition(), getModel().getSecondPosition());
     }
 
-    public void extract() {
-        getModel().showOnly(getModel().getSelectedNodes());
-    }
+    private AbstractButton createFactoryChangeButton(final CompilationViewerFactory factory) {
+        JToggleButton toggleButton = new JToggleButton(factory.getName());
+        toggleButton.addActionListener(new ActionListener(){
 
-    public void hideNodes() {
-        Set<Integer> selectedNodes = this.getModel().getSelectedNodes();
-        HashSet<Integer> nodes = new HashSet<>(getModel().getHiddenNodes());
-        nodes.addAll(selectedNodes);
-        this.getModel().showNot(nodes);
-    }
-
-    public void expandPredecessors() {
-        Set<Figure> oldSelection = getModel().getSelectedFigures();
-        Set<Figure> figures = new HashSet<>();
-
-        for (Figure f : this.getDiagramModel().getDiagramToView().getFigures()) {
-            boolean ok = false;
-            if (oldSelection.contains(f)) {
-                ok = true;
-            } else {
-                for (Figure pred : f.getSuccessors()) {
-                    if (oldSelection.contains(pred)) {
-                        ok = true;
-                        break;
-                    }
-                }
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                activateFactory(factory);
             }
-
-            if (ok) {
-                figures.add(f);
-            }
-        }
-
-        getModel().showAll(figures);
+        });
+        return toggleButton;
     }
-
-    public void expandSuccessors() {
-        Set<Figure> oldSelection = getModel().getSelectedFigures();
-        Set<Figure> figures = new HashSet<>();
-
-        for (Figure f : this.getDiagramModel().getDiagramToView().getFigures()) {
-            boolean ok = false;
-            if (oldSelection.contains(f)) {
-                ok = true;
-            } else {
-                for (Figure succ : f.getPredecessors()) {
-                    if (oldSelection.contains(succ)) {
-                        ok = true;
-                        break;
-                    }
-                }
-            }
-
-            if (ok) {
-                figures.add(f);
-            }
-        }
-
-        getModel().showAll(figures);
+    
+    private CompilationViewer createViewer(CompilationViewerFactory activeFactory, int firstPosition, int secondPosition) {
+        InputGraph firstSnapshot = group.getGraphs().get(firstPosition);
+        InputGraph secondSnapshot = group.getGraphs().get(secondPosition);
+        return activeFactory.createViewer(firstSnapshot, secondSnapshot);
     }
-
-    public void showAll() {
-        getModel().showNot(new HashSet<Integer>());
-    }
-
-    public Diagram getDiagram() {
-        return getDiagramModel().getDiagramToView();
-    }
-
-    @Override
-    public void requestActive() {
-        super.requestActive();
-        viewer.getComponent().requestFocus();
-    }
-
-    @Override
-    public UndoRedo getUndoRedo() {
-        return viewer.getUndoRedo();
-    }
-
 }
