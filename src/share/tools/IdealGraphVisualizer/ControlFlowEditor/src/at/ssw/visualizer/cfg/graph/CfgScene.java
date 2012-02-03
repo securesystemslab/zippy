@@ -6,7 +6,6 @@ import at.ssw.visualizer.cfg.CfgEditorContext;
 import at.ssw.visualizer.cfg.action.ColorAction;
 import at.ssw.visualizer.cfg.action.HideEdgesAction;
 import at.ssw.visualizer.cfg.action.ShowEdgesAction;
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import at.ssw.visualizer.cfg.graph.layout.HierarchicalCompoundLayout;
 import at.ssw.visualizer.cfg.graph.layout.HierarchicalNodeLayout;
 import at.ssw.visualizer.cfg.model.CfgEnv;

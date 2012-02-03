@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2007, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,11 +32,7 @@ import java.awt.event.MouseMotionListener;
 import java.util.List;
 import javax.swing.JComponent;
 
-/**
- *
- * @author Thomas Wuerthinger
- */
-public class RangeSlider extends JComponent implements ChangedListener<RangeSliderModel>, MouseListener, MouseMotionListener {
+public class RangeSlider extends JComponent {
 
     public static final int BAR_THICKNESS = 2;
     public static final int BAR_CIRCLE_SIZE = 9;
@@ -52,22 +48,11 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
     private RangeSliderModel tempModel;
     private Point lastMouseMove;
 
-    public RangeSlider() {
-        this.addMouseMotionListener(this);
-        this.addMouseListener(this);
-    }
-
-    public void setModel(RangeSliderModel newModel) {
-        if (model != null) {
-            model.getChangedEvent().removeListener(this);
-            model.getColorChangedEvent().removeListener(this);
-        }
-        if (newModel != null) {
-            newModel.getChangedEvent().addListener(this);
-            newModel.getColorChangedEvent().addListener(this);
-        }
+    public RangeSlider(RangeSliderModel newModel) {
+        this.addMouseMotionListener(mouseMotionListener);
+        this.addMouseListener(mouseListener);
+        newModel.getChangedEvent().addListener(modelChangedListener);
         this.model = newModel;
-        update();
     }
 
     private RangeSliderModel getPaintingModel() {
@@ -97,11 +82,13 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         d.height = ITEM_HEIGHT * list.size();
         return d;
     }
-
-    @Override
-    public void changed(RangeSliderModel source) {
-        update();
-    }
+    
+    private ChangedListener<RangeSliderModel> modelChangedListener = new ChangedListener<RangeSliderModel>() {
+        @Override
+        public void changed(RangeSliderModel source) {
+            update();
+        }
+    };
 
     private void update() {
         this.repaint();
@@ -191,15 +178,6 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         return new Rectangle(0, startY, getWidth(), endY - startY);
     }
 
-    @Override
-    public void mouseDragged(MouseEvent e) {
-        if (startPoint != null) {
-            int startIndex = getIndexFromPosition(startPoint.y);
-            int curIndex = getIndexFromPosition(e.getPoint().y);
-            tempModel.setPositions(startIndex, curIndex);
-        }
-    }
-
     private int getIndexFromPosition(int y) {
         for (int i = 0; i < getPaintingModel().getPositions().size() - 1; i++) {
             Rectangle bounds = getItemBounds(i);
@@ -209,42 +187,57 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
         }
         return getPaintingModel().getPositions().size() - 1;
     }
+    private final MouseMotionListener mouseMotionListener = new MouseMotionListener() {
 
-    @Override
-    public void mouseMoved(MouseEvent e) {
-        lastMouseMove = e.getPoint();
-        update();
-    }
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            if (startPoint != null) {
+                int startIndex = getIndexFromPosition(startPoint.y);
+                int curIndex = getIndexFromPosition(e.getPoint().y);
+                tempModel.setPositions(startIndex, curIndex);
+            }
+        }
 
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        int index = getIndexFromPosition(e.getPoint().y);
-        model.setPositions(index, index);
-    }
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            lastMouseMove = e.getPoint();
+            update();
+        }
+    };
+    private final MouseListener mouseListener = new MouseListener() {
 
-    @Override
-    public void mousePressed(MouseEvent e) {
-        int index = getIndexFromPosition(e.getPoint().y);
-        startPoint = e.getPoint();
-        tempModel = model.copy();
-        tempModel.getChangedEvent().addListener(this);
-        tempModel.setPositions(index, index);
-    }
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            int index = getIndexFromPosition(e.getPoint().y);
+            model.setPositions(index, index);
+        }
 
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        model.setPositions(tempModel.getFirstPosition(), tempModel.getSecondPosition());
-        tempModel = null;
-        startPoint = null;
-    }
+        @Override
+        public void mousePressed(MouseEvent e) {
+            int index = getIndexFromPosition(e.getPoint().y);
+            startPoint = e.getPoint();
+            tempModel = model.copy();
+            tempModel.getChangedEvent().addListener(modelChangedListener);
+            tempModel.setPositions(index, index);
+        }
 
-    @Override
-    public void mouseEntered(MouseEvent e) {
-    }
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            if (tempModel != null) {
+                model.setPositions(tempModel.getFirstPosition(), tempModel.getSecondPosition());
+                tempModel = null;
+                startPoint = null;
+            }
+        }
 
-    @Override
-    public void mouseExited(MouseEvent e) {
-        lastMouseMove = null;
-        repaint();
-    }
+        @Override
+        public void mouseEntered(MouseEvent e) {
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            lastMouseMove = null;
+            repaint();
+        }
+    };
 }

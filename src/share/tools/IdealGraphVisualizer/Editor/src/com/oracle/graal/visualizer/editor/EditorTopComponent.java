@@ -48,6 +48,8 @@ import org.openide.actions.UndoAction;
 import org.openide.awt.Toolbar;
 import org.openide.awt.ToolbarPool;
 import org.openide.awt.UndoRedo;
+import org.openide.filesystems.FileUtil;
+import org.openide.util.ContextAwareAction;
 import org.openide.util.Lookup;
 import org.openide.util.Lookup.Provider;
 import org.openide.util.NbBundle;
@@ -57,9 +59,7 @@ import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
-import org.openide.windows.Mode;
-import org.openide.windows.TopComponent;
-import org.openide.windows.WindowManager;
+import org.openide.windows.*;
 
 /**
  * 
@@ -80,14 +80,23 @@ public final class EditorTopComponent extends TopComponent {
     private final CardLayout viewerPanelCardLayout;
     private final Map<String, CompilationViewer> createdComponents = new HashMap<>();
     private final Lookup proxyLookup;
+    private Lookup currentLookup = Lookups.fixed();
     
     private final Lookup.Provider currentViewLookupProvider = new Lookup.Provider() {
 
         @Override
         public Lookup getLookup() {
-            return (activeViewer == null) ? Lookups.fixed() : activeViewer.getLookup();
+            return currentLookup;
         }
     };
+
+    private InputGraph getFirstGraph() {
+        return group.getGraphs().get(getModel().getFirstPosition());
+    }
+
+    private InputGraph getSecondGraph() {
+        return group.getGraphs().get(getModel().getSecondPosition());
+    }
     
     private void updateDisplayName() {
         int first = getModel().getFirstPosition();
@@ -125,8 +134,7 @@ public final class EditorTopComponent extends TopComponent {
         rangeSliderModel = new RangeSliderModel(calculateStringList(group));
         int graphPos = group.getGraphs().indexOf(graph);
         rangeSliderModel.setPositions(graphPos, graphPos);
-        rangeSlider = new RangeSlider();
-        rangeSlider.setModel(rangeSliderModel);
+        rangeSlider = new RangeSlider(rangeSliderModel);
 
         Collection<? extends CompilationViewerFactory> factories = Lookup.getDefault().lookupAll(CompilationViewerFactory.class);
         content = new InstanceContent();
@@ -141,6 +149,10 @@ public final class EditorTopComponent extends TopComponent {
         toolBar.addSeparator();
         toolBar.add(UndoAction.get(UndoAction.class));
         toolBar.add(RedoAction.get(RedoAction.class));
+        
+        ContextAwareAction a = FileUtil.getConfigObject("Actions/View/com-oracle-graal-visualizer-editor-actions-TestAction.instance", ContextAwareAction.class);
+        FileUtil.getConfigFile("Actions/View/com-oracle-graal-visualizer-editor-actions-TestAction.instance");
+        toolBar.add(a.createContextAwareInstance(proxyLookup));
         
         ButtonGroup factoryButtonGroup = new ButtonGroup();
         for (CompilationViewerFactory factory : factories) {
@@ -207,7 +219,7 @@ public final class EditorTopComponent extends TopComponent {
         }
         return null;
     }
-
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -259,7 +271,7 @@ public final class EditorTopComponent extends TopComponent {
         updateDisplayName();
         String id = getViewStringIdentifier();
         if (!createdComponents.containsKey(id)) {
-            CompilationViewer newViewer = createViewer(activeFactory, getModel().getFirstPosition(), getModel().getSecondPosition());
+            CompilationViewer newViewer = createViewer(activeFactory);
             createdComponents.put(id, newViewer);
             viewerPanel.add(newViewer.getComponent(), id);
             viewerToolBarPanel.add(newViewer.getToolBarComponent(), id);
@@ -272,6 +284,7 @@ public final class EditorTopComponent extends TopComponent {
             viewerToolBarPanelCardLayout.show(viewerToolBarPanel, id);
             
             // Make sure that lookup is updated.
+            currentLookup = new ProxyLookup(activeViewer.getLookup(), Lookups.fixed(getFirstGraph(), getSecondGraph()));
             proxyLookup.lookup(Object.class);
         }
     }
@@ -292,9 +305,9 @@ public final class EditorTopComponent extends TopComponent {
         return toggleButton;
     }
     
-    private CompilationViewer createViewer(CompilationViewerFactory activeFactory, int firstPosition, int secondPosition) {
-        InputGraph firstSnapshot = group.getGraphs().get(firstPosition);
-        InputGraph secondSnapshot = group.getGraphs().get(secondPosition);
+    private CompilationViewer createViewer(CompilationViewerFactory activeFactory) {
+        InputGraph firstSnapshot = getFirstGraph();
+        InputGraph secondSnapshot = getSecondGraph();
         return activeFactory.createViewer(firstSnapshot, secondSnapshot);
     }
 }

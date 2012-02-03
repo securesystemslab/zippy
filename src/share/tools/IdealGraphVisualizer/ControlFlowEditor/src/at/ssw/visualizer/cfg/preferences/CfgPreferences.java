@@ -1,6 +1,5 @@
 package at.ssw.visualizer.cfg.preferences;
 
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import java.awt.Color;
 import java.awt.Font;
 import java.beans.PropertyChangeEvent;
@@ -58,14 +57,6 @@ public class CfgPreferences  {
         return instance;
     }
 
-    public void addPropertyChangeListener(CfgEditorTopComponent listener) {
-        listenerList.add(PropertyChangeListener.class, listener);   
-    }
-
-    public void removePropertyChangeListener(CfgEditorTopComponent listener) {
-        listenerList.remove(PropertyChangeListener.class, listener);
-    }
- 
     protected final Preferences getPreferences() {
         return NbPreferences.forModule(this.getClass()).node("options").node(nodeName);
     }

@@ -44,6 +44,8 @@ class SplitCompilationViewer implements CompilationViewer {
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         firstPanel = createPanel(firstViewer);
         secondPanel = createPanel(secondViewer);
+        splitPane.add(firstPanel);
+        splitPane.add(secondPanel);
     }
 
     @Override

@@ -51,6 +51,11 @@
     </folder>
 
     <folder name="Menu">
+        <folder name="BuildProject_hidden">
+            <file name="at-ssw-visualizer-cfg-action-SomeAction.shadow">
+                <attr name="originalFile" stringvalue="Actions/Build/at-ssw-visualizer-cfg-action-SomeAction.instance"/>
+            </file>
+        </folder>
         <folder name="Window">
             <file name="ShowCFGEditor.shadow">
                 <attr name="originalFile" stringvalue="Actions/Window/ShowCFGEditor.instance"/>

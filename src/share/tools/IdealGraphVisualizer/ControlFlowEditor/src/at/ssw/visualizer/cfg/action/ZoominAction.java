@@ -1,6 +1,5 @@
 package at.ssw.visualizer.cfg.action;
 
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import at.ssw.visualizer.cfg.graph.CfgScene;
 import org.openide.util.HelpCtx;
 
@@ -9,9 +8,9 @@ public class ZoominAction extends AbstractCfgEditorAction {
        
     @Override
     public void performAction() {
-        CfgEditorTopComponent tc = getEditor();
+        CfgScene tc = getEditor();
         if (tc != null) {            
-            CfgScene scene = tc.getCfgScene();    
+            CfgScene scene = tc;    
             scene.animateZoom(1.1);
         }
     }

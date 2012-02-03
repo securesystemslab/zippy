@@ -42,8 +42,6 @@ import java.util.*;
  */
 public class DiagramViewModel {
 
-    // Warning: Update setData method if fields are added
-    private Group group;
     private Set<Integer> hiddenNodes;
     private Set<Integer> onScreenNodes;
     private Set<Integer> selectedNodes;
@@ -80,7 +78,6 @@ public class DiagramViewModel {
         this.firstGraph = firstGraph;
         this.secondGraph = secondGraph;
         this.showNodeHull = true;
-        this.group = g;
         assert filterChain != null;
         this.filterChain = filterChain;
         assert sequenceFilterChain != null;

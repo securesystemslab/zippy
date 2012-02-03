@@ -1,6 +1,5 @@
 package at.ssw.visualizer.cfg.action;
 
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import at.ssw.visualizer.cfg.graph.CfgScene;
 import java.io.File;
 import javax.swing.JComponent;
@@ -26,8 +25,7 @@ public class ExportAction extends AbstractCfgEditorAction {
     
     @Override
     public void performAction() {       
-        CfgEditorTopComponent tc = this.getEditor();
-        CfgScene scene = tc.getCfgScene();
+        CfgScene scene = this.getEditor();
         JComponent view = scene.getView();
            
         JFileChooser chooser = new JFileChooser ();
@@ -41,10 +39,11 @@ public class ExportAction extends AbstractCfgEditorAction {
         chooser.addChoosableFileFilter(new FileNameExtensionFilter(DESCRIPTION_GIF, EXT_GIF));
         if(lastDirectory != null)
             chooser.setCurrentDirectory(new File(lastDirectory));
-        chooser.setSelectedFile(new File(tc.getName()));
+        // TODO: chose file.
+        chooser.setSelectedFile(new File("output"));
         
                               
-        if (chooser.showSaveDialog (tc) != JFileChooser.APPROVE_OPTION)
+        if (chooser.showSaveDialog (scene.getView()) != JFileChooser.APPROVE_OPTION)
             return;
 
         File file = chooser.getSelectedFile ();

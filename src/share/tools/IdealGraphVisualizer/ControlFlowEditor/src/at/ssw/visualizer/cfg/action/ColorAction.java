@@ -1,7 +1,6 @@
 package at.ssw.visualizer.cfg.action;
 
 import at.ssw.visualizer.cfg.graph.CfgEventListener;
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import at.ssw.visualizer.cfg.graph.CfgScene;
 import at.ssw.visualizer.cfg.model.CfgNode;
 import java.awt.Color;
@@ -12,15 +11,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.util.Set;
-import javax.swing.AbstractAction;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.plaf.basic.BasicArrowButton;
 import org.openide.util.HelpCtx;
 import org.openide.util.actions.Presenter;
@@ -53,9 +44,9 @@ public class ColorAction extends AbstractCfgEditorAction implements Presenter.Me
     }
 
     protected void performAction(Color color) {
-        CfgEditorTopComponent tc = getEditor();
+        CfgScene tc = getEditor();
         if (tc != null) {
-            tc.getCfgScene().setSelectedNodesColor(color);
+            tc.setSelectedNodesColor(color);
         }
     }
 
@@ -95,8 +86,8 @@ public class ColorAction extends AbstractCfgEditorAction implements Presenter.Me
         }
         
         protected void initGUI() {  
-            CfgEditorTopComponent tc = getEditor();
-            if( tc != null && tc.getCfgScene().getSelectedNodes().size()==0) {
+            CfgScene tc = getEditor();
+            if( tc != null && tc.getSelectedNodes().size()==0) {
                 //no node selected
                 setEnabled(false);
             } else {

@@ -93,13 +93,11 @@ public class BoundedZoomAction extends WidgetAction.Adapter {
         Point mouseLocation = scene.convertSceneToView(event.getPoint());
         int xOffset = 0;
         int yOffset = 0;
-        Point oldViewPosition = null;
         Rectangle bounds = new Rectangle(scene.getBounds());
         Dimension componentSize = new Dimension(scene.getView().getPreferredSize());
 
         if (scrollPane != null) {
             viewPosition = new Point(scrollPane.getViewport().getViewPosition());
-            oldViewPosition = new Point(viewPosition);
             xOffset = (mouseLocation.x - viewPosition.x);
             yOffset = (mouseLocation.y - viewPosition.y);
             viewPosition.x += xOffset;

@@ -1,6 +1,5 @@
 package at.ssw.visualizer.cfg.action;
 
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import at.ssw.visualizer.cfg.graph.CfgScene;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -13,9 +12,9 @@ public class SwitchLoopClustersAction extends AbstractCfgEditorAction implements
 
     @Override
     public void performAction() {
-        CfgEditorTopComponent tc = getEditor();
+        CfgScene tc = getEditor();
         if (tc != null) {  
-            CfgScene scene = tc.getCfgScene();
+            CfgScene scene = tc;
             boolean visible = scene.isLoopClusterVisible();
             scene.setLoopWidgets(!visible);
         }

@@ -1,15 +1,15 @@
 package at.ssw.visualizer.cfg.action;
 
 import at.ssw.visualizer.cfg.CfgEditorContext;
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
+import at.ssw.visualizer.cfg.graph.CfgScene;
 import org.openide.util.HelpCtx;
 
 
 public class UseBezierRouterAction extends AbstractRouterAction {
     
     @Override
-    protected void setLinkRouter(CfgEditorTopComponent editor) {      
-        editor.getCfgScene().setRouter(CfgEditorContext.ROUTING_BEZIER);
+    protected void setLinkRouter(CfgScene editor) {      
+        editor.setRouter(CfgEditorContext.ROUTING_BEZIER);
     }
     
     @Override

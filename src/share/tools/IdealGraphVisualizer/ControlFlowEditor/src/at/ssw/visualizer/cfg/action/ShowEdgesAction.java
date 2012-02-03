@@ -1,6 +1,5 @@
 package at.ssw.visualizer.cfg.action;
 
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
 import at.ssw.visualizer.cfg.graph.CfgScene;
 import at.ssw.visualizer.cfg.graph.EdgeWidget;
 import at.ssw.visualizer.cfg.model.CfgEdge;
@@ -16,9 +15,9 @@ import org.openide.util.HelpCtx;
 public class ShowEdgesAction extends AbstractCfgEditorAction {
 
     public void performAction() {
-        CfgEditorTopComponent tc = getEditor();
+        CfgScene tc = getEditor();
         if (tc != null) {
-            tc.getCfgScene().setSelectedEdgesVisibility(true);
+            tc.setSelectedEdgesVisibility(true);
         }
     }
 
@@ -34,19 +33,5 @@ public class ShowEdgesAction extends AbstractCfgEditorAction {
 
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
-    }
-
-    @Override  
-    public void selectionChanged(CfgScene scene) {      
-        for (CfgNode n : scene.getSelectedNodes()) {  
-            for (CfgEdge e : scene.findNodeEdges(n, true, true) ){
-                EdgeWidget ew = (EdgeWidget) scene.findWidget(e);
-                if(!ew.isVisible()) {
-                    setEnabled(true);
-                    return;
-                }
-            }
-        }
-        setEnabled(false);
     }
 }

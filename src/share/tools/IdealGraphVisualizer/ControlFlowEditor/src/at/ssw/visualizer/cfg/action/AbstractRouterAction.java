@@ -1,6 +1,6 @@
 package at.ssw.visualizer.cfg.action;
 
-import at.ssw.visualizer.cfg.editor.CfgEditorTopComponent;
+import at.ssw.visualizer.cfg.graph.CfgScene;
 import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
@@ -16,13 +16,13 @@ import org.openide.util.actions.Presenter;
 public abstract class AbstractRouterAction extends AbstractCfgEditorAction implements Presenter.Menu, Presenter.Popup, Presenter.Toolbar {
        
     public void performAction() {
-        CfgEditorTopComponent tc = getEditor();
+        CfgScene tc = getEditor();
         if (tc != null) {  
             setLinkRouter(tc);
         }
     }
 
-    protected abstract void setLinkRouter(CfgEditorTopComponent editor);
+    protected abstract void setLinkRouter(CfgScene editor);
     
     @Override
     public JMenuItem getMenuPresenter() {
