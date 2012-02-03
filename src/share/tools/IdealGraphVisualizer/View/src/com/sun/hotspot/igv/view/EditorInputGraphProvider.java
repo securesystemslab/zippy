@@ -25,8 +25,8 @@
 package com.sun.hotspot.igv.view;
 
 import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import com.sun.hotspot.igv.data.InputNode;
+import com.sun.hotspot.igv.data.services.InputGraphProvider;
 import java.util.Set;
 
 /**
@@ -41,10 +41,12 @@ public class EditorInputGraphProvider implements InputGraphProvider {
         this.editor = editor;
     }
     
+    @Override
     public InputGraph getGraph() {
         return editor.getDiagramModel().getGraphToView();
     }
 
+    @Override
     public void setSelectedNodes(Set<InputNode> nodes) {
         editor.setSelectedNodes(nodes);
     }

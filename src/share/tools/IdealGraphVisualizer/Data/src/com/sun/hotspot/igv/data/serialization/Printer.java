@@ -23,16 +23,7 @@
  */
 package com.sun.hotspot.igv.data.serialization;
 
-import com.sun.hotspot.igv.data.GraphDocument;
-import com.sun.hotspot.igv.data.Group;
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputBytecode;
-import com.sun.hotspot.igv.data.InputEdge;
-import com.sun.hotspot.igv.data.InputGraph;
-import com.sun.hotspot.igv.data.InputMethod;
-import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.data.Properties;
-import com.sun.hotspot.igv.data.Property;
+import com.sun.hotspot.igv.data.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
@@ -68,8 +59,12 @@ public class Printer {
     private void export(XMLWriter xmlWriter, GraphDocument document) throws IOException {
         xmlWriter.startTag(Parser.ROOT_ELEMENT);
         xmlWriter.writeProperties(document.getProperties());
-        for (Group g : document.getGroups()) {
-            export(xmlWriter, g);
+        for (FolderElement e : document.getElements()) {
+            if (e instanceof Group) {
+                export(xmlWriter, (Group) e);
+            } else if (e instanceof InputGraph) {
+                export(xmlWriter, (InputGraph)e, null, false);
+            }
         }
 
         xmlWriter.endTag();
@@ -96,9 +91,14 @@ public class Printer {
             }
 
             InputGraph previous = null;
-            for (InputGraph graph : g.getGraphs()) {
-                export(writer, graph, previous, true);
-                previous = graph;
+            for (FolderElement e : g.getElements()) {
+                if (e instanceof InputGraph) {
+                    InputGraph graph = (InputGraph) e;
+                    export(writer, graph, previous, true);
+                    previous = graph;
+                } else if (e instanceof Group) {
+                    export(writer, (Group) e);
+                }
             }
         }
 
@@ -111,8 +111,8 @@ public class Printer {
         writer.writeProperties(graph.getProperties());
         writer.startTag(Parser.NODES_ELEMENT);
 
-        Set<InputNode> removed = new HashSet<InputNode>();
-        Set<InputNode> equal = new HashSet<InputNode>();
+        Set<InputNode> removed = new HashSet<>();
+        Set<InputNode> equal = new HashSet<>();
 
         if (previous != null) {
             for (InputNode n : previous.getNodes()) {
@@ -143,8 +143,8 @@ public class Printer {
         writer.endTag();
 
         writer.startTag(Parser.EDGES_ELEMENT);
-        Set<InputEdge> removedEdges = new HashSet<InputEdge>();
-        Set<InputEdge> equalEdges = new HashSet<InputEdge>();
+        Set<InputEdge> removedEdges = new HashSet<>();
+        Set<InputEdge> equalEdges = new HashSet<>();
 
         if (previous != null) {
             for (InputEdge e : previous.getEdges()) {

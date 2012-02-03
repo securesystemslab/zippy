@@ -23,25 +23,14 @@
  */
 package com.sun.hotspot.igv.graph;
 
-import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.Source;
 import com.sun.hotspot.igv.data.InputNode;
-import com.sun.hotspot.igv.layout.Cluster;
-import com.sun.hotspot.igv.layout.Vertex;
 import com.sun.hotspot.igv.data.Properties;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Point;
+import com.sun.hotspot.igv.data.Source;
+import com.sun.hotspot.igv.layout.Vertex;
+import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
@@ -82,7 +71,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     }
     
     public static <T> List<T> getAllBefore(List<T> inputList, T tIn) {
-        List<T> result = new ArrayList<T>();
+        List<T> result = new ArrayList<>();
         for(T t : inputList) {
             if(t.equals(tIn)) {
                 break;
@@ -123,10 +112,10 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     protected Figure(Diagram diagram, int id) {
         this.diagram = diagram;
         this.source = new Source();
-        inputSlots = new ArrayList<InputSlot>(5);
-        outputSlots = new ArrayList<OutputSlot>(1);
-        predecessors = new ArrayList<Figure>(6);
-        successors = new ArrayList<Figure>(6);
+        inputSlots = new ArrayList<>(5);
+        outputSlots = new ArrayList<>(1);
+        predecessors = new ArrayList<>(6);
+        successors = new ArrayList<>(6);
         this.id = id;
         idString = Integer.toString(id);
 
@@ -151,7 +140,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     }
 
     public Set<Figure> getPredecessorSet() {
-        Set<Figure> result = new HashSet<Figure>();
+        Set<Figure> result = new HashSet<>();
         for (Figure f : getPredecessors()) {
             result.add(f);
         }
@@ -159,7 +148,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     }
 
     public Set<Figure> getSuccessorSet() {
-        Set<Figure> result = new HashSet<Figure>();
+        Set<Figure> result = new HashSet<>();
         for (Figure f : getSuccessors()) {
             result.add(f);
         }
@@ -188,10 +177,12 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         successors.remove(f);
     }
 
+    @Override
     public void setPosition(Point p) {
         this.position = p;
     }
 
+    @Override
     public Point getPosition() {
         return position;
     }
@@ -200,6 +191,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         return diagram;
     }
 
+    @Override
     public Source getSource() {
         return source;
     }
@@ -221,7 +213,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
 
         assert inputSlots.contains(s) || outputSlots.contains(s);
 
-        List<Connection> connections = new ArrayList<Connection>(s.getConnections());
+        List<Connection> connections = new ArrayList<>(s.getConnections());
         for (Connection c : connections) {
             c.remove();
         }
@@ -251,7 +243,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
     }
     
     public Set<Slot> getSlots() {
-        Set<Slot> result = new HashSet<Slot>();
+        Set<Slot> result = new HashSet<>();
         result.addAll(getInputSlots());
         result.addAll(getOutputSlots());
         return result;
@@ -321,6 +313,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         return sb.toString();
     }
 
+    @Override
     public Dimension getSize() {
         if (VERTICAL_LAYOUT) {
             int width = Math.max(getWidth(), Figure.SLOT_WIDTH * (Math.max(inputSlots.size(), outputSlots.size()) + 1));
@@ -340,19 +333,7 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         return idString;
     }
 
-    public Cluster getCluster() {
-        if (getSource().getSourceNodes().size() == 0) {
-            assert false : "Should never reach here, every figure must have at least one source node!";
-            return null;
-        } else {
-            final InputBlock inputBlock = diagram.getGraph().getBlock(getSource().getSourceNodes().get(0));
-            assert inputBlock != null;
-            Cluster result = diagram.getBlock(inputBlock);
-            assert result != null;
-            return result;
-        }
-    }
-
+    @Override
     public boolean isRoot() {
   
         List<InputNode> sourceNodes = source.getSourceNodes();
@@ -363,7 +344,12 @@ public class Figure extends Properties.Entity implements Source.Provider, Vertex
         }
     }
 
+    @Override
     public int compareTo(Vertex f) {
         return toString().compareTo(f.toString());
+    }
+
+    public Rectangle getBounds() {
+        return new Rectangle(this.getPosition(), new Dimension(this.getWidth(), this.getHeight()));
     }
 }

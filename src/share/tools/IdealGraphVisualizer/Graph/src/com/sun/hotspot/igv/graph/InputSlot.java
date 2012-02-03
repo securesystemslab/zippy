@@ -36,15 +36,18 @@ public class InputSlot extends Slot {
         super(figure, wantedIndex);
     }
 
+    @Override
     public int getPosition() {
         return getFigure().getInputSlots().indexOf(this);
     }
 
+    @Override
     public void setPosition(int position) {
         List<InputSlot> inputSlots = getFigure().inputSlots;
         InputSlot s = inputSlots.remove(position);
         inputSlots.add(position, s);
     }
+    @Override
     public Point getRelativePosition() {
         int gap = getFigure().getWidth() - Figure.getSlotsWidth(getFigure().getInputSlots());
         double gapRatio = (double)gap / (double)(getFigure().getInputSlots().size() + 1);

@@ -34,6 +34,7 @@ public class InputNode extends Properties.Entity {
     private int id;
 
     public static final Comparator<InputNode> COMPARATOR = new Comparator<InputNode>() {
+        @Override
         public int compare(InputNode o1, InputNode o2) {
             return o1.getId() - o2.getId();
         }
@@ -42,6 +43,7 @@ public class InputNode extends Properties.Entity {
     public static Comparator<InputNode> getPropertyComparator(final String propertyName) {
         return new Comparator<InputNode>() {
 
+            @Override
             public int compare(InputNode o1, InputNode o2) {
 
                 int i1 = 0;

@@ -44,8 +44,8 @@ public class CheckListView extends ListView {
     }
 
     @Override
-    protected JList createList() {
-        JList tmpList = super.createList();
+    protected JList<Object> createList() {
+        JList<Object> tmpList = super.createList();
         tmpList.setCellRenderer(new CheckRenderer(tmpList));
         return tmpList;
     }

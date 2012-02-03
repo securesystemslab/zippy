@@ -101,7 +101,7 @@ class DebugInformationRecorder: public ResourceObj {
                       methodHandle   method,
                       int         bci,
                       bool        reexecute,
-                      bool        rethrow_exception,
+                      bool        rethrow_exception = false,
                       bool        is_method_handle_invoke = false,
                       bool        return_oop = false,
                       DebugToken* locals      = NULL,

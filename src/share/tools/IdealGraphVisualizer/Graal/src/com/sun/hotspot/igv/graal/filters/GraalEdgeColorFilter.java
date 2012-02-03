@@ -26,6 +26,7 @@ package com.sun.hotspot.igv.graal.filters;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.filter.AbstractFilter;
 import com.sun.hotspot.igv.graph.Connection;
+import com.sun.hotspot.igv.graph.Connection.ConnectionStyle;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
@@ -46,10 +47,12 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     public GraalEdgeColorFilter() {
     }
 
+    @Override
     public String getName() {
         return "Graal Edge Color Filter";
     }
 
+    @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
         for (Figure f : figures) {
@@ -62,8 +65,10 @@ public class GraalEdgeColorFilter extends AbstractFilter {
             }
             for (InputSlot is : f.getInputSlots()) {
                 Color color;
+                ConnectionStyle style = ConnectionStyle.NORMAL;
                 if (is.getPosition() < predCount) {
                     color = successorColor;
+                    style = ConnectionStyle.BOLD;
                 } else {
                     color = usageColor;
                 }
@@ -72,9 +77,11 @@ public class GraalEdgeColorFilter extends AbstractFilter {
                 for (Connection c : is.getConnections()) {
                     if (c.getLabel() == null || !c.getLabel().endsWith("#NDF")) {
                         c.setColor(color);
+                        c.setStyle(style);
                     } else if ("EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))
                             || "EndNode".equals(c.getOutputSlot().getProperties().get("class"))) {
                         c.setColor(successorColor);
+                        c.setStyle(ConnectionStyle.BOLD);
                     }
                 }
             }

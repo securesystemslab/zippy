@@ -53,6 +53,7 @@ public class PanModeAction extends AbstractAction {
         return "com/sun/hotspot/igv/view/images/pan_mode.png";
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
     }
 }

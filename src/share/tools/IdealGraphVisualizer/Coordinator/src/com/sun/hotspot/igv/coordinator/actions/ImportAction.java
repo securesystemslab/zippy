@@ -27,8 +27,8 @@ package com.sun.hotspot.igv.coordinator.actions;
 import com.sun.hotspot.igv.coordinator.OutlineTopComponent;
 import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.serialization.Parser;
-import com.sun.hotspot.igv.settings.Settings;
 import com.sun.hotspot.igv.data.serialization.XMLParser;
+import com.sun.hotspot.igv.settings.Settings;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
@@ -38,6 +38,7 @@ import java.io.IOException;
 import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
@@ -59,16 +60,19 @@ public final class ImportAction extends CallableSystemAction {
     public static FileFilter getFileFilter() {
         return new FileFilter() {
 
+            @Override
             public boolean accept(File f) {
                 return f.getName().toLowerCase().endsWith(".xml") || f.isDirectory();
             }
 
+            @Override
             public String getDescription() {
                 return "XML files (*.xml)";
             }
         };
     }
 
+    @Override
     public void performAction() {
 
         JFileChooser fc = new JFileChooser();
@@ -96,6 +100,7 @@ public final class ImportAction extends CallableSystemAction {
 
                 final XMLParser.ParseMonitor parseMonitor = new XMLParser.ParseMonitor() {
 
+                    @Override
                     public void setProgress(double d) {
                         try {
                             int curAvailable = inputStream.available();
@@ -105,6 +110,7 @@ public final class ImportAction extends CallableSystemAction {
                         }
                     }
 
+                    @Override
                     public void setState(String state) {
                         setProgress(0.0);
                         handle.progress(state);
@@ -117,12 +123,18 @@ public final class ImportAction extends CallableSystemAction {
 
                 RequestProcessor.getDefault().post(new Runnable() {
 
+                    @Override
                     public void run() {
-                        GraphDocument document = null;
                         try {
-                            document = parser.parse(is, parseMonitor);
+                            final GraphDocument document = parser.parse(is, parseMonitor);
                             parseMonitor.setState("Finishing");
-                            component.getDocument().addGraphDocument(document);
+                            SwingUtilities.invokeLater(new Runnable(){
+
+                                @Override
+                                public void run() {
+                                    component.getDocument().addGraphDocument(document);
+                                }
+                            });
                         } catch (SAXException ex) {
                             String s = "Exception during parsing the XML file, could not load document!";
                             if (ex instanceof XMLParser.MissingAttributeException) {
@@ -145,6 +157,7 @@ public final class ImportAction extends CallableSystemAction {
         }
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(ImportAction.class, "CTL_ImportAction");
     }
@@ -159,6 +172,7 @@ public final class ImportAction extends CallableSystemAction {
         return "com/sun/hotspot/igv/coordinator/images/import.png";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

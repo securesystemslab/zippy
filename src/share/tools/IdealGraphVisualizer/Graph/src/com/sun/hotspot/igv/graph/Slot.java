@@ -35,8 +35,8 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * 
@@ -55,7 +55,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 
 	protected Slot(Figure figure, int wantedIndex) {
 		this.figure = figure;
-		connections = new ArrayList<Connection>(2);
+		connections = new ArrayList<>(2);
 		source = new Source();
 		this.wantedIndex = wantedIndex;
 		text = "";
@@ -63,6 +63,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 		assert figure != null;
 	}
 
+    @Override
 	public Properties getProperties() {
 		Properties p = new Properties();
 		if (source.getSourceNodes().size() > 0) {
@@ -78,12 +79,14 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 	}
 	public static final Comparator<Slot> slotIndexComparator = new Comparator<Slot>() {
 
+        @Override
 		public int compare(Slot o1, Slot o2) {
 			return o1.wantedIndex - o2.wantedIndex;
 		}
 	};
 	public static final Comparator<Slot> slotFigureComparator = new Comparator<Slot>() {
 
+        @Override
 		public int compare(Slot o1, Slot o2) {
 			return o1.figure.getId() - o2.figure.getId();
 		}
@@ -113,6 +116,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 		return wantedIndex;
 	}
 
+    @Override
 	public Source getSource() {
 		return source;
 	}
@@ -173,12 +177,13 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 	}
 
 	public void removeAllConnections() {
-		List<Connection> connectionsCopy = new ArrayList<Connection>(this.connections);
+		List<Connection> connectionsCopy = new ArrayList<>(this.connections);
 		for (Connection c : connectionsCopy) {
 			c.remove();
 		}
 	}
 
+    @Override
 	public Vertex getVertex() {
 		return figure;
 	}

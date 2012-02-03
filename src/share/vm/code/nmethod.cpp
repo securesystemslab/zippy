@@ -1235,6 +1235,14 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
     }
     _method = NULL;            // Clear the method of this dead nmethod
   }
+
+#ifdef GRAAL
+    if (_graal_compiled_method != NULL) {
+      HotSpotCompiledMethod::set_nmethod(_graal_compiled_method, 0);
+      _graal_compiled_method = NULL;
+    }
+#endif
+
   // Make the class unloaded - i.e., change state and notify sweeper
   assert(SafepointSynchronize::is_at_safepoint(), "must be at safepoint");
   if (is_in_use()) {

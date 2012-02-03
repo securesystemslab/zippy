@@ -74,6 +74,7 @@ public class CustomizablePanAction extends WidgetAction.LockedAdapter {
         this.modifiersEx = modifiersEx;
     }
 
+    @Override
     protected boolean isLocked() {
         return scrollPane != null;
     }

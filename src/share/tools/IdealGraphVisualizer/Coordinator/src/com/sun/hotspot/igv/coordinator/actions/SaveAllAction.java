@@ -39,11 +39,13 @@ import org.openide.util.actions.CallableSystemAction;
  */
 public final class SaveAllAction extends CallableSystemAction {
 
+    @Override
     public void performAction() {
         final OutlineTopComponent component = OutlineTopComponent.findInstance();
         SaveAsAction.save(component.getDocument());
     }
 
+    @Override
     public String getName() {
         return NbBundle.getMessage(SaveAllAction.class, "CTL_SaveAllAction");
     }
@@ -58,6 +60,7 @@ public final class SaveAllAction extends CallableSystemAction {
         return "com/sun/hotspot/igv/coordinator/images/saveall.gif";
     }
 
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

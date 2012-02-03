@@ -37,6 +37,7 @@ public class BytecodeViewAction extends AbstractAction {
         super(NbBundle.getMessage(BytecodeViewAction.class, "CTL_BytecodeViewAction"));
     }
 
+    @Override
     public void actionPerformed(ActionEvent evt) {
         TopComponent win = BytecodeViewTopComponent.findInstance();
         win.open();
