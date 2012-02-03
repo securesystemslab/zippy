@@ -29,6 +29,7 @@
 #include "graal/graalVmIds.hpp"
 #include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "compiler/compilerOracle.hpp"
 #include "runtime/arguments.hpp"
 
 GraalCompiler* GraalCompiler::_instance = NULL;
@@ -270,7 +271,7 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   HotSpotMethodResolved::set_accessFlags(obj, method->access_flags().as_int());
   HotSpotMethodResolved::set_maxLocals(obj, method->max_locals());
   HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
-  HotSpotMethodResolved::set_canBeInlined(obj, true);
+  HotSpotMethodResolved::set_canBeInlined(obj, !CompilerOracle::should_not_inline(method));
   
   method->set_graal_mirror(obj());
   return obj;
