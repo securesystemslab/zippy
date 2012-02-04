@@ -451,43 +451,52 @@ def unittest(args):
 def gate(args):
     """run the tests used to validate a push
 
-    If this commands exits with a 0 exit code, then the source code is in
+    If this command exits with a 0 exit code, then the source code is in
     a state that would be accepted for integration into the main repository."""
+    
+    
     
     class Task:
         def __init__(self, title):
             self.start = time.time()
             self.title = title
+            self.end = None
+            self.duration = None
             mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: BEGIN: ') + title)
         def stop(self):
-            duration = datetime.timedelta(seconds=time.time() - self.start)
-            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: END:   ') + self.title + ' [' + str(duration) + ']')
+            self.end = time.time()
+            self.duration = datetime.timedelta(seconds=self.end - self.start)
+            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: END:   ') + self.title + ' [' + str(self.duration) + ']')
+            return self
         def abort(self, codeOrMessage):
-            duration = datetime.timedelta(seconds=time.time() - self.start)
-            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(duration) + ']')
+            self.end = time.time()
+            self.duration = datetime.timedelta(seconds=self.end - self.start)
+            mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(self.duration) + ']')
             mx.abort(codeOrMessage)
+            return self
              
+    tasks = []             
     total = Task('Gate')
     try:
         
-        t = Task('CleanJava')
-        clean(['--no-native'])
-        t.stop()
+        t = Task('Clean')
+        clean([])
+        tasks.append(t.stop())
         
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
             t.abort('Checkstyle warnings were found')
-        t.stop()
+        tasks.append(t.stop())
     
         t = Task('Canonicalization Check')
         mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
         if mx.canonicalizeprojects([]) != 0:
             t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
-        t.stop()
+        tasks.append(t.stop())
     
         t = Task('BuildJava')
         build(['--no-native'])
-        t.stop()
+        tasks.append(t.stop())
     
         for vmbuild in ['product', 'fastdebug']:
             global _vmbuild
@@ -495,21 +504,21 @@ def gate(args):
             
             t = Task('BuildHotSpot:' + vmbuild)
             build(['--no-java', vmbuild])
-            t.stop()
+            tasks.append(t.stop())
             
             t = Task('BootstrapWithSystemAssertions:' + vmbuild)
             vm(['-esa', '-version'])
-            t.stop()
+            tasks.append(t.stop())
             
             t = Task('UnitTests:' + vmbuild)
             unittest([])
-            t.stop()
+            tasks.append(t.stop())
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
                 if not test.test('graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
-                t.stop()
+                tasks.append(t.stop())
     except KeyboardInterrupt:
         total.abort(1)
     
@@ -519,6 +528,12 @@ def gate(args):
         total.abort(str(e))
 
     total.stop()
+    
+    mx.log('Gate task times:')
+    for t in tasks:
+        mx.log('  ' + str(t.duration) + '\t' + t.title)
+    mx.log('  =======')
+    mx.log('  ' + str(total.duration))
 
 def bench(args):
     """run benchmarks and parse their output for results
