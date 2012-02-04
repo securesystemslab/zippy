@@ -132,12 +132,13 @@ public final class EditorTopComponent extends TopComponent {
 
         this.group = graph.getGroup();
         rangeSliderModel = new RangeSliderModel(calculateStringList(group));
+        content = new InstanceContent();
+        content.add(rangeSliderModel);
         int graphPos = group.getGraphs().indexOf(graph);
         rangeSliderModel.setPositions(graphPos, graphPos);
         rangeSlider = new RangeSlider(rangeSliderModel);
 
         Collection<? extends CompilationViewerFactory> factories = Lookup.getDefault().lookupAll(CompilationViewerFactory.class);
-        content = new InstanceContent();
         proxyLookup = Lookups.proxy(currentViewLookupProvider);
         this.associateLookup(new ProxyLookup(new Lookup[]{proxyLookup, new AbstractLookup(content)}));
 

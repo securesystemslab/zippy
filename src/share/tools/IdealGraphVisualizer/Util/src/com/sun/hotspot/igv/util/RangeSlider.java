@@ -32,7 +32,7 @@ import java.awt.event.MouseMotionListener;
 import java.util.List;
 import javax.swing.JComponent;
 
-public class RangeSlider extends JComponent {
+public final class RangeSlider extends JComponent {
 
     public static final int BAR_THICKNESS = 2;
     public static final int BAR_CIRCLE_SIZE = 9;
@@ -51,8 +51,7 @@ public class RangeSlider extends JComponent {
     public RangeSlider(RangeSliderModel newModel) {
         this.addMouseMotionListener(mouseMotionListener);
         this.addMouseListener(mouseListener);
-        newModel.getChangedEvent().addListener(modelChangedListener);
-        this.model = newModel;
+        setModel(newModel);
     }
 
     private RangeSliderModel getPaintingModel() {
@@ -82,8 +81,8 @@ public class RangeSlider extends JComponent {
         d.height = ITEM_HEIGHT * list.size();
         return d;
     }
-    
     private ChangedListener<RangeSliderModel> modelChangedListener = new ChangedListener<RangeSliderModel>() {
+
         @Override
         public void changed(RangeSliderModel source) {
             update();
@@ -208,17 +207,21 @@ public class RangeSlider extends JComponent {
 
         @Override
         public void mouseClicked(MouseEvent e) {
-            int index = getIndexFromPosition(e.getPoint().y);
-            model.setPositions(index, index);
+            if (model != null) {
+                int index = getIndexFromPosition(e.getPoint().y);
+                model.setPositions(index, index);
+            }
         }
 
         @Override
         public void mousePressed(MouseEvent e) {
-            int index = getIndexFromPosition(e.getPoint().y);
-            startPoint = e.getPoint();
-            tempModel = model.copy();
-            tempModel.getChangedEvent().addListener(modelChangedListener);
-            tempModel.setPositions(index, index);
+            if (model != null) {
+                int index = getIndexFromPosition(e.getPoint().y);
+                startPoint = e.getPoint();
+                tempModel = model.copy();
+                tempModel.getChangedEvent().addListener(modelChangedListener);
+                tempModel.setPositions(index, index);
+            }
         }
 
         @Override
@@ -240,4 +243,18 @@ public class RangeSlider extends JComponent {
             repaint();
         }
     };
+
+    public void setModel(RangeSliderModel newModel) {
+        if (newModel != this.model) {
+            if (this.model != null) {
+                this.model.getChangedEvent().removeListener(modelChangedListener);
+            }
+            this.model = newModel;
+            if (newModel != null) {
+                newModel.getChangedEvent().addListener(modelChangedListener);
+            }
+            this.tempModel = null;
+            update();
+        }
+    }
 }
