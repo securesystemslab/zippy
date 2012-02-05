@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,17 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.graph.iterators;
+package com.oracle.max.graal.compiler.phases;
 
-import com.oracle.max.graal.graph.*;
+import com.oracle.max.graal.nodes.*;
 
-public final class TypePredicate extends NodePredicate {
-    private final Class<? extends Node> type;
-    public TypePredicate(Class< ? extends Node> type) {
-        this.type = type;
-    }
+public class InsertStateAfterPlaceholderPhase extends Phase {
+
     @Override
-    public boolean apply(Node n) {
-        return type.isInstance(n);
+    protected void run(StructuredGraph graph) {
+        for (ReturnNode ret : graph.getNodes(ReturnNode.class)) {
+            PlaceholderNode p = graph.add(new PlaceholderNode());
+            p.setStateAfter(graph.add(new FrameState(null, FrameState.AFTER_BCI, 0, 0, false)));
+            graph.addBeforeFixed(ret, p);
+        }
     }
+
 }

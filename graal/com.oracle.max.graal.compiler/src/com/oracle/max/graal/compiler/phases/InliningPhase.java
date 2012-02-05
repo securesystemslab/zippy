@@ -47,7 +47,7 @@ public class InliningPhase extends Phase implements InliningCallback {
     private final CiTarget target;
     private final GraalRuntime runtime;
 
-    private final Collection<Invoke> hints;
+    private final Collection<? extends Invoke> hints;
 
     private final PriorityQueue<InlineInfo> inlineCandidates = new PriorityQueue<>();
     private CiAssumptions assumptions;
@@ -58,7 +58,7 @@ public class InliningPhase extends Phase implements InliningCallback {
     private static final DebugMetric metricInliningPerformed = Debug.metric("InliningPerformed");
     private static final DebugMetric metricInliningConsidered = Debug.metric("InliningConsidered");
 
-    public InliningPhase(CiTarget target, GraalRuntime runtime, Collection<Invoke> hints, CiAssumptions assumptions, PhasePlan plan) {
+    public InliningPhase(CiTarget target, GraalRuntime runtime, Collection<? extends Invoke> hints, CiAssumptions assumptions, PhasePlan plan) {
         this.target = target;
         this.runtime = runtime;
         this.hints = hints;
@@ -125,11 +125,8 @@ public class InliningPhase extends Phase implements InliningCallback {
                     Invoke invoke = (Invoke) node;
                     scanInvoke(invoke, level);
                 }
-                for (Node usage : node.usages().snapshot()) {
-                    if (usage instanceof Invoke) {
-                        Invoke invoke = (Invoke) usage;
-                        scanInvoke(invoke, level);
-                    }
+                for (Node usage : node.usages().filterInterface(Invoke.class).snapshot()) {
+                    scanInvoke((Invoke) usage, level);
                 }
             }
         }

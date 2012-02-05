@@ -20,35 +20,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.compiler.util;
+package com.oracle.max.graal.hotspot.snippets;
 
-import java.util.*;
+import com.oracle.max.cri.ci.*;
+import com.oracle.max.graal.nodes.extended.*;
+import com.oracle.max.graal.snippets.*;
 
-import com.oracle.max.graal.graph.iterators.*;
-import com.oracle.max.graal.nodes.*;
-import com.oracle.max.graal.util.*;
+/**
+ * Snippets for {@link java.lang.System} methods.
+ */
+@ClassSubstitution(java.lang.System.class)
+public class SystemSnippets implements SnippetsInterface {
 
-public class NodeIterators {
-
-    public static NodeIterable<FixedNode> dominators(final FixedNode n) {
-        return new NodeIterable<FixedNode>() {
-            @Override
-            public Iterator<FixedNode> iterator() {
-                return new NodeIterator<FixedNode>(until){
-                    FixedNode p = n;
-                    @Override
-                    protected void forward() {
-                        if (current == null) {
-                            if (p instanceof MergeNode) {
-                                current = new ComputeImmediateDominator((MergeNode) p).compute();
-                            } else {
-                                current = (FixedNode) p.predecessor();
-                            }
-                            p = current;
-                        }
-                    }
-                };
-            }
-        };
+    public static long currentTimeMillis() {
+        return RuntimeCallNode.performCall(CiRuntimeCall.JavaTimeMillis);
     }
+
+    public static long nanoTime() {
+        return RuntimeCallNode.performCall(CiRuntimeCall.JavaTimeNanos);
+    }
+
 }

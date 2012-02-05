@@ -134,7 +134,7 @@ class Test:
         self.name = name
         self.group = group
         self.successREs = successREs
-        self.failureREs = failureREs
+        self.failureREs = failureREs + [re.compile(r"Exception occured in scope: ")]
         self.scoreMatchers = scoreMatchers
         self.vmOpts = vmOpts
         self.cmd = cmd

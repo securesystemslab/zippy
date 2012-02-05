@@ -20,14 +20,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.snippets;
+package com.oracle.max.graal.hotspot.snippets;
 
 import java.lang.reflect.*;
 
+import com.oracle.max.cri.ci.*;
 import com.oracle.max.cri.ri.*;
 import com.oracle.max.graal.compiler.phases.*;
 import com.oracle.max.graal.compiler.util.*;
 import com.oracle.max.graal.cri.*;
+import com.oracle.max.graal.debug.*;
 import com.oracle.max.graal.graph.*;
 import com.oracle.max.graal.nodes.*;
 import com.oracle.max.graal.nodes.java.*;
@@ -40,6 +42,9 @@ public class IntrinsifyArrayCopyPhase extends Phase {
     private RiResolvedMethod charArrayCopy;
     private RiResolvedMethod intArrayCopy;
     private RiResolvedMethod longArrayCopy;
+    private RiResolvedMethod floatArrayCopy;
+    private RiResolvedMethod doubleArrayCopy;
+    private RiResolvedMethod objectArrayCopy;
 
     public IntrinsifyArrayCopyPhase(GraalRuntime runtime) {
         this.runtime = runtime;
@@ -49,6 +54,9 @@ public class IntrinsifyArrayCopyPhase extends Phase {
             shortArrayCopy = getArrayCopySnippet(runtime, short.class);
             intArrayCopy = getArrayCopySnippet(runtime, int.class);
             longArrayCopy = getArrayCopySnippet(runtime, long.class);
+            floatArrayCopy = getArrayCopySnippet(runtime, float.class);
+            doubleArrayCopy = getArrayCopySnippet(runtime, double.class);
+            objectArrayCopy = getArrayCopySnippet(runtime, Object.class);
             arrayCopy = runtime.getRiMethod(System.class.getDeclaredMethod("arraycopy", Object.class, int.class, Object.class, int.class, int.class));
         } catch (SecurityException e) {
             e.printStackTrace();
@@ -64,6 +72,7 @@ public class IntrinsifyArrayCopyPhase extends Phase {
 
     @Override
     protected void run(StructuredGraph graph) {
+        boolean hits = false;
         for (MethodCallTargetNode methodCallTarget : graph.getNodes(MethodCallTargetNode.class)) {
             RiResolvedMethod targetMethod = methodCallTarget.targetMethod();
             RiResolvedMethod snippetMethod = null;
@@ -78,19 +87,29 @@ public class IntrinsifyArrayCopyPhase extends Phase {
                 if (srcDeclaredType != null
                                 && srcDeclaredType.isArrayClass()
                                 && destDeclaredType != null
-                                && destDeclaredType.isArrayClass()
-                                && srcDeclaredType.componentType() == destDeclaredType.componentType()) {
-                    Class<?> componentType = srcDeclaredType.componentType().toJava();
-                    if (componentType.equals(int.class)) {
-                        snippetMethod = intArrayCopy;
-                    } else if (componentType.equals(char.class)) {
-                        snippetMethod = charArrayCopy;
-                    } else if (componentType.equals(long.class)) {
-                        snippetMethod = longArrayCopy;
-                    } else if (componentType.equals(byte.class)) {
-                        snippetMethod = byteArrayCopy;
-                    } else if (componentType.equals(short.class)) {
-                        snippetMethod = shortArrayCopy;
+                                && destDeclaredType.isArrayClass()) {
+                    CiKind componentKind = srcDeclaredType.componentType().kind(false);
+                    if (srcDeclaredType.componentType() == destDeclaredType.componentType()) {
+                        if (componentKind == CiKind.Int) {
+                            snippetMethod = intArrayCopy;
+                        } else if (componentKind == CiKind.Char) {
+                            snippetMethod = charArrayCopy;
+                        } else if (componentKind == CiKind.Long) {
+                            snippetMethod = longArrayCopy;
+                        } else if (componentKind == CiKind.Byte) {
+                            snippetMethod = byteArrayCopy;
+                        } else if (componentKind == CiKind.Short) {
+                            snippetMethod = shortArrayCopy;
+                        } else if (componentKind == CiKind.Float) {
+                            snippetMethod = floatArrayCopy;
+                        } else if (componentKind == CiKind.Double) {
+                            snippetMethod = doubleArrayCopy;
+                        } else if (componentKind == CiKind.Object) {
+                            snippetMethod = objectArrayCopy;
+                        }
+                    } else if (componentKind == CiKind.Object
+                                    && srcDeclaredType.componentType().isSubtypeOf(destDeclaredType.componentType())) {
+                        snippetMethod = objectArrayCopy;
                     }
                 }
             }
@@ -98,10 +117,13 @@ public class IntrinsifyArrayCopyPhase extends Phase {
             if (snippetMethod != null) {
                 StructuredGraph snippetGraph = (StructuredGraph) snippetMethod.compilerStorage().get(Graph.class);
                 assert snippetGraph != null : "ArrayCopySnippets should be installed";
-                //TTY.println("  >  Intinsify");
+                hits = true;
+                Debug.log("%s > Intinsify (%s)", Debug.currentScope(), snippetMethod.signature().argumentTypeAt(0, snippetMethod.holder()).componentType());
                 InliningUtil.inline(methodCallTarget.invoke(), snippetGraph, false);
             }
         }
-        new CanonicalizerPhase(null, runtime, null).apply(graph);
+        if (hits) {
+            new CanonicalizerPhase(null, runtime, null).apply(graph);
+        }
     }
 }

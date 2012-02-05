@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,25 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.snippets;
+package com.oracle.max.graal.compiler.cfg;
 
-import com.oracle.max.cri.ci.*;
-import com.oracle.max.graal.nodes.extended.*;
+import java.util.*;
 
-/**
- * Snippets for {@link java.lang.System} methods.
- */
-@ClassSubstitution(java.lang.System.class)
-public class SystemSnippets implements SnippetsInterface {
+public class Loop {
+    public final Loop parent;
+    public final List<Loop> children;
 
-    // TODO: public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) { }
+    public final int depth;
+    public final int index;
+    public final Block header;
+    public final List<Block> blocks;
+    public final List<Block> exits;
 
-    public static long currentTimeMillis() {
-        return RuntimeCallNode.performCall(CiRuntimeCall.JavaTimeMillis);
+    protected Loop(Loop parent, int index, Block header) {
+        this.parent = parent;
+        if (parent != null) {
+            this.depth = parent.depth + 1;
+            parent.children.add(this);
+        } else {
+            this.depth = 1;
+        }
+        this.index = index;
+        this.header = header;
+        this.blocks = new ArrayList<>();
+        this.children = new ArrayList<>();
+        this.exits = new ArrayList<>();
     }
 
-    public static long nanoTime() {
-        return RuntimeCallNode.performCall(CiRuntimeCall.JavaTimeNanos);
+    @Override
+    public String toString() {
+        return "loop " + index + " depth " + depth + (parent != null ? " outer " + parent.index : "");
     }
-
 }

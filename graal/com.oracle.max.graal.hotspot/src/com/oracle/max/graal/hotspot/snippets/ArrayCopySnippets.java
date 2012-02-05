@@ -20,10 +20,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.snippets;
+package com.oracle.max.graal.hotspot.snippets;
 
 import com.oracle.max.cri.ci.*;
+import com.oracle.max.graal.cri.*;
+import com.oracle.max.graal.hotspot.*;
+import com.oracle.max.graal.nodes.*;
 import com.oracle.max.graal.nodes.extended.*;
+import com.oracle.max.graal.nodes.spi.*;
+import com.oracle.max.graal.nodes.type.*;
+import com.oracle.max.graal.snippets.*;
 import com.oracle.max.graal.snippets.nodes.*;
 
 
@@ -154,6 +160,29 @@ public class ArrayCopySnippets implements SnippetsInterface{
     }
 
     @Snippet
+    public static void arraycopy(float[] src, int srcPos, float[] dest, int destPos, int length) {
+        if (src == null || dest == null) {
+            throw new NullPointerException();
+        }
+        if (srcPos < 0 || destPos < 0 || length < 0 || srcPos + length > src.length || destPos + length > dest.length) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (src == dest && srcPos < destPos) { // bad aliased case
+            if ((length & 0x01) == 0) {
+                copyLongsDown(src, srcPos * 4L, dest, destPos * 4L, length >> 1);
+            } else {
+                copyIntsDown(src, srcPos * 4L, dest, destPos * 4L, length);
+            }
+        } else {
+            if ((length & 0x01) == 0) {
+                copyLongsUp(src, srcPos * 4L, dest, destPos * 4L, length >> 1);
+            } else {
+                copyIntsUp(src, srcPos * 4L, dest, destPos * 4L, length);
+            }
+        }
+    }
+
+    @Snippet
     public static void arraycopy(long[] src, int srcPos, long[] dest, int destPos, int length) {
         if (src == null || dest == null) {
             throw new NullPointerException();
@@ -165,6 +194,49 @@ public class ArrayCopySnippets implements SnippetsInterface{
             copyLongsDown(src, srcPos * 8L, dest, destPos * 8L, length);
         } else {
             copyLongsUp(src, srcPos * 8L, dest, destPos * 8L, length);
+        }
+    }
+
+    @Snippet
+    public static void arraycopy(double[] src, int srcPos, double[] dest, int destPos, int length) {
+        if (src == null || dest == null) {
+            throw new NullPointerException();
+        }
+        if (srcPos < 0 || destPos < 0 || length < 0 || srcPos + length > src.length || destPos + length > dest.length) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (src == dest && srcPos < destPos) { // bad aliased case
+            copyLongsDown(src, srcPos * 8L, dest, destPos * 8L, length);
+        } else {
+            copyLongsUp(src, srcPos * 8L, dest, destPos * 8L, length);
+        }
+    }
+
+    // Does NOT perform store checks
+    @Snippet
+    public static void arraycopy(Object[] src, int srcPos, Object[] dest, int destPos, int length) {
+        if (src == null || dest == null) {
+            throw new NullPointerException();
+        }
+        if (srcPos < 0 || destPos < 0 || length < 0 || srcPos + length > src.length || destPos + length > dest.length) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (src == dest && srcPos < destPos) { // bad aliased case
+            copyObjectsDown(src, srcPos * 8L, dest, destPos * 8L, length);
+        } else {
+            copyObjectsUp(src, srcPos * 8L, dest, destPos * 8L, length);
+        }
+        if (length > 0) {
+            long header = ArrayHeaderSizeNode.sizeFor(CiKind.Object);
+            int cardShift = CardTableShiftNode.get();
+            long cardStart = CardTableStartNode.get();
+            long dstAddr = GetObjectAddressNode.get(dest);
+            long start = (dstAddr + header + destPos * 8L) >>> cardShift;
+            long end = (dstAddr + header + (destPos + length - 1) * 8L) >>> cardShift;
+            long count = end - start + 1;
+            while (count-- > 0) {
+                DirectStoreNode.store((start + cardStart) + count, false);
+            }
         }
     }
 
@@ -201,6 +273,16 @@ public class ArrayCopySnippets implements SnippetsInterface{
         for (long i = (length - 1) * 8; i >= 0; i -= 8) {
             Long a = UnsafeLoadNode.load(src, i + (srcOffset + header), CiKind.Long);
             UnsafeStoreNode.store(dest, i + (destOffset + header), a.longValue(), CiKind.Long);
+        }
+    }
+
+    // Does NOT perform store checks
+    @Snippet
+    public static void copyObjectsDown(Object src, long srcOffset, Object dest, long destOffset, int length)  {
+        long header = ArrayHeaderSizeNode.sizeFor(CiKind.Object);
+        for (long i = (length - 1) * 8; i >= 0; i -= 8) {
+            Object a = UnsafeLoadNode.load(src, i + (srcOffset + header), CiKind.Object);
+            DirectObjectStoreNode.store(dest, i + (destOffset + header), a);
         }
     }
 
@@ -253,6 +335,128 @@ public class ArrayCopySnippets implements SnippetsInterface{
         for (long i = 0; i < length * 8L; i += 8) {
             Long a = UnsafeLoadNode.load(src, i + (srcOffset + header), CiKind.Long);
             UnsafeStoreNode.store(dest, i + (destOffset + header), a.longValue(), CiKind.Long);
+        }
+    }
+
+    // Does NOT perform store checks
+    @Snippet
+    public static void copyObjectsUp(Object src, long srcOffset, Object dest, long destOffset, int length)  {
+        long header = ArrayHeaderSizeNode.sizeFor(CiKind.Object);
+        for (long i = 0; i < length * 8L; i += 8) {
+            Object a = UnsafeLoadNode.load(src, i + (srcOffset + header), CiKind.Object);
+            DirectObjectStoreNode.store(dest, i + (destOffset + header), a);
+        }
+    }
+
+    private static class GetObjectAddressNode extends FixedWithNextNode implements LIRLowerable {
+        @Input private ValueNode object;
+
+        public GetObjectAddressNode(ValueNode obj) {
+            super(StampFactory.forKind(CiKind.Long));
+            this.object = obj;
+        }
+
+        @SuppressWarnings("unused")
+        @NodeIntrinsic
+        public static long get(Object array) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void generate(LIRGeneratorTool gen) {
+            CiValue obj = gen.newVariable(gen.target().wordKind);
+            gen.emitMove(gen.operand(object), obj);
+            gen.setResult(this, obj);
+        }
+    }
+
+    private static class DirectStoreNode extends FixedWithNextNode implements LIRLowerable {
+        @Input private ValueNode address;
+        @Input private ValueNode value;
+
+        public DirectStoreNode(ValueNode address, ValueNode value) {
+            super(StampFactory.illegal());
+            this.address = address;
+            this.value = value;
+        }
+
+        @SuppressWarnings("unused")
+        @NodeIntrinsic
+        public static void store(long address, long value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @SuppressWarnings("unused")
+        @NodeIntrinsic
+        public static void store(long address, boolean value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void generate(LIRGeneratorTool gen) {
+            CiValue v = gen.operand(value);
+            gen.emitStore(new CiAddress(v.kind, gen.operand(address)), v, false);
+        }
+    }
+
+    private static class DirectObjectStoreNode extends FixedWithNextNode implements Lowerable {
+        @Input private ValueNode object;
+        @Input private ValueNode value;
+        @Input private ValueNode offset;
+
+        public DirectObjectStoreNode(ValueNode object, ValueNode offset, ValueNode value) {
+            super(StampFactory.illegal());
+            this.object = object;
+            this.value = value;
+            this.offset = offset;
+        }
+
+        @SuppressWarnings("unused")
+        @NodeIntrinsic
+        public static void store(Object obj, long offset, long value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @SuppressWarnings("unused")
+        @NodeIntrinsic
+        public static void store(Object obj, long offset, boolean value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @SuppressWarnings("unused")
+        @NodeIntrinsic
+        public static void store(Object obj, long offset, Object value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void lower(CiLoweringTool tool) {
+            StructuredGraph graph = (StructuredGraph) this.graph();
+            IndexedLocationNode location = IndexedLocationNode.create(LocationNode.ANY_LOCATION, value.kind(), 0, offset, graph, false);
+            WriteNode write = graph.add(new WriteNode(object, value, location));
+            graph.replaceFixedWithFixed(this, write);
+        }
+    }
+
+    private static class CardTableShiftNode extends ConstantNode {
+        public CardTableShiftNode() {
+            super(CiConstant.forInt(CompilerImpl.getInstance().getConfig().cardtableShift));
+        }
+
+        @NodeIntrinsic
+        public static int get() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private static class CardTableStartNode extends ConstantNode {
+        public CardTableStartNode() {
+            super(CiConstant.forLong(CompilerImpl.getInstance().getConfig().cardtableStartAddress));
+        }
+
+        @NodeIntrinsic
+        public static long get() {
+            throw new UnsupportedOperationException();
         }
     }
 }

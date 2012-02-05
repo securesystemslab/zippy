@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,15 +20,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.compiler.phases;
+package com.oracle.max.graal.compiler.cfg;
 
-import com.oracle.max.graal.nodes.*;
+public class BlockMap<T> {
+    private final T[] data;
 
-public class RemovePlaceholderPhase extends Phase {
-    @Override
-    protected void run(StructuredGraph graph) {
-        for (PlaceholderNode n : graph.getNodes(PlaceholderNode.class)) {
-            graph.removeFixed(n);
-        }
+    @SuppressWarnings("unchecked")
+    public BlockMap(ControlFlowGraph cfg) {
+        data = (T[]) new Object[cfg.getBlocks().length];
+    }
+
+    public T get(Block block) {
+        return data[block.getId()];
+    }
+
+    public void put(Block block, T value) {
+        data[block.getId()] = value;
     }
 }

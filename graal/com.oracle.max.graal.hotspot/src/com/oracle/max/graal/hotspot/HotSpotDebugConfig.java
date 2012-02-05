@@ -25,6 +25,7 @@ package com.oracle.max.graal.hotspot;
 import java.util.*;
 import java.util.regex.*;
 
+import com.oracle.max.cri.ci.*;
 import com.oracle.max.cri.ri.*;
 import com.oracle.max.graal.compiler.*;
 import com.oracle.max.graal.debug.*;
@@ -76,7 +77,6 @@ public class HotSpotDebugConfig implements DebugConfig {
             filter = filter.replace("[", "\\[");
             filter = filter.replace("]", "\\]");
             filter = filter.replace(":", "\\:");*/
-            System.out.println("regexp: " + filter + " string=" + currentScope + ", " + Pattern.matches(filter, currentScope));
             return Pattern.matches(filter, currentScope);
         }
         return currentScope.contains(filter);
@@ -89,7 +89,7 @@ public class HotSpotDebugConfig implements DebugConfig {
             for (Object o : Debug.context()) {
                 if (o instanceof RiMethod) {
                     RiMethod riMethod = (RiMethod) o;
-                    if (riMethod.toString().contains(methodFilter)) {
+                    if (CiUtil.format("%H.%n", riMethod).contains(methodFilter)) {
                         return true;
                     }
                 }
@@ -121,7 +121,11 @@ public class HotSpotDebugConfig implements DebugConfig {
 
     @Override
     public RuntimeException interceptException(RuntimeException e) {
-        Debug.setConfig(Debug.fixedConfig(true, true, false, false));
+        if (e instanceof CiBailout) {
+            return e;
+        }
+        Debug.setConfig(Debug.fixedConfig(true, true, false, false, dumpHandlers));
+        // sync "Exception occured in scope: " with mx/sanitycheck.py::Test.__init__
         Debug.log(String.format("Exception occured in scope: %s", Debug.currentScope()));
         for (Object o : Debug.context()) {
             Debug.log("Context obj %s", o);
