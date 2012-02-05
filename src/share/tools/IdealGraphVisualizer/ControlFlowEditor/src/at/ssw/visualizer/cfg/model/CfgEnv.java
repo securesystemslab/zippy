@@ -29,9 +29,9 @@ public class CfgEnv {
         this.cfg = cfg;        
         int blockCount = cfg.getBasicBlocks().size();
         CfgNodeImpl[] nodes = new CfgNodeImpl[blockCount];
-        Map<BasicBlock, CfgNodeImpl> block2nodeMap = new HashMap<BasicBlock, CfgNodeImpl>();
-        Map<CfgNodeImpl, Set<CfgEdgeImpl>> inputMap = new HashMap<CfgNodeImpl, Set<CfgEdgeImpl>>();
-        ArrayList<CfgEdgeImpl> allEdges = new ArrayList<CfgEdgeImpl>();
+        Map<BasicBlock, CfgNodeImpl> block2nodeMap = new HashMap<>();
+        Map<CfgNodeImpl, Set<CfgEdgeImpl>> inputMap = new HashMap<>();
+        ArrayList<CfgEdgeImpl> allEdges = new ArrayList<>();
         List<BasicBlock> blocks = cfg.getBasicBlocks();           
         //create nodes
         for(int idx=0 ; idx < blockCount ; idx++) {
@@ -54,12 +54,12 @@ public class CfgEnv {
         
         
         //create edges
-        Set<String> cache = new HashSet<String>();//avoids identical edges with same source and same target
+        Set<String> cache = new HashSet<>();//avoids identical edges with same source and same target
         for(int i = 0 ; i < blockCount ; i++) {
             BasicBlock b = blocks.get(i);       
-            List<CfgEdgeImpl> outputEdges = new ArrayList<CfgEdgeImpl>();           
+            List<CfgEdgeImpl> outputEdges = new ArrayList<>();           
             
-            Set<BasicBlock> successors = new HashSet<BasicBlock>();
+            Set<BasicBlock> successors = new HashSet<>();
             successors.addAll(b.getSuccessors());
             successors.addAll(b.getXhandlers());
             for(BasicBlock sb : successors) {  
@@ -82,7 +82,7 @@ public class CfgEnv {
             CfgNodeImpl tar = (CfgNodeImpl) e.getTargetNode();
             Set<CfgEdgeImpl> set = inputMap.get(tar);
             if( set == null) {
-                set = new HashSet<CfgEdgeImpl>();      
+                set = new HashSet<>();      
                 set.add(e);
                 inputMap.put(tar, set);
             }
@@ -152,7 +152,7 @@ public class CfgEnv {
          }
          
          for(LoopInfo info : env.loopMap.values()) {          
-            HashSet<CfgNode> members =  new HashSet<CfgNode>(info.getMembers());         
+            HashSet<CfgNode> members =  new HashSet<>(info.getMembers());         
             members.remove(info.getHeader());//remove own header
             for(CfgNode n: members){              
                 if(n.isLoopHeader()) {                   
@@ -174,10 +174,10 @@ public class CfgEnv {
         private int loopIndex=0;
         
         public LoopEnv(Collection<CfgNodeImpl> nodes){
-            allNodes = new HashSet<CfgNodeImpl>(nodes); 
-            activeNodes = new HashSet<CfgNodeImpl>(2 * allNodes.size());
-            visitedNodes = new HashSet<CfgNodeImpl>(2 * allNodes.size());   
-            loopMap = new HashMap<CfgNode, LoopInfo>();
+            allNodes = new HashSet<>(nodes); 
+            activeNodes = new HashSet<>(2 * allNodes.size());
+            visitedNodes = new HashSet<>(2 * allNodes.size());   
+            loopMap = new HashMap<>();
         }  
         
         public int getLoopIndex(){         
@@ -229,7 +229,7 @@ public class CfgEnv {
                 LoopInfo loop = new LoopInfo();
                 loop.setHeader(n);
                 n.setLoopIndex(env.getLoopIndex());
-                HashSet<CfgNode> members = new HashSet<CfgNode>();
+                HashSet<CfgNode> members = new HashSet<>();
                 loop.setMembers(members);
                 members.add(n);               
                 env.loopMap.put(loop.getHeader(), loop);
@@ -264,8 +264,8 @@ public class CfgEnv {
     }
     
     private void setNodeLevels(CfgNode rootNode){
-        Set<CfgNode> cache = new HashSet<CfgNode>();
-        Queue<CfgNode> queue = new LinkedList<CfgNode>();
+        Set<CfgNode> cache = new HashSet<>();
+        Queue<CfgNode> queue = new LinkedList<>();
         queue.add(rootNode);
         cache.add(rootNode);
         int level=0;

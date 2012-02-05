@@ -18,8 +18,8 @@ public class FlagsSetting implements Serializable {
 
     public FlagsSetting(String flagString) {
         this.flagString = flagString;
-        flag2color = new Hashtable<String, Color>();
-        priority = new Hashtable<String, Integer>();
+        flag2color = new Hashtable<>();
+        priority = new Hashtable<>();
         String[] flags = flagString.split(";");
 
         int z = 0;

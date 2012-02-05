@@ -68,13 +68,13 @@ public class PolylineRouterV2 implements Router {
         Point srcCenter = this.getSceneLocation(sourceWidget);
         Point tarCenter = this.getSceneLocation(targetWidget);
         
-        List<Widget> widgetObstacles = new ArrayList<Widget>();
+        List<Widget> widgetObstacles = new ArrayList<>();
         
         if(collector != null){
             collector.collectCollisions(widgetObstacles);                    
         }
         
-        List<Rectangle> obstacles = new ArrayList<Rectangle>(widgetObstacles.size());
+        List<Rectangle> obstacles = new ArrayList<>(widgetObstacles.size());
         this.collectObstacles(obstacles, widgetObstacles, widget);
        
                     
@@ -167,7 +167,7 @@ public class PolylineRouterV2 implements Router {
     }
     
     private List<Point> simplify(List<Rectangle> obstacles, List<Point> list) {        
-        List<Point> result = new ArrayList<Point>(list.size());
+        List<Point> result = new ArrayList<>(list.size());
         result.add( list.get(0) );//add startpoint
         for (int i = 1; i < list.size(); i++) {
             Point prev = list.get(i - 1);
@@ -184,7 +184,7 @@ public class PolylineRouterV2 implements Router {
   
     private List<Point> optimize(List<Rectangle> nodeWidgets, Point start, Point end) {
         
-        List<Point> list = new ArrayList<Point>();
+        List<Point> list = new ArrayList<>();
         list.add(start);
         list.add(end);
                            
@@ -192,7 +192,7 @@ public class PolylineRouterV2 implements Router {
         
         for (int j = 0; progress && j < NUMBER_OF_ITERATIONS ; j++) {
             progress = false;                  
-            List<Point> newList = new ArrayList<Point>();      
+            List<Point> newList = new ArrayList<>();      
             for (int i = 0; i < list.size() - 1 ; i++) {
                 Point cur = list.get(i);
                 Point next = list.get(i + 1);
@@ -225,7 +225,7 @@ public class PolylineRouterV2 implements Router {
         Line2D line = new Line2D.Double(p1, p2);
         boolean inbounds=false;
         Rectangle ibr=null;
-        ArrayList<Point> sol = new ArrayList<Point>();
+        ArrayList<Point> sol = new ArrayList<>();
         boolean leftIntersection;
         boolean rightIntersection; 
         boolean bottomIntersection; 

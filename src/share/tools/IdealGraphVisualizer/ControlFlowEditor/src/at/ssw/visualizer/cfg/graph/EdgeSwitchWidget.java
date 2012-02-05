@@ -173,7 +173,7 @@ public class EdgeSwitchWidget extends Widget {
         endPreview();
         ObjectState os = this.getState();
         Collection<CfgEdge> edges = this.getEdges(); 
-        ArrayList<CfgEdge> updates = new ArrayList<CfgEdge>();
+        ArrayList<CfgEdge> updates = new ArrayList<>();
         boolean visible=os.isSelected();
         this.setState(os.deriveSelected(!visible));     
         for(CfgEdge e: edges) {

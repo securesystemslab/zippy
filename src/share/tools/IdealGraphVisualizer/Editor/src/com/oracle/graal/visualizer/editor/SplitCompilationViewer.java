@@ -36,12 +36,14 @@ import javax.swing.JToolBar;
 import org.openide.util.Lookup;
 import org.openide.util.NbPreferences;
 import org.openide.util.lookup.Lookups;
+import org.openide.util.lookup.ProxyLookup;
 
 class SplitCompilationViewer implements CompilationViewer {
 
     private JSplitPane splitPane;
     private Component firstPanel;
     private Component secondPanel;
+    private Lookup combinedLookup;
     private static final String DIVIDER_LOCATION = "dividerLocation";
     private final PropertyChangeListener splitChanged = new PropertyChangeListener() {
 
@@ -74,11 +76,12 @@ class SplitCompilationViewer implements CompilationViewer {
         splitPane.add(secondPanel);
         splitPane.addPropertyChangeListener(splitChanged);
         splitPane.setDividerLocation(getLastDividerLocation());
+        combinedLookup = new ProxyLookup(firstViewer.getLookup(), secondViewer.getLookup());
     }
 
     @Override
     public Lookup getLookup() {
-        return Lookups.fixed();
+        return combinedLookup;
     }
 
     @Override

@@ -18,7 +18,7 @@ public class LoopClusterWidget extends Widget implements Comparable<LoopClusterW
     private int loopIndex;
     private int loopDepth; 
     private CfgScene cfgscene;
-    private ArrayList<NodeWidget> members = new ArrayList<NodeWidget>();
+    private ArrayList<NodeWidget> members = new ArrayList<>();
   
     public LoopClusterWidget(CfgScene scene,  int loopdepth, final int loopindex) {
         super(scene);

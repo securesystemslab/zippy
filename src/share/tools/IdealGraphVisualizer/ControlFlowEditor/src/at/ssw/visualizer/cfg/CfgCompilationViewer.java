@@ -226,7 +226,7 @@ class CfgCompilationViewer implements CompilationViewer {
 
     @Override
     public Lookup getLookup() {
-        return Lookups.fixed();
+        return Lookups.fixed(scene);
     }
 
     @Override

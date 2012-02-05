@@ -27,7 +27,7 @@ import javax.swing.SwingConstants;
  */
 public class CFGOptionsPanel extends JPanel {
 
-    List<ConfigurationElement> elements = new ArrayList<ConfigurationElement>();
+    List<ConfigurationElement> elements = new ArrayList<>();
 
     /** Creates a new instance of CFGOptionsPanel */
     public CFGOptionsPanel() {

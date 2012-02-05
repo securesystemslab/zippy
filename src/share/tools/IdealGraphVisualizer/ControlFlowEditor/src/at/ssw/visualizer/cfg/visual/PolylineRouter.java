@@ -58,7 +58,7 @@ public class PolylineRouter implements Router {
             return Collections.<Point>emptyList();
         }
            
-        List<Widget> nodeWidgets = new ArrayList<Widget>();
+        List<Widget> nodeWidgets = new ArrayList<>();
         
         if(collector != null){
             collector.collectCollisions(nodeWidgets);    
@@ -79,7 +79,7 @@ public class PolylineRouter implements Router {
     
     
     private List<Point> simplify(Collection<Widget> nodeWidgets, List<Point> list) {        
-        List<Point> result = new ArrayList<Point>();
+        List<Point> result = new ArrayList<>();
         result.add( list.get(0) );//add startpoint
         for (int i = 1; i < list.size(); i++) {
             Point prev = list.get(i - 1);
@@ -123,7 +123,7 @@ public class PolylineRouter implements Router {
   
     private List<Point> optimize(Collection<Widget> nodeWidgets, ConnectionWidget connWidget, Point start, Point end) {
         
-        List<Point> list = new ArrayList<Point>();
+        List<Point> list = new ArrayList<>();
         list.add(start);
         list.add(end);
                            
@@ -131,7 +131,7 @@ public class PolylineRouter implements Router {
         
         for (int j = 0; progress && j < NUMBER_OF_ITERATIONS ; j++) {
             progress = false;                  
-            List<Point> newList = new ArrayList<Point>();              
+            List<Point> newList = new ArrayList<>();              
             for (int i = 0; i < list.size() - 1 ; i++) {
                 Point cur = list.get(i);
                 Point next = list.get(i + 1);
@@ -160,7 +160,7 @@ public class PolylineRouter implements Router {
              * and the last point is ignored cause the anchor is recalculated 
              * anyway.
              */
-            ArrayList<Point> tmp = new ArrayList<Point>();
+            ArrayList<Point> tmp = new ArrayList<>();
             int listSize=list.size();
             tmp.add(list.get(0));
             int i=0;
@@ -211,7 +211,7 @@ public class PolylineRouter implements Router {
                     for (int j = -1; j <= 1; j++) {
                         if (i != 0 || j != 0) {                           
                             Point cur = new Point(location.x + i * distx, location.y + j * disty);
-                            List<Point> list1 = new ArrayList<Point>();
+                            List<Point> list1 = new ArrayList<>();
                             list1.add(p1);
                             list1.add(cur);
                             list1.add(p2);                                                 
@@ -225,7 +225,7 @@ public class PolylineRouter implements Router {
                                         || (curIntersects == minIntersects && crossProd < min)) {
                                     minIntersects = curIntersects;
                                     min = crossProd;
-                                    minSol = new ArrayList<Point>();
+                                    minSol = new ArrayList<>();
                                     minSol.add(cur);
                                 }
                             }
@@ -252,7 +252,7 @@ public class PolylineRouter implements Router {
                                     cur2 = tmp;
                                 }
 
-                                List<Point> list2 = new ArrayList<Point>();
+                                List<Point> list2 = new ArrayList<>();
                                 list2.add(p1);
                                 list2.add(cur1);
                                 list2.add(cur2);
@@ -285,7 +285,7 @@ public class PolylineRouter implements Router {
                                             || (curIntersects == minIntersects && crossProd < min)) {
                                         minIntersects = curIntersects;
                                         min = crossProd;
-                                        minSol = new ArrayList<Point>();
+                                        minSol = new ArrayList<>();
                                         minSol.add(cur1);
                                         minSol.add(cur2);                                       
                                     }
@@ -320,7 +320,7 @@ public class PolylineRouter implements Router {
     
     
     private boolean intersects(Collection<Widget> nodeWidgets, Point start, Point end) {
-        List<Point> pointlist = new ArrayList<Point>();
+        List<Point> pointlist = new ArrayList<>();
         pointlist.add(start);
         pointlist.add(end);
 

@@ -39,7 +39,7 @@ public class HierarchicalCompoundLayout extends GraphLayout<CfgNode, CfgEdge> {
         NodeList nodeList = dg.nodes;
         EdgeList edgeList = dg.edges;
                 
-        Map<Integer, Subgraph> idx2graph = new HashMap<Integer, Subgraph>();
+        Map<Integer, Subgraph> idx2graph = new HashMap<>();
         Subgraph base = new Subgraph(0);
         idx2graph.put(0, base);
         base.insets=getInsets();

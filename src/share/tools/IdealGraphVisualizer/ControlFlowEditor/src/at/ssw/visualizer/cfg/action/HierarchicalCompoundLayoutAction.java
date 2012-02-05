@@ -2,32 +2,28 @@ package at.ssw.visualizer.cfg.action;
 
 import at.ssw.visualizer.cfg.CfgEditorContext;
 import at.ssw.visualizer.cfg.graph.CfgScene;
-import org.openide.util.HelpCtx;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 
 
-public class HierarchicalCompoundLayoutAction extends AbstractCfgEditorAction {
+@ActionID(id = "HierarchicalCompoundLayout", category = "View")
+@ActionRegistration(displayName = "Compound Layout", iconBase="at/ssw/visualizer/cfg/icons/arrangeloop.gif")
+@ActionReference(path = "CompilationViewer/CFG/Actions", position = 150)
+public class HierarchicalCompoundLayoutAction implements ActionListener {
+    List<CfgScene> scenes;
     
-      public void performAction() {
-        CfgScene tc = getEditor();
-        if (tc != null) {
-            tc.setSceneLayout(CfgEditorContext.LAYOUT_HIERARCHICALCOMPOUNDLAYOUT);           
-            tc.applyLayout();                   
+    public HierarchicalCompoundLayoutAction(List<CfgScene> scenes) {
+        this.scenes = scenes;
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        for (CfgScene s : scenes) {
+            s.setSceneLayout(CfgEditorContext.LAYOUT_HIERARCHICALCOMPOUNDLAYOUT);
         }
     }
-
-    public String getName() {
-        return "Hierarchical Compound Layout";
-    }
-
-
-    @Override
-    protected String iconResource() {
-        return "at/ssw/visualizer/cfg/icons/arrangeloop.gif";
-    }
-
-    public HelpCtx getHelpCtx() {
-        return HelpCtx.DEFAULT_HELP;
-    }
-  
-   
 }

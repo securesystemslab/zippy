@@ -34,10 +34,12 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.*;
+import java.util.prefs.Preferences;
 import javax.swing.*;
 import org.openide.awt.Toolbar;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
+import org.openide.util.NbPreferences;
 import org.openide.util.Utilities;
 import org.openide.util.actions.Presenter;
 import org.openide.util.lookup.AbstractLookup;
@@ -69,6 +71,11 @@ public final class EditorTopComponent extends TopComponent {
             return currentLookup;
         }
     };
+    private static final String PREFERENCE_FACTORY = "factory";
+
+    public static Preferences getPreferences() {
+        return NbPreferences.forModule(EditorTopComponent.class);
+    }
 
     private InputGraph getFirstGraph() {
         return group.getGraphs().get(getModel().getFirstPosition());
@@ -90,6 +97,7 @@ public final class EditorTopComponent extends TopComponent {
 
     private void activateFactory(CompilationViewerFactory factory) {
         this.activeFactory = factory;
+        getPreferences().put(PREFERENCE_FACTORY, activeFactory.getName());
         updateView();
     }
 
@@ -99,10 +107,7 @@ public final class EditorTopComponent extends TopComponent {
 
         initComponents();
 
-        //ToolbarPool.getDefault().setPreferredIconSize(16);
         Toolbar toolBar = new Toolbar();
-        //Border b = (Border) UIManager.get("Nb.Editor.Toolbar.border"); //NOI18N
-        //toolBar.setBorder(b);
         this.add(BorderLayout.NORTH, toolBar);
 
         this.group = graph.getGroup();
@@ -127,8 +132,9 @@ public final class EditorTopComponent extends TopComponent {
         toolBar.addSeparator();
 
         viewerToolBar = new JToolBar();
+        viewerToolBar.setFloatable(false);
         toolBar.add(viewerToolBar);
-        toolBar.add(Box.createHorizontalGlue());        
+        toolBar.add(Box.createHorizontalGlue());
 
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
         Component quicksearch = ((Presenter.Toolbar) action).getToolbarPresenter();
@@ -140,8 +146,17 @@ public final class EditorTopComponent extends TopComponent {
         viewerPanel.setLayout(viewerPanelCardLayout);
         this.add(viewerPanel, BorderLayout.CENTER);
 
-        ((JToggleButton) factoryButtonGroup.getElements().nextElement()).setSelected(true);
-        activeFactory = factories.iterator().next();
+        if (factories.size() > 0) {
+            String activeFactoryName = getPreferences().get(PREFERENCE_FACTORY, factories.iterator().next().getName());
+            Enumeration<AbstractButton> buttons = factoryButtonGroup.getElements();
+            for (CompilationViewerFactory factory : factories) {
+                JToggleButton curButton = (JToggleButton) buttons.nextElement();
+                if (factory.getName().equals(activeFactoryName)) {
+                    activeFactory = factory;
+                    curButton.setSelected(true);
+                }
+            }
+        }
         updateView();
     }
 
@@ -208,7 +223,13 @@ public final class EditorTopComponent extends TopComponent {
 
         @Override
         public void changed(RangeSliderModel source) {
-            updateView();
+            SwingUtilities.invokeLater(new Runnable() {
+
+                @Override
+                public void run() {
+                    updateView();
+                }
+            });
         }
     };
 
@@ -225,10 +246,11 @@ public final class EditorTopComponent extends TopComponent {
         if (newViewer != activeViewer) {
             activeViewer = newViewer;
             viewerPanelCardLayout.show(viewerPanel, id);
-            initializeToolBar(id);
+
+            currentLookup = new ProxyLookup(activeViewer.getLookup(), Lookups.fixed(getFirstGraph(), getSecondGraph()));
+            initializeToolBar(activeFactory.getName());
 
             // Make sure that lookup is updated.
-            currentLookup = new ProxyLookup(activeViewer.getLookup(), Lookups.fixed(getFirstGraph(), getSecondGraph()));
             proxyLookup.lookup(Object.class);
         }
     }
@@ -257,8 +279,13 @@ public final class EditorTopComponent extends TopComponent {
 
     private void initializeToolBar(String id) {
         viewerToolBar.removeAll();
-        for (Action a : LookupUtils.lookupActions(String.format("CompilationViewer/%s/Actions", id))) {
-            viewerToolBar.add(a);
+        for (Action a : LookupUtils.lookupActions(String.format("CompilationViewer/%s/Actions", id), activeViewer.getLookup())) {
+            if (a instanceof Presenter.Toolbar) {
+                viewerToolBar.add(((Presenter.Toolbar) a).getToolbarPresenter());
+            } else {
+                viewerToolBar.add(a);
+            }
         }
+        viewerToolBar.updateUI();
     }
 }

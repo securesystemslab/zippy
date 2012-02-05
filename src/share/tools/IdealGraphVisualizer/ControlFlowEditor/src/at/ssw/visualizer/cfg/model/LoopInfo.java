@@ -11,7 +11,7 @@ public class LoopInfo {
     private int loopDepth; //nested depth >=1 
     private LoopInfo parent=null;  
     private Set<CfgNode> members;
-    private List<CfgEdge> backEdges = new ArrayList<CfgEdge>();//dfs backEdge
+    private List<CfgEdge> backEdges = new ArrayList<>();//dfs backEdge
 
     protected void setLoopDepth(int depth) {
         this.loopDepth=depth;
