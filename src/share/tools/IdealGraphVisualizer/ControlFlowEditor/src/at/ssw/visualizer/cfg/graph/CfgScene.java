@@ -324,7 +324,7 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         }
         
         getPreferences().putInt(PREFERENCE_LAYOUT, newLayout);
-        sceneLayout.invokeLayout();
+        sceneLayout.invokeLayoutImmediately();
     }
 
     @Override
@@ -569,10 +569,8 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         }
     }
 
-    //animated scene Zoom to the max bounds of current viewport
     public void zoomScene() {
         JScrollPane pane = scrollPane;
-
         Rectangle prefBounds = this.getPreferredBounds();
         Dimension viewDim = pane.getViewportBorderBounds().getSize();
 
@@ -582,13 +580,7 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         double zoomX = (double) viewDim.width / realwidth;
         double zoomY = (double) viewDim.height / realheight;
         double zoomFactor = Math.min(zoomX, zoomY);
-
-        this.animateZoom(zoomFactor * 0.9);
-    }
-
-    //animated animateZoom function for scene animateZoom factor 
-    public void animateZoom(double zoomfactor) {
-        this.getSceneAnimator().animateZoomFactor(this.getZoomFactor() * zoomfactor);
+        this.setZoomFactor(zoomFactor * 0.9);
     }
 
     public void addCfgEventListener(CfgEventListener l) {

@@ -10,7 +10,7 @@ public class ZoomoutAction extends AbstractCfgEditorAction {
         CfgScene tc = getEditor();
         if (tc != null) {   
             CfgScene scene = tc;     
-            scene.animateZoom(0.9);
+            scene.setZoomFactor(0.9);
         }
     }
     

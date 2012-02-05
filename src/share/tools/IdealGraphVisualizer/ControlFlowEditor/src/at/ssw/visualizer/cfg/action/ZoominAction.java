@@ -11,7 +11,7 @@ public class ZoominAction extends AbstractCfgEditorAction {
         CfgScene tc = getEditor();
         if (tc != null) {            
             CfgScene scene = tc;    
-            scene.animateZoom(1.1);
+            scene.setZoomFactor(1.1);
         }
     }
     
