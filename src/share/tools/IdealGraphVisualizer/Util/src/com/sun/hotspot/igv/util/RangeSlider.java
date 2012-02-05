@@ -63,23 +63,21 @@ public final class RangeSlider extends JComponent {
 
     @Override
     public Dimension getPreferredSize() {
-        Dimension d = super.getPreferredSize();
-        Graphics g = this.getGraphics();
-
-        int maxWidth = 0;
-        List<String> list = getPaintingModel().getPositions();
-        for (int i = 0; i < list.size(); i++) {
-
-            String curS = list.get(i);
-            if (curS != null && curS.length() > 0) {
-                FontMetrics metrics = g.getFontMetrics();
-                Rectangle bounds = metrics.getStringBounds(curS, g).getBounds();
-                maxWidth = Math.max(maxWidth, (int) bounds.getWidth());
+        if (getPaintingModel() != null) {
+            Graphics g = this.getGraphics();
+            int maxWidth = 0;
+            List<String> list = getPaintingModel().getPositions();
+            for (int i = 0; i < list.size(); i++) {
+                String curS = list.get(i);
+                if (curS != null && curS.length() > 0) {
+                    FontMetrics metrics = g.getFontMetrics();
+                    Rectangle bounds = metrics.getStringBounds(curS, g).getBounds();
+                    maxWidth = Math.max(maxWidth, (int) bounds.getWidth());
+                }
             }
+            return new Dimension(maxWidth + ITEM_WIDTH, ITEM_HEIGHT * list.size());
         }
-        d.width = maxWidth + ITEM_WIDTH;
-        d.height = ITEM_HEIGHT * list.size();
-        return d;
+        return super.getPreferredSize();
     }
     private ChangedListener<RangeSliderModel> modelChangedListener = new ChangedListener<RangeSliderModel>() {
 
@@ -243,6 +241,10 @@ public final class RangeSlider extends JComponent {
             repaint();
         }
     };
+
+    public RangeSliderModel getModel() {
+        return model;
+    }
 
     public void setModel(RangeSliderModel newModel) {
         if (newModel != this.model) {

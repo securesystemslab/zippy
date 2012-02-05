@@ -23,14 +23,8 @@
  */
 package com.oracle.graal.visualizer.editor;
 
-import com.oracle.graal.visualizer.editor.actions.NextDiagramAction;
-import com.oracle.graal.visualizer.editor.actions.PrevDiagramAction;
 import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
-import com.sun.hotspot.igv.filter.FilterChain;
-import com.sun.hotspot.igv.filter.FilterChainProvider;
-import com.sun.hotspot.igv.graph.Diagram;
-import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.services.DiagramProvider;
 import com.sun.hotspot.igv.util.LookupHistory;
 import com.sun.hotspot.igv.util.RangeSlider;
@@ -47,11 +41,9 @@ import org.openide.actions.RedoAction;
 import org.openide.actions.UndoAction;
 import org.openide.awt.Toolbar;
 import org.openide.awt.ToolbarPool;
-import org.openide.awt.UndoRedo;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.ContextAwareAction;
 import org.openide.util.Lookup;
-import org.openide.util.Lookup.Provider;
 import org.openide.util.NbBundle;
 import org.openide.util.Utilities;
 import org.openide.util.actions.Presenter;
@@ -143,9 +135,6 @@ public final class EditorTopComponent extends TopComponent {
         this.associateLookup(new ProxyLookup(new Lookup[]{proxyLookup, new AbstractLookup(content)}));
 
         rangeSliderModel.getChangedEvent().addListener(rangeSliderListener);
-
-        toolBar.add(PrevDiagramAction.get(PrevDiagramAction.class));
-        toolBar.add(NextDiagramAction.get(NextDiagramAction.class));
 
         toolBar.addSeparator();
         toolBar.add(UndoAction.get(UndoAction.class));

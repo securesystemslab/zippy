@@ -26,6 +26,10 @@ package com.oracle.graal.visualizer.util;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.Action;
+import org.openide.util.ContextAwareAction;
 import org.openide.util.Lookup;
 import org.openide.util.Lookup.Provider;
 import org.openide.util.lookup.Lookups;
@@ -46,6 +50,24 @@ public class LookupUtils {
         final TopComponentLookup topComponentLookupImpl = new TopComponentLookup(clazz);
         TopComponent.getRegistry().addPropertyChangeListener(topComponentLookupImpl);
         return topComponentLookupImpl.lookup;
+    }
+    
+    public static Iterable<Action> lookupActions(String path) {
+        return lookupActions(path, null);
+    }
+
+    public static Iterable<Action> lookupActions(String path, Lookup context) {
+        List<Action> actions = new ArrayList<>();
+        for (Action a : Lookups.forPath(path).lookupAll(Action.class)) {
+            Action newAction = a;
+            if (a instanceof ContextAwareAction && context != null) {
+                newAction = ((ContextAwareAction) a).createContextAwareInstance(context);
+            }
+            newAction.putValue(Action.SHORT_DESCRIPTION, newAction.getValue(Action.NAME));
+            actions.add(newAction);
+            
+        }
+        return actions;
     }
     
     private static class TopComponentLookup implements PropertyChangeListener {

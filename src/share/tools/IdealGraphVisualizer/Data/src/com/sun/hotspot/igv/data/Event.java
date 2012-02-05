@@ -45,6 +45,11 @@ public abstract class Event<L> {
         listener.add(l);
     }
 
+    public void addListenerAndFire(L l) {
+        addListener(l);
+        fire(l);
+    }
+
     /**
      * Remove listener
      * @param l

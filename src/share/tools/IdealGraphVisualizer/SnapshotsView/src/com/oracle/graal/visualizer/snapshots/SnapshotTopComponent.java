@@ -25,30 +25,44 @@ package com.oracle.graal.visualizer.snapshots;
 
 import com.oracle.graal.visualizer.editor.EditorTopComponent;
 import com.oracle.graal.visualizer.util.LookupUtils;
+import com.sun.hotspot.igv.data.ChangedEvent;
+import com.sun.hotspot.igv.data.ChangedListener;
 import com.sun.hotspot.igv.util.RangeSlider;
 import com.sun.hotspot.igv.util.RangeSliderModel;
 import java.awt.BorderLayout;
+import javax.swing.JScrollPane;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.util.Lookup.Result;
 import org.openide.util.LookupEvent;
 import org.openide.util.LookupListener;
 import org.openide.windows.TopComponent;
+import org.openide.windows.WindowManager;
 
-@TopComponent.Description(preferredID = "SnapshotTopComponent", persistenceType = TopComponent.PERSISTENCE_NEVER)
+@TopComponent.Description(preferredID = SnapshotTopComponent.PREFERRED_ID, persistenceType = TopComponent.PERSISTENCE_NEVER)
 @TopComponent.Registration(mode = "output", openAtStartup = true)
 @ActionID(category = "Window", id = "com.oracle.graal.visualizer.snapshots.SnapshotTopComponent")
 @ActionReference(path = "Menu/Window")
 @TopComponent.OpenActionRegistration(displayName = "Snapshot", preferredID = "SnapshotTopComponent")
 public final class SnapshotTopComponent extends TopComponent {
+    public static final String PREFERRED_ID = "SnapshotTopComponent";
 
     private final Result<RangeSliderModel> result;
     private final RangeSlider rangeSlider;
+    private final ChangedEvent<RangeSliderModel> rangeSliderChangedEvent = new ChangedEvent<RangeSliderModel>(null);
     private final LookupListener lookupListener = new LookupListener() {
 
         @Override
         public void resultChanged(LookupEvent le) {
             update();
+        }
+    };
+    
+    private final ChangedListener<RangeSliderModel> rangeSliderChangedListener = new ChangedListener<RangeSliderModel>(){
+
+        @Override
+        public void changed(RangeSliderModel source) {
+            rangeSliderChangedEvent.fire();
         }
     };
 
@@ -61,17 +75,34 @@ public final class SnapshotTopComponent extends TopComponent {
         result.addLookupListener(lookupListener);
         this.rangeSlider = new RangeSlider(null);
         this.setLayout(new BorderLayout());
-        this.add(rangeSlider, BorderLayout.CENTER);
+        this.add(new JScrollPane(rangeSlider), BorderLayout.CENTER);
+        LookupUtils.lookupActions("Actions/View");
         update();
-
     }
 
     private void update() {
+        RangeSliderModel newModel;
         if (result.allInstances().size() > 0) {
-            rangeSlider.setModel(result.allInstances().iterator().next());
+            newModel = result.allInstances().iterator().next();
         } else {
-            rangeSlider.setModel(null);
+            newModel = null;
         }
+        if (rangeSlider.getModel() != null) {
+            rangeSlider.getModel().getChangedEvent().removeListener(rangeSliderChangedListener);
+        }
+        rangeSlider.setModel(newModel);
+        rangeSliderChangedEvent.changeObject(newModel);
+        if (newModel != null) {
+            newModel.getChangedEvent().addListener(rangeSliderChangedListener);
+        }
+    }
+
+    public ChangedEvent<RangeSliderModel> getRangeSliderChangedEvent() {
+        return rangeSliderChangedEvent;
+    }
+
+    public static SnapshotTopComponent findInstance() {
+        return (SnapshotTopComponent) WindowManager.getDefault().findTopComponent(PREFERRED_ID);
     }
 
     /**
@@ -94,4 +125,5 @@ public final class SnapshotTopComponent extends TopComponent {
     }// </editor-fold>//GEN-END:initComponents
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
+
 }
