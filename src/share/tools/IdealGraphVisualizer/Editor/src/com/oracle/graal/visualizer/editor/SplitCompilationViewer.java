@@ -21,31 +21,59 @@
  * questions.
  *
  */
-
 package com.oracle.graal.visualizer.editor;
 
 import com.sun.hotspot.igv.graph.Figure;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.Collection;
+import java.util.prefs.Preferences;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JToolBar;
 import org.openide.util.Lookup;
+import org.openide.util.NbPreferences;
 import org.openide.util.lookup.Lookups;
 
 class SplitCompilationViewer implements CompilationViewer {
 
     private JSplitPane splitPane;
-    private JPanel firstPanel;
-    private JPanel secondPanel;
-    
+    private Component firstPanel;
+    private Component secondPanel;
+    private static final String DIVIDER_LOCATION = "dividerLocation";
+    private final PropertyChangeListener splitChanged = new PropertyChangeListener() {
+
+        @Override
+        public void propertyChange(PropertyChangeEvent changeEvent) {
+            String propertyName = changeEvent.getPropertyName();
+            if (propertyName.equals(JSplitPane.DIVIDER_LOCATION_PROPERTY)) {
+                setLastDividerLocation((Integer) changeEvent.getNewValue());
+            }
+        }
+    };
+
+    private static void setLastDividerLocation(int pos) {
+        NbPreferences.forModule(SplitCompilationViewer.class).put(DIVIDER_LOCATION, Integer.toString(pos));
+    }
+
+    private static int getLastDividerLocation() {
+        try {
+            return Integer.parseInt(NbPreferences.forModule(SplitCompilationViewer.class).get(DIVIDER_LOCATION, "400"));
+        } catch (NumberFormatException e) {
+            return 400;
+        }
+    }
+
     public SplitCompilationViewer(CompilationViewer firstViewer, CompilationViewer secondViewer) {
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        firstPanel = createPanel(firstViewer);
-        secondPanel = createPanel(secondViewer);
+        firstPanel = createComponent(firstViewer);
+        secondPanel = createComponent(secondViewer);
         splitPane.add(firstPanel);
         splitPane.add(secondPanel);
+        splitPane.addPropertyChangeListener(splitChanged);
+        splitPane.setDividerLocation(getLastDividerLocation());
     }
 
     @Override
@@ -58,19 +86,7 @@ class SplitCompilationViewer implements CompilationViewer {
         return splitPane;
     }
 
-    @Override
-    public Component getToolBarComponent() {
-        return new JPanel();
-    }
-
-    private JPanel createPanel(CompilationViewer viewer) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        JToolBar toolBar = new JToolBar();
-        toolBar.add(viewer.getToolBarComponent());
-        panel.add(BorderLayout.NORTH, toolBar);
-        panel.add(BorderLayout.CENTER, viewer.getComponent());
-        return panel;
-        
+    private Component createComponent(CompilationViewer viewer) {
+        return viewer.getComponent();
     }
 }

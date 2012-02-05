@@ -41,6 +41,6 @@ public final class RemoveAllAction implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        OutlineTopComponent.findInstance().clear();
+        OutlineTopComponent.findInstance().getDocument().clear();
     }
 }

@@ -27,19 +27,13 @@ import com.oracle.graal.visualizer.outline.server.ServerPanel;
 import com.oracle.graal.visualizer.util.LookupUtils;
 import com.sun.hotspot.igv.data.GraphDocument;
 import java.awt.BorderLayout;
-import java.util.ArrayList;
-import java.util.List;
 import javax.swing.Action;
-import javax.swing.UIManager;
-import javax.swing.border.Border;
 import org.openide.actions.GarbageCollectAction;
 import org.openide.awt.Toolbar;
 import org.openide.explorer.ExplorerManager;
 import org.openide.explorer.ExplorerUtils;
 import org.openide.explorer.view.BeanTreeView;
-import org.openide.util.ContextAwareAction;
 import org.openide.util.NbBundle;
-import org.openide.util.lookup.Lookups;
 import org.openide.windows.TopComponent;
 import org.openide.windows.WindowManager;
 
@@ -71,20 +65,13 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     }
 
     private void initToolbar() {
-
         Toolbar toolbar = new Toolbar();
-        Border b = (Border) UIManager.get("Nb.Editor.Toolbar.border"); //NOI18N
-        toolbar.setBorder(b);
         this.add(toolbar, BorderLayout.NORTH);
         for (Action a : LookupUtils.lookupActions(GLOBAL_ACTIONS_FOLDER, getLookup())) {
             toolbar.add(a);
         }
         toolbar.add(GarbageCollectAction.get(GarbageCollectAction.class).getToolbarPresenter());
         toolbar.add(new ServerPanel(getDocument()));
-    }
-
-    public void clear() {
-        document.clear();
     }
 
     @Override

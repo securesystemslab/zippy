@@ -92,32 +92,14 @@ public class GraphCompilationViewer implements CompilationViewer, PropertyChange
         scene = new DiagramScene(model);
         
         Action[] actions = new Action[]{
-            ExtractAction.get(ExtractAction.class),
-            ShowAllAction.get(HideAction.class),
-            ShowAllAction.get(ShowAllAction.class),
-            null,
-          //  new ZoomInAction(scene),
-            //new ZoomOutAction(scene),
-            null,
-            ExpandPredecessorsAction.get(ExpandPredecessorsAction.class),
-            ExpandSuccessorsAction.get(ExpandSuccessorsAction.class)
         };
         
         scene.setActions(actions);
-        
-        toolBar = new JToolBar();
-        toolBar.add(ExtractAction.get(ExtractAction.class));
-        toolBar.add(ShowAllAction.get(HideAction.class));
-        toolBar.add(ShowAllAction.get(ShowAllAction.class));
-        toolBar.addSeparator();
-        //toolBar.add(ShowAllAction.get(ZoomInAction.class));
-        //toolBar.add(ShowAllAction.get(ZoomOutAction.class));
-
-        predSuccAction = new PredSuccAction();
-        JToggleButton button = new JToggleButton(predSuccAction);
-        button.setSelected(true);
-        toolBar.add(button);
-        predSuccAction.addPropertyChangeListener(this);
+//        predSuccAction = new PredSuccAction();
+//        JToggleButton button = new JToggleButton(predSuccAction);
+//        button.setSelected(true);
+//        toolBar.add(button);
+//        predSuccAction.addPropertyChangeListener(this);
         
         lookup = new ProxyLookup(scene.getLookup(), Lookups.singleton(exportCookie));
     }
@@ -130,11 +112,6 @@ public class GraphCompilationViewer implements CompilationViewer, PropertyChange
     @Override
     public Component getComponent() {
         return scene.getComponent();
-    }
-
-    @Override
-    public Component getToolBarComponent() {
-        return toolBar;
     }
 
     @Override

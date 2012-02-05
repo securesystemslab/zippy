@@ -40,6 +40,4 @@ public interface CompilationViewer {
     public Lookup getLookup();
 
     public Component getComponent();
-    
-    public Component getToolBarComponent();
 }

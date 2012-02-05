@@ -171,7 +171,7 @@ class CfgCompilationViewer implements CompilationViewer {
 
     }
 
-    @Override
+    /*@Override
     public Component getToolBarComponent() {
         Toolbar tb = new Toolbar("CfgToolbar");
 
@@ -222,7 +222,7 @@ class CfgCompilationViewer implements CompilationViewer {
         tb.doLayout();
 
         return tb;
-    }
+    }*/
 
     @Override
     public Lookup getLookup() {

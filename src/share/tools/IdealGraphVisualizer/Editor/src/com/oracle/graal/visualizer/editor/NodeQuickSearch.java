@@ -27,7 +27,6 @@ import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Properties.RegexpPropertyMatcher;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
-import com.sun.hotspot.igv.util.LookupHistory;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -79,7 +78,7 @@ public class NodeQuickSearch implements SearchProvider {
             value = ".*";
         }
 
-        final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);
+        final InputGraphProvider p = null;// TODO: FIXME LookupHistory.getLast(InputGraphProvider.class);
         if (p != null && p.getGraph() != null) {
             List<InputNode> matches = null;
             try {

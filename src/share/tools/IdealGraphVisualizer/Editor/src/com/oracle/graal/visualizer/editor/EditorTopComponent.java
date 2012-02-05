@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +23,10 @@
  */
 package com.oracle.graal.visualizer.editor;
 
-import com.sun.hotspot.igv.data.*;
-import com.sun.hotspot.igv.data.services.InputGraphProvider;
-import com.sun.hotspot.igv.graph.services.DiagramProvider;
-import com.sun.hotspot.igv.util.LookupHistory;
-import com.sun.hotspot.igv.util.RangeSlider;
+import com.oracle.graal.visualizer.util.LookupUtils;
+import com.sun.hotspot.igv.data.ChangedListener;
+import com.sun.hotspot.igv.data.Group;
+import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.util.RangeSliderModel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -36,13 +35,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.*;
 import javax.swing.*;
-import javax.swing.border.Border;
-import org.openide.actions.RedoAction;
-import org.openide.actions.UndoAction;
 import org.openide.awt.Toolbar;
-import org.openide.awt.ToolbarPool;
-import org.openide.filesystems.FileUtil;
-import org.openide.util.ContextAwareAction;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.Utilities;
@@ -51,29 +44,24 @@ import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
-import org.openide.windows.*;
+import org.openide.windows.Mode;
+import org.openide.windows.TopComponent;
+import org.openide.windows.WindowManager;
 
-/**
- * 
- * @author Thomas Wuerthinger
- */
 public final class EditorTopComponent extends TopComponent {
 
     private InstanceContent content;
-    private RangeSlider rangeSlider;
     private static final String PREFERRED_ID = "EditorTopComponent";
     private RangeSliderModel rangeSliderModel;
     private CompilationViewer activeViewer;
     private CompilationViewerFactory activeFactory;
     private Group group;
-    private final JPanel viewerToolBarPanel;
-    private final CardLayout viewerToolBarPanelCardLayout;
+    private final JToolBar viewerToolBar;
     private final JPanel viewerPanel;
     private final CardLayout viewerPanelCardLayout;
     private final Map<String, CompilationViewer> createdComponents = new HashMap<>();
     private final Lookup proxyLookup;
     private Lookup currentLookup = Lookups.fixed();
-    
     private final Lookup.Provider currentViewLookupProvider = new Lookup.Provider() {
 
         @Override
@@ -89,7 +77,7 @@ public final class EditorTopComponent extends TopComponent {
     private InputGraph getSecondGraph() {
         return group.getGraphs().get(getModel().getSecondPosition());
     }
-    
+
     private void updateDisplayName() {
         int first = getModel().getFirstPosition();
         int second = getModel().getSecondPosition();
@@ -99,27 +87,22 @@ public final class EditorTopComponent extends TopComponent {
             setDisplayName(String.format("%s: %s - %s", activeFactory.getName(), getModel().getPositions().get(first), getModel().getPositions().get(second)));
         }
     }
-    
+
     private void activateFactory(CompilationViewerFactory factory) {
         this.activeFactory = factory;
         updateView();
     }
 
     public EditorTopComponent(InputGraph graph) {
-
-        LookupHistory.init(InputGraphProvider.class);
-        LookupHistory.init(DiagramProvider.class);
-        this.setFocusable(true);
-
         setName(NbBundle.getMessage(EditorTopComponent.class, "CTL_EditorTopComponent"));
         setToolTipText(NbBundle.getMessage(EditorTopComponent.class, "HINT_EditorTopComponent"));
 
         initComponents();
 
-        ToolbarPool.getDefault().setPreferredIconSize(16);
+        //ToolbarPool.getDefault().setPreferredIconSize(16);
         Toolbar toolBar = new Toolbar();
-        Border b = (Border) UIManager.get("Nb.Editor.Toolbar.border"); //NOI18N
-        toolBar.setBorder(b);
+        //Border b = (Border) UIManager.get("Nb.Editor.Toolbar.border"); //NOI18N
+        //toolBar.setBorder(b);
         this.add(BorderLayout.NORTH, toolBar);
 
         this.group = graph.getGroup();
@@ -128,7 +111,6 @@ public final class EditorTopComponent extends TopComponent {
         content.add(rangeSliderModel);
         int graphPos = group.getGraphs().indexOf(graph);
         rangeSliderModel.setPositions(graphPos, graphPos);
-        rangeSlider = new RangeSlider(rangeSliderModel);
 
         Collection<? extends CompilationViewerFactory> factories = Lookup.getDefault().lookupAll(CompilationViewerFactory.class);
         proxyLookup = Lookups.proxy(currentViewLookupProvider);
@@ -136,14 +118,6 @@ public final class EditorTopComponent extends TopComponent {
 
         rangeSliderModel.getChangedEvent().addListener(rangeSliderListener);
 
-        toolBar.addSeparator();
-        toolBar.add(UndoAction.get(UndoAction.class));
-        toolBar.add(RedoAction.get(RedoAction.class));
-        
-        ContextAwareAction a = FileUtil.getConfigObject("Actions/View/com-oracle-graal-visualizer-editor-actions-TestAction.instance", ContextAwareAction.class);
-        FileUtil.getConfigFile("Actions/View/com-oracle-graal-visualizer-editor-actions-TestAction.instance");
-        toolBar.add(a.createContextAwareInstance(proxyLookup));
-        
         ButtonGroup factoryButtonGroup = new ButtonGroup();
         for (CompilationViewerFactory factory : factories) {
             AbstractButton button = createFactoryChangeButton(factory);
@@ -152,47 +126,31 @@ public final class EditorTopComponent extends TopComponent {
         }
         toolBar.addSeparator();
 
+        viewerToolBar = new JToolBar();
+        toolBar.add(viewerToolBar);
+        toolBar.add(Box.createHorizontalGlue());        
+
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
         Component quicksearch = ((Presenter.Toolbar) action).getToolbarPresenter();
         quicksearch.setMinimumSize(quicksearch.getPreferredSize()); // necessary for GTK LAF
         toolBar.add(quicksearch);
 
-        toolBar.add(Box.createHorizontalGlue());        
-        viewerToolBarPanel = new JPanel();
-        viewerToolBarPanelCardLayout = new CardLayout();
-        viewerToolBarPanel.setLayout(viewerToolBarPanelCardLayout);
-        toolBar.add(viewerToolBarPanel);
-
         viewerPanel = new JPanel();
         viewerPanelCardLayout = new CardLayout();
         viewerPanel.setLayout(viewerPanelCardLayout);
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                           new JScrollPane(rangeSlider), viewerPanel);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setDividerLocation(250);
-        this.add(splitPane, BorderLayout.CENTER);
-        
-        ((JToggleButton)factoryButtonGroup.getElements().nextElement()).setSelected(true);
+        this.add(viewerPanel, BorderLayout.CENTER);
+
+        ((JToggleButton) factoryButtonGroup.getElements().nextElement()).setSelected(true);
         activeFactory = factories.iterator().next();
         updateView();
     }
-    
+
     private static List<String> calculateStringList(Group g) {
         List<String> result = new ArrayList<>();
         for (InputGraph graph : g.getGraphs()) {
             result.add(graph.getName());
         }
         return result;
-    }
-
-    public void showPrevDiagram() {
-        int fp = getModel().getFirstPosition();
-        int sp = getModel().getSecondPosition();
-        if (fp != 0) {
-            fp--;
-            sp--;
-            getModel().setPositions(fp, sp);
-        }
     }
 
     private RangeSliderModel getModel() {
@@ -209,11 +167,10 @@ public final class EditorTopComponent extends TopComponent {
         }
         return null;
     }
-    
-    /** This method is called from within the constructor to
-     * initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is
-     * always regenerated by the Form Editor.
+
+    /**
+     * This method is called from within the constructor to initialize the form. WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
      */
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -247,14 +204,12 @@ public final class EditorTopComponent extends TopComponent {
     protected String preferredID() {
         return PREFERRED_ID;
     }
-
     private ChangedListener<RangeSliderModel> rangeSliderListener = new ChangedListener<RangeSliderModel>() {
 
         @Override
         public void changed(RangeSliderModel source) {
             updateView();
         }
-        
     };
 
     private void updateView() {
@@ -264,28 +219,27 @@ public final class EditorTopComponent extends TopComponent {
             CompilationViewer newViewer = createViewer(activeFactory);
             createdComponents.put(id, newViewer);
             viewerPanel.add(newViewer.getComponent(), id);
-            viewerToolBarPanel.add(newViewer.getToolBarComponent(), id);
         }
-        
+
         CompilationViewer newViewer = createdComponents.get(id);
         if (newViewer != activeViewer) {
             activeViewer = newViewer;
             viewerPanelCardLayout.show(viewerPanel, id);
-            viewerToolBarPanelCardLayout.show(viewerToolBarPanel, id);
-            
+            initializeToolBar(id);
+
             // Make sure that lookup is updated.
             currentLookup = new ProxyLookup(activeViewer.getLookup(), Lookups.fixed(getFirstGraph(), getSecondGraph()));
             proxyLookup.lookup(Object.class);
         }
     }
-    
+
     private String getViewStringIdentifier() {
         return String.format("%s/%d/%d", activeFactory.getName(), getModel().getFirstPosition(), getModel().getSecondPosition());
     }
 
     private AbstractButton createFactoryChangeButton(final CompilationViewerFactory factory) {
         JToggleButton toggleButton = new JToggleButton(factory.getName());
-        toggleButton.addActionListener(new ActionListener(){
+        toggleButton.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -294,10 +248,17 @@ public final class EditorTopComponent extends TopComponent {
         });
         return toggleButton;
     }
-    
+
     private CompilationViewer createViewer(CompilationViewerFactory activeFactory) {
         InputGraph firstSnapshot = getFirstGraph();
         InputGraph secondSnapshot = getSecondGraph();
         return activeFactory.createViewer(firstSnapshot, secondSnapshot);
+    }
+
+    private void initializeToolBar(String id) {
+        viewerToolBar.removeAll();
+        for (Action a : LookupUtils.lookupActions(String.format("CompilationViewer/%s/Actions", id))) {
+            viewerToolBar.add(a);
+        }
     }
 }

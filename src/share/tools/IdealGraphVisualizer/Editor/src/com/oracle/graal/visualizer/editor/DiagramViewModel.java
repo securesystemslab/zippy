@@ -31,15 +31,8 @@ import com.sun.hotspot.igv.filter.FilterChain;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.settings.Settings;
-import com.sun.hotspot.igv.util.CompilationViewModel;
-import com.sun.hotspot.igv.util.RangeSliderModel;
-import java.awt.Color;
 import java.util.*;
 
-/**
- *
- * @author Thomas Wuerthinger
- */
 public class DiagramViewModel {
 
     private Set<Integer> hiddenNodes;
