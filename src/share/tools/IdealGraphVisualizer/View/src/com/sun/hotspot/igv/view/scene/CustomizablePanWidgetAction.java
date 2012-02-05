@@ -41,7 +41,7 @@
  * Version 2 license, then the option applies only if the new code is
  * made subject to such option by the copyright holder.
  */
-package com.sun.hotspot.igv.view.actions;
+package com.sun.hotspot.igv.view.scene;
 
 import java.awt.Container;
 import java.awt.Point;
@@ -59,7 +59,7 @@ import org.netbeans.api.visual.widget.Widget;
  * @author David Kaspar
  * @author Peter Hofer
  */
-public class CustomizablePanAction extends WidgetAction.LockedAdapter {
+public class CustomizablePanWidgetAction extends WidgetAction.LockedAdapter {
     private boolean enabled = true;
     
     private Scene scene;
@@ -69,7 +69,7 @@ public class CustomizablePanAction extends WidgetAction.LockedAdapter {
     private final int modifiersExMask;
     private final int modifiersEx;
 
-    public CustomizablePanAction(int modifiersExMask, int modifiersEx) {
+    public CustomizablePanWidgetAction(int modifiersExMask, int modifiersEx) {
         this.modifiersExMask = modifiersExMask;
         this.modifiersEx = modifiersEx;
     }

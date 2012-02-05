@@ -774,8 +774,6 @@ public class CfgScene extends GraphScene<CfgNode, CfgEdge> implements ChangeList
                 
                 menu.add(SystemAction.get(ShowEdgesAction.class));
                 menu.add(SystemAction.get(HideEdgesAction.class));
-                menu.addSeparator();
-                menu.add(SystemAction.get(ColorAction.class).getPopupPresenter()); 
                 return menu;
             }
         });

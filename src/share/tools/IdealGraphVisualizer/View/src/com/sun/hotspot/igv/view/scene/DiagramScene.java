@@ -34,7 +34,6 @@ import com.sun.hotspot.igv.layout.LayoutGraph;
 import com.sun.hotspot.igv.util.ColorIcon;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.PropertiesSheet;
-import com.sun.hotspot.igv.view.actions.CustomizablePanAction;
 import com.sun.hotspot.igv.view.widgets.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -61,7 +60,7 @@ import org.openide.util.lookup.InstanceContent;
  */
 public class DiagramScene extends ObjectScene {
 
-    private CustomizablePanAction panAction;
+    private CustomizablePanWidgetAction panAction;
     private WidgetAction hoverAction;
     private WidgetAction selectAction;
     private Lookup lookup;
@@ -353,7 +352,7 @@ public class DiagramScene extends ObjectScene {
         // This panAction handles the event only when the left mouse button is
         // pressed without any modifier keys, otherwise it will not consume it
         // and the selection action (below) will handle the event
-        panAction = new CustomizablePanAction(~0, MouseEvent.BUTTON1_DOWN_MASK);
+        panAction = new CustomizablePanWidgetAction(~0, MouseEvent.BUTTON1_DOWN_MASK);
         this.getActions().addAction(panAction);
 
         selectAction = createSelectAction();
