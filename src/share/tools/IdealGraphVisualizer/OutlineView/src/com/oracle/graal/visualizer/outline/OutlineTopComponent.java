@@ -29,6 +29,8 @@ import com.sun.hotspot.igv.data.GraphDocument;
 import java.awt.BorderLayout;
 import javax.swing.Action;
 import org.openide.actions.GarbageCollectAction;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
 import org.openide.awt.Toolbar;
 import org.openide.explorer.ExplorerManager;
 import org.openide.explorer.ExplorerUtils;
@@ -37,6 +39,11 @@ import org.openide.util.NbBundle;
 import org.openide.windows.TopComponent;
 import org.openide.windows.WindowManager;
 
+@TopComponent.Description(preferredID = OutlineTopComponent.PREFERRED_ID, persistenceType = TopComponent.PERSISTENCE_ALWAYS)
+@TopComponent.Registration(mode = "explorer", openAtStartup = true)
+@ActionID(category = "Window", id = "com.oracle.graal.visualizer.outline.OutlineTopComponent")
+@ActionReference(path = "Menu/Window")
+@TopComponent.OpenActionRegistration(displayName = "Outline", preferredID = OutlineTopComponent.PREFERRED_ID)
 public final class OutlineTopComponent extends TopComponent implements ExplorerManager.Provider {
 
     public static final String GLOBAL_ACTIONS_FOLDER = "Actions/Outline/Global";

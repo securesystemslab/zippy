@@ -39,11 +39,11 @@ import org.openide.util.LookupListener;
 import org.openide.windows.TopComponent;
 import org.openide.windows.WindowManager;
 
-@TopComponent.Description(preferredID = SnapshotTopComponent.PREFERRED_ID, persistenceType = TopComponent.PERSISTENCE_NEVER)
-@TopComponent.Registration(mode = "output", openAtStartup = true)
+@TopComponent.Description(preferredID = SnapshotTopComponent.PREFERRED_ID, persistenceType = TopComponent.PERSISTENCE_ALWAYS)
+@TopComponent.Registration(mode = "belowExplorer", openAtStartup = true)
 @ActionID(category = "Window", id = "com.oracle.graal.visualizer.snapshots.SnapshotTopComponent")
 @ActionReference(path = "Menu/Window")
-@TopComponent.OpenActionRegistration(displayName = "Snapshot", preferredID = "SnapshotTopComponent")
+@TopComponent.OpenActionRegistration(displayName = "Snapshot", preferredID = SnapshotTopComponent.PREFERRED_ID)
 public final class SnapshotTopComponent extends TopComponent {
     public static final String PREFERRED_ID = "SnapshotTopComponent";
 
@@ -76,7 +76,6 @@ public final class SnapshotTopComponent extends TopComponent {
         this.rangeSlider = new RangeSlider(null);
         this.setLayout(new BorderLayout());
         this.add(new JScrollPane(rangeSlider), BorderLayout.CENTER);
-        LookupUtils.lookupActions("Actions/View");
         update();
     }
 

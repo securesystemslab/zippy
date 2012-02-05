@@ -24,7 +24,6 @@
 package com.sun.hotspot.igv.bytecodes;
 
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
-import com.sun.hotspot.igv.util.LookupHistory;
 import org.openide.nodes.Node;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle;

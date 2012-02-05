@@ -158,17 +158,4 @@
         <file name="Standard.xml_hidden"/>
         <file name="UndoRedo_hidden"/>
     </folder>
-    <folder name="Windows2">
-        <folder name="Components">
-            <file name="OutlineTopComponent.settings" url="OutlineTopComponentSettings.xml"/>
-        </folder>
-        <folder name="Modes">  
-            <file name="customLeft.wsmode" url="customLeftWsmode.xml"/>
-            <folder name="customLeft">
-                <file name="OutlineTopComponent.wstcref" url="OutlineTopComponentWstcref.xml"/>
-            </folder>
-        </folder>
-    </folder>
-    
-    
 </filesystem>
