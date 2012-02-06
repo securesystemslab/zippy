@@ -35,6 +35,7 @@
 #include "oops/oop.inline2.hpp"
 #include "runtime/handles.inline.hpp"
 #ifndef SERIALGC
+#include "gc_implementation/parallelScavenge/psPromotionManager.inline.hpp"
 #include "gc_implementation/parallelScavenge/psScavenge.inline.hpp"
 #include "oops/oop.pcgc.inline.hpp"
 #endif
