@@ -23,8 +23,9 @@
 \.pdf$
 \.dot$
 \.pyc$
-build.xml
-nbproject
+^graal/.*/build.xml
+build-impl.xml
+^graal/.*/nbproject/
 dist
 ^doc/.*/dot_temp_
 ^doc/doxygen/.*$
