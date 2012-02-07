@@ -25,6 +25,7 @@ package com.oracle.graal.visualizer.sharedactions;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
@@ -33,16 +34,17 @@ import org.openide.awt.ActionRegistration;
 @ActionRegistration(displayName = "Fit Scene to Window", iconBase="com/oracle/graal/visualizer/sharedactions/images/autosize.gif")
 @ActionReference(path = "Menu/View", position = 500)
 public class ShowAllAction implements ActionListener {
+       
+    private List<ZoomCookie> zoomCookies;
     
-    private ZoomCookie zoomCookie;
-    
-    public ShowAllAction(ZoomCookie zoomCookie) {
-        this.zoomCookie = zoomCookie;
+    public ShowAllAction(List<ZoomCookie> zoomCookies) {
+        this.zoomCookies = zoomCookies;
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        zoomCookie.showAll();
+        for (ZoomCookie c : zoomCookies) {
+            c.showAll();
+        }
     }
-          
 }   

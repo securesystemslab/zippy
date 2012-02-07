@@ -25,6 +25,7 @@ package com.oracle.graal.visualizer.sharedactions;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
@@ -34,15 +35,16 @@ import org.openide.awt.ActionRegistration;
 @ActionReference(path = "Menu/View", position = 600)
 public class ZoomInAction implements ActionListener {
     
-    private ZoomCookie zoomCookie;
+    private List<ZoomCookie> zoomCookies;
     
-    public ZoomInAction(ZoomCookie zoomCookie) {
-        this.zoomCookie = zoomCookie;
+    public ZoomInAction(List<ZoomCookie> zoomCookies) {
+        this.zoomCookies = zoomCookies;
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        zoomCookie.zoomIn();
+        for (ZoomCookie c : zoomCookies) {
+            c.zoomIn();
+        }
     }
-          
 }   

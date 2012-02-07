@@ -25,6 +25,7 @@ package com.oracle.graal.visualizer.sharedactions;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
@@ -33,16 +34,17 @@ import org.openide.awt.ActionRegistration;
 @ActionRegistration(displayName = "Zoom Out", iconBase="com/oracle/graal/visualizer/sharedactions/images/zoomout.gif")
 @ActionReference(path = "Menu/View", position = 700)
 public class ZoomOutAction implements ActionListener {
+   
+    private List<ZoomCookie> zoomCookies;
     
-    private ZoomCookie zoomCookie;
-    
-    public ZoomOutAction(ZoomCookie zoomCookie) {
-        this.zoomCookie = zoomCookie;
+    public ZoomOutAction(List<ZoomCookie> zoomCookies) {
+        this.zoomCookies = zoomCookies;
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        zoomCookie.zoomOut();
-    }
-          
+        for (ZoomCookie c : zoomCookies) {
+            c.zoomOut();
+        }
+    } 
 }   
