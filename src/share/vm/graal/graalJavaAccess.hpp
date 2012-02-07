@@ -70,6 +70,13 @@ void graal_compute_offsets();
     boolean_field(HotSpotMethodResolved, canBeInlined)                                  \
     oop_field(HotSpotMethodResolved, callback, "Lcom/oracle/max/cri/ci/CiGenericCallback;") \
   end_class                                                                             \
+  start_class(HotSpotMethodData)                                                        \
+    oop_field(HotSpotMethodData, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;")   \
+    oop_field(HotSpotMethodData, hotspotMirror, "Ljava/lang/Object;")                   \
+    int_field(HotSpotMethodData, normalDataSize)                                        \
+    int_field(HotSpotMethodData, extraDataSize)                                         \
+    boolean_field(HotSpotMethodData, mature)                                            \
+  end_class                                                                             \
   start_class(HotSpotType)                                                              \
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \
   end_class                                                                             \
@@ -227,12 +234,6 @@ void graal_compute_offsets();
     oop_field(CiMonitorValue, owner, "Lcom/oracle/max/cri/ci/CiValue;")                 \
     oop_field(CiMonitorValue, lockData, "Lcom/oracle/max/cri/ci/CiValue;")              \
     boolean_field(CiMonitorValue, eliminated)                                           \
-  end_class                                                                             \
-  start_class(RiTypeProfile)                                                            \
-    int_field(RiTypeProfile, count)                                                     \
-    int_field(RiTypeProfile, morphism)                                                  \
-    oop_field(RiTypeProfile, probabilities, "[F")                                       \
-    oop_field(RiTypeProfile, types, "[Lcom/oracle/max/cri/ri/RiResolvedType;")          \
   end_class                                                                             \
   /* end*/
 

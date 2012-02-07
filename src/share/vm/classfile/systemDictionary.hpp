@@ -193,6 +193,7 @@ class SymbolPropertyTable;
   template(HotSpotField_klass,                    com_oracle_max_graal_hotspot_HotSpotField,                        Opt) \
   template(HotSpotCompiledMethod_klass,           com_oracle_max_graal_hotspot_HotSpotCompiledMethod,               Opt) \
   template(HotSpotMethodResolved_klass,           com_oracle_max_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
+  template(HotSpotMethodData_klass,               com_oracle_max_graal_hotspot_ri_HotSpotMethodData,                Opt) \
   template(HotSpotTargetMethod_klass,             com_oracle_max_graal_hotspot_HotSpotTargetMethod,                 Opt) \
   template(HotSpotExceptionHandler_klass,         com_oracle_max_graal_hotspot_HotSpotExceptionHandler,             Opt) \
   template(HotSpotProxy_klass,                    com_oracle_max_graal_hotspot_HotSpotProxy,                        Opt) \
@@ -223,7 +224,6 @@ class SymbolPropertyTable;
   template(RiType_klass,                          com_oracle_max_cri_ri_RiType,                                     Opt) \
   template(RiResolvedField_klass,                 com_oracle_max_cri_ri_RiResolvedField,                            Opt) \
   template(RiExceptionHandler_klass,              com_oracle_max_cri_ri_RiExceptionHandler,                         Opt) \
-  template(RiTypeProfile_klass,                   com_oracle_max_cri_ri_RiTypeProfile,                              Opt) \
 
   /*end*/
 

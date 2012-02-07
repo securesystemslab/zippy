@@ -648,6 +648,17 @@ def exe_suffix(name):
         return name + '.exe'
     return name
 
+def lib_suffix(name):
+    """
+    Gets the platform specific suffix for a library
+    """
+    os = get_os();
+    if os == 'windows':
+        return name + '.dll'
+    if os == 'linux':
+        return name + '.so'
+    return name
+
 """
 A JavaConfig object encapsulates info on how Java commands are run.
 """

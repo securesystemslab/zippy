@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,36 +20,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.max.graal.nodes;
+package com.oracle.max.graal.debug;
 
-import com.oracle.max.graal.graph.*;
-import com.oracle.max.graal.nodes.java.*;
+public final class DebugDumpScope {
 
-public interface Invoke extends StateSplit {
+    private final String name;
 
-    FixedNode next();
+    public DebugDumpScope(String name) {
+        this.name = name;
+    }
 
-    void setNext(FixedNode x);
-
-    MethodCallTargetNode callTarget();
-
-    int bci();
-
-    FixedNode node();
-
-    FrameState stateDuring();
-
-    FrameState stateAfter();
-
-    Node predecessor();
-
-    void intrinsify(Node node);
-
-    Graph graph();
-
-    double probability();
-
-    boolean useForInlining();
-
-    void setUseForInlining(boolean value);
+    public String getName() {
+        return name;
+    }
 }

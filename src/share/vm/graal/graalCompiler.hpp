@@ -67,6 +67,7 @@ public:
 
   static Handle createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
   static Handle createHotSpotMethodResolved(methodHandle method, TRAPS);
+  static Handle createHotSpotMethodData(methodDataHandle method_data, TRAPS);
 
   void exit();
 

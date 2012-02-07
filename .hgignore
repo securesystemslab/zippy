@@ -36,6 +36,7 @@ java\.hprof\.txt$
 /nbproject/private/
 ^graal/hotspot/java$
 ^scratch/
+^test-output/
 scratch/
 bin/
 ^local/
