@@ -195,7 +195,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   if(method_data.is_null()) {
     return NULL;
   } else {
-    Handle graalMethodData = GraalCompiler::createHotSpotMethodData(method_data, THREAD);
+    Handle graalMethodData = GraalCompiler::createHotSpotMethodData(method_data, CHECK_NULL);
     return JNIHandles::make_local(THREAD, graalMethodData());
   }
 }

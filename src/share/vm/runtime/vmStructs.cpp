@@ -359,7 +359,6 @@ static inline uint64_t cast_uint64_t(size_t x)
   nonstatic_field(methodDataOopDesc,           _arg_local,                                    intx)                                  \
   nonstatic_field(methodDataOopDesc,           _arg_stack,                                    intx)                                  \
   nonstatic_field(methodDataOopDesc,           _arg_returned,                                 intx)                                  \
-  nonstatic_field(methodDataOopDesc,           _graal_mirror,                                 oop)                                   \
   nonstatic_field(methodOopDesc,               _constMethod,                                  constMethodOop)                        \
   nonstatic_field(methodOopDesc,               _constants,                                    constantPoolOop)                       \
   nonstatic_field(methodOopDesc,               _method_data,                                  methodDataOop)                         \

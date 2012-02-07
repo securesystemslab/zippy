@@ -82,6 +82,8 @@ void FilteredFieldsMap::initialize() {
   if (UseGraal) {
     compute_offset(offset, SystemDictionary::HotSpotMethodResolved_klass(), "javaMirror", "Ljava/lang/Object;", false);
     _filtered_fields->append(new FilteredField(SystemDictionary::HotSpotMethodResolved_klass(), offset));
+    compute_offset(offset, SystemDictionary::HotSpotMethodData_klass(), "hotspotMirror", "Ljava/lang/Object;", false);
+    _filtered_fields->append(new FilteredField(SystemDictionary::HotSpotMethodData_klass(), offset));
   }
 #endif
 }

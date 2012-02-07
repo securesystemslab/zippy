@@ -68,6 +68,15 @@ class BuildConfig {
         if (value != null) {
             outDir = value;
         }
+        if (outDir.endsWith("debug")) {
+            outDir = outDir.substring(0, outDir.lastIndexOf("debug") - 1);
+        } else if(outDir.endsWith("fastdebug")) {
+            outDir = outDir.substring(0, outDir.lastIndexOf("fastdebug") - 1);
+        }
+        
+        if (!build.equals("product")) {
+            outDir += Util.sep + build;
+        }
         outDir += Util.sep + "jre" + Util.sep + "bin";
         if (flavour.equals("compiler1")) {
             outDir += Util.sep + "graal";
