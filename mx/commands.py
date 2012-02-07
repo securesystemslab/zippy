@@ -218,6 +218,57 @@ def dacapo(args):
     
     if len(failed) != 0:
         mx.abort('DaCapo failures: ' + str(failed))
+    
+
+def scaladacapo(args):
+    """run one or all Scala DaCapo benchmarks
+    
+    Scala DaCapo options are distinguished from VM options by a '@' prefix.
+    For example, '@--iterations @5' will pass '--iterations 5' to the
+    DaCapo harness."""
+
+    numTests = {}
+    
+    if len(args) > 0:
+        level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
+        if level is not None:
+            del args[0]
+            for (bench, ns) in sanitycheck.dacapoScalaSanityWarmup.items():
+                if ns[level] > 0:
+                    numTests[bench] = ns[level]
+        else:
+            while len(args) != 0 and args[0][0] not in ['-', '@']:
+                n = 1
+                if args[0].isdigit():
+                    n = int(args[0])
+                    assert len(args) > 1 and args[1][0] not in ['-', '@'] and not args[1].isdigit()
+                    bm = args[1]
+                    del args[0]
+                else:
+                    bm = args[0]
+                
+                del args[0]
+                if bm not in sanitycheck.dacapoScalaSanityWarmup.keys():
+                    mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoScalaSanityWarmup.keys()))
+                numTests[bm] = n
+    
+    if len(numTests) is 0:    
+        for bench in sanitycheck.dacapoScalaSanityWarmup.keys():
+            numTests[bench] = 1
+    
+    # Extract DaCapo options
+    dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
+    
+    # The remainder are VM options 
+    vmOpts = [arg for arg in args if not arg.startswith('@')]
+    
+    failed = []
+    for (test, n) in numTests.items():
+        if not sanitycheck.getScalaDacapo(test, n, dacapoArgs).test('graal', opts=vmOpts):
+            failed.append(test)
+    
+    if len(failed) != 0:
+        mx.abort('Scala DaCapo failures: ' + str(failed))
  
 def _jdk(build='product', create=False):
     """
@@ -571,6 +622,15 @@ def bench(args):
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
                 mx.abort('Unknown dacapo : ' + dacapo)
             benchmarks += [sanitycheck.getDacapo(dacapo, sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+    
+    if ('scaladacapo' in args or 'all' in args):
+        benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
+    else:
+        dacapos = [a[7:] for a in args if a.startswith('scaladacapo:')]
+        for dacapo in dacapos:
+            if dacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
+                mx.abort('Unknown dacapo : ' + dacapo)
+            benchmarks += [sanitycheck.getScalaDacapo(dacapo, sanitycheck.dacapoScalaSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
         
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):
@@ -604,7 +664,8 @@ def mx_init():
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
-        'specjvm2008': [specjvm2008, ''],
+        'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
+        'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
         'bench' : [bench, '[-vm vm] [-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],

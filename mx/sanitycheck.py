@@ -39,11 +39,26 @@ dacapoSanityWarmup = {
     'luindex':    [0, 0,  5, 10, 10],
     'lusearch':   [0, 4,  5,  5,  8],
     'pmd':        [0, 0,  5, 10, 13],
-    'sunflow':    [0, 0,  5, 10, 15],
+    'sunflow':    [2, 0,  5, 10, 15],
     'tomcat':     [0, 0,  5, 10, 15],
     'tradebeans': [0, 0,  5, 10, 13],
     'tradesoap':  [2, 4,  5, 10, 15],
     'xalan':      [0, 0,  5, 10, 18],
+}
+
+dacapoScalaSanityWarmup = {
+    'actors':     [0, 0, 2,  8, 10],
+    'apparat':    [0, 0, 1,  2,  3],
+    'factorie':   [0, 0, 2,  5,  5],
+    'kiama':      [0, 0, 3, 13, 15],
+    'scalac':     [0, 0, 5, 15, 20],
+    'scaladoc':   [0, 0, 5, 15, 15],
+    'scalap':     [0, 0, 5, 15, 20],
+    'scalariform':[0, 0, 6, 15, 20],
+    'scalatest':  [0, 0, 2, 10, 12],
+    'scalaxb':    [0, 0, 5, 15, 25],
+    'specs':      [0, 0, 3, 13, 18],
+    'tmt':        [0, 0, 3, 10, 12]
 }
 
 dacapoGateBuildLevels = {
@@ -61,6 +76,21 @@ dacapoGateBuildLevels = {
     'tradebeans': ['product', 'fastdebug', 'debug'],
     'tradesoap':  ['product'],
     'xalan':      ['product', 'fastdebug', 'debug'],
+}
+
+dacapoScalaGateBuildLevels = {
+    'actors':     ['product', 'fastdebug', 'debug'],
+    'apparat':    ['product', 'fastdebug', 'debug'],
+    'factorie':   ['product', 'fastdebug', 'debug'],
+    'kiama':      ['product', 'fastdebug', 'debug'],
+    'scalac':     ['product', 'fastdebug', 'debug'],
+    'scaladoc':   ['product', 'fastdebug', 'debug'],
+    'scalap':     ['product', 'fastdebug', 'debug'],
+    'scalariform':['product', 'fastdebug', 'debug'],
+    'scalatest':  ['product', 'fastdebug', 'debug'],
+    'scalaxb':    ['product', 'fastdebug', 'debug'],
+    'specs':      ['product', 'fastdebug', 'debug'],
+    'tmt':        ['product', 'fastdebug', 'debug'],
 }
 
 class SanityCheckLevel:
@@ -117,6 +147,36 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
     
     return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m'])
+
+def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
+    checks = []
+    
+    for (bench, ns) in dacapoScalaSanityWarmup.items():
+        if ns[level] > 0:
+            if gateBuildLevel is None or gateBuildLevel in dacapoScalaGateBuildLevels[bench]:
+                checks.append(getScalaDacapo(bench, ns[level], dacapoArgs))
+    
+    return checks
+
+def getScalaDacapo(name, n, dacapoArgs=[]):
+    dacapo = mx.get_env('DACAPO_SCALA_CP')
+    if dacapo is None:
+        l = mx.library('DACAPO_SCALA', False)
+        if l is not None:
+            dacapo = l.get_path(True)
+        else:
+            mx.abort('Scala DaCapo 0.1.0 jar file must be specified with DACAPO_SCALA_CP environment variable or as DACAPO_SCALA library')
+    
+    if not isfile(dacapo) or not dacapo.endswith('.jar'):
+        mx.abort('Specified Scala DaCapo jar file does not exist or is not a jar file: ' + dacapo)
+    
+    dacapoSuccess = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$")
+    dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$")
+    dacapoTime = re.compile(r"===== DaCapo 0\.1\.0(-SNAPSHOT)? (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
+    
+    dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
+    
+    return Test("Scala-DaCapo-" + name, "Scala-DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
