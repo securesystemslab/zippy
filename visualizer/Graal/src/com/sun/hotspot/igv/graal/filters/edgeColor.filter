@@ -1,0 +1,4 @@
+var f = new com.sun.hotspot.igv.graal.filters.GraalEdgeColorFilter();
+f.setUsageColor(blue);
+f.setSuccessorColor(red);
+f.apply(graph);

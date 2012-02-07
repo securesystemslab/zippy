@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE filesystem PUBLIC "-//NetBeans//DTD Filesystem 1.1//EN" "http://www.netbeans.org/dtds/filesystem-1_1.dtd">
+<filesystem>
+    <folder name="Filters">
+        <file name="Graal Coloring" url="filters/color.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Edge Coloring" url="filters/edgeColor.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Remove Unconnected Slots" url="filters/slots.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Probability" url="filters/probability.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Reduce Begin-End" url="filters/beginend.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Remove FrameState" url="filters/noframestate.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Mark FrameState With Lock" url="filters/framestatelocks.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal Call Analysis" url="filters/callgraph.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+        
+        <file name="Graal CFG-only" url="filters/cfg.filter">
+            <attr name="enabled" boolvalue="false"/>
+        </file>
+    </folder>
+</filesystem>
