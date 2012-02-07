@@ -44,6 +44,10 @@ methodOop getMethodFromHotSpotMethod(oop hotspot_method) {
   return (methodOop)HotSpotMethodResolved::javaMirror(hotspot_method);
 }
 
+methodDataOop getMethodDataFromHotSpotMethodData(jobject hotspot_method_data) {
+  return (methodDataOop)HotSpotMethodData::hotspotMirror(JNIHandles::resolve(hotspot_method_data));
+}
+
 // public byte[] RiMethod_code(HotSpotResolvedMethod method);
 JNIEXPORT jbyteArray JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_code");
@@ -182,26 +186,25 @@ JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl
   return getMethodFromHotSpotMethod(hotspot_method)->invocation_count();
 }
 
-// public native int RiMethod_exceptionProbability(long vmId, int bci);
-JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2exceptionProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("CompilerToVM::RiMethod_exceptionProbability");
+// public native HotSpotMethodData RiMethod_methodData(HotSpotMethodResolved method);
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1methodData(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_methodData");
   VM_ENTRY_MARK;
-  ResourceMark rm;
-  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  methodDataHandle method_data = method->method_data();
-  if (method_data == NULL || !method_data->is_mature()) {
-    return -1;
-  }
-  ProfileData* data = method_data->bci_to_data(bci);
-  if (data == NULL) {
-    return 0;
-  }
-  uint trap = Deoptimization::trap_state_is_recompiled(data->trap_state())? 1: 0;
-  if (trap > 0) {
-    return 100;
+
+  methodDataHandle method_data = getMethodFromHotSpotMethod(hotspot_method)->method_data();
+  if(method_data.is_null()) {
+    return NULL;
   } else {
-    return trap;
+    Handle graalMethodData = GraalCompiler::createHotSpotMethodData(method_data, CHECK_NULL);
+    return JNIHandles::make_local(THREAD, graalMethodData());
   }
+}
+
+JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_HotSpotMethodData_1isMature(JNIEnv *, jobject, jobject hotspot_method_data) {
+  TRACE_graal_3("CompilerToVM::HotSpotMethodData_isMature");
+  VM_ENTRY_MARK;
+  methodDataHandle method_data = getMethodDataFromHotSpotMethodData(hotspot_method_data);
+  return method_data->is_mature();
 }
 
 // ------------------------------------------------------------------
@@ -228,137 +231,6 @@ int scale_count(methodDataOop method_data, int count) {
     }
   }
   return count;
-}
-
-// public native RiTypeProfile RiMethod_typeProfile(long vmId, int bci);
-JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2typeProfile(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
-  VM_ENTRY_MARK;
-  Handle obj;
-  
-  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  methodDataHandle method_data = method->method_data();
-  if (method_data == NULL || !method_data->is_mature()) {
-    return NULL;
-  }
-  ResourceMark rm;
-  ProfileData* data = method_data->bci_to_data(bci);
-  if (data != NULL && data->is_ReceiverTypeData()) {
-    ReceiverTypeData* recv = data->as_ReceiverTypeData();
-    GrowableArray<KlassHandle> receivers;
-    GrowableArray<int> counts;
-    // determine morphism
-    uint total_count = 0;
-    for (uint i = 0; i < recv->row_limit(); i++) {
-      klassOop receiver = recv->receiver(i);
-      if (receiver == NULL)  continue;
-      uint count = recv->receiver_count(i);
-      total_count += count;
-      receivers.append(receiver);
-      counts.append(count);
-    }
-
-    instanceKlass::cast(RiTypeProfile::klass())->initialize(CHECK_NULL);
-    obj = instanceKlass::cast(RiTypeProfile::klass())->allocate_instance(CHECK_NULL);
-    assert(obj() != NULL, "must succeed in allocating instance");
-
-    int count = MAX2(total_count, recv->count());
-    RiTypeProfile::set_count(obj, scale_count(method_data(), count));
-    RiTypeProfile::set_morphism(obj, receivers.length());
-
-    if (receivers.length() > 0) {
-      typeArrayHandle probabilities = oopFactory::new_typeArray(T_FLOAT, receivers.length(), CHECK_NULL);
-      objArrayHandle types = oopFactory::new_objArray(SystemDictionary::RiType_klass(), receivers.length(), CHECK_NULL);
-      for (int i = 0; i < receivers.length(); i++) {
-        KlassHandle receiver = receivers.at(i);
-
-        float prob = counts.at(i) / (float) total_count;
-        Handle type = GraalCompiler::get_RiType(receiver, CHECK_NULL);
-
-        probabilities->float_at_put(i, prob);
-        types->obj_at_put(i, type());
-
-      }
-
-      RiTypeProfile::set_probabilities(obj, probabilities());
-      RiTypeProfile::set_types(obj, types());
-    } else {
-      RiTypeProfile::set_probabilities(obj, NULL);
-      RiTypeProfile::set_types(obj, NULL);
-    }
-  }
-  return JNIHandles::make_local(obj());
-}
-
-JNIEXPORT jdouble JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2branchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
-  ResourceMark rm;
-  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  methodDataHandle method_data = method->method_data();
-
-  if (method_data == NULL || !method_data->is_mature()) return -1;
-  method_data->bci_to_data(bci);
-  
-  ProfileData* data = method_data->bci_to_data(bci);
-  if (data == NULL || !data->is_JumpData())  return -1;
-
-  // get taken and not taken values
-  int     taken = data->as_JumpData()->taken();
-  int not_taken = 0;
-  if (data->is_BranchData()) {
-    not_taken = data->as_BranchData()->not_taken();
-  }
-
-  // Give up if too few (or too many, in which case the sum will overflow) counts to be meaningful.
-  // We also check that individual counters are positive first, otherwise the sum can become positive.
-  if (taken < 0 || not_taken < 0 || taken + not_taken < 40) return -1;
-
-  // Pin probability to sane limits
-  if (taken == 0)
-    return 0;
-  else if (not_taken == 0)
-    return 1;
-  else {                         // Compute probability of true path
-    return (jdouble)(taken) / (taken + not_taken);
-  }
-}
-
-JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_2switchProbability(JNIEnv *, jobject, jobject hotspot_method, jint bci) {
-  TRACE_graal_3("CompilerToVM::RiMethod_typeProfile");
-  VM_ENTRY_MARK;
-  ResourceMark rm;
-  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  methodDataHandle method_data = method->method_data();
-
-  if (method_data == NULL || !method_data->is_mature()) return NULL;
-
-  ProfileData* data = method_data->bci_to_data(bci);
-  if (data == NULL || !data->is_MultiBranchData())  return NULL;
-
-  MultiBranchData* branch_data = data->as_MultiBranchData();
-
-  long sum = 0;
-  int cases = branch_data->number_of_cases();
-  GrowableArray<uint>* counts = new GrowableArray<uint>(cases + 1);
-
-  for (int i = 0; i < cases; i++) {
-    uint value = branch_data->count_at(i);
-    sum += value;
-    counts->append(value);
-  }
-  uint value = branch_data->default_count();
-  sum += value;
-  counts->append(value);
-
-  // Give up if too few (or too many, in which case the sum will overflow) counts to be meaningful.
-  // We also check that individual counters are positive first, otherwise the sum can become positive.
-  if (sum < 10 * (cases + 3)) return NULL;
-
-  typeArrayOop probability = oopFactory::new_typeArray(T_DOUBLE, cases + 1, CHECK_NULL);
-  for (int i = 0; i < cases + 1; i++) {
-    probability->double_at_put(i, counts->at(i) / (double) sum);
-  }
-  return JNIHandles::make_local(probability);
 }
 
 // public native boolean RiMethod_hasCompiledCode(HotSpotMethodResolved method);
@@ -875,6 +747,16 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
   set_int(env, config, "threadMultiNewArrayStorage", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
   set_int(env, config, "classMirrorOffset", klassOopDesc::klass_part_offset_in_bytes() + Klass::java_mirror_offset_in_bytes());
+  
+  set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
+  set_int(env, config, "dataLayoutHeaderSize", DataLayout::header_size_in_bytes());
+  set_int(env, config, "dataLayoutTagOffset", in_bytes(DataLayout::tag_offset()));
+  set_int(env, config, "dataLayoutFlagsOffset", in_bytes(DataLayout::flags_offset()));
+  set_int(env, config, "dataLayoutBCIOffset", in_bytes(DataLayout::bci_offset()));
+  set_int(env, config, "dataLayoutCellsOffset", in_bytes(DataLayout::cell_offset(0)));
+  set_int(env, config, "dataLayoutCellSize", DataLayout::cell_size);
+  set_int(env, config, "bciProfileWidth", BciProfileWidth);
+  set_int(env, config, "typeProfileWidth", TypeProfileWidth);
 
   set_long(env, config, "debugStub", VmIds::addStub((address)warning));
   set_long(env, config, "instanceofStub", VmIds::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
@@ -898,7 +780,9 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
   set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
   set_int(env, config, "klassModifierFlagsOffset", Klass::modifier_flags_offset_in_bytes() + sizeof(oopDesc));
+  set_int(env, config, "graalMirrorKlassOffset", klassOopDesc::klass_part_offset_in_bytes() + Klass::graal_mirror_offset_in_bytes());
   set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
+
   set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());
 
   set_int(env, config, "nmethodEntryOffset", nmethod::verified_entry_point_offset());
@@ -1023,7 +907,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
 #define METHOD          "Lcom/oracle/max/cri/ri/RiMethod;"
 #define RESOLVED_METHOD "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;"
 #define REFLECT_METHOD  "Ljava/lang/reflect/Method;"
-#define TYPE_PROFILE    "Lcom/oracle/max/cri/ri/RiTypeProfile;"
 #define SIGNATURE       "Lcom/oracle/max/cri/ri/RiSignature;"
 #define FIELD           "Lcom/oracle/max/cri/ri/RiField;"
 #define RESOLVED_FIELD  "Lcom/oracle/max/cri/ri/RiResolvedField;"
@@ -1033,6 +916,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
 #define CONFIG          "Lcom/oracle/max/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD       "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethod;"
 #define HS_COMP_METHOD  "Lcom/oracle/max/graal/hotspot/ri/HotSpotCompiledMethod;"
+#define METHOD_DATA     "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodData;"
 #define CI_CONSTANT     "Lcom/oracle/max/cri/ci/CiConstant;"
 #define CI_KIND         "Lcom/oracle/max/cri/ci/CiKind;"
 #define CI_RUNTIME_CALL "Lcom/oracle/max/cri/ci/CiRuntimeCall;"
@@ -1047,11 +931,9 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"RiMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasBalancedMonitors)},
   {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(RiMethod_1uniqueConcreteMethod)},
   {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(getRiMethod)},
-  {CC"RiMethod_typeProfile",              CC"("RESOLVED_METHOD"I)"TYPE_PROFILE,       FN_PTR(RiMethod_2typeProfile)},
-  {CC"RiMethod_branchProbability",        CC"("RESOLVED_METHOD"I)D",                  FN_PTR(RiMethod_2branchProbability)},
-  {CC"RiMethod_switchProbability",        CC"("RESOLVED_METHOD"I)[D",                 FN_PTR(RiMethod_2switchProbability)},
+  {CC"RiMethod_methodData",               CC"("RESOLVED_METHOD")"METHOD_DATA,         FN_PTR(RiMethod_1methodData)},
+  {CC"HotSpotMethodData_isMature",        CC"("METHOD_DATA")Z",                       FN_PTR(HotSpotMethodData_1isMature)},
   {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
-  {CC"RiMethod_exceptionProbability",     CC"("RESOLVED_METHOD"I)I",                  FN_PTR(RiMethod_2exceptionProbability)},
   {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
   {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,               FN_PTR(RiConstantPool_1lookupConstant)},

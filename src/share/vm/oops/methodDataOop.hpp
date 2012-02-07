@@ -1194,6 +1194,9 @@ private:
   // Back pointer to the methodOop
   methodOop _method;
 
+  // com/oracle/max/graal/hotspot/HotSpotProfilingInfo mirroring this method
+  oop               _graal_mirror;
+
   // Size of this oop in bytes
   int _size;
 
@@ -1423,6 +1426,10 @@ public:
   // Accessors
   methodOop method() { return _method; }
 
+  // graal mirror
+  oop graal_mirror() const               { return _graal_mirror; }
+  void set_graal_mirror(oop m)           { oop_store((oop*) &_graal_mirror, m); }
+
   // Get the data at an arbitrary (sort of) data index.
   ProfileData* data_at(int data_index);
 
@@ -1520,6 +1527,7 @@ public:
 
   // GC support
   oop* adr_method() const { return (oop*)&_method; }
+  oop* adr_graal_mirror() const { return (oop*)&_graal_mirror; }
   bool object_is_parsable() const { return _size != 0; }
   void set_object_is_parsable(int object_size_in_bytes) { _size = object_size_in_bytes; }
 

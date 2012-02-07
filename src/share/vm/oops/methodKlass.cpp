@@ -144,11 +144,9 @@ void methodKlass::oop_follow_contents(ParCompactionManager* cm,
   PSParallelCompact::mark_and_push(cm, m->adr_constMethod());
   PSParallelCompact::mark_and_push(cm, m->adr_constants());
   PSParallelCompact::mark_and_push(cm, m->adr_graal_mirror());
-#ifdef COMPILER2
   if (m->method_data() != NULL) {
     PSParallelCompact::mark_and_push(cm, m->adr_method_data());
   }
-#endif // COMPILER2
 }
 #endif // SERIALGC
 
@@ -221,11 +219,9 @@ int methodKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
   PSParallelCompact::adjust_pointer(m->adr_constMethod());
   PSParallelCompact::adjust_pointer(m->adr_constants());
   PSParallelCompact::adjust_pointer(m->adr_graal_mirror());
-#ifdef COMPILER2
   if (m->method_data() != NULL) {
     PSParallelCompact::adjust_pointer(m->adr_method_data());
   }
-#endif // COMPILER2
   return m->object_size();
 }
 #endif // SERIALGC

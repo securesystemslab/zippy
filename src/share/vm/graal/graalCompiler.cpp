@@ -29,6 +29,7 @@
 #include "graal/graalVmIds.hpp"
 #include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
+#include "compiler/compilerOracle.hpp"
 #include "runtime/arguments.hpp"
 
 GraalCompiler* GraalCompiler::_instance = NULL;
@@ -270,10 +271,30 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   HotSpotMethodResolved::set_accessFlags(obj, method->access_flags().as_int());
   HotSpotMethodResolved::set_maxLocals(obj, method->max_locals());
   HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
-  HotSpotMethodResolved::set_canBeInlined(obj, true);
+  HotSpotMethodResolved::set_canBeInlined(obj, !CompilerOracle::should_not_inline(method));
   
   method->set_graal_mirror(obj());
-  return obj();
+  return obj;
+}
+
+Handle GraalCompiler::createHotSpotMethodData(methodDataHandle method_data, TRAPS) {
+  if(method_data->graal_mirror() != NULL) {
+    assert(method_data->graal_mirror()->is_a(HotSpotMethodData::klass()), "unexpected class");
+    return method_data->graal_mirror();
+  }
+
+  instanceKlass::cast(HotSpotMethodData::klass())->initialize(CHECK_NULL);
+  Handle obj = instanceKlass::cast(HotSpotMethodData::klass())->allocate_instance(CHECK_NULL);
+  assert(obj.not_null(), "must succeed in allocating instance");
+  
+  HotSpotMethodData::set_compiler(obj, VMToCompiler::compilerInstance()());
+  HotSpotMethodData::set_hotspotMirror(obj, method_data());
+  HotSpotMethodData::set_normalDataSize(obj, method_data()->data_size());
+  HotSpotMethodData::set_extraDataSize(obj, method_data()->extra_data_size());
+  HotSpotMethodData::set_mature(obj, method_data()->is_mature());
+
+  method_data->set_graal_mirror(obj());
+  return obj;
 }
 
 BasicType GraalCompiler::kindToBasicType(jchar ch) {
