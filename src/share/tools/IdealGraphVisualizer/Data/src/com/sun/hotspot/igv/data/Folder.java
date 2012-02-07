@@ -26,7 +26,6 @@ package com.sun.hotspot.igv.data;
 import java.util.List;
 
 public interface Folder {
-    String getName();
     List<? extends FolderElement> getElements();
     void removeElement(FolderElement element);
     void addElement(FolderElement group);

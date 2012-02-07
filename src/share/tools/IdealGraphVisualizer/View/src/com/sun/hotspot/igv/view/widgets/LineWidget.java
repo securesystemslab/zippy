@@ -27,7 +27,7 @@ import com.sun.hotspot.igv.graph.Connection;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
 import com.sun.hotspot.igv.graph.OutputSlot;
-import com.sun.hotspot.igv.view.scene.DiagramScene;
+import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.*;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;

@@ -24,6 +24,7 @@
 package com.sun.hotspot.igv.bytecodes;
 
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
+import com.sun.hotspot.igv.util.LookupHistory;
 import org.openide.nodes.Node;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle;
@@ -38,7 +39,7 @@ public final class SelectBytecodesAction extends CookieAction {
     @Override
     protected void performAction(Node[] activatedNodes) {
         SelectBytecodesCookie c = activatedNodes[0].getCookie(SelectBytecodesCookie.class);
-        InputGraphProvider p = null; // TODO: fixme LookupHistory.getLast(InputGraphProvider.class);//Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
+        InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
         if (p != null) {
             p.setSelectedNodes(c.getNodes());
         }

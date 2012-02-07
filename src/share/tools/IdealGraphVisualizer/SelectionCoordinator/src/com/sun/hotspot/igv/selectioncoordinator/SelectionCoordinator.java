@@ -100,6 +100,7 @@ public class SelectionCoordinator {
 
     private void highlightedObjectsChanged() {
         highlightedChangedEvent.fire();
+
     }
 
     public void addAllSelected(Set<? extends Object> s) {

@@ -39,6 +39,7 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
 
     // Warning: Update setData method if fields are added
     private ChangedEvent<RangeSliderModel> changedEvent;
+    private ChangedEvent<RangeSliderModel> colorChangedEvent;
     private List<String> positions;
     private int firstPosition;
     private int secondPosition;
@@ -52,20 +53,24 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         firstPosition = model.firstPosition;
         changed |= (secondPosition != model.secondPosition);
         secondPosition = model.secondPosition;
-        changed |= (colors != model.colors);
+        boolean colorChanged = (colors != model.colors);
         colors = model.colors;
         if (changed) {
             changedEvent.fire();
+        }
+        if (colorChanged) {
+            colorChangedEvent.fire();
         }
     }
 
     public RangeSliderModel(List<String> positions) {
         assert positions.size() > 0;
         this.changedEvent = new ChangedEvent<>(this);
+        this.colorChangedEvent = new ChangedEvent<>(this);
         setPositions(positions);
     }
 
-    protected final void setPositions(List<String> positions) {
+    protected void setPositions(List<String> positions) {
         this.positions = positions;
         colors = new ArrayList<>();
         for (int i = 0; i < positions.size(); i++) {
@@ -74,11 +79,12 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
         firstPosition = Math.min(firstPosition, positions.size() - 1);
         secondPosition = Math.min(secondPosition, positions.size() - 1);
         changedEvent.fire();
+        colorChangedEvent.fire();
     }
 
     public void setColors(List<Color> colors) {
         this.colors = colors;
-        changedEvent.fire();
+        colorChangedEvent.fire();
     }
 
     public List<Color> getColors() {
@@ -118,6 +124,10 @@ public class RangeSliderModel implements ChangedEventProvider<RangeSliderModel> 
             secondPosition = firstPosition;
             firstPosition = tmp;
         }
+    }
+
+    public ChangedEvent<RangeSliderModel> getColorChangedEvent() {
+        return colorChangedEvent;
     }
 
     @Override

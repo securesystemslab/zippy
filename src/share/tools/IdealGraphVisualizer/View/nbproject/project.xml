@@ -7,22 +7,6 @@
             <suite-component/>
             <module-dependencies>
                 <dependency>
-                    <code-name-base>com.oracle.graal.visualizer.editor</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>1.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>com.oracle.graal.visualizer.sharedactions</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>1.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>com.sun.hotspot.igv.data</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
@@ -64,6 +48,14 @@
                 </dependency>
                 <dependency>
                     <code-name-base>com.sun.hotspot.igv.layout</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency>
+                        <specification-version>1.0</specification-version>
+                    </run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.sun.hotspot.igv.selectioncoordinator</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>

@@ -87,12 +87,6 @@ public class GraphDocument extends Properties.Entity implements ChangedEventProv
     @Override
     public void addElement(FolderElement element) {
         elements.add(element);
-        element.setParent(this);
         getChangedEvent().fire();
-    }
-
-    @Override
-    public String getName() {
-        return "root";
     }
 }

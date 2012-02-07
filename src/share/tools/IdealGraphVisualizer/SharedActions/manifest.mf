@@ -1,5 +1,0 @@
-Manifest-Version: 1.0
-OpenIDE-Module: com.oracle.graal.visualizer.sharedactions
-OpenIDE-Module-Localizing-Bundle: com/oracle/graal/visualizer/sharedactions/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.0
-

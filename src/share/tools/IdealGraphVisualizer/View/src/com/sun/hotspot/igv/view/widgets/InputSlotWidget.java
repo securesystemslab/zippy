@@ -25,7 +25,7 @@ package com.sun.hotspot.igv.view.widgets;
 
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
-import com.sun.hotspot.igv.view.scene.DiagramScene;
+import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.Point;
 import java.util.List;
 import org.netbeans.api.visual.widget.Widget;

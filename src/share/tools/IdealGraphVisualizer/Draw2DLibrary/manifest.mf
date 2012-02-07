@@ -1,5 +1,0 @@
-Manifest-Version: 1.0
-OpenIDE-Module: org.eclipse.draw2d
-OpenIDE-Module-Localizing-Bundle: org/eclipse/draw2d/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.0
-

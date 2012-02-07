@@ -23,17 +23,13 @@
  */
 package com.sun.hotspot.igv.data;
 
-import at.ssw.visualizer.model.bc.Bytecodes;
-import at.ssw.visualizer.model.cfg.BasicBlock;
-import at.ssw.visualizer.model.cfg.ControlFlowGraph;
-import at.ssw.visualizer.model.nc.NativeMethod;
 import java.util.*;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class InputGraph extends Properties.Entity implements FolderElement, ControlFlowGraph {
+public class InputGraph extends Properties.Entity implements FolderElement {
 
     private Map<Integer, InputNode> nodes;
     private Set<InputEdge> edges;
@@ -296,45 +292,5 @@ public class InputGraph extends Properties.Entity implements FolderElement, Cont
     @Override
     public Folder getParent() {
         return parent;
-    }
-
-    @Override
-    public List<BasicBlock> getBasicBlocks() {
-        return new ArrayList<BasicBlock>(blocks.values());
-    }
-
-    @Override
-    public BasicBlock getBasicBlockByName(String name) {
-        return blocks.get(name);
-    }
-
-    @Override
-    public Bytecodes getBytecodes() {
-        // TODO(tw): no bytecodes
-        return null;
-    }
-
-    @Override
-    public NativeMethod getNativeMethod() {
-        // TODO(tw): No native method.
-        return null;
-    }
-
-    @Override
-    public boolean hasState() {
-        // TODO(tw): implement
-        return false;
-    }
-
-    @Override
-    public boolean hasHir() {
-        // TODO(tw): Implement
-        return false;
-    }
-
-    @Override
-    public boolean hasLir() {
-        // TODO(tw): Implement
-        return false;
     }
 }

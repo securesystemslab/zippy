@@ -26,6 +26,7 @@ package com.sun.hotspot.igv.bytecodes;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.services.InputGraphProvider;
+import com.sun.hotspot.igv.util.LookupHistory;
 import java.awt.BorderLayout;
 import java.io.Serializable;
 import javax.swing.SwingUtilities;
@@ -169,7 +170,7 @@ final class BytecodeViewTopComponent extends TopComponent implements ExplorerMan
 
     @Override
     public void resultChanged(LookupEvent lookupEvent) {
-        final InputGraphProvider p = null; // TODO(tw): FIXME //.getLast(InputGraphProvider.class);//)Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
+        final InputGraphProvider p = LookupHistory.getLast(InputGraphProvider.class);//)Utilities.actionsGlobalContext().lookup(InputGraphProvider.class);
         if (p != null) {
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
