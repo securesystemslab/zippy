@@ -39,7 +39,7 @@ dacapoSanityWarmup = {
     'luindex':    [0, 0,  5, 10, 10],
     'lusearch':   [0, 4,  5,  5,  8],
     'pmd':        [0, 0,  5, 10, 13],
-    'sunflow':    [2, 0,  5, 10, 15],
+    'sunflow':    [0, 2,  5, 10, 15],
     'tomcat':     [0, 0,  5, 10, 15],
     'tradebeans': [0, 0,  5, 10, 13],
     'tradesoap':  [2, 4,  5, 10, 15],

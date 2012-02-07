@@ -657,12 +657,26 @@ def specjvm2008(args):
     vmArgs = [a for a in args if a[0] != '@']
     sanitycheck.getSPECjvm2008(benchArgs).bench('graal', opts=vmArgs)
     
+def hsdis(args):
+    """Installs the hsdis library
+
+    This is needed to support HotSpot's assembly dumping features.
+    By default it installs the Intel syntax version, use the 'att' argument to install AT&T syntax."""
+    flavor = 'intel'
+    if 'att' in args:
+        flavor = 'att'
+    build = _vmbuild if _vmSourcesAvailable else 'product'
+    lib = mx.lib_suffix('hsdis-amd64')
+    path = join(_jdk(build), 'jre', 'lib', 'amd64', lib)
+    mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
+    
 def mx_init():
     _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
+        'hsdis': [hsdis, '[att]'],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
