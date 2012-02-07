@@ -21,42 +21,28 @@
  * questions.
  *
  */
-package at.ssw.visualizer.cfg.action;
+package com.oracle.graal.visualizer.sharedactions;
 
-import at.ssw.visualizer.cfg.graph.CfgScene;
-import org.openide.util.HelpCtx;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 
-
-/**
- * Adjusts the Zoom factor of the Scene to the bounds of Scroll panel 
- * to get a clean view on the whole graph.
- *
- */
-public class ShowAllAction extends AbstractCfgEditorAction {
+@ActionID(id = "com.oracle.graal.visualizer.sharedactions.ZoomInAction", category = "View")
+@ActionRegistration(displayName = "Zoom In", iconBase="com/oracle/graal/visualizer/sharedactions/images/zoomin.gif")
+@ActionReference(path = "Menu/View", position = 600)
+public class ZoomInAction implements ActionListener {
     
-    @Override
-    public void performAction() {    
-        CfgScene tc = getEditor();
-        if (tc != null) {
-            CfgScene scene = tc;  
-            scene.zoomScene();        
-
-        }        
+    private ZoomCookie zoomCookie;
+    
+    public ZoomInAction(ZoomCookie zoomCookie) {
+        this.zoomCookie = zoomCookie;
     }
-    
+
     @Override
-    public HelpCtx getHelpCtx() {
-        return HelpCtx.DEFAULT_HELP;
-    }
-    
-    @Override
-    public String getName() {
-        return "Fit Scene to Window";
-    }
-    
-    @Override
-    protected String iconResource() {
-        return "at/ssw/visualizer/cfg/icons/autosize.gif";    
+    public void actionPerformed(ActionEvent e) {
+        zoomCookie.zoomIn();
     }
           
 }   

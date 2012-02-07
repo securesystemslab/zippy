@@ -15,6 +15,7 @@ import at.ssw.visualizer.cfg.visual.PolylineRouterV2;
 import at.ssw.visualizer.cfg.visual.WidgetCollisionCollector;
 import at.ssw.visualizer.model.cfg.BasicBlock;
 import at.ssw.visualizer.model.cfg.ControlFlowGraph;
+import com.oracle.graal.visualizer.sharedactions.ZoomCookie;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -62,7 +63,7 @@ import org.netbeans.api.visual.widget.Widget;
 import org.openide.util.NbPreferences;
 import org.openide.util.actions.SystemAction;
 
-public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements ChangeListener {
+public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements ChangeListener, ZoomCookie {
 
     private LayerWidget mainLayer = new LayerWidget(this);
     private LayerWidget connectionLayer = new LayerWidget(this);
@@ -763,6 +764,24 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
                 return menu;
             }
         });
+    }
+
+    @Override
+    public void zoomIn() {
+        this.setZoomFactor(1.1);
+        this.validate();
+    }
+
+    @Override
+    public void zoomOut() {
+        this.setZoomFactor(0.9);
+        this.validate();
+    }
+
+    @Override
+    public void showAll() {
+        this.zoomScene();
+        this.validate();
     }
 
     private class NodeNameComparator implements Comparator<CfgNode> {

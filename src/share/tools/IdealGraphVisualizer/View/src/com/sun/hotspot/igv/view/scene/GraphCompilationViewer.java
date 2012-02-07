@@ -27,7 +27,6 @@ package com.sun.hotspot.igv.view.scene;
 import com.sun.hotspot.igv.svg.BatikSVG;
 import com.oracle.graal.visualizer.editor.CompilationViewer;
 import com.oracle.graal.visualizer.editor.DiagramViewModel;
-import com.oracle.graal.visualizer.editor.ExportCookie;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.view.actions.*;
 import java.awt.Component;
@@ -48,44 +47,7 @@ import org.openide.util.lookup.ProxyLookup;
 public class GraphCompilationViewer implements CompilationViewer, PropertyChangeListener {
     
     private DiagramScene scene;
-    private JToolBar toolBar;
     private PredSuccAction predSuccAction;
-    
-    private ExportCookie exportCookie = new ExportCookie() {
-
-        @Override
-        public void export(File f) {
-
-            Graphics2D svgGenerator = BatikSVG.createGraphicsObject();
-
-            if (svgGenerator == null) {
-                NotifyDescriptor message = new NotifyDescriptor.Message("For export to SVG files the Batik SVG Toolkit must be intalled.", NotifyDescriptor.ERROR_MESSAGE);
-                DialogDisplayer.getDefault().notifyLater(message);
-            } else {
-                scene.paint(svgGenerator);
-                FileOutputStream os = null;
-                try {
-                    os = new FileOutputStream(f);
-                    Writer out = new OutputStreamWriter(os, "UTF-8");
-                    BatikSVG.printToStream(svgGenerator, out, true);
-                } catch (FileNotFoundException e) {
-                    NotifyDescriptor message = new NotifyDescriptor.Message("For export to SVG files the Batik SVG Toolkit must be intalled.", NotifyDescriptor.ERROR_MESSAGE);
-                    DialogDisplayer.getDefault().notifyLater(message);
-
-                } catch (UnsupportedEncodingException e) {
-                } finally {
-                    if (os != null) {
-                        try {
-                            os.close();
-                        } catch (IOException e) {
-                        }
-                    }
-                }
-
-            }
-        }
-    };
-    private Lookup lookup;
 
     GraphCompilationViewer(DiagramViewModel model) {
         
@@ -95,18 +57,11 @@ public class GraphCompilationViewer implements CompilationViewer, PropertyChange
         };
         
         scene.setActions(actions);
-//        predSuccAction = new PredSuccAction();
-//        JToggleButton button = new JToggleButton(predSuccAction);
-//        button.setSelected(true);
-//        toolBar.add(button);
-//        predSuccAction.addPropertyChangeListener(this);
-        
-        lookup = new ProxyLookup(scene.getLookup(), Lookups.singleton(exportCookie));
     }
 
     @Override
     public Lookup getLookup() {
-        return lookup;
+        return scene.getLookup();
     }
 
     @Override

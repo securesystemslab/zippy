@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,9 @@
 package com.sun.hotspot.igv.view.scene;
 
 import com.oracle.graal.visualizer.editor.DiagramViewModel;
+import com.oracle.graal.visualizer.sharedactions.ExportSVGCookie;
+import com.oracle.graal.visualizer.sharedactions.ZoomCookie;
 import com.sun.hotspot.igv.data.ChangedListener;
-import com.sun.hotspot.igv.data.ControllableChangedListener;
 import com.sun.hotspot.igv.data.Pair;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.graph.*;
@@ -46,7 +47,6 @@ import org.netbeans.api.visual.layout.LayoutFactory;
 import org.netbeans.api.visual.model.*;
 import org.netbeans.api.visual.widget.LayerWidget;
 import org.netbeans.api.visual.widget.Widget;
-import org.openide.awt.UndoRedo;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Sheet;
@@ -54,11 +54,7 @@ import org.openide.util.Lookup;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 
-/**
- *
- * @author Thomas Wuerthinger
- */
-public class DiagramScene extends ObjectScene {
+public class DiagramScene extends ObjectScene implements ExportSVGCookie, ZoomCookie {
 
     private CustomizablePanWidgetAction panAction;
     private WidgetAction hoverAction;
@@ -121,15 +117,6 @@ public class DiagramScene extends ObjectScene {
         return (T) w;
     }
 
-    private static boolean intersects(Set<? extends Object> s1, Set<? extends Object> s2) {
-        for (Object o : s1) {
-            if (s2.contains(o)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public void zoomOut() {
         double zoom = getZoomFactor();
         Point viewPosition = getScrollPane().getViewport().getViewPosition();
@@ -157,21 +144,6 @@ public class DiagramScene extends ObjectScene {
         gotoFigures(list);
     }
 
-    private Set<Object> getObjectsFromIdSet(Set<Object> set) {
-        Set<Object> selectedObjects = new HashSet<>();
-        for (Figure f : getModel().getDiagramToView().getFigures()) {
-            if (intersects(f.getSource().getSourceNodesAsSet(), set)) {
-                selectedObjects.add(f);
-            }
-
-            for (Slot s : f.getSlots()) {
-                if (intersects(s.getSource().getSourceNodesAsSet(), set)) {
-                    selectedObjects.add(s);
-                }
-            }
-        }
-        return selectedObjects;
-    }
     private RectangularSelectProvider rectangularSelectProvider = new RectangularSelectProvider() {
 
         @Override
@@ -342,6 +314,7 @@ public class DiagramScene extends ObjectScene {
         this.model = model;
         content = new InstanceContent();
         lookup = new AbstractLookup(content);
+        content.add(this);
 
         this.setCheckClipping(true);
 
@@ -983,4 +956,9 @@ public class DiagramScene extends ObjectScene {
             smallUpdate(false);
         }
     };
+
+    @Override
+    public void showAll() {
+        // TODO(tw): Implement.
+    }
 }

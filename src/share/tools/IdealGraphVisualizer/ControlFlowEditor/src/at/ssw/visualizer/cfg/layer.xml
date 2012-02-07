@@ -24,6 +24,18 @@
                     <attr name="preferencesNode" methodvalue="at.ssw.visualizer.cfg.graph.CfgScene.getPreferences"/>
                     <attr name="preferencesKey" stringvalue="loopClusters"/>
                 </file>
+                <file name="com-oracle-graal-visualizer-sharedactions-ShowAllAction.shadow">
+                    <attr name="originalFile" stringvalue="Actions/View/com-oracle-graal-visualizer-sharedactions-ShowAllAction.instance"/>
+                </file>
+                <file name="com-oracle-graal-visualizer-sharedactions-ZoomInAction.shadow">
+                    <attr name="originalFile" stringvalue="Actions/View/com-oracle-graal-visualizer-sharedactions-ZoomInAction.instance"/>
+                </file>
+                <file name="com-oracle-graal-visualizer-sharedactions-ZoomOutAction.shadow">
+                    <attr name="originalFile" stringvalue="Actions/View/com-oracle-graal-visualizer-sharedactions-ZoomOutAction.instance"/>
+                </file>
+                <file name="com-oracle-graal-visualizer-sharedactions-ExportSVGAction.shadow">
+                    <attr name="originalFile" stringvalue="Actions/File/com-oracle-graal-visualizer-sharedactions-ExportSVGAction.instance"/>
+                </file>
             </folder>
         </folder>
     </folder>
