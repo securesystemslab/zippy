@@ -306,10 +306,6 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
 
     public void setSceneLayout(int newLayout) {
 
-        if (currentLayout == newLayout) {
-            return;
-        }
-
         GraphLayout<CfgNode, CfgEdge> graphLayout = null;
 
         switch (newLayout) {
@@ -768,13 +764,13 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
 
     @Override
     public void zoomIn() {
-        this.setZoomFactor(1.1);
+        this.setZoomFactor(this.getZoomFactor() * 1.1);
         this.validate();
     }
 
     @Override
     public void zoomOut() {
-        this.setZoomFactor(0.9);
+        this.setZoomFactor(this.getZoomFactor() * 0.9);
         this.validate();
     }
 
