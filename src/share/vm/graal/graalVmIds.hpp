@@ -72,7 +72,7 @@ template <> inline jobject VmIds::toString<jobject>(Symbol* symbol, TRAPS) {
 }
 
 inline Symbol* VmIds::toSymbol(jstring string) {
-  return java_lang_String::as_symbol_or_null(JNIHandles::resolve(string));
+  return java_lang_String::as_symbol(JNIHandles::resolve(string), Thread::current());
 }
 
 inline jlong VmIds::getBoxedLong(oop obj) {
