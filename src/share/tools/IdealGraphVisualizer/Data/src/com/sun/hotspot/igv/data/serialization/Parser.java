@@ -128,8 +128,8 @@ public class Parser {
 
         @Override
         protected Group start() throws SAXException {
-            Group group = new Group(this.getParentObject());
-            
+            final Group group = new Group(this.getParentObject());
+
             String differenceProperty = this.readAttribute(DIFFERENCE_PROPERTY);
             Parser.this.differenceEncoding.put(group, (differenceProperty != null && (differenceProperty.equals("1") || differenceProperty.equals("true"))));
 
@@ -138,12 +138,6 @@ public class Parser {
                 monitor.setState(group.getName());
             }
 
-            return group;
-        }
-
-        @Override
-        protected void end(String text) throws SAXException {
-            final Group group = getObject();
             final Folder parent = getParentObject();
             if (groupCallback == null || parent instanceof Group) {
                 SwingUtilities.invokeLater(new Runnable(){
@@ -153,6 +147,12 @@ public class Parser {
                     }
                 });
             }
+
+            return group;
+        }
+
+        @Override
+        protected void end(String text) throws SAXException {
         }
     };
     // <method>
@@ -270,7 +270,7 @@ public class Parser {
                 graph.addBlockEdge(left, right);
             }
             blockConnections.clear();
-            
+
             SwingUtilities.invokeLater(new Runnable(){
 
                 @Override
