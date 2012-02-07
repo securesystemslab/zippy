@@ -33,7 +33,7 @@ import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
 
 
-@ActionID(id = "HierarchicalCompoundLayout", category = "View")
+@ActionID(id = "at.ssw.visualizer.cfg.action.HierarchicalCompoundLayout", category = "View")
 @ActionRegistration(displayName = "Compound Layout", iconBase="at/ssw/visualizer/cfg/icons/arrangeloop.gif")
 @ActionReference(path = "CompilationViewer/CFG/Actions", position = 150)
 public class HierarchicalCompoundLayoutAction implements ActionListener {

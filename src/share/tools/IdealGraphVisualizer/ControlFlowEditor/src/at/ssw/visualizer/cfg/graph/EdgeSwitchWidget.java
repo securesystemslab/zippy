@@ -193,7 +193,6 @@ public class EdgeSwitchWidget extends Widget {
         else
              this.setToolTipText(TT_SHOW_EDGES);    
                
-        scene.fireSelectionChanged();//updates Edge visibility for context action        
         revalidate();   
     }
   

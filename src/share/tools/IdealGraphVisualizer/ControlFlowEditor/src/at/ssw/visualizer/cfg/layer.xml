@@ -11,62 +11,20 @@
         <folder name="CFG">
             <folder name="Actions">
                 <file name="com-oracle-graal-visualizer-cfg-RouterAction.instance">
-                    <attr name="displayName" stringvalue="Bezier routing"/>
+                    <attr name="displayName" stringvalue="Use bezier routing"/>
                     <attr methodvalue="org.openide.awt.Actions.checkbox" name="instanceCreate"/>
                     <attr name="iconBase" stringvalue="at/ssw/visualizer/cfg/icons/bezierrouter.gif"/>
                     <attr name="preferencesNode" methodvalue="at.ssw.visualizer.cfg.graph.CfgScene.getPreferences"/>
                     <attr name="preferencesKey" stringvalue="router"/>
                 </file>
+                <file name="com-oracle-graal-visualizer-cfg-LoopClusterAction.instance">
+                    <attr name="displayName" stringvalue="Show loop clusters"/>
+                    <attr methodvalue="org.openide.awt.Actions.checkbox" name="instanceCreate"/>
+                    <attr name="iconBase" stringvalue="at/ssw/visualizer/cfg/icons/cluster.gif"/>
+                    <attr name="preferencesNode" methodvalue="at.ssw.visualizer.cfg.graph.CfgScene.getPreferences"/>
+                    <attr name="preferencesKey" stringvalue="loopClusters"/>
+                </file>
             </folder>
         </folder>
     </folder>
-    <folder name="Actions">
-        <folder name="Window">
-            <file name="ShowCFGEditor.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.ShowCFGEditorAction"/>
-            </file>
-        </folder>
-        <folder name="View">      
-            <file name="ShowEdges.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.ShowEdgesAction"/>
-            </file>
-            <file name="HideEdges.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.HideEdgesAction"/>
-            </file>
-            <file name="Export.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.ExportAction"/>
-            </file>    
-            <file name="Zoomin.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.ZoominAction"/>
-            </file>
-            <file name="Zoomout.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.ZoomoutAction"/>
-            </file>  
-            <file name="ShowAll.instance">
-                <attr name="instanceClass" stringvalue="at.ssw.visualizer.cfg.action.ShowAllAction"/>
-            </file>  
-        </folder>
-    </folder>
-
-    <folder name="Menu">
-        <folder name="BuildProject_hidden">
-            <file name="at-ssw-visualizer-cfg-action-SomeAction.shadow">
-                <attr name="originalFile" stringvalue="Actions/Build/at-ssw-visualizer-cfg-action-SomeAction.instance"/>
-            </file>
-        </folder>
-        <folder name="Window">
-            <file name="ShowCFGEditor.shadow">
-                <attr name="originalFile" stringvalue="Actions/Window/ShowCFGEditor.instance"/>
-                <attr name="position" intvalue="1300"/>
-            </file>
-        </folder>
-    </folder> 
-    
-    <folder name="at-ssw-visualizer-actions-cfg">
-        <file name="ShowCFGEditor.shadow">
-            <attr name="originalFile" stringvalue="Actions/Window/ShowCFGEditor.instance"/>
-            <attr name="position" intvalue="300"/>
-        </file>
-    </folder>
-       
 </filesystem>

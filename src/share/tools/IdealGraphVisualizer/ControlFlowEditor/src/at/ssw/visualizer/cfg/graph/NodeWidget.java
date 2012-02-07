@@ -32,7 +32,6 @@ public class NodeWidget extends Widget  {
     private final int FONT_MAXSIZE=18;
     
     private int borderWidth;
-    private boolean selected=false; 
     private boolean nodeColorCustomized;
     private String text;
     private Rectangle2D fontRect;
@@ -44,7 +43,6 @@ public class NodeWidget extends Widget  {
     public NodeWidget(CfgScene scene, CfgNode nodeModel ){        
         super(scene);   
         this.setToolTipText("<html>" + nodeModel.getDescription().replaceAll("\n", "<br>") + "</html>");
-        this.selected=false;        
         this.text = nodeModel.getBasicBlock().getName();   
         this.borderWidth = nodeModel.getLoopDepth()+1;           
         this.setBorder(BorderFactory.createRoundedBorder(arcWidth+borderWidth, arcHeight+borderWidth, borderWidth, borderWidth, Color.BLACK, Color.BLACK));

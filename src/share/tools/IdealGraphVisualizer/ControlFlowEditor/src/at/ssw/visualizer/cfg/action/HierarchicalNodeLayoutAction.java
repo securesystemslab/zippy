@@ -33,7 +33,7 @@ import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
 
 
-@ActionID(id = "HierarchicalNodeLayout", category = "View")
+@ActionID(id = "at.ssw.visualizer.cfg.action.HierarchicalNodeLayout", category = "View")
 @ActionRegistration(displayName = "Layout", iconBase="at/ssw/visualizer/cfg/icons/arrangehier.gif")
 @ActionReference(path = "CompilationViewer/CFG/Actions", position = 160)
 public class HierarchicalNodeLayoutAction implements ActionListener {

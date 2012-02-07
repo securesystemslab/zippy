@@ -25,7 +25,6 @@
 package at.ssw.visualizer.cfg;
 
 import at.ssw.visualizer.cfg.action.*;
-import at.ssw.visualizer.cfg.graph.CfgEventListener;
 import at.ssw.visualizer.cfg.graph.CfgScene;
 import at.ssw.visualizer.cfg.graph.EdgeWidget;
 import at.ssw.visualizer.cfg.graph.NodeWidget;

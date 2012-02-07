@@ -77,10 +77,10 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
     private CfgEnv env;
     private int currentLayout = -1;
     private JScrollPane scrollPane;
-    private EventListenerList listenerList = new EventListenerList();
     private WidgetAction contextPopupAction = this.createContextMenuAction(this);
     private List<NodeWidget> nodeWidgets = null;
     private boolean loopClustersVisible = true;
+    private static String PREFERENCE_LOOP_CLUSTER = "loopClusters";
     private static String PREFERENCE_ROUTER = "router";
     private static String PREFERENCE_LAYOUT = "layout";
 
@@ -92,6 +92,8 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         public void preferenceChange(PreferenceChangeEvent evt) {
             if (evt.getKey().equals(PREFERENCE_ROUTER)) {
                 setUseBezierRouter(Boolean.parseBoolean(evt.getNewValue()));
+            } else if (evt.getKey().equals(PREFERENCE_LOOP_CLUSTER)) {
+                setLoopWidgets(Boolean.parseBoolean(evt.getNewValue()));
             }
         }
     };
@@ -136,6 +138,7 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         CfgPreferences prefs = CfgPreferences.getInstance();
         this.setBackground(prefs.getBackgroundColor());
         setUseBezierRouter(getPreferences().getBoolean(PREFERENCE_ROUTER, true));
+        setLoopWidgets(getPreferences().getBoolean(PREFERENCE_LOOP_CLUSTER, true));
         setSceneLayout(getPreferences().getInt(PREFERENCE_LAYOUT, CfgEditorContext.LAYOUT_HIERARCHICALNODELAYOUT));
     }
 
@@ -235,7 +238,6 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
                 out.changeEdgeVisibility(visible);
             }
         }
-        this.fireSelectionChanged();
         this.validate();
     }
 
@@ -262,6 +264,7 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         }
         this.loopClustersVisible = visible;
         this.validate();
+        getPreferences().putBoolean(PREFERENCE_LOOP_CLUSTER, visible);
     }
     
     private void setUseBezierRouter(boolean value) {
@@ -461,7 +464,6 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         if (!this.selectedNodes.isEmpty()) {
             this.userSelectionSuggested(Collections.<CfgNode>emptySet(), false);
             this.selectedNodes = Collections.<CfgNode>emptySet();
-            this.fireSelectionChanged();
             this.validate();
         }
     }
@@ -494,7 +496,6 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         }
 
         this.userSelectionSuggested(selectedObjects, false);
-        this.fireSelectionChanged();
         this.validate();
     }
 
@@ -581,23 +582,6 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
         double zoomY = (double) viewDim.height / realheight;
         double zoomFactor = Math.min(zoomX, zoomY);
         this.setZoomFactor(zoomFactor * 0.9);
-    }
-
-    public void addCfgEventListener(CfgEventListener l) {
-        listenerList.add(CfgEventListener.class, l);
-    }
-
-    public void removeCfgEventListener(CfgEventListener l) {
-        listenerList.remove(CfgEventListener.class, l);
-    }
-
-    public void fireSelectionChanged() {
-        Object[] listeners = listenerList.getListenerList();
-        for (int i = listeners.length - 2; i >= 0; i -= 2) {
-            if (listeners[i] == CfgEventListener.class) {
-                ((CfgEventListener) listeners[i + 1]).selectionChanged(this);
-            }
-        }
     }
 
     //Enables Antialiasing
@@ -776,8 +760,6 @@ public final class CfgScene extends GraphScene<CfgNode, CfgEdge> implements Chan
                     }
                 }
 
-                menu.add(SystemAction.get(ShowEdgesAction.class));
-                menu.add(SystemAction.get(HideEdgesAction.class));
                 return menu;
             }
         });

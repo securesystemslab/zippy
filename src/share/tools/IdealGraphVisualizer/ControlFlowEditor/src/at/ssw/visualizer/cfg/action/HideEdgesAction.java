@@ -1,37 +1,52 @@
+/*
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ *
+ */
 package at.ssw.visualizer.cfg.action;
 
 
 import at.ssw.visualizer.cfg.graph.CfgScene;
-import at.ssw.visualizer.cfg.graph.EdgeWidget;
-import at.ssw.visualizer.cfg.model.CfgEdge;
-import at.ssw.visualizer.cfg.model.CfgNode;
-import org.openide.util.HelpCtx;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
+import org.openide.awt.ActionID;
+import org.openide.awt.ActionReference;
+import org.openide.awt.ActionRegistration;
 
-/**
- * Hides all edges connected to the selected node.
- *
- * @author Bernhard Stiftner
- * @author Rumpfhuber Stefan
- */
-public class HideEdgesAction extends AbstractCfgEditorAction {
+@ActionID(id = "at.ssw.visualizer.cfg.action.HideEdges", category = "View")
+@ActionRegistration(displayName = "Hide Edges", iconBase="at/ssw/visualizer/cfg/icons/hideedges.gif")
+@ActionReference(path = "CompilationViewer/CFG/Actions", position = 180)
+public class HideEdgesAction implements ActionListener {
 
-    public void performAction() {
-        CfgScene tc = getEditor();
-        if (tc != null) {
-             tc.setSelectedEdgesVisibility(false);
-        }
+    private List<CfgScene> scenes;
+    
+    public HideEdgesAction(List<CfgScene> scenes) {
+        this.scenes = scenes;
     }
-
-    public String getName() {
-        return "Hide Edges";
-    }
-
+    
     @Override
-    protected String iconResource() {
-        return "at/ssw/visualizer/cfg/icons/hideedges.gif";
-    }
-
-    public HelpCtx getHelpCtx() {
-        return HelpCtx.DEFAULT_HELP;
+    public void actionPerformed(ActionEvent e) {
+        for (CfgScene scene : scenes) {
+             scene.setSelectedEdgesVisibility(false);
+        }
     }
 }
