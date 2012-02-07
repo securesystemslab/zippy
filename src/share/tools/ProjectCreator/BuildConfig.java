@@ -68,9 +68,6 @@ class BuildConfig {
         if (value != null) {
             outDir = value;
         }
-        if (!build.equals("product")) {
-            outDir += Util.sep + build;
-        }
         outDir += Util.sep + "jre" + Util.sep + "bin";
         if (flavour.equals("compiler1")) {
             outDir += Util.sep + "graal";
