@@ -549,7 +549,7 @@ def gate(args):
         build(['--no-native'])
         tasks.append(t.stop())
     
-        for vmbuild in ['product', 'fastdebug']:
+        for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
             
