@@ -47,5 +47,6 @@ bin/
 ^visualizer/[a-zA-Z0-9]*/build/
 ^visualizer/build/
 ^visualizer/dist/
+^visualizer/nbplatform/
 ^.hgtip
 .DS_Store
