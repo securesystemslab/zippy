@@ -239,6 +239,13 @@ JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVM
   return getMethodFromHotSpotMethod(hotspot_method)->has_compiled_code();
 }
 
+// public native int RiMethod_getCompiledCodeSize(HotSpotMethodResolved method);
+JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1getCompiledCodeSize(JNIEnv *env, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_getCompiledCodeSize");
+  nmethod* code = getMethodFromHotSpotMethod(hotspot_method)->code();
+  return code == NULL ? 0 : code->insts_size();
+}
+
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
 JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve) {
   TRACE_graal_3("CompilerToVM::RiSignature_lookupType");
@@ -947,6 +954,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"HotSpotMethodData_isMature",        CC"("METHOD_DATA")Z",                       FN_PTR(HotSpotMethodData_1isMature)},
   {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
   {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
+  {CC"RiMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1getCompiledCodeSize)},
   {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE"Z)"TYPE,          FN_PTR(RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,               FN_PTR(RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,              FN_PTR(RiConstantPool_1lookupMethod)},
