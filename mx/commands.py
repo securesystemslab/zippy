@@ -505,8 +505,6 @@ def gate(args):
     If this command exits with a 0 exit code, then the source code is in
     a state that would be accepted for integration into the main repository."""
     
-    
-    
     class Task:
         def __init__(self, title):
             self.start = time.time()
@@ -549,6 +547,10 @@ def gate(args):
         build(['--no-native'])
         tasks.append(t.stop())
     
+        t = Task('CleanAndBuildGraalVisualizer')
+        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
+        tasks.append(t.stop())
+
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
@@ -586,6 +588,10 @@ def gate(args):
     mx.log('  =======')
     mx.log('  ' + str(total.duration))
 
+def gv(args):
+    """run the Graal Visualizer"""
+    mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'run'])
+    
 def bench(args):
     """run benchmarks and parse their output for results
 
@@ -682,6 +688,7 @@ def mx_init():
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
+        'gv' : [gv, ''],
         'bench' : [bench, '[-vm vm] [-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
         'vm': [vm, '[-options] class [args...]']
