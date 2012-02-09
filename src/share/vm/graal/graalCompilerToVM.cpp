@@ -278,7 +278,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
       if (eagerResolve) {
         resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
       } else {
-        resolved_type = SystemDictionary::find(nameSymbol, classloader, protectionDomain, THREAD);
+        if (FieldType::is_obj(nameSymbol)) {
+          ResourceMark rm(THREAD);
+          // Ignore wrapping L and ;.
+          TempNewSymbol tmp_name = SymbolTable::new_symbol(nameSymbol->as_C_string() + 1,
+                                         nameSymbol->utf8_length() - 2, CHECK_NULL);
+          resolved_type = SystemDictionary::find_instance_or_array_klass(tmp_name, classloader, protectionDomain, THREAD);
+        } else {
+          resolved_type = SystemDictionary::find_instance_or_array_klass(nameSymbol, classloader, protectionDomain, THREAD);
+        }
       }
       if (HAS_PENDING_EXCEPTION) {
         CLEAR_PENDING_EXCEPTION;
