@@ -247,7 +247,7 @@ JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl
 }
 
 // public RiType RiSignature_lookupType(String returnType, HotSpotTypeResolved accessingClass);
-JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass) {
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiSignature_1lookupType(JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve) {
   TRACE_graal_3("CompilerToVM::RiSignature_lookupType");
   VM_ENTRY_MARK;
   ResourceMark rm;
@@ -282,7 +282,11 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
         classloader = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(accessingClass))->klass_part()->class_loader();
         protectionDomain = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(accessingClass))->klass_part()->protection_domain();
       }
-      resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+      if (eagerResolve) {
+        resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+      } else {
+        resolved_type = SystemDictionary::find(nameSymbol, classloader, protectionDomain, THREAD);
+      }
       if (HAS_PENDING_EXCEPTION) {
         CLEAR_PENDING_EXCEPTION;
         resolved_type = NULL;
@@ -943,7 +947,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
   {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
   {CC"RiMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1getCompiledCodeSize)},
-  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE")"TYPE,           FN_PTR(RiSignature_1lookupType)},
+  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE"Z)"TYPE,          FN_PTR(RiSignature_1lookupType)},
   {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,               FN_PTR(RiConstantPool_1lookupConstant)},
   {CC"RiConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,              FN_PTR(RiConstantPool_1lookupMethod)},
   {CC"RiConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                 FN_PTR(RiConstantPool_1lookupType)},

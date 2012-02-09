@@ -1,0 +1,2 @@
+var f = new com.sun.hotspot.igv.graal.filters.GraalCFGFilter();
+f.apply(graph);

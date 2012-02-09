@@ -23,8 +23,8 @@
 \.pdf$
 \.dot$
 \.pyc$
-build.xml
-nbproject
+^graal/.*/build.xml
+^graal/.*/nbproject/
 dist
 ^doc/.*/dot_temp_
 ^doc/doxygen/.*$
@@ -36,6 +36,7 @@ java\.hprof\.txt$
 /nbproject/private/
 ^graal/hotspot/java$
 ^scratch/
+^test-output/
 scratch/
 bin/
 ^local/
@@ -43,5 +44,9 @@ bin/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
 ^src/share/tools/IdealGraphVisualizer/build/
 ^src/share/tools/IdealGraphVisualizer/dist/
+^visualizer/[a-zA-Z0-9]*/build/
+^visualizer/build/
+^visualizer/dist/
+^visualizer/nbplatform/
 ^.hgtip
 .DS_Store

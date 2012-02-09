@@ -41,6 +41,9 @@ library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/che
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
 library@DACAPO@urls=http://dfn.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
 
+library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0.jar
+library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20110908.085753-2.jar
+
 # graal.hotspot
 project@com.oracle.max.graal.hotspot@subDir=graal
 project@com.oracle.max.graal.hotspot@sourceDirs=src
@@ -57,6 +60,24 @@ project@com.oracle.max.graal.debug@subDir=graal
 project@com.oracle.max.graal.debug@sourceDirs=src
 project@com.oracle.max.graal.debug@checkstyle=com.oracle.max.graal.graph
 
+# graal.lir
+project@com.oracle.max.graal.lir@subDir=graal
+project@com.oracle.max.graal.lir@sourceDirs=src
+project@com.oracle.max.graal.lir@dependencies=com.oracle.max.asm,com.oracle.max.graal.nodes
+project@com.oracle.max.graal.lir@checkstyle=com.oracle.max.graal.graph
+
+# graal.lir.amd64
+project@com.oracle.max.graal.lir.amd64@subDir=graal
+project@com.oracle.max.graal.lir.amd64@sourceDirs=src
+project@com.oracle.max.graal.lir.amd64@dependencies=com.oracle.max.graal.lir
+project@com.oracle.max.graal.lir.amd64@checkstyle=com.oracle.max.graal.graph
+
+# graal.alloc
+project@com.oracle.max.graal.alloc@subDir=graal
+project@com.oracle.max.graal.alloc@sourceDirs=src
+project@com.oracle.max.graal.alloc@dependencies=com.oracle.max.graal.lir
+project@com.oracle.max.graal.alloc@checkstyle=com.oracle.max.graal.graph
+
 # graal.snippets
 project@com.oracle.max.graal.snippets@subDir=graal
 project@com.oracle.max.graal.snippets@sourceDirs=src,test
@@ -72,7 +93,7 @@ project@com.oracle.max.graal.nodes@checkstyle=com.oracle.max.graal.graph
 # graal.compiler
 project@com.oracle.max.graal.compiler@subDir=graal
 project@com.oracle.max.graal.compiler@sourceDirs=src
-project@com.oracle.max.graal.compiler@dependencies=com.oracle.max.asm,com.oracle.max.graal.nodes
+project@com.oracle.max.graal.compiler@dependencies=com.oracle.max.graal.lir.amd64,com.oracle.max.graal.alloc
 project@com.oracle.max.graal.compiler@checkstyle=com.oracle.max.graal.graph
 
 # graal.java
