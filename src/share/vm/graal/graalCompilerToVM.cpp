@@ -200,13 +200,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   }
 }
 
-JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_HotSpotMethodData_1isMature(JNIEnv *, jobject, jobject hotspot_method_data) {
-  TRACE_graal_3("CompilerToVM::HotSpotMethodData_isMature");
-  VM_ENTRY_MARK;
-  methodDataHandle method_data = getMethodDataFromHotSpotMethodData(hotspot_method_data);
-  return method_data->is_mature();
-}
-
 // ------------------------------------------------------------------
 // Adjust a CounterData count to be commensurate with
 // interpreter_invocation_count.  If the MDO exists for
@@ -951,7 +944,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(RiMethod_1uniqueConcreteMethod)},
   {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(getRiMethod)},
   {CC"RiMethod_methodData",               CC"("RESOLVED_METHOD")"METHOD_DATA,         FN_PTR(RiMethod_1methodData)},
-  {CC"HotSpotMethodData_isMature",        CC"("METHOD_DATA")Z",                       FN_PTR(HotSpotMethodData_1isMature)},
   {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
   {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
   {CC"RiMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1getCompiledCodeSize)},
