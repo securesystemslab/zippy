@@ -659,9 +659,35 @@ def bench(args):
             f.write(json.dumps(results))
     
 def specjvm2008(args):
-    benchArgs = [a[1:] for a in args if a[0] == '@']
-    vmArgs = [a for a in args if a[0] != '@']
-    sanitycheck.getSPECjvm2008(benchArgs).bench('graal', opts=vmArgs)
+    """run one or all SPECjvm2008 benchmarks
+    
+    All options begining with - will be passed to the vm except for -ikv -wt and -it.
+    Other options are supposed to be benchmark names and will be passed to SPECjvm2008."""
+    benchArgs = [a for a in args if a[0] != '-']
+    vmArgs = [a for a in args if a[0] == '-']
+    wt = None
+    it = None
+    skipValid = False
+    if '-ikv' in vmArgs:
+        skipValid = True
+        vmArgs.remove('-ikv')
+    if '-wt' in vmArgs:
+        wtIdx = args.index('-wt')
+        try:
+            wt = int(args[wtIdx+1])
+        except:
+            mx.abort('-wt (Warmup time) needs a numeric value (seconds)')
+        vmArgs.remove('-wt')
+        benchArgs.remove(args[wtIdx+1])
+    if '-it' in vmArgs:
+        itIdx = args.index('-it')
+        try:
+            it = int(args[itIdx+1])
+        except:
+            mx.abort('-it (Iteration time) needs a numeric value (seconds)')
+        vmArgs.remove('-it')
+        benchArgs.remove(args[itIdx+1])
+    sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench('graal', opts=vmArgs)
     
 def hsdis(args):
     """Installs the hsdis library
