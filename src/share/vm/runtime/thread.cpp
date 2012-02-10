@@ -29,7 +29,9 @@
 #include "classfile/vmSymbols.hpp"
 #include "code/scopeDesc.hpp"
 #include "compiler/compileBroker.hpp"
+#ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#endif
 #include "interpreter/interpreter.hpp"
 #include "interpreter/linkResolver.hpp"
 #include "interpreter/oopMapCache.hpp"
@@ -3017,7 +3019,10 @@ klassOop JavaThread::security_get_caller_class(int depth) {
 
 static void compiler_thread_entry(JavaThread* thread, TRAPS) {
   assert(thread->is_Compiler_thread(), "must be compiler thread");
-  //CompileBroker::compiler_thread_loop();
+// XXX (gd) currently we still start c1 compiler threads even with Graal, they just die immediately, more compileBroker cleanup is needed to eliminate that
+#ifndef GRAAL
+  CompileBroker::compiler_thread_loop();
+#endif
 }
 
 // Create a CompilerThread

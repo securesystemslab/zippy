@@ -30,7 +30,9 @@
 #include "compiler/compileBroker.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "interpreter/bytecodeHistogram.hpp"
+#ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#endif
 #include "memory/genCollectedHeap.hpp"
 #include "memory/oopFactory.hpp"
 #include "memory/universe.hpp"
@@ -432,9 +434,7 @@ void before_exit(JavaThread * thread) {
   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
 
 #ifdef GRAAL
-  if (UseGraal) {
-    GraalCompiler::instance()->exit();
-  }
+  GraalCompiler::instance()->exit();
 #endif
 
   // Note: don't use a Mutex to guard the entire before_exit(), as

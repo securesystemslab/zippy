@@ -133,7 +133,7 @@ LIBJVM_G = lib$(JVM)$(G_SUFFIX).so
 LIBJVM_DEBUGINFO   = lib$(JVM).debuginfo
 LIBJVM_G_DEBUGINFO = lib$(JVM)$(G_SUFFIX).debuginfo
 
-SPECIAL_PATHS:=adlc c1 gc_implementation opto shark libadt
+SPECIAL_PATHS:=adlc c1 gc_implementation opto shark libadt graal
 
 SOURCE_PATHS=\
   $(shell find $(HS_COMMON_SRC)/share/vm/* -type d \! \
