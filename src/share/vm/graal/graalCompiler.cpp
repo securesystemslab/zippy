@@ -291,7 +291,6 @@ Handle GraalCompiler::createHotSpotMethodData(methodDataHandle method_data, TRAP
   HotSpotMethodData::set_hotspotMirror(obj, method_data());
   HotSpotMethodData::set_normalDataSize(obj, method_data()->data_size());
   HotSpotMethodData::set_extraDataSize(obj, method_data()->extra_data_size());
-  HotSpotMethodData::set_mature(obj, method_data()->is_mature());
 
   method_data->set_graal_mirror(obj());
   return obj;
