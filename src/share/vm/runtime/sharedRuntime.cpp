@@ -714,15 +714,15 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
 
 #ifdef COMPILER1
   if (t == NULL && nm->is_compiled_by_c1()) {
-    if (UseGraal) {
-      nm->make_not_entrant();
-      JavaThread::current()->set_exception_pc(ret_pc);
-      JavaThread::current()->set_exception_oop(exception());
-      return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
-    } else {
-      assert(nm->unwind_handler_begin() != NULL, "");
-      return nm->unwind_handler_begin();
-    }
+#ifdef GRAAL
+    nm->make_not_entrant();
+    JavaThread::current()->set_exception_pc(ret_pc);
+    JavaThread::current()->set_exception_oop(exception());
+    return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
+#else
+    assert(nm->unwind_handler_begin() != NULL, "");
+    return nm->unwind_handler_begin();
+#endif
   }
 #endif
 
@@ -877,11 +877,11 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #ifndef PRODUCT
           _implicit_null_throws++;
 #endif
-          if (UseGraal) {
-            target_pc = deoptimization_continuation(thread, pc, nm);
-          } else {
-            target_pc = nm->continuation_for_implicit_exception(pc);
-          }
+#ifdef GRAAL
+          target_pc = deoptimization_continuation(thread, pc, nm);
+#else
+          target_pc = nm->continuation_for_implicit_exception(pc);
+#endif
           // If there's an unexpected fault, target_pc might be NULL,
           // in which case we want to fall through into the normal
           // error handling code.
@@ -897,14 +897,14 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #ifndef PRODUCT
         _implicit_div0_throws++;
 #endif
-        if (UseGraal) {
-          if (TraceSignals) {
-            tty->print_cr("graal implicit div0");
-          }
-          target_pc = deoptimization_continuation(thread, pc, nm);
-        } else {
-          target_pc = nm->continuation_for_implicit_exception(pc);
+#ifdef GRAAL
+        if (TraceSignals) {
+          tty->print_cr("graal implicit div0");
         }
+        target_pc = deoptimization_continuation(thread, pc, nm);
+#else
+        target_pc = nm->continuation_for_implicit_exception(pc);
+#endif
         // If there's an unexpected fault, target_pc might be NULL,
         // in which case we want to fall through into the normal
         // error handling code.

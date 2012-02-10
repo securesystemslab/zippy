@@ -289,21 +289,6 @@ def _jdk(build='product', create=False):
                 mx.abort('Host JDK directory is missing: ' + src)
             shutil.copytree(src, dst)
     
-    jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
-    found = False
-    if not exists(jvmCfg):
-        mx.abort(jvmCfg + ' does not exist')
-        
-    with open(jvmCfg) as f:
-        for line in f:
-            if '-graal KNOWN' in line:
-                found = True
-                break
-    if not found:
-        mx.log('Appending "-graal KNOWN" to ' + jvmCfg)
-        with open(jvmCfg, 'a') as f:
-            f.write('-graal KNOWN\n')
-    
     if build == 'product':
         return jdk
     elif build in ['debug', 'fastdebug']:
@@ -361,28 +346,24 @@ def build(args):
     """builds the GraalVM binary and compiles the Graal classes
     
     The optional last argument specifies what type of VM to build."""
-
-
-    parser = ArgumentParser(prog='mx build');
-    parser.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to be built')
     
     # Call mx.build to compile the Java sources        
-    opts = mx.build(['--source', '1.7'] + args, parser=parser)
+    opts2 = mx.build(['--source', '1.7'] + args, parser=ArgumentParser(prog='mx build'))
 
-    if not _vmSourcesAvailable or not opts.native:
+    if not _vmSourcesAvailable or not opts2.native:
         return
 
-    builds = opts.remainder
+    builds = opts2.remainder
     if len(builds) == 0:
         builds = ['product']
 
-    vm = opts.vm
+    vm = _vm
     if vm == 'server':
         buildSuffix = ''
     elif vm == 'client':
         buildSuffix = '1'
     else:
-        assert vm is 'graal'
+        assert vm == 'graal', vm
         buildSuffix = 'graal'
         
     for build in builds:
@@ -424,6 +405,28 @@ def build(args):
             env['ALT_BOOTDIR'] = jdk
             env.setdefault('INSTALL', 'y')
             mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
+        
+        jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+        found = False
+        if not exists(jvmCfg):
+            mx.abort(jvmCfg + ' does not exist')
+        
+        prefix = '-' + vm
+        vmKnown = prefix + ' KNOWN\n'
+        lines = []
+        with open(jvmCfg) as f:
+            for line in f:
+                if vmKnown in line:
+                    found = True
+                    break
+                if not line.startswith(prefix):
+                    lines.append(line)
+        if not found:
+            mx.log('Appending "' + prefix + ' KNOWN" to ' + jvmCfg)
+            lines.append(vmKnown)
+            with open(jvmCfg, 'w') as f:
+                for line in lines:
+                    f.write(line)
     
 def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the GraalVM"""
@@ -605,15 +608,7 @@ def bench(args):
             del args[index]
         else:
             mx.abort('-resultfile must be followed by a file name')
-    vm = 'graal'
-    if '-vm' in args:
-        index = args.index('-vm')
-        if index + 1 < len(args):
-            vm = args[index + 1]
-            del args[index]
-            del args[index]
-        else:
-            mx.abort('-vm must be followed by a vm name (graal, server, client..)')
+    vm = _vm
     if len(args) is 0:
         args += ['all']
 
@@ -715,7 +710,7 @@ def mx_init():
         'example': [example, '[-v] example names...'],
         'gate' : [gate, ''],
         'gv' : [gv, ''],
-        'bench' : [bench, '[-vm vm] [-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
+        'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
         'vm': [vm, '[-options] class [args...]']
     }
@@ -743,8 +738,9 @@ def mx_post_parse_cmd_line(opts):
         mx.abort('Requires Java version 1.7 or greater, got version ' + version)
     
     if (_vmSourcesAvailable):
-        global _vm
-        _vm = opts.vm
+        if hasattr(opts, 'vm') and opts.vm is not None:
+            global _vm
+            _vm = opts.vm
         if hasattr(opts, 'vmbuild') and opts.vmbuild is not None:
             global _vmbuild
             _vmbuild = opts.vmbuild
