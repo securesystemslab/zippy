@@ -2103,7 +2103,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     errno = 0;
     DIR* graal_dir_handle = os::opendir(graal_dir);
     while ((dentry = os::readdir(graal_dir_handle, (struct dirent *)tdbuf)) != NULL) {
-      if (strcmp(dentry->d_name, ".") != 0 && strcmp(dentry->d_name, "..")) {
+      if (strcmp(dentry->d_name, ".") != 0 && strcmp(dentry->d_name, "..") != 0 && strcmp(dentry->d_name, "com.oracle.max.graal.tests") != 0) {
         prepend_to_graal_classpath(scp_compiler, graal_dir, dentry->d_name);
         if (PrintVMOptions) {
           tty->print_cr("Adding project directory %s to bootclasspath", dentry->d_name);
