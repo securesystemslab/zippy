@@ -119,7 +119,6 @@ bool nmethod::is_compiled_by_shark() const {
 //   PrintC1Statistics, PrintOptoStatistics, LogVMOutput, and LogCompilation.
 // (In the latter two cases, they like other stats are printed to the log only.)
 
-#ifndef PRODUCT
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
 static
@@ -209,7 +208,6 @@ struct nmethod_stats_struct {
                   pc_desc_tests, pc_desc_searches, pc_desc_adds);
   }
 } nmethod_stats;
-#endif //PRODUCT
 
 
 //---------------------------------------------------------------------------------
@@ -512,7 +510,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
               code_buffer, frame_size,
               basic_lock_owner_sp_offset, basic_lock_sp_offset,
               oop_maps);
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_native_nmethod(nm));
+    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
   }
@@ -545,7 +543,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
 
     nm = new (nmethod_size) nmethod(method(), nmethod_size, &offsets, code_buffer, frame_size);
 
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
+    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
   }
@@ -612,7 +610,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         instanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
     }
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
+    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
   }
@@ -2832,6 +2830,8 @@ void nmethod::print_nul_chk_table() {
   ImplicitExceptionTable(this).print(code_begin());
 }
 
+#endif // PRODUCT
+
 void nmethod::print_statistics() {
   ttyLocker ttyl;
   if (xtty != NULL)  xtty->head("statistics type='nmethod'");
@@ -2842,5 +2842,3 @@ void nmethod::print_statistics() {
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }
-
-#endif // PRODUCT
