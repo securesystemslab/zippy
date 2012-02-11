@@ -1386,6 +1386,7 @@ public:
 
   bool is_mature() const;  // consult mileage and ProfileMaturityPercentage
   static int mileage_of(methodOop m);
+  static bool is_empty_data(int size, Bytecodes::Code code);
 
   // Support for interprocedural escape analysis, from Thomas Kotzmann.
   enum EscapeFlag {
