@@ -586,6 +586,10 @@ public abstract class WinGammaPlatform {
     Vector createAllConfigs(String platform) {
         Vector allConfigs = new Vector();
 
+        allConfigs.add(new GraalDebugConfig());
+        allConfigs.add(new GraalFastDebugConfig());
+        allConfigs.add(new GraalProductConfig());
+
         allConfigs.add(new C1DebugConfig());
         allConfigs.add(new C1FastDebugConfig());
         allConfigs.add(new C1ProductConfig());

@@ -210,6 +210,14 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
 ##################################################
+# Graal compiler specific options
+##################################################
+ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
+ -define_graal COMPILER1 \
+ -define_graal GRAAL \
+$(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
+
+##################################################
 # Server(C2) compiler specific options
 ##################################################
 #NOTE! This list must be kept in sync with GENERATED_NAMES in adlc.make.

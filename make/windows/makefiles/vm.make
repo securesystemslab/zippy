@@ -60,6 +60,10 @@ CPP_FLAGS=$(CPP_FLAGS) /D "COMPILER2"
 CPP_FLAGS=$(CPP_FLAGS) /D "COMPILER1" /D "COMPILER2"
 !endif
 
+!if "$(Variant)" == "graal"
+CPP_FLAGS=$(CPP_FLAGS) /D "COMPILER1" /D "GRAAL"
+!endif
+
 !if "$(BUILDARCH)" == "i486"
 HOTSPOT_LIB_ARCH=i386
 !else

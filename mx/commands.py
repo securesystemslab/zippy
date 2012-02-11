@@ -367,10 +367,7 @@ def build(args):
         buildSuffix = 'graal'
         
     for build in builds:
-
         jdk = _jdk(build, True)
-        if build == 'debug':
-            build = 'jvmg'
             
         vmDir = join(jdk, 'jre', 'lib', 'amd64', vm)
         if not exists(vmDir):
@@ -385,19 +382,23 @@ def build(args):
             compilelogfile = _graal_home + '/graalCompile.log'
             mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')
 
-            _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=compiler1_product /target:clean', _graal_home)
-            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home + ''
+            variant = {'client': 'compiler1', 'server': 'compiler2'}.get(vm, vm)
+            project_config = variant + '_' + build
+            _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=' + project_config + ' /target:clean', _graal_home)
+            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home
             print(winCompileCmd)
             winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
             if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
                 mx.log('Error executing create command')
                 return 
-            winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=compiler1_product /p:Platform=x64'
+            winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=' + project_config + ' /p:Platform=x64'
             winBuildSuccess = re.compile('Build succeeded.')
             if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
                 mx.log('Error building project')
                 return 
         else:
+            if build == 'debug':
+                build = 'jvmg'
             env = os.environ
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')

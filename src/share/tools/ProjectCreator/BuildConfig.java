@@ -68,18 +68,20 @@ class BuildConfig {
         if (value != null) {
             outDir = value;
         }
-        if (outDir.endsWith("debug")) {
-            outDir = outDir.substring(0, outDir.lastIndexOf("debug") - 1);
-        } else if(outDir.endsWith("fastdebug")) {
+        if(outDir.endsWith("fastdebug")) {
             outDir = outDir.substring(0, outDir.lastIndexOf("fastdebug") - 1);
+        } else if (outDir.endsWith("debug")) {
+            outDir = outDir.substring(0, outDir.lastIndexOf("debug") - 1);
         }
         
         if (!build.equals("product")) {
             outDir += Util.sep + build;
         }
         outDir += Util.sep + "jre" + Util.sep + "bin";
-        if (flavour.equals("compiler1")) {
+        if (flavour.equals("graal")) {
             outDir += Util.sep + "graal";
+        } else if (flavour.equals("compiler1")) {
+            outDir += Util.sep + "client";
         } else {
             outDir += Util.sep + "server";
         }
@@ -126,7 +128,6 @@ class BuildConfig {
         tree.addSubdirToIgnore("Codemgr_wsdata");
         tree.addSubdirToIgnore("deleted_files");
         tree.addSubdirToIgnore("SCCS");
-        tree.setVerbose(true);
         if (startAt != null) {
             tree.readDirectory(sourceBase + File.separator + startAt);
         } else {
@@ -576,6 +577,28 @@ abstract class GenericDebugNonKernelConfig extends GenericDebugConfig {
    }
 }
 
+class GraalDebugConfig extends GenericDebugNonKernelConfig {
+    String getOptFlag() {
+        return getCI().getNoOptFlag();
+    }
+
+    GraalDebugConfig() {
+        initNames("graal", "debug", "jvm.dll");
+        init(getIncludes(), getDefines());
+    }
+}
+
+class GraalFastDebugConfig extends GenericDebugNonKernelConfig {
+    String getOptFlag() {
+        return getCI().getOptFlag();
+    }
+
+    GraalFastDebugConfig() {
+        initNames("graal", "fastdebug", "jvm.dll");
+        init(getIncludes(), getDefines());
+    }
+}
+
 class C1DebugConfig extends GenericDebugNonKernelConfig {
     String getOptFlag() {
         return getCI().getNoOptFlag();
@@ -652,6 +675,13 @@ abstract class ProductConfig extends BuildConfig {
 
         getV("CompilerFlags").addAll(getCI().getProductCompilerFlags());
         getV("LinkerFlags").addAll(getCI().getProductLinkerFlags());
+    }
+}
+
+class GraalProductConfig extends ProductConfig {
+    GraalProductConfig() {
+        initNames("graal", "product", "jvm.dll");
+        init(getIncludes(), getDefines());
     }
 }
 
