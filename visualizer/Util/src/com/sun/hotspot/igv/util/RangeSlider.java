@@ -88,6 +88,7 @@ public final class RangeSlider extends JComponent {
     };
 
     private void update() {
+        this.revalidate();
         this.repaint();
     }
 
