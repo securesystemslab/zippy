@@ -342,7 +342,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log.close()
     return ret
     
-def build(args):
+def build(args, vm=None):
     """build the VM binary
     
     The global '--vm' option selects which VM to build. This command also
@@ -360,7 +360,9 @@ def build(args):
     if len(builds) == 0:
         builds = ['product']
 
-    vm = _vm
+    if vm is None:
+        vm = _vm
+        
     if vm == 'server':
         buildSuffix = ''
     elif vm == 'client':
@@ -557,6 +559,20 @@ def gate(args):
         t = Task('CleanAndBuildGraalVisualizer')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
         tasks.append(t.stop())
+        
+        tasks.append(t.stop())
+        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
+        tasks.append(t.stop())
+
+        # Prevent Graal modifications from breaking the standard client build
+        t = Task('BuildClientDebug')
+        build(['--no-java', 'debug'], vm='client')
+        tasks.append(t.stop())
+        
+        # Prevent Graal modifications from breaking the standard server build
+        #t = Task('BuildServerDebug')
+        #build(['--no-java', 'debug'], vm='server')
+        #tasks.append(t.stop())
 
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
