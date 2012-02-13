@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, StringIO
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
 import mx
@@ -274,35 +274,25 @@ def _jdk(build='product', create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
-    jdk = join(_graal_home, 'jdk' + mx.java().version)
+    jdk = join(_graal_home, 'jdk' + mx.java().version, build)
     jdkContents = ['bin', 'db', 'include', 'jre', 'lib']
     if mx.get_os() != 'windows':
         jdkContents.append('man')
-    if not exists(jdk):
-        srcJdk = mx.java().jdk
-        mx.log('Creating ' + jdk + ' from ' + srcJdk)
-        os.mkdir(jdk)
-        for d in jdkContents:
-            src = join(srcJdk, d)
-            dst = join(jdk, d)
-            if not exists(src):
-                mx.abort('Host JDK directory is missing: ' + src)
-            shutil.copytree(src, dst)
-    
-    if build == 'product':
-        return jdk
-    elif build in ['debug', 'fastdebug']:
-        res = join(jdk, build)
-        if not exists(res):
-            if not create:
-                mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'') 
-            mx.log('Creating ' + res)
-            os.mkdir(res)
+    if create:
+        if not exists(jdk):
+            srcJdk = mx.java().jdk
+            mx.log('Creating ' + jdk + ' from ' + srcJdk)
+            os.makedirs(jdk)
             for d in jdkContents:
-                shutil.copytree(join(jdk, d), join(res, d))
-        return res
+                src = join(srcJdk, d)
+                dst = join(jdk, d)
+                if not exists(src):
+                    mx.abort('Host JDK directory is missing: ' + src)
+                shutil.copytree(src, dst)
     else:
-        mx.abort('Unknown build type: ' + build)
+        if not exists(jdk):
+            mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'')
+    return jdk 
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
@@ -372,7 +362,7 @@ def build(args, vm=None):
         buildSuffix = 'graal'
         
     for build in builds:
-        jdk = _jdk(build, True)
+        jdk = _jdk(build, create=True)
             
         vmDir = join(jdk, 'jre', 'lib', 'amd64', vm)
         if not exists(vmDir):
@@ -402,14 +392,20 @@ def build(args, vm=None):
                 mx.log('Error building project')
                 return 
         else:
+            cpus = multiprocessing.cpu_count()
             if build == 'debug':
                 build = 'jvmg'
             env = os.environ
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
-            env.setdefault('HOTSPOT_BUILD_JOBS', '3')
+            env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env['ALT_BOOTDIR'] = jdk
             env.setdefault('INSTALL', 'y')
+            
+            # Clear these 2 variables as having them set can cause very confusing build problems
+            env.pop('LD_LIBRARY_PATH', None)
+            env.pop('CLASSPATH', None)
+            
             mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
         
         jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
@@ -451,7 +447,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
 # Table of unit tests.
 # Keys are project names, values are package name lists.
 # All source files in the given (project,package) pairs are scanned for lines
-# containing '@Test'. These are then detemrined to be the classes defining
+# containing '@Test'. These are then determined to be the classes defining
 # unit tests.
 _unittests = {
     'com.oracle.max.graal.tests': ['com.oracle.max.graal.compiler.tests'],
@@ -559,26 +555,19 @@ def gate(args):
         t = Task('CleanAndBuildGraalVisualizer')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
         tasks.append(t.stop())
-        
-        tasks.append(t.stop())
-        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
-        tasks.append(t.stop())
 
         # Prevent Graal modifications from breaking the standard client build
-        t = Task('BuildClientDebug')
-        build(['--no-java', 'debug'], vm='client')
-        tasks.append(t.stop())
-        
-        # Prevent Graal modifications from breaking the standard server build
-        #t = Task('BuildServerDebug')
-        #build(['--no-java', 'debug'], vm='server')
-        #tasks.append(t.stop())
+        for v in ['client', 'server']:
+            for vmbuild in ['product', 'debug']:
+                t = Task('BuildHotSpot' + v.title() + ':' + vmbuild)
+                build(['--no-java', vmbuild], vm=v)
+                tasks.append(t.stop())
 
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
             
-            t = Task('BuildHotSpot:' + vmbuild)
+            t = Task('BuildHotSpotGraal:' + vmbuild)
             build(['--no-java', vmbuild])
             tasks.append(t.stop())
             
