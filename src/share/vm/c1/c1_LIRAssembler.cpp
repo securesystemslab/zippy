@@ -405,6 +405,7 @@ void LIR_Assembler::record_non_safepoint_debug_info() {
     if (s == NULL)  break;
     IRScope* scope = s->scope();
     //Always pass false for reexecute since these ScopeDescs are never used for deopt
+    ResetNoHandleMark rnhm;
     debug_info->describe_scope(pc_offset, (methodOop)scope->method()->get_oop(), s->bci(), false/*reexecute*/, false/*rethrow_exception*/);
   }
 
