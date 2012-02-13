@@ -97,12 +97,11 @@ ciMethod::ciMethod(methodHandle h_m) : ciObject(h_m) {
   ciEnv *env = CURRENT_ENV;
   if (env->jvmti_can_hotswap_or_post_breakpoint() && can_be_compiled()) {
     // 6328518 check hotswap conditions under the right lock.
-    // TODO(tw): Check if we need that.
-    //MutexLocker locker(Compile_lock);
-    //if (Dependencies::check_evol_method(h_m()) != NULL) {
-    //  _is_c1_compilable = false;
-    //  _is_c2_compilable = false;
-    //}
+    MutexLocker locker(Compile_lock);
+    if (Dependencies::check_evol_method(h_m()) != NULL) {
+      _is_c1_compilable = false;
+      _is_c2_compilable = false;
+    }
   } else {
     CHECK_UNHANDLED_OOPS_ONLY(Thread::current()->clear_unhandled_oops());
   }

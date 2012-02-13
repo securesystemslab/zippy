@@ -98,7 +98,8 @@ class DebugInformationRecorder: public ResourceObj {
   // by add_non_safepoint, and the locals, expressions, and monitors
   // must all be null.
   void describe_scope(int         pc_offset,
-                      methodHandle   method,
+                      methodHandle methodH,
+                      ciMethod*   method,
                       int         bci,
                       bool        reexecute,
                       bool        rethrow_exception = false,

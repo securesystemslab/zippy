@@ -237,8 +237,8 @@ class IRScopeDebugInfo: public CompilationResourceObj {
     // reexecute allowed only for the topmost frame
     bool reexecute = topmost ? should_reexecute() : false;
     bool return_oop = false; // This flag will be ignored since it used only for C2 with escape analysis.
-    ResetNoHandleMark rnhm;
-    recorder->describe_scope(pc_offset, (methodOop)scope()->method()->get_oop(), bci(), reexecute, false, is_method_handle_invoke, return_oop, locvals, expvals, monvals);
+    methodHandle null_mh;
+    recorder->describe_scope(pc_offset, null_mh, scope()->method(), bci(), reexecute, false, is_method_handle_invoke, return_oop, locvals, expvals, monvals);
   }
 };
 
