@@ -343,9 +343,12 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
     return ret
     
 def build(args):
-    """builds the GraalVM binary and compiles the Graal classes
+    """build the VM binary
     
-    The optional last argument specifies what type of VM to build."""
+    The global '--vm' option selects which VM to build. This command also
+    compiles the Graal classes irrespective of what VM is being built.
+    The optional last argument specifies what build level is to be used
+    for the VM binary."""
     
     # Call mx.build to compile the Java sources        
     opts2 = mx.build(['--source', '1.7'] + args, parser=ArgumentParser(prog='mx build'))
@@ -430,7 +433,7 @@ def build(args):
                     f.write(line)
     
 def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
-    """run the GraalVM"""
+    """run the VM selected by the '--vm' option"""
 
     if vm is None:
         vm = _vm
@@ -686,7 +689,7 @@ def specjvm2008(args):
     sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench('graal', opts=vmArgs)
     
 def hsdis(args):
-    """Installs the hsdis library
+    """install the hsdis library
 
     This is needed to support HotSpot's assembly dumping features.
     By default it installs the Intel syntax version, use the 'att' argument to install AT&T syntax."""
@@ -717,7 +720,7 @@ def mx_init():
     }
 
     if (_vmSourcesAvailable):
-        mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to run (default: graal)')
+        mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to build/run (default: graal)')
         mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product build of the VM')
         mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug build of the VM')
         mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug build of the VM')
