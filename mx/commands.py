@@ -660,9 +660,9 @@ def gate(args):
             unittest([])
             tasks.append(t.stop())
             
-            t = Task('JavaTesterTests:' + vmbuild)
-            jtt([])
-            tasks.append(t.stop())
+            # t = Task('JavaTesterTests:' + vmbuild)
+            # jtt([])
+            # tasks.append(t.stop())
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
