@@ -114,6 +114,12 @@ project@com.oracle.max.graal.tests@sourceDirs=src
 project@com.oracle.max.graal.tests@dependencies=com.oracle.max.graal.printer
 project@com.oracle.max.graal.tests@checkstyle=com.oracle.max.graal.graph
 
+# graal.jtt
+project@com.oracle.max.graal.jtt@subDir=graal
+project@com.oracle.max.graal.jtt@sourceDirs=src
+project@com.oracle.max.graal.jtt@dependencies=JUNIT
+project@com.oracle.max.graal.jtt@checkstyle=com.oracle.max.graal.graph
+
 # max.asm
 project@com.oracle.max.asm@subDir=graal
 project@com.oracle.max.asm@sourceDirs=src

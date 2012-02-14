@@ -317,7 +317,7 @@ def _jdk(build='product', create=False):
                     
     else:
         if not exists(jdk):
-            mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'')
+            mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx build ' + build + '\'')
     return jdk 
 
 # run a command in the windows SDK Debug Shell
@@ -478,6 +478,9 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
 _unittests = {
     'com.oracle.max.graal.tests': ['com.oracle.max.graal.compiler.tests'],
 }
+_jtttests = {
+    'com.oracle.max.graal.jtt': ['com.oracle.max.graal.jtt'],
+}
 
 def _add_test_classes(testClassList, searchDir, pkgRoot):
     pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
@@ -498,7 +501,8 @@ def _add_test_classes(testClassList, searchDir, pkgRoot):
                                 break
                 if hasTest:
                     assert pkg is not None
-                    testClassList.append(pkg + '.' + name[:-len('.java')])
+                    if pkg.startswith(pkgRoot):
+                        testClassList.append(pkg + '.' + name[:-len('.java')])
 
 def unittest(args):
     """run the Graal Compiler Unit Tests in the GraalVM
@@ -527,8 +531,36 @@ def unittest(args):
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
             
-        # (ds) The boot class path must be used for some reason I don't quite understand
-        vm(['-XX:-BootstrapGraal', '-esa', '-Xbootclasspath/a:' + mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+        vm(['-XX:-BootstrapGraal', '-esa', '-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+    
+def jtt(args):
+    """run the Java Tester Tests in the GraalVM
+    
+    If filters are supplied, only tests whose fully qualified name
+    include a filter as a substring are run. Negative filters are
+    those with a '-' prefix."""
+    
+    pos = [a for a in args if a[0] != '-']
+    neg = [a[1:] for a in args if a[0] == '-']
+
+    def containsAny(c, substrings):
+        for s in substrings:
+            if s in c:
+                return True
+        return False
+    
+    for proj in _jtttests.iterkeys():
+        p = mx.project(proj)
+        classes = []
+        for pkg in _jtttests[proj]:
+            _add_test_classes(classes, join(p.dir, 'src'), pkg)
+    
+        if len(pos) != 0:
+            classes = [c for c in classes if containsAny(c, pos)]
+        if len(neg) != 0:
+            classes = [c for c in classes if not containsAny(c, neg)]
+            
+        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=::test', '-Xcomp', '-esa', '-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
     
 def buildvms(args):
     """build one or more VMs in various configurations"""
@@ -626,6 +658,10 @@ def gate(args):
             
             t = Task('UnitTests:' + vmbuild)
             unittest([])
+            tasks.append(t.stop())
+            
+            t = Task('JavaTesterTests:' + vmbuild)
+            jtt([])
             tasks.append(t.stop())
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
@@ -771,6 +807,7 @@ def mx_init():
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
+        'jtt' : [jtt, '[filters...]'],
         'vm': [vm, '[-options] class [args...]']
     }
 
