@@ -56,8 +56,8 @@ define_pd_global(uintx,MaxPermSize,                  64*M );
 define_pd_global(bool, NeverActAsServerClassMachine, true );
 define_pd_global(uint64_t,MaxRAM,                    1ULL*G);
 define_pd_global(bool, CICompileOSR,                 true );
-#endif // !TIERED
 define_pd_global(intx, TypeProfileWidth,             8    );    // changed for GRAAL
+#endif // !TIERED
 define_pd_global(bool, RoundFPResults,               true );
 
 define_pd_global(bool, LIRFillDelaySlots,            false);
