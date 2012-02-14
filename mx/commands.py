@@ -269,7 +269,7 @@ def scaladacapo(args):
     
     if len(failed) != 0:
         mx.abort('Scala DaCapo failures: ' + str(failed))
- 
+
 def _jdk(build='product', create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
@@ -289,6 +289,32 @@ def _jdk(build='product', create=False):
                 if not exists(src):
                     mx.abort('Host JDK directory is missing: ' + src)
                 shutil.copytree(src, dst)
+                
+            # Make a copy of the default VM so that this JDK can be
+            # reliably used as the bootstrap for a HotSpot build.                
+            jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+            if not exists(jvmCfg):
+                mx.abort(jvmCfg + ' does not exist')
+                
+            lines = []
+            defaultVM = None
+            with open(jvmCfg) as f:
+                for line in f:
+                    if line.startswith('-') and defaultVM is None:
+                        parts = line.split()
+                        assert len(parts) == 2, parts
+                        assert parts[1] == 'KNOWN', parts[1]
+                        defaultVM = parts[0][1:]
+                        lines.append('-' + defaultVM + '0 KNOWN\n')
+                    lines.append(line)
+
+            assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
+            shutil.copytree(join(jdk, 'jre', 'lib', 'amd64', defaultVM), join(jdk, 'jre', 'lib', 'amd64', defaultVM + '0'))
+            
+            with open(jvmCfg, 'w') as f:
+                for line in lines:
+                    f.write(line)
+                    
     else:
         if not exists(jdk):
             mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx make ' + build + '\'')
@@ -504,6 +530,31 @@ def unittest(args):
         # (ds) The boot class path must be used for some reason I don't quite understand
         vm(['-XX:-BootstrapGraal', '-esa', '-Xbootclasspath/a:' + mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
     
+def buildvms(args):
+    """build one or more VMs in various configurations"""
+    
+    parser = ArgumentParser(prog='mx buildvms');
+    parser.add_argument('--vms', help='a comma separated list of VMs to build (default: server,client,graal)', default='server,client,graal')
+    parser.add_argument('--builds', help='a comma separated list of build types (default: product,fastdebug,debug)', default='product,fastdebug,debug')
+
+    args = parser.parse_args(args)
+    vms = args.vms.split(',')
+    builds = args.builds.split(',')
+    
+    allStart = time.time()
+    for v in vms:
+        for vmbuild in builds:
+            logFile = join(v + '-' + vmbuild + '.log')
+            log = open(join(_graal_home, logFile), 'wb')
+            start = time.time()
+            mx.log('BEGIN: ' + v + '-' + vmbuild + '\t(see: ' + logFile + ')')
+            # Run as subprocess so that output can be directed to a file
+            subprocess.check_call([sys.executable, '-u', join('mxtool', 'mx.py'), '--vm', v, 'build', vmbuild], cwd=_graal_home, stdout=log, stderr=subprocess.STDOUT)
+            duration = datetime.timedelta(seconds=time.time() - start)
+            mx.log('END:   ' + v + '-' + vmbuild + '\t[' + str(duration) + ']')
+    allDuration = datetime.timedelta(seconds=time.time() - allStart)
+    mx.log('TOTAL TIME:   ' + '[' + str(allDuration) + ']')
+
 def gate(args):
     """run the tests used to validate a push
 
@@ -556,19 +607,17 @@ def gate(args):
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
         tasks.append(t.stop())
 
-        # Prevent Graal modifications from breaking the standard client build
-        for v in ['client', 'server']:
-            for vmbuild in ['product', 'debug']:
-                t = Task('BuildHotSpot' + v.title() + ':' + vmbuild)
-                build(['--no-java', vmbuild], vm=v)
-                tasks.append(t.stop())
-
+        # Prevent Graal modifications from breaking the standard builds
+        t = Task('BuildHotSpotVarieties')
+        buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
+        tasks.append(t.stop())
+        
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
             
             t = Task('BuildHotSpotGraal:' + vmbuild)
-            build(['--no-java', vmbuild])
+            buildvms(['--vms', 'graal', '--builds', vmbuild])
             tasks.append(t.stop())
             
             t = Task('BootstrapWithSystemAssertions:' + vmbuild)
@@ -587,7 +636,7 @@ def gate(args):
     except KeyboardInterrupt:
         total.abort(1)
     
-    except Exception as e:
+    except BaseException as e:
         import traceback
         traceback.print_exc()
         total.abort(str(e))
@@ -710,6 +759,7 @@ def mx_init():
     _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
+        'buildvms': [buildvms, ''],
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
         'hsdis': [hsdis, '[att]'],
