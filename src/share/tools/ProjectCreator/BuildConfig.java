@@ -68,16 +68,13 @@ class BuildConfig {
         if (value != null) {
             outDir = value;
         }
-        if(outDir.endsWith("fastdebug")) {
-            outDir = outDir.substring(0, outDir.lastIndexOf("fastdebug") - 1);
-        } else if (outDir.endsWith("debug")) {
-            outDir = outDir.substring(0, outDir.lastIndexOf("debug") - 1);
+        
+        int lastDirectorySeparator = Math.max(outDir.lastIndexOf("/"), outDir.lastIndexOf("\\"));
+        if (lastDirectorySeparator >= 0) {
+            outDir = outDir.substring(0, lastDirectorySeparator);
         }
         
-        if (!build.equals("product")) {
-            outDir += Util.sep + build;
-        }
-        outDir += Util.sep + "jre" + Util.sep + "bin";
+        outDir += Util.sep + build + Util.sep + "bin";
         if (flavour.equals("graal")) {
             outDir += Util.sep + "graal";
         } else if (flavour.equals("compiler1")) {
