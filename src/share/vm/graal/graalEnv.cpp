@@ -246,7 +246,7 @@ void GraalEnv::get_field_by_index_impl(instanceKlassHandle& klass, fieldDescript
                                         int index) {
   EXCEPTION_CONTEXT;
 
-  assert(klass->is_linked(), "must be linked before using its constan-pool");
+  assert(klass->is_linked(), "must be linked before using its constant-pool");
 
   constantPoolHandle cpool(thread, klass->constants());
 
