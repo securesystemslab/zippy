@@ -270,6 +270,15 @@ def scaladacapo(args):
     if len(failed) != 0:
         mx.abort('Scala DaCapo failures: ' + str(failed))
 
+def _vmLibDirInJdk(jdk):
+    """
+    Get the directory within a JDK where jvm.cfg file and the server
+    and client subdirectories are located.
+    """
+    if platform.system() == 'Darwin':
+        return join(jdk, 'jre', 'lib')
+    return join(jdk, 'jre', 'lib', 'amd64')
+
 def _jdk(build='product', create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
@@ -292,7 +301,7 @@ def _jdk(build='product', create=False):
                 
             # Make a copy of the default VM so that this JDK can be
             # reliably used as the bootstrap for a HotSpot build.                
-            jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+            jvmCfg = join(_vmLibDirInJdk(jdk), 'jvm.cfg')
             if not exists(jvmCfg):
                 mx.abort(jvmCfg + ' does not exist')
                 
@@ -309,7 +318,7 @@ def _jdk(build='product', create=False):
                     lines.append(line)
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
-            shutil.copytree(join(jdk, 'jre', 'lib', 'amd64', defaultVM), join(jdk, 'jre', 'lib', 'amd64', defaultVM + '0'))
+            shutil.copytree(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), defaultVM + '0'))
             
             with open(jvmCfg, 'w') as f:
                 for line in lines:
@@ -390,7 +399,7 @@ def build(args, vm=None):
     for build in builds:
         jdk = _jdk(build, create=True)
             
-        vmDir = join(jdk, 'jre', 'lib', 'amd64', vm)
+        vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
             mx.log('Creating VM directory in JDK7: ' + vmDir)
             os.makedirs(vmDir)
@@ -434,7 +443,7 @@ def build(args, vm=None):
             
             mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
         
-        jvmCfg = join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+        jvmCfg = join(_vmLibDirInJdk(jdk), 'jvm.cfg')
         found = False
         if not exists(jvmCfg):
             mx.abort(jvmCfg + ' does not exist')
@@ -797,7 +806,7 @@ def hsdis(args):
         flavor = 'att'
     build = _vmbuild if _vmSourcesAvailable else 'product'
     lib = mx.lib_suffix('hsdis-amd64')
-    path = join(_jdk(build), 'jre', 'lib', 'amd64', lib)
+    path = join(_vmLibDirInJdk(_jdk(build)), lib)
     mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
     
 def mx_init():
