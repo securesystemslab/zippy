@@ -509,10 +509,11 @@ def unittest(args):
     
     If filters are supplied, only tests whose fully qualified name
     include a filter as a substring are run. Negative filters are
-    those with a '-' prefix."""
+    those with a '-' prefix. VM args should have a @ prefix."""
     
-    pos = [a for a in args if a[0] != '-']
+    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
     neg = [a[1:] for a in args if a[0] == '-']
+    vmArgs = [a[1:] for a in args if a[0] == '@']
 
     def containsAny(c, substrings):
         for s in substrings:
@@ -531,17 +532,18 @@ def unittest(args):
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
             
-        vm(['-XX:-BootstrapGraal', '-esa', '-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+        vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
     
 def jtt(args):
     """run the Java Tester Tests in the GraalVM
     
     If filters are supplied, only tests whose fully qualified name
     include a filter as a substring are run. Negative filters are
-    those with a '-' prefix."""
+    those with a '-' prefix. VM args should have a @ prefix."""
     
-    pos = [a for a in args if a[0] != '-']
+    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
     neg = [a[1:] for a in args if a[0] == '-']
+    vmArgs = [a[1:] for a in args if a[0] == '@']
 
     def containsAny(c, substrings):
         for s in substrings:
@@ -560,7 +562,7 @@ def jtt(args):
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
             
-        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=::test', '-Xcomp', '-esa', '-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=::test', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
     
 def buildvms(args):
     """build one or more VMs in various configurations"""
