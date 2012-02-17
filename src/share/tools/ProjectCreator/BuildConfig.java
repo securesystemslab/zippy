@@ -74,7 +74,7 @@ class BuildConfig {
             outDir = outDir.substring(0, lastDirectorySeparator);
         }
         
-        outDir += Util.sep + build + Util.sep + "bin";
+        outDir += Util.sep + build + Util.sep + "jre" + Util.sep + "bin";
         if (flavour.equals("graal")) {
             outDir += Util.sep + "graal";
         } else if (flavour.equals("compiler1")) {
