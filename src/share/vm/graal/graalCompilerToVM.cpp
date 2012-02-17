@@ -542,6 +542,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
 // public boolean RiType_isSubtypeOf(HotSpotTypeResolved klass, RiType other);
 JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_2isSubtypeOf(JNIEnv *, jobject, jobject klass, jobject jother) {
   TRACE_graal_3("CompilerToVM::RiType_isSubtypeOf");
+  VM_ENTRY_MARK;
+  
   oop other = JNIHandles::resolve(jother);
   assert(other->is_a(HotSpotTypeResolved::klass()), "resolved hotspot type expected");
   assert(JNIHandles::resolve(klass) != NULL, "");
@@ -555,6 +557,18 @@ JNIEXPORT jboolean JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVM
     fatal("unexpected class type");
     return false;
   }
+}
+
+// public RiType RiType_leastCommonAncestor(HotSpotTypeResolved thisType, HotSpotTypeResolved otherType);
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiType_2leastCommonAncestor(JNIEnv *, jobject, jobject this_type, jobject other_type) {
+  TRACE_graal_3("CompilerToVM::RiType_leastCommonAncestor");
+  VM_ENTRY_MARK;
+
+  Klass* this_klass  = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(this_type))->klass_part();
+  Klass* other_klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(other_type))->klass_part();
+  Klass* lca         = this_klass->LCA(other_klass);
+
+  return JNIHandles::make_local(GraalCompiler::get_RiType(lca, THREAD)());
 }
 
 // public RiType RiType_componentType(HotSpotResolvedType klass);
@@ -937,38 +951,39 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
 #define CLASS           "Ljava/lang/Class;"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"RiMethod_code",                     CC"("RESOLVED_METHOD")[B",                  FN_PTR(RiMethod_1code)},
-  {CC"RiMethod_signature",                CC"("RESOLVED_METHOD")"STRING,              FN_PTR(RiMethod_1signature)},
-  {CC"RiMethod_exceptionHandlers",        CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,  FN_PTR(RiMethod_1exceptionHandlers)},
-  {CC"RiMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasBalancedMonitors)},
-  {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,              FN_PTR(RiMethod_1uniqueConcreteMethod)},
-  {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,               FN_PTR(getRiMethod)},
-  {CC"RiMethod_methodData",               CC"("RESOLVED_METHOD")"METHOD_DATA,         FN_PTR(RiMethod_1methodData)},
-  {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1invocationCount)},
-  {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                   FN_PTR(RiMethod_1hasCompiledCode)},
-  {CC"RiMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                   FN_PTR(RiMethod_1getCompiledCodeSize)},
-  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE"Z)"TYPE,          FN_PTR(RiSignature_1lookupType)},
-  {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,               FN_PTR(RiConstantPool_1lookupConstant)},
-  {CC"RiConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,              FN_PTR(RiConstantPool_1lookupMethod)},
-  {CC"RiConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                 FN_PTR(RiConstantPool_1lookupType)},
-  {CC"RiConstantPool_loadReferencedType", CC"("RESOLVED_TYPE"IB)V",                   FN_PTR(RiConstantPool_1loadReferencedType)},
-  {CC"RiConstantPool_lookupField",        CC"("RESOLVED_TYPE"IB)"FIELD,               FN_PTR(RiConstantPool_1lookupField)},
-  {CC"RiType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,  FN_PTR(RiType_3resolveMethodImpl)},
-  {CC"RiType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                FN_PTR(RiType_2isSubtypeOf)},
-  {CC"RiType_componentType",              CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1componentType)},
-  {CC"RiType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1uniqueConcreteSubtype)},
-  {CC"RiType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1superType)},
-  {CC"RiType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                  FN_PTR(RiType_1arrayOf)},
-  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,       FN_PTR(RiType_1fields)},
-  {CC"RiType_isInitialized",              CC"("RESOLVED_TYPE")Z",                     FN_PTR(RiType_1isInitialized)},
-  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                        FN_PTR(getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                   FN_PTR(getMaxCallTargetOffset)},
-  {CC"getType",                           CC"("CLASS")"TYPE,                          FN_PTR(getType)},
-  {CC"getConfiguration",                  CC"()"CONFIG,                               FN_PTR(getConfiguration)},
-  {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,       FN_PTR(installMethod)},
-  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                 FN_PTR(installStub)},
-  {CC"disassembleNative",                 CC"([BJ)"STRING,                            FN_PTR(disassembleNative)},
-  {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,              FN_PTR(disassembleJava)},
+  {CC"RiMethod_code",                     CC"("RESOLVED_METHOD")[B",                            FN_PTR(RiMethod_1code)},
+  {CC"RiMethod_signature",                CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(RiMethod_1signature)},
+  {CC"RiMethod_exceptionHandlers",        CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,            FN_PTR(RiMethod_1exceptionHandlers)},
+  {CC"RiMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                             FN_PTR(RiMethod_1hasBalancedMonitors)},
+  {CC"RiMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,                        FN_PTR(RiMethod_1uniqueConcreteMethod)},
+  {CC"getRiMethod",                       CC"("REFLECT_METHOD")"METHOD,                         FN_PTR(getRiMethod)},
+  {CC"RiMethod_methodData",               CC"("RESOLVED_METHOD")"METHOD_DATA,                   FN_PTR(RiMethod_1methodData)},
+  {CC"RiMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                             FN_PTR(RiMethod_1invocationCount)},
+  {CC"RiMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                             FN_PTR(RiMethod_1hasCompiledCode)},
+  {CC"RiMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                             FN_PTR(RiMethod_1getCompiledCodeSize)},
+  {CC"RiSignature_lookupType",            CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(RiSignature_1lookupType)},
+  {CC"RiConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(RiConstantPool_1lookupConstant)},
+  {CC"RiConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(RiConstantPool_1lookupMethod)},
+  {CC"RiConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(RiConstantPool_1lookupType)},
+  {CC"RiConstantPool_loadReferencedType", CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(RiConstantPool_1loadReferencedType)},
+  {CC"RiConstantPool_lookupField",        CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(RiConstantPool_1lookupField)},
+  {CC"RiType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,            FN_PTR(RiType_3resolveMethodImpl)},
+  {CC"RiType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                          FN_PTR(RiType_2isSubtypeOf)},
+  {CC"RiType_leastCommonAncestor",        CC"("RESOLVED_TYPE RESOLVED_TYPE")"TYPE,              FN_PTR(RiType_2leastCommonAncestor)},
+  {CC"RiType_componentType",              CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(RiType_1componentType)},
+  {CC"RiType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(RiType_1uniqueConcreteSubtype)},
+  {CC"RiType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(RiType_1superType)},
+  {CC"RiType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(RiType_1arrayOf)},
+  {CC"RiType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,                 FN_PTR(RiType_1fields)},
+  {CC"RiType_isInitialized",              CC"("RESOLVED_TYPE")Z",                               FN_PTR(RiType_1isInitialized)},
+  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                                  FN_PTR(getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                             FN_PTR(getMaxCallTargetOffset)},
+  {CC"getType",                           CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
+  {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
+  {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,                 FN_PTR(installMethod)},
+  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                           FN_PTR(installStub)},
+  {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
+  {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
 };
 
 int CompilerToVM_methods_count() {
