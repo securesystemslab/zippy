@@ -612,12 +612,17 @@ def gate(args):
             mx.abort(codeOrMessage)
             return self
              
+    parser = ArgumentParser(prog='mx gate');
+    parser.add_argument('--omit-native-build', action='store_false', dest='buildNative', help='omit cleaning and building native code')
+
+    args = parser.parse_args(args)
+
     tasks = []             
     total = Task('Gate')
     try:
         
         t = Task('Clean')
-        clean([])
+        clean([] if args.buildNative else ['--no-native'])
         tasks.append(t.stop())
         
         t = Task('Checkstyle')
@@ -640,17 +645,19 @@ def gate(args):
         tasks.append(t.stop())
 
         # Prevent Graal modifications from breaking the standard builds
-        t = Task('BuildHotSpotVarieties')
-        buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
-        tasks.append(t.stop())
+        if args.buildNative:
+            t = Task('BuildHotSpotVarieties')
+            buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
+            tasks.append(t.stop())
         
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
             
-            t = Task('BuildHotSpotGraal:' + vmbuild)
-            buildvms(['--vms', 'graal', '--builds', vmbuild])
-            tasks.append(t.stop())
+            if args.buildNative:
+                t = Task('BuildHotSpotGraal:' + vmbuild)
+                buildvms(['--vms', 'graal', '--builds', vmbuild])
+                tasks.append(t.stop())
             
             t = Task('BootstrapWithSystemAssertions:' + vmbuild)
             vm(['-esa', '-version'])
@@ -795,7 +802,7 @@ def mx_init():
     _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
-        'buildvms': [buildvms, ''],
+        'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
         'hsdis': [hsdis, '[att]'],
@@ -803,7 +810,7 @@ def mx_init():
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
         'example': [example, '[-v] example names...'],
-        'gate' : [gate, ''],
+        'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
