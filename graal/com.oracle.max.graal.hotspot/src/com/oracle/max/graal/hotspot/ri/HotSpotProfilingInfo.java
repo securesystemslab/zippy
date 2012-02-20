@@ -23,6 +23,7 @@
 package com.oracle.max.graal.hotspot.ri;
 
 import com.oracle.max.cri.ri.*;
+import com.oracle.max.graal.debug.*;
 import com.oracle.max.graal.hotspot.*;
 import com.oracle.max.graal.hotspot.Compiler;
 
@@ -33,6 +34,7 @@ public final class HotSpotProfilingInfo extends CompilerObject implements RiProf
      *
      */
     private static final long serialVersionUID = -8307682725047864875L;
+    private static final DebugMetric metricInsufficentSpace = Debug.metric("InsufficientSpaceForProfilingData");
 
     private int position;
     private int hintPosition;
@@ -108,7 +110,10 @@ public final class HotSpotProfilingInfo extends CompilerObject implements RiProf
                 currentPosition = currentPosition + currentAccessor.getSize(methodData, currentPosition);
             }
 
-            exceptionPossiblyNotRecorded = !methodData.isWithin(currentPosition);
+            if (!methodData.isWithin(currentPosition)) {
+                exceptionPossiblyNotRecorded = true;
+                metricInsufficentSpace.increment();
+            }
         }
 
         noDataFound(exceptionPossiblyNotRecorded);
@@ -124,8 +129,8 @@ public final class HotSpotProfilingInfo extends CompilerObject implements RiProf
         setCurrentData(data, pos);
     }
 
-    private void noDataFound(boolean exceptionPossible) {
-        HotSpotMethodDataAccessor accessor = exceptionPossible ? HotSpotMethodData.getNoDataNoExceptionAccessor() : HotSpotMethodData.getNoDataNoExceptionAccessor();
+    private void noDataFound(boolean exceptionPossiblyNotRecorded) {
+        HotSpotMethodDataAccessor accessor = HotSpotMethodData.getNoDataAccessor(exceptionPossiblyNotRecorded);
         setCurrentData(accessor, -1);
     }
 

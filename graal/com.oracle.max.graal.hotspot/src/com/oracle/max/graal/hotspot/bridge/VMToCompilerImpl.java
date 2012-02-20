@@ -50,6 +50,7 @@ public class VMToCompilerImpl implements VMToCompiler, Remote {
 
     private final Compiler compiler;
     private int compiledMethodCount;
+    private long totalCompilationTime;
     private IntrinsifyArrayCopyPhase intrinsifyArrayCopy;
 
     public final HotSpotTypePrimitive typeBoolean;
@@ -108,15 +109,26 @@ public class VMToCompilerImpl implements VMToCompiler, Remote {
     public void startCompiler() throws Throwable {
         // Make sure TTY is initialized here such that the correct System.out is used for TTY.
         TTY.initialize();
+        if (GraalOptions.Debug) {
+            Debug.enable();
+            HotSpotDebugConfig hotspotDebugConfig = new HotSpotDebugConfig(GraalOptions.Log, GraalOptions.Meter, GraalOptions.Time, GraalOptions.Dump, GraalOptions.MethodFilter);
+            Debug.setConfig(hotspotDebugConfig);
+        }
 
         // Install intrinsics.
-        HotSpotRuntime runtime = (HotSpotRuntime) compiler.getCompiler().runtime;
+        final HotSpotRuntime runtime = (HotSpotRuntime) compiler.getCompiler().runtime;
         if (GraalOptions.Intrinsify) {
-            this.intrinsifyArrayCopy = new IntrinsifyArrayCopyPhase(runtime);
-            GraalIntrinsics.installIntrinsics(runtime, runtime.getCompiler().getTarget(), PhasePlan.DEFAULT);
-            Snippets.install(runtime, runtime.getCompiler().getTarget(), new SystemSnippets(), PhasePlan.DEFAULT);
-            Snippets.install(runtime, runtime.getCompiler().getTarget(), new UnsafeSnippets(), PhasePlan.DEFAULT);
-            Snippets.install(runtime, runtime.getCompiler().getTarget(), new ArrayCopySnippets(), PhasePlan.DEFAULT);
+            Debug.scope("InstallSnippets", new DebugDumpScope("InstallSnippets"), new Runnable() {
+                @Override
+                public void run() {
+                    VMToCompilerImpl.this.intrinsifyArrayCopy = new IntrinsifyArrayCopyPhase(runtime);
+                    GraalIntrinsics.installIntrinsics(runtime, runtime.getCompiler().getTarget(), PhasePlan.DEFAULT);
+                    Snippets.install(runtime, runtime.getCompiler().getTarget(), new SystemSnippets(), PhasePlan.DEFAULT);
+                    Snippets.install(runtime, runtime.getCompiler().getTarget(), new UnsafeSnippets(), PhasePlan.DEFAULT);
+                    Snippets.install(runtime, runtime.getCompiler().getTarget(), new ArrayCopySnippets(), PhasePlan.DEFAULT);
+                }
+            });
+
         }
 
         // Create compilation queue.
@@ -194,17 +206,58 @@ public class VMToCompilerImpl implements VMToCompiler, Remote {
             List<DebugValueMap> topLevelMaps = DebugValueMap.getTopLevelMaps();
             List<DebugValue> debugValues = KeyRegistry.getDebugValues();
             if (debugValues.size() > 0) {
-                for (DebugValueMap map : topLevelMaps) {
-                    TTY.println("Showing the results for thread: " + map.getName());
-                    map.group();
-                    map.normalize();
-                    printMap(map, debugValues, 0);
+                if (GraalOptions.SummarizeDebugValues) {
+                    printSummary(topLevelMaps, debugValues);
+                } else {
+                    for (DebugValueMap map : topLevelMaps) {
+                        TTY.println("Showing the results for thread: " + map.getName());
+                        map.group();
+                        map.normalize();
+                        printMap(map, debugValues, 0);
+                    }
                 }
             }
         }
+
+        if (GraalOptions.PrintCompilationStatistics) {
+            printCompilationStatistics();
+        }
     }
 
-    private void printMap(DebugValueMap map, List<DebugValue> debugValues, int level) {
+    private void printCompilationStatistics() {
+        TTY.println("Accumulated compilation statistics");
+        TTY.println("  Compiled methods         : %d", compiledMethodCount);
+        TTY.println("  Total compilation time   : %6.3f s", totalCompilationTime / Math.pow(10, 9));
+    }
+
+    private static void printSummary(List<DebugValueMap> topLevelMaps, List<DebugValue> debugValues) {
+        DebugValueMap result = new DebugValueMap("Summary");
+        for (int i = debugValues.size() - 1; i >= 0; i--) {
+            DebugValue debugValue = debugValues.get(i);
+            int index = debugValue.getIndex();
+            long total = collectTotal(topLevelMaps, index);
+            result.setCurrentValue(index, total);
+        }
+        printMap(result, debugValues, 0);
+    }
+
+    private static long collectTotal(List<DebugValueMap> maps, int index) {
+        long total = 0;
+        for (int i = 0; i < maps.size(); i++) {
+            DebugValueMap map = maps.get(i);
+            // the top level accumulates some counters -> do not process the children if we find a value
+            long value = map.getCurrentValue(index);
+            if (value == 0) {
+                total += collectTotal(map.getChildren(), index);
+            } else {
+                total += value;
+            }
+        }
+        return total;
+    }
+
+
+    private static void printMap(DebugValueMap map, List<DebugValue> debugValues, int level) {
 
         printIndent(level);
         TTY.println(map.getName());
@@ -248,16 +301,16 @@ public class VMToCompilerImpl implements VMToCompiler, Remote {
                         final PhasePlan plan = getDefaultPhasePlan();
                         GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(compiler.getRuntime());
                         plan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
-                        long startTime = 0;
+                        long startTime = System.nanoTime();
                         int index = compiledMethodCount++;
                         final boolean printCompilation = GraalOptions.PrintCompilation && !TTY.isSuppressed();
                         if (printCompilation) {
                             TTY.println(String.format("Graal %4d %-70s %-45s %-50s ...", index, method.holder().name(), method.name(), method.signature().asString()));
-                            startTime = System.nanoTime();
                         }
 
                         CiTargetMethod result = null;
                         TTY.Filter filter = new TTY.Filter(GraalOptions.PrintFilter, method);
+                        long nanoTime;
                         try {
                             result = Debug.scope("Compiling", method, new Callable<CiTargetMethod>() {
                                 @Override
@@ -267,9 +320,10 @@ public class VMToCompilerImpl implements VMToCompiler, Remote {
                             });
                         } finally {
                             filter.remove();
+                            nanoTime = System.nanoTime() - startTime;
+                            totalCompilationTime += nanoTime;
                             if (printCompilation) {
-                                long time = (System.nanoTime() - startTime) / 100000;
-                                TTY.println(String.format("Graal %4d %-70s %-45s %-50s | %3d.%dms %4dnodes %5dB", index, "", "", "", time / 10, time % 10, 0, (result != null ? result.targetCodeSize()
+                                TTY.println(String.format("Graal %4d %-70s %-45s %-50s | %3d.%dms %4dnodes %5dB", index, "", "", "", nanoTime / 1000000, nanoTime % 1000000, 0, (result != null ? result.targetCodeSize()
                                                 : -1)));
                             }
                         }

@@ -74,6 +74,12 @@
 #define NOT_COMPILER2(code) code
 #endif // COMPILER2
 
+#ifdef GRAAL
+#define IS_GRAAL(code) code
+#else
+#define IS_GRAAL(code)
+#endif
+
 #ifdef TIERED
 #define TIERED_ONLY(code) code
 #define NOT_TIERED(code)

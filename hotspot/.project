@@ -96,6 +96,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_graal/generated</locationURI>
 		</link>
 		<link>
+			<name>make</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/make</locationURI>
+		</link>
+		<link>
 			<name>os</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/os/linux</locationURI>

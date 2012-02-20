@@ -145,6 +145,23 @@ public final class BciBlockMapping {
                 throw new RuntimeException(e);
             }
         }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("B").append(blockID);
+            sb.append('[').append(startBci).append("->").append(endBci);
+            if (isLoopHeader || isExceptionEntry) {
+                sb.append(' ');
+                if (isLoopHeader) {
+                    sb.append('L');
+                }
+                if (isExceptionEntry) {
+                    sb.append('!');
+                }
+            }
+            sb.append(']');
+            return sb.toString();
+        }
     }
 
     public static class ExceptionBlock extends Block {
@@ -363,12 +380,6 @@ public final class BciBlockMapping {
 
     private static boolean canTrap(int opcode, int bci, RiProfilingInfo profilingInfo) {
         switch (opcode) {
-            case INVOKESTATIC:
-            case INVOKESPECIAL:
-            case INVOKEVIRTUAL:
-            case INVOKEINTERFACE: {
-                return true;
-            }
             case IASTORE:
             case LASTORE:
             case FASTORE:
@@ -388,7 +399,7 @@ public final class BciBlockMapping {
             case PUTFIELD:
             case GETFIELD: {
                 if (GraalOptions.AllowExplicitExceptionChecks) {
-                    return profilingInfo.getExceptionSeen(bci) == RiExceptionSeen.TRUE;
+                    return profilingInfo.getExceptionSeen(bci) != RiExceptionSeen.FALSE;
                 }
             }
         }

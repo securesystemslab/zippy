@@ -202,6 +202,8 @@ Handle GraalCompiler::get_RiField(int offset, int flags, Symbol* field_name, Han
 }
 
 Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS) {
+  ObjectLocker ol(klass, THREAD);
+
   if (klass->graal_mirror() != NULL) {
     return klass->graal_mirror();
   }
@@ -291,7 +293,6 @@ Handle GraalCompiler::createHotSpotMethodData(methodDataHandle method_data, TRAP
   HotSpotMethodData::set_hotspotMirror(obj, method_data());
   HotSpotMethodData::set_normalDataSize(obj, method_data()->data_size());
   HotSpotMethodData::set_extraDataSize(obj, method_data()->extra_data_size());
-  HotSpotMethodData::set_mature(obj, method_data()->is_mature());
 
   method_data->set_graal_mirror(obj());
   return obj;

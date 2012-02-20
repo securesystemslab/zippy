@@ -49,7 +49,6 @@ class MetaIndex: public CHeapObj {
 class ClassPathEntry: public CHeapObj {
  private:
   ClassPathEntry* _next;
-  bool _compiler_thread_only;
  public:
   // Next entry in class path
   ClassPathEntry* next()              { return _next; }
@@ -60,8 +59,6 @@ class ClassPathEntry: public CHeapObj {
   virtual bool is_jar_file() = 0;
   virtual const char* name() = 0;
   virtual bool is_lazy();
-  bool compiler_thread_only() const { return _compiler_thread_only; }
-  void set_compiler_thread_only(bool b) { _compiler_thread_only = b; }
   // Constructor
   ClassPathEntry();
   // Attempt to locate file_name through this class path entry.
@@ -209,7 +206,7 @@ class ClassLoader: AllStatic {
   // Initialization
   static void setup_meta_index();
   static void setup_bootstrap_search_path();
-  static void setup_bootstrap_search_path(char* sys_class_path, bool compiler_cp);
+  static void setup_bootstrap_search_path(char* sys_class_path);
   static void load_zip_library();
   static void create_class_path_entry(char *path, struct stat st, ClassPathEntry **new_entry, bool lazy);
 
@@ -219,8 +216,7 @@ class ClassLoader: AllStatic {
  public:
   // Used by the kernel jvm.
   static void update_class_path_entry_list(const char *path,
-                                           bool check_for_duplicates,
-										   bool compiler_cp);
+                                           bool check_for_duplicates);
   static void print_bootclasspath();
 
   // Timing

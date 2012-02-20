@@ -536,9 +536,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
       throw_exception = true;
     }
 
-    _debug_recorder->describe_scope(pc_offset, method, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
+    _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
   } else {
-    _debug_recorder->describe_scope(pc_offset, method, bci, reexecute, false, false, false, NULL, NULL, NULL);
+    _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, false, false, false, NULL, NULL, NULL);
   }
 }
 

@@ -75,7 +75,6 @@ void graal_compute_offsets();
     oop_field(HotSpotMethodData, hotspotMirror, "Ljava/lang/Object;")                   \
     int_field(HotSpotMethodData, normalDataSize)                                        \
     int_field(HotSpotMethodData, extraDataSize)                                         \
-    boolean_field(HotSpotMethodData, mature)                                            \
   end_class                                                                             \
   start_class(HotSpotType)                                                              \
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \

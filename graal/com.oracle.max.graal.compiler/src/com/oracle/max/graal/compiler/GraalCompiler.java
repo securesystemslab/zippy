@@ -36,6 +36,7 @@ import com.oracle.max.graal.compiler.phases.*;
 import com.oracle.max.graal.compiler.phases.PhasePlan.PhasePosition;
 import com.oracle.max.graal.compiler.schedule.*;
 import com.oracle.max.graal.compiler.target.*;
+import com.oracle.max.graal.compiler.types.*;
 import com.oracle.max.graal.cri.*;
 import com.oracle.max.graal.debug.*;
 import com.oracle.max.graal.lir.*;
@@ -83,10 +84,10 @@ public class GraalCompiler {
         Debug.dump(this, "compiler");
         Debug.dump(method, "method");
 
-        return Debug.scope(createScopeName(method), new Callable<CiTargetMethod>() {
+        return Debug.scope(createScopeName(method), graph, new Callable<CiTargetMethod>() {
             public CiTargetMethod call() {
                 final CiAssumptions assumptions = GraalOptions.OptAssumptions ? new CiAssumptions() : null;
-                final LIR lir = Debug.scope("FrontEnd", graph, new Callable<LIR>() {
+                final LIR lir = Debug.scope("FrontEnd", new Callable<LIR>() {
                     public LIR call() {
                         return emitHIR(graph, assumptions, plan);
                     }
@@ -144,6 +145,14 @@ public class GraalCompiler {
             new IntrinsificationPhase(runtime).apply(graph);
         }
 
+        if (GraalOptions.PropagateTypes) {
+            if (GraalOptions.OptCanonicalizer) {
+                new CanonicalizerPhase(target, runtime, assumptions).apply(graph);
+            }
+
+            new PropagateTypesPhase(target, runtime, assumptions).apply(graph);
+        }
+
         if (GraalOptions.Inline && !plan.isPhaseDisabled(InliningPhase.class)) {
             new InliningPhase(target, runtime, null, assumptions, plan).apply(graph);
             new DeadCodeEliminationPhase().apply(graph);
@@ -152,6 +161,10 @@ public class GraalCompiler {
 
         if (GraalOptions.OptCanonicalizer) {
             new CanonicalizerPhase(target, runtime, assumptions).apply(graph);
+        }
+
+        if (GraalOptions.PropagateTypes) {
+            new PropagateTypesPhase(target, runtime, assumptions).apply(graph);
         }
 
         plan.runPhases(PhasePosition.HIGH_LEVEL, graph);
@@ -163,7 +176,9 @@ public class GraalCompiler {
         if (GraalOptions.EscapeAnalysis && !plan.isPhaseDisabled(EscapeAnalysisPhase.class)) {
             new EscapeAnalysisPhase(target, runtime, assumptions, plan).apply(graph);
             new PhiStampPhase().apply(graph);
-            new CanonicalizerPhase(target, runtime, assumptions).apply(graph);
+            if (GraalOptions.OptCanonicalizer) {
+                new CanonicalizerPhase(target, runtime, assumptions).apply(graph);
+            }
         }
 
         if (GraalOptions.OptGVN) {

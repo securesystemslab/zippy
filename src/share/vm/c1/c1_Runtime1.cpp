@@ -462,9 +462,11 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
   thread->set_is_method_handle_return(false);
 
   Handle exception(thread, ex);
-  if (UseGraal && exception.is_null()) {
+#ifdef GRAAL
+  if (exception.is_null()) {
     exception = Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL);
   }
+#endif
   nm = CodeCache::find_nmethod(pc);
   assert(nm != NULL, "this is not an nmethod");
   // Adjust the pc as needed/

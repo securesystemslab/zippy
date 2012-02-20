@@ -24,6 +24,7 @@ package com.oracle.max.graal.compiler.phases;
 
 import java.util.*;
 
+import com.oracle.max.graal.compiler.*;
 import com.oracle.max.graal.compiler.graph.*;
 import com.oracle.max.graal.debug.*;
 import com.oracle.max.graal.graph.*;
@@ -70,26 +71,32 @@ public class ComputeProbabilityPhase extends Phase {
     public static class LoopInfo {
         public final LoopBeginNode loopBegin;
 
-        public final Set<LoopInfo> requires = new HashSet<>(4);
+        public final NodeMap<Set<LoopInfo>> requires;
 
         private double loopFrequency = -1;
         public boolean ended = false;
 
         public LoopInfo(LoopBeginNode loopBegin) {
             this.loopBegin = loopBegin;
+            this.requires = loopBegin.graph().createNodeMap();
         }
 
         public double loopFrequency() {
             if (loopFrequency == -1 && ended) {
-                double factor = 1;
-                for (LoopInfo required : requires) {
-                    double t = required.loopFrequency();
-                    if (t == -1) {
-                        return -1;
+                double backEdgeProb = 0.0;
+                for (LoopEndNode le : loopBegin.loopEnds()) {
+                    double factor = 1;
+                    Set<LoopInfo> requireds = requires.get(le);
+                    for (LoopInfo required : requireds) {
+                        double t = required.loopFrequency();
+                        if (t == -1) {
+                            return -1;
+                        }
+                        factor *= t;
                     }
-                    factor *= t;
+                    backEdgeProb += le.probability() * factor;
                 }
-                double d = loopBegin.loopEnd().probability() * factor;
+                double d = backEdgeProb;
                 if (d < EPSILON) {
                     d = EPSILON;
                 } else if (d > loopBegin.probability() - EPSILON) {
@@ -125,7 +132,7 @@ public class ComputeProbabilityPhase extends Phase {
 
         @Override
         public boolean merge(MergeNode merge, Collection<Probability> withStates) {
-            if (merge.endCount() > 1) {
+            if (merge.forwardEndCount() > 1) {
                 HashSet<LoopInfo> intersection = new HashSet<>(loops);
                 for (Probability other : withStates) {
                     intersection.retainAll(other.loops);
@@ -167,11 +174,21 @@ public class ComputeProbabilityPhase extends Phase {
         }
 
         @Override
-        public void loopEnd(LoopEndNode loopEnd, Probability loopEndState) {
+        public void loopEnds(LoopBeginNode loopBegin, Collection<Probability> loopEndStates) {
             assert loopInfo != null;
-            for (LoopInfo innerLoop : loopEndState.loops) {
-                if (innerLoop != loopInfo && !loops.contains(innerLoop)) {
-                    loopInfo.requires.add(innerLoop);
+            List<LoopEndNode> loopEnds = loopBegin.orderedLoopEnds();
+            int i = 0;
+            for (Probability proba : loopEndStates) {
+                LoopEndNode loopEnd = loopEnds.get(i++);
+                Set<LoopInfo> requires = loopInfo.requires.get(loopEnd);
+                if (requires == null) {
+                    requires = new HashSet<>();
+                    loopInfo.requires.set(loopEnd, requires);
+                }
+                for (LoopInfo innerLoop : proba.loops) {
+                    if (innerLoop != loopInfo && !this.loops.contains(innerLoop)) {
+                        requires.add(innerLoop);
+                    }
                 }
             }
             loopInfo.ended = true;
@@ -226,8 +243,8 @@ public class ComputeProbabilityPhase extends Phase {
 
         @Override
         public boolean merge(MergeNode merge, Collection<LoopCount> withStates) {
-            assert merge.endCount() == withStates.size() + 1;
-            if (merge.endCount() > 1) {
+            assert merge.forwardEndCount() == withStates.size() + 1;
+            if (merge.forwardEndCount() > 1) {
                 Set<LoopInfo> loops = mergeLoops.get(merge);
                 assert loops != null;
                 double countProd = 1;
@@ -245,7 +262,7 @@ public class ComputeProbabilityPhase extends Phase {
         }
 
         @Override
-        public void loopEnd(LoopEndNode loopEnd, LoopCount loopEndState) {
+        public void loopEnds(LoopBeginNode loopBegin, Collection<LoopCount> loopEndStates) {
             // nothing to do...
         }
 
@@ -256,14 +273,51 @@ public class ComputeProbabilityPhase extends Phase {
     }
 
     private class PropagateLoopFrequency extends PostOrderNodeIterator<LoopCount> {
+        private final FrequencyPropagationPolicy policy;
 
         public PropagateLoopFrequency(FixedNode start) {
             super(start, new LoopCount(1d));
+            this.policy = createFrequencyPropagationPolicy();
         }
 
         @Override
         protected void node(FixedNode node) {
-            node.setProbability(node.probability() * state.count);
+            node.setProbability(policy.compute(node.probability(), state.count));
+        }
+
+        private FrequencyPropagationPolicy createFrequencyPropagationPolicy() {
+            switch (GraalOptions.LoopFrequencyPropagationPolicy) {
+                case 0: return new FullFrequencyPropagation();
+                case 1: return new NoFrequencyPropagation();
+                case 2: return new LogarithmicFrequencyPropagation();
+                default: throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+    }
+
+    private interface FrequencyPropagationPolicy {
+        double compute(double probability, double frequency);
+    }
+
+    private static class FullFrequencyPropagation implements FrequencyPropagationPolicy {
+        @Override
+        public double compute(double probability, double frequency) {
+            return probability * frequency;
+        }
+    }
+
+    private static class NoFrequencyPropagation implements FrequencyPropagationPolicy {
+        @Override
+        public double compute(double probability, double frequency) {
+            return probability;
+        }
+    }
+
+    private static class LogarithmicFrequencyPropagation implements FrequencyPropagationPolicy {
+        @Override
+        public double compute(double probability, double frequency) {
+            double result = Math.pow(probability, 1.5) * Math.log(frequency);
+            return Math.max(probability, result);
         }
     }
 }

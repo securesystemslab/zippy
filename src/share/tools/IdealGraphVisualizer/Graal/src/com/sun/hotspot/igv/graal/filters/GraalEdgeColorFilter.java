@@ -35,7 +35,7 @@ import java.util.List;
 
 /**
  * Filter that colors usage and successor edges differently.
- * 
+ *
  * @author Peter Hofer
  */
 public class GraalEdgeColorFilter extends AbstractFilter {
@@ -77,7 +77,9 @@ public class GraalEdgeColorFilter extends AbstractFilter {
                 for (Connection c : is.getConnections()) {
                     if (c.getLabel() == null || !c.getLabel().endsWith("#NDF")) {
                         c.setColor(color);
-                        c.setStyle(style);
+                        if (c.getStyle() != ConnectionStyle.DASHED) {
+                            c.setStyle(style);
+                        }
                     } else if ("EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))
                             || "EndNode".equals(c.getOutputSlot().getProperties().get("class"))) {
                         c.setColor(successorColor);

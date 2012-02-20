@@ -27,6 +27,7 @@ import java.util.*;
 
 import com.oracle.max.cri.ci.*;
 import com.oracle.max.cri.ri.*;
+import com.oracle.max.criutils.*;
 import com.oracle.max.graal.alloc.util.*;
 import com.oracle.max.graal.compiler.*;
 import com.oracle.max.graal.compiler.alloc.*;
@@ -66,9 +67,6 @@ public class CFGPrinterObserver implements DebugDumpHandler {
         } else if (object instanceof SchedulePhase) {
             schedule = (SchedulePhase) object;
             return;
-        } else if (object instanceof LIRGenerator) {
-            cfgPrinter.lirGenerator = (LIRGenerator) object;
-            return;
         }
 
         if (compiler == null) {
@@ -83,16 +81,20 @@ public class CFGPrinterObserver implements DebugDumpHandler {
             } catch (FileNotFoundException e) {
                 throw new InternalError("Could not open " + file.getAbsolutePath());
             }
+            TTY.println("CFGPrinter: Output to file %s", file);
         }
 
         RiRuntime runtime = cfgPrinter.runtime;
-        if (object instanceof RiResolvedMethod) {
+        if (object instanceof LIRGenerator) {
+            cfgPrinter.lirGenerator = (LIRGenerator) object;
+        } else if (object instanceof RiResolvedMethod) {
             method = (RiResolvedMethod) object;
             cfgPrinter.printCompilation(method);
 
             cfgPrinter.lir = null;
             cfgPrinter.lirGenerator = null;
             schedule = null;
+            TTY.println("CFGPrinter: Dumping method %s", method);
 
         } else if (object instanceof BciBlockMapping) {
             BciBlockMapping blockMap = (BciBlockMapping) object;
@@ -110,10 +112,13 @@ public class CFGPrinterObserver implements DebugDumpHandler {
                     curSchedule = new SchedulePhase();
                     curSchedule.apply((StructuredGraph) object);
                 } catch (Throwable ex) {
+                    curSchedule = null;
                     // ignore
                 }
             }
-            cfgPrinter.printCFG(message, Arrays.asList(curSchedule.getCFG().getBlocks()), curSchedule);
+            if (curSchedule != null && curSchedule.getCFG() != null) {
+                cfgPrinter.printCFG(message, Arrays.asList(curSchedule.getCFG().getBlocks()), curSchedule);
+            }
 
         } else if (object instanceof CiTargetMethod) {
             cfgPrinter.printMachineCode(runtime.disassemble((CiTargetMethod) object), null);

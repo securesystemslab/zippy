@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 
+ *
  * @author Thomas Wuerthinger
  */
 public class Connection implements Source.Provider, Link {
@@ -112,7 +112,7 @@ public class Connection implements Source.Provider, Link {
         outputSlot.getFigure().removeSuccessor(inputSlot.getFigure());
         outputSlot.connections.remove(this);
     }
-    
+
     public String getToolTipText() {
         StringBuilder builder = new StringBuilder();
         if (label != null) {
@@ -120,9 +120,9 @@ public class Connection implements Source.Provider, Link {
         } else {
             builder.append("From ");
         }
-        builder.append(getOutputSlot().getFigure());
+        builder.append(getOutputSlot().getFigure().getSource().getSourceNodes().get(0).getId());
         builder.append(" to ");
-        builder.append(getInputSlot().getFigure());
+        builder.append(getInputSlot().getFigure().getSource().getSourceNodes().get(0).getId());
         return builder.toString();
     }
 

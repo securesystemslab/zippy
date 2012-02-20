@@ -44,7 +44,9 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/sweeper.hpp"
 #include "utilities/dtrace.hpp"
+#ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#endif
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"
 #endif
@@ -680,13 +682,15 @@ void CompileBroker::compilation_init() {
   // Set the interface to the current compiler(s).
   int c1_count = CompilationPolicy::policy()->compiler_count(CompLevel_simple);
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
+#ifdef GRAAL
+  _compilers[0] = new GraalCompiler();
+#else
 #ifdef COMPILER1
-  if (UseGraal) {
-	  _compilers[0] = new GraalCompiler();
-  } else if (c1_count > 0) {
-	  _compilers[0] = new Compiler();
+  if (c1_count > 0) {
+    _compilers[0] = new Compiler();
   }
 #endif // COMPILER1
+#endif
 
 #ifdef COMPILER2
   if (c2_count > 0) {
@@ -936,6 +940,7 @@ void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler
 // ------------------------------------------------------------------
 // CompileBroker::is_idle
 bool CompileBroker::is_idle() {
+#ifndef GRAAL
   if (_c2_method_queue != NULL && !_c2_method_queue->is_empty()) {
     return false;
   } else if (_c1_method_queue != NULL && !_c1_method_queue->is_empty()) {
@@ -947,10 +952,10 @@ bool CompileBroker::is_idle() {
         return false;
       }
     }
-
-    // No pending or active compilations.
-    return true;
   }
+#endif
+  // No pending or active compilations.
+  return true;
 }
 
 
@@ -1043,8 +1048,9 @@ void CompileBroker::compile_method_base(methodHandle method,
     MutexLocker locker(queue->lock(), THREAD);
 
     if (JavaThread::current()->is_compiling() && !BackgroundCompilation) {
-
+#ifdef GRAAL
       TRACE_graal_1("Recursive compile %s!", method->name_and_sig_as_C_string());
+#endif
       method->set_not_compilable();
       return;
     }
@@ -1113,11 +1119,13 @@ void CompileBroker::compile_method_base(methodHandle method,
     // and in that case it's best to protect both the testing (here) of
     // these bits, and their updating (here and elsewhere) under a
     // common lock.
-    /*task = create_compile_task(queue,
+#ifndef GRAAL
+    task = create_compile_task(queue,
                                compile_id, method,
                                osr_bci, comp_level,
                                hot_method, hot_count, comment,
-                               blocking);*/
+                               blocking);
+#endif
   }
 
 #ifdef GRAAL
@@ -1128,10 +1136,11 @@ void CompileBroker::compile_method_base(methodHandle method,
     // Recursive compile request => ignore.
   }
 #endif
-
-  /*if (blocking) {
+#ifndef GRAAL
+  if (blocking) {
     wait_for_completion(task);
-  }*/
+  }
+#endif
 }
 
 

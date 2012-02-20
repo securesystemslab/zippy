@@ -29,15 +29,13 @@ import com.oracle.max.graal.nodes.type.*;
  */
 public abstract class FixedWithNextNode extends FixedNode {
 
-    @Successor private FixedNode next; // the immediate successor of the current node
-
     public FixedNode next() {
-        return next;
+        assert scheduledNext() == null || scheduledNext() instanceof FixedNode : "next() cannot be used while the graph is scheduled";
+        return (FixedNode) scheduledNext();
     }
 
     public void setNext(FixedNode x) {
-        updatePredecessors(next, x);
-        next = x;
+        setScheduledNext(x);
     }
 
     public FixedWithNextNode(Stamp stamp) {

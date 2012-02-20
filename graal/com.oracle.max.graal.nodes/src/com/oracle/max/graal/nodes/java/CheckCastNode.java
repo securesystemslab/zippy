@@ -37,10 +37,15 @@ import com.oracle.max.graal.nodes.type.*;
  */
 public final class CheckCastNode extends TypeCheckNode implements Canonicalizable, LIRLowerable, Node.IterableNodeType {
 
-    @Input protected final AnchorNode anchor;
+    @Input protected final FixedNode anchor;
+    @Data  protected final boolean emitCode;
 
-    public AnchorNode anchor() {
+    public FixedNode anchor() {
         return anchor;
+    }
+
+    public boolean emitCode() {
+        return emitCode;
     }
 
     /**
@@ -50,13 +55,22 @@ public final class CheckCastNode extends TypeCheckNode implements Canonicalizabl
      * @param targetClass the class being cast to
      * @param object the instruction producing the object
      */
-    public CheckCastNode(AnchorNode anchor, ValueNode targetClassInstruction, RiResolvedType targetClass, ValueNode object) {
+    public CheckCastNode(FixedNode anchor, ValueNode targetClassInstruction, RiResolvedType targetClass, ValueNode object) {
         this(anchor, targetClassInstruction, targetClass, object, EMPTY_HINTS, false);
     }
 
-    public CheckCastNode(AnchorNode anchor, ValueNode targetClassInstruction, RiResolvedType targetClass, ValueNode object, RiResolvedType[] hints, boolean hintsExact) {
+    public CheckCastNode(FixedNode anchor, ValueNode targetClassInstruction, RiResolvedType targetClass, ValueNode object, boolean emitCode) {
+        this(anchor, targetClassInstruction, targetClass, object, EMPTY_HINTS, false, emitCode);
+    }
+
+    public CheckCastNode(FixedNode anchor, ValueNode targetClassInstruction, RiResolvedType targetClass, ValueNode object, RiResolvedType[] hints, boolean hintsExact) {
+        this(anchor, targetClassInstruction, targetClass, object, hints, hintsExact, true);
+    }
+
+    private CheckCastNode(FixedNode anchor, ValueNode targetClassInstruction, RiResolvedType targetClass, ValueNode object, RiResolvedType[] hints, boolean hintsExact, boolean emitCode) {
         super(targetClassInstruction, targetClass, object, hints, hintsExact, targetClass == null ? StampFactory.forKind(CiKind.Object) : StampFactory.declared(targetClass));
         this.anchor = anchor;
+        this.emitCode = emitCode;
     }
 
     @Override

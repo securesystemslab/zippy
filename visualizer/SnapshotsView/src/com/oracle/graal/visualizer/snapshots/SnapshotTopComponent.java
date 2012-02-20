@@ -57,7 +57,7 @@ public final class SnapshotTopComponent extends TopComponent {
             update();
         }
     };
-    
+
     private final ChangedListener<RangeSliderModel> rangeSliderChangedListener = new ChangedListener<RangeSliderModel>(){
 
         @Override
@@ -75,7 +75,9 @@ public final class SnapshotTopComponent extends TopComponent {
         result.addLookupListener(lookupListener);
         this.rangeSlider = new RangeSlider(null);
         this.setLayout(new BorderLayout());
-        this.add(new JScrollPane(rangeSlider), BorderLayout.CENTER);
+        final JScrollPane scrollPane = new JScrollPane(rangeSlider);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(RangeSlider.ITEM_HEIGHT);
+        this.add(scrollPane, BorderLayout.CENTER);
         update();
     }
 

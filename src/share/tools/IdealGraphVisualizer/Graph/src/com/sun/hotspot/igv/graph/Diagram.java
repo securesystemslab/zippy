@@ -128,9 +128,9 @@ public class Diagram {
             int to = e.getTo();
             Figure fromFigure = figureHash.get(from);
             Figure toFigure = figureHash.get(to);
-            assert fromFigure != null && toFigure != null;
             
             if(fromFigure == null || toFigure == null) continue;
+            assert fromFigure != null && toFigure != null;
 
             int fromIndex = e.getFromIndex();
             while (fromFigure.getOutputSlots().size() <= fromIndex) {

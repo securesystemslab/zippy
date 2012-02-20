@@ -93,6 +93,9 @@ public class CompilerToVMImpl implements CompilerToVM, Remote {
     public native boolean RiType_isSubtypeOf(HotSpotTypeResolved klass, RiType other);
 
     @Override
+    public native RiType RiType_leastCommonAncestor(HotSpotTypeResolved thisType, HotSpotTypeResolved otherType);
+
+    @Override
     public native RiType getPrimitiveArrayType(CiKind kind);
 
     @Override
@@ -112,9 +115,6 @@ public class CompilerToVMImpl implements CompilerToVM, Remote {
 
     @Override
     public native HotSpotMethodData RiMethod_methodData(HotSpotMethodResolved method);
-
-    @Override
-    public native boolean HotSpotMethodData_isMature(HotSpotMethodData methodData);
 
     @Override
     public native RiType getType(Class<?> javaClass);

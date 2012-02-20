@@ -86,7 +86,7 @@ public abstract class Node implements Cloneable, Formattable {
     @Target(ElementType.METHOD)
     public static @interface NodeIntrinsic {
         /**
-         * Gets the {@link Node} subclass instantiated when intrinsifyng a call to the annotated method.
+         * Gets the {@link Node} subclass instantiated when intrinsifying a call to the annotated method.
          * If not specified, then the class in which the annotated method is declared is used
          * (and is assumed to be a {@link Node} subclass).
          */
@@ -120,7 +120,7 @@ public abstract class Node implements Cloneable, Formattable {
         nodeClass = NodeClass.get(getClass());
     }
 
-    int id() {
+    protected int id() {
         return id;
     }
 
@@ -180,6 +180,10 @@ public abstract class Node implements Cloneable, Formattable {
                 assert assertTrue(result, "not found in usages, old input: %s", oldInput);
             }
             if (newInput != null) {
+                NodeWorkList inputChanged = graph.inputChanged;
+                if (inputChanged != null) {
+                    inputChanged.addAgain(this);
+                }
                 newInput.usages.add(this);
             }
         }

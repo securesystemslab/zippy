@@ -196,4 +196,18 @@ public class Block {
         return getSuccessors().get(i);
     }
 // end to be inlined later on
+
+    public boolean dominates(Block block) {
+        return block.isDominatedBy(this);
+    }
+
+    public boolean isDominatedBy(Block block) {
+        if (block == this) {
+            return true;
+        }
+        if (dominator == null) {
+            return false;
+        }
+        return dominator.isDominatedBy(block);
+    }
 }

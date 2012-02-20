@@ -30,7 +30,9 @@
 #include "compiler/compileBroker.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "interpreter/bytecodeHistogram.hpp"
+#ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#endif
 #include "memory/genCollectedHeap.hpp"
 #include "memory/oopFactory.hpp"
 #include "memory/universe.hpp"
@@ -250,9 +252,12 @@ void print_statistics() {
     Runtime1::print_statistics();
     Deoptimization::print_statistics();
     SharedRuntime::print_statistics();
-    nmethod::print_statistics();
   }
 #endif /* COMPILER1 */
+
+  if(PrintNMethodStatistics) {
+    nmethod::print_statistics();
+  }
 
 #ifdef COMPILER2
   if ((PrintOptoStatistics || LogVMOutput || LogCompilation) && UseCompiler) {
@@ -364,6 +369,9 @@ void print_statistics() {
   if (CITime) {
     CompileBroker::print_times();
   }
+  if(PrintNMethodStatistics) {
+    nmethod::print_statistics();
+  }
 #ifdef COMPILER2
   if (PrintPreciseBiasedLockingStatistics) {
     OptoRuntime::print_named_counters();
@@ -426,9 +434,7 @@ void before_exit(JavaThread * thread) {
   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
 
 #ifdef GRAAL
-  if (UseGraal) {
-    GraalCompiler::instance()->exit();
-  }
+  GraalCompiler::instance()->exit();
 #endif
 
   // Note: don't use a Mutex to guard the entire before_exit(), as

@@ -593,7 +593,7 @@ void Runtime1::initialize_pd() {
 
 OopMapSet* Runtime1::generate_exception_throw(StubAssembler* sasm, address target, bool has_argument) {
   OopMapSet* oop_maps = new OopMapSet();
-  if (UseGraal) {
+#ifdef GRAAL
     // graal passes the argument in r10
     OopMap* oop_map = save_live_registers(sasm, 1);
 
@@ -611,7 +611,7 @@ OopMapSet* Runtime1::generate_exception_throw(StubAssembler* sasm, address targe
     int call_offset = __ call_RT(noreg, noreg, target, has_argument ? 1 : 0);
 
     oop_maps->add_gc_map(call_offset, oop_map);
-  } else {
+#else
     // preserve all registers
     int num_rt_args = has_argument ? 2 : 1;
     OopMap* oop_map = save_live_registers(sasm, num_rt_args);
@@ -635,7 +635,7 @@ OopMapSet* Runtime1::generate_exception_throw(StubAssembler* sasm, address targe
     int call_offset = __ call_RT(noreg, noreg, target, num_rt_args - 1);
 
     oop_maps->add_gc_map(call_offset, oop_map);
-  }
+#endif
 
   __ stop("should not reach here");
 
@@ -1372,8 +1372,13 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         // will be place in C abi locations
 
 #ifdef _LP64
-        __ verify_oop((UseGraal) ? j_rarg0 : c_rarg0);
-        __ mov(rax, (UseGraal) ? j_rarg0 : c_rarg0);
+#ifdef GRAAL
+        __ verify_oop(j_rarg0);
+        __ mov(rax, j_rarg0);
+#else
+        __ verify_oop(c_rarg0);
+        __ mov(rax, c_rarg0);
+#endif
 #else
         // The object is passed on the stack and we haven't pushed a
         // frame yet so it's one work away from top of stack.
@@ -1506,10 +1511,10 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
         Label success;
         Label miss;
-        if (UseGraal) {
+#ifdef GRAAL
           // TODO this should really be within the XirSnippets
           __ check_klass_subtype_fast_path(rsi, rax, rcx, &success, &miss, NULL);
-        };
+#endif
 
         __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, NULL, &miss);
 

@@ -387,11 +387,16 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
                 stateAfter = ((StateSplit) instr).stateAfter();
             }
             if (instr instanceof ValueNode) {
-                doRoot((ValueNode) instr);
+                try {
+                    doRoot((ValueNode) instr);
+                } catch (Throwable e) {
+                    throw new GraalInternalError(e).addContext(instr);
+                }
             }
             if (stateAfter != null) {
                 lastState = stateAfter;
                 assert checkStartOperands(instr, lastState);
+                assert checkStateReady(lastState);
                 if (GraalOptions.TraceLIRGeneratorLevel >= 2) {
                     TTY.println("STATE CHANGE");
                     if (GraalOptions.TraceLIRGeneratorLevel >= 3) {
@@ -402,7 +407,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         }
         if (block.numberOfSux() >= 1 && !endsWithJump(block)) {
             NodeSuccessorsIterable successors = block.getEndNode().successors();
-            assert successors.count() >= 1 : "should have at least one successor : " + block.getEndNode();
+            assert successors.isNotEmpty() : "should have at least one successor : " + block.getEndNode();
 
             emitJump(getLIRBlock((FixedNode) successors.first()), null);
         }
@@ -418,6 +423,20 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         if (GraalOptions.PrintIRWithLIR) {
             TTY.println();
         }
+    }
+
+    private boolean checkStateReady(FrameState state) {
+        FrameState fs = state;
+        while (fs != null) {
+            for (int i = 0; i < fs.valuesSize(); i++) {
+                ValueNode v = fs.valueAt(i);
+                if (v != null && !(v instanceof VirtualObjectNode)) {
+                    assert operand(v) != null : "Value " + v + " in " + fs + " is not ready!";
+                }
+            }
+            fs =  fs.outerFrameState();
+        }
+        return true;
     }
 
     private static boolean endsWithJump(Block block) {
@@ -502,8 +521,10 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
 
     @Override
     public void visitCheckCast(CheckCastNode x) {
-        XirSnippet snippet = xir.genCheckCast(site(x), toXirArgument(x.object()), toXirArgument(x.targetClassInstruction()), x.targetClass(), x.hints(), x.hintsExact());
-        emitXir(snippet, x, state(), true);
+        if (x.emitCode()) {
+            XirSnippet snippet = xir.genCheckCast(site(x), toXirArgument(x.object()), toXirArgument(x.targetClassInstruction()), x.targetClass(), x.hints(), x.hintsExact());
+            emitXir(snippet, x, state(), true);
+        }
         // The result of a checkcast is the unmodified object, so no need to allocate a new variable for it.
         setResult(x, operand(x.object()));
     }
@@ -682,12 +703,11 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         if (GraalOptions.GenLoopSafepoints && x.hasSafepointPolling()) {
             emitSafepointPoll(x);
         }
-        moveToPhi(x.loopBegin(), x);
     }
 
     private ArrayList<CiValue> phiValues = new ArrayList<>();
 
-    private void moveToPhi(MergeNode merge, FixedNode pred) {
+    private void moveToPhi(MergeNode merge, EndNode pred) {
         if (GraalOptions.AllocSSA) {
             assert phiValues.isEmpty();
             for (PhiNode phi : merge.phis()) {
@@ -820,9 +840,6 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
     }
 
     public Variable emitConditional(BooleanNode node, CiValue trueValue, CiValue falseValue) {
-        assert trueValue instanceof CiConstant && (trueValue.kind.stackKind() == CiKind.Int || trueValue.kind == CiKind.Long);
-        assert falseValue instanceof CiConstant && (falseValue.kind.stackKind() == CiKind.Int || trueValue.kind == CiKind.Long);
-
         if (node instanceof NullCheckNode) {
             return emitNullCheckConditional((NullCheckNode) node, trueValue, falseValue);
         } else if (node instanceof CompareNode) {

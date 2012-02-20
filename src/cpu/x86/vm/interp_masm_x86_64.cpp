@@ -1126,8 +1126,12 @@ void InterpreterMacroAssembler::record_klass_in_profile_helper(
                                         Register receiver, Register mdp,
                                         Register reg2, int start_row,
                                         Label& done, bool is_virtual_call) {
+#ifdef GRAAL
   // change for GRAAL (use counter to indicate polymorphic case instead of failed typechecks)
-  bool use_counter_for_polymorphic_case = is_virtual_call || UseGraal;
+  bool use_counter_for_polymorphic_case = true;
+#else
+  bool use_counter_for_polymorphic_case = is_virtual_call;
+#endif
 
   if (TypeProfileWidth == 0) {
     if (use_counter_for_polymorphic_case) {
@@ -1300,8 +1304,9 @@ void InterpreterMacroAssembler::profile_null_seen(Register mdp) {
 
 
 void InterpreterMacroAssembler::profile_typecheck_failed(Register mdp) {
-  // changed for GRAAL (use counter to indicate polymorphism instead of failed typechecks)
-  if (ProfileInterpreter && TypeProfileCasts && !UseGraal) {
+// changed for GRAAL (use counter to indicate polymorphism instead of failed typechecks)
+#ifndef GRAAL
+  if (ProfileInterpreter && TypeProfileCasts) {
     Label profile_continue;
 
     // If no method data exists, go to profile_continue.
@@ -1316,6 +1321,7 @@ void InterpreterMacroAssembler::profile_typecheck_failed(Register mdp) {
 
     bind (profile_continue);
   }
+#endif
 }
 
 
