@@ -718,6 +718,7 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
     nm->make_not_entrant();
     JavaThread::current()->set_exception_pc(ret_pc);
     JavaThread::current()->set_exception_oop(exception());
+    JavaThread::current()->clear_pending_exception();
     return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
 #else
     assert(nm->unwind_handler_begin() != NULL, "");
