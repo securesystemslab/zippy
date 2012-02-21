@@ -603,7 +603,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
             # The preexec_fn=os.setsid
             p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn, creationflags=creationflags)
             _currentSubprocess = (p, args)
-	    waitOn(p)
+	    retcode = waitOn(p)
         else:
             def redirect(stream, f):
                 for line in iter(stream.readline, ''):
