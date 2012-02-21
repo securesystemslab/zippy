@@ -557,6 +557,17 @@ def _waitWithTimeout(process, args, timeout):
 # This is a tuple of the Popen object and args.
 _currentSubprocess = None
 
+def waitOn(p):
+    if get_os() == 'windows':
+        # on windows use a poll loop, otherwise signal does not get handled
+        retcode = None
+        while retcode == None:
+            retcode = p.poll()
+            time.sleep(0.05)
+    else:
+        retcode = p.wait()
+    return retcode
+
 def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
     """
     Run a command in a subprocess, wait for it to complete and return the exit status of the process.
@@ -592,14 +603,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
             # The preexec_fn=os.setsid
             p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn, creationflags=creationflags)
             _currentSubprocess = (p, args)
-            if get_os() == 'windows':
-                # on windows use a poll loop, otherwise signal does not get handled
-                retcode = None
-                while retcode == None:
-                    retcode = p.poll()
-                    time.sleep(0.05)
-            else:
-                retcode = p.wait()            
+	    waitOn(p)
         else:
             def redirect(stream, f):
                 for line in iter(stream.readline, ''):
@@ -618,7 +622,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 t.daemon = True # thread dies with the program
                 t.start()
             if timeout is None or timeout == 0:
-                retcode = p.wait()
+                retcode = waitOn(p)
             else:
                 if get_os() == 'windows':
                     abort('Use of timeout not (yet) supported on Windows')
