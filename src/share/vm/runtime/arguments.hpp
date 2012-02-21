@@ -228,9 +228,11 @@ class Arguments : AllStatic {
   // an array containing all jvm arguments specified in the command line
   static char** _jvm_args_array;
   static int    _num_jvm_args;
+#ifdef GRAAL
   // an array containing all graal arguments specified in the command line
   static char** _graal_args_array;
   static int    _num_graal_args;
+#endif
   // string containing all java command (class/jarfile name and app args)
   static char* _java_command;
 
@@ -432,9 +434,9 @@ class Arguments : AllStatic {
   static char** jvm_args_array()           { return _jvm_args_array; }
 #ifdef GRAAL
   static char** graal_args_array()           { return _graal_args_array; }
+  static int num_graal_args()               { return _num_graal_args; }
 #endif
   static int num_jvm_flags()               { return _num_jvm_flags; }
-  static int num_graal_args()               { return _num_graal_args; }
   static int num_jvm_args()                { return _num_jvm_args; }
   // return the arguments passed to the Java application
   static const char* java_command()        { return _java_command; }

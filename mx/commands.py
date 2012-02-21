@@ -476,6 +476,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
+    print('Executing VM ' + exe)
     return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 
