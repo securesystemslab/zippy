@@ -74,7 +74,7 @@ dacapoGateBuildLevels = {
     'sunflow':    ['product', 'fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    'tradesoap':  ['product'],
+    'tradesoap':  ['product', 'fastdebug'],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 
