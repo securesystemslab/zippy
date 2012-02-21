@@ -570,14 +570,6 @@ void javaVFrame::print_value() const {
     if (size > 4*K) warning("SUSPICIOUSLY LARGE FRAME (%d)", size);
 #endif
   }
-
-  tty->print_cr("");
-  int i = -1;
-  for (intptr_t* a = _fr.sp() - 1; a <= _fr.fp(); a++) {
-    oop o = (oop)(*a);
-    tty->print_cr("sp[%d] = " INTPTR_FORMAT " (%d)", i, *a, o->is_oop());
-    ++i;
-  }
 }
 
 
