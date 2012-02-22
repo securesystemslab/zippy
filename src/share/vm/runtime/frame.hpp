@@ -206,6 +206,7 @@ class frame VALUE_OBJ_CLASS_SPEC {
  public:
   // Link (i.e., the pointer to the previous frame)
   intptr_t* link() const;
+  intptr_t** link_addr() const;
   void set_link(intptr_t* addr);
 
   // Return address
@@ -296,6 +297,7 @@ class frame VALUE_OBJ_CLASS_SPEC {
   jint  interpreter_frame_expression_stack_size() const;
 
   intptr_t* interpreter_frame_sender_sp() const;
+  intptr_t** interpreter_frame_sender_sp_addr() const;
 
 #ifndef CC_INTERP
   // template based interpreter deoptimization support

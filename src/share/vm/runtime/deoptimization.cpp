@@ -176,7 +176,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // the vframeArray is created.
   //
 
-  if (TraceDeoptimization) {
+  if (PrintDeoptimizationDetails) {
     tty->print_cr("fetching unroll info");
   }
 
@@ -236,7 +236,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
         assert(result == NULL || result->is_oop(), "must be oop");
         return_value = Handle(thread, result);
         assert(Universe::heap()->is_in_or_null(result), "must be heap pointer");
-        if (TraceDeoptimization) {
+        if (PrintDeoptimizationDetails) {
           tty->print_cr("SAVED OOP RESULT " INTPTR_FORMAT " in thread " INTPTR_FORMAT, result, thread);
         }
       }
@@ -249,7 +249,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
       if (reallocated) {
         reassign_fields(&deoptee, &map, objects);
 #ifndef PRODUCT
-        if (TraceDeoptimization) {
+        if (PrintDeoptimizationDetails) {
           ttyLocker ttyl;
           tty->print_cr("REALLOC OBJECTS in thread " INTPTR_FORMAT, thread);
           print_objects(objects);
@@ -272,7 +272,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
         if (monitors->is_nonempty()) {
           relock_objects(monitors, thread);
 #ifndef PRODUCT
-          if (TraceDeoptimization) {
+          if (PrintDeoptimizationDetails) {
             ttyLocker ttyl;
             for (int j = 0; j < monitors->length(); j++) {
               MonitorInfo* mi = monitors->at(j);
@@ -497,7 +497,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   info->set_initial_info((intptr_t) array->sender().initial_deoptimization_info());
 
   if (array->frames() > 1) {
-    if (VerifyStack && TraceDeoptimization) {
+    if (PrintDeoptimizationDetails) {
       tty->print_cr("Deoptimizing method containing inlining");
     }
   }
@@ -577,7 +577,7 @@ JRT_LEAF(BasicType, Deoptimization::unpack_frames(JavaThread* thread, int exec_m
   vframeArray* array = thread->vframe_array_head();
 
 #ifndef PRODUCT
-  if (TraceDeoptimization) {
+  if (PrintDeoptimizationDetails) {
     tty->print_cr("DEOPT UNPACKING thread " INTPTR_FORMAT " vframeArray " INTPTR_FORMAT " mode %d", thread, array, exec_mode);
   }
 #endif
@@ -920,7 +920,7 @@ void Deoptimization::reassign_fields(frame* fr, RegisterMap* reg_map, GrowableAr
     KlassHandle k(((ConstantOopReadValue*) sv->klass())->value()());
     Handle obj = sv->value();
     assert(obj.not_null(), "reallocation was missed");
-    if (TraceDeoptimization) {
+    if (PrintDeoptimizationDetails) {
       tty->print_cr("reassign fields for object of type %s!", k->name()->as_C_string());
     }
 
@@ -990,7 +990,7 @@ void Deoptimization::print_objects(GrowableArray<ScopeValue*>* objects) {
 vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk) {
 
 #ifndef PRODUCT
-  if (TraceDeoptimization) {
+  if (PrintDeoptimizationDetails) {
     ttyLocker ttyl;
     tty->print("DEOPT PACKING thread " INTPTR_FORMAT " ", thread);
     fr.print_on(tty);
@@ -1036,7 +1036,7 @@ vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, Re
   Events::log("# vframes = %d", (intptr_t)chunk->length());
 
 #ifndef PRODUCT
-  if (TraceDeoptimization) {
+  if (PrintDeoptimizationDetails) {
     ttyLocker ttyl;
     tty->print_cr("     Created vframeArray " INTPTR_FORMAT, array);
   }
@@ -1284,7 +1284,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
 
     if (trap_scope->rethrow_exception()) {
-      if (TraceDeoptimization) {
+      if (PrintDeoptimizationDetails) {
         tty->print_cr("Exception to be rethrown in the interpreter for method %s::%s at bci %d", instanceKlass::cast(trap_method->method_holder())->name()->as_C_string(), trap_method->name()->as_C_string(), trap_bci);
       }
       GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();

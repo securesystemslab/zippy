@@ -131,8 +131,9 @@ inline bool frame::is_older(intptr_t* id) const   { assert(this->id() != NULL &&
 
 
 
-inline intptr_t* frame::link() const              { return (intptr_t*) *(intptr_t **)addr_at(link_offset); }
-inline void      frame::set_link(intptr_t* addr)  { *(intptr_t **)addr_at(link_offset) = addr; }
+inline intptr_t*  frame::link() const              { return (intptr_t*) *(intptr_t **)addr_at(link_offset); }
+inline intptr_t** frame::link_addr() const         { return (intptr_t **)addr_at(link_offset); }
+inline void       frame::set_link(intptr_t* addr)  { *(intptr_t **)addr_at(link_offset) = addr; }
 
 
 inline intptr_t* frame::unextended_sp() const     { return _unextended_sp; }
@@ -206,6 +207,10 @@ inline intptr_t** frame::interpreter_frame_locals_addr() const {
 
 inline intptr_t* frame::interpreter_frame_last_sp() const {
   return *(intptr_t**)addr_at(interpreter_frame_last_sp_offset);
+}
+
+inline intptr_t** frame::interpreter_frame_last_sp_addr() const {
+  return (intptr_t**)addr_at(interpreter_frame_last_sp_offset);
 }
 
 inline intptr_t* frame::interpreter_frame_bcx_addr() const {

@@ -70,7 +70,7 @@ StackValueCollection* compiledVFrame::locals() const {
     }
   }
 
-  if (TraceDeoptimization) {
+  if (PrintDeoptimizationDetails) {
     tty->print_cr("bci=%d length=%d", this->bci(), length);
     tty->print_cr(err_msg("method name = %s", this->method()->name()->as_C_string()));
     tty->print_cr("relative pc=%d", this->fr().pc() - this->nm()->code_begin());
