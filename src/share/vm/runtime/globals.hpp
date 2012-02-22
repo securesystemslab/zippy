@@ -2976,6 +2976,9 @@ class CommandLineFlags {
   product(bool, TraceDeoptimization, false,                                 \
           "Trace deoptimization")                                           \
                                                                             \
+  product(bool, PrintDeoptimizationDetails, false,                          \
+          "Print more information about deoptimization")                    \
+                                                                            \
   develop(bool, DebugDeoptimization, false,                                 \
           "Tracing various information while debugging deoptimization")     \
                                                                             \

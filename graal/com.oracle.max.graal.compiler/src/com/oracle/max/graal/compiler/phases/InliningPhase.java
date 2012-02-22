@@ -197,6 +197,13 @@ public class InliningPhase extends Phase implements InliningCallback {
         assumptions.recordConcreteMethod(method, context, impl);
     }
 
+    @Override
+    public void recordMethodContentsAssumption(RiResolvedMethod method) {
+        if (assumptions != null) {
+            assumptions.recordMethodContents(method);
+        }
+    }
+
     private static int computeInliningLevel(Invoke invoke) {
         int count = 0;
         FrameState curState = invoke.stateAfter();

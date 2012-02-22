@@ -317,7 +317,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
     }
   }
   
-  if (TraceDeoptimization) {
+  if (PrintDeoptimizationDetails) {
     tty->print_cr("Expressions size: %d", expressions()->size());
   }
 
@@ -333,7 +333,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       case T_INT:
         *addr = value->get_int();
 #ifndef PRODUCT
-        if (TraceDeoptimization) {
+        if (PrintDeoptimizationDetails) {
           tty->print_cr("Reconstructed expression %d (INT): %d", i, (int)(*addr));
         }
 #endif
@@ -341,7 +341,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       case T_OBJECT:
         *addr = value->get_int(T_OBJECT);
 #ifndef PRODUCT
-        if (TraceDeoptimization) {
+        if (PrintDeoptimizationDetails) {
           tty->print("Reconstructed expression %d (OBJECT): ", i);
           oop o = (oop)(*addr);
           if (o == NULL) {
@@ -370,7 +370,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       case T_INT:
         *addr = value->get_int();
 #ifndef PRODUCT
-        if (TraceDeoptimization) {
+        if (PrintDeoptimizationDetails) {
           tty->print_cr("Reconstructed local %d (INT): %d", i, (int)(*addr));
         }
 #endif
@@ -378,7 +378,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       case T_OBJECT:
         *addr = value->get_int(T_OBJECT);
 #ifndef PRODUCT
-        if (TraceDeoptimization) {
+        if (PrintDeoptimizationDetails) {
           tty->print("Reconstructed local %d (OBJECT): ", i);
           oop o = (oop)(*addr);
           if (o == NULL) {
@@ -429,18 +429,13 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
   }
 
 #ifndef PRODUCT
-  if (TraceDeoptimization && Verbose) {
+  if (PrintDeoptimizationDetails) {
     ttyLocker ttyl;
     tty->print_cr("[%d Interpreted Frame]", ++unpack_counter);
     iframe()->print_on(tty);
     RegisterMap map(thread);
     vframe* f = vframe::new_vframe(iframe(), &map, thread);
     f->print();
-
-    tty->print_cr("locals size     %d", locals()->size());
-    tty->print_cr("expression size %d", expressions()->size());
-
-    method()->print_value();
     tty->cr();
     // method()->print_codes();
   } else if (TraceDeoptimization) {

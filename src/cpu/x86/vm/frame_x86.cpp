@@ -301,6 +301,11 @@ void frame::set_interpreter_frame_sender_sp(intptr_t* sender_sp) {
   ptr_at_put(interpreter_frame_sender_sp_offset, (intptr_t) sender_sp);
 }
 
+intptr_t** frame::interpreter_frame_sender_sp_addr() const {
+  assert(is_interpreted_frame(), "interpreted frame expected");
+  return (intptr_t**) addr_at(interpreter_frame_sender_sp_offset);
+}
+
 
 // monitor elements
 

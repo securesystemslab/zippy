@@ -266,8 +266,8 @@ StackValueCollection* interpretedVFrame::locals() const {
 
   // Get oopmap describing oops and int for current bci
   InterpreterOopMap oop_mask;
-  if (TraceDeoptimization && Verbose) {
-    methodHandle m_h(thread(), method());
+  if (PrintDeoptimizationDetails) {
+    methodHandle m_h(method());
     OopMapCache::compute_one_oop_map(m_h, bci(), &oop_mask);
   } else {
     method()->mask_for(bci(), &oop_mask);
@@ -333,7 +333,7 @@ StackValueCollection*  interpretedVFrame::expressions() const {
 
   InterpreterOopMap oop_mask;
   // Get oopmap describing oops and int for current bci
-  if (TraceDeoptimization && Verbose) {
+  if (PrintDeoptimizationDetails) {
     methodHandle m_h(method());
     OopMapCache::compute_one_oop_map(m_h, bci(), &oop_mask);
   } else {
@@ -569,14 +569,6 @@ void javaVFrame::print_value() const {
 #else
     if (size > 4*K) warning("SUSPICIOUSLY LARGE FRAME (%d)", size);
 #endif
-  }
-
-  tty->print_cr("");
-  int i = -1;
-  for (intptr_t* a = _fr.sp() - 1; a <= _fr.fp(); a++) {
-    oop o = (oop)(*a);
-    tty->print_cr("sp[%d] = " INTPTR_FORMAT " (%d)", i, *a, o->is_oop());
-    ++i;
   }
 }
 

@@ -197,6 +197,7 @@
 
   // expression stack tos if we are nested in a java call
   intptr_t* interpreter_frame_last_sp() const;
+  intptr_t** interpreter_frame_last_sp_addr() const;
 
   // helper to update a map with callee-saved RBP
   static void update_map_with_saved_link(RegisterMap* map, intptr_t** link_addr);
