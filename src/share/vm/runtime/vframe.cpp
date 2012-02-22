@@ -267,7 +267,7 @@ StackValueCollection* interpretedVFrame::locals() const {
   // Get oopmap describing oops and int for current bci
   InterpreterOopMap oop_mask;
   if (PrintDeoptimizationDetails) {
-    methodHandle m_h(thread(), method());
+    methodHandle m_h(method());
     OopMapCache::compute_one_oop_map(m_h, bci(), &oop_mask);
   } else {
     method()->mask_for(bci(), &oop_mask);
