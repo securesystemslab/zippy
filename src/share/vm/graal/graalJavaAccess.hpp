@@ -115,12 +115,15 @@ void graal_compute_offsets();
   start_class(CiAssumptions)                                                            \
     oop_field(CiAssumptions, list, "[Lcom/oracle/max/cri/ci/CiAssumptions$Assumption;") \
   end_class                                                                             \
+  start_class(CiAssumptions_MethodContents)                                             \
+    oop_field(CiAssumptions_MethodContents, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
+  end_class                                                                             \
   start_class(CiAssumptions_ConcreteSubtype)                                            \
     oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/oracle/max/cri/ri/RiResolvedType;") \
     oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/oracle/max/cri/ri/RiResolvedType;") \
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteMethod)                                             \
-  oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
+    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
     oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/oracle/max/cri/ri/RiResolvedType;") \
     oop_field(CiAssumptions_ConcreteMethod, impl, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
   end_class                                                                             \

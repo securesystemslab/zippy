@@ -245,7 +245,9 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
     for (int i = 0; i < length; ++i) {
       Handle assumption = assumptions->obj_at(i);
       if (!assumption.is_null()) {
-        if (assumption->klass() == CiAssumptions_ConcreteSubtype::klass()) {
+        if (assumption->klass() == CiAssumptions_MethodContents::klass()) {
+          assumption_MethodContents(assumption);
+        } else if (assumption->klass() == CiAssumptions_ConcreteSubtype::klass()) {
           assumption_ConcreteSubtype(assumption);
         } else if (assumption->klass() == CiAssumptions_ConcreteMethod::klass()) {
           assumption_ConcreteMethod(assumption);
@@ -369,6 +371,14 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       fatal("unexpected Site subclass");
     }
   }
+}
+
+void CodeInstaller::assumption_MethodContents(Handle assumption) {
+  Handle method_handle = CiAssumptions_MethodContents::method(assumption());
+  methodHandle method = getMethodFromHotSpotMethod(method_handle());
+  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
+
+  _dependencies->assert_evol_method(m);
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {

@@ -97,6 +97,7 @@ private:
   // perform data and call relocation on the CodeBuffer
   void initialize_buffer(CodeBuffer& buffer);
 
+  void assumption_MethodContents(Handle assumption);
   void assumption_ConcreteSubtype(Handle assumption);
   void assumption_ConcreteMethod(Handle assumption);
 

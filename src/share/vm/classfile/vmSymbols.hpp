@@ -288,6 +288,7 @@
   template(com_oracle_max_cri_ri_RiConstantPool,                      "com/oracle/max/cri/ri/RiConstantPool")                             \
   template(com_oracle_max_cri_ri_RiExceptionHandler,                  "com/oracle/max/cri/ri/RiExceptionHandler")                         \
   template(com_oracle_max_cri_ci_CiAssumptions,                       "com/oracle/max/cri/ci/CiAssumptions")                              \
+  template(com_oracle_max_cri_ci_CiAssumptions_MethodContents,        "com/oracle/max/cri/ci/CiAssumptions$MethodContents")               \
   template(com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,       "com/oracle/max/cri/ci/CiAssumptions$ConcreteSubtype")              \
   template(com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,        "com/oracle/max/cri/ci/CiAssumptions$ConcreteMethod")               \
   template(com_oracle_max_cri_ci_CiGenericCallback,                   "com/oracle/max/cri/ci/CiGenericCallback")                          \
