@@ -2609,7 +2609,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ push(0);
 
   // Save everything in sight.
-  map = RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
+  RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
 
   // Now it is safe to overwrite any register
 
@@ -2649,7 +2649,7 @@ void SharedRuntime::generate_deopt_blob() {
   // Warning: Duplicate code
 
   // Save everything in sight.
-  map = RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
+  RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
 
   // Normal deoptimization
 
@@ -2662,7 +2662,7 @@ void SharedRuntime::generate_deopt_blob() {
   //  __ movl(r14, c_rarg1); // save into r14 for later call to unpack_frames
 
   assert(r10 == rscratch1, "scratch register should be r10");
-  __ movptr(c_rarg1, Address(rsp, RegisterSaver::r10_offset_in_bytes()));
+  __ movl(c_rarg1, Address(rsp, RegisterSaver::r10_offset_in_bytes()));
   __ orq(c_rarg1, ~(int32_t)Deoptimization::make_trap_request(Deoptimization::Reason_unreached, Deoptimization::Action_none));
   __ notq(c_rarg1);
   __ movl(r14, (int32_t)Deoptimization::Unpack_reexecute);
@@ -2745,7 +2745,7 @@ void SharedRuntime::generate_deopt_blob() {
   // or captured in the vframeArray.
   RegisterSaver::restore_result_registers(masm);
 
-  // All of the register save area has been poppeset_jmp_uncommon_trap_offsetd of the stack. Only the
+  // All of the register save area has been popped of the stack. Only the
   // return address remains.
 
   // Pop all the frames we must move/replace.
