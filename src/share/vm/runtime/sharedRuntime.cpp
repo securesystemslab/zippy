@@ -716,9 +716,16 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
   if (t == NULL && nm->is_compiled_by_c1()) {
 #ifdef GRAAL
     nm->make_not_entrant();
-    JavaThread::current()->set_exception_pc(ret_pc);
-    JavaThread::current()->set_exception_oop(exception());
-    JavaThread::current()->clear_pending_exception();
+    JavaThread* thread = JavaThread::current();
+    // save the exception for deoptimization
+    thread->set_exception_pc(ret_pc);
+    thread->set_exception_oop(exception());
+    // clear the pending exception and deoptimize the frame
+    thread->clear_pending_exception();    
+    RegisterMap reg_map(thread, false);
+    frame runtime_frame = thread->last_frame();
+    frame caller_frame = runtime_frame.sender(&reg_map);
+    Deoptimization::deoptimize_frame(thread, caller_frame.id());
     return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
 #else
     assert(nm->unwind_handler_begin() != NULL, "");
