@@ -130,6 +130,7 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
   bool rethrow_exception = vf->scope()->rethrow_exception();
   if (rethrow_exception) {
     // (tw) Make sure there are only null pointers on the stack, because the stack values do not correspond to the GC map at the bytecode at which the exception is rethrown.
+    // TODO: Fix this! Locals map might be wrong too.
     _expressions = new StackValueCollection(vf->method()->max_stack());
     assert(Thread::current()->has_pending_exception(), "just checking");
     for (int i=0; i<vf->method()->max_stack(); ++i) {
@@ -261,6 +262,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       case Deoptimization::Unpack_uncommon_trap:
       case Deoptimization::Unpack_reexecute:
         // redo last byte code
+        assert(should_reexecute(), "");
         pc  = Interpreter::deopt_entry(vtos, 0);
         use_next_mdp = false;
         break;

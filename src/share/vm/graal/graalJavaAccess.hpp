@@ -168,6 +168,7 @@ void graal_compute_offsets();
     int_field(CiFrame, numStack)                                                        \
     int_field(CiFrame, numLocks)                                                        \
     boolean_field(CiFrame, rethrowException)                                            \
+    boolean_field(CiFrame, duringCall)                                                  \
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
     oop_field(CiCodePos, caller, "Lcom/oracle/max/cri/ci/CiCodePos;")                   \

@@ -486,6 +486,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
   } else {
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
     reexecute = Interpreter::bytecode_should_reexecute(code);
+    if (frame != NULL) {
+      reexecute = (CiFrame::duringCall(frame) == 0);
+    }
   }
 
   if (TraceGraal >= 2) {

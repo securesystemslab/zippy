@@ -367,6 +367,26 @@ address AbstractInterpreter::deopt_reexecute_entry(methodOop method, address bcp
   return Interpreter::deopt_entry(vtos, 0);
 }
 
+#ifdef GRAAL
+
+
+// If deoptimization happens, the interpreter should reexecute these bytecodes.
+// This function mainly helps the compilers to set up the reexecute bit.
+bool AbstractInterpreter::bytecode_should_reexecute(Bytecodes::Code code) {
+    switch (code) {
+  case Bytecodes::_invokedynamic:
+  case Bytecodes::_invokevirtual:
+  case Bytecodes::_invokeinterface:
+  case Bytecodes::_invokespecial:
+  case Bytecodes::_invokestatic:
+    return false;
+  default: 
+    return true;
+    }
+  return true;
+}
+#else 
+
 // If deoptimization happens, the interpreter should reexecute these bytecodes.
 // This function mainly helps the compilers to set up the reexecute bit.
 bool AbstractInterpreter::bytecode_should_reexecute(Bytecodes::Code code) {
@@ -415,6 +435,7 @@ bool AbstractInterpreter::bytecode_should_reexecute(Bytecodes::Code code) {
       return false;
   }
 }
+#endif
 
 void AbstractInterpreterGenerator::bang_stack_shadow_pages(bool native_call) {
   // Quick & dirty stack overflow checking: bang the stack & handle trap.
