@@ -162,8 +162,10 @@ JRT_BLOCK_ENTRY(Deoptimization::UnrollBlock*, Deoptimization::fetch_unroll_info(
   // handler. Note this fact before we start generating temporary frames
   // that can confuse an asynchronous stack walker. This counter is
   // decremented at the end of unpack_frames().
+  if (TraceDeoptimization) {
+    tty->print("Deoptimization "); 
+  }
   thread->inc_in_deopt_handler();
-
   return fetch_unroll_info_helper(thread);
 JRT_END
 
@@ -175,10 +177,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // via vanilla deopt or uncommon trap we MUST NOT stop at a safepoint once
   // the vframeArray is created.
   //
-
-  if (PrintDeoptimizationDetails) {
-    tty->print_cr("fetching unroll info");
-  }
 
   // Allocate our special deoptimization ResourceMark
   DeoptResourceMark* dmark = new DeoptResourceMark(thread);
@@ -212,11 +210,13 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   chunk->push(compiledVFrame::cast(vf));
 
   // TODO(tw): Fix this hack after introducing GRAAL macro.
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
   // Reallocate the non-escaping objects and restore their fields. Then
   // relock objects if synchronization on them was eliminated.
-//  if (DoEscapeAnalysis) {
-//    if (EliminateAllocations) {
+#ifdef COMPILER2
+  if (DoEscapeAnalysis) {
+    if (EliminateAllocations) {
+#endif // COMPILER2
       assert (chunk->at(0)->scope() != NULL,"expect only compiled java frames");
       GrowableArray<ScopeValue*>* objects = chunk->at(0)->scope()->objects();
 
@@ -254,14 +254,16 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
           tty->print_cr("REALLOC OBJECTS in thread " INTPTR_FORMAT, thread);
           print_objects(objects);
         }
-#endif
+#endif // !PRODUCT
       }
       if (save_oop_result) {
         // Restore result.
         deoptee.set_saved_oop_result(&map, return_value());
       }
-//    }
-//    if (EliminateLocks) {
+#ifdef COMPILER2
+    }
+    if (EliminateLocks) {
+#endif // COMPILER2
 #ifndef PRODUCT
       bool first = true;
 #endif
@@ -285,12 +287,15 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
               }
             }
           }
-#endif
+#endif // !PRODUCT
         }
       }
-//    }
-//  }
-//#endif // COMPILER2
+#ifdef COMPILER2
+    }
+  }
+#endif // COMPILER2
+#endif // COMPILER2 || GRAAL
+
   // Ensure that no safepoint is taken after pointers have been stored
   // in fields of rematerialized objects.  If a safepoint occurs from here on
   // out the java state residing in the vframeArray will be missed.
@@ -1264,7 +1269,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     ScopeDesc*      trap_scope  = cvf->scope();
     
     if (TraceDeoptimization) {
-      tty->print_cr("Deoptimization: bci=%d pc=%d, relative_pc=%d, method=%s", trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string());
+      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s", trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string());
       if (thread->graal_deopt_info() != NULL) {
         oop deopt_info = thread->graal_deopt_info();
         if (java_lang_String::is_instance(deopt_info)) {
@@ -1698,7 +1703,9 @@ Deoptimization::update_method_data_from_interpreter(methodDataHandle trap_mdo, i
 }
 
 Deoptimization::UnrollBlock* Deoptimization::uncommon_trap(JavaThread* thread, jint trap_request) {
-
+  if (TraceDeoptimization) {
+    tty->print("Uncommon trap "); 
+  }
   // Still in Java no safepoints
   {
     // This enters VM and may safepoint
