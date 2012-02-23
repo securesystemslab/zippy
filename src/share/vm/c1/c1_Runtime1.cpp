@@ -558,7 +558,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
     thread->set_exception_pc(pc);
 
     // the exception cache is used only by non-implicit exceptions
-    if (continuation != NULL) {
+    if (continuation != NULL && !SharedRuntime::deopt_blob()->contains(continuation)) {
       nm->add_handler_for_exception_and_pc(exception, pc, continuation);
     }
   }
@@ -595,7 +595,6 @@ address Runtime1::exception_handler_for_pc(JavaThread* thread) {
     continuation = exception_handler_for_pc_helper(thread, exception, pc, nm);
   }
   // Back in JAVA, use no oops DON'T safepoint
-
   // Now check to see if the nmethod we were called from is now deoptimized.
   // If so we must return to the deopt blob and deoptimize the nmethod
   if (nm != NULL && caller_is_deopted()) {

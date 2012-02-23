@@ -2703,17 +2703,12 @@ void SharedRuntime::generate_deopt_blob() {
   }
 #endif // ASSERT
   
-  __ movl(c_rarg1, (int32_t)(Deoptimization::make_trap_request(Deoptimization::Reason_unreached, Deoptimization::Action_none)));
   __ mov(c_rarg0, r15_thread);
-  __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::uncommon_trap)));
-  oop_maps->add_gc_map( __ pc()-start, map->deep_copy());
-
-  //__ reset_last_Java_frame(false, false);
-  //__ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::fetch_unroll_info)));
+  __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::fetch_unroll_info)));
 
   // Need to have an oopmap that tells fetch_unroll_info where to
   // find any register it might need.
-//  oop_maps->add_gc_map(__ pc() - start, map);
+  oop_maps->add_gc_map(__ pc() - start, map);
 
   __ reset_last_Java_frame(false, false);
 
