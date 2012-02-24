@@ -23,6 +23,8 @@
 \.pdf$
 \.dot$
 \.pyc$
+\.hprof$
+\.hprof\.txt$
 ^graal/.*/build.xml
 ^graal/.*/nbproject/
 dist
@@ -32,7 +34,6 @@ dist
 output\.txt$
 output\.cfg$
 \.cfg
-java\.hprof\.txt$
 /nbproject/private/
 ^graal/hotspot/java$
 ^scratch/
