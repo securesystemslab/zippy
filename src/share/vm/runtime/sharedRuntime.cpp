@@ -653,6 +653,26 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
   assert(nm != NULL, "must exist");
   ResourceMark rm;
 
+#ifdef GRAAL
+  // lookup exception handler for this pc
+  int catch_pco = ret_pc - nm->code_begin();
+  ExceptionHandlerTable table(nm);
+  HandlerTableEntry *t = table.entry_for(catch_pco, -1, 0);
+  if (t != NULL) {
+    return nm->code_begin() + t->pco();
+  } else {
+    // there is no exception handler for this pc => deoptimize
+    nm->make_not_entrant();
+    JavaThread* thread = JavaThread::current();
+    RegisterMap reg_map(thread);
+    frame runtime_frame = thread->last_frame();
+    frame caller_frame = runtime_frame.sender(&reg_map);
+    Deoptimization::deoptimize_frame(thread, caller_frame.id());
+    return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
+  }
+
+#else
+
   ScopeDesc* sd = nm->scope_desc_at(ret_pc);
   // determine handler bci, if any
   EXCEPTION_MARK;
@@ -714,23 +734,8 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
 
 #ifdef COMPILER1
   if (t == NULL && nm->is_compiled_by_c1()) {
-#ifdef GRAAL
-    nm->make_not_entrant();
-    JavaThread* thread = JavaThread::current();
-    // save the exception for deoptimization
-    thread->set_exception_pc(ret_pc);
-    thread->set_exception_oop(exception());
-    // clear the pending exception and deoptimize the frame
-    thread->clear_pending_exception();    
-    RegisterMap reg_map(thread, false);
-    frame runtime_frame = thread->last_frame();
-    frame caller_frame = runtime_frame.sender(&reg_map);
-    Deoptimization::deoptimize_frame(thread, caller_frame.id());
-    return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
-#else
     assert(nm->unwind_handler_begin() != NULL, "");
     return nm->unwind_handler_begin();
-#endif
   }
 #endif
 
@@ -747,6 +752,7 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
   }
 
   return nm->code_begin() + t->pco();
+#endif
 }
 
 JRT_ENTRY(void, SharedRuntime::throw_AbstractMethodError(JavaThread* thread))
