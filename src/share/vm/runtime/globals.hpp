@@ -662,7 +662,7 @@ class CommandLineFlags {
   develop(bool, TraceCallFixup, false,                                      \
           "traces all call fixups")                                         \
                                                                             \
-  develop(bool, DeoptimizeALot, false,                                      \
+  product(bool, DeoptimizeALot, false,                                      \
           "deoptimize at every exit from the runtime system")               \
                                                                             \
   notproduct(ccstrlist, DeoptimizeOnlyAt, "",                               \
