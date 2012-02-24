@@ -429,9 +429,7 @@ void CodeInstaller::process_exception_handlers() {
         oop exc = exception_handlers[j];
         jint handler_offset = CiTargetMethod_ExceptionHandler::handlerPos(exc);
         jint handler_bci = CiTargetMethod_ExceptionHandler::handlerBci(exc);
-        jint bci = CiTargetMethod_ExceptionHandler::bci(exc);
         jint scope_level = CiTargetMethod_ExceptionHandler::scopeLevel(exc);
-        Handle handler_type = CiTargetMethod_ExceptionHandler::exceptionType(exc);
 
         assert(handler_offset != -1, "must have been generated");
 
@@ -455,6 +453,7 @@ void CodeInstaller::process_exception_handlers() {
         }
         pcos->append(handler_offset);
 
+        // TODO: Check if we need that assert!
         // stop processing once we hit a catch any
         //        if (handler->is_catch_all()) {
         //          assert(i == handlers->length() - 1, "catch all must be last handler");

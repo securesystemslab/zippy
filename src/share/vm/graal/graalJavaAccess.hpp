@@ -144,9 +144,7 @@ void graal_compute_offsets();
   start_class(CiTargetMethod_ExceptionHandler)                                          \
     int_field(CiTargetMethod_ExceptionHandler, handlerPos)                              \
     int_field(CiTargetMethod_ExceptionHandler, handlerBci)                              \
-    int_field(CiTargetMethod_ExceptionHandler, bci)                                     \
     int_field(CiTargetMethod_ExceptionHandler, scopeLevel)                              \
-    oop_field(CiTargetMethod_ExceptionHandler, exceptionType, "Lcom/oracle/max/cri/ri/RiType;")\
   end_class                                                                             \
   start_class(CiTargetMethod_Mark)                                                      \
     oop_field(CiTargetMethod_Mark, id, "Ljava/lang/Object;")                            \
