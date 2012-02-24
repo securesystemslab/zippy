@@ -41,6 +41,12 @@ library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/che
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
 library@DACAPO@urls=http://dfn.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
 
+library@JACOCOAGENT@path=lib/jacocoagent.jar
+library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
+
+library@JACOCOREPORT@path=lib/jacocoreport.jar
+library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
+
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20110908.085753-2.jar
 

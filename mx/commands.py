@@ -46,6 +46,16 @@ _vm = 'graal'
     This can be set via the global '--fastdebug' and '--debug' options. """
 _vmbuild = 'product'
 
+_jacoco = False
+
+_jacocoExcludes = ['com.oracle.max.graal.hotspot.snippets.ArrayCopySnippets',
+                   'com.oracle.max.graal.snippets.DoubleSnippets',
+                   'com.oracle.max.graal.snippets.FloatSnippets',
+                   'com.oracle.max.graal.snippets.MathSnippetsX86',
+                   'com.oracle.max.graal.snippets.NodeClassSnippets',
+                   'com.oracle.max.graal.hotspot.snippets.SystemSnippets',
+                   'com.oracle.max.graal.hotspot.snippets.UnsafeSnippets']
+
 _copyrightTemplate = """/*
  * Copyright (c) {0}, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -475,6 +485,15 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     mx.expand_project_in_args(args)  
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
+    if _jacoco:
+        jacocoagent = mx.library("JACOCOAGENT", True)
+        agentOptions = {
+                        'append' : 'false',
+                        'bootclasspath' : 'true',
+                        'includes' : 'com.oracle.max.*',
+                        'excludes' : ':'.join(_jacocoExcludes)
+        }
+        args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
@@ -679,9 +698,9 @@ def gate(args):
             unittest([])
             tasks.append(t.stop())
             
-            # t = Task('JavaTesterTests:' + vmbuild)
-            # jtt([])
-            # tasks.append(t.stop())
+            t = Task('JavaTesterTests:' + vmbuild)
+            jtt([])
+            tasks.append(t.stop())
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
@@ -810,6 +829,19 @@ def hsdis(args):
     path = join(_vmLibDirInJdk(_jdk(build)), lib)
     mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
     
+def jacocoreport(args):
+    """creates a JaCoCo coverage report
+
+    Creates the report from the 'jacoco.exec' file in the current directory.
+    Default output directory is 'coverage', but an alternative can be provided as an argument."""
+    jacocoreport = mx.library("JACOCOREPORT", True)
+    out = 'coverage'
+    if len(args) == 1:
+        out = args[0]
+    elif len(args) > 1:
+        mx.abort('jacocoreport takes only one argument : an output directory')
+    mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
+    
 def mx_init():
     _vmbuild = 'product'
     commands = {
@@ -827,8 +859,11 @@ def mx_init():
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
         'jtt' : [jtt, '[filters...]'],
+        'jacocoreport' : [jacocoreport, '[output directory]'],
         'vm': [vm, '[-options] class [args...]']
     }
+    
+    mx.add_argument('--jacoco', action='store_true', dest='jacoco', help='instruments com.oracle.max.* classes using JaCoCo')
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to build/run (default: graal)')
@@ -859,3 +894,6 @@ def mx_post_parse_cmd_line(opts):
         if hasattr(opts, 'vmbuild') and opts.vmbuild is not None:
             global _vmbuild
             _vmbuild = opts.vmbuild
+    if opts.jacoco:
+        global _jacoco
+        _jacoco = True
