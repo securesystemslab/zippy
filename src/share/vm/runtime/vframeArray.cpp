@@ -127,38 +127,27 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
 
   // Now the expressions off-stack
   // Same silliness as above
-  bool rethrow_exception = vf->scope()->rethrow_exception();
-  if (rethrow_exception) {
-    // (tw) Make sure there are only null pointers on the stack, because the stack values do not correspond to the GC map at the bytecode at which the exception is rethrown.
-    // TODO: Fix this! Locals map might be wrong too.
-    _expressions = new StackValueCollection(vf->method()->max_stack());
-    assert(Thread::current()->has_pending_exception(), "just checking");
-    for (int i=0; i<vf->method()->max_stack(); ++i) {
-      _expressions->add( new StackValue());
-    }
-  } else {
-    StackValueCollection *exprs = vf->expressions();
-    _expressions = new StackValueCollection(exprs->size());
-    for(index = 0; index < exprs->size(); index++) {
-      StackValue* value = exprs->at(index);
-      switch(value->type()) {
-        case T_OBJECT:
-          assert(!value->obj_is_scalar_replaced(), "object should be reallocated already");
-          // preserve object type
-          _expressions->add( new StackValue((intptr_t) (value->get_obj()()), T_OBJECT ));
-          break;
-        case T_CONFLICT:
-          // A dead stack element.  Will be initialized to null/zero.
-          // This can occur when the compiler emits a state in which stack
-          // elements are known to be dead (because of an imminent exception).
-          _expressions->add( new StackValue());
-          break;
-        case T_INT:
-          _expressions->add( new StackValue(value->get_int()));
-          break;
-        default:
-          ShouldNotReachHere();
-      }
+  StackValueCollection *exprs = vf->expressions();
+  _expressions = new StackValueCollection(exprs->size());
+  for(index = 0; index < exprs->size(); index++) {
+    StackValue* value = exprs->at(index);
+    switch(value->type()) {
+      case T_OBJECT:
+        assert(!value->obj_is_scalar_replaced(), "object should be reallocated already");
+        // preserve object type
+        _expressions->add( new StackValue((intptr_t) (value->get_obj()()), T_OBJECT ));
+        break;
+      case T_CONFLICT:
+        // A dead stack element.  Will be initialized to null/zero.
+        // This can occur when the compiler emits a state in which stack
+        // elements are known to be dead (because of an imminent exception).
+        _expressions->add( new StackValue());
+        break;
+      case T_INT:
+        _expressions->add( new StackValue(value->get_int()));
+        break;
+      default:
+        ShouldNotReachHere();
     }
   }
 }

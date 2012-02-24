@@ -415,55 +415,17 @@ void CodeInstaller::process_exception_handlers() {
   if (_exception_handlers != NULL) {
     oop* exception_handlers = (oop*) _exception_handlers->base(T_OBJECT);
     for (int i = 0; i < _exception_handlers->length(); i++) {
-      jint pc_offset = CiTargetMethod_Site::pcOffset(exception_handlers[i]);
-      int start = i;
-      while ((i + 1) < _exception_handlers->length() && CiTargetMethod_Site::pcOffset(exception_handlers[i + 1]) == pc_offset)
-        i++;
+      oop exc = exception_handlers[i];
+      jint pc_offset = CiTargetMethod_Site::pcOffset(exc);
+      jint handler_offset = CiTargetMethod_ExceptionHandler::handlerPos(exc);
 
-      // empty the arrays
-      bcis->trunc_to(0);
-      scope_depths->trunc_to(0);
-      pcos->trunc_to(0);
+      // Subtable header
+      _exception_handler_table.add_entry(HandlerTableEntry(1, pc_offset, 0));
 
-      for (int j = start; j <= i; j++) {
-        oop exc = exception_handlers[j];
-        jint handler_offset = CiTargetMethod_ExceptionHandler::handlerPos(exc);
-        jint handler_bci = CiTargetMethod_ExceptionHandler::handlerBci(exc);
-        jint scope_level = CiTargetMethod_ExceptionHandler::scopeLevel(exc);
-
-        assert(handler_offset != -1, "must have been generated");
-
-        int e = bcis->find(handler_bci);
-        if (e >= 0 && scope_depths->at(e) == scope_level) {
-          // two different handlers are declared to dispatch to the same
-          // catch bci.  During parsing we created edges for each
-          // handler but we really only need one.  The exception handler
-          // table will also get unhappy if we try to declare both since
-          // it's nonsensical.  Just skip this handler.
-          continue;
-        }
-
-        bcis->append(handler_bci);
-        if (handler_bci == -1) {
-          // insert a wildcard handler at scope depth 0 so that the
-          // exception lookup logic with find it.
-          scope_depths->append(0);
-        } else {
-          scope_depths->append(scope_level);
-        }
-        pcos->append(handler_offset);
-
-        // TODO: Check if we need that assert!
-        // stop processing once we hit a catch any
-        //        if (handler->is_catch_all()) {
-        //          assert(i == handlers->length() - 1, "catch all must be last handler");
-        //        }
-
-      }
-      _exception_handler_table.add_subtable(pc_offset, bcis, scope_depths, pcos);
+      // Subtable entry
+      _exception_handler_table.add_entry(HandlerTableEntry(-1, handler_offset, 0));
     }
   }
-
 }
 
 void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<ScopeValue*>* objects) {

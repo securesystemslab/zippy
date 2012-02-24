@@ -88,12 +88,12 @@ class ExceptionHandlerTable VALUE_OBJ_CLASS_SPEC {
   int                _length;   // the current length of the table
   int                _size;     // the number of allocated entries
   ReallocMark        _nesting;  // assertion check for reallocations
-
+  
+ public:
   // add the entry & grow the table if needed
   void add_entry(HandlerTableEntry entry);
   HandlerTableEntry* subtable_for(int catch_pco) const;
 
- public:
   // (compile-time) construction within compiler
   ExceptionHandlerTable(int initial_size = 8);
 
