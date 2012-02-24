@@ -773,74 +773,6 @@ OopMapSet* Runtime1::generate_handle_exception(StubID id, StubAssembler *sasm) {
   return oop_maps;
 }
 
-void Runtime1::graal_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map) {
-  NOT_LP64(fatal("64 bit only"));
-  // incoming parameters
-  const Register exception_oop = j_rarg0;
-  // other registers used in this stub
-  const Register exception_pc = j_rarg1;
-  const Register thread = r15_thread;
-
-  __ block_comment("graal_generate_handle_exception");
-
-  // verify that rax, contains a valid exception
-  __ verify_not_null_oop(exception_oop);
-
-#ifdef ASSERT
-  // check that fields in JavaThread for exception oop and issuing pc are
-  // empty before writing to them
-  Label oop_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, oop_empty);
-  __ stop("exception oop already set");
-  __ bind(oop_empty);
-
-  Label pc_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_pc_offset()), 0);
-  __ jcc(Assembler::equal, pc_empty);
-  __ stop("exception pc already set");
-  __ bind(pc_empty);
-#endif
-
-  // save exception oop and issuing pc into JavaThread
-  // (exception handler will load it from here)
-  __ movptr(Address(thread, JavaThread::exception_oop_offset()), exception_oop);
-  __ movptr(exception_pc, Address(rbp, 1*BytesPerWord));
-  __ movptr(Address(thread, JavaThread::exception_pc_offset()), exception_pc);
-
-  // compute the exception handler.
-  // the exception oop and the throwing pc are read from the fields in JavaThread
-  int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, exception_handler_for_pc));
-  oop_maps->add_gc_map(call_offset, oop_map);
-
-  // rax,: handler address
-  //      will be the deopt blob if nmethod was deoptimized while we looked up
-  //      handler regardless of whether handler existed in the nmethod.
-
-  // only rax, is valid at this time, all other registers have been destroyed by the runtime call
-  __ invalidate_registers(false, true, true, true, true, true);
-
-#ifdef ASSERT
-  // Do we have an exception handler in the nmethod?
-  Label done;
-  __ testptr(rax, rax);
-  __ jcc(Assembler::notZero, done);
-  __ stop("no handler found");
-  __ bind(done);
-#endif
-
-  // exception handler found
-  // patch the return address -> the stub will directly return to the exception handler
-  __ movptr(Address(rbp, 1*BytesPerWord), rax);
-
-  // restore registers
-  restore_live_registers(sasm, false);
-
-  // return to exception handler
-  __ leave();
-  __ ret(0);
-}
-
 
 void Runtime1::generate_unwind_exception(StubAssembler *sasm) {
   // incoming parameters
@@ -1983,14 +1915,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
     oop_maps->add_gc_map(call_offset, oop_map);
     __ leave();
     __ ret(0);
-      break;
-    }
-
-    case graal_handle_exception_id: {
-      StubFrame f(sasm, "graal_handle_exception", dont_gc_arguments);
-      oop_maps = new OopMapSet();
-      OopMap* oop_map = save_live_registers(sasm, 1, false);
-      graal_generate_handle_exception(sasm, oop_maps, oop_map);
       break;
     }
 

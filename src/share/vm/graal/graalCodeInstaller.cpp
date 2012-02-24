@@ -537,9 +537,6 @@ address CodeInstaller::runtime_call_target_address(oop runtime_call) {
   } else if (runtime_call == CiRuntimeCall::UnwindException()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id);
     TRACE_graal_3("CiRuntimeCall::UnwindException()");
-  } else if (runtime_call == CiRuntimeCall::HandleException()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_handle_exception_id);
-    TRACE_graal_3("CiRuntimeCall::HandleException()");
   } else if (runtime_call == CiRuntimeCall::SetDeoptInfo()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_set_deopt_info_id);
     TRACE_graal_3("CiRuntimeCall::SetDeoptInfo()");

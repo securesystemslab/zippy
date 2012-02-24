@@ -137,7 +137,6 @@ class Runtime1: public AllStatic {
   static OopMapSet* generate_exception_throw(StubAssembler* sasm, address target, bool has_argument);
   static OopMapSet* generate_handle_exception(StubID id, StubAssembler* sasm);
   static void       generate_unwind_exception(StubAssembler *sasm);
-  static void       graal_generate_handle_exception(StubAssembler *sasm, OopMapSet* oop_maps, OopMap* oop_map);
   static OopMapSet* generate_patching(StubAssembler* sasm, address target);
 
   static OopMapSet* generate_stub_call(StubAssembler* sasm, Register result, address entry,
