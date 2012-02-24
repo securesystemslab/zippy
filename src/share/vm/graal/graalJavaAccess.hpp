@@ -188,22 +188,16 @@ void graal_compute_offsets();
   start_class(CiRuntimeCall)                                                            \
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, RegisterFinalizer, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, HandleException, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, SetDeoptInfo, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");    \
     static_oop_field(CiRuntimeCall, CreateNullPointerException, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, CreateOutOfBoundsException, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, OSRMigrationEnd, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, JavaTimeMillis, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");  \
     static_oop_field(CiRuntimeCall, JavaTimeNanos, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");   \
     static_oop_field(CiRuntimeCall, Debug, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");           \
-    static_oop_field(CiRuntimeCall, ArithmethicLrem, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, ArithmeticLdiv, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");  \
     static_oop_field(CiRuntimeCall, ArithmeticFrem, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");  \
     static_oop_field(CiRuntimeCall, ArithmeticDrem, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");  \
     static_oop_field(CiRuntimeCall, ArithmeticCos, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");   \
     static_oop_field(CiRuntimeCall, ArithmeticTan, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");   \
-    static_oop_field(CiRuntimeCall, ArithmeticLog, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");   \
-    static_oop_field(CiRuntimeCall, ArithmeticLog10, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
     static_oop_field(CiRuntimeCall, ArithmeticSin, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");   \
     static_oop_field(CiRuntimeCall, Deoptimize, "Lcom/oracle/max/cri/ci/CiRuntimeCall;");      \
     static_oop_field(CiRuntimeCall, GenericCallback, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
