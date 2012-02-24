@@ -604,6 +604,7 @@ void frame::print_on(outputStream* st) const {
 void frame::interpreter_frame_print_on(outputStream* st) const {
 #ifndef PRODUCT
   assert(is_interpreted_frame(), "Not an interpreted frame");
+  assert(interpreter_frame_method() != NULL && interpreter_frame_method()->contains(interpreter_frame_bcp()), "must be");
   jint i;
   st->print_cr(" - sp                                  = " INTPTR_FORMAT, sp());
   // expressions
@@ -630,7 +631,7 @@ void frame::interpreter_frame_print_on(outputStream* st) const {
   // bcp/bcx
   st->print   (" - bcp           at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_bcx_addr(), interpreter_frame_bcp());
   st->fill_to(70);
-  st->print_cr("; @%d", interpreter_frame_bci());
+  st->print_cr("; @%d - %s", interpreter_frame_bci(), Bytecodes::name(interpreter_frame_method()->code_at(interpreter_frame_bci())));
   // locals
   st->print_cr(" - locals        at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_locals_addr(), *interpreter_frame_locals_addr());
   // constant pool cache
