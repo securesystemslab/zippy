@@ -227,20 +227,19 @@ class instanceKlass: public Klass {
   // (including inherited fields but after header_size()).
   int             _nonstatic_field_size;
   int             _static_field_size;    // number words used by static fields (oop and non-oop) in this klass
-  int             _static_oop_field_count;// number of static oop fields in this klass
+  u2              _static_oop_field_count;// number of static oop fields in this klass
+  u2              _java_fields_count;    // The number of declared Java fields
   int             _nonstatic_oop_map_size;// size in words of nonstatic oop map blocks
-  int             _java_fields_count;    // The number of declared Java fields
+
   bool            _is_marked_dependent;  // used for marking during flushing and deoptimization
   bool            _rewritten;            // methods rewritten.
   bool            _has_nonstatic_fields; // for sizing with UseCompressedOops
   bool            _should_verify_class;  // allow caching of preverification
   u2              _minor_version;        // minor version number of class file
   u2              _major_version;        // major version number of class file
-  ClassState      _init_state;           // state of class
   Thread*         _init_thread;          // Pointer to current thread doing initialization (to handle recusive initialization)
   int             _vtable_len;           // length of Java vtable (in words)
   int             _itable_len;           // length of Java itable (in words)
-  ReferenceType   _reference_type;       // reference type
   OopMapCache*    volatile _oop_map_cache;   // OopMapCache for all methods in the klass (allocated lazily)
   JNIid*          _jni_ids;              // First JNI identifier for static fields in this class
   jmethodID*      _methods_jmethod_ids;  // jmethodIDs corresponding to method_idnum, or NULL if none
@@ -259,6 +258,13 @@ class instanceKlass: public Klass {
   jint            _cached_class_file_len;         // JVMTI: length of above
   JvmtiCachedClassFieldMap* _jvmti_cached_class_field_map;  // JVMTI: used during heap iteration
   volatile u2     _idnum_allocated_count;         // JNI/JVMTI: increments with the addition of methods, old ids don't change
+
+  // Class states are defined as ClassState (see above).
+  // Place the _init_state here to utilize the unused 2-byte after
+  // _idnum_allocated_count.
+  u1              _init_state;                    // state of class
+
+  u1              _reference_type;                // reference type
 
   // embedded Java vtable follows here
   // embedded Java itables follows here
@@ -279,8 +285,8 @@ class instanceKlass: public Klass {
   int static_field_size() const            { return _static_field_size; }
   void set_static_field_size(int size)     { _static_field_size = size; }
 
-  int static_oop_field_count() const        { return _static_oop_field_count; }
-  void set_static_oop_field_count(int size) { _static_oop_field_count = size; }
+  int static_oop_field_count() const       { return (int)_static_oop_field_count; }
+  void set_static_oop_field_count(u2 size) { _static_oop_field_count = size; }
 
   // Java vtable
   int  vtable_length() const               { return _vtable_len; }
@@ -320,14 +326,14 @@ class instanceKlass: public Klass {
   Symbol* field_signature   (int index) const { return field(index)->signature(constants()); }
 
   // Number of Java declared fields
-  int java_fields_count() const           { return _java_fields_count; }
+  int java_fields_count() const           { return (int)_java_fields_count; }
 
   // Number of fields including any injected fields
   int all_fields_count() const            { return _fields->length() / sizeof(FieldInfo::field_slots); }
 
   typeArrayOop fields() const              { return _fields; }
 
-  void set_fields(typeArrayOop f, int java_fields_count) {
+  void set_fields(typeArrayOop f, u2 java_fields_count) {
     oop_store_without_check((oop*) &_fields, (oop) f);
     _java_fields_count = java_fields_count;
   }
@@ -377,7 +383,7 @@ class instanceKlass: public Klass {
   bool is_being_initialized() const        { return _init_state == being_initialized; }
   bool is_in_error_state() const           { return _init_state == initialization_error; }
   bool is_reentrant_initialization(Thread *thread)  { return thread == _init_thread; }
-  int  get_init_state()                    { return _init_state; } // Useful for debugging
+  ClassState  init_state()                 { return (ClassState)_init_state; }
   bool is_rewritten() const                { return _rewritten; }
 
   // defineClass specified verification
@@ -402,10 +408,13 @@ class instanceKlass: public Klass {
   void eager_initialize(Thread *thread);
 
   // reference type
-  ReferenceType reference_type() const     { return _reference_type; }
-  void set_reference_type(ReferenceType t) { _reference_type = t; }
+  ReferenceType reference_type() const     { return (ReferenceType)_reference_type; }
+  void set_reference_type(ReferenceType t) {
+    assert(t == (u1)t, "overflow");
+    _reference_type = (u1)t;
+  }
 
-  static int reference_type_offset_in_bytes() { return offset_of(instanceKlass, _reference_type); }
+  static ByteSize reference_type_offset() { return in_ByteSize(sizeof(klassOopDesc) + offset_of(instanceKlass, _reference_type)); }
 
   // find local field, returns true if found
   bool find_local_field(Symbol* name, Symbol* sig, fieldDescriptor* fd) const;
@@ -565,9 +574,9 @@ class instanceKlass: public Klass {
   void set_method_annotations_of(int idnum, typeArrayOop anno)
                                                 { set_methods_annotations_of(idnum, anno, &_methods_annotations); }
   void set_method_parameter_annotations_of(int idnum, typeArrayOop anno)
-                                                { set_methods_annotations_of(idnum, anno, &_methods_annotations); }
+                                                { set_methods_annotations_of(idnum, anno, &_methods_parameter_annotations); }
   void set_method_default_annotations_of(int idnum, typeArrayOop anno)
-                                                { set_methods_annotations_of(idnum, anno, &_methods_annotations); }
+                                                { set_methods_annotations_of(idnum, anno, &_methods_default_annotations); }
 
   // allocation
   DEFINE_ALLOCATE_PERMANENT(instanceKlass);
@@ -616,8 +625,8 @@ class instanceKlass: public Klass {
   void set_breakpoints(BreakpointInfo* bps) { _breakpoints = bps; };
 
   // support for stub routines
-  static int init_state_offset_in_bytes()    { return offset_of(instanceKlass, _init_state); }
-  static int init_thread_offset_in_bytes()   { return offset_of(instanceKlass, _init_thread); }
+  static ByteSize init_state_offset()  { return in_ByteSize(sizeof(klassOopDesc) + offset_of(instanceKlass, _init_state)); }
+  static ByteSize init_thread_offset() { return in_ByteSize(sizeof(klassOopDesc) + offset_of(instanceKlass, _init_thread)); }
 
   // subclass/subinterface checks
   bool implements_interface(klassOop k) const;
@@ -754,7 +763,7 @@ private:
 #ifdef ASSERT
   void set_init_state(ClassState state);
 #else
-  void set_init_state(ClassState state) { _init_state = state; }
+  void set_init_state(ClassState state) { _init_state = (u1)state; }
 #endif
   void set_rewritten()                  { _rewritten = true; }
   void set_init_thread(Thread *thread)  { _init_thread = thread; }

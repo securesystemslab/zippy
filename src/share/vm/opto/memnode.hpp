@@ -215,6 +215,7 @@ public:
   virtual int Opcode() const;
   virtual uint ideal_reg() const { return Op_RegI; }
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
+  virtual const Type *Value(PhaseTransform *phase) const;
   virtual int store_Opcode() const { return Op_StoreB; }
   virtual BasicType memory_type() const { return T_BYTE; }
 };
@@ -228,6 +229,7 @@ public:
   virtual int Opcode() const;
   virtual uint ideal_reg() const { return Op_RegI; }
   virtual Node* Ideal(PhaseGVN *phase, bool can_reshape);
+  virtual const Type *Value(PhaseTransform *phase) const;
   virtual int store_Opcode() const { return Op_StoreB; }
   virtual BasicType memory_type() const { return T_BYTE; }
 };
@@ -241,8 +243,23 @@ public:
   virtual int Opcode() const;
   virtual uint ideal_reg() const { return Op_RegI; }
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
+  virtual const Type *Value(PhaseTransform *phase) const;
   virtual int store_Opcode() const { return Op_StoreC; }
   virtual BasicType memory_type() const { return T_CHAR; }
+};
+
+//------------------------------LoadSNode--------------------------------------
+// Load a short (16bits signed) from memory
+class LoadSNode : public LoadNode {
+public:
+  LoadSNode( Node *c, Node *mem, Node *adr, const TypePtr* at, const TypeInt *ti = TypeInt::SHORT )
+    : LoadNode(c,mem,adr,at,ti) {}
+  virtual int Opcode() const;
+  virtual uint ideal_reg() const { return Op_RegI; }
+  virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
+  virtual const Type *Value(PhaseTransform *phase) const;
+  virtual int store_Opcode() const { return Op_StoreC; }
+  virtual BasicType memory_type() const { return T_SHORT; }
 };
 
 //------------------------------LoadINode--------------------------------------
@@ -432,19 +449,6 @@ public:
   virtual bool depends_only_on_test() const { return true; }
 };
 
-
-//------------------------------LoadSNode--------------------------------------
-// Load a short (16bits signed) from memory
-class LoadSNode : public LoadNode {
-public:
-  LoadSNode( Node *c, Node *mem, Node *adr, const TypePtr* at, const TypeInt *ti = TypeInt::SHORT )
-    : LoadNode(c,mem,adr,at,ti) {}
-  virtual int Opcode() const;
-  virtual uint ideal_reg() const { return Op_RegI; }
-  virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
-  virtual int store_Opcode() const { return Op_StoreC; }
-  virtual BasicType memory_type() const { return T_SHORT; }
-};
 
 //------------------------------StoreNode--------------------------------------
 // Store value; requires Store, Address and Value
@@ -918,6 +922,15 @@ public:
   virtual int Opcode() const;
 };
 
+class MemBarStoreStoreNode: public MemBarNode {
+public:
+  MemBarStoreStoreNode(Compile* C, int alias_idx, Node* precedent)
+    : MemBarNode(C, alias_idx, precedent) {
+    init_class_id(Class_MemBarStoreStore);
+  }
+  virtual int Opcode() const;
+};
+
 // Ordering between a volatile store and a following volatile load.
 // Requires multi-CPU visibility?
 class MemBarVolatileNode: public MemBarNode {
@@ -949,6 +962,8 @@ class InitializeNode: public MemBarNode {
     WithArraycopy = 2
   };
   int _is_complete;
+
+  bool _does_not_escape;
 
 public:
   enum {
@@ -988,6 +1003,9 @@ public:
   // Mark complete.  (Must not yet be complete.)
   void set_complete(PhaseGVN* phase);
   void set_complete_with_arraycopy() { _is_complete = Complete | WithArraycopy; }
+
+  bool does_not_escape() { return _does_not_escape; }
+  void set_does_not_escape() { _does_not_escape = true; }
 
 #ifdef ASSERT
   // ensure all non-degenerate stores are ordered and non-overlapping

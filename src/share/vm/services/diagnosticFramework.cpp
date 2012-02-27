@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,7 +61,7 @@ CmdLine::CmdLine(const char* line, size_t len, bool no_command_name) {
 bool DCmdArgIter::next(TRAPS) {
   if (_len == 0) return false;
   // skipping spaces
-  while (_cursor < _len - 1 && isspace(_buffer[_cursor])) {
+  while (_cursor < _len - 1 && _buffer[_cursor] == _delim) {
     _cursor++;
   }
   // handling end of command line
@@ -226,7 +226,7 @@ void DCmdParser::check(TRAPS) {
 }
 
 void DCmdParser::print_help(outputStream* out, const char* cmd_name) {
-  out->print("\nSyntax : %s %s", cmd_name, _options == NULL ? "" : "[options]");
+  out->print("Syntax : %s %s", cmd_name, _options == NULL ? "" : "[options]");
   GenDCmdArgument* arg = _arguments_list;
   while (arg != NULL) {
     if (arg->is_mandatory()) {
@@ -371,6 +371,30 @@ void DCmd::parse_and_execute(outputStream* out, const char* cmdline,
       command->execute(CHECK);
     }
   }
+}
+
+void DCmdWithParser::parse(CmdLine* line, char delim, TRAPS) {
+  _dcmdparser.parse(line, delim, CHECK);
+}
+
+void DCmdWithParser::print_help(const char* name) {
+  _dcmdparser.print_help(output(), name);
+}
+
+void DCmdWithParser::reset(TRAPS) {
+  _dcmdparser.reset(CHECK);
+}
+
+void DCmdWithParser::cleanup() {
+  _dcmdparser.cleanup();
+}
+
+GrowableArray<const char*>* DCmdWithParser::argument_name_array() {
+  return _dcmdparser.argument_name_array();
+}
+
+GrowableArray<DCmdArgumentInfo*>* DCmdWithParser::argument_info_array() {
+  return _dcmdparser.argument_info_array();
 }
 
 Mutex* DCmdFactory::_dcmdFactory_lock = new Mutex(Mutex::leaf, "DCmdFactory", true);

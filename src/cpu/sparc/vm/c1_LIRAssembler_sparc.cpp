@@ -391,7 +391,7 @@ int LIR_Assembler::emit_exception_handler() {
   __ call(Runtime1::entry_for(Runtime1::handle_exception_from_callee_id), relocInfo::runtime_call_type);
   __ delayed()->nop();
   __ should_not_reach_here();
-  assert(code_offset() - offset <= exception_handler_size, "overflow");
+  guarantee(code_offset() - offset <= exception_handler_size, "overflow");
   __ end_a_stub();
 
   return offset;
@@ -474,8 +474,7 @@ int LIR_Assembler::emit_deopt_handler() {
   AddressLiteral deopt_blob(SharedRuntime::deopt_blob()->unpack());
   __ JUMP(deopt_blob, G3_scratch, 0); // sethi;jmp
   __ delayed()->nop();
-  assert(code_offset() - offset <= deopt_handler_size, "overflow");
-  debug_only(__ stop("should have gone to the caller");)
+  guarantee(code_offset() - offset <= deopt_handler_size, "overflow");
   __ end_a_stub();
 
   return offset;
@@ -2202,8 +2201,7 @@ void LIR_Assembler::emit_arraycopy(LIR_OpArrayCopy* op) {
           } else if (!(flags & LIR_OpArrayCopy::dst_objarray)) {
             __ load_klass(dst, tmp);
           }
-          int lh_offset = klassOopDesc::header_size() * HeapWordSize +
-            Klass::layout_helper_offset_in_bytes();
+          int lh_offset = in_bytes(Klass::layout_helper_offset());
 
           __ lduw(tmp, lh_offset, tmp2);
 
@@ -2238,12 +2236,10 @@ void LIR_Assembler::emit_arraycopy(LIR_OpArrayCopy* op) {
         __ mov(length, len);
         __ load_klass(dst, tmp);
 
-        int ek_offset = (klassOopDesc::header_size() * HeapWordSize +
-                         objArrayKlass::element_klass_offset_in_bytes());
+        int ek_offset = in_bytes(objArrayKlass::element_klass_offset());
         __ ld_ptr(tmp, ek_offset, super_k);
 
-        int sco_offset = (klassOopDesc::header_size() * HeapWordSize +
-                          Klass::super_check_offset_offset_in_bytes());
+        int sco_offset = in_bytes(Klass::super_check_offset_offset());
         __ lduw(super_k, sco_offset, chk_off);
 
         __ call_VM_leaf(tmp, copyfunc_addr);
@@ -2455,8 +2451,8 @@ void LIR_Assembler::emit_alloc_obj(LIR_OpAllocObj* op) {
          op->obj()->as_register()   == O0 &&
          op->klass()->as_register() == G5, "must be");
   if (op->init_check()) {
-    __ ld(op->klass()->as_register(),
-          instanceKlass::init_state_offset_in_bytes() + sizeof(oopDesc),
+    __ ldub(op->klass()->as_register(),
+          in_bytes(instanceKlass::init_state_offset()),
           op->tmp1()->as_register());
     add_debug_info_for_null_check_here(op->stub()->info());
     __ cmp(op->tmp1()->as_register(), instanceKlass::fully_initialized);
@@ -2627,7 +2623,7 @@ void LIR_Assembler::emit_typecheck_helper(LIR_OpTypeCheck *op, Label* success, L
   } else {
     bool need_slow_path = true;
     if (k->is_loaded()) {
-      if (k->super_check_offset() != sizeof(oopDesc) + Klass::secondary_super_cache_offset_in_bytes())
+      if ((int) k->super_check_offset() != in_bytes(Klass::secondary_super_cache_offset()))
         need_slow_path = false;
       // perform the fast part of the checking logic
       __ check_klass_subtype_fast_path(klass_RInfo, k_RInfo, Rtmp1, noreg,
@@ -2731,7 +2727,7 @@ void LIR_Assembler::emit_opTypeCheck(LIR_OpTypeCheck* op) {
     __ load_klass(value, klass_RInfo);
 
     // get instance klass
-    __ ld_ptr(Address(k_RInfo, objArrayKlass::element_klass_offset_in_bytes() + sizeof(oopDesc)), k_RInfo);
+    __ ld_ptr(Address(k_RInfo, objArrayKlass::element_klass_offset()), k_RInfo);
     // perform the fast part of the checking logic
     __ check_klass_subtype_fast_path(klass_RInfo, k_RInfo, Rtmp1, O7, success_target, failure_target, NULL);
 
@@ -3234,6 +3230,26 @@ void LIR_Assembler::membar_acquire() {
 void LIR_Assembler::membar_release() {
   // no-op on TSO
 }
+
+void LIR_Assembler::membar_loadload() {
+  // no-op
+  //__ membar(Assembler::Membar_mask_bits(Assembler::loadload));
+}
+
+void LIR_Assembler::membar_storestore() {
+  // no-op
+  //__ membar(Assembler::Membar_mask_bits(Assembler::storestore));
+}
+
+void LIR_Assembler::membar_loadstore() {
+  // no-op
+  //__ membar(Assembler::Membar_mask_bits(Assembler::loadstore));
+}
+
+void LIR_Assembler::membar_storeload() {
+  __ membar(Assembler::Membar_mask_bits(Assembler::StoreLoad));
+}
+
 
 // Pack two sequential registers containing 32 bit values
 // into a single 64 bit register.

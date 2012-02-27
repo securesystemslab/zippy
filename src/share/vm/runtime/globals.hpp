@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,17 @@
 #define SHARE_VM_RUNTIME_GLOBALS_HPP
 
 #include "utilities/debug.hpp"
+
+// use this for flags that are true per default in the tiered build
+// but false in non-tiered builds, and vice versa
+#ifdef TIERED
+#define  trueInTiered true
+#define falseInTiered false
+#else
+#define  trueInTiered false
+#define falseInTiered true
+#endif
+
 #ifdef TARGET_ARCH_x86
 # include "globals_x86.hpp"
 #endif
@@ -245,6 +256,8 @@ struct Flag {
 
   bool is_unlocker_ext() const;
   bool is_unlocked_ext() const;
+  bool is_writeable_ext() const;
+  bool is_external_ext() const;
 
   void print_on(outputStream* st, bool withComments = false );
   void print_as_flag(outputStream* st);
@@ -324,9 +337,9 @@ class CommandLineFlags {
 
   // Returns false if name is not a command line flag.
   static bool wasSetOnCmdline(const char* name, bool* value);
-  static void printSetFlags();
+  static void printSetFlags(outputStream* out);
 
-  static void printFlags(bool withComments = false );
+  static void printFlags(outputStream* out, bool withComments);
 
   static void verify() PRODUCT_RETURN;
 };
@@ -349,16 +362,6 @@ class CommandLineFlags {
 #else
 #define trueInProduct  false
 #define falseInProduct true
-#endif
-
-// use this for flags that are true per default in the tiered build
-// but false in non-tiered builds, and vice versa
-#ifdef TIERED
-#define  trueInTiered true
-#define falseInTiered false
-#else
-#define  trueInTiered false
-#define falseInTiered true
 #endif
 
 #ifdef JAVASE_EMBEDDED
@@ -525,6 +528,9 @@ class CommandLineFlags {
   product(intx, UseSSE, 99,                                                 \
           "Highest supported SSE instructions set on x86/x64")              \
                                                                             \
+  product(intx, UseAVX, 99,                                                 \
+          "Highest supported AVX instructions set on x86/x64")              \
+                                                                            \
   product(intx, UseVIS, 99,                                                 \
           "Highest supported VIS instructions set on Sparc")                \
                                                                             \
@@ -653,6 +659,12 @@ class CommandLineFlags {
   develop(bool, SpecialArraysEquals, true,                                  \
           "special version of Arrays.equals(char[],char[])")                \
                                                                             \
+  product(bool, CriticalJNINatives, true,                                   \
+          "check for critical JNI entry points")                            \
+                                                                            \
+  notproduct(bool, StressCriticalJNINatives, false,                         \
+            "Exercise register saving code in critical natives")            \
+                                                                            \
   product(bool, UseSSE42Intrinsics, false,                                  \
           "SSE4.2 versions of intrinsics")                                  \
                                                                             \
@@ -730,8 +742,11 @@ class CommandLineFlags {
   product(bool, MaxFDLimit, true,                                           \
           "Bump the number of file descriptors to max in solaris.")         \
                                                                             \
-  notproduct(bool, LogEvents, trueInDebug,                                  \
-          "Enable Event log")                                               \
+  diagnostic(bool, LogEvents, true,                                         \
+             "Enable the various ring buffer event logs")                   \
+                                                                            \
+  diagnostic(intx, LogEventsBufferEntries, 10,                              \
+             "Enable the various ring buffer event logs")                   \
                                                                             \
   product(bool, BytecodeVerificationRemote, true,                           \
           "Enables the Java bytecode verifier for remote classes")          \
@@ -1039,6 +1054,9 @@ class CommandLineFlags {
                                                                             \
   notproduct(bool, PrintSystemDictionaryAtExit, false,                      \
           "Prints the system dictionary at exit")                           \
+                                                                            \
+  experimental(intx, PredictedLoadedClassCount, 0,                          \
+          "Experimental: Tune loaded class cache starting size.")           \
                                                                             \
   diagnostic(bool, UnsyncloadClass, false,                                  \
           "Unstable: VM calls loadClass unsynchronized. Custom "            \
@@ -1554,7 +1572,7 @@ class CommandLineFlags {
   product(uintx, ParGCDesiredObjsFromOverflowList, 20,                      \
           "The desired number of objects to claim from the overflow list")  \
                                                                             \
-  diagnostic(intx, ParGCStridesPerThread, 2,                                \
+  diagnostic(uintx, ParGCStridesPerThread, 2,                               \
           "The number of strides per worker thread that we divide up the "  \
           "card table scanning work into")                                  \
                                                                             \
@@ -3001,7 +3019,7 @@ class CommandLineFlags {
   product(intx, SafepointTimeoutDelay, 10000,                               \
           "Delay in milliseconds for option SafepointTimeout")              \
                                                                             \
-  product(intx, NmethodSweepFraction, 4,                                    \
+  product(intx, NmethodSweepFraction, 16,                                    \
           "Number of invocations of sweeper to cover all nmethods")         \
                                                                             \
   product(intx, NmethodSweepCheckInterval, 5,                               \
@@ -3478,16 +3496,19 @@ class CommandLineFlags {
           "    Linux this policy requires root privilege.")                 \
                                                                             \
   product(bool, ThreadPriorityVerbose, false,                               \
-          "print priority changes")                                         \
+          "Print priority changes")                                         \
                                                                             \
   product(intx, DefaultThreadPriority, -1,                                  \
-          "what native priority threads run at if not specified elsewhere (-1 means no change)") \
+          "The native priority at which threads run if not elsewhere "      \
+          "specified (-1 means no change)")                                 \
                                                                             \
   product(intx, CompilerThreadPriority, -1,                                 \
-          "what priority should compiler threads run at (-1 means no change)") \
+          "The native priority at which compiler threads should run "       \
+          "(-1 means no change)")                                           \
                                                                             \
   product(intx, VMThreadPriority, -1,                                       \
-          "what priority should VM threads run at (-1 means no change)")    \
+          "The native priority at which the VM thread should run "          \
+          "(-1 means no change)")                                           \
                                                                             \
   product(bool, CompilerThreadHintNoPreempt, true,                          \
           "(Solaris only) Give compiler threads an extra quanta")           \
@@ -3505,6 +3526,15 @@ class CommandLineFlags {
   product(intx, JavaPriority8_To_OSPriority, -1, "Map Java priorities to OS priorities") \
   product(intx, JavaPriority9_To_OSPriority, -1, "Map Java priorities to OS priorities") \
   product(intx, JavaPriority10_To_OSPriority,-1, "Map Java priorities to OS priorities") \
+                                                                            \
+  experimental(bool, UseCriticalJavaThreadPriority, false,                  \
+          "Java thread priority 10 maps to critical scheduling priority")   \
+                                                                            \
+  experimental(bool, UseCriticalCompilerThreadPriority, false,              \
+          "Compiler thread(s) run at critical scheduling priority")         \
+                                                                            \
+  experimental(bool, UseCriticalCMSThreadPriority, false,                   \
+          "ConcurrentMarkSweep thread runs at critical scheduling priority")\
                                                                             \
   /* compiler debugging */                                                  \
   notproduct(intx, CompileTheWorldStartAt,     1,                           \
@@ -3575,7 +3605,7 @@ class CommandLineFlags {
           "Threshold at which tier 3 compilation is invoked (invocation "   \
           "minimum must be satisfied.")                                     \
                                                                             \
-  product(intx, Tier3BackEdgeThreshold,  7000,                              \
+  product(intx, Tier3BackEdgeThreshold,  60000,                             \
           "Back edge threshold at which tier 3 OSR compilation is invoked") \
                                                                             \
   product(intx, Tier4InvocationThreshold, 5000,                             \
@@ -3827,10 +3857,6 @@ class CommandLineFlags {
   develop(bool, StressMethodHandleWalk, false,                              \
           "Process all method handles with MethodHandleWalk")               \
                                                                             \
-  diagnostic(bool, UseRicochetFrames, true,                                 \
-          "use ricochet stack frames for method handle combination, "       \
-          "if the platform supports them")                                  \
-                                                                            \
   experimental(bool, TrustFinalNonStaticFields, false,                      \
           "trust final non-static declarations for constant folding")       \
                                                                             \
@@ -3876,7 +3902,7 @@ class CommandLineFlags {
   product(bool, UseVMInterruptibleIO, false,                                \
           "(Unstable, Solaris-specific) Thread interrupt before or with "   \
           "EINTR for I/O operations results in OS_INTRPT. The default value"\
-          " of this flag is true for JDK 6 and earliers")
+          " of this flag is true for JDK 6 and earlier")
 
 /*
  *  Macros for factoring of globals

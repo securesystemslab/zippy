@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2006, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -185,6 +185,18 @@ ifneq ($(ALT_BOOTDIR),)
   BOOTDIR=$(ALT_BOOTDIR)
 endif
 
+# Select name of the export directory and honor ALT overrides
+EXPORT_PATH=$(OUTPUTDIR)/export-$(PLATFORM)$(EXPORT_SUBDIR)
+ifneq ($(ALT_EXPORT_PATH),)
+  EXPORT_PATH=$(ALT_EXPORT_PATH)
+endif
+
+# Default jdk image if one is created for you with create_jdk
+JDK_IMAGE_DIR=$(OUTPUTDIR)/jdk-$(PLATFORM)
+ifneq ($(ALT_JDK_IMAGE_DIR),)
+  JDK_IMAGE_DIR=$(ALT_JDK_IMAGE_DIR)
+endif
+
 # The platform dependent defs.make defines platform specific variable such 
 # as ARCH, EXPORT_LIST etc. We must place the include here after BOOTDIR is defined.
 include $(GAMMADIR)/make/$(OSNAME)/makefiles/defs.make
@@ -263,15 +275,6 @@ MAKE_ARGS += JRE_RELEASE_VERSION=$(JRE_RELEASE_VERSION)
 # includes this make/defs.make file.
 MAKE_ARGS += HOTSPOT_BUILD_VERSION=$(HOTSPOT_BUILD_VERSION)
 
-# Select name of export directory
-EXPORT_PATH=$(OUTPUTDIR)/export-$(PLATFORM)$(EXPORT_SUBDIR)
-ifneq ($(ALT_EXPORT_PATH),)
-  EXPORT_PATH=$(ALT_EXPORT_PATH)
-endif
-
-# Default jdk image if one is created for you with create_jdk
-JDK_IMAGE_DIR=$(OUTPUTDIR)/jdk-$(PLATFORM)
-
 # Various export sub directories
 EXPORT_INCLUDE_DIR = $(EXPORT_PATH)/include
 EXPORT_DOCS_DIR = $(EXPORT_PATH)/docs
@@ -294,3 +297,7 @@ EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jvmticmlr.h
 EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jni.h
 EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/$(JDK_INCLUDE_SUBDIR)/jni_md.h
 EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jmm.h
+
+ifndef JAVASE_EMBEDDED
+EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jfr.h
+endif

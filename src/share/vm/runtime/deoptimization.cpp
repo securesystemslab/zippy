@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -214,7 +214,7 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // Reallocate the non-escaping objects and restore their fields. Then
   // relock objects if synchronization on them was eliminated.
 #ifdef COMPILER2
-  if (DoEscapeAnalysis) {
+  if (DoEscapeAnalysis || EliminateNestedLocks) {
     if (EliminateAllocations) {
 #endif // COMPILER2
       assert (chunk->at(0)->scope() != NULL,"expect only compiled java frames");
@@ -348,7 +348,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 
 #ifdef ASSERT
   assert(cb->is_deoptimization_stub() || cb->is_uncommon_trap_stub(), "just checking");
-  Events::log("fetch unroll sp " INTPTR_FORMAT, unpack_sp);
 #endif
 #else
   intptr_t* unpack_sp = stub_frame.sender(&dummy_map).unextended_sp();
@@ -586,6 +585,8 @@ JRT_LEAF(BasicType, Deoptimization::unpack_frames(JavaThread* thread, int exec_m
     tty->print_cr("DEOPT UNPACKING thread " INTPTR_FORMAT " vframeArray " INTPTR_FORMAT " mode %d", thread, array, exec_mode);
   }
 #endif
+  Events::log(thread, "DEOPT UNPACKING pc=" INTPTR_FORMAT " sp=" INTPTR_FORMAT " mode %d",
+              stub_frame.pc(), stub_frame.sp(), exec_mode);
 
   UnrollBlock* info = array->unroll_block();
 
@@ -993,6 +994,7 @@ void Deoptimization::print_objects(GrowableArray<ScopeValue*>* objects) {
 //#endif // COMPILER2
 
 vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk) {
+  Events::log(thread, "DEOPT PACKING pc=" INTPTR_FORMAT " sp=" INTPTR_FORMAT, fr.pc(), fr.sp());
 
 #ifndef PRODUCT
   if (PrintDeoptimizationDetails) {
@@ -1038,7 +1040,6 @@ vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, Re
 
   // Compare the vframeArray to the collected vframes
   assert(array->structural_compare(thread, chunk), "just checking");
-  Events::log("# vframes = %d", (intptr_t)chunk->length());
 
 #ifndef PRODUCT
   if (PrintDeoptimizationDetails) {
@@ -1135,8 +1136,6 @@ void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr) {
   assert(fr.can_be_deoptimized(), "checking frame type");
 
   gather_statistics(Reason_constraint, Action_none, Bytecodes::_illegal);
-
-  EventMark m("Deoptimization (pc=" INTPTR_FORMAT ", sp=" INTPTR_FORMAT ")", fr.pc(), fr.id());
 
   // Patch the nmethod so that when execution returns to it we will
   // deopt the execution state and return to the interpreter.
@@ -1250,6 +1249,10 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
   // before we are done with it.
   nmethodLocker nl(fr.pc());
 
+  // Log a message
+  Events::log_deopt_message(thread, "Uncommon trap %d fr.pc " INTPTR_FORMAT,
+                            trap_request, fr.pc());
+
   {
     ResourceMark rm;
 
@@ -1260,7 +1263,6 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     DeoptAction action = trap_request_action(trap_request);
     jint unloaded_class_index = trap_request_index(trap_request); // CP idx or -1
 
-    Events::log("Uncommon trap occurred @" INTPTR_FORMAT " unloaded_class_index = %d", fr.pc(), (int) trap_request);
     vframe*  vf  = vframe::new_vframe(&fr, &reg_map, thread);
     compiledVFrame* cvf = compiledVFrame::cast(vf);
 

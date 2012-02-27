@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,9 +65,10 @@ public:
 
 class MainBodySummary: public CHeapObj {
   define_num_seq(satb_drain) // optional
+  define_num_seq(root_region_scan_wait)
   define_num_seq(parallel) // parallel only
     define_num_seq(ext_root_scan)
-    define_num_seq(mark_stack_scan)
+    define_num_seq(satb_filtering)
     define_num_seq(update_rs)
     define_num_seq(scan_rs)
     define_num_seq(obj_copy)
@@ -81,6 +82,72 @@ class Summary: public PauseSummary,
                public MainBodySummary {
 public:
   virtual MainBodySummary*    main_body_summary()    { return this; }
+};
+
+// There are three command line options related to the young gen size:
+// NewSize, MaxNewSize and NewRatio (There is also -Xmn, but that is
+// just a short form for NewSize==MaxNewSize). G1 will use its internal
+// heuristics to calculate the actual young gen size, so these options
+// basically only limit the range within which G1 can pick a young gen
+// size. Also, these are general options taking byte sizes. G1 will
+// internally work with a number of regions instead. So, some rounding
+// will occur.
+//
+// If nothing related to the the young gen size is set on the command
+// line we should allow the young gen to be between
+// G1DefaultMinNewGenPercent and G1DefaultMaxNewGenPercent of the
+// heap size. This means that every time the heap size changes the
+// limits for the young gen size will be updated.
+//
+// If only -XX:NewSize is set we should use the specified value as the
+// minimum size for young gen. Still using G1DefaultMaxNewGenPercent
+// of the heap as maximum.
+//
+// If only -XX:MaxNewSize is set we should use the specified value as the
+// maximum size for young gen. Still using G1DefaultMinNewGenPercent
+// of the heap as minimum.
+//
+// If -XX:NewSize and -XX:MaxNewSize are both specified we use these values.
+// No updates when the heap size changes. There is a special case when
+// NewSize==MaxNewSize. This is interpreted as "fixed" and will use a
+// different heuristic for calculating the collection set when we do mixed
+// collection.
+//
+// If only -XX:NewRatio is set we should use the specified ratio of the heap
+// as both min and max. This will be interpreted as "fixed" just like the
+// NewSize==MaxNewSize case above. But we will update the min and max
+// everytime the heap size changes.
+//
+// NewSize and MaxNewSize override NewRatio. So, NewRatio is ignored if it is
+// combined with either NewSize or MaxNewSize. (A warning message is printed.)
+class G1YoungGenSizer : public CHeapObj {
+private:
+  enum SizerKind {
+    SizerDefaults,
+    SizerNewSizeOnly,
+    SizerMaxNewSizeOnly,
+    SizerMaxAndNewSize,
+    SizerNewRatio
+  };
+  SizerKind _sizer_kind;
+  size_t _min_desired_young_length;
+  size_t _max_desired_young_length;
+  bool _adaptive_size;
+  size_t calculate_default_min_length(size_t new_number_of_heap_regions);
+  size_t calculate_default_max_length(size_t new_number_of_heap_regions);
+
+public:
+  G1YoungGenSizer();
+  void heap_size_changed(size_t new_number_of_heap_regions);
+  size_t min_desired_young_length() {
+    return _min_desired_young_length;
+  }
+  size_t max_desired_young_length() {
+    return _max_desired_young_length;
+  }
+  bool adaptive_young_list_length() {
+    return _adaptive_size;
+  }
 };
 
 class G1CollectorPolicy: public CollectorPolicy {
@@ -111,7 +178,6 @@ private:
   double _cur_collection_start_sec;
   size_t _cur_collection_pause_used_at_start_bytes;
   size_t _cur_collection_pause_used_regions_at_start;
-  size_t _prev_collection_pause_used_at_end_bytes;
   double _cur_collection_par_time_ms;
   double _cur_satb_drain_time_ms;
   double _cur_clear_ct_time_ms;
@@ -149,7 +215,7 @@ private:
 
   double* _par_last_gc_worker_start_times_ms;
   double* _par_last_ext_root_scan_times_ms;
-  double* _par_last_mark_stack_scan_times_ms;
+  double* _par_last_satb_filtering_times_ms;
   double* _par_last_update_rs_times_ms;
   double* _par_last_update_rs_processed_buffers;
   double* _par_last_scan_rs_times_ms;
@@ -164,12 +230,9 @@ private:
   // times for a given worker thread.
   double* _par_last_gc_worker_other_times_ms;
 
-  // indicates whether we are in full young or partially young GC mode
-  bool _full_young_gcs;
+  // indicates whether we are in young or mixed GC mode
+  bool _gcs_are_young;
 
-  // if true, then it tries to dynamically adjust the length of the
-  // young list
-  bool _adaptive_young_list_length;
   size_t _young_list_target_length;
   size_t _young_list_fixed_length;
   size_t _prev_eden_capacity; // used for logging
@@ -178,10 +241,10 @@ private:
   // locker is active. This should be >= _young_list_target_length;
   size_t _young_list_max_length;
 
-  bool   _last_young_gc_full;
+  bool                  _last_gc_was_young;
 
-  unsigned              _full_young_pause_num;
-  unsigned              _partial_young_pause_num;
+  unsigned              _young_pause_num;
+  unsigned              _mixed_pause_num;
 
   bool                  _during_marking;
   bool                  _in_marking_window;
@@ -211,10 +274,10 @@ private:
   TruncatedSeq* _pending_card_diff_seq;
   TruncatedSeq* _rs_length_diff_seq;
   TruncatedSeq* _cost_per_card_ms_seq;
-  TruncatedSeq* _fully_young_cards_per_entry_ratio_seq;
-  TruncatedSeq* _partially_young_cards_per_entry_ratio_seq;
+  TruncatedSeq* _young_cards_per_entry_ratio_seq;
+  TruncatedSeq* _mixed_cards_per_entry_ratio_seq;
   TruncatedSeq* _cost_per_entry_ms_seq;
-  TruncatedSeq* _partially_young_cost_per_entry_ms_seq;
+  TruncatedSeq* _mixed_cost_per_entry_ms_seq;
   TruncatedSeq* _cost_per_byte_ms_seq;
   TruncatedSeq* _constant_other_time_ms_seq;
   TruncatedSeq* _young_other_cost_per_region_ms_seq;
@@ -227,9 +290,7 @@ private:
 
   TruncatedSeq* _young_gc_eff_seq;
 
-  bool   _using_new_ratio_calculations;
-  size_t _min_desired_young_length; // as set on the command line or default calculations
-  size_t _max_desired_young_length; // as set on the command line or default calculations
+  G1YoungGenSizer* _young_gen_sizer;
 
   size_t _eden_cset_region_length;
   size_t _survivor_cset_region_length;
@@ -251,16 +312,13 @@ private:
   double _recorded_non_young_free_cset_time_ms;
 
   double _sigma;
-  double _expensive_region_limit_ms;
 
   size_t _rs_lengths_prediction;
 
   size_t _known_garbage_bytes;
   double _known_garbage_ratio;
 
-  double sigma() {
-    return _sigma;
-  }
+  double sigma() { return _sigma; }
 
   // A function that prevents us putting too much stock in small sample
   // sets.  Returns a number between 2.0 and 1.0, depending on the number
@@ -322,20 +380,22 @@ public:
 
   size_t predict_pending_card_diff() {
     double prediction = get_new_neg_prediction(_pending_card_diff_seq);
-    if (prediction < 0.00001)
+    if (prediction < 0.00001) {
       return 0;
-    else
+    } else {
       return (size_t) prediction;
+    }
   }
 
   size_t predict_pending_cards() {
     size_t max_pending_card_num = _g1->max_pending_card_num();
     size_t diff = predict_pending_card_diff();
     size_t prediction;
-    if (diff > max_pending_card_num)
+    if (diff > max_pending_card_num) {
       prediction = max_pending_card_num;
-    else
+    } else {
       prediction = max_pending_card_num - diff;
+    }
 
     return prediction;
   }
@@ -356,57 +416,62 @@ public:
     return (double) pending_cards * predict_cost_per_card_ms();
   }
 
-  double predict_fully_young_cards_per_entry_ratio() {
-    return get_new_prediction(_fully_young_cards_per_entry_ratio_seq);
+  double predict_young_cards_per_entry_ratio() {
+    return get_new_prediction(_young_cards_per_entry_ratio_seq);
   }
 
-  double predict_partially_young_cards_per_entry_ratio() {
-    if (_partially_young_cards_per_entry_ratio_seq->num() < 2)
-      return predict_fully_young_cards_per_entry_ratio();
-    else
-      return get_new_prediction(_partially_young_cards_per_entry_ratio_seq);
+  double predict_mixed_cards_per_entry_ratio() {
+    if (_mixed_cards_per_entry_ratio_seq->num() < 2) {
+      return predict_young_cards_per_entry_ratio();
+    } else {
+      return get_new_prediction(_mixed_cards_per_entry_ratio_seq);
+    }
   }
 
   size_t predict_young_card_num(size_t rs_length) {
     return (size_t) ((double) rs_length *
-                     predict_fully_young_cards_per_entry_ratio());
+                     predict_young_cards_per_entry_ratio());
   }
 
   size_t predict_non_young_card_num(size_t rs_length) {
     return (size_t) ((double) rs_length *
-                     predict_partially_young_cards_per_entry_ratio());
+                     predict_mixed_cards_per_entry_ratio());
   }
 
   double predict_rs_scan_time_ms(size_t card_num) {
-    if (full_young_gcs())
+    if (gcs_are_young()) {
       return (double) card_num * get_new_prediction(_cost_per_entry_ms_seq);
-    else
-      return predict_partially_young_rs_scan_time_ms(card_num);
+    } else {
+      return predict_mixed_rs_scan_time_ms(card_num);
+    }
   }
 
-  double predict_partially_young_rs_scan_time_ms(size_t card_num) {
-    if (_partially_young_cost_per_entry_ms_seq->num() < 3)
+  double predict_mixed_rs_scan_time_ms(size_t card_num) {
+    if (_mixed_cost_per_entry_ms_seq->num() < 3) {
       return (double) card_num * get_new_prediction(_cost_per_entry_ms_seq);
-    else
-      return (double) card_num *
-        get_new_prediction(_partially_young_cost_per_entry_ms_seq);
+    } else {
+      return (double) (card_num *
+                       get_new_prediction(_mixed_cost_per_entry_ms_seq));
+    }
   }
 
   double predict_object_copy_time_ms_during_cm(size_t bytes_to_copy) {
-    if (_cost_per_byte_ms_during_cm_seq->num() < 3)
-      return 1.1 * (double) bytes_to_copy *
-        get_new_prediction(_cost_per_byte_ms_seq);
-    else
+    if (_cost_per_byte_ms_during_cm_seq->num() < 3) {
+      return (1.1 * (double) bytes_to_copy) *
+              get_new_prediction(_cost_per_byte_ms_seq);
+    } else {
       return (double) bytes_to_copy *
-        get_new_prediction(_cost_per_byte_ms_during_cm_seq);
+             get_new_prediction(_cost_per_byte_ms_during_cm_seq);
+    }
   }
 
   double predict_object_copy_time_ms(size_t bytes_to_copy) {
-    if (_in_marking_window && !_in_marking_window_im)
+    if (_in_marking_window && !_in_marking_window_im) {
       return predict_object_copy_time_ms_during_cm(bytes_to_copy);
-    else
+    } else {
       return (double) bytes_to_copy *
-        get_new_prediction(_cost_per_byte_ms_seq);
+              get_new_prediction(_cost_per_byte_ms_seq);
+    }
   }
 
   double predict_constant_other_time_ms() {
@@ -414,18 +479,14 @@ public:
   }
 
   double predict_young_other_time_ms(size_t young_num) {
-    return
-      (double) young_num *
-      get_new_prediction(_young_other_cost_per_region_ms_seq);
+    return (double) young_num *
+           get_new_prediction(_young_other_cost_per_region_ms_seq);
   }
 
   double predict_non_young_other_time_ms(size_t non_young_num) {
-    return
-      (double) non_young_num *
-      get_new_prediction(_non_young_other_cost_per_region_ms_seq);
+    return (double) non_young_num *
+           get_new_prediction(_non_young_other_cost_per_region_ms_seq);
   }
-
-  void check_if_region_is_too_expensive(double predicted_time_ms);
 
   double predict_young_collection_elapsed_time_ms(size_t adjustment);
   double predict_base_elapsed_time_ms(size_t pending_cards);
@@ -456,7 +517,7 @@ public:
   double predict_survivor_regions_evac_time();
 
   void cset_regions_freed() {
-    bool propagate = _last_young_gc_full && !_in_marking_window;
+    bool propagate = _last_gc_was_young && !_in_marking_window;
     _short_lived_surv_rate_group->all_surviving_words_recorded(propagate);
     _survivor_surv_rate_group->all_surviving_words_recorded(propagate);
     // also call it on any more surv rate groups
@@ -583,15 +644,28 @@ private:
   // Used to record the highest end of heap region in collection set
   HeapWord* _inc_cset_max_finger;
 
-  // The RSet lengths recorded for regions in the collection set
-  // (updated by the periodic sampling of the regions in the
-  // young list/collection set).
+  // The RSet lengths recorded for regions in the CSet. It is updated
+  // by the thread that adds a new region to the CSet. We assume that
+  // only one thread can be allocating a new CSet region (currently,
+  // it does so after taking the Heap_lock) hence no need to
+  // synchronize updates to this field.
   size_t _inc_cset_recorded_rs_lengths;
 
-  // The predicted elapsed time it will take to collect the regions
-  // in the collection set (updated by the periodic sampling of the
-  // regions in the young list/collection set).
+  // A concurrent refinement thread periodcially samples the young
+  // region RSets and needs to update _inc_cset_recorded_rs_lengths as
+  // the RSets grow. Instead of having to syncronize updates to that
+  // field we accumulate them in this field and add it to
+  // _inc_cset_recorded_rs_lengths_diffs at the start of a GC.
+  ssize_t _inc_cset_recorded_rs_lengths_diffs;
+
+  // The predicted elapsed time it will take to collect the regions in
+  // the CSet. This is updated by the thread that adds a new region to
+  // the CSet. See the comment for _inc_cset_recorded_rs_lengths about
+  // MT-safety assumptions.
   double _inc_cset_predicted_elapsed_time_ms;
+
+  // See the comment for _inc_cset_recorded_rs_lengths_diffs.
+  double _inc_cset_predicted_elapsed_time_ms_diffs;
 
   // Stash a pointer to the g1 heap.
   G1CollectedHeap* _g1;
@@ -628,8 +702,7 @@ private:
   // initial-mark work.
   volatile bool _during_initial_mark_pause;
 
-  bool _should_revert_to_full_young_gcs;
-  bool _last_full_young_gc;
+  bool _last_young_gc;
 
   // This set of variables tracks the collector efficiency, in order to
   // determine whether we should initiate a new marking.
@@ -637,6 +710,7 @@ private:
   double _mark_remark_start_sec;
   double _mark_cleanup_start_sec;
   double _mark_closure_time_ms;
+  double _root_region_scan_wait_time_ms;
 
   // Update the young list target length either by setting it to the
   // desired fixed value or by calculating it using G1's pause
@@ -677,8 +751,6 @@ private:
   // Count the number of bytes used in the CS.
   void count_CS_bytes_used();
 
-  void update_young_list_size_using_newratio(size_t number_of_heap_regions);
-
 public:
 
   G1CollectorPolicy();
@@ -705,8 +777,6 @@ public:
   // This should be called after the heap is resized.
   void record_new_heap_size(size_t new_number_of_regions);
 
-public:
-
   void init();
 
   // Create jstat counters for the policy.
@@ -725,6 +795,8 @@ public:
 
   GenRemSet::Name  rem_set_name()     { return GenRemSet::CardTable; }
 
+  bool need_to_start_conc_mark(const char* source, size_t alloc_word_size = 0);
+
   // Update the heuristic info to record a collection pause of the given
   // start time, where the given number of bytes were used at the start.
   // This may involve changing the desired size of a collection set.
@@ -739,6 +811,10 @@ public:
 
   void record_mark_closure_time(double mark_closure_time_ms) {
     _mark_closure_time_ms = mark_closure_time_ms;
+  }
+
+  void record_root_region_scan_wait_time(double time_ms) {
+    _root_region_scan_wait_time_ms = time_ms;
   }
 
   void record_concurrent_mark_remark_start();
@@ -766,8 +842,8 @@ public:
     _par_last_ext_root_scan_times_ms[worker_i] = ms;
   }
 
-  void record_mark_stack_scan_time(int worker_i, double ms) {
-    _par_last_mark_stack_scan_times_ms[worker_i] = ms;
+  void record_satb_filtering_time(int worker_i, double ms) {
+    _par_last_satb_filtering_times_ms[worker_i] = ms;
   }
 
   void record_satb_drain_time(double ms) {
@@ -864,10 +940,17 @@ public:
     return _bytes_copied_during_gc;
   }
 
+  // Determine whether the next GC should be mixed. Called to determine
+  // whether to start mixed GCs or whether to carry on doing mixed
+  // GCs. The two action strings are used in the ergo output when the
+  // method returns true or false.
+  bool next_gc_should_be_mixed(const char* true_action_str,
+                               const char* false_action_str);
+
   // Choose a new collection set.  Marks the chosen regions as being
   // "in_collection_set", and links them together.  The head and number of
   // the collection set are available via access methods.
-  void choose_collection_set(double target_pause_time_ms);
+  void finalize_cset(double target_pause_time_ms);
 
   // The head of the list (via "next_in_collection_set()") representing the
   // current collection set.
@@ -889,6 +972,10 @@ public:
   // Initialize incremental collection set info.
   void start_incremental_cset_building();
 
+  // Perform any final calculations on the incremental CSet fields
+  // before we can use them.
+  void finalize_incremental_cset_building();
+
   void clear_incremental_cset() {
     _inc_cset_head = NULL;
     _inc_cset_tail = NULL;
@@ -897,10 +984,9 @@ public:
   // Stop adding regions to the incremental collection set
   void stop_incremental_cset_building() { _inc_cset_build_state = Inactive; }
 
-  // Add/remove information about hr to the aggregated information
-  // for the incrementally built collection set.
+  // Add information about hr to the aggregated information for the
+  // incrementally built collection set.
   void add_to_incremental_cset_info(HeapRegion* hr, size_t rs_length);
-  void remove_from_incremental_cset_info(HeapRegion* hr);
 
   // Update information about hr in the aggregated information for
   // the incrementally built collection set.
@@ -985,18 +1071,15 @@ public:
     return _young_list_max_length;
   }
 
-  bool full_young_gcs() {
-    return _full_young_gcs;
+  bool gcs_are_young() {
+    return _gcs_are_young;
   }
-  void set_full_young_gcs(bool full_young_gcs) {
-    _full_young_gcs = full_young_gcs;
+  void set_gcs_are_young(bool gcs_are_young) {
+    _gcs_are_young = gcs_are_young;
   }
 
   bool adaptive_young_list_length() {
-    return _adaptive_young_list_length;
-  }
-  void set_adaptive_young_list_length(bool adaptive_young_list_length) {
-    _adaptive_young_list_length = adaptive_young_list_length;
+    return _young_gen_sizer->adaptive_young_list_length();
   }
 
   inline double get_gc_eff_factor() {

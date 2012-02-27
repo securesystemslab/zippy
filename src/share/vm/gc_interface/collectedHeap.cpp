@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,6 +51,31 @@ int CollectedHeap::_fire_out_of_memory_count = 0;
 
 size_t CollectedHeap::_filler_array_max_size = 0;
 
+template <>
+void EventLogBase<GCMessage>::print(outputStream* st, GCMessage& m) {
+  st->print_cr("GC heap %s", m.is_before ? "before" : "after");
+  st->print_raw(m);
+}
+
+void GCHeapLog::log_heap(bool before) {
+  if (!should_log()) {
+    return;
+  }
+
+  double timestamp = fetch_timestamp();
+  MutexLockerEx ml(&_mutex, Mutex::_no_safepoint_check_flag);
+  int index = compute_log_index();
+  _records[index].thread = NULL; // Its the GC thread so it's not that interesting.
+  _records[index].timestamp = timestamp;
+  _records[index].data.is_before = before;
+  stringStream st(_records[index].data.buffer(), _records[index].data.size());
+  if (before) {
+    Universe::print_heap_before_gc(&st, true);
+  } else {
+    Universe::print_heap_after_gc(&st, true);
+  }
+}
+
 // Memory state functions.
 
 
@@ -81,6 +106,12 @@ CollectedHeap::CollectedHeap() : _n_par_threads(0)
                              80, GCCause::to_string(_gc_lastcause), CHECK);
   }
   _defer_initial_card_mark = false; // strengthened by subclass in pre_initialize() below.
+  // Create the ring log
+  if (LogEvents) {
+    _gc_heap_log = new GCHeapLog();
+  } else {
+    _gc_heap_log = NULL;
+  }
 }
 
 void CollectedHeap::pre_initialize() {
@@ -471,3 +502,30 @@ oop CollectedHeap::Class_obj_allocate(KlassHandle klass, int size, KlassHandle r
 
   return mirror;
 }
+
+/////////////// Unit tests ///////////////
+
+#ifndef PRODUCT
+void CollectedHeap::test_is_in() {
+  CollectedHeap* heap = Universe::heap();
+
+  uintptr_t epsilon    = (uintptr_t) MinObjAlignment;
+  uintptr_t heap_start = (uintptr_t) heap->_reserved.start();
+  uintptr_t heap_end   = (uintptr_t) heap->_reserved.end();
+
+  // Test that NULL is not in the heap.
+  assert(!heap->is_in(NULL), "NULL is unexpectedly in the heap");
+
+  // Test that a pointer to before the heap start is reported as outside the heap.
+  assert(heap_start >= ((uintptr_t)NULL + epsilon), "sanity");
+  void* before_heap = (void*)(heap_start - epsilon);
+  assert(!heap->is_in(before_heap),
+      err_msg("before_heap: " PTR_FORMAT " is unexpectedly in the heap", before_heap));
+
+  // Test that a pointer to after the heap end is reported as outside the heap.
+  assert(heap_end <= ((uintptr_t)-1 - epsilon), "sanity");
+  void* after_heap = (void*)(heap_end + epsilon);
+  assert(!heap->is_in(after_heap),
+      err_msg("after_heap: " PTR_FORMAT " is unexpectedly in the heap", after_heap));
+}
+#endif
