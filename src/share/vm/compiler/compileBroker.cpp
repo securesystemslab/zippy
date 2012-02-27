@@ -727,15 +727,13 @@ void CompileBroker::compilation_init() {
   // Set the interface to the current compiler(s).
   int c1_count = CompilationPolicy::policy()->compiler_count(CompLevel_simple);
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
-#ifdef GRAAL
+#if defined(GRAAL)
   _compilers[0] = new GraalCompiler();
-#else
-#ifdef COMPILER1
+#elif defined(COMPILER1)
   if (c1_count > 0) {
     _compilers[0] = new Compiler();
   }
 #endif // COMPILER1
-#endif
 
 #ifdef COMPILER2
   if (c2_count > 0) {
@@ -1093,13 +1091,13 @@ void CompileBroker::compile_method_base(methodHandle method,
   {
     MutexLocker locker(queue->lock(), thread);
 
-    if (JavaThread::current()->is_compiling() && !BackgroundCompilation) {
 #ifdef GRAAL
+    if (JavaThread::current()->is_compiling() && !BackgroundCompilation) {
       TRACE_graal_1("Recursive compile %s!", method->name_and_sig_as_C_string());
-#endif
       method->set_not_compilable();
       return;
     }
+#endif
 
     // Make sure the method has not slipped into the queues since
     // last we checked; note that those checks were "fast bail-outs".
@@ -1181,8 +1179,7 @@ void CompileBroker::compile_method_base(methodHandle method,
   } else {
     // Recursive compile request => ignore.
   }
-#endif
-#ifndef GRAAL
+#else
   if (blocking) {
     wait_for_completion(task);
   }

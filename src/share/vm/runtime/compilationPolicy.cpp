@@ -60,11 +60,11 @@ void compilationPolicy_init() {
     break;
 
   case 1:
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
     CompilationPolicy::set_policy(new StackWalkCompPolicy());
-//#else
-//    Unimplemented();
-//#endif
+#else
+    Unimplemented();
+#endif
     break;
   case 2:
 #ifdef TIERED
@@ -420,7 +420,7 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
 }
 // StackWalkCompPolicy - walk up stack to find a suitable method to compile
 
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
 const char* StackWalkCompPolicy::_msg = NULL;
 
 
@@ -646,4 +646,4 @@ const char* StackWalkCompPolicy::shouldNotInline(methodHandle m) {
 
 
 
-//#endif // COMPILER2
+#endif // COMPILER2 || GRAAL

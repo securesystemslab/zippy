@@ -201,6 +201,10 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case slow_subtype_check_id:
     case fpu2long_stub_id:
     case unwind_exception_id:
+    case counter_overflow_id:
+#if defined(SPARC) || defined(PPC)
+    case handle_exception_nofpu_id:  // Unused on sparc
+#endif
 #ifdef GRAAL
     case graal_verify_pointer_id:
     case graal_unwind_exception_call_id:
@@ -208,12 +212,6 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
-#endif
-#ifndef TIERED
-    case counter_overflow_id: // Not generated outside the tiered world
-#endif
-#if defined(SPARC) || defined(PPC)
-    case handle_exception_nofpu_id:  // Unused on sparc
 #endif
       break;
 
@@ -744,19 +742,7 @@ JRT_LEAF(void, Runtime1::monitorexit(JavaThread* thread, BasicObjectLock* lock))
   EXCEPTION_MARK;
 
   oop obj = lock->obj();
-
-#ifdef DEBUG
-  if (!obj->is_oop()) {
-    ResetNoHandleMark rhm;
-    nmethod* method = thread->last_frame().cb()->as_nmethod_or_null();
-    if (method != NULL) {
-      tty->print_cr("ERROR in monitorexit in method %s wrong obj " INTPTR_FORMAT, method->name(), obj);
-    }
-    thread->print_stack_on(tty);
-    assert(false, "invalid lock object pointer dected");
-  }
-#endif
-
+  assert(obj->is_oop(), "must be NULL or an object");
   if (UseFastLocking) {
     // When using fast locking, the compiled code has already tried the fast case
     ObjectSynchronizer::slow_exit(obj, lock->lock(), THREAD);
