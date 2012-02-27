@@ -3002,7 +3002,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ bind(no_pending_exception);
 #endif
 
-  // (tw) Start of graal uncommon trap code.
+#ifdef GRAAL
   __ jmp(cont);
 
   int jmp_uncommon_trap_offset = __ pc() - start;
@@ -3011,20 +3011,10 @@ void SharedRuntime::generate_deopt_blob() {
 
   int uncommon_trap_offset = __ pc() - start;
 
-  // Warning: Duplicate code
-
   // Save everything in sight.
   RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
-
-  // Normal deoptimization
-
-
   // fetch_unroll_info needs to call last_java_frame()
   __ set_last_Java_frame(noreg, noreg, NULL);
-
-
-  //  __ movl(c_rarg1, (int32_t)Deoptimization::Unpack_reexecute);
-  //  __ movl(r14, c_rarg1); // save into r14 for later call to unpack_frames
 
   assert(r10 == rscratch1, "scratch register should be r10");
   __ movl(c_rarg1, Address(rsp, RegisterSaver::r10_offset_in_bytes()));
@@ -3033,19 +3023,13 @@ void SharedRuntime::generate_deopt_blob() {
   __ movl(r14, (int32_t)Deoptimization::Unpack_reexecute);
   __ mov(c_rarg0, r15_thread);
   __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::uncommon_trap)));
-
-  // Need to have an oopmap that tells fetch_unroll_info where to
-  // find any register it might need.
-
   oop_maps->add_gc_map( __ pc()-start, map->deep_copy());
 
   __ reset_last_Java_frame(false, false);
 
   Label after_fetch_unroll_info_call;
   __ jmp(after_fetch_unroll_info_call);
-
-
-  // (tw) End of graal uncommon trap code.
+#endif
 
   __ bind(cont);
 
