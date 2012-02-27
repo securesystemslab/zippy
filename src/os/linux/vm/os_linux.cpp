@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -127,7 +127,6 @@
 
 // for timer info max values which include all bits
 #define ALL_64_BITS CONST64(0xFFFFFFFFFFFFFFFF)
-#define SEC_IN_NANOSECS  1000000000LL
 
 #define LARGEPAGES_BIT (1 << 6)
 ////////////////////////////////////////////////////////////////////////////////
@@ -1733,7 +1732,7 @@ bool os::dll_address_to_function_name(address addr, char *buf,
     return true;
   } else if (dlinfo.dli_fname != NULL && dlinfo.dli_fbase != 0) {
     if (Decoder::decode((address)(addr - (address)dlinfo.dli_fbase),
-       dlinfo.dli_fname, buf, buflen, offset) == Decoder::no_error) {
+        buf, buflen, offset, dlinfo.dli_fname)) {
        return true;
     }
   }
@@ -2547,8 +2546,8 @@ void os::realign_memory(char *addr, size_t bytes, size_t alignment_hint) {
   }
 }
 
-void os::free_memory(char *addr, size_t bytes) {
-  commit_memory(addr, bytes, false);
+void os::free_memory(char *addr, size_t bytes, size_t alignment_hint) {
+  commit_memory(addr, bytes, alignment_hint, false);
 }
 
 void os::numa_make_global(char *addr, size_t bytes) {
@@ -3259,8 +3258,6 @@ size_t os::read(int fd, void *buf, unsigned int nBytes) {
 // generates a SIGUSRx signal. Note that SIGUSR1 can interfere with
 // SIGSEGV, see 4355769.
 
-const int NANOSECS_PER_MILLISECS = 1000000;
-
 int os::sleep(Thread* thread, jlong millis, bool interruptible) {
   assert(thread == Thread::current(),  "thread consistency check");
 
@@ -3283,7 +3280,7 @@ int os::sleep(Thread* thread, jlong millis, bool interruptible) {
         // not a guarantee() because JVM should not abort on kernel/glibc bugs
         assert(!Linux::supports_monotonic_clock(), "time moving backwards");
       } else {
-        millis -= (newtime - prevtime) / NANOSECS_PER_MILLISECS;
+        millis -= (newtime - prevtime) / NANOSECS_PER_MILLISEC;
       }
 
       if(millis <= 0) {
@@ -3322,7 +3319,7 @@ int os::sleep(Thread* thread, jlong millis, bool interruptible) {
         // not a guarantee() because JVM should not abort on kernel/glibc bugs
         assert(!Linux::supports_monotonic_clock(), "time moving backwards");
       } else {
-        millis -= (newtime - prevtime) / NANOSECS_PER_MILLISECS;
+        millis -= (newtime - prevtime) / NANOSECS_PER_MILLISEC;
       }
 
       if(millis <= 0) break ;
@@ -3386,7 +3383,7 @@ void os::loop_breaker(int attempts) {
 // this reason, the code should not be used as default (ThreadPriorityPolicy=0).
 // It is only used when ThreadPriorityPolicy=1 and requires root privilege.
 
-int os::java_to_os_priority[MaxPriority + 1] = {
+int os::java_to_os_priority[CriticalPriority + 1] = {
   19,              // 0 Entry should never be used
 
    4,              // 1 MinPriority
@@ -3401,7 +3398,9 @@ int os::java_to_os_priority[MaxPriority + 1] = {
   -3,              // 8
   -4,              // 9 NearMaxPriority
 
-  -5               // 10 MaxPriority
+  -5,              // 10 MaxPriority
+
+  -5               // 11 CriticalPriority
 };
 
 static int prio_init() {
@@ -3415,6 +3414,9 @@ static int prio_init() {
       }
       ThreadPriorityPolicy = 0;
     }
+  }
+  if (UseCriticalJavaThreadPriority) {
+    os::java_to_os_priority[MaxPriority] = os::java_to_os_priority[CriticalPriority];
   }
   return 0;
 }
@@ -3931,7 +3933,7 @@ jlong os::Linux::fast_thread_cpu_time(clockid_t clockid) {
   int rc = os::Linux::clock_gettime(clockid, &tp);
   assert(rc == 0, "clock_gettime is expected to return 0 code");
 
-  return (tp.tv_sec * SEC_IN_NANOSECS) + tp.tv_nsec;
+  return (tp.tv_sec * NANOSECS_PER_SEC) + tp.tv_nsec;
 }
 
 /////
@@ -5172,9 +5174,6 @@ void os::PlatformEvent::unpark() {
  * is no need to track notifications.
  */
 
-
-#define NANOSECS_PER_SEC 1000000000
-#define NANOSECS_PER_MILLISEC 1000000
 #define MAX_SECS 100000000
 /*
  * This code is common to linux and solaris and will be moved to a

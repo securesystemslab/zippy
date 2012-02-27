@@ -76,15 +76,19 @@ BUILD_TARGET  = -DHOTSPOT_BUILD_TARGET="\"$(TARGET)\""
 BUILD_USER    = -DHOTSPOT_BUILD_USER="\"$(HOTSPOT_BUILD_USER)\""
 VM_DISTRO     = -DHOTSPOT_VM_DISTRO="\"$(HOTSPOT_VM_DISTRO)\""
 
-CPPFLAGS =           \
+CXXFLAGS =           \
   ${SYSDEFS}         \
   ${INCLUDES}        \
   ${BUILD_VERSION}   \
   ${BUILD_TARGET}    \
   ${BUILD_USER}      \
   ${HS_LIB_ARCH}     \
-  ${JRE_VERSION}     \
   ${VM_DISTRO}
+
+# This is VERY important! The version define must only be supplied to vm_version.o
+# If not, ccache will not re-use the cache at all, since the version string might contain
+# a time and date. 
+vm_version.o: CXXFLAGS += ${JRE_VERSION} 
 
 # CFLAGS_WARN holds compiler options to suppress/enable warnings.
 CFLAGS += $(CFLAGS_WARN)
@@ -93,7 +97,7 @@ CFLAGS += $(CFLAGS_WARN)
 CFLAGS += $(CFLAGS/NOEX)
 
 # Extra flags from gnumake's invocation or environment
-CFLAGS += $(EXTRA_CFLAGS)
+CFLAGS += $(EXTRA_CFLAGS) -DINCLUDE_TRACE
 
 # Math Library (libm.so), do not use -lm.
 #    There might be two versions of libm.so on the build system:
@@ -159,6 +163,10 @@ SOURCE_PATHS+=$(HS_COMMON_SRC)/os/$(Platform_os_family)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os/posix/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/cpu/$(Platform_arch)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os_cpu/$(Platform_os_arch)/vm
+
+SOURCE_PATHS+=$(shell if [ -d $(HS_ALT_SRC)/share/vm/jfr ]; then \
+  find $(HS_ALT_SRC)/share/vm/jfr -type d; \
+  fi)
 
 CORE_PATHS=$(foreach path,$(SOURCE_PATHS),$(call altsrc,$(path)) $(path))
 CORE_PATHS+=$(GENERATED)/jvmtifiles
@@ -261,17 +269,17 @@ endif
 endif
 
 ifdef USE_GCC
-LINK_VM = $(LINK_LIB.c)
-else
 LINK_VM = $(LINK_LIB.CC)
+else
+LINK_VM = $(LINK_LIB.CXX)
 endif
 # making the library:
 $(LIBJVM): $(LIBJVM.o) $(LIBJVM_MAPFILE) 
 ifeq ($(filter -sbfast -xsbfast, $(CFLAGS_BROWSE)),)
 	@echo Linking vm...
-	$(QUIETLY) $(LINK_LIB.CC/PRE_HOOK)
+	$(QUIETLY) $(LINK_LIB.CXX/PRE_HOOK)
 	$(QUIETLY) $(LINK_VM) $(LFLAGS_VM) -o $@ $(LIBJVM.o) $(LIBS_VM)
-	$(QUIETLY) $(LINK_LIB.CC/POST_HOOK)
+	$(QUIETLY) $(LINK_LIB.CXX/POST_HOOK)
 	$(QUIETLY) rm -f $@.1 && ln -s $@ $@.1
 	$(QUIETLY) [ -f $(LIBJVM_G) ] || ln -s $@ $(LIBJVM_G)
 	$(QUIETLY) [ -f $(LIBJVM_G).1 ] || ln -s $@.1 $(LIBJVM_G).1

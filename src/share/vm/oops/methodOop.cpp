@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -207,12 +207,6 @@ int methodOopDesc::validate_bci_from_bcx(intptr_t bcx) const {
 }
 
 address methodOopDesc::bcp_from(int bci) const {
-#ifdef ASSERT
-  if (!((is_native() && bci == 0)  || (!is_native() && 0 <= bci && bci < code_size()))) {
-    char buf[1024];
-    tty->print_cr("bci: %i, size: %i, method: %s", bci, code_size(), const_cast<methodOop>(this)->name_and_sig_as_C_string(buf, 1024));
-  }
-#endif // ASSERT
   assert((is_native() && bci == 0)  || (!is_native() && 0 <= bci && bci < code_size()), "illegal bci");
   address bcp = code_base() + bci;
   assert(is_native() && bcp == code_base() || contains(bcp), "bcp doesn't belong to this method");
@@ -600,6 +594,11 @@ void methodOopDesc::clear_native_function() {
     SharedRuntime::native_method_throw_unsatisfied_link_error_entry(),
     !native_bind_event_is_interesting);
   clear_code();
+}
+
+address methodOopDesc::critical_native_function() {
+  methodHandle mh(this);
+  return NativeLookup::lookup_critical_entry(mh);
 }
 
 

@@ -35,7 +35,6 @@
 #include "oops/oop.inline2.hpp"
 #include "runtime/handles.inline.hpp"
 #ifndef SERIALGC
-#include "gc_implementation/parallelScavenge/psPromotionManager.inline.hpp"
 #include "gc_implementation/parallelScavenge/psScavenge.inline.hpp"
 #include "oops/oop.pcgc.inline.hpp"
 #endif
@@ -85,7 +84,9 @@ void methodDataKlass::oop_follow_contents(oop obj) {
 
   obj->follow_header();
   MarkSweep::mark_and_push(m->adr_method());
+#ifdef GRAAL
   MarkSweep::mark_and_push(m->adr_graal_mirror());
+#endif
   ResourceMark rm;
   for (ProfileData* data = m->first_data();
        m->is_valid(data);
@@ -102,7 +103,9 @@ void methodDataKlass::oop_follow_contents(ParCompactionManager* cm,
 
   obj->follow_header(cm);
   PSParallelCompact::mark_and_push(cm, m->adr_method());
+#ifdef GRAAL
   PSParallelCompact::mark_and_push(cm, m->adr_graal_mirror());
+#endif
   ResourceMark rm;
   for (ProfileData* data = m->first_data();
        m->is_valid(data);
@@ -122,7 +125,9 @@ int methodDataKlass::oop_oop_iterate(oop obj, OopClosure* blk) {
 
   obj->oop_iterate_header(blk);
   blk->do_oop(m->adr_method());
+#ifdef GRAAL
   blk->do_oop(m->adr_graal_mirror());
+#endif
   ResourceMark rm;
   for (ProfileData* data = m->first_data();
        m->is_valid(data);
@@ -144,11 +149,12 @@ int methodDataKlass::oop_oop_iterate_m(oop obj, OopClosure* blk, MemRegion mr) {
   if (mr.contains(adr)) {
     blk->do_oop(m->adr_method());
   }
+#ifdef GRAAL
   adr = m->adr_graal_mirror();
   if(mr.contains(adr)) {
     blk->do_oop(m->adr_graal_mirror());
   }
-
+#endif
   ResourceMark rm;
   for (ProfileData* data = m->first_data();
        m->is_valid(data);
@@ -167,7 +173,9 @@ int methodDataKlass::oop_adjust_pointers(oop obj) {
 
   obj->adjust_header();
   MarkSweep::adjust_pointer(m->adr_method());
+#ifdef GRAAL
   MarkSweep::adjust_pointer(m->adr_graal_mirror());
+#endif
   ResourceMark rm;
   ProfileData* data;
   for (data = m->first_data(); m->is_valid(data); data = m->next_data(data)) {
@@ -183,11 +191,12 @@ void methodDataKlass::oop_push_contents(PSPromotionManager* pm, oop obj) {
   methodDataOop m = methodDataOop(obj);
   // This should never point into the young gen.
   assert(!PSScavenge::should_scavenge(m->adr_method()), "Sanity");
- 
+#ifdef GRAAL
   oop* adr = m->adr_graal_mirror();
   if(PSScavenge::should_scavenge(adr)) {
     pm->claim_or_forward_depth(adr);
   }
+#endif
 }
 
 int methodDataKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
@@ -195,7 +204,9 @@ int methodDataKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
   methodDataOop m = methodDataOop(obj);
 
   PSParallelCompact::adjust_pointer(m->adr_method());
+#ifdef GRAAL
   PSParallelCompact::adjust_pointer(m->adr_graal_mirror());
+#endif
 
   ResourceMark rm;
   ProfileData* data;

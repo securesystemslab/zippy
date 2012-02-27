@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -132,7 +132,6 @@ PVOID  topLevelVectoredExceptionHandler = NULL;
 // save DLL module handle, used by GetModuleFileName
 
 HINSTANCE vm_lib_handle;
-static int getLastErrorString(char *buf, size_t len);
 
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved) {
   switch (reason) {
@@ -407,6 +406,7 @@ static unsigned __stdcall java_start(Thread* thread) {
       thread->set_lgrp_id(lgrp_id);
     }
   }
+
 
   if (UseVectoredExceptions) {
     // If we are using vectored exception we don't need to set a SEH
@@ -820,17 +820,15 @@ jlong os::javaTimeMillis() {
   }
 }
 
-#define NANOS_PER_SEC         CONST64(1000000000)
-#define NANOS_PER_MILLISEC    1000000
 jlong os::javaTimeNanos() {
   if (!has_performance_count) {
-    return javaTimeMillis() * NANOS_PER_MILLISEC; // the best we can do.
+    return javaTimeMillis() * NANOSECS_PER_MILLISEC; // the best we can do.
   } else {
     LARGE_INTEGER current_count;
     QueryPerformanceCounter(&current_count);
     double current = as_long(current_count);
     double freq = performance_frequency;
-    jlong time = (jlong)((current/freq) * NANOS_PER_SEC);
+    jlong time = (jlong)((current/freq) * NANOSECS_PER_SEC);
     return time;
   }
 }
@@ -846,15 +844,15 @@ void os::javaTimeNanos_info(jvmtiTimerInfo *info_ptr) {
     info_ptr->may_skip_forward = true;
   } else {
     jlong freq = performance_frequency;
-    if (freq < NANOS_PER_SEC) {
+    if (freq < NANOSECS_PER_SEC) {
       // the performance counter is 64 bits and we will
       // be multiplying it -- so no wrap in 64 bits
       info_ptr->max_value = ALL_64_BITS;
-    } else if (freq > NANOS_PER_SEC) {
+    } else if (freq > NANOSECS_PER_SEC) {
       // use the max value the counter can reach to
       // determine the max value which could be returned
       julong max_counter = (julong)ALL_64_BITS;
-      info_ptr->max_value = (jlong)(max_counter / (freq / NANOS_PER_SEC));
+      info_ptr->max_value = (jlong)(max_counter / (freq / NANOSECS_PER_SEC));
     } else {
       // the performance counter is 64 bits and we will
       // be using it directly -- so no wrap in 64 bits
@@ -1393,7 +1391,7 @@ bool os::dll_address_to_library_name(address addr, char* buf,
 
 bool os::dll_address_to_function_name(address addr, char *buf,
                                       int buflen, int *offset) {
-  if (Decoder::decode(addr, buf, buflen, offset) == Decoder::no_error) {
+  if (Decoder::decode(addr, buf, buflen, offset)) {
     return true;
   }
   if (offset != NULL)  *offset  = -1;
@@ -1453,7 +1451,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen)
     return result;
   }
 
-  long errcode = GetLastError();
+  DWORD errcode = GetLastError();
   if (errcode == ERROR_MOD_NOT_FOUND) {
     strncpy(ebuf, "Can't find dependent libraries", ebuflen-1);
     ebuf[ebuflen-1]='\0';
@@ -1464,11 +1462,11 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen)
   // If we can read dll-info and find that dll was built
   // for an architecture other than Hotspot is running in
   // - then print to buffer "DLL was built for a different architecture"
-  // else call getLastErrorString to obtain system error message
+  // else call os::lasterror to obtain system error message
 
   // Read system error message into ebuf
   // It may or may not be overwritten below (in the for loop and just above)
-  getLastErrorString(ebuf, (size_t) ebuflen);
+  lasterror(ebuf, (size_t) ebuflen);
   ebuf[ebuflen-1]='\0';
   int file_descriptor=::open(name, O_RDONLY | O_BINARY, 0);
   if (file_descriptor<0)
@@ -1501,7 +1499,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen)
   ::close(file_descriptor);
   if (failed_to_get_lib_arch)
   {
-    // file i/o error - report getLastErrorString(...) msg
+    // file i/o error - report os::lasterror(...) msg
     return NULL;
   }
 
@@ -1544,7 +1542,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen)
     "Didn't find runing architecture code in arch_array");
 
   // If the architure is right
-  // but some other error took place - report getLastErrorString(...) msg
+  // but some other error took place - report os::lasterror(...) msg
   if (lib_arch == running_arch)
   {
     return NULL;
@@ -1776,12 +1774,12 @@ void os::print_jni_name_suffix_on(outputStream* st, int args_size) {
 // This method is a copy of JDK's sysGetLastErrorString
 // from src/windows/hpi/src/system_md.c
 
-size_t os::lasterror(char *buf, size_t len) {
-  long errval;
+size_t os::lasterror(char* buf, size_t len) {
+  DWORD errval;
 
   if ((errval = GetLastError()) != 0) {
-      /* DOS error */
-    int n = (int)FormatMessage(
+    // DOS error
+    size_t n = (size_t)FormatMessage(
           FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
           NULL,
           errval,
@@ -1790,7 +1788,7 @@ size_t os::lasterror(char *buf, size_t len) {
           (DWORD)len,
           NULL);
     if (n > 3) {
-      /* Drop final '.', CR, LF */
+      // Drop final '.', CR, LF
       if (buf[n - 1] == '\n') n--;
       if (buf[n - 1] == '\r') n--;
       if (buf[n - 1] == '.') n--;
@@ -1800,15 +1798,23 @@ size_t os::lasterror(char *buf, size_t len) {
   }
 
   if (errno != 0) {
-    /* C runtime error that has no corresponding DOS error code */
-    const char *s = strerror(errno);
+    // C runtime error that has no corresponding DOS error code
+    const char* s = strerror(errno);
     size_t n = strlen(s);
     if (n >= len) n = len - 1;
     strncpy(buf, s, n);
     buf[n] = '\0';
     return n;
   }
+
   return 0;
+}
+
+int os::get_last_error() {
+  DWORD error = GetLastError();
+  if (error == 0)
+    error = errno;
+  return (int)error;
 }
 
 // sun.misc.Signal
@@ -2082,10 +2088,11 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #elif _M_AMD64
   PCONTEXT ctx = exceptionInfo->ContextRecord;
   address pc = (address)ctx->Rip;
-  NOT_PRODUCT(Events::log("idiv overflow exception at " INTPTR_FORMAT , pc));
-  //assert(pc[0] == 0xF7 || (pc[1] == 0xF7 && (pc[0] == 0x41 || pc[0] == 0x49)), "not an idiv opcode");
-  //assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
-  //assert((long)ctx->Rax == (long)min_jint || pc[0] == 0x49, "unexpected idiv exception");
+#ifndef GRAAL
+  assert(pc[0] == 0xF7, "not an idiv opcode");
+  assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
+  assert(ctx->Rax == min_jint, "unexpected idiv exception");
+#endif
   // set correct result values and continue after idiv instruction
   ctx->Rip = (DWORD)pc + 2;        // idiv reg, reg  is 2 bytes
   ctx->Rax = (DWORD)min_jint;      // result
@@ -2094,7 +2101,6 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #else
   PCONTEXT ctx = exceptionInfo->ContextRecord;
   address pc = (address)ctx->Eip;
-  NOT_PRODUCT(Events::log("idiv overflow exception at " INTPTR_FORMAT , pc));
   assert(pc[0] == 0xF7, "not an idiv opcode");
   assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
   assert(ctx->Eax == min_jint, "unexpected idiv exception");
@@ -3131,7 +3137,7 @@ bool os::unguard_memory(char* addr, size_t bytes) {
 }
 
 void os::realign_memory(char *addr, size_t bytes, size_t alignment_hint) { }
-void os::free_memory(char *addr, size_t bytes)         { }
+void os::free_memory(char *addr, size_t bytes, size_t alignment_hint)    { }
 void os::numa_make_global(char *addr, size_t bytes)    { }
 void os::numa_make_local(char *addr, size_t bytes, int lgrp_hint)    { }
 bool os::numa_topology_changed()                       { return false; }
@@ -3290,7 +3296,7 @@ void os::yield_all(int attempts) {
 // so we compress Java's ten down to seven.  It would be better
 // if we dynamically adjusted relative priorities.
 
-int os::java_to_os_priority[MaxPriority + 1] = {
+int os::java_to_os_priority[CriticalPriority + 1] = {
   THREAD_PRIORITY_IDLE,                         // 0  Entry should never be used
   THREAD_PRIORITY_LOWEST,                       // 1  MinPriority
   THREAD_PRIORITY_LOWEST,                       // 2
@@ -3301,10 +3307,11 @@ int os::java_to_os_priority[MaxPriority + 1] = {
   THREAD_PRIORITY_ABOVE_NORMAL,                 // 7
   THREAD_PRIORITY_ABOVE_NORMAL,                 // 8
   THREAD_PRIORITY_HIGHEST,                      // 9  NearMaxPriority
-  THREAD_PRIORITY_HIGHEST                       // 10 MaxPriority
+  THREAD_PRIORITY_HIGHEST,                      // 10 MaxPriority
+  THREAD_PRIORITY_HIGHEST                       // 11 CriticalPriority
 };
 
-int prio_policy1[MaxPriority + 1] = {
+int prio_policy1[CriticalPriority + 1] = {
   THREAD_PRIORITY_IDLE,                         // 0  Entry should never be used
   THREAD_PRIORITY_LOWEST,                       // 1  MinPriority
   THREAD_PRIORITY_LOWEST,                       // 2
@@ -3315,16 +3322,20 @@ int prio_policy1[MaxPriority + 1] = {
   THREAD_PRIORITY_ABOVE_NORMAL,                 // 7
   THREAD_PRIORITY_HIGHEST,                      // 8
   THREAD_PRIORITY_HIGHEST,                      // 9  NearMaxPriority
-  THREAD_PRIORITY_TIME_CRITICAL                 // 10 MaxPriority
+  THREAD_PRIORITY_TIME_CRITICAL,                // 10 MaxPriority
+  THREAD_PRIORITY_TIME_CRITICAL                 // 11 CriticalPriority
 };
 
 static int prio_init() {
   // If ThreadPriorityPolicy is 1, switch tables
   if (ThreadPriorityPolicy == 1) {
     int i;
-    for (i = 0; i < MaxPriority + 1; i++) {
+    for (i = 0; i < CriticalPriority + 1; i++) {
       os::java_to_os_priority[i] = prio_policy1[i];
     }
+  }
+  if (UseCriticalJavaThreadPriority) {
+    os::java_to_os_priority[MaxPriority] = os::java_to_os_priority[CriticalPriority] ;
   }
   return 0;
 }
@@ -4747,7 +4758,7 @@ bool os::check_heap(bool force) {
           fatal("corrupted C heap");
         }
       }
-      int err = GetLastError();
+      DWORD err = GetLastError();
       if (err != ERROR_NO_MORE_ITEMS && err != ERROR_CALL_NOT_IMPLEMENTED) {
         fatal(err_msg("heap walk aborted with error %d", err));
       }
@@ -4778,45 +4789,6 @@ LONG WINAPI os::win32::serialize_fault_filter(struct _EXCEPTION_POINTERS* e) {
 
   return EXCEPTION_CONTINUE_SEARCH;
 }
-
-static int getLastErrorString(char *buf, size_t len)
-{
-    long errval;
-
-    if ((errval = GetLastError()) != 0)
-    {
-      /* DOS error */
-      size_t n = (size_t)FormatMessage(
-            FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL,
-            errval,
-            0,
-            buf,
-            (DWORD)len,
-            NULL);
-      if (n > 3) {
-        /* Drop final '.', CR, LF */
-        if (buf[n - 1] == '\n') n--;
-        if (buf[n - 1] == '\r') n--;
-        if (buf[n - 1] == '.') n--;
-        buf[n] = '\0';
-      }
-      return (int)n;
-    }
-
-    if (errno != 0)
-    {
-      /* C runtime error that has no corresponding DOS error code */
-      const char *s = strerror(errno);
-      size_t n = strlen(s);
-      if (n >= len) n = len - 1;
-      strncpy(buf, s, n);
-      buf[n] = '\0';
-      return (int)n;
-    }
-    return 0;
-}
-
 
 // We don't build a headless jre for Windows
 bool os::is_headless_jre() { return false; }
@@ -4850,7 +4822,7 @@ static void initSock() {
   ::mutexUnlock(&sockFnTableMutex);
 }
 
-struct hostent*  os::get_host_by_name(char* name) {
+struct hostent* os::get_host_by_name(char* name) {
   if (!sock_initialized) {
     initSock();
   }
@@ -4881,39 +4853,39 @@ int os::listen(int fd, int count) {
   return 0;
 }
 
-int os::connect(int fd, struct sockaddr *him, int len) {
+int os::connect(int fd, struct sockaddr* him, socklen_t len) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::accept(int fd, struct sockaddr *him, int *len) {
+int os::accept(int fd, struct sockaddr* him, socklen_t* len) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::sendto(int fd, char *buf, int len, int flags,
-                        struct sockaddr *to, int tolen) {
+int os::sendto(int fd, char* buf, size_t len, uint flags,
+               struct sockaddr* to, socklen_t tolen) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::recvfrom(int fd, char *buf, int nBytes, int flags,
-                         sockaddr *from, int *fromlen) {
+int os::recvfrom(int fd, char *buf, size_t nBytes, uint flags,
+                 sockaddr* from, socklen_t* fromlen) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::recv(int fd, char *buf, int nBytes, int flags) {
+int os::recv(int fd, char* buf, size_t nBytes, uint flags) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::send(int fd, char *buf, int nBytes, int flags) {
+int os::send(int fd, char* buf, size_t nBytes, uint flags) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::raw_send(int fd, char *buf, int nBytes, int flags) {
+int os::raw_send(int fd, char* buf, size_t nBytes, uint flags) {
   ShouldNotReachHere();
   return 0;
 }
@@ -4933,24 +4905,24 @@ int os::socket_shutdown(int fd, int howto) {
   return 0;
 }
 
-int os::bind(int fd, struct sockaddr *him, int len) {
+int os::bind(int fd, struct sockaddr* him, socklen_t len) {
   ShouldNotReachHere();
   return 0;
 }
 
-int os::get_sock_name(int fd, struct sockaddr *him, int *len) {
+int os::get_sock_name(int fd, struct sockaddr* him, socklen_t* len) {
   ShouldNotReachHere();
   return 0;
 }
 
 int os::get_sock_opt(int fd, int level, int optname,
-                             char *optval, int* optlen) {
+                     char* optval, socklen_t* optlen) {
   ShouldNotReachHere();
   return 0;
 }
 
 int os::set_sock_opt(int fd, int level, int optname,
-                             const char *optval, int optlen) {
+                     const char* optval, socklen_t optlen) {
   ShouldNotReachHere();
   return 0;
 }
@@ -5364,4 +5336,3 @@ BOOL os::Advapi32Dll::AdvapiAvailable() {
 }
 
 #endif
-

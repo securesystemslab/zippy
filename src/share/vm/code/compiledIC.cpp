@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -165,7 +165,6 @@ void CompiledIC::set_to_megamorphic(CallInfo* call_info, Bytecodes::Code bytecod
                    instruction_address(), method->print_value_string(), entry);
   }
 
-  Events::log("compiledIC " INTPTR_FORMAT " --> megamorphic " INTPTR_FORMAT, this, (address)method());
   // We can't check this anymore. With lazy deopt we could have already
   // cleaned this IC entry before we even return. This is possible if
   // we ran out of space in the inline cache buffer trying to do the
@@ -529,7 +528,7 @@ void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) 
   NativeJump*        jump          = nativeJump_at(method_holder->next_instruction_address());
 
   assert(method_holder->data()    == 0           || method_holder->data()    == (intptr_t)callee(), "a) MT-unsafe modification of inline cache");
-// XXX GRAAL : ??
+// TODO(tw): Check what is the correct assert for Graal.
 #ifndef GRAAL
   assert(jump->jump_destination() == (address)-1 || jump->jump_destination() == entry, "b) MT-unsafe modification of inline cache");
 #endif

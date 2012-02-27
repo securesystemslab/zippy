@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -95,8 +95,7 @@ bool Exceptions::special_exception(Thread* thread, const char* file, int line, H
 #endif // ASSERT
 
   if (thread->is_VM_thread()
-	  // TODO(tw): May we do this?
-      /*|| thread->is_Compiler_thread()*/ ) {
+      || thread->is_Compiler_thread() ) {
     // We do not care what kind of exception we get for the vm-thread or a thread which
     // is compiling.  We just install a dummy exception object
     thread->set_pending_exception(Universe::vm_exception(), file, line);
@@ -119,8 +118,7 @@ bool Exceptions::special_exception(Thread* thread, const char* file, int line, S
   }
 
   if (thread->is_VM_thread()
-	  // TODO(tw): May we do this?
-     /* || thread->is_Compiler_thread()*/ ) {
+      || thread->is_Compiler_thread() ) {
     // We do not care what kind of exception we get for the vm-thread or a thread which
     // is compiling.  We just install a dummy exception object
     thread->set_pending_exception(Universe::vm_exception(), file, line);
@@ -162,7 +160,7 @@ void Exceptions::_throw(Thread* thread, const char* file, int line, Handle h_exc
   thread->set_pending_exception(h_exception(), file, line);
 
   // vm log
-  Events::log("throw_exception " INTPTR_FORMAT, (address)h_exception());
+  Events::log_exception(thread, "Threw " INTPTR_FORMAT " at %s:%d", (address)h_exception(), file, line);
 }
 
 

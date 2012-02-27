@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -64,6 +64,9 @@ SymbolPropertyTable*   SystemDictionary::_invoke_method_table = NULL;
 
 
 int         SystemDictionary::_number_of_modifications = 0;
+int         SystemDictionary::_sdgeneration               = 0;
+const int   SystemDictionary::_primelist[_prime_array_size] = {1009,2017,4049,5051,10103,
+              20201,40423,99991};
 
 oop         SystemDictionary::_system_loader_lock_obj     =  NULL;
 
@@ -190,8 +193,7 @@ klassOop SystemDictionary::resolve_or_fail(Symbol* class_name,
 // Forwards to resolve_instance_class_or_null
 
 klassOop SystemDictionary::resolve_or_null(Symbol* class_name, Handle class_loader, Handle protection_domain, TRAPS) {
-  // (tw) May we do this?
-  //assert(!THREAD->is_Compiler_thread(), "Can not load classes with the Compiler thread");
+  assert(!THREAD->is_Compiler_thread(), "Can not load classes with the Compiler thread");
   if (FieldType::is_array(class_name)) {
     return resolve_array_class_or_null(class_name, class_loader, protection_domain, CHECK_NULL);
   } else if (FieldType::is_obj(class_name)) {
@@ -1179,8 +1181,8 @@ void SystemDictionary::set_shared_dictionary(HashtableBucket* t, int length,
 
 klassOop SystemDictionary::find_shared_class(Symbol* class_name) {
   if (shared_dictionary() != NULL) {
-    unsigned int d_hash = dictionary()->compute_hash(class_name, Handle());
-    int d_index = dictionary()->hash_to_index(d_hash);
+    unsigned int d_hash = shared_dictionary()->compute_hash(class_name, Handle());
+    int d_index = shared_dictionary()->hash_to_index(d_hash);
     return shared_dictionary()->find_shared_class(d_index, d_hash, class_name);
   } else {
     return NULL;
@@ -1751,7 +1753,21 @@ void SystemDictionary::placeholders_do(OopClosure* blk) {
   placeholders()->oops_do(blk);
 }
 
-
+// Calculate a "good" systemdictionary size based
+// on predicted or current loaded classes count
+int SystemDictionary::calculate_systemdictionary_size(int classcount) {
+  int newsize = _old_default_sdsize;
+  if ((classcount > 0)  && !DumpSharedSpaces) {
+    int desiredsize = classcount/_average_depth_goal;
+    for (newsize = _primelist[_sdgeneration]; _sdgeneration < _prime_array_size -1;
+         newsize = _primelist[++_sdgeneration]) {
+      if (desiredsize <=  newsize) {
+        break;
+      }
+    }
+  }
+  return newsize;
+}
 bool SystemDictionary::do_unloading(BoolObjectClosure* is_alive) {
   bool result = dictionary()->do_unloading(is_alive);
   constraints()->purge_loader_constraints(is_alive);
@@ -1874,7 +1890,8 @@ void SystemDictionary::initialize(TRAPS) {
   // Allocate arrays
   assert(dictionary() == NULL,
          "SystemDictionary should only be initialized once");
-  _dictionary          = new Dictionary(_nof_buckets);
+  _sdgeneration        = 0;
+  _dictionary          = new Dictionary(calculate_systemdictionary_size(PredictedLoadedClassCount));
   _placeholders        = new PlaceholderTable(_nof_buckets);
   _number_of_modifications = 0;
   _loader_constraints  = new LoaderConstraintTable(_loader_constraint_size);
@@ -2132,6 +2149,12 @@ void SystemDictionary::update_dictionary(int d_index, unsigned int d_hash,
     }
   }
 
+  // Assign a classid if one has not already been assigned.  The
+  // counter does not need to be atomically incremented since this
+  // is only done while holding the SystemDictionary_lock.
+  // All loaded classes get a unique ID.
+  TRACE_INIT_ID(k);
+
   // Check for a placeholder. If there, remove it and make a
   // new system dictionary entry.
   placeholders()->find_and_remove(p_index, p_hash, name, class_loader, THREAD);
@@ -2346,9 +2369,8 @@ methodOop SystemDictionary::find_method_handle_invoke(Symbol* name,
   if (spe == NULL || spe->property_oop() == NULL) {
     spe = NULL;
     // Must create lots of stuff here, but outside of the SystemDictionary lock.
-    // (tw) May we do this?
-	//if (THREAD->is_Compiler_thread())
-    //  return NULL;              // do not attempt from within compiler
+    if (THREAD->is_Compiler_thread())
+      return NULL;              // do not attempt from within compiler
     bool for_invokeGeneric = (name_id != vmSymbols::VM_SYMBOL_ENUM_NAME(invokeExact_name));
     bool found_on_bcp = false;
     Handle mt = find_method_handle_type(signature, accessing_klass,

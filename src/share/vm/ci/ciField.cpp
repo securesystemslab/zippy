@@ -306,20 +306,15 @@ ciType* ciField::compute_type_impl() {
   return type;
 }
 
-bool ciField::will_link(ciInstanceKlass* accessing_klass,
-                        Bytecodes::Code bc) {
-  VM_ENTRY_MARK;
-  return will_link_from_vm(accessing_klass, bc);
-}
 
 // ------------------------------------------------------------------
 // ciField::will_link
 //
 // Can a specific access to this field be made without causing
 // link errors?
-bool ciField::will_link_from_vm(ciInstanceKlass* accessing_klass,
+bool ciField::will_link(ciInstanceKlass* accessing_klass,
                         Bytecodes::Code bc) {
-  Thread* THREAD = Thread::current();
+  VM_ENTRY_MARK;
   if (_offset == -1) {
     // at creation we couldn't link to our holder so we need to
     // maintain that stance, otherwise there's no safe way to use this

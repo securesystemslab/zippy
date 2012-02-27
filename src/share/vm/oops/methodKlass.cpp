@@ -83,6 +83,7 @@ methodOop methodKlass::allocate(constMethodHandle xconst,
   m->set_max_stack(0);
   m->set_max_locals(0);
   m->set_intrinsic_id(vmIntrinsics::_none);
+  m->set_jfr_towrite(false);
   m->set_method_data(NULL);
   m->set_interpreter_throwout_count(0);
   m->set_vtable_index(methodOopDesc::garbage_vtable_index);
@@ -102,7 +103,9 @@ methodOop methodKlass::allocate(constMethodHandle xconst,
   m->invocation_counter()->init();
   m->backedge_counter()->init();
   m->clear_number_of_breakpoints();
+#ifdef GRAAL
   m->set_graal_mirror(NULL);
+#endif
 
 #ifdef TIERED
   m->set_rate(0);
@@ -128,7 +131,9 @@ void methodKlass::oop_follow_contents(oop obj) {
   // know that Universe::methodKlassObj never moves.
   MarkSweep::mark_and_push(m->adr_constMethod());
   MarkSweep::mark_and_push(m->adr_constants());
+#ifdef GRAAL
   MarkSweep::mark_and_push(m->adr_graal_mirror());
+#endif
   if (m->method_data() != NULL) {
     MarkSweep::mark_and_push(m->adr_method_data());
   }
@@ -143,10 +148,14 @@ void methodKlass::oop_follow_contents(ParCompactionManager* cm,
   // know that Universe::methodKlassObj never moves.
   PSParallelCompact::mark_and_push(cm, m->adr_constMethod());
   PSParallelCompact::mark_and_push(cm, m->adr_constants());
+#ifdef GRAAL
   PSParallelCompact::mark_and_push(cm, m->adr_graal_mirror());
+#endif
+#ifdef COMPILER2
   if (m->method_data() != NULL) {
     PSParallelCompact::mark_and_push(cm, m->adr_method_data());
   }
+#endif
 }
 #endif // SERIALGC
 
@@ -160,7 +169,9 @@ int methodKlass::oop_oop_iterate(oop obj, OopClosure* blk) {
   // know that Universe::methodKlassObj never moves
   blk->do_oop(m->adr_constMethod());
   blk->do_oop(m->adr_constants());
+#ifdef GRAAL
   blk->do_oop(m->adr_graal_mirror());
+#endif
   if (m->method_data() != NULL) {
     blk->do_oop(m->adr_method_data());
   }
@@ -181,8 +192,10 @@ int methodKlass::oop_oop_iterate_m(oop obj, OopClosure* blk, MemRegion mr) {
   if (mr.contains(adr)) blk->do_oop(adr);
   adr = m->adr_constants();
   if (mr.contains(adr)) blk->do_oop(adr);
+#ifdef GRAAL
   adr = m->adr_graal_mirror();
   if (mr.contains(adr)) blk->do_oop(adr);
+#endif
   if (m->method_data() != NULL) {
     adr = m->adr_method_data();
     if (mr.contains(adr)) blk->do_oop(adr);
@@ -201,7 +214,9 @@ int methodKlass::oop_adjust_pointers(oop obj) {
   // know that Universe::methodKlassObj never moves.
   MarkSweep::adjust_pointer(m->adr_constMethod());
   MarkSweep::adjust_pointer(m->adr_constants());
+#ifdef GRAAL
   MarkSweep::adjust_pointer(m->adr_graal_mirror());
+#endif
   if (m->method_data() != NULL) {
     MarkSweep::adjust_pointer(m->adr_method_data());
   }
@@ -218,10 +233,14 @@ int methodKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
   methodOop m = methodOop(obj);
   PSParallelCompact::adjust_pointer(m->adr_constMethod());
   PSParallelCompact::adjust_pointer(m->adr_constants());
+#ifdef GRAAL
   PSParallelCompact::adjust_pointer(m->adr_graal_mirror());
+#endif
+#ifdef COMPILER2
   if (m->method_data() != NULL) {
     PSParallelCompact::adjust_pointer(m->adr_method_data());
   }
+#endif // COMPILER2
   return m->object_size();
 }
 #endif // SERIALGC

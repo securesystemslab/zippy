@@ -61,8 +61,7 @@ JavaCallWrapper::JavaCallWrapper(methodHandle callee_method, Handle receiver, Ja
 
   guarantee(thread->is_Java_thread(), "crucial check - the VM thread cannot and must not escape to Java code");
   assert(!thread->owns_locks(), "must release all locks when leaving VM");
-  // (tw) may we do this?
-  // guarantee(!thread->is_Compiler_thread(), "cannot make java calls from the compiler");
+  guarantee(!thread->is_Compiler_thread(), "cannot make java calls from the compiler");
   _result   = result;
 
   // Allocate handle block for Java code. This must be done before we change thread_state to _thread_in_Java_or_stub,
@@ -373,8 +372,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
 #endif
 
 
-  // (tw) may we do this?
-  //assert(!thread->is_Compiler_thread(), "cannot compile from the compiler");
+  assert(!thread->is_Compiler_thread(), "cannot compile from the compiler");
   if (CompilationPolicy::must_be_compiled(method)) {
     CompileBroker::compile_method(method, InvocationEntryBci,
                                   CompilationPolicy::policy()->initial_compile_level(),

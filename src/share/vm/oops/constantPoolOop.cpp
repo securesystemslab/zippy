@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -269,7 +269,7 @@ klassOop constantPoolOopDesc::klass_ref_at_if_loaded_check(constantPoolHandle th
 methodOop constantPoolOopDesc::method_at_if_loaded(constantPoolHandle cpool,
                                                    int which, Bytecodes::Code invoke_code) {
   assert(!constantPoolCacheOopDesc::is_secondary_index(which), "no indy instruction here");
-  if (cpool->cache() == NULL)  return false;  // nothing to load yet
+  if (cpool->cache() == NULL)  return NULL;  // nothing to load yet
   int cache_index = which - CPCACHE_INDEX_TAG;
   if (!(cache_index >= 0 && cache_index < cpool->cache()->length())) {
     if (PrintMiscellaneous && (Verbose||WizardMode)) {
@@ -346,7 +346,6 @@ int constantPoolOopDesc::remap_instruction_operand_from_cache(int operand) {
   int cpc_index = operand;
   DEBUG_ONLY(cpc_index -= CPCACHE_INDEX_TAG);
   assert((int)(u2)cpc_index == cpc_index, "clean u2");
-  assert(cache() != NULL, "cache not null, maybe class is resolved but not rewritten yet");
   int member_index = cache()->entry_at(cpc_index)->constant_pool_index();
   return member_index;
 }

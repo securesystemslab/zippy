@@ -127,6 +127,7 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
 
   // Now the expressions off-stack
   // Same silliness as above
+
   StackValueCollection *exprs = vf->expressions();
   _expressions = new StackValueCollection(exprs->size());
   for(index = 0; index < exprs->size(); index++) {
@@ -317,7 +318,8 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
   // only unpacks the part of the expression stack not used by callee
   // as parameters. The callee parameters are unpacked as part of the
   // callee locals.
-  for(int i = 0; i < expressions()->size(); i++) {
+  int i;
+  for(i = 0; i < expressions()->size(); i++) {
     StackValue *value = expressions()->at(i);
     intptr_t*   addr  = iframe()->interpreter_frame_expression_stack_at(i);
     switch(value->type()) {
@@ -354,7 +356,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
 
 
   // Unpack the locals
-  for(int i = 0; i < locals()->size(); i++) {
+  for(i = 0; i < locals()->size(); i++) {
     StackValue *value = locals()->at(i);
     intptr_t* addr  = iframe()->interpreter_frame_local_at(i);
     switch(value->type()) {

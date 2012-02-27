@@ -156,7 +156,7 @@ void C1_MacroAssembler::initialize_header(Register obj, Register klass, Register
   assert_different_registers(obj, klass, len);
   if (UseBiasedLocking && !len->is_valid()) {
     assert_different_registers(obj, klass, len, t1, t2);
-    movptr(t1, Address(klass, Klass::prototype_header_offset_in_bytes() + klassOopDesc::klass_part_offset_in_bytes()));
+    movptr(t1, Address(klass, Klass::prototype_header_offset()));
     movptr(Address(obj, oopDesc::mark_offset_in_bytes()), t1);
   } else {
     // This assumes that all prototype bits fit in an int32_t
@@ -289,12 +289,14 @@ void C1_MacroAssembler::initialize_object(Register obj, Register klass, Register
       jcc(Assembler::notZero, loop);
     }
   }
-  
-  // (tw) fix me
-//  if (CURRENT_ENV->dtrace_alloc_probes()) {
-//    assert(obj == rax, "must be");
-//    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
-//  }
+
+#ifndef GRAAL
+  // TODO(tw): Check how we can access the flag without a ciEnv object.
+  if (CURRENT_ENV->dtrace_alloc_probes()) {
+    assert(obj == rax, "must be");
+    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
+  }
+#endif
 
   verify_oop(obj);
 }
@@ -324,11 +326,14 @@ void C1_MacroAssembler::allocate_array(Register obj, Register len, Register t1, 
   const Register len_zero = len;
   initialize_body(obj, arr_size, header_size * BytesPerWord, len_zero);
 
-  // TODO(tw): Re-enable this code once Graal no longer uses this method.
-//  if (CURRENT_ENV->dtrace_alloc_probes()) {
-//    assert(obj == rax, "must be");
-//    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
-//  }
+
+#ifndef GRAAL
+  // TODO(tw): Check how we can access the flag without a ciEnv object.
+  if (CURRENT_ENV->dtrace_alloc_probes()) {
+    assert(obj == rax, "must be");
+    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
+  }
+#endif
 
   verify_oop(obj);
 }
@@ -389,6 +394,16 @@ void C1_MacroAssembler::unverified_entry(Register receiver, Register ic_klass) {
 
 
 void C1_MacroAssembler::verified_entry() {
+  if (C1Breakpoint || VerifyFPU || !UseStackBanging) {
+    // Verified Entry first instruction should be 5 bytes long for correct
+    // patching by patch_verified_entry().
+    //
+    // C1Breakpoint and VerifyFPU have one byte first instruction.
+    // Also first instruction will be one byte "push(rbp)" if stack banging
+    // code is not generated (see build_frame() above).
+    // For all these cases generate long instruction first.
+    fat_nop();
+  }
   if (C1Breakpoint)int3();
   // build frame
   verify_FPU(0, "method_entry");

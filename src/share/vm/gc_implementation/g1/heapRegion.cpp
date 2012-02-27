@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -94,7 +94,8 @@ public:
 #endif // PRODUCT
   }
 
-  template <class T> void do_oop_work(T* p) {
+  template <class T>
+  void do_oop_work(T* p) {
     assert(_containing_obj != NULL, "Precondition");
     assert(!_g1h->is_obj_dead_cond(_containing_obj, _vo),
            "Precondition");
@@ -102,8 +103,10 @@ public:
     if (!oopDesc::is_null(heap_oop)) {
       oop obj = oopDesc::decode_heap_oop_not_null(heap_oop);
       bool failed = false;
-      if (!_g1h->is_in_closed_subset(obj) ||
-          _g1h->is_obj_dead_cond(obj, _vo)) {
+      if (!_g1h->is_in_closed_subset(obj) || _g1h->is_obj_dead_cond(obj, _vo)) {
+        MutexLockerEx x(ParGCRareEvent_lock,
+                        Mutex::_no_safepoint_check_flag);
+
         if (!_failures) {
           gclog_or_tty->print_cr("");
           gclog_or_tty->print_cr("----------");
@@ -133,6 +136,7 @@ public:
           print_object(gclog_or_tty, obj);
         }
         gclog_or_tty->print_cr("----------");
+        gclog_or_tty->flush();
         _failures = true;
         failed = true;
         _n_failures++;
@@ -155,6 +159,9 @@ public:
                                   cv_field == dirty
                                : cv_obj == dirty || cv_field == dirty));
           if (is_bad) {
+            MutexLockerEx x(ParGCRareEvent_lock,
+                            Mutex::_no_safepoint_check_flag);
+
             if (!_failures) {
               gclog_or_tty->print_cr("");
               gclog_or_tty->print_cr("----------");
@@ -174,6 +181,7 @@ public:
             gclog_or_tty->print_cr("Obj head CTE = %d, field CTE = %d.",
                           cv_obj, cv_field);
             gclog_or_tty->print_cr("----------");
+            gclog_or_tty->flush();
             _failures = true;
             if (!failed) _n_failures++;
           }
@@ -379,13 +387,12 @@ void HeapRegion::par_clear() {
   ct_bs->clear(MemRegion(bottom(), end()));
 }
 
-// <PREDICTION>
 void HeapRegion::calc_gc_efficiency() {
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
-  _gc_efficiency = (double) garbage_bytes() /
-                            g1h->predict_region_elapsed_time_ms(this, false);
+  G1CollectorPolicy* g1p = g1h->g1_policy();
+  _gc_efficiency = (double) reclaimable_bytes() /
+                            g1p->predict_region_elapsed_time_ms(this, false);
 }
-// </PREDICTION>
 
 void HeapRegion::set_startsHumongous(HeapWord* new_top, HeapWord* new_end) {
   assert(!isHumongous(), "sanity / pre-condition");
@@ -567,6 +574,40 @@ void HeapRegion::oop_before_save_marks_iterate(OopClosure* cl) {
   oops_in_mr_iterate(MemRegion(bottom(), saved_mark_word()), cl);
 }
 
+void HeapRegion::note_self_forwarding_removal_start(bool during_initial_mark,
+                                                    bool during_conc_mark) {
+  // We always recreate the prev marking info and we'll explicitly
+  // mark all objects we find to be self-forwarded on the prev
+  // bitmap. So all objects need to be below PTAMS.
+  _prev_top_at_mark_start = top();
+  _prev_marked_bytes = 0;
+
+  if (during_initial_mark) {
+    // During initial-mark, we'll also explicitly mark all objects
+    // we find to be self-forwarded on the next bitmap. So all
+    // objects need to be below NTAMS.
+    _next_top_at_mark_start = top();
+    set_top_at_conc_mark_count(bottom());
+    _next_marked_bytes = 0;
+  } else if (during_conc_mark) {
+    // During concurrent mark, all objects in the CSet (including
+    // the ones we find to be self-forwarded) are implicitly live.
+    // So all objects need to be above NTAMS.
+    _next_top_at_mark_start = bottom();
+    set_top_at_conc_mark_count(bottom());
+    _next_marked_bytes = 0;
+  }
+}
+
+void HeapRegion::note_self_forwarding_removal_end(bool during_initial_mark,
+                                                  bool during_conc_mark,
+                                                  size_t marked_bytes) {
+  assert(0 <= marked_bytes && marked_bytes <= used(),
+         err_msg("marked: "SIZE_FORMAT" used: "SIZE_FORMAT,
+                 marked_bytes, used()));
+  _prev_marked_bytes = marked_bytes;
+}
+
 HeapWord*
 HeapRegion::object_iterate_mem_careful(MemRegion mr,
                                                  ObjectClosure* cl) {
@@ -617,7 +658,7 @@ oops_on_card_seq_iterate_careful(MemRegion mr,
   // If we're within a stop-world GC, then we might look at a card in a
   // GC alloc region that extends onto a GC LAB, which may not be
   // parseable.  Stop such at the "saved_mark" of the region.
-  if (G1CollectedHeap::heap()->is_gc_active()) {
+  if (g1h->is_gc_active()) {
     mr = mr.intersection(used_region_at_save_marks());
   } else {
     mr = mr.intersection(used_region());
@@ -646,53 +687,63 @@ oops_on_card_seq_iterate_careful(MemRegion mr,
     OrderAccess::storeload();
   }
 
+  // Cache the boundaries of the memory region in some const locals
+  HeapWord* const start = mr.start();
+  HeapWord* const end = mr.end();
+
   // We used to use "block_start_careful" here.  But we're actually happy
   // to update the BOT while we do this...
-  HeapWord* cur = block_start(mr.start());
-  assert(cur <= mr.start(), "Postcondition");
+  HeapWord* cur = block_start(start);
+  assert(cur <= start, "Postcondition");
 
-  while (cur <= mr.start()) {
-    if (oop(cur)->klass_or_null() == NULL) {
+  oop obj;
+
+  HeapWord* next = cur;
+  while (next <= start) {
+    cur = next;
+    obj = oop(cur);
+    if (obj->klass_or_null() == NULL) {
       // Ran into an unparseable point.
       return cur;
     }
     // Otherwise...
-    int sz = oop(cur)->size();
-    if (cur + sz > mr.start()) break;
-    // Otherwise, go on.
-    cur = cur + sz;
+    next = (cur + obj->size());
   }
-  oop obj;
-  obj = oop(cur);
-  // If we finish this loop...
-  assert(cur <= mr.start()
-         && obj->klass_or_null() != NULL
-         && cur + obj->size() > mr.start(),
+
+  // If we finish the above loop...We have a parseable object that
+  // begins on or before the start of the memory region, and ends
+  // inside or spans the entire region.
+
+  assert(obj == oop(cur), "sanity");
+  assert(cur <= start &&
+         obj->klass_or_null() != NULL &&
+         (cur + obj->size()) > start,
          "Loop postcondition");
+
   if (!g1h->is_obj_dead(obj)) {
     obj->oop_iterate(cl, mr);
   }
 
-  HeapWord* next;
-  while (cur < mr.end()) {
+  while (cur < end) {
     obj = oop(cur);
     if (obj->klass_or_null() == NULL) {
       // Ran into an unparseable point.
       return cur;
     };
+
     // Otherwise:
     next = (cur + obj->size());
+
     if (!g1h->is_obj_dead(obj)) {
-      if (next < mr.end()) {
+      if (next < end || !obj->is_objArray()) {
+        // This object either does not span the MemRegion
+        // boundary, or if it does it's not an array.
+        // Apply closure to whole object.
         obj->oop_iterate(cl);
       } else {
-        // this obj spans the boundary.  If it's an array, stop at the
-        // boundary.
-        if (obj->is_objArray()) {
-          obj->oop_iterate(cl, mr);
-        } else {
-          obj->oop_iterate(cl);
-        }
+        // This obj is an array that spans the boundary.
+        // Stop at the boundary.
+        obj->oop_iterate(cl, mr);
       }
     }
     cur = next;

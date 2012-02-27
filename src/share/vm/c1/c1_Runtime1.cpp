@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -201,17 +201,17 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case slow_subtype_check_id:
     case fpu2long_stub_id:
     case unwind_exception_id:
+    case counter_overflow_id:
+#if defined(SPARC) || defined(PPC)
+    case handle_exception_nofpu_id:  // Unused on sparc
+#endif
+#ifdef GRAAL
     case graal_verify_pointer_id:
     case graal_unwind_exception_call_id:
     case graal_slow_subtype_check_id:
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
-#ifndef TIERED
-    case counter_overflow_id: // Not generated outside the tiered world
-#endif
-#ifdef SPARC
-    case handle_exception_nofpu_id:  // Unused on sparc
 #endif
       break;
 
@@ -421,8 +421,9 @@ static nmethod* counter_overflow_helper(JavaThread* THREAD, int branch_bci, meth
     }
     bci = branch_bci + offset;
   }
-
+  assert(!HAS_PENDING_EXCEPTION, "Should not have any exceptions pending");
   osr_nm = CompilationPolicy::policy()->event(enclosing_method, method, branch_bci, bci, level, nm, THREAD);
+  assert(!HAS_PENDING_EXCEPTION, "Event handler should not throw any exceptions");
   return osr_nm;
 }
 
@@ -590,6 +591,7 @@ address Runtime1::exception_handler_for_pc(JavaThread* thread) {
     continuation = exception_handler_for_pc_helper(thread, exception, pc, nm);
   }
   // Back in JAVA, use no oops DON'T safepoint
+
   // Now check to see if the nmethod we were called from is now deoptimized.
   // If so we must return to the deopt blob and deoptimize the nmethod
   if (nm != NULL && caller_is_deopted()) {
@@ -603,7 +605,6 @@ address Runtime1::exception_handler_for_pc(JavaThread* thread) {
 
 JRT_ENTRY(void, Runtime1::throw_range_check_exception(JavaThread* thread, int index))
   NOT_PRODUCT(_throw_range_check_exception_count++;)
-  Events::log("throw_range_check");
   char message[jintAsStringSize];
   sprintf(message, "%d", index);
   SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message);
@@ -612,7 +613,6 @@ JRT_END
 
 JRT_ENTRY(void, Runtime1::throw_index_exception(JavaThread* thread, int index))
   NOT_PRODUCT(_throw_index_exception_count++;)
-  Events::log("throw_index");
   char message[16];
   sprintf(message, "%d", index);
   SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_IndexOutOfBoundsException(), message);
@@ -647,7 +647,7 @@ JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* thre
   SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_IncompatibleClassChangeError());
 JRT_END
 
-
+#ifdef GRAAL
 JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT
@@ -708,25 +708,17 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
   }
 JRT_END
 
+#endif
+
 
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, lock);
-  }
   if (PrintBiasedLockingStatistics) {
     Atomic::inc(BiasedLocking::slow_path_entry_count_addr());
   }
-#endif
   Handle h_obj(thread, obj);
   assert(h_obj()->is_oop(), "must be NULL or an object");
   if (UseBiasedLocking) {
-    if (UseFastLocking) {
-      assert(obj == lock->obj(), "must match");
-    } else {
-      lock->set_obj(obj);
-    }
     // Retry fast entry if bias is revoked to avoid unnecessary inflation
     ObjectSynchronizer::fast_enter(h_obj, lock->lock(), true, CHECK);
   } else {
@@ -739,14 +731,6 @@ JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj
       ObjectSynchronizer::fast_enter(h_obj, lock->lock(), false, THREAD);
     }
   }
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    tty->print_cr("exiting locking lock state: obj=" INTPTR_FORMAT, lock->obj());
-    lock->lock()->print_on(tty);
-    tty->print_cr("");
-    tty->print_cr("done");
-  }
-#endif
 JRT_END
 
 
@@ -758,19 +742,7 @@ JRT_LEAF(void, Runtime1::monitorexit(JavaThread* thread, BasicObjectLock* lock))
   EXCEPTION_MARK;
 
   oop obj = lock->obj();
-
-#ifdef DEBUG
-  if (!obj->is_oop()) {
-    ResetNoHandleMark rhm;
-    nmethod* method = thread->last_frame().cb()->as_nmethod_or_null();
-    if (method != NULL) {
-      tty->print_cr("ERROR in monitorexit in method %s wrong obj " INTPTR_FORMAT, method->name(), obj);
-    }
-    thread->print_stack_on(tty);
-    assert(false, "invalid lock object pointer dected");
-  }
-#endif
-
+  assert(obj->is_oop(), "must be NULL or an object");
   if (UseFastLocking) {
     // When using fast locking, the compiled code has already tried the fast case
     ObjectSynchronizer::slow_exit(obj, lock->lock(), THREAD);
@@ -901,11 +873,7 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* thread, Runtime1::StubID stub_i
   // Note also that in the presence of inlining it is not guaranteed
   // that caller_method() == caller_code->method()
 
-
   int bci = vfst.bci();
-
-  Events::log("patch_code @ " INTPTR_FORMAT , caller_frame.pc());
-
   Bytecodes::Code code = caller_method()->java_code_at(bci);
 
 #ifndef PRODUCT

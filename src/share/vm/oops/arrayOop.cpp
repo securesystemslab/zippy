@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 #ifndef PRODUCT
 
 #include "oops/arrayOop.hpp"
+#include "oops/oop.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
 
 bool arrayOopDesc::check_max_length_overflow(BasicType type) {
@@ -38,9 +39,7 @@ bool arrayOopDesc::check_max_length_overflow(BasicType type) {
   return (julong)(size_t)bytes == bytes;
 }
 
-bool arrayOopDesc::test_max_array_length() {
-  tty->print_cr("test_max_array_length");
-
+void arrayOopDesc::test_max_array_length() {
   assert(check_max_length_overflow(T_BOOLEAN), "size_t overflow for boolean array");
   assert(check_max_length_overflow(T_CHAR), "size_t overflow for char array");
   assert(check_max_length_overflow(T_FLOAT), "size_t overflow for float array");
@@ -54,8 +53,6 @@ bool arrayOopDesc::test_max_array_length() {
   assert(check_max_length_overflow(T_NARROWOOP), "size_t overflow for narrowOop array");
 
   // T_VOID and T_ADDRESS are not supported by max_array_length()
-
-  return true;
 }
 
 

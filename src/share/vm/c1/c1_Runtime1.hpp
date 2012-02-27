@@ -36,7 +36,7 @@ class StubAssembler;
 // The Runtime1 holds all assembly stubs and VM
 // runtime routines needed by code code generated
 // by the Compiler1.
-
+#ifdef GRAAL
 #define RUNTIME1_STUBS(stub, last_entry) \
   stub(dtrace_object_alloc)          \
   stub(unwind_exception)             \
@@ -82,6 +82,42 @@ class StubAssembler;
   stub(graal_create_out_of_bounds_exception) \
   stub(graal_generic_callback)       \
   last_entry(number_of_ids)
+#else
+#define RUNTIME1_STUBS(stub, last_entry) \
+  stub(dtrace_object_alloc)          \
+  stub(unwind_exception)             \
+  stub(forward_exception)            \
+  stub(throw_range_check_failed)       /* throws ArrayIndexOutOfBoundsException */ \
+  stub(throw_index_exception)          /* throws IndexOutOfBoundsException */ \
+  stub(throw_div0_exception)         \
+  stub(throw_null_pointer_exception) \
+  stub(register_finalizer)           \
+  stub(new_instance)                 \
+  stub(fast_new_instance)            \
+  stub(fast_new_instance_init_check) \
+  stub(new_type_array)               \
+  stub(new_object_array)             \
+  stub(new_multi_array)              \
+  stub(handle_exception_nofpu)         /* optimized version that does not preserve fpu registers */ \
+  stub(handle_exception)             \
+  stub(handle_exception_from_callee) \
+  stub(throw_array_store_exception)  \
+  stub(throw_class_cast_exception)   \
+  stub(throw_incompatible_class_change_error)   \
+  stub(slow_subtype_check)           \
+  stub(monitorenter)                 \
+  stub(monitorenter_nofpu)             /* optimized version that does not preserve fpu registers */ \
+  stub(monitorexit)                  \
+  stub(monitorexit_nofpu)              /* optimized version that does not preserve fpu registers */ \
+  stub(deoptimize)                   \
+  stub(access_field_patching)        \
+  stub(load_klass_patching)          \
+  stub(g1_pre_barrier_slow)          \
+  stub(g1_post_barrier_slow)         \
+  stub(fpu2long_stub)                \
+  stub(counter_overflow)             \
+  last_entry(number_of_ids)
+#endif
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
 #define DECLARE_LAST_STUB_ID(x)  x
@@ -160,12 +196,12 @@ class Runtime1: public AllStatic {
   static void throw_class_cast_exception(JavaThread* thread, oopDesc* object);
   static void throw_incompatible_class_change_error(JavaThread* thread);
   static void throw_array_store_exception(JavaThread* thread, oopDesc* object);
-
-  static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
-
   static void monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock);
   static void monitorexit (JavaThread* thread, BasicObjectLock* lock);
+#ifdef GRAAL
+  static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
+#endif
 
   static void deoptimize(JavaThread* thread);
 

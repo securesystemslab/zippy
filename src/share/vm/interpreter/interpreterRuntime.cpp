@@ -445,6 +445,7 @@ IRT_ENTRY(address, InterpreterRuntime::exception_handler_for_exception(JavaThrea
     }
   } while (should_repeat == true);
 
+#ifdef GRAAL
   if (h_method->method_data() != NULL) {
     ResourceMark rm(thread);
     ProfileData* pdata = h_method->method_data()->allocate_bci_to_data(current_bci);
@@ -456,6 +457,7 @@ IRT_ENTRY(address, InterpreterRuntime::exception_handler_for_exception(JavaThrea
       }
     }
   }
+#endif
 
   // notify JVMTI of an exception throw; JVMTI will detect if this is a first
   // time throw or a stack unwinding throw and accordingly notify the debugger
@@ -871,7 +873,9 @@ IRT_ENTRY(nmethod*,
   const int branch_bci = branch_bcp != NULL ? method->bci_from(branch_bcp) : InvocationEntryBci;
   const int bci = branch_bcp != NULL ? method->bci_from(fr.interpreter_frame_bcp()) : InvocationEntryBci;
 
+  assert(!HAS_PENDING_EXCEPTION, "Should not have any exceptions pending");
   nmethod* osr_nm = CompilationPolicy::policy()->event(method, method, branch_bci, bci, CompLevel_none, NULL, thread);
+  assert(!HAS_PENDING_EXCEPTION, "Event handler should not throw any exceptions");
 
   if (osr_nm != NULL) {
     // We may need to do on-stack replacement which requires that no

@@ -566,7 +566,7 @@ bool ClassLoader::contains_entry(ClassPathEntry *entry) {
   ClassPathEntry* e = _first_entry;
   while (e != NULL) {
     // assume zip entries have been canonicalized
-	if (strcmp(entry->name(), e->name()) == 0) {
+    if (strcmp(entry->name(), e->name()) == 0) {
       return true;
     }
     e = e->next();

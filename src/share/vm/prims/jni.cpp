@@ -51,6 +51,7 @@
 #include "oops/typeArrayOop.hpp"
 #include "prims/jni.h"
 #include "prims/jniCheck.hpp"
+#include "prims/jniExport.hpp"
 #include "prims/jniFastGetField.hpp"
 #include "prims/jvm.h"
 #include "prims/jvm_misc.hpp"
@@ -69,6 +70,8 @@
 #include "runtime/signature.hpp"
 #include "runtime/vm_operations.hpp"
 #include "services/runtimeService.hpp"
+#include "trace/tracing.hpp"
+#include "trace/traceEventTypes.hpp"
 #include "utilities/defaultStream.hpp"
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
@@ -5040,15 +5043,24 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *args_) {
 
 #ifndef PRODUCT
 
+#include "gc_interface/collectedHeap.hpp"
 #include "utilities/quickSort.hpp"
+
+#define run_unit_test(unit_test_function_call)              \
+  tty->print_cr("Running test: " #unit_test_function_call); \
+  unit_test_function_call
 
 void execute_internal_vm_tests() {
   if (ExecuteInternalVMTests) {
-    assert(QuickSort::test_quick_sort(), "test_quick_sort failed");
-    assert(arrayOopDesc::test_max_array_length(), "test_max_array_length failed");
+    tty->print_cr("Running internal VM tests");
+    run_unit_test(arrayOopDesc::test_max_array_length());
+    run_unit_test(CollectedHeap::test_is_in());
+    run_unit_test(QuickSort::test_quick_sort());
     tty->print_cr("All internal VM tests passed");
   }
 }
+
+#undef run_unit_test
 
 #endif
 
@@ -5139,6 +5151,10 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     if (JvmtiExport::should_post_thread_life()) {
        JvmtiExport::post_thread_start(thread);
     }
+
+    EVENT_BEGIN(TraceEventThreadStart, event);
+    EVENT_COMMIT(event,
+        EVENT_SET(event, javalangthread, java_lang_Thread::thread_id(thread->threadObj())));
 
     // Check if we should compile all classes on bootclasspath
     NOT_PRODUCT(if (CompileTheWorld) ClassLoader::compile_the_world();)
@@ -5338,6 +5354,10 @@ static jint attach_current_thread(JavaVM *vm, void **penv, void *_args, bool dae
     JvmtiExport::post_thread_start(thread);
   }
 
+  EVENT_BEGIN(TraceEventThreadStart, event);
+  EVENT_COMMIT(event,
+      EVENT_SET(event, javalangthread, java_lang_Thread::thread_id(thread->threadObj())));
+
   *(JNIEnv**)penv = thread->jni_environment();
 
   // Now leaving the VM, so change thread_state. This is normally automatically taken care
@@ -5465,8 +5485,7 @@ jint JNICALL jni_GetEnv(JavaVM *vm, void **penv, jint version) {
     return ret;
   }
 
-  if (JvmtiExport::is_jvmti_version(version)) {
-    ret = JvmtiExport::get_jvmti_interface(vm, penv, version);
+  if (JniExportedInterface::GetExportedInterface(vm, penv, version, &ret)) {
     return ret;
   }
 

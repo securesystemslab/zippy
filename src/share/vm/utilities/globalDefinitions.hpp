@@ -175,6 +175,9 @@ const int MILLIUNITS    = 1000;         // milli units per base unit
 const int MICROUNITS    = 1000000;      // micro units per base unit
 const int NANOUNITS     = 1000000000;   // nano units per base unit
 
+const jlong NANOSECS_PER_SEC      = CONST64(1000000000);
+const jint  NANOSECS_PER_MILLISEC = 1000000;
+
 inline const char* proper_unit_for_byte_size(size_t s) {
   if (s >= 10*M) {
     return "M";
@@ -294,6 +297,11 @@ const jubyte  max_jubyte  = (jubyte)-1;  // 0xFF       largest jubyte
 const jushort max_jushort = (jushort)-1; // 0xFFFF     largest jushort
 const juint   max_juint   = (juint)-1;   // 0xFFFFFFFF largest juint
 const julong  max_julong  = (julong)-1;  // 0xFF....FF largest julong
+
+typedef jbyte  s1;
+typedef jshort s2;
+typedef jint   s4;
+typedef jlong  s8;
 
 //----------------------------------------------------------------------------------------------------
 // JVM spec restrictions

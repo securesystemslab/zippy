@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -195,6 +195,7 @@ public:
   DCmdParser() {
     _options = NULL;
     _arguments_list = NULL;
+    _delim = ' ';
   }
   void add_dcmd_option(GenDCmdArgument* arg);
   void add_dcmd_argument(GenDCmdArgument* arg);
@@ -241,8 +242,17 @@ public:
   static int num_arguments() { return 0; }
   outputStream* output() { return _output; }
   bool is_heap_allocated()  { return _is_heap_allocated; }
-  virtual void print_help(outputStream* out) { };
-  virtual void parse(CmdLine* line, char delim, TRAPS) { }
+  virtual void print_help(const char* name) {
+    output()->print_cr("Syntax: %s", name);
+  }
+  virtual void parse(CmdLine* line, char delim, TRAPS) {
+    DCmdArgIter iter(line->args_addr(), line->args_len(), delim);
+    bool has_arg = iter.next(CHECK);
+    if (has_arg) {
+      THROW_MSG(vmSymbols::java_lang_IllegalArgumentException(),
+                "Unknown argument in diagnostic command");
+    }
+  }
   virtual void execute(TRAPS) { }
   virtual void reset(TRAPS) { }
   virtual void cleanup() { }
@@ -260,6 +270,25 @@ public:
   // main method to invoke the framework
   static void parse_and_execute(outputStream* out, const char* cmdline,
                                 char delim, TRAPS);
+};
+
+class DCmdWithParser : public DCmd {
+protected:
+  DCmdParser _dcmdparser;
+public:
+  DCmdWithParser (outputStream *output, bool heap=false) : DCmd(output, heap) { }
+  static const char* name() { return "No Name";}
+  static const char* description() { return "No Help";}
+  static const char* disabled_message() { return "Diagnostic command currently disabled"; }
+  static const char* impact() { return "Low: No impact"; }
+  static int num_arguments() { return 0; }
+  virtual void parse(CmdLine *line, char delim, TRAPS);
+  virtual void execute(TRAPS) { }
+  virtual void reset(TRAPS);
+  virtual void cleanup();
+  virtual void print_help(const char* name);
+  virtual GrowableArray<const char*>* argument_name_array();
+  virtual GrowableArray<DCmdArgumentInfo*>* argument_info_array();
 };
 
 class DCmdMark : public StackObj {
@@ -357,6 +386,19 @@ public:
   virtual const char* disabled_message() const {
      return DCmdClass::disabled_message();
   }
+};
+
+// This class provides a convenient way to register Dcmds, without a need to change
+// management.cpp every time. Body of these two methods resides in
+// diagnosticCommand.cpp
+
+class DCmdRegistrant : public AllStatic {
+
+private:
+    static void register_dcmds();
+    static void register_dcmds_ext();
+
+    friend class Management;
 };
 
 #endif // SHARE_VM_SERVICES_DIAGNOSTICFRAMEWORK_HPP

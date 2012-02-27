@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,6 +19,7 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
 #include "precompiled.hpp"
@@ -166,6 +167,7 @@ JRT_BLOCK_ENTRY(Deoptimization::UnrollBlock*, Deoptimization::fetch_unroll_info(
     tty->print("Deoptimization "); 
   }
   thread->inc_in_deopt_handler();
+
   return fetch_unroll_info_helper(thread);
 JRT_END
 
@@ -209,12 +211,11 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   assert(vf->is_compiled_frame(), "Wrong frame type");
   chunk->push(compiledVFrame::cast(vf));
 
-  // TODO(tw): Fix this hack after introducing GRAAL macro.
 #if defined(COMPILER2) || defined(GRAAL)
   // Reallocate the non-escaping objects and restore their fields. Then
   // relock objects if synchronization on them was eliminated.
 #ifdef COMPILER2
-  if (DoEscapeAnalysis) {
+  if (DoEscapeAnalysis || EliminateNestedLocks) {
     if (EliminateAllocations) {
 #endif // COMPILER2
       assert (chunk->at(0)->scope() != NULL,"expect only compiled java frames");
@@ -348,7 +349,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 
 #ifdef ASSERT
   assert(cb->is_deoptimization_stub() || cb->is_uncommon_trap_stub(), "just checking");
-  Events::log("fetch unroll sp " INTPTR_FORMAT, unpack_sp);
 #endif
 #else
   intptr_t* unpack_sp = stub_frame.sender(&dummy_map).unextended_sp();
@@ -586,6 +586,8 @@ JRT_LEAF(BasicType, Deoptimization::unpack_frames(JavaThread* thread, int exec_m
     tty->print_cr("DEOPT UNPACKING thread " INTPTR_FORMAT " vframeArray " INTPTR_FORMAT " mode %d", thread, array, exec_mode);
   }
 #endif
+  Events::log(thread, "DEOPT UNPACKING pc=" INTPTR_FORMAT " sp=" INTPTR_FORMAT " mode %d",
+              stub_frame.pc(), stub_frame.sp(), exec_mode);
 
   UnrollBlock* info = array->unroll_block();
 
@@ -745,7 +747,7 @@ int Deoptimization::deoptimize_dependents() {
 }
 
 
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
 bool Deoptimization::realloc_objects(JavaThread* thread, frame* fr, GrowableArray<ScopeValue*>* objects, TRAPS) {
   Handle pending_exception(thread->pending_exception());
   const char* exception_file = thread->exception_file();
@@ -990,9 +992,10 @@ void Deoptimization::print_objects(GrowableArray<ScopeValue*>* objects) {
   }
 }
 #endif
-//#endif // COMPILER2
+#endif // COMPILER2 || GRAAL
 
 vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk) {
+  Events::log(thread, "DEOPT PACKING pc=" INTPTR_FORMAT " sp=" INTPTR_FORMAT, fr.pc(), fr.sp());
 
 #ifndef PRODUCT
   if (PrintDeoptimizationDetails) {
@@ -1038,7 +1041,6 @@ vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, Re
 
   // Compare the vframeArray to the collected vframes
   assert(array->structural_compare(thread, chunk), "just checking");
-  Events::log("# vframes = %d", (intptr_t)chunk->length());
 
 #ifndef PRODUCT
   if (PrintDeoptimizationDetails) {
@@ -1136,8 +1138,6 @@ void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr) {
 
   gather_statistics(Reason_constraint, Action_none, Bytecodes::_illegal);
 
-  EventMark m("Deoptimization (pc=" INTPTR_FORMAT ", sp=" INTPTR_FORMAT ")", fr.pc(), fr.id());
-
   // Patch the nmethod so that when execution returns to it we will
   // deopt the execution state and return to the interpreter.
   fr.deoptimize(thread);
@@ -1191,6 +1191,7 @@ JRT_LEAF(void, Deoptimization::popframe_preserve_args(JavaThread* thread, int by
 JRT_END
 
 
+#if defined(COMPILER2) || defined(SHARK) || defined(GRAAL)
 void Deoptimization::load_class_by_index(constantPoolHandle constant_pool, int index, TRAPS) {
   // in case of an unresolved klass entry, load the class.
   if (constant_pool->tag_at(index).is_unresolved_klass()) {
@@ -1250,6 +1251,10 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
   // before we are done with it.
   nmethodLocker nl(fr.pc());
 
+  // Log a message
+  Events::log_deopt_message(thread, "Uncommon trap %d fr.pc " INTPTR_FORMAT,
+                            trap_request, fr.pc());
+
   {
     ResourceMark rm;
 
@@ -1260,7 +1265,6 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     DeoptAction action = trap_request_action(trap_request);
     jint unloaded_class_index = trap_request_index(trap_request); // CP idx or -1
 
-    Events::log("Uncommon trap occurred @" INTPTR_FORMAT " unloaded_class_index = %d", fr.pc(), (int) trap_request);
     vframe*  vf  = vframe::new_vframe(&fr, &reg_map, thread);
     compiledVFrame* cvf = compiledVFrame::cast(vf);
 
@@ -1962,3 +1966,40 @@ void Deoptimization::print_statistics() {
     if (xtty != NULL)  xtty->tail("statistics");
   }
 }
+#else // COMPILER2 || SHARK || GRAAL
+
+
+// Stubs for C1 only system.
+bool Deoptimization::trap_state_is_recompiled(int trap_state) {
+  return false;
+}
+
+const char* Deoptimization::trap_reason_name(int reason) {
+  return "unknown";
+}
+
+void Deoptimization::print_statistics() {
+  // no output
+}
+
+void
+Deoptimization::update_method_data_from_interpreter(methodDataHandle trap_mdo, int trap_bci, int reason) {
+  // no udpate
+}
+
+int Deoptimization::trap_state_has_reason(int trap_state, int reason) {
+  return 0;
+}
+
+void Deoptimization::gather_statistics(DeoptReason reason, DeoptAction action,
+                                       Bytecodes::Code bc) {
+  // no update
+}
+
+const char* Deoptimization::format_trap_state(char* buf, size_t buflen,
+                                              int trap_state) {
+  jio_snprintf(buf, buflen, "#%d", trap_state);
+  return buf;
+}
+
+#endif // COMPILER2 || SHARK || GRAAL

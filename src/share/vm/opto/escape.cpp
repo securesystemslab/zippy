@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1595,6 +1595,7 @@ bool ConnectionGraph::compute_escape() {
   GrowableArray<Node*> alloc_worklist;
   GrowableArray<Node*> addp_worklist;
   GrowableArray<Node*> ptr_cmp_worklist;
+  GrowableArray<Node*> storestore_worklist;
   PhaseGVN* igvn = _igvn;
 
   // Push all useful nodes onto CG list and set their type.
@@ -1618,6 +1619,11 @@ bool ConnectionGraph::compute_escape() {
                (n->Opcode() == Op_CmpP || n->Opcode() == Op_CmpN)) {
       // Compare pointers nodes
       ptr_cmp_worklist.append(n);
+    } else if (n->is_MemBarStoreStore()) {
+      // Collect all MemBarStoreStore nodes so that depending on the
+      // escape status of the associated Allocate node some of them
+      // may be eliminated.
+      storestore_worklist.append(n);
     }
     for (DUIterator_Fast imax, i = n->fast_outs(imax); i < imax; i++) {
       Node* m = n->fast_out(i);   // Get user
@@ -1681,12 +1687,23 @@ bool ConnectionGraph::compute_escape() {
   // Observed 8 passes in jvm2008 compiler.compiler.
   // Set limit to 20 to catch situation when something
   // did go wrong and recompile the method without EA.
+  // Also limit build time to 30 sec (60 in debug VM).
 
 #define CG_BUILD_ITER_LIMIT 20
 
+#ifdef ASSERT
+#define CG_BUILD_TIME_LIMIT 60.0
+#else
+#define CG_BUILD_TIME_LIMIT 30.0
+#endif
+
   uint length = worklist.length();
   int iterations = 0;
-  while(_progress && (iterations++ < CG_BUILD_ITER_LIMIT)) {
+  elapsedTimer time;
+  while(_progress &&
+        (iterations++   < CG_BUILD_ITER_LIMIT) &&
+        (time.seconds() < CG_BUILD_TIME_LIMIT)) {
+    time.start();
     _progress = false;
     for( uint next = 0; next < length; ++next ) {
       int ni = worklist.at(next);
@@ -1695,18 +1712,19 @@ bool ConnectionGraph::compute_escape() {
       assert(n != NULL, "should be known node");
       build_connection_graph(n, igvn);
     }
+    time.stop();
   }
-  if (iterations >= CG_BUILD_ITER_LIMIT) {
-    assert(iterations < CG_BUILD_ITER_LIMIT,
-           err_msg("infinite EA connection graph build with %d nodes and worklist size %d",
-           nodes_size(), length));
+  if ((iterations     >= CG_BUILD_ITER_LIMIT) ||
+      (time.seconds() >= CG_BUILD_TIME_LIMIT)) {
+    assert(false, err_msg("infinite EA connection graph build (%f sec, %d iterations) with %d nodes and worklist size %d",
+           time.seconds(), iterations, nodes_size(), length));
     // Possible infinite build_connection_graph loop,
-    // retry compilation without escape analysis.
-    C->record_failure(C2Compiler::retry_no_escape_analysis());
+    // bailout (no changes to ideal graph were made).
     _collecting = false;
     return false;
   }
 #undef CG_BUILD_ITER_LIMIT
+#undef CG_BUILD_TIME_LIMIT
 
   // 5. Propagate escaped states.
   worklist.clear();
@@ -1724,11 +1742,20 @@ bool ConnectionGraph::compute_escape() {
   uint alloc_length = alloc_worklist.length();
   for (uint next = 0; next < alloc_length; ++next) {
     Node* n = alloc_worklist.at(next);
-    if (ptnode_adr(n->_idx)->escape_state() == PointsToNode::NoEscape) {
+    PointsToNode::EscapeState es = ptnode_adr(n->_idx)->escape_state();
+    if (es == PointsToNode::NoEscape) {
       has_non_escaping_obj = true;
       if (n->is_Allocate()) {
         find_init_values(n, &visited, igvn);
+        // The object allocated by this Allocate node will never be
+        // seen by an other thread. Mark it so that when it is
+        // expanded no MemBarStoreStore is added.
+        n->as_Allocate()->initialization()->set_does_not_escape();
       }
+    } else if ((es == PointsToNode::ArgEscape) && n->is_Allocate()) {
+      // Same as above. Mark this Allocate node so that when it is
+      // expanded no MemBarStoreStore is added.
+      n->as_Allocate()->initialization()->set_does_not_escape();
     }
   }
 
@@ -1827,20 +1854,15 @@ bool ConnectionGraph::compute_escape() {
       Node *n = C->macro_node(i);
       if (n->is_AbstractLock()) { // Lock and Unlock nodes
         AbstractLockNode* alock = n->as_AbstractLock();
-        if (!alock->is_eliminated() || alock->is_coarsened()) {
+        if (!alock->is_non_esc_obj()) {
           PointsToNode::EscapeState es = escape_state(alock->obj_node());
           assert(es != PointsToNode::UnknownEscape, "should know");
           if (es != PointsToNode::UnknownEscape && es != PointsToNode::GlobalEscape) {
-            if (!alock->is_eliminated()) {
-              // Mark it eliminated to update any counters
-              alock->set_eliminated();
-            } else {
-              // The lock could be marked eliminated by lock coarsening
-              // code during first IGVN before EA. Clear coarsened flag
-              // to eliminate all associated locks/unlocks and relock
-              // during deoptimization.
-              alock->clear_coarsened();
-            }
+            assert(!alock->is_eliminated() || alock->is_coarsened(), "sanity");
+            // The lock could be marked eliminated by lock coarsening
+            // code during first IGVN before EA. Replace coarsened flag
+            // to eliminate all associated locks/unlocks.
+            alock->set_non_esc_obj();
           }
         }
       }
@@ -1872,6 +1894,25 @@ bool ConnectionGraph::compute_escape() {
       igvn->hash_delete(_pcmp_neq);
     if (_pcmp_eq->outcnt()  == 0)
       igvn->hash_delete(_pcmp_eq);
+  }
+
+  // For MemBarStoreStore nodes added in library_call.cpp, check
+  // escape status of associated AllocateNode and optimize out
+  // MemBarStoreStore node if the allocated object never escapes.
+  while (storestore_worklist.length() != 0) {
+    Node *n = storestore_worklist.pop();
+    MemBarStoreStoreNode *storestore = n ->as_MemBarStoreStore();
+    Node *alloc = storestore->in(MemBarNode::Precedent)->in(0);
+    assert (alloc->is_Allocate(), "storestore should point to AllocateNode");
+    PointsToNode::EscapeState es = ptnode_adr(alloc->_idx)->escape_state();
+    if (es == PointsToNode::NoEscape || es == PointsToNode::ArgEscape) {
+      MemBarNode* mb = MemBarNode::make(C, Op_MemBarCPUOrder, Compile::AliasIdxBot);
+      mb->init_req(TypeFunc::Memory, storestore->in(TypeFunc::Memory));
+      mb->init_req(TypeFunc::Control, storestore->in(TypeFunc::Control));
+
+      _igvn->register_new_node_with_optimizer(mb);
+      _igvn->replace_node(storestore, mb);
+    }
   }
 
 #ifndef PRODUCT
@@ -2263,9 +2304,35 @@ void ConnectionGraph::process_call_arguments(CallNode *call, PhaseTransform *pha
         PointsToNode::EscapeState arg_esc = ptnode_adr(arg->_idx)->escape_state();
         if (!arg->is_top() && at->isa_ptr() && aat->isa_ptr() &&
             (is_arraycopy || arg_esc < PointsToNode::ArgEscape)) {
-
+#ifdef ASSERT
           assert(aat == Type::TOP || aat == TypePtr::NULL_PTR ||
                  aat->isa_ptr() != NULL, "expecting an Ptr");
+          if (!(is_arraycopy ||
+                call->as_CallLeaf()->_name != NULL &&
+                (strcmp(call->as_CallLeaf()->_name, "g1_wb_pre")  == 0 ||
+                 strcmp(call->as_CallLeaf()->_name, "g1_wb_post") == 0 ))
+          ) {
+            call->dump();
+            assert(false, "EA: unexpected CallLeaf");
+          }
+#endif
+          if (arg_esc < PointsToNode::ArgEscape) {
+            set_escape_state(arg->_idx, PointsToNode::ArgEscape);
+            Node* arg_base = arg;
+            if (arg->is_AddP()) {
+              //
+              // The inline_native_clone() case when the arraycopy stub is called
+              // after the allocation before Initialize and CheckCastPP nodes.
+              // Or normal arraycopy for object arrays case.
+              //
+              // Set AddP's base (Allocate) as not scalar replaceable since
+              // pointer to the base (with offset) is passed as argument.
+              //
+              arg_base = get_addp_base(arg);
+              set_escape_state(arg_base->_idx, PointsToNode::ArgEscape);
+            }
+          }
+
           bool arg_has_oops = aat->isa_oopptr() &&
                               (aat->isa_oopptr()->klass() == NULL || aat->isa_instptr() ||
                                (aat->isa_aryptr() && aat->isa_aryptr()->klass()->is_obj_array_klass()));
@@ -2278,85 +2345,33 @@ void ConnectionGraph::process_call_arguments(CallNode *call, PhaseTransform *pha
           //   arraycopy(char[],0,Object*,0,size);
           //   arraycopy(Object*,0,char[],0,size);
           //
-          // Don't add edges from dst's fields in such cases.
+          // Do nothing special in such cases.
           //
-          bool arg_is_arraycopy_dest = src_has_oops && is_arraycopy &&
-                                       arg_has_oops && (i > TypeFunc::Parms);
-#ifdef ASSERT
-          if (!(is_arraycopy ||
-                call->as_CallLeaf()->_name != NULL &&
-                (strcmp(call->as_CallLeaf()->_name, "g1_wb_pre")  == 0 ||
-                 strcmp(call->as_CallLeaf()->_name, "g1_wb_post") == 0 ))
-          ) {
-            call->dump();
-            assert(false, "EA: unexpected CallLeaf");
-          }
-#endif
-          // Always process arraycopy's destination object since
-          // we need to add all possible edges to references in
-          // source object.
-          if (arg_esc >= PointsToNode::ArgEscape &&
-              !arg_is_arraycopy_dest) {
-            continue;
-          }
-          set_escape_state(arg->_idx, PointsToNode::ArgEscape);
-          Node* arg_base = arg;
-          if (arg->is_AddP()) {
-            //
-            // The inline_native_clone() case when the arraycopy stub is called
-            // after the allocation before Initialize and CheckCastPP nodes.
-            // Or normal arraycopy for object arrays case.
-            //
-            // Set AddP's base (Allocate) as not scalar replaceable since
-            // pointer to the base (with offset) is passed as argument.
-            //
-            arg_base = get_addp_base(arg);
-          }
-          VectorSet argset = *PointsTo(arg_base); // Clone set
-          for( VectorSetI j(&argset); j.test(); ++j ) {
-            uint pd = j.elem; // Destination object
-            set_escape_state(pd, PointsToNode::ArgEscape);
-
-            if (arg_is_arraycopy_dest) {
-              PointsToNode* ptd = ptnode_adr(pd);
-              // Conservatively reference an unknown object since
-              // not all source's fields/elements may be known.
-              add_edge_from_fields(pd, _phantom_object, Type::OffsetBot);
-
-              Node *src = call->in(TypeFunc::Parms)->uncast();
-              Node* src_base = src;
-              if (src->is_AddP()) {
-                src_base  = get_addp_base(src);
-              }
-              // Create edges from destination's fields to
-              // everything known source's fields could point to.
-              for( VectorSetI s(PointsTo(src_base)); s.test(); ++s ) {
-                uint ps = s.elem;
-                bool has_bottom_offset = false;
-                for (uint fd = 0; fd < ptd->edge_count(); fd++) {
-                  assert(ptd->edge_type(fd) == PointsToNode::FieldEdge, "expecting a field edge");
-                  int fdi = ptd->edge_target(fd);
-                  PointsToNode* pfd = ptnode_adr(fdi);
-                  int offset = pfd->offset();
-                  if (offset == Type::OffsetBot)
-                    has_bottom_offset = true;
-                  assert(offset != -1, "offset should be set");
-                  add_deferred_edge_to_fields(fdi, ps, offset);
-                }
-                // Destination object may not have access (no field edge)
-                // to fields which are accessed in source object.
-                // As result no edges will be created to those source's
-                // fields and escape state of destination object will
-                // not be propagated to those fields.
-                //
-                // Mark source object as global escape except in
-                // the case with Type::OffsetBot field (which is
-                // common case for array elements access) when
-                // edges are created to all source's fields.
-                if (!has_bottom_offset) {
-                  set_escape_state(ps, PointsToNode::GlobalEscape);
-                }
-              }
+          if (is_arraycopy && (i > TypeFunc::Parms) &&
+              src_has_oops && arg_has_oops) {
+            // Destination object's fields reference an unknown object.
+            Node* arg_base = arg;
+            if (arg->is_AddP()) {
+              arg_base = get_addp_base(arg);
+            }
+            for (VectorSetI s(PointsTo(arg_base)); s.test(); ++s) {
+              uint ps = s.elem;
+              set_escape_state(ps, PointsToNode::ArgEscape);
+              add_edge_from_fields(ps, _phantom_object, Type::OffsetBot);
+            }
+            // Conservatively all values in source object fields globally escape
+            // since we don't know if values in destination object fields
+            // escape (it could be traced but it is too expensive).
+            Node* src = call->in(TypeFunc::Parms)->uncast();
+            Node* src_base = src;
+            if (src->is_AddP()) {
+              src_base  = get_addp_base(src);
+            }
+            for (VectorSetI s(PointsTo(src_base)); s.test(); ++s) {
+              uint ps = s.elem;
+              set_escape_state(ps, PointsToNode::ArgEscape);
+              // Use OffsetTop to indicate fields global escape.
+              add_edge_from_fields(ps, _phantom_object, Type::OffsetTop);
             }
           }
         }

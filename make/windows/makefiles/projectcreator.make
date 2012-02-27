@@ -58,7 +58,8 @@ ProjectCreatorIncludesPRIVATE=\
         -absoluteInclude $(HOTSPOTBUILDSPACE)/%f/generated \
         -ignorePath $(HOTSPOTBUILDSPACE)/%f/generated \
         -ignorePath src\share\vm\adlc \
-        -ignorePath src\share\vm\shark
+        -ignorePath src\share\vm\shark \
+        -ignorePath posix
 
 # This is referenced externally by both the IDE and batch builds
 ProjectCreatorOptions=
@@ -88,7 +89,7 @@ ProjectCreatorIDEOptions=\
         -jdkTargetRoot $(HOTSPOTJDKDIST) \
         -define ALIGN_STACK_FRAMES \
         -define VM_LITTLE_ENDIAN \
-        -prelink  "" "Generating vm.def..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	$(HOTSPOTMKSHOME)\sh $(HOTSPOTWORKSPACE)\make\windows\build_vm_def.sh $(LINK_VER)" \
+        -prelink  "" "Generating vm.def..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	set JAVA_HOME=$(HOTSPOTJDKDIST)	$(HOTSPOTMKSHOME)\sh $(HOTSPOTWORKSPACE)\make\windows\build_vm_def.sh $(LD_VER)" \
         -postbuild "" "Building hotspot.exe..." "cd %o	set HOTSPOTMKSHOME=$(HOTSPOTMKSHOME)	nmake -f $(HOTSPOTWORKSPACE)\make\windows\projectfiles\common\Makefile LOCAL_MAKE=$(HOTSPOTBUILDSPACE)\%f\local.make JAVA_HOME=$(HOTSPOTJDKDIST) launcher" \
         -ignoreFile jsig.c \
         -ignoreFile jvmtiEnvRecommended.cpp \
@@ -207,6 +208,7 @@ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=kernel) \
 ##################################################
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler1 COMPILER1 \
+ -ignorePath_compiler1 src/share/vm/graal \
 $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
 ##################################################
@@ -223,6 +225,7 @@ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
 #NOTE! This list must be kept in sync with GENERATED_NAMES in adlc.make.
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER2 \
+ -ignorePath_compiler2 src/share/vm/graal \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
  -additionalGeneratedFile_compiler2 $(HOTSPOTBUILDSPACE)/%f/generated/adfiles ad_$(Platform_arch_model).cpp \
  -additionalGeneratedFile_compiler2 $(HOTSPOTBUILDSPACE)/%f/generated/adfiles ad_$(Platform_arch_model).hpp \

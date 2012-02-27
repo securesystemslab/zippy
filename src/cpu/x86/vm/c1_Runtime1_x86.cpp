@@ -594,47 +594,46 @@ void Runtime1::initialize_pd() {
 OopMapSet* Runtime1::generate_exception_throw(StubAssembler* sasm, address target, bool has_argument) {
   OopMapSet* oop_maps = new OopMapSet();
 #ifdef GRAAL
-    // graal passes the argument in r10
-    OopMap* oop_map = save_live_registers(sasm, 1);
+  OopMap* oop_map = save_live_registers(sasm, 1);
 
-    // now all registers are saved and can be used freely
-    // verify that no old value is used accidentally
-    __ invalidate_registers(true, true, true, true, true, true);
+  // now all registers are saved and can be used freely
+  // verify that no old value is used accidentally
+  __ invalidate_registers(true, true, true, true, true, true);
 
-    // registers used by this stub
-    const Register temp_reg = rbx;
+  // registers used by this stub
+  const Register temp_reg = rbx;
 
-    // load argument for exception that is passed as an argument into the stub
-    if (has_argument) {
-      __ movptr(c_rarg1, r10);
-    }
-    int call_offset = __ call_RT(noreg, noreg, target, has_argument ? 1 : 0);
+  // load argument for exception that is passed as an argument into the stub
+  if (has_argument) {
+    __ movptr(c_rarg1, r10);
+  }
+  int call_offset = __ call_RT(noreg, noreg, target, has_argument ? 1 : 0);
 
-    oop_maps->add_gc_map(call_offset, oop_map);
+  oop_maps->add_gc_map(call_offset, oop_map);
 #else
-    // preserve all registers
-    int num_rt_args = has_argument ? 2 : 1;
-    OopMap* oop_map = save_live_registers(sasm, num_rt_args);
+  // preserve all registers
+  int num_rt_args = has_argument ? 2 : 1;
+  OopMap* oop_map = save_live_registers(sasm, num_rt_args);
 
-    // now all registers are saved and can be used freely
-    // verify that no old value is used accidentally
-    __ invalidate_registers(true, true, true, true, true, true);
+  // now all registers are saved and can be used freely
+  // verify that no old value is used accidentally
+  __ invalidate_registers(true, true, true, true, true, true);
 
-    // registers used by this stub
-    const Register temp_reg = rbx;
+  // registers used by this stub
+  const Register temp_reg = rbx;
 
-    // load argument for exception that is passed as an argument into the stub
-    if (has_argument) {
-  #ifdef _LP64
-      __ movptr(c_rarg1, Address(rbp, 2*BytesPerWord));
-  #else
-      __ movptr(temp_reg, Address(rbp, 2*BytesPerWord));
-      __ push(temp_reg);
-  #endif // _LP64
-    }
-    int call_offset = __ call_RT(noreg, noreg, target, num_rt_args - 1);
+  // load argument for exception that is passed as an argument into the stub
+  if (has_argument) {
+#ifdef _LP64
+    __ movptr(c_rarg1, Address(rbp, 2*BytesPerWord));
+#else
+    __ movptr(temp_reg, Address(rbp, 2*BytesPerWord));
+    __ push(temp_reg);
+#endif // _LP64
+  }
+  int call_offset = __ call_RT(noreg, noreg, target, num_rt_args - 1);
 
-    oop_maps->add_gc_map(call_offset, oop_map);
+  oop_maps->add_gc_map(call_offset, oop_map);
 #endif
 
   __ stop("should not reach here");
@@ -980,6 +979,7 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
   return oop_maps;
 }
 
+#ifdef GRAAL
 JRT_ENTRY(void, graal_create_null_exception(JavaThread* thread))
   thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
 JRT_END
@@ -1008,9 +1008,7 @@ JRT_ENTRY(void, graal_generic_callback(JavaThread* thread, oop _callback, oop _a
 
   thread->set_vm_result((oop) result.get_jobject());
 JRT_END
-
-
-
+#endif
 
 OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
@@ -1061,7 +1059,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
           if (id == fast_new_instance_init_check_id) {
             // make sure the klass is initialized
-            __ cmpl(Address(klass, instanceKlass::init_state_offset_in_bytes() + sizeof(oopDesc)), instanceKlass::fully_initialized);
+            __ cmpb(Address(klass, instanceKlass::init_state_offset()), instanceKlass::fully_initialized);
             __ jcc(Assembler::notEqual, slow_path);
           }
 
@@ -1069,7 +1067,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           // assert object can be fast path allocated
           {
             Label ok, not_ok;
-            __ movl(obj_size, Address(klass, Klass::layout_helper_offset_in_bytes() + sizeof(oopDesc)));
+            __ movl(obj_size, Address(klass, Klass::layout_helper_offset()));
             __ cmpl(obj_size, 0);  // make sure it's an instance (LH > 0)
             __ jcc(Assembler::lessEqual, not_ok);
             __ testl(obj_size, Klass::_lh_instance_slow_path_bit);
@@ -1090,7 +1088,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           __ bind(retry_tlab);
 
           // get the instance size (size is postive so movl is fine for 64bit)
-          __ movl(obj_size, Address(klass, klassOopDesc::header_size() * HeapWordSize + Klass::layout_helper_offset_in_bytes()));
+          __ movl(obj_size, Address(klass, Klass::layout_helper_offset()));
 
           __ tlab_allocate(obj, obj_size, 0, t1, t2, slow_path);
 
@@ -1102,7 +1100,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
           __ bind(try_eden);
           // get the instance size (size is postive so movl is fine for 64bit)
-          __ movl(obj_size, Address(klass, klassOopDesc::header_size() * HeapWordSize + Klass::layout_helper_offset_in_bytes()));
+          __ movl(obj_size, Address(klass, Klass::layout_helper_offset()));
 
           __ eden_allocate(obj, obj_size, 0, t1, slow_path);
           __ incr_allocated_bytes(thread, obj_size, 0);
@@ -1169,7 +1167,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         {
           Label ok;
           Register t0 = obj;
-          __ movl(t0, Address(klass, Klass::layout_helper_offset_in_bytes() + sizeof(oopDesc)));
+          __ movl(t0, Address(klass, Klass::layout_helper_offset()));
           __ sarl(t0, Klass::_lh_array_tag_shift);
           int tag = ((id == new_type_array_id)
                      ? Klass::_lh_array_tag_type_value
@@ -1203,7 +1201,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
           // get the allocation size: round_up(hdr + length << (layout_helper & 0x1F))
           // since size is positive movl does right thing on 64bit
-          __ movl(t1, Address(klass, klassOopDesc::header_size() * HeapWordSize + Klass::layout_helper_offset_in_bytes()));
+          __ movl(t1, Address(klass, Klass::layout_helper_offset()));
           // since size is postive movl does right thing on 64bit
           __ movl(arr_size, length);
           assert(t1 == rcx, "fixed register usage");
@@ -1217,7 +1215,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           __ tlab_allocate(obj, arr_size, 0, t1, t2, slow_path);  // preserves arr_size
 
           __ initialize_header(obj, klass, length, t1, t2);
-          __ movb(t1, Address(klass, klassOopDesc::header_size() * HeapWordSize + Klass::layout_helper_offset_in_bytes() + (Klass::_lh_header_size_shift / BitsPerByte)));
+          __ movb(t1, Address(klass, in_bytes(Klass::layout_helper_offset()) + (Klass::_lh_header_size_shift / BitsPerByte)));
           assert(Klass::_lh_header_size_shift % BitsPerByte == 0, "bytewise");
           assert(Klass::_lh_header_size_mask <= 0xFF, "bytewise");
           __ andptr(t1, Klass::_lh_header_size_mask);
@@ -1230,7 +1228,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           __ bind(try_eden);
           // get the allocation size: round_up(hdr + length << (layout_helper & 0x1F))
           // since size is positive movl does right thing on 64bit
-          __ movl(t1, Address(klass, klassOopDesc::header_size() * HeapWordSize + Klass::layout_helper_offset_in_bytes()));
+          __ movl(t1, Address(klass, Klass::layout_helper_offset()));
           // since size is postive movl does right thing on 64bit
           __ movl(arr_size, length);
           assert(t1 == rcx, "fixed register usage");
@@ -1245,7 +1243,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
           __ incr_allocated_bytes(thread, arr_size, 0);
 
           __ initialize_header(obj, klass, length, t1, t2);
-          __ movb(t1, Address(klass, klassOopDesc::header_size() * HeapWordSize + Klass::layout_helper_offset_in_bytes() + (Klass::_lh_header_size_shift / BitsPerByte)));
+          __ movb(t1, Address(klass, in_bytes(Klass::layout_helper_offset()) + (Klass::_lh_header_size_shift / BitsPerByte)));
           assert(Klass::_lh_header_size_shift % BitsPerByte == 0, "bytewise");
           assert(Klass::_lh_header_size_mask <= 0xFF, "bytewise");
           __ andptr(t1, Klass::_lh_header_size_mask);
@@ -1322,7 +1320,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         Label register_finalizer;
         Register t = rsi;
         __ load_klass(t, rax);
-        __ movl(t, Address(t, Klass::access_flags_offset_in_bytes() + sizeof(oopDesc)));
+        __ movl(t, Address(t, Klass::access_flags_offset()));
         __ testl(t, JVM_ACC_HAS_FINALIZER);
         __ jcc(Assembler::notZero, register_finalizer);
         __ ret(0);
@@ -1381,8 +1379,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
 
     case unwind_exception_id:
-      {
-        __ set_info("unwind_exception", dont_gc_arguments);
+      { __ set_info("unwind_exception", dont_gc_arguments);
         // note: no stubframe since we are about to leave the current
         //       activation and we are calling a leaf VM function only.
         generate_unwind_exception(sasm);
@@ -1441,17 +1438,18 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ movptr(rsi, Address(rsp, (klass_off) * VMRegImpl::stack_slot_size)); // subclass
         __ movptr(rax, Address(rsp, (sup_k_off) * VMRegImpl::stack_slot_size)); // superclass
 
-        Label success;
         Label miss;
 #ifdef GRAAL
-          // TODO this should really be within the XirSnippets
+        Label success;
           __ check_klass_subtype_fast_path(rsi, rax, rcx, &success, &miss, NULL);
 #endif
 
         __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, NULL, &miss);
 
         // fallthrough on success:
+#ifdef GRAAL
         __ bind(success);
+#endif
         __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), 1); // result
         __ pop(rax);
         __ pop(rcx);
@@ -1850,7 +1848,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       }
       break;
 #endif // !SERIALGC
-
+#ifdef GRAAL
     case graal_unwind_exception_call_id: {
       // remove the frame from the stack
       __ movptr(rsp, rbp);
@@ -2053,9 +2051,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       __ ret(0);
       break;
     }
-
-
-
+#endif
 
     default:
       { StubFrame f(sasm, "unimplemented entry", dont_gc_arguments);

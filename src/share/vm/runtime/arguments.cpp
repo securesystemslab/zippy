@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -108,8 +108,6 @@ SystemProperty *Arguments::_compiler_class_path = NULL;
 
 char* Arguments::_meta_index_path = NULL;
 char* Arguments::_meta_index_dir = NULL;
-
-static bool force_client_mode = false;
 
 // Check if head of 'option' matches 'name', and sets 'tail' remaining part of option string
 
@@ -1018,6 +1016,13 @@ void Arguments::set_mode_flags(Mode mode) {
     UseInterpreter           = false;
     BackgroundCompilation    = false;
     ClipInlining             = false;
+    // Be much more aggressive in tiered mode with -Xcomp and exercise C2 more.
+    // We will first compile a level 3 version (C1 with full profiling), then do one invocation of it and
+    // compile a level 4 (C2) and then continue executing it.
+    if (TieredCompilation) {
+      Tier3InvokeNotifyFreqLog = 0;
+      Tier4InvocationThreshold = 0;
+    }
     break;
   }
 }
@@ -1051,6 +1056,16 @@ void Arguments::set_tiered_flags() {
 }
 
 #ifndef KERNEL
+static void disable_adaptive_size_policy(const char* collector_name) {
+  if (UseAdaptiveSizePolicy) {
+    if (FLAG_IS_CMDLINE(UseAdaptiveSizePolicy)) {
+      warning("disabling UseAdaptiveSizePolicy; it is incompatible with %s.",
+              collector_name);
+    }
+    FLAG_SET_DEFAULT(UseAdaptiveSizePolicy, false);
+  }
+}
+
 // If the user has chosen ParallelGCThreads > 0, we set UseParNewGC
 // if it's not explictly set or unset. If the user has chosen
 // UseParNewGC and not explicitly set ParallelGCThreads we
@@ -1060,11 +1075,8 @@ void Arguments::set_parnew_gc_flags() {
          "control point invariant");
   assert(UseParNewGC, "Error");
 
-  // Turn off AdaptiveSizePolicy by default for parnew until it is
-  // complete.
-  if (FLAG_IS_DEFAULT(UseAdaptiveSizePolicy)) {
-    FLAG_SET_DEFAULT(UseAdaptiveSizePolicy, false);
-  }
+  // Turn off AdaptiveSizePolicy for parnew until it is complete.
+  disable_adaptive_size_policy("UseParNewGC");
 
   if (ParallelGCThreads == 0) {
     FLAG_SET_DEFAULT(ParallelGCThreads,
@@ -1121,11 +1133,8 @@ void Arguments::set_cms_and_parnew_gc_flags() {
     FLAG_SET_ERGO(bool, UseParNewGC, true);
   }
 
-  // Turn off AdaptiveSizePolicy by default for cms until it is
-  // complete.
-  if (FLAG_IS_DEFAULT(UseAdaptiveSizePolicy)) {
-    FLAG_SET_DEFAULT(UseAdaptiveSizePolicy, false);
-  }
+  // Turn off AdaptiveSizePolicy for CMS until it is complete.
+  disable_adaptive_size_policy("UseConcMarkSweepGC");
 
   // In either case, adjust ParallelGCThreads and/or UseParNewGC
   // as needed.
@@ -1352,7 +1361,7 @@ void Arguments::set_ergonomics_flags() {
     return;
   }
 
-  if (os::is_server_class_machine() && !force_client_mode ) {
+  if (os::is_server_class_machine()) {
     // If no other collector is requested explicitly,
     // let the VM select the collector based on
     // machine class and automatic selection policy.
@@ -1377,12 +1386,9 @@ void Arguments::set_ergonomics_flags() {
   // by ergonomics.
   if (MaxHeapSize <= max_heap_for_compressed_oops()) {
 #if !defined(COMPILER1) || defined(TIERED)
-// disable UseCompressedOops by default on MacOS X until 7118647 is fixed
-#ifndef __APPLE__
     if (FLAG_IS_DEFAULT(UseCompressedOops)) {
       FLAG_SET_ERGO(bool, UseCompressedOops, true);
     }
-#endif // !__APPLE__
 #endif
 #ifdef _WIN64
     if (UseLargePages && UseCompressedOops) {
@@ -1407,10 +1413,11 @@ void Arguments::set_ergonomics_flags() {
 
 void Arguments::set_parallel_gc_flags() {
   assert(UseParallelGC || UseParallelOldGC, "Error");
-  // If parallel old was requested, automatically enable parallel scavenge.
-  if (UseParallelOldGC && !UseParallelGC && FLAG_IS_DEFAULT(UseParallelGC)) {
-    FLAG_SET_DEFAULT(UseParallelGC, true);
+  // Enable ParallelOld unless it was explicitly disabled (cmd line or rc file).
+  if (FLAG_IS_DEFAULT(UseParallelOldGC)) {
+    FLAG_SET_DEFAULT(UseParallelOldGC, true);
   }
+  FLAG_SET_DEFAULT(UseParallelGC, true);
 
   // If no heap maximum was requested explicitly, use some reasonable fraction
   // of the physical memory, up to a maximum of 1GB.
@@ -2435,7 +2442,7 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
 #ifndef PRODUCT
     // -Xprintflags
     } else if (match_option(option, "-Xprintflags", &tail)) {
-      CommandLineFlags::printFlags();
+      CommandLineFlags::printFlags(tty, false);
       vm_exit(0);
 #endif
     // -D
@@ -3051,11 +3058,6 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   // Construct the path to the archive
   char jvm_path[JVM_MAXPATHLEN];
   os::jvm_path(jvm_path, sizeof(jvm_path));
-#ifdef TIERED
-  if (strstr(jvm_path, "client") != NULL) {
-    force_client_mode = true;
-  }
-#endif // TIERED
   char *end = strrchr(jvm_path, *os::file_separator());
   if (end != NULL) *end = '\0';
   char *shared_archive_path = NEW_C_HEAP_ARRAY(char, strlen(jvm_path) +
@@ -3094,13 +3096,13 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
       IgnoreUnrecognizedVMOptions = false;
     }
     if (match_option(option, "-XX:+PrintFlagsInitial", &tail)) {
-      CommandLineFlags::printFlags();
+      CommandLineFlags::printFlags(tty, false);
       vm_exit(0);
     }
 
 #ifndef PRODUCT
     if (match_option(option, "-XX:+PrintFlagsWithComments", &tail)) {
-      CommandLineFlags::printFlags(true);
+      CommandLineFlags::printFlags(tty, true);
       vm_exit(0);
     }
 #endif
@@ -3276,6 +3278,9 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   if (!UseBiasedLocking || EmitSync != 0) {
     UseOptoBiasInlining = false;
   }
+  if (!EliminateLocks) {
+    EliminateNestedLocks = false;
+  }
 #endif
 
   if (PrintAssembly && FLAG_IS_DEFAULT(DebugNonSafepoints)) {
@@ -3293,7 +3298,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
 #endif
 
   if (PrintCommandLineFlags) {
-    CommandLineFlags::printSetFlags();
+    CommandLineFlags::printSetFlags(tty);
   }
 
   // Apply CPU specific policy for the BiasedLocking
