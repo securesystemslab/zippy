@@ -201,16 +201,18 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case slow_subtype_check_id:
     case fpu2long_stub_id:
     case unwind_exception_id:
+#ifdef GRAAL
     case graal_verify_pointer_id:
     case graal_unwind_exception_call_id:
     case graal_slow_subtype_check_id:
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
+#endif
 #ifndef TIERED
     case counter_overflow_id: // Not generated outside the tiered world
 #endif
-#ifdef SPARC
+#if defined(SPARC) || defined(PPC)
     case handle_exception_nofpu_id:  // Unused on sparc
 #endif
       break;
@@ -591,6 +593,7 @@ address Runtime1::exception_handler_for_pc(JavaThread* thread) {
     continuation = exception_handler_for_pc_helper(thread, exception, pc, nm);
   }
   // Back in JAVA, use no oops DON'T safepoint
+
   // Now check to see if the nmethod we were called from is now deoptimized.
   // If so we must return to the deopt blob and deoptimize the nmethod
   if (nm != NULL && caller_is_deopted()) {
@@ -646,7 +649,7 @@ JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* thre
   SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_IncompatibleClassChangeError());
 JRT_END
 
-
+#ifdef GRAAL
 JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT
@@ -707,25 +710,17 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
   }
 JRT_END
 
+#endif
+
 
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, lock);
-  }
   if (PrintBiasedLockingStatistics) {
     Atomic::inc(BiasedLocking::slow_path_entry_count_addr());
   }
-#endif
   Handle h_obj(thread, obj);
   assert(h_obj()->is_oop(), "must be NULL or an object");
   if (UseBiasedLocking) {
-    if (UseFastLocking) {
-      assert(obj == lock->obj(), "must match");
-    } else {
-      lock->set_obj(obj);
-    }
     // Retry fast entry if bias is revoked to avoid unnecessary inflation
     ObjectSynchronizer::fast_enter(h_obj, lock->lock(), true, CHECK);
   } else {
@@ -738,14 +733,6 @@ JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj
       ObjectSynchronizer::fast_enter(h_obj, lock->lock(), false, THREAD);
     }
   }
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    tty->print_cr("exiting locking lock state: obj=" INTPTR_FORMAT, lock->obj());
-    lock->lock()->print_on(tty);
-    tty->print_cr("");
-    tty->print_cr("done");
-  }
-#endif
 JRT_END
 
 

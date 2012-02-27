@@ -289,12 +289,14 @@ void C1_MacroAssembler::initialize_object(Register obj, Register klass, Register
       jcc(Assembler::notZero, loop);
     }
   }
-  
-  // (tw) fix me
-//  if (CURRENT_ENV->dtrace_alloc_probes()) {
-//    assert(obj == rax, "must be");
-//    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
-//  }
+
+#ifndef GRAAL
+  // TODO(tw): Check how we can access the flag without a ciEnv object.
+  if (CURRENT_ENV->dtrace_alloc_probes()) {
+    assert(obj == rax, "must be");
+    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
+  }
+#endif
 
   verify_oop(obj);
 }
@@ -324,11 +326,14 @@ void C1_MacroAssembler::allocate_array(Register obj, Register len, Register t1, 
   const Register len_zero = len;
   initialize_body(obj, arr_size, header_size * BytesPerWord, len_zero);
 
-  // TODO(tw): Re-enable this code once Graal no longer uses this method.
-//  if (CURRENT_ENV->dtrace_alloc_probes()) {
-//    assert(obj == rax, "must be");
-//    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
-//  }
+
+#ifndef GRAAL
+  // TODO(tw): Check how we can access the flag without a ciEnv object.
+  if (CURRENT_ENV->dtrace_alloc_probes()) {
+    assert(obj == rax, "must be");
+    call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
+  }
+#endif
 
   verify_oop(obj);
 }
