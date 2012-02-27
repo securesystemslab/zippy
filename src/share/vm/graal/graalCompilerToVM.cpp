@@ -763,16 +763,16 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_int(env, config, "stackShadowPages", StackShadowPages);
   set_int(env, config, "hubOffset", oopDesc::klass_offset_in_bytes());
   set_int(env, config, "arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
-  set_int(env, config, "klassStateOffset", instanceKlass::init_state_offset());
+  set_int(env, config, "klassStateOffset", in_bytes(instanceKlass::init_state_offset()));
   set_int(env, config, "klassStateFullyInitialized", (int)instanceKlass::fully_initialized);
   set_int(env, config, "threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int(env, config, "threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
   set_int(env, config, "threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
-  set_int(env, config, "instanceHeaderPrototypeOffset", Klass::prototype_header_offset());
+  set_int(env, config, "instanceHeaderPrototypeOffset", in_bytes(Klass::prototype_header_offset()));
   set_int(env, config, "threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
   set_int(env, config, "threadMultiNewArrayStorage", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
-  set_int(env, config, "classMirrorOffset", Klass::java_mirror_offset());
+  set_int(env, config, "classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   
   set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
   set_int(env, config, "dataLayoutHeaderSize", DataLayout::header_size_in_bytes());
@@ -805,8 +805,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorexit_id)));
   set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
   set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
-  set_int(env, config, "klassModifierFlagsOffset", Klass::modifier_flags_offset());
-  set_int(env, config, "graalMirrorKlassOffset", Klass::graal_mirror_offset());
+  set_int(env, config, "klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
+  set_int(env, config, "graalMirrorKlassOffset", in_bytes(Klass::graal_mirror_offset()));
   set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
 
   set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());
@@ -844,7 +844,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
     env->SetIntArrayRegion(arrayOffsets, i, 1, &offset);
   }
   set_int_array(env, config, "arrayOffsets", arrayOffsets);
-  set_int(env, config, "arrayClassElementOffset", objArrayKlass::element_klass_offset());
+  set_int(env, config, "arrayClassElementOffset", in_bytes(objArrayKlass::element_klass_offset()));
   return config;
 }
 
