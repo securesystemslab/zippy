@@ -193,8 +193,7 @@ klassOop SystemDictionary::resolve_or_fail(Symbol* class_name,
 // Forwards to resolve_instance_class_or_null
 
 klassOop SystemDictionary::resolve_or_null(Symbol* class_name, Handle class_loader, Handle protection_domain, TRAPS) {
-  // (tw) May we do this?
-  //assert(!THREAD->is_Compiler_thread(), "Can not load classes with the Compiler thread");
+  assert(!THREAD->is_Compiler_thread(), "Can not load classes with the Compiler thread");
   if (FieldType::is_array(class_name)) {
     return resolve_array_class_or_null(class_name, class_loader, protection_domain, CHECK_NULL);
   } else if (FieldType::is_obj(class_name)) {
@@ -2370,9 +2369,8 @@ methodOop SystemDictionary::find_method_handle_invoke(Symbol* name,
   if (spe == NULL || spe->property_oop() == NULL) {
     spe = NULL;
     // Must create lots of stuff here, but outside of the SystemDictionary lock.
-    // (tw) May we do this?
-	//if (THREAD->is_Compiler_thread())
-    //  return NULL;              // do not attempt from within compiler
+    if (THREAD->is_Compiler_thread())
+      return NULL;              // do not attempt from within compiler
     bool for_invokeGeneric = (name_id != vmSymbols::VM_SYMBOL_ENUM_NAME(invokeExact_name));
     bool found_on_bcp = false;
     Handle mt = find_method_handle_type(signature, accessing_klass,

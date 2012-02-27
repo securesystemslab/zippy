@@ -528,7 +528,7 @@ void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) 
   NativeJump*        jump          = nativeJump_at(method_holder->next_instruction_address());
 
   assert(method_holder->data()    == 0           || method_holder->data()    == (intptr_t)callee(), "a) MT-unsafe modification of inline cache");
-// XXX GRAAL : ??
+// TODO(tw): Check what is the correct assert for Graal.
 #ifndef GRAAL
   assert(jump->jump_destination() == (address)-1 || jump->jump_destination() == entry, "b) MT-unsafe modification of inline cache");
 #endif

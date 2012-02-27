@@ -729,6 +729,8 @@ void CompileBroker::compilation_init() {
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
 #if defined(GRAAL)
   _compilers[0] = new GraalCompiler();
+  c1_count = 0;
+  c2_count = 0;
 #elif defined(COMPILER1)
   if (c1_count > 0) {
     _compilers[0] = new Compiler();
@@ -943,7 +945,7 @@ CompilerThread* CompileBroker::make_compiler_thread(const char* name, CompileQue
 // Initialize the compilation queue
 void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler_count) {
   EXCEPTION_MARK;
-#if !defined(ZERO) && !defined(SHARK)
+#if !defined(ZERO) && !defined(SHARK) && !defined(GRAAL)
   assert(c2_compiler_count > 0 || c1_compiler_count > 0, "No compilers?");
 #endif // !ZERO && !SHARK
   if (c2_compiler_count > 0) {
@@ -1081,6 +1083,14 @@ void CompileBroker::compile_method_base(methodHandle method,
   if (instanceRefKlass::owns_pending_list_lock(JavaThread::current())) {
     return;
   }
+#ifdef GRAAL
+  if (!JavaThread::current()->is_compiling()) {
+    method->set_queued_for_compilation();
+    GraalCompiler::instance()->compile_method(method, osr_bci, is_compile_blocking(method, osr_bci));
+  } else {
+    // Recursive compile request => ignore.
+  }
+#else
 
   // Outputs from the following MutexLocker block:
   CompileTask* task     = NULL;
@@ -1090,14 +1100,6 @@ void CompileBroker::compile_method_base(methodHandle method,
   // Acquire our lock.
   {
     MutexLocker locker(queue->lock(), thread);
-
-#ifdef GRAAL
-    if (JavaThread::current()->is_compiling() && !BackgroundCompilation) {
-      TRACE_graal_1("Recursive compile %s!", method->name_and_sig_as_C_string());
-      method->set_not_compilable();
-      return;
-    }
-#endif
 
     // Make sure the method has not slipped into the queues since
     // last we checked; note that those checks were "fast bail-outs".
@@ -1163,23 +1165,13 @@ void CompileBroker::compile_method_base(methodHandle method,
     // and in that case it's best to protect both the testing (here) of
     // these bits, and their updating (here and elsewhere) under a
     // common lock.
-#ifndef GRAAL
     task = create_compile_task(queue,
                                compile_id, method,
                                osr_bci, comp_level,
                                hot_method, hot_count, comment,
                                blocking);
-#endif
   }
 
-#ifdef GRAAL
-  if (!JavaThread::current()->is_compiling()) {
-    method->set_queued_for_compilation();
-    GraalCompiler::instance()->compile_method(method, osr_bci, blocking);
-  } else {
-    // Recursive compile request => ignore.
-  }
-#else
   if (blocking) {
     wait_for_completion(task);
   }

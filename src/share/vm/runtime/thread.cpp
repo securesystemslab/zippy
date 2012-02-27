@@ -4067,9 +4067,7 @@ GrowableArray<JavaThread*>* Threads::get_pending_threads(int count,
   {
     MutexLockerEx ml(doLock ? Threads_lock : NULL);
     ALL_JAVA_THREADS(p) {
-      
-      // (tw) May we do this?
-      //if (p->is_Compiler_thread()) continue;
+      if (p->is_Compiler_thread()) continue;
 
       address pending = (address)p->current_pending_monitor();
       if (pending == monitor) {             // found a match
