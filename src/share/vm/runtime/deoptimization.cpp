@@ -19,6 +19,7 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
 #include "precompiled.hpp"
@@ -166,6 +167,7 @@ JRT_BLOCK_ENTRY(Deoptimization::UnrollBlock*, Deoptimization::fetch_unroll_info(
     tty->print("Deoptimization "); 
   }
   thread->inc_in_deopt_handler();
+
   return fetch_unroll_info_helper(thread);
 JRT_END
 
@@ -209,7 +211,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   assert(vf->is_compiled_frame(), "Wrong frame type");
   chunk->push(compiledVFrame::cast(vf));
 
-  // TODO(tw): Fix this hack after introducing GRAAL macro.
 #if defined(COMPILER2) || defined(GRAAL)
   // Reallocate the non-escaping objects and restore their fields. Then
   // relock objects if synchronization on them was eliminated.
@@ -746,7 +747,7 @@ int Deoptimization::deoptimize_dependents() {
 }
 
 
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
 bool Deoptimization::realloc_objects(JavaThread* thread, frame* fr, GrowableArray<ScopeValue*>* objects, TRAPS) {
   Handle pending_exception(thread->pending_exception());
   const char* exception_file = thread->exception_file();
@@ -991,7 +992,7 @@ void Deoptimization::print_objects(GrowableArray<ScopeValue*>* objects) {
   }
 }
 #endif
-//#endif // COMPILER2
+#endif // COMPILER2 || GRAAL
 
 vframeArray* Deoptimization::create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk) {
   Events::log(thread, "DEOPT PACKING pc=" INTPTR_FORMAT " sp=" INTPTR_FORMAT, fr.pc(), fr.sp());
@@ -1190,6 +1191,7 @@ JRT_LEAF(void, Deoptimization::popframe_preserve_args(JavaThread* thread, int by
 JRT_END
 
 
+#if defined(COMPILER2) || defined(SHARK) || defined(GRAAL)
 void Deoptimization::load_class_by_index(constantPoolHandle constant_pool, int index, TRAPS) {
   // in case of an unresolved klass entry, load the class.
   if (constant_pool->tag_at(index).is_unresolved_klass()) {
@@ -1964,3 +1966,40 @@ void Deoptimization::print_statistics() {
     if (xtty != NULL)  xtty->tail("statistics");
   }
 }
+#else // COMPILER2 || SHARK || GRAAL
+
+
+// Stubs for C1 only system.
+bool Deoptimization::trap_state_is_recompiled(int trap_state) {
+  return false;
+}
+
+const char* Deoptimization::trap_reason_name(int reason) {
+  return "unknown";
+}
+
+void Deoptimization::print_statistics() {
+  // no output
+}
+
+void
+Deoptimization::update_method_data_from_interpreter(methodDataHandle trap_mdo, int trap_bci, int reason) {
+  // no udpate
+}
+
+int Deoptimization::trap_state_has_reason(int trap_state, int reason) {
+  return 0;
+}
+
+void Deoptimization::gather_statistics(DeoptReason reason, DeoptAction action,
+                                       Bytecodes::Code bc) {
+  // no update
+}
+
+const char* Deoptimization::format_trap_state(char* buf, size_t buflen,
+                                              int trap_state) {
+  jio_snprintf(buf, buflen, "#%d", trap_state);
+  return buf;
+}
+
+#endif // COMPILER2 || SHARK || GRAAL
