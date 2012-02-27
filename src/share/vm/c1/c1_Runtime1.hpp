@@ -160,12 +160,12 @@ class Runtime1: public AllStatic {
   static void throw_class_cast_exception(JavaThread* thread, oopDesc* object);
   static void throw_incompatible_class_change_error(JavaThread* thread);
   static void throw_array_store_exception(JavaThread* thread, oopDesc* object);
-
-  static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
-
   static void monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock);
   static void monitorexit (JavaThread* thread, BasicObjectLock* lock);
+#ifdef GRAAL
+  static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
+#endif
 
   static void deoptimize(JavaThread* thread);
 

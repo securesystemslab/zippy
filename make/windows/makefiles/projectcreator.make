@@ -208,6 +208,7 @@ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=kernel) \
 ##################################################
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler1 COMPILER1 \
+ -ignorePath_compiler1 src/share/vm/graal \
 $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
 ##################################################
@@ -224,6 +225,7 @@ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
 #NOTE! This list must be kept in sync with GENERATED_NAMES in adlc.make.
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER2 \
+ -ignorePath_compiler2 src/share/vm/graal \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
  -additionalGeneratedFile_compiler2 $(HOTSPOTBUILDSPACE)/%f/generated/adfiles ad_$(Platform_arch_model).cpp \
  -additionalGeneratedFile_compiler2 $(HOTSPOTBUILDSPACE)/%f/generated/adfiles ad_$(Platform_arch_model).hpp \

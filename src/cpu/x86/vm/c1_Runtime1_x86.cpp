@@ -1850,7 +1850,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       }
       break;
 #endif // !SERIALGC
-
+#ifdef GRAAL
     case graal_unwind_exception_call_id: {
       // remove the frame from the stack
       __ movptr(rsp, rbp);
@@ -2053,9 +2053,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       __ ret(0);
       break;
     }
-
-
-
+#endif
 
     default:
       { StubFrame f(sasm, "unimplemented entry", dont_gc_arguments);
