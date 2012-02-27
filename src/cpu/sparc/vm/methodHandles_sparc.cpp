@@ -876,7 +876,14 @@ void MethodHandles::move_arg_slots_up(MacroAssembler* _masm,
   }
 #endif
   __ cmp_and_brx_short(bottom_reg, top_reg, Assembler::greaterEqualUnsigned, Assembler::pn, L_break);
->>
+  // work top down to bottom, copying contiguous data upwards
+  // In pseudo-code:
+  //   while (--top >= bottom) *(top + distance) = *(top + 0);
+  RegisterOrConstant offset = __ argument_offset(positive_distance_in_slots, positive_distance_in_slots.register_or_noreg());
+  __ BIND(L_loop);
+  __ sub(top_reg, wordSize, top_reg);
+  __ ld_ptr(           Address(top_reg, 0     ), temp2_reg);
+  __ st_ptr(temp2_reg, Address(top_reg, offset)           );
   __ cmp_and_brx_short(top_reg, bottom_reg, Assembler::greaterUnsigned, Assembler::pt, L_loop);
   assert(Interpreter::stackElementSize == wordSize, "else change loop");
   __ BIND(L_break);

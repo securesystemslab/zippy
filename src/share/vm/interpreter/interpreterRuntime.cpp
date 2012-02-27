@@ -445,6 +445,7 @@ IRT_ENTRY(address, InterpreterRuntime::exception_handler_for_exception(JavaThrea
     }
   } while (should_repeat == true);
 
+#ifdef GRAAL
   if (h_method->method_data() != NULL) {
     ResourceMark rm(thread);
     ProfileData* pdata = h_method->method_data()->allocate_bci_to_data(current_bci);
@@ -456,6 +457,7 @@ IRT_ENTRY(address, InterpreterRuntime::exception_handler_for_exception(JavaThrea
       }
     }
   }
+#endif
 
   // notify JVMTI of an exception throw; JVMTI will detect if this is a first
   // time throw or a stack unwinding throw and accordingly notify the debugger

@@ -3067,7 +3067,6 @@ void SharedRuntime::generate_deopt_blob() {
     __ bind(L);
   }
 #endif // ASSERT
-  
   __ mov(c_rarg0, r15_thread);
   __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::fetch_unroll_info)));
 

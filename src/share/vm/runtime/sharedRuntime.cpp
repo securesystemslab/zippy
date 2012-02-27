@@ -811,10 +811,6 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 {
   address target_pc = NULL;
 
-  if (TraceSignals) {
-    tty->print_cr("Searching for continuation for implicit exception at %d!", pc);
-  }
-
   if (Interpreter::contains(pc)) {
 #ifdef CC_INTERP
     // C++ interpreter doesn't throw implicit exceptions
@@ -2823,7 +2819,7 @@ VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, 
   // ResourceObject, so do not put any ResourceMarks in here.
   char *s = sig->as_C_string();
   int len = (int)strlen(s);
-  s++; len--;                  // Skip opening paren
+  *s++; len--;                  // Skip opening paren
   char *t = s+len;
   while( *(--t) != ')' ) ;      // Find close paren
 

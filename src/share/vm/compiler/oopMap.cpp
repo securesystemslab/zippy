@@ -255,7 +255,7 @@ void OopMapSet::add_gc_map(int pc_offset, OopMap *map ) {
   if(om_count() > 0) {
     OopMap* last = at(om_count()-1);
     if (last->offset() == map->offset() ) {
-      fatal(err_msg("OopMap inserted twice (offset=%d)", last->offset()));
+      fatal("OopMap inserted twice");
     }
     if(last->offset() > map->offset()) {
       tty->print_cr( "WARNING, maps not sorted: pc[%d]=%d, pc[%d]=%d",

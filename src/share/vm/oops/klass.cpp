@@ -148,7 +148,9 @@ klassOop Klass::base_create_klass_oop(KlassHandle& klass, int size,
   }
 
   kl->set_java_mirror(NULL);
+#ifdef GRAAL
   kl->set_graal_mirror(NULL);
+#endif
   kl->set_modifier_flags(0);
   kl->set_layout_helper(Klass::_lh_neutral_value);
   kl->set_name(NULL);

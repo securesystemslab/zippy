@@ -407,6 +407,7 @@ static unsigned __stdcall java_start(Thread* thread) {
     }
   }
 
+
   if (UseVectoredExceptions) {
     // If we are using vectored exception we don't need to set a SEH
     thread->run();
@@ -2087,9 +2088,11 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #elif _M_AMD64
   PCONTEXT ctx = exceptionInfo->ContextRecord;
   address pc = (address)ctx->Rip;
-  //assert(pc[0] == 0xF7 || (pc[1] == 0xF7 && (pc[0] == 0x41 || pc[0] == 0x49)), "not an idiv opcode");
-  //assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
-  //assert((long)ctx->Rax == (long)min_jint || pc[0] == 0x49, "unexpected idiv exception");
+#ifndef GRAAL
+  assert(pc[0] == 0xF7, "not an idiv opcode");
+  assert((pc[1] & ~0x7) == 0xF8, "cannot handle non-register operands");
+  assert(ctx->Rax == min_jint, "unexpected idiv exception");
+#endif
   // set correct result values and continue after idiv instruction
   ctx->Rip = (DWORD)pc + 2;        // idiv reg, reg  is 2 bytes
   ctx->Rax = (DWORD)min_jint;      // result
