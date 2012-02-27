@@ -3060,7 +3060,9 @@ void SharedRuntime::generate_deopt_blob() {
 
   __ reset_last_Java_frame(false, false);
 
+#ifdef GRAAL
   __ bind(after_fetch_unroll_info_call);
+#endif
 
   // Load UnrollBlock* into rdi
   __ mov(rdi, rax);
@@ -3231,8 +3233,10 @@ void SharedRuntime::generate_deopt_blob() {
 
   _deopt_blob = DeoptimizationBlob::create(&buffer, oop_maps, 0, exception_offset, reexecute_offset, frame_size_in_words);
   _deopt_blob->set_unpack_with_exception_in_tls_offset(exception_in_tls_offset);
+#ifdef GRAAL
   _deopt_blob->set_uncommon_trap_offset(uncommon_trap_offset);
   _deopt_blob->set_jmp_uncommon_trap_offset(jmp_uncommon_trap_offset);
+#endif
 }
 
 #ifdef COMPILER2
