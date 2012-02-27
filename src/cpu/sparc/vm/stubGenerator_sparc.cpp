@@ -436,7 +436,7 @@ class StubGenerator: public StubCodeGenerator {
 #undef __
 #define __ masm->
 
-  address generate_throw_exception(const char* name, address runtime_entry, bool restore_saved_exception_pc,
+  address generate_throw_exception(const char* name, address runtime_entry,
                                    Register arg1 = noreg, Register arg2 = noreg) {
 #ifdef ASSERT
     int insts_size = VerifyThread ? 1 * K : 600;

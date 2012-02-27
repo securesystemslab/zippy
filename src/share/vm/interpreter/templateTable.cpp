@@ -429,8 +429,11 @@ void TemplateTable::initialize() {
   def(Bytecodes::_jsr                 , ubcp|disp|____|____, vtos, vtos, jsr                 ,  _           ); // result is not an oop, so do not transition to atos
   def(Bytecodes::_ret                 , ubcp|disp|____|____, vtos, vtos, ret                 ,  _           );
   def(Bytecodes::_tableswitch         , ubcp|disp|____|____, itos, vtos, tableswitch         ,  _           );
-//  def(Bytecodes::_lookupswitch        , ubcp|disp|____|____, itos, itos, lookupswitch        ,  _           );
+#ifdef GRAAL
   def(Bytecodes::_lookupswitch        , ubcp|disp|____|____, itos, vtos, fast_linearswitch   ,  _           );
+#else
+  def(Bytecodes::_lookupswitch        , ubcp|disp|____|____, itos, itos, lookupswitch        ,  _           );
+#endif
   def(Bytecodes::_ireturn             , ____|disp|clvm|____, itos, itos, _return             , itos         );
   def(Bytecodes::_lreturn             , ____|disp|clvm|____, ltos, ltos, _return             , ltos         );
   def(Bytecodes::_freturn             , ____|disp|clvm|____, ftos, ftos, _return             , ftos         );

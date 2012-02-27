@@ -2186,7 +2186,7 @@ class StubGenerator: public StubCodeGenerator {
   // either at call sites or otherwise assume that stack unwinding will be initiated,
   // so caller saved registers were assumed volatile in the compiler.
   address generate_throw_exception(const char* name, address runtime_entry,
-                                   bool restore_saved_exception_pc, Register arg1 = noreg, Register arg2 = noreg) {
+                                   Register arg1 = noreg, Register arg2 = noreg) {
 
     int insts_size = 256;
     int locs_size  = 32;
