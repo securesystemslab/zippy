@@ -85,6 +85,7 @@ void graal_compute_offsets();
     int_field(HotSpotField, accessFlags)                                                \
   end_class                                                                             \
   start_class(HotSpotCompiledMethod)                                                    \
+    oop_field(HotSpotCompiledMethod, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
     long_field(HotSpotCompiledMethod, nmethod)                                          \
     oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
   end_class                                                                             \

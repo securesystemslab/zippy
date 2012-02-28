@@ -351,6 +351,7 @@
   template(forObject_name,                            "forObject")                                                      \
   template(callbackInternal_name,                     "callbackInternal")                                               \
   template(callback_signature,                        "(Ljava/lang/Object;)Ljava/lang/Object;")                         \
+  template(MethodInvalidatedException,                "com/oracle/max/cri/ri/RiCompiledMethod$MethodInvalidatedException") \
                                                                                                                         \
                                                                                                   \
   /* common method and field names */                                                             \

@@ -864,6 +864,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
     instanceKlass::cast(HotSpotCompiledMethod::klass())->initialize(CHECK_NULL);
     Handle obj = instanceKlass::cast(HotSpotCompiledMethod::klass())->allocate_permanent_instance(CHECK_NULL);
     assert(obj() != NULL, "must succeed in allocating instance");
+    HotSpotCompiledMethod::set_compiler(obj, VMToCompiler::compilerInstance()());
     HotSpotCompiledMethod::set_nmethod(obj, (jlong) nm);
     HotSpotCompiledMethod::set_method(obj, HotSpotTargetMethod::method(targetMethod));
     nm->set_graal_compiled_method(obj());
@@ -921,6 +922,32 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
 
   Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
   return JNIHandles::make_local(result());
+}
+
+// public Object executeCompiledMethod(HotSpotCompiledMethod method, Object arg1, Object arg2, Object arg3);
+JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_executeCompiledMethod(JNIEnv *env, jobject, jobject method, jobject arg1, jobject arg2, jobject arg3) {
+  TRACE_graal_3("CompilerToVM::executeCompiledMethod");
+
+  VM_ENTRY_MARK;
+  ResourceMark rm;
+  HandleMark hm;
+
+  methodHandle actualMethod = getMethodFromHotSpotMethod(HotSpotCompiledMethod::method(method));
+  assert(method != NULL, "just checking");
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(JNIHandles::resolve(arg1));
+  args.push_oop(JNIHandles::resolve(arg2));
+  args.push_oop(JNIHandles::resolve(arg3));
+
+  nmethod* nm = (nmethod*) HotSpotCompiledMethod::nmethod(method);
+  if (nm == NULL || !nm->is_alive()) {
+    THROW_0(vmSymbols::MethodInvalidatedException());
+  }
+
+  JavaCalls::call(&result, actualMethod, nm, &args, CHECK_NULL);
+
+  return JNIHandles::make_local((oop) result.get_jobject());
 }
 
 
@@ -984,6 +1011,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                           FN_PTR(installStub)},
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
+  {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
 };
 
 int CompilerToVM_methods_count() {

@@ -870,6 +870,7 @@ class JavaThread: public Thread {
   jint graal_multinewarray_storage[256];
 
   volatile oop _graal_deopt_info;
+  address _graal_alternate_call_target;
 
   StackGuardState        _stack_guard_state;
 
@@ -1236,6 +1237,8 @@ class JavaThread: public Thread {
   oop      graal_deopt_info() const              { return _graal_deopt_info; }
   void set_graal_deopt_info(oop o)               { _graal_deopt_info = o; }
 
+  void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
+
   // Exception handling for compiled methods
   oop      exception_oop() const                 { return _exception_oop; }
   address  exception_pc() const                  { return _exception_pc; }
@@ -1316,6 +1319,7 @@ class JavaThread: public Thread {
   static ByteSize saved_exception_pc_offset()    { return byte_offset_of(JavaThread, _saved_exception_pc  ); }
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
   static ByteSize graal_deopt_info_offset()      { return byte_offset_of(JavaThread, _graal_deopt_info    ); }
+  static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }
   static ByteSize exception_handler_pc_offset()  { return byte_offset_of(JavaThread, _exception_handler_pc); }

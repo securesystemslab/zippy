@@ -644,6 +644,16 @@ static void gen_i2c_adapter(MacroAssembler *masm,
   // Pre-load the register-jump target early, to schedule it better.
   __ movptr(r11, Address(rbx, in_bytes(methodOopDesc::from_compiled_offset())));
 
+#ifdef GRAAL
+  // check if this call should be routed towards a specific entry point
+  __ cmpptr(Address(r15_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())), 0);
+  Label no_alternative_target;
+  __ jcc(Assembler::equal, no_alternative_target);
+  __ movptr(r11, Address(r15_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())));
+  __ movptr(Address(r15_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())), 0);
+  __ bind(no_alternative_target);
+#endif
+
   // Now generate the shuffle code.  Pick up all register args and move the
   // rest through the floating point stack top.
   for (int i = 0; i < total_args_passed; i++) {

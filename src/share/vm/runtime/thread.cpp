@@ -1304,6 +1304,7 @@ void JavaThread::initialize() {
   _doing_unsafe_access = false;
   _stack_guard_state = stack_guard_unused;
   _graal_deopt_info = NULL;
+  _graal_alternate_call_target = NULL;
   _exception_oop = NULL;
   _exception_pc  = 0;
   _exception_handler_pc = 0;

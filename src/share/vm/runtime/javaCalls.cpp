@@ -334,10 +334,19 @@ void JavaCalls::call(JavaValue* result, methodHandle method, JavaCallArguments* 
   assert(THREAD->is_Java_thread(), "only JavaThreads can make JavaCalls");
   // Need to wrap each and everytime, since there might be native code down the
   // stack that has installed its own exception handlers
-  os::os_exception_wrapper(call_helper, result, &method, args, THREAD);
+  os::os_exception_wrapper(call_helper, result, &method, NULL, args, THREAD);
 }
 
-void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArguments* args, TRAPS) {
+void JavaCalls::call(JavaValue* result, methodHandle method, nmethod* nm, JavaCallArguments* args, TRAPS) {
+  // Check if we need to wrap a potential OS exception handler around thread
+  // This is used for e.g. Win32 structured exception handlers
+  assert(THREAD->is_Java_thread(), "only JavaThreads can make JavaCalls");
+  // Need to wrap each and everytime, since there might be native code down the
+  // stack that has installed its own exception handlers
+  os::os_exception_wrapper(call_helper, result, &method, nm, args, THREAD);
+}
+
+void JavaCalls::call_helper(JavaValue* result, methodHandle* m, nmethod* nm, JavaCallArguments* args, TRAPS) {
   methodHandle method = *m;
   JavaThread* thread = (JavaThread*)THREAD;
   assert(thread->is_Java_thread(), "must be called by a java thread");
@@ -414,6 +423,19 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
   } else {
     // Touch pages checked if the OS needs them to be touched to be mapped.
     os::bang_stack_shadow_pages();
+  }
+
+  if (nm != NULL) {
+#ifdef GRAAL
+    if (nm->is_alive()) {
+      ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->entry_point());
+      entry_point = method->adapter()->get_i2c_entry();
+    } else {
+      THROW(vmSymbols::MethodInvalidatedException());
+    }
+#else
+    ShouldNotReachHere();
+#endif
   }
 
   // do call

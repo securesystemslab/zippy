@@ -4316,8 +4316,8 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
 
 // This does not do anything on Solaris. This is basically a hook for being
 // able to use structured exception handling (thread-local exception filters) on, e.g., Win32.
-void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, JavaCallArguments* args, Thread* thread) {
-  f(value, method, args, thread);
+void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, nmethod* nm, JavaCallArguments* args, Thread* thread) {
+  f(value, method, nm, args, thread);
 }
 
 // This routine may be used by user applications as a "hook" to catch signals.

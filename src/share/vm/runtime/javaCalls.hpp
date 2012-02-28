@@ -190,7 +190,7 @@ class JavaCallArguments : public StackObj {
 //
 
 class JavaCalls: AllStatic {
-  static void call_helper(JavaValue* result, methodHandle* method, JavaCallArguments* args, TRAPS);
+  static void call_helper(JavaValue* result, methodHandle* method, nmethod* nm, JavaCallArguments* args, TRAPS);
  public:
   // Optimized Constuctor call
   static void call_default_constructor(JavaThread* thread, methodHandle method, Handle receiver, TRAPS);
@@ -230,6 +230,7 @@ class JavaCalls: AllStatic {
 
   // Low-level interface
   static void call(JavaValue* result, methodHandle method, JavaCallArguments* args, TRAPS);
+  static void call(JavaValue* result, methodHandle method, nmethod* nm, JavaCallArguments* args, TRAPS);
 };
 
 #endif // SHARE_VM_RUNTIME_JAVACALLS_HPP
