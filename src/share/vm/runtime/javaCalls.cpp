@@ -428,7 +428,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, nmethod* nm, Jav
   if (nm != NULL) {
 #ifdef GRAAL
     if (nm->is_alive()) {
-      ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->entry_point());
+      ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->verified_entry_point());
       entry_point = method->adapter()->get_i2c_entry();
     } else {
       THROW(vmSymbols::MethodInvalidatedException());
