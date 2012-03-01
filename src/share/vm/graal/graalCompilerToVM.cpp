@@ -808,6 +808,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   set_int(env, config, "klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
   set_int(env, config, "graalMirrorKlassOffset", in_bytes(Klass::graal_mirror_offset()));
   set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
+  set_int(env, config, "methodCompiledEntryOffset", in_bytes(methodOopDesc::from_compiled_offset()));
 
   set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());
 

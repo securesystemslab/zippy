@@ -61,6 +61,7 @@ class NativeInstruction VALUE_OBJ_CLASS_SPEC {
   bool is_nop()                        { return ubyte_at(0) == nop_instruction_code; }
   bool is_dtrace_trap();
   inline bool is_call();
+  inline bool is_call_reg();
   inline bool is_illegal();
   inline bool is_return();
   inline bool is_jump();
@@ -180,6 +181,28 @@ inline NativeCall* nativeCall_before(address return_address) {
 #endif
   return call;
 }
+
+class NativeCallReg: public NativeInstruction {
+ public:
+  enum Intel_specific_constants {
+    instruction_code            = 0xFF,
+    instruction_size            =    2,
+    instruction_offset          =    0,
+    return_address_offset       =    2
+  };
+
+  address instruction_address() const       { return addr_at(instruction_offset); }
+  address next_instruction_address() const  { return addr_at(return_address_offset); }
+
+
+  static bool is_call_reg_at(address instr) {
+    return ((*instr) & 0xFF) == NativeCallReg::instruction_code;
+  }
+
+  static bool is_call_reg_before(address return_address) {
+    return is_call_reg_at(return_address - NativeCallReg::return_address_offset);
+  }
+};
 
 // An interface for accessing/manipulating native mov reg, imm32 instructions.
 // (used to manipulate inlined 32bit data dll calls, etc.)
@@ -532,6 +555,7 @@ class NativeTstRegMem: public NativeInstruction {
 
 inline bool NativeInstruction::is_illegal()      { return (short)int_at(0) == (short)NativeIllegalInstruction::instruction_code; }
 inline bool NativeInstruction::is_call()         { return ubyte_at(0) == NativeCall::instruction_code; }
+inline bool NativeInstruction::is_call_reg()     { return ubyte_at(0) == NativeCallReg::instruction_code; }
 inline bool NativeInstruction::is_return()       { return ubyte_at(0) == NativeReturn::instruction_code ||
                                                           ubyte_at(0) == NativeReturnX::instruction_code; }
 inline bool NativeInstruction::is_jump()         { return ubyte_at(0) == NativeJump::instruction_code ||

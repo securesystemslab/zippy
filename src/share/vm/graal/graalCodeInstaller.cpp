@@ -605,6 +605,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = 0x0;
+  bool is_call_reg = false;
   if (inst->is_call() || inst->is_jump()) {
     assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size");
     next_pc_offset = pc_offset + NativeCall::instruction_size;
@@ -614,6 +615,11 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     u_char* call = (u_char*) (_instructions->start() + next_pc_offset);
     assert((call[0] == 0x40 || call[0] == 0x41) && call[1] == 0xFF, "expected call with rex/rexb prefix byte");
     next_pc_offset += 3; /* prefix byte + opcode byte + modrm byte */
+  } else if (inst->is_call_reg()) {
+    // the inlined vtable stub contains a "call register" instruction, which isn't recognized here
+    assert(hotspot_method != NULL, "only valid for virtual calls");
+    is_call_reg = true;
+    next_pc_offset = pc_offset + NativeCallReg::instruction_size;
   } else {
     runtime_call->print();
     fatal("unsupported type of instruction for call site");
@@ -665,7 +671,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     TRACE_graal_3("relocating (stub)  at %016x", inst);
   } else { // method != NULL
-    NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
     assert(hotspot_method != NULL, "unexpected RiMethod");
     assert(debug_info != NULL, "debug info expected");
 
@@ -680,9 +685,13 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     TRACE_graal_3("method call");
     switch (_next_call_type) {
       case MARK_INVOKEVIRTUAL:
+        if (is_call_reg) {
+          break;
+        }
       case MARK_INVOKEINTERFACE: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
 
+        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
         call->set_destination(SharedRuntime::get_resolve_virtual_call_stub());
         _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc), Assembler::call32_operand);
         break;
@@ -690,6 +699,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_INVOKESTATIC: {
         assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
 
+        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
         call->set_destination(SharedRuntime::get_resolve_static_call_stub());
         _instructions->relocate(call->instruction_address(), relocInfo::static_call_type, Assembler::call32_operand);
         break;
@@ -697,6 +707,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_INVOKESPECIAL: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
 
+        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
         call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
         _instructions->relocate(call->instruction_address(), relocInfo::opt_virtual_call_type, Assembler::call32_operand);
         break;
