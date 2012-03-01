@@ -274,17 +274,6 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   HotSpotMethodResolved::set_maxLocals(obj, method->max_locals());
   HotSpotMethodResolved::set_maxStackSize(obj, method->max_stack());
   HotSpotMethodResolved::set_canBeInlined(obj, !CompilerOracle::should_not_inline(method));
-
-  int vtable_entry_offset;
-  if (instanceKlass::cast(method->method_holder())->is_interface()) {
-    vtable_entry_offset = -1;
-  } else {
-    // get entry offset in words
-    vtable_entry_offset = instanceKlass::vtable_start_offset() + method->vtable_index() * vtableEntry::size();
-    // convert to bytes
-    vtable_entry_offset = vtable_entry_offset * wordSize + vtableEntry::method_offset_in_bytes();
-  }
-  HotSpotMethodResolved::set_vtableEntryOffset(obj, vtable_entry_offset);
   
   method->set_graal_mirror(obj());
   return obj;

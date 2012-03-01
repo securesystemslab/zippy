@@ -69,7 +69,6 @@ void graal_compute_offsets();
     int_field(HotSpotMethodResolved, maxStackSize)                                      \
     boolean_field(HotSpotMethodResolved, canBeInlined)                                  \
     oop_field(HotSpotMethodResolved, callback, "Lcom/oracle/max/cri/ci/CiGenericCallback;") \
-    int_field(HotSpotMethodResolved, vtableEntryOffset)                                 \
   end_class                                                                             \
   start_class(HotSpotMethodData)                                                        \
     oop_field(HotSpotMethodData, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;")   \

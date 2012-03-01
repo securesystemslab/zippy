@@ -951,6 +951,21 @@ JNIEXPORT jobject JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMI
   return JNIHandles::make_local((oop) result.get_jobject());
 }
 
+// public native int RiMethod_vtableEntryOffset(HotSpotMethodResolved method);
+JNIEXPORT jint JNICALL Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_vtableEntryOffset(JNIEnv *, jobject, jobject hotspot_method) {
+  TRACE_graal_3("CompilerToVM::RiMethod_vtableEntryOffset");
+
+  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  assert(!instanceKlass::cast(method->method_holder())->is_interface(), "vtableEntryOffset cannot be called for interface methods");
+
+  // get entry offset in words
+  int vtable_entry_offset = instanceKlass::vtable_start_offset() + method->vtable_index() * vtableEntry::size();
+  // convert to bytes
+  vtable_entry_offset = vtable_entry_offset * wordSize + vtableEntry::method_offset_in_bytes();
+
+  return vtable_entry_offset;
+}
+
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_max_graal_hotspot_bridge_CompilerToVMImpl_##f))
@@ -1013,6 +1028,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
   {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
+  {CC"RiMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(RiMethod_vtableEntryOffset)},
 };
 
 int CompilerToVM_methods_count() {
