@@ -53,6 +53,10 @@ public class URLConnectionDownload {
         System.setProperty("java.net.useSystemProxies", "true");
 
         String proxy = System.getenv("HTTP_PROXY");
+        if (proxy == null) {
+            String proxy = System.getenv("http_proxy");
+        }
+
         String proxyMsg = "";
         if (proxy != null) {
             Pattern p = Pattern.compile("(?:http://)?([^:]+)(:\\d+)?");
