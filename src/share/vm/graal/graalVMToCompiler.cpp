@@ -97,10 +97,10 @@ void VMToCompiler::setDefaultOptions() {
   check_pending_exception("Error while calling setDefaultOptions");
 }
 
-void VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking) {
+jboolean VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking) {
   assert(!hotspot_method.is_null(), "just checking");
   Thread* THREAD = Thread::current();
-  JavaValue result(T_VOID);
+  JavaValue result(T_BOOLEAN);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(hotspot_method);
@@ -108,6 +108,7 @@ void VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jboolean 
   args.push_int(blocking);
   JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
+  return result.get_jboolean();
 }
 
 void VMToCompiler::shutdownCompiler() {

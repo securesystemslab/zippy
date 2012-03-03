@@ -317,7 +317,7 @@
   template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
-  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;IZ)V")   \
+  template(compileMethod_signature,                   "(Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;IZ)Z")   \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \

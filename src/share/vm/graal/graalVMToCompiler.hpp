@@ -50,8 +50,8 @@ public:
   // public static void HotSpotOptions.setDefaultOptions();
   static void setDefaultOptions();
 
-  // public abstract void compileMethod(long vmId, String name, int entry_bci, boolean blocking);
-  static void compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking);
+  // public abstract boolean compileMethod(long vmId, String name, int entry_bci, boolean blocking);
+  static jboolean compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
