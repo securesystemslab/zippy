@@ -54,7 +54,7 @@ public class URLConnectionDownload {
 
         String proxy = System.getenv("HTTP_PROXY");
         if (proxy == null) {
-            String proxy = System.getenv("http_proxy");
+            proxy = System.getenv("http_proxy");
         }
 
         String proxyMsg = "";
