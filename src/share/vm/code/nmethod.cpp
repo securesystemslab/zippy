@@ -1178,7 +1178,9 @@ bool nmethod::can_not_entrant_be_converted() {
 }
 
 void nmethod::inc_decompile_count() {
+#ifndef GRAAL
   if (!is_compiled_by_c2()) return;
+#endif
   // Could be gated by ProfileTraps, but do not bother...
   methodOop m = method();
   if (m == NULL)  return;
