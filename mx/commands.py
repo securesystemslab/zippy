@@ -46,7 +46,7 @@ _vm = 'graal'
     This can be set via the global '--fastdebug' and '--debug' options. """
 _vmbuild = 'product'
 
-_jacoco = False
+_jacoco = 'off'
 
 _jacocoExcludes = ['com.oracle.max.graal.hotspot.snippets.ArrayCopySnippets',
                    'com.oracle.max.graal.snippets.DoubleSnippets',
@@ -54,7 +54,8 @@ _jacocoExcludes = ['com.oracle.max.graal.hotspot.snippets.ArrayCopySnippets',
                    'com.oracle.max.graal.snippets.MathSnippetsX86',
                    'com.oracle.max.graal.snippets.NodeClassSnippets',
                    'com.oracle.max.graal.hotspot.snippets.SystemSnippets',
-                   'com.oracle.max.graal.hotspot.snippets.UnsafeSnippets']
+                   'com.oracle.max.graal.hotspot.snippets.UnsafeSnippets',
+                   'com.oracle.max.graal.compiler.tests.*']
 
 _copyrightTemplate = """/*
  * Copyright (c) {0}, Oracle and/or its affiliates. All rights reserved.
@@ -485,10 +486,10 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     mx.expand_project_in_args(args)  
     if mx.java().debug:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
-    if _jacoco:
+    if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         agentOptions = {
-                        'append' : 'false',
+                        'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
                         'includes' : 'com.oracle.max.*',
                         'excludes' : ':'.join(_jacocoExcludes)
@@ -864,7 +865,7 @@ def mx_init():
         'vm': [vm, '[-options] class [args...]']
     }
     
-    mx.add_argument('--jacoco', action='store_true', dest='jacoco', help='instruments com.oracle.max.* classes using JaCoCo')
+    mx.add_argument('--jacoco', help='instruments com.oracle.max.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to build/run (default: graal)')
@@ -895,6 +896,5 @@ def mx_post_parse_cmd_line(opts):
         if hasattr(opts, 'vmbuild') and opts.vmbuild is not None:
             global _vmbuild
             _vmbuild = opts.vmbuild
-    if opts.jacoco:
-        global _jacoco
-        _jacoco = True
+    global _jacoco
+    _jacoco = opts.jacoco
