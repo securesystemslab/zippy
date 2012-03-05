@@ -656,31 +656,10 @@ def gate(args):
         clean([] if args.buildNative else ['--no-native'])
         tasks.append(t.stop())
         
-        t = Task('Checkstyle')
-        if mx.checkstyle([]) != 0:
-            t.abort('Checkstyle warnings were found')
-        tasks.append(t.stop())
-    
-        t = Task('Canonicalization Check')
-        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
-        if mx.canonicalizeprojects([]) != 0:
-            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
-        tasks.append(t.stop())
-    
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
     
-        t = Task('CleanAndBuildGraalVisualizer')
-        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
-        tasks.append(t.stop())
-
-        # Prevent Graal modifications from breaking the standard builds
-        if args.buildNative and args.buildNonGraal:
-            t = Task('BuildHotSpotVarieties')
-            buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
-            tasks.append(t.stop())
-        
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
@@ -707,6 +686,28 @@ def gate(args):
                 if not test.test('graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
                 tasks.append(t.stop())
+
+        t = Task('Checkstyle')
+        if mx.checkstyle([]) != 0:
+            t.abort('Checkstyle warnings were found')
+        tasks.append(t.stop())
+    
+        t = Task('Canonicalization Check')
+        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
+        if mx.canonicalizeprojects([]) != 0:
+            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
+        tasks.append(t.stop())
+    
+        t = Task('CleanAndBuildGraalVisualizer')
+        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
+        tasks.append(t.stop())
+
+        # Prevent Graal modifications from breaking the standard builds
+        if args.buildNative and args.buildNonGraal:
+            t = Task('BuildHotSpotVarieties')
+            buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
+            tasks.append(t.stop())
+        
     except KeyboardInterrupt:
         total.abort(1)
     
