@@ -484,8 +484,8 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     mx.expand_project_in_args(args)  
-    if mx.java().debug:
-        args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
+    if mx.java().debug_port is not None:
+        args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         agentOptions = {
