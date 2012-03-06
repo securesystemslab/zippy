@@ -346,7 +346,7 @@ void InterpreterGenerator::generate_counter_incr(
       // Test to see if we should create a method data oop
       __ cmp32(rcx, ExternalAddress((address)&InvocationCounter::InterpreterProfileLimit));
       __ jcc(Assembler::less, *profile_method_continue);
-
+      
       // if no method data exists, go to profile_method
       __ test_method_data_pointer(rax, *profile_method);
     }
