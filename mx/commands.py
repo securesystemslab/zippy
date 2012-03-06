@@ -661,7 +661,7 @@ def gate(args):
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
-    
+        global _jacoco
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
@@ -676,7 +676,6 @@ def gate(args):
             tasks.append(t.stop())
             
             if vmbuild == 'product' and args.jacocout is not None:
-                global _jacoco
                 _jacoco = 'on'
             
             t = Task('UnitTests:' + vmbuild)
@@ -684,7 +683,6 @@ def gate(args):
             tasks.append(t.stop())
             
             if vmbuild == 'product' and args.jacocout is not None:
-                global _jacoco
                 _jacoco = 'append'
             
             t = Task('JavaTesterTests:' + vmbuild)
@@ -692,7 +690,6 @@ def gate(args):
             tasks.append(t.stop())
             
             if vmbuild == 'product' and args.jacocout is not None:
-                global _jacoco
                 _jacoco = 'off'
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
