@@ -646,6 +646,7 @@ def gate(args):
     parser = ArgumentParser(prog='mx gate');
     parser.add_argument('-n', '--omit-native-build', action='store_false', dest='buildNative', help='omit cleaning and building native code')
     parser.add_argument('-g', '--only-build-graalvm', action='store_false', dest='buildNonGraal', help='only build the Graal VM')
+    parser.add_argument('--jacocout', help='specify the output directory for jacoco report')
 
     args = parser.parse_args(args)
 
@@ -674,19 +675,38 @@ def gate(args):
             vm(['-esa', '-version'])
             tasks.append(t.stop())
             
+            if vmbuild == 'product' and args.jacocout is not None:
+                global _jacoco
+                _jacoco = 'on'
+            
             t = Task('UnitTests:' + vmbuild)
             unittest([])
             tasks.append(t.stop())
             
+            if vmbuild == 'product' and args.jacocout is not None:
+                global _jacoco
+                _jacoco = 'append'
+            
             t = Task('JavaTesterTests:' + vmbuild)
             jtt([])
             tasks.append(t.stop())
+            
+            if vmbuild == 'product' and args.jacocout is not None:
+                global _jacoco
+                _jacoco = 'off'
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
                 if not test.test('graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
                 tasks.append(t.stop())
+        
+        if args.jacocout is not None:
+            jacocoreport([args.jacocout])
+        
+        t = Task('BootstrapWithDeoptALot')
+        vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops', '-version'], vmbuild='fastdebug')
+        tasks.append(t.stop())
 
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
