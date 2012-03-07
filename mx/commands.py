@@ -29,6 +29,7 @@
 import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
+from threading import Thread
 import mx
 import sanitycheck
 import json
@@ -230,6 +231,17 @@ def dacapo(args):
     if len(failed) != 0:
         mx.abort('DaCapo failures: ' + str(failed))
     
+def intro(args):
+    """"run a simple program and visualize its compilation in the Graal Visualizer"""
+    # Start the visualizer in a separate thread
+    t = Thread(target=gv, args=([[]]))
+    t.start()
+    
+    # Give visualizer time to start
+    mx.log('Waiting 5 seconds for visualizer to start')
+    time.sleep(5)
+    
+    vm(['-G:Dump=HelloWorld', '-G:MethodFilter=main', '-Xcomp', '-XX:CompileOnly=HelloWorld::main', '-cp', mx.classpath('com.oracle.max.graal.examples')] + args + ['examples.HelloWorld'])
 
 def scaladacapo(args):
     """run one or all Scala DaCapo benchmarks
@@ -744,7 +756,9 @@ def gate(args):
 
 def gv(args):
     """run the Graal Visualizer"""
-    mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'run'])
+    with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
+        mx.log('[Graal Visualizer output is in ' + fp.name + ']')
+        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
     
 def bench(args):
     """run benchmarks and parse their output for results
@@ -869,6 +883,7 @@ def mx_init():
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
         'hsdis': [hsdis, '[att]'],
+        'intro': [intro, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
