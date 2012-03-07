@@ -1,32 +1,4 @@
-# Library specification format:
-#
-#     library@<name>@<prop>=<value>
-#
-# Library properties (* = required):
-#
-#    *path: the file system path for the library to appear on a class path
-#     urls: a comma seperated list of URLs from which the library can be downloaded
-#     optional: if "true" then this library will be omitted from a class path if it doesn't exist on the file system and no URLs are specified
-#     eclipse.container: the name of the Eclipse library container corresponding to the library
-#
-# Project specification format:
-#
-#     project@<name>@<prop>=<value>
-#
-# The name of a project also denotes the directory it is in.
-#
-# Project properties:
-#
-#    *sourceDirs: a comma separated list of source directoriy names (relative to the project directory)
-#     dependencies: a comma separated list of the libraries and project the project depends upon (transitive dependencies may be omitted)
-#     eclipse.output: the output directory name (relative to the project directory)
-#     checkstyle: the project whose Checkstyle configuration (i.e. <project>/.checkstyle_checks.xml) is used
-#
-# The eclipse.* properties are only used when generating Eclipse project configuration files.
-#
-# Values can use environment variables with the syntax used in a Bash shell script.
-#
-
+# The format of this file is described in the documentation for my.py.
 
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
 library@JDK_TOOLS@optional=true
@@ -55,91 +27,107 @@ project@com.oracle.max.graal.hotspot@subDir=graal
 project@com.oracle.max.graal.hotspot@sourceDirs=src
 project@com.oracle.max.graal.hotspot@dependencies=com.oracle.max.graal.snippets
 project@com.oracle.max.graal.hotspot@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.hotspot@javaCompliance=1.7
 
 # graal.graph
 project@com.oracle.max.graal.graph@subDir=graal
 project@com.oracle.max.graal.graph@sourceDirs=src
 project@com.oracle.max.graal.graph@dependencies=com.oracle.max.graal.debug,JUNIT
+project@com.oracle.max.graal.graph@javaCompliance=1.7
 
 # graal.debug
 project@com.oracle.max.graal.debug@subDir=graal
 project@com.oracle.max.graal.debug@sourceDirs=src
 project@com.oracle.max.graal.debug@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.debug@javaCompliance=1.7
 
 # graal.lir
 project@com.oracle.max.graal.lir@subDir=graal
 project@com.oracle.max.graal.lir@sourceDirs=src
 project@com.oracle.max.graal.lir@dependencies=com.oracle.max.asm,com.oracle.max.graal.nodes
 project@com.oracle.max.graal.lir@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.lir@javaCompliance=1.7
 
 # graal.lir.amd64
 project@com.oracle.max.graal.lir.amd64@subDir=graal
 project@com.oracle.max.graal.lir.amd64@sourceDirs=src
 project@com.oracle.max.graal.lir.amd64@dependencies=com.oracle.max.graal.lir
 project@com.oracle.max.graal.lir.amd64@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.lir.amd64@javaCompliance=1.7
 
 # graal.alloc
 project@com.oracle.max.graal.alloc@subDir=graal
 project@com.oracle.max.graal.alloc@sourceDirs=src
 project@com.oracle.max.graal.alloc@dependencies=com.oracle.max.graal.lir
 project@com.oracle.max.graal.alloc@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.alloc@javaCompliance=1.7
 
 # graal.snippets
 project@com.oracle.max.graal.snippets@subDir=graal
 project@com.oracle.max.graal.snippets@sourceDirs=src,test
 project@com.oracle.max.graal.snippets@dependencies=com.oracle.max.graal.printer
 project@com.oracle.max.graal.snippets@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.snippets@javaCompliance=1.7
 
 # graal.nodes
 project@com.oracle.max.graal.nodes@subDir=graal
 project@com.oracle.max.graal.nodes@sourceDirs=src,test
 project@com.oracle.max.graal.nodes@dependencies=com.oracle.max.cri,com.oracle.max.graal.graph
 project@com.oracle.max.graal.nodes@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.nodes@javaCompliance=1.7
 
 # graal.compiler
 project@com.oracle.max.graal.compiler@subDir=graal
 project@com.oracle.max.graal.compiler@sourceDirs=src
 project@com.oracle.max.graal.compiler@dependencies=com.oracle.max.graal.lir.amd64,com.oracle.max.graal.alloc
 project@com.oracle.max.graal.compiler@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.compiler@javaCompliance=1.7
 
 # graal.java
 project@com.oracle.max.graal.java@subDir=graal
 project@com.oracle.max.graal.java@sourceDirs=src
 project@com.oracle.max.graal.java@dependencies=com.oracle.max.graal.compiler
 project@com.oracle.max.graal.java@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.java@javaCompliance=1.7
 
 # graal.printer
 project@com.oracle.max.graal.printer@subDir=graal
 project@com.oracle.max.graal.printer@sourceDirs=src
 project@com.oracle.max.graal.printer@dependencies=com.oracle.max.graal.java
 project@com.oracle.max.graal.printer@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.printer@javaCompliance=1.7
 
 # graal.test
 project@com.oracle.max.graal.tests@subDir=graal
 project@com.oracle.max.graal.tests@sourceDirs=src
 project@com.oracle.max.graal.tests@dependencies=com.oracle.max.graal.printer
 project@com.oracle.max.graal.tests@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.tests@javaCompliance=1.7
 
 # graal.jtt
 project@com.oracle.max.graal.jtt@subDir=graal
 project@com.oracle.max.graal.jtt@sourceDirs=src
 project@com.oracle.max.graal.jtt@dependencies=JUNIT
 project@com.oracle.max.graal.jtt@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.graal.jtt@javaCompliance=1.7
 
 # max.asm
 project@com.oracle.max.asm@subDir=graal
 project@com.oracle.max.asm@sourceDirs=src
 project@com.oracle.max.asm@dependencies=com.oracle.max.criutils
 project@com.oracle.max.asm@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.asm@javaCompliance=1.7
 
 # max.cri
 project@com.oracle.max.cri@subDir=graal
 project@com.oracle.max.cri@sourceDirs=src
 project@com.oracle.max.cri@dependencies=
 project@com.oracle.max.cri@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.cri@javaCompliance=1.7
 
 # max.criutils
 project@com.oracle.max.criutils@subDir=graal
 project@com.oracle.max.criutils@sourceDirs=src
 project@com.oracle.max.criutils@dependencies=com.oracle.max.cri
 project@com.oracle.max.criutils@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.criutils@javaCompliance=1.7
