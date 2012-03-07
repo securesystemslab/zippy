@@ -116,7 +116,7 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
     if skipKitValidation:
         opts += ['-ikv']
     
-    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar', '--jvmArgs', '-graal -XX:-BootstrapGraal'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
