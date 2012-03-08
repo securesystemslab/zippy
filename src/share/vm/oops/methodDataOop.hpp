@@ -1194,7 +1194,7 @@ private:
   // Back pointer to the methodOop
   methodOop _method;
 
-  // com/oracle/max/graal/hotspot/HotSpotProfilingInfo mirroring this method
+  // com/oracle/graal/hotspot/HotSpotProfilingInfo mirroring this method
   oop               _graal_mirror;
 
   // Size of this oop in bytes

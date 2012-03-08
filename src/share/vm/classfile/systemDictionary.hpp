@@ -188,15 +188,15 @@ class SymbolPropertyTable;
   template(Long_klass,                   java_lang_Long,                 Pre) \
                                                                                                                          \
   /* Support for Graal */                                                                                                \
-  template(HotSpotTypeResolved_klass,             com_oracle_max_graal_hotspot_HotSpotTypeResolved,                 Opt) \
-  template(HotSpotType_klass,                     com_oracle_max_graal_hotspot_HotSpotType,                         Opt) \
-  template(HotSpotField_klass,                    com_oracle_max_graal_hotspot_HotSpotField,                        Opt) \
-  template(HotSpotCompiledMethod_klass,           com_oracle_max_graal_hotspot_HotSpotCompiledMethod,               Opt) \
-  template(HotSpotMethodResolved_klass,           com_oracle_max_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
-  template(HotSpotMethodData_klass,               com_oracle_max_graal_hotspot_ri_HotSpotMethodData,                Opt) \
-  template(HotSpotTargetMethod_klass,             com_oracle_max_graal_hotspot_HotSpotTargetMethod,                 Opt) \
-  template(HotSpotExceptionHandler_klass,         com_oracle_max_graal_hotspot_HotSpotExceptionHandler,             Opt) \
-  template(HotSpotProxy_klass,                    com_oracle_max_graal_hotspot_HotSpotProxy,                        Opt) \
+  template(HotSpotTypeResolved_klass,             com_oracle_graal_hotspot_HotSpotTypeResolved,                 Opt) \
+  template(HotSpotType_klass,                     com_oracle_graal_hotspot_HotSpotType,                         Opt) \
+  template(HotSpotField_klass,                    com_oracle_graal_hotspot_HotSpotField,                        Opt) \
+  template(HotSpotCompiledMethod_klass,           com_oracle_graal_hotspot_HotSpotCompiledMethod,               Opt) \
+  template(HotSpotMethodResolved_klass,           com_oracle_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
+  template(HotSpotMethodData_klass,               com_oracle_graal_hotspot_ri_HotSpotMethodData,                Opt) \
+  template(HotSpotTargetMethod_klass,             com_oracle_graal_hotspot_HotSpotTargetMethod,                 Opt) \
+  template(HotSpotExceptionHandler_klass,         com_oracle_graal_hotspot_HotSpotExceptionHandler,             Opt) \
+  template(HotSpotProxy_klass,                    com_oracle_graal_hotspot_HotSpotProxy,                        Opt) \
   template(CiAssumptions_klass,                   com_oracle_max_cri_ci_CiAssumptions,                              Opt) \
   template(CiAssumptions_MethodContents_klass,    com_oracle_max_cri_ci_CiAssumptions_MethodContents,               Opt) \
   template(CiAssumptions_ConcreteSubtype_klass,   com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,              Opt) \

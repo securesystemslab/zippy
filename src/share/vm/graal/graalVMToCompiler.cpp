@@ -31,7 +31,7 @@ jobject VMToCompiler::_vmExitsPermKlass = NULL;
 
 KlassHandle VMToCompiler::vmExitsKlass() {
   if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
-    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_graal_hotspot_bridge_VMToCompiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(result, "Couldn't find class com.oracle.max.graal.hotspot.bridge.VMToCompiler");
     _vmExitsPermKlass = JNIHandles::make_global(result);
   }
@@ -40,7 +40,7 @@ KlassHandle VMToCompiler::vmExitsKlass() {
 
 Handle VMToCompiler::compilerInstance() {
   if (JNIHandles::resolve(_compilerPermObject) == NULL) {
-    KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
 
     JavaValue result(T_OBJECT);
@@ -53,7 +53,7 @@ Handle VMToCompiler::compilerInstance() {
 
 Handle VMToCompiler::instance() {
   if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
-    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_graal_hotspot_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.Compiler");
 
     JavaValue result(T_OBJECT);
@@ -67,7 +67,7 @@ Handle VMToCompiler::instance() {
 }
 
 void VMToCompiler::initializeCompiler() {
-  KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
 
   JavaValue result(T_VOID);
@@ -77,7 +77,7 @@ void VMToCompiler::initializeCompiler() {
 
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
-  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
 
   Thread* THREAD = Thread::current();
@@ -88,7 +88,7 @@ jboolean VMToCompiler::setOption(Handle option) {
 }
 
 void VMToCompiler::setDefaultOptions() {
-  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_max_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
   check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
 
   Thread* THREAD = Thread::current();

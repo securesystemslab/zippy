@@ -46,7 +46,7 @@ void graal_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)   \
   start_class(HotSpotTypeResolved)                                                      \
-    oop_field(HotSpotTypeResolved, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
+    oop_field(HotSpotTypeResolved, compiler, "Lcom/oracle/graal/hotspot/Compiler;") \
     oop_field(HotSpotTypeResolved, javaMirror, "Ljava/lang/Class;")                     \
     oop_field(HotSpotTypeResolved, simpleName, "Ljava/lang/String;")                    \
     int_field(HotSpotTypeResolved, accessFlags)                                         \
@@ -59,7 +59,7 @@ void graal_compute_offsets();
     int_field(HotSpotTypeResolved, instanceSize)                                        \
   end_class                                                                             \
   start_class(HotSpotMethodResolved)                                                    \
-    oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
+    oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/graal/hotspot/Compiler;") \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
     oop_field(HotSpotMethodResolved, holder, "Lcom/oracle/max/cri/ri/RiResolvedType;")  \
     oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/Object;")                  \
@@ -71,7 +71,7 @@ void graal_compute_offsets();
     oop_field(HotSpotMethodResolved, callback, "Lcom/oracle/max/cri/ci/CiGenericCallback;") \
   end_class                                                                             \
   start_class(HotSpotMethodData)                                                        \
-    oop_field(HotSpotMethodData, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;")   \
+    oop_field(HotSpotMethodData, compiler, "Lcom/oracle/graal/hotspot/Compiler;")   \
     oop_field(HotSpotMethodData, hotspotMirror, "Ljava/lang/Object;")                   \
     int_field(HotSpotMethodData, normalDataSize)                                        \
     int_field(HotSpotMethodData, extraDataSize)                                         \
@@ -85,7 +85,7 @@ void graal_compute_offsets();
     int_field(HotSpotField, accessFlags)                                                \
   end_class                                                                             \
   start_class(HotSpotCompiledMethod)                                                    \
-    oop_field(HotSpotCompiledMethod, compiler, "Lcom/oracle/max/graal/hotspot/Compiler;") \
+    oop_field(HotSpotCompiledMethod, compiler, "Lcom/oracle/graal/hotspot/Compiler;") \
     long_field(HotSpotCompiledMethod, nmethod)                                          \
     oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
   end_class                                                                             \
@@ -94,7 +94,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/oracle/max/cri/ci/CiTargetMethod;") \
-    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/max/graal/hotspot/ri/HotSpotMethodResolved;") \
+    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;") \
     oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
     oop_field(HotSpotTargetMethod, sites, "[Lcom/oracle/max/cri/ci/CiTargetMethod$Site;") \
     oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/max/cri/ci/CiTargetMethod$ExceptionHandler;") \

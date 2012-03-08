@@ -51,7 +51,7 @@ void GraalCompiler::initialize() {
   Runtime1::initialize(THREAD->get_buffer_blob());
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
-  jclass klass = env->FindClass("com/oracle/max/graal/hotspot/bridge/CompilerToVMImpl");
+  jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
   if (klass == NULL) {
     tty->print_cr("graal CompilerToVMImpl class not found");
     vm_abort(false);

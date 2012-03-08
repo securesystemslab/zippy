@@ -23,117 +23,117 @@ library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20110908.085753-2.jar
 
 # graal.hotspot
-project@com.oracle.max.graal.hotspot@subDir=graal
-project@com.oracle.max.graal.hotspot@sourceDirs=src
-project@com.oracle.max.graal.hotspot@dependencies=com.oracle.max.graal.snippets
-project@com.oracle.max.graal.hotspot@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.hotspot@javaCompliance=1.7
+project@com.oracle.graal.hotspot@subDir=graal
+project@com.oracle.graal.hotspot@sourceDirs=src
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets
+project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot@javaCompliance=1.7
 
 # graal.graph
-project@com.oracle.max.graal.graph@subDir=graal
-project@com.oracle.max.graal.graph@sourceDirs=src
-project@com.oracle.max.graal.graph@dependencies=com.oracle.max.graal.debug,JUNIT
-project@com.oracle.max.graal.graph@javaCompliance=1.7
+project@com.oracle.graal.graph@subDir=graal
+project@com.oracle.graal.graph@sourceDirs=src
+project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,JUNIT
+project@com.oracle.graal.graph@javaCompliance=1.7
 
 # graal.debug
-project@com.oracle.max.graal.debug@subDir=graal
-project@com.oracle.max.graal.debug@sourceDirs=src
-project@com.oracle.max.graal.debug@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.debug@javaCompliance=1.7
+project@com.oracle.graal.debug@subDir=graal
+project@com.oracle.graal.debug@sourceDirs=src
+project@com.oracle.graal.debug@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.debug@javaCompliance=1.7
 
 # graal.lir
-project@com.oracle.max.graal.lir@subDir=graal
-project@com.oracle.max.graal.lir@sourceDirs=src
-project@com.oracle.max.graal.lir@dependencies=com.oracle.max.asm,com.oracle.max.graal.nodes
-project@com.oracle.max.graal.lir@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.lir@javaCompliance=1.7
+project@com.oracle.graal.lir@subDir=graal
+project@com.oracle.graal.lir@sourceDirs=src
+project@com.oracle.graal.lir@dependencies=com.oracle.max.asm,com.oracle.graal.nodes
+project@com.oracle.graal.lir@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.lir@javaCompliance=1.7
 
 # graal.lir.amd64
-project@com.oracle.max.graal.lir.amd64@subDir=graal
-project@com.oracle.max.graal.lir.amd64@sourceDirs=src
-project@com.oracle.max.graal.lir.amd64@dependencies=com.oracle.max.graal.lir
-project@com.oracle.max.graal.lir.amd64@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.lir.amd64@javaCompliance=1.7
+project@com.oracle.graal.lir.amd64@subDir=graal
+project@com.oracle.graal.lir.amd64@sourceDirs=src
+project@com.oracle.graal.lir.amd64@dependencies=com.oracle.graal.lir
+project@com.oracle.graal.lir.amd64@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.lir.amd64@javaCompliance=1.7
 
 # graal.alloc
-project@com.oracle.max.graal.alloc@subDir=graal
-project@com.oracle.max.graal.alloc@sourceDirs=src
-project@com.oracle.max.graal.alloc@dependencies=com.oracle.max.graal.lir
-project@com.oracle.max.graal.alloc@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.alloc@javaCompliance=1.7
+project@com.oracle.graal.alloc@subDir=graal
+project@com.oracle.graal.alloc@sourceDirs=src
+project@com.oracle.graal.alloc@dependencies=com.oracle.graal.lir
+project@com.oracle.graal.alloc@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.alloc@javaCompliance=1.7
 
 # graal.snippets
-project@com.oracle.max.graal.snippets@subDir=graal
-project@com.oracle.max.graal.snippets@sourceDirs=src,test
-project@com.oracle.max.graal.snippets@dependencies=com.oracle.max.graal.printer
-project@com.oracle.max.graal.snippets@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.snippets@javaCompliance=1.7
+project@com.oracle.graal.snippets@subDir=graal
+project@com.oracle.graal.snippets@sourceDirs=src,test
+project@com.oracle.graal.snippets@dependencies=com.oracle.graal.printer
+project@com.oracle.graal.snippets@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.snippets@javaCompliance=1.7
 
 # graal.nodes
-project@com.oracle.max.graal.nodes@subDir=graal
-project@com.oracle.max.graal.nodes@sourceDirs=src,test
-project@com.oracle.max.graal.nodes@dependencies=com.oracle.max.cri,com.oracle.max.graal.graph
-project@com.oracle.max.graal.nodes@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.nodes@javaCompliance=1.7
+project@com.oracle.graal.nodes@subDir=graal
+project@com.oracle.graal.nodes@sourceDirs=src,test
+project@com.oracle.graal.nodes@dependencies=com.oracle.max.cri,com.oracle.graal.graph
+project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nodes@javaCompliance=1.7
 
 # graal.compiler
-project@com.oracle.max.graal.compiler@subDir=graal
-project@com.oracle.max.graal.compiler@sourceDirs=src
-project@com.oracle.max.graal.compiler@dependencies=com.oracle.max.graal.lir.amd64,com.oracle.max.graal.alloc
-project@com.oracle.max.graal.compiler@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.compiler@javaCompliance=1.7
+project@com.oracle.graal.compiler@subDir=graal
+project@com.oracle.graal.compiler@sourceDirs=src
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.lir.amd64,com.oracle.graal.alloc
+project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler@javaCompliance=1.7
 
 # graal.java
-project@com.oracle.max.graal.java@subDir=graal
-project@com.oracle.max.graal.java@sourceDirs=src
-project@com.oracle.max.graal.java@dependencies=com.oracle.max.graal.compiler
-project@com.oracle.max.graal.java@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.java@javaCompliance=1.7
+project@com.oracle.graal.java@subDir=graal
+project@com.oracle.graal.java@sourceDirs=src
+project@com.oracle.graal.java@dependencies=com.oracle.graal.compiler
+project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.java@javaCompliance=1.7
 
 # graal.printer
-project@com.oracle.max.graal.printer@subDir=graal
-project@com.oracle.max.graal.printer@sourceDirs=src
-project@com.oracle.max.graal.printer@dependencies=com.oracle.max.graal.java
-project@com.oracle.max.graal.printer@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.printer@javaCompliance=1.7
+project@com.oracle.graal.printer@subDir=graal
+project@com.oracle.graal.printer@sourceDirs=src
+project@com.oracle.graal.printer@dependencies=com.oracle.graal.java
+project@com.oracle.graal.printer@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.printer@javaCompliance=1.7
 
 # graal.test
-project@com.oracle.max.graal.tests@subDir=graal
-project@com.oracle.max.graal.tests@sourceDirs=src
-project@com.oracle.max.graal.tests@dependencies=com.oracle.max.graal.printer
-project@com.oracle.max.graal.tests@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.tests@javaCompliance=1.7
+project@com.oracle.graal.tests@subDir=graal
+project@com.oracle.graal.tests@sourceDirs=src
+project@com.oracle.graal.tests@dependencies=com.oracle.graal.printer
+project@com.oracle.graal.tests@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.tests@javaCompliance=1.7
 
 # graal.jtt
-project@com.oracle.max.graal.jtt@subDir=graal
-project@com.oracle.max.graal.jtt@sourceDirs=src
-project@com.oracle.max.graal.jtt@dependencies=JUNIT
-project@com.oracle.max.graal.jtt@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.jtt@javaCompliance=1.7
+project@com.oracle.graal.jtt@subDir=graal
+project@com.oracle.graal.jtt@sourceDirs=src
+project@com.oracle.graal.jtt@dependencies=JUNIT
+project@com.oracle.graal.jtt@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.jtt@javaCompliance=1.7
 
 # graal.examples
-project@com.oracle.max.graal.examples@subDir=graal
-project@com.oracle.max.graal.examples@sourceDirs=src
-project@com.oracle.max.graal.examples@checkstyle=com.oracle.max.graal.graph
-project@com.oracle.max.graal.examples@javaCompliance=1.7
+project@com.oracle.graal.examples@subDir=graal
+project@com.oracle.graal.examples@sourceDirs=src
+project@com.oracle.graal.examples@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.examples@javaCompliance=1.7
 
 # max.asm
 project@com.oracle.max.asm@subDir=graal
 project@com.oracle.max.asm@sourceDirs=src
 project@com.oracle.max.asm@dependencies=com.oracle.max.criutils
-project@com.oracle.max.asm@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.asm@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.asm@javaCompliance=1.7
 
 # max.cri
 project@com.oracle.max.cri@subDir=graal
 project@com.oracle.max.cri@sourceDirs=src
 project@com.oracle.max.cri@dependencies=
-project@com.oracle.max.cri@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.cri@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.cri@javaCompliance=1.7
 
 # max.criutils
 project@com.oracle.max.criutils@subDir=graal
 project@com.oracle.max.criutils@sourceDirs=src
 project@com.oracle.max.criutils@dependencies=com.oracle.max.cri
-project@com.oracle.max.criutils@checkstyle=com.oracle.max.graal.graph
+project@com.oracle.max.criutils@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.criutils@javaCompliance=1.7
