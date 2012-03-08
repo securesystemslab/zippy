@@ -29,6 +29,7 @@
 import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
+from threading import Thread
 import mx
 import sanitycheck
 import json
@@ -230,6 +231,17 @@ def dacapo(args):
     if len(failed) != 0:
         mx.abort('DaCapo failures: ' + str(failed))
     
+def intro(args):
+    """"run a simple program and visualize its compilation in the Graal Visualizer"""
+    # Start the visualizer in a separate thread
+    t = Thread(target=gv, args=([[]]))
+    t.start()
+    
+    # Give visualizer time to start
+    mx.log('Waiting 5 seconds for visualizer to start')
+    time.sleep(5)
+    
+    vm(['-G:Dump=HelloWorld', '-G:MethodFilter=main', '-Xcomp', '-XX:CompileOnly=HelloWorld::main', '-cp', mx.classpath('com.oracle.max.graal.examples')] + args + ['examples.HelloWorld'])
 
 def scaladacapo(args):
     """run one or all Scala DaCapo benchmarks
@@ -484,8 +496,8 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     mx.expand_project_in_args(args)  
-    if mx.java().debug:
-        args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8000'] + args
+    if mx.java().debug_port is not None:
+        args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         agentOptions = {
@@ -646,6 +658,7 @@ def gate(args):
     parser = ArgumentParser(prog='mx gate');
     parser.add_argument('-n', '--omit-native-build', action='store_false', dest='buildNative', help='omit cleaning and building native code')
     parser.add_argument('-g', '--only-build-graalvm', action='store_false', dest='buildNonGraal', help='only build the Graal VM')
+    parser.add_argument('--jacocout', help='specify the output directory for jacoco report')
 
     args = parser.parse_args(args)
 
@@ -660,7 +673,7 @@ def gate(args):
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
-    
+        global _jacoco
         for vmbuild in ['fastdebug', 'product']:
             global _vmbuild
             _vmbuild = vmbuild
@@ -674,19 +687,35 @@ def gate(args):
             vm(['-esa', '-version'])
             tasks.append(t.stop())
             
+            if vmbuild == 'product' and args.jacocout is not None:
+                _jacoco = 'on'
+            
             t = Task('UnitTests:' + vmbuild)
             unittest([])
             tasks.append(t.stop())
             
+            if vmbuild == 'product' and args.jacocout is not None:
+                _jacoco = 'append'
+            
             t = Task('JavaTesterTests:' + vmbuild)
             jtt([])
             tasks.append(t.stop())
+            
+            if vmbuild == 'product' and args.jacocout is not None:
+                _jacoco = 'off'
             
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
                 if not test.test('graal'):
                     t.abort(test.group + ' ' + test.name + ' Failed')
                 tasks.append(t.stop())
+        
+        if args.jacocout is not None:
+            jacocoreport([args.jacocout])
+        
+        t = Task('BootstrapWithDeoptALot')
+        vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops', '-version'], vmbuild='fastdebug')
+        tasks.append(t.stop())
 
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
@@ -727,7 +756,9 @@ def gate(args):
 
 def gv(args):
     """run the Graal Visualizer"""
-    mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'run'])
+    with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
+        mx.log('[Graal Visualizer output is in ' + fp.name + ']')
+        mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
     
 def bench(args):
     """run benchmarks and parse their output for results
@@ -852,6 +883,7 @@ def mx_init():
         'clean': [clean, ''],
         'copyrightcheck': [copyrightcheck, ''],
         'hsdis': [hsdis, '[att]'],
+        'intro': [intro, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],

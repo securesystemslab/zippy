@@ -861,6 +861,19 @@ bool methodDataOopDesc::is_mature() const {
   return CompilationPolicy::policy()->is_mature(_method);
 }
 
+void methodDataOopDesc::inc_decompile_count() {
+  _nof_decompiles += 1;
+  if (decompile_count() > (uint)PerMethodRecompilationCutoff) {
+#ifdef GRAAL
+    // TODO (ch) enable this in the fastdebug build only once we are more stable
+    ResourceMark m;
+    tty->print_cr("WARN: endless recompilation of %s. Method was set to not compilable.", method()->name_and_sig_as_C_string());
+    //ShouldNotReachHere();
+#endif
+    method()->set_not_compilable(CompLevel_full_optimization);
+  }
+}
+
 // Translate a bci to its corresponding data index (di).
 address methodDataOopDesc::bci_to_dp(int bci) {
   ResourceMark rm;

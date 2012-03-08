@@ -164,7 +164,7 @@ JRT_BLOCK_ENTRY(Deoptimization::UnrollBlock*, Deoptimization::fetch_unroll_info(
   // that can confuse an asynchronous stack walker. This counter is
   // decremented at the end of unpack_frames().
   if (TraceDeoptimization) {
-    tty->print("Deoptimization "); 
+    tty->print_cr("Deoptimizing thread " INTPTR_FORMAT, thread);
   }
   thread->inc_in_deopt_handler();
 
