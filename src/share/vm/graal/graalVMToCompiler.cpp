@@ -32,7 +32,7 @@ jobject VMToCompiler::_vmExitsPermKlass = NULL;
 KlassHandle VMToCompiler::vmExitsKlass() {
   if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
     klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(result, "Couldn't find class com.oracle.max.graal.hotspot.bridge.VMToCompiler");
+    check_not_null(result, "Couldn't find class com.oracle.graal.hotspot.bridge.VMToCompiler");
     _vmExitsPermKlass = JNIHandles::make_global(result);
   }
   return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmExitsPermKlass));
