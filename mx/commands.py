@@ -49,14 +49,14 @@ _vmbuild = 'product'
 
 _jacoco = 'off'
 
-_jacocoExcludes = ['com.oracle.max.graal.hotspot.snippets.ArrayCopySnippets',
-                   'com.oracle.max.graal.snippets.DoubleSnippets',
-                   'com.oracle.max.graal.snippets.FloatSnippets',
-                   'com.oracle.max.graal.snippets.MathSnippetsX86',
-                   'com.oracle.max.graal.snippets.NodeClassSnippets',
-                   'com.oracle.max.graal.hotspot.snippets.SystemSnippets',
-                   'com.oracle.max.graal.hotspot.snippets.UnsafeSnippets',
-                   'com.oracle.max.graal.compiler.tests.*']
+_jacocoExcludes = ['com.oracle.graal.hotspot.snippets.ArrayCopySnippets',
+                   'com.oracle.graal.snippets.DoubleSnippets',
+                   'com.oracle.graal.snippets.FloatSnippets',
+                   'com.oracle.graal.snippets.MathSnippetsX86',
+                   'com.oracle.graal.snippets.NodeClassSnippets',
+                   'com.oracle.graal.hotspot.snippets.SystemSnippets',
+                   'com.oracle.graal.hotspot.snippets.UnsafeSnippets',
+                   'com.oracle.graal.compiler.tests.*']
 
 _copyrightTemplate = """/*
  * Copyright (c) {0}, Oracle and/or its affiliates. All rights reserved.
@@ -89,12 +89,6 @@ def clean(args):
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
         mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
-
-def copyrightcheck(args):
-    """run copyright check on the Mercurial controlled source files"""
-    res = mx.run_java(['-cp', mx.classpath('com.oracle.max.base', resolve=False), 'com.sun.max.tools.CheckCopyright', '-cfp=' + join(mx.project('com.oracle.max.base').dir, '.copyright.regex')] + args)
-    mx.log("copyright check result = " + str(res))
-    return res
 
 def export(args):
     """create a GraalVM zip file for distribution"""
@@ -143,8 +137,8 @@ def export(args):
 def example(args):
     """run some or all Graal examples"""
     examples = {
-        'safeadd': ['com.oracle.max.graal.examples.safeadd', 'com.oracle.max.graal.examples.safeadd.Main'],
-        'vectorlib': ['com.oracle.max.graal.examples.vectorlib', 'com.oracle.max.graal.examples.vectorlib.Main'],
+        'safeadd': ['com.oracle.graal.examples.safeadd', 'com.oracle.graal.examples.safeadd.Main'],
+        'vectorlib': ['com.oracle.graal.examples.vectorlib', 'com.oracle.graal.examples.vectorlib.Main'],
     }
 
     def run_example(verbose, project, mainClass):
@@ -241,7 +235,7 @@ def intro(args):
     mx.log('Waiting 5 seconds for visualizer to start')
     time.sleep(5)
     
-    vm(['-G:Dump=HelloWorld', '-G:MethodFilter=main', '-Xcomp', '-XX:CompileOnly=HelloWorld::main', '-cp', mx.classpath('com.oracle.max.graal.examples')] + args + ['examples.HelloWorld'])
+    vm(['-G:Dump=HelloWorld', '-G:MethodFilter=main', '-Xcomp', '-XX:CompileOnly=HelloWorld::main', '-cp', mx.classpath('com.oracle.graal.examples')] + args + ['examples.HelloWorld'])
 
 def scaladacapo(args):
     """run one or all Scala DaCapo benchmarks
@@ -503,7 +497,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
-                        'includes' : 'com.oracle.max.*',
+                        'includes' : 'com.oracle.*',
                         'excludes' : ':'.join(_jacocoExcludes)
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
@@ -517,10 +511,10 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
 # containing '@Test'. These are then determined to be the classes defining
 # unit tests.
 _unittests = {
-    'com.oracle.max.graal.tests': ['com.oracle.max.graal.compiler.tests'],
+    'com.oracle.graal.tests': ['com.oracle.graal.compiler.tests'],
 }
 _jtttests = {
-    'com.oracle.max.graal.jtt': ['com.oracle.max.graal.jtt'],
+    'com.oracle.graal.jtt': ['com.oracle.graal.jtt'],
 }
 
 def _add_test_classes(testClassList, searchDir, pkgRoot):
@@ -881,7 +875,6 @@ def mx_init():
         'build': [build, '[-options]'],
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
-        'copyrightcheck': [copyrightcheck, ''],
         'hsdis': [hsdis, '[att]'],
         'intro': [intro, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
@@ -897,7 +890,7 @@ def mx_init():
         'vm': [vm, '[-options] class [args...]']
     }
     
-    mx.add_argument('--jacoco', help='instruments com.oracle.max.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
+    mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to build/run (default: graal)')
