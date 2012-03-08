@@ -2040,7 +2040,7 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
   // Do not throw asynchronous exceptions against the compiler thread
   // (the compiler thread should not be a Java thread -- fix in 1.4.2)
 
-  // (tw) May we do this?
+  // (thomaswue) May we do this?
   //if (is_Compiler_thread()) return;
 
   {
@@ -3054,10 +3054,7 @@ klassOop JavaThread::security_get_caller_class(int depth) {
 
 static void compiler_thread_entry(JavaThread* thread, TRAPS) {
   assert(thread->is_Compiler_thread(), "must be compiler thread");
-// XXX (gd) currently we still start c1 compiler threads even with Graal, they just die immediately, more compileBroker cleanup is needed to eliminate that
-#ifndef GRAAL
   CompileBroker::compiler_thread_loop();
-#endif
 }
 
 // Create a CompilerThread

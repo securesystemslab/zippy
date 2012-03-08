@@ -412,7 +412,7 @@ bool GraalEnv::check_for_system_dictionary_modification(Dependencies* dependenci
   // were inserted.  Any violated dependences in this case are dumped to
   // the tty.
 
-  // TODO (tw): Always check dependency for now.
+  // TODO (thomaswue): Always check dependency for now.
   //bool counter_changed = system_dictionary_modification_counter_changed();
   //bool test_deps = counter_changed;
   //DEBUG_ONLY(test_deps = true);

@@ -97,7 +97,7 @@ int StubAssembler::call_RT(Register oop_result1, Register oop_result2, address e
     if (oop_result2->is_valid()) {
       movptr(Address(thread, JavaThread::vm_result_2_offset()), NULL_WORD);
     }
-    // (tw) Deoptimize in case of an exception.
+    // (thomaswue) Deoptimize in case of an exception.
     restore_live_registers(this, false);
     movptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     leave();

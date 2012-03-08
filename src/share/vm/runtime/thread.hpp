@@ -734,7 +734,7 @@ class JavaThread: public Thread {
   JavaThread*    _next;                          // The next thread in the Threads list
   oop            _threadObj;                     // The Java level thread object
 
-  // (tw) Necessary for holding a compilation buffer and ci environment. Moved from CompilerThread to JavaThread in order to enable code installation from Java application code.
+  // (thomaswue) Necessary for holding a compilation buffer and ci environment. Moved from CompilerThread to JavaThread in order to enable code installation from Java application code.
   BufferBlob*   _buffer_blob;
   ciEnv*        _env;
   bool          _is_compiling;
@@ -1774,7 +1774,7 @@ class CompilerThread : public JavaThread {
 
   bool is_Compiler_thread() const                { return true; }
   // Hide this compiler thread from external view.
-  // (tw) For Graal, the compiler thread should be visible.
+  // (thomaswue) For Graal, the compiler thread should be visible.
   bool is_hidden_from_external_view() const      {
 #ifdef GRAAL
     return !DebugGraal;

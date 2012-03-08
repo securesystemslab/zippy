@@ -262,7 +262,7 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   assert(obj() != NULL, "must succeed in allocating instance");
   
   HotSpotMethodResolved::set_compiler(obj, VMToCompiler::compilerInstance()());
-  // (tw) Cannot use reflection here, because the compiler thread could dead lock with the running application.
+  // (thomaswue) Cannot use reflection here, because the compiler thread could dead lock with the running application.
   // oop reflected = getReflectedMethod(method(), CHECK_NULL);
   HotSpotMethodResolved::set_javaMirror(obj, method());
   HotSpotMethodResolved::set_name(obj, name());
