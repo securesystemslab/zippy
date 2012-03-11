@@ -41,7 +41,7 @@ public:
   virtual const char* name() { return "G"; }
 
   // Native / OSR not supported
-  virtual bool supports_native()                 { return false; }
+  virtual bool supports_native()                 { return true; }
   virtual bool supports_osr   ()                 { return false; }
 
   // Pretend to be C1
