@@ -1,4 +1,5 @@
 ^mx/env
+^mx/ecj.jar
 ^mx/includes
 ^build/
 ^dist/
