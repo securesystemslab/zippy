@@ -1131,7 +1131,10 @@ def build(args, parser=None):
                          '-d', outputDir]
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties):
-                    log('JDT properties file {0} not found - fix by running "mx eclipseinit"'.format(jdtProperties))
+                    # Try to fix a missing properties file by running eclipseinit
+                    eclipseinit([])
+                if not exists(jdtProperties):
+                    log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
                     jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
