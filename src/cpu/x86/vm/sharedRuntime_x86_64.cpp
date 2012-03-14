@@ -3028,8 +3028,7 @@ void SharedRuntime::generate_deopt_blob() {
 
   assert(r10 == rscratch1, "scratch register should be r10");
   __ movl(c_rarg1, Address(rsp, RegisterSaver::r10_offset_in_bytes()));
-  __ orq(c_rarg1, ~(int32_t)Deoptimization::make_trap_request(Deoptimization::Reason_unreached, Deoptimization::Action_none));
-  __ notq(c_rarg1);
+
   __ movl(r14, (int32_t)Deoptimization::Unpack_reexecute);
   __ mov(c_rarg0, r15_thread);
   __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, Deoptimization::uncommon_trap)));
@@ -3039,7 +3038,7 @@ void SharedRuntime::generate_deopt_blob() {
 
   Label after_fetch_unroll_info_call;
   __ jmp(after_fetch_unroll_info_call);
-#endif
+#endif // GRAAL
 
   __ bind(cont);
 
