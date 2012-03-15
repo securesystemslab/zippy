@@ -125,7 +125,7 @@ VM_DeoptimizeFrame::VM_DeoptimizeFrame(JavaThread* thread, intptr_t* id, int rea
 
 
 void VM_DeoptimizeFrame::doit() {
-  assert(_reason > Deoptimization::Reason_none && _reason < Deoptimization::DeoptReason.Reason_LIMIT, "invalid deopt reason");
+  assert(_reason > Deoptimization::Reason_none && _reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
   Deoptimization::deoptimize_frame_internal(_thread, _id, (Deoptimization::DeoptReason)_reason);
 }
 
@@ -158,7 +158,7 @@ void VM_DeoptimizeAll::doit() {
             if (fst.current()->can_be_deoptimized()) {
               if (fcount++ == fnum) {
                 fcount = 0;
-                Deoptimization::deoptimize(thread, *fst.current(), fst.register_map());
+                Deoptimization::deoptimize(thread, *fst.current(), fst.register_map(), Deoptimization::Reason_constraint);
               }
             }
           }

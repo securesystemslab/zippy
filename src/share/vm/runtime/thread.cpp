@@ -2490,7 +2490,7 @@ void JavaThread::deoptimize() {
         trace_frames();
         trace_stack();
       }
-      Deoptimization::deoptimize(this, *fst.current(), fst.register_map());
+      Deoptimization::deoptimize(this, *fst.current(), fst.register_map(), Deoptimization::Reason_constraint);
     }
   }
 

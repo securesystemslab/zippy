@@ -187,7 +187,7 @@ class SharedRuntime: AllStatic {
   static void    throw_NullPointerException(JavaThread* thread);
   static void    throw_NullPointerException_at_call(JavaThread* thread);
   static void    throw_StackOverflowError(JavaThread* thread);
-  static address deoptimization_continuation(JavaThread* thread, address pc, nmethod* nm);
+  static address deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason);
   static void    throw_WrongMethodTypeException(JavaThread* thread, oopDesc* required, oopDesc* actual);
   static address continuation_for_implicit_exception(JavaThread* thread,
                                                      address faulting_pc,

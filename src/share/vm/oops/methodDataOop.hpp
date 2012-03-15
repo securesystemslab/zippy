@@ -1206,7 +1206,11 @@ private:
   // Whole-method sticky bits and flags
 public:
   enum {
+#ifdef GRAAL
+    _trap_hist_limit    = 13,   // decoupled from Deoptimization::Reason_LIMIT
+#else
     _trap_hist_limit    = 17,   // decoupled from Deoptimization::Reason_LIMIT
+#endif
     _trap_hist_mask     = max_jubyte,
     _extra_data_count   = 4     // extra DataLayout headers, for trap history
   }; // Public flag values

@@ -3015,9 +3015,9 @@ void SharedRuntime::generate_deopt_blob() {
 #ifdef GRAAL
   __ jmp(cont);
 
-  int jmp_uncommon_trap_offset = __ pc() - start;
+  int implicit_exception_uncommon_trap_offset = __ pc() - start;
   __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
-  __ movptr(rscratch1, 2); // InvalidateRecompile
+  __ movptr(rscratch1, Address(r15_thread, in_bytes(JavaThread::ScratchB_offset())));
 
   int uncommon_trap_offset = __ pc() - start;
 
@@ -3244,7 +3244,7 @@ void SharedRuntime::generate_deopt_blob() {
   _deopt_blob->set_unpack_with_exception_in_tls_offset(exception_in_tls_offset);
 #ifdef GRAAL
   _deopt_blob->set_uncommon_trap_offset(uncommon_trap_offset);
-  _deopt_blob->set_jmp_uncommon_trap_offset(jmp_uncommon_trap_offset);
+  _deopt_blob->set_implicit_exception_uncommon_trap_offset(implicit_exception_uncommon_trap_offset);
 #endif
 }
 
