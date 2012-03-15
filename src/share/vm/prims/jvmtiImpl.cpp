@@ -767,7 +767,7 @@ void VM_GetOrSetLocal::doit() {
 
       // Schedule deoptimization so that eventually the local
       // update will be written to an interpreter frame.
-      Deoptimization::deoptimize_frame(_jvf->thread(), _jvf->fr().id());
+      Deoptimization::deoptimize_frame(_jvf->thread(), _jvf->fr().id(), Deoptimization::Reason_constraint);
 
       // Now store a new value for the local which will be applied
       // once deoptimization occurs. Note however that while this

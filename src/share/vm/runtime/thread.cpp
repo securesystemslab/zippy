@@ -2058,7 +2058,7 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
           RegisterMap reg_map(this, UseBiasedLocking);
           frame compiled_frame = f.sender(&reg_map);
           if (compiled_frame.can_be_deoptimized()) {
-            Deoptimization::deoptimize(this, compiled_frame, &reg_map);
+            Deoptimization::deoptimize(this, compiled_frame, &reg_map, Deoptimization::Reason_constraint);
           }
         }
       }
@@ -2520,7 +2520,7 @@ void JavaThread::deoptimized_wrt_marked_nmethods() {
   StackFrameStream fst(this, UseBiasedLocking);
   for(; !fst.is_done(); fst.next()) {
     if (fst.current()->should_be_deoptimized()) {
-      Deoptimization::deoptimize(this, *fst.current(), fst.register_map());
+      Deoptimization::deoptimize(this, *fst.current(), fst.register_map(), Deoptimization::Reason_constraint);
     }
   }
 }

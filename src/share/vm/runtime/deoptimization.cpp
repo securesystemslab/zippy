@@ -1133,17 +1133,17 @@ void Deoptimization::revoke_biases_of_monitors(CodeBlob* cb) {
 }
 
 
-void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr) {
+void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr, Deoptimization::DeoptReason reason) {
   assert(fr.can_be_deoptimized(), "checking frame type");
 
-  gather_statistics(Reason_constraint, Action_none, Bytecodes::_illegal);
+  gather_statistics(reason, Action_none, Bytecodes::_illegal);
 
   // Patch the nmethod so that when execution returns to it we will
   // deopt the execution state and return to the interpreter.
   fr.deoptimize(thread);
 }
 
-void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map) {
+void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map, DeoptReason reason) {
   // Deoptimize only if the frame comes from compile code.
   // Do not deoptimize the frame which is already patched
   // during the execution of the loops below.
@@ -1155,12 +1155,12 @@ void Deoptimization::deoptimize(JavaThread* thread, frame fr, RegisterMap *map) 
   if (UseBiasedLocking) {
     revoke_biases_of_monitors(thread, fr, map);
   }
-  deoptimize_single_frame(thread, fr);
+  deoptimize_single_frame(thread, fr, reason);
 
 }
 
 
-void Deoptimization::deoptimize_frame_internal(JavaThread* thread, intptr_t* id) {
+void Deoptimization::deoptimize_frame_internal(JavaThread* thread, intptr_t* id, DeoptReason reason) {
   assert(thread == Thread::current() || SafepointSynchronize::is_at_safepoint(),
          "can only deoptimize other thread at a safepoint");
   // Compute frame and register map based on thread and sp.
@@ -1169,15 +1169,15 @@ void Deoptimization::deoptimize_frame_internal(JavaThread* thread, intptr_t* id)
   while (fr.id() != id) {
     fr = fr.sender(&reg_map);
   }
-  deoptimize(thread, fr, &reg_map);
+  deoptimize(thread, fr, &reg_map, reason);
 }
 
 
-void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id) {
+void Deoptimization::deoptimize_frame(JavaThread* thread, intptr_t* id, DeoptReason reason) {
   if (thread == Thread::current()) {
-    Deoptimization::deoptimize_frame_internal(thread, id);
+    Deoptimization::deoptimize_frame_internal(thread, id, reason);
   } else {
-    VM_DeoptimizeFrame deopt(thread, id);
+    VM_DeoptimizeFrame deopt(thread, id, reason);
     VMThread::execute(&deopt);
   }
 }
@@ -1813,6 +1813,21 @@ const char* Deoptimization::format_trap_state(char* buf, size_t buflen,
 Deoptimization::DeoptAction Deoptimization::_unloaded_action
   = Deoptimization::Action_reinterpret;
 const char* Deoptimization::_trap_reason_name[Reason_LIMIT] = {
+#ifdef GRAAL
+  "none",
+  "null_check",
+  "range_check",
+  "class_check",
+  "array_check",
+  "unreached",
+  "type_checked_inlining",
+  "optimized_type_check",
+  "not_compiled_exception_handler",
+  "unresolved",
+  "jsr_mismatch",
+  "div0_check",
+  "constraint"
+#else
   // Note:  Keep this in sync. with enum DeoptReason.
   "none",
   "null_check",
@@ -1831,6 +1846,7 @@ const char* Deoptimization::_trap_reason_name[Reason_LIMIT] = {
   "age",
   "predicate",
   "loop_limit_check"
+#endif
 };
 const char* Deoptimization::_trap_action_name[Action_LIMIT] = {
   // Note:  Keep this in sync. with enum DeoptAction.
