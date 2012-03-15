@@ -50,5 +50,6 @@ bin/
 ^visualizer/build/
 ^visualizer/dist/
 ^visualizer/nbplatform/
+^src/share/tools/IdealGraphVisualizer/nbplatform/
 ^.hgtip
 .DS_Store
