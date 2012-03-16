@@ -891,7 +891,7 @@ def mx_init():
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
-        'example': [example, '[-v] example names...'],
+        #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
