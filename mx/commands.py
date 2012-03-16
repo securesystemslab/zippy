@@ -414,6 +414,12 @@ def build(args, vm=None):
         buildSuffix = 'graal'
         
     for build in builds:
+        if build == 'ide-build-target':
+            build = os.environ.get('IDE_BUILD_TARGET', 'product')
+            if len(build) == 0:
+                mx.log('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
+                continue
+
         jdk = _jdk(build, create=True)
             
         vmDir = join(_vmLibDirInJdk(jdk), vm)
