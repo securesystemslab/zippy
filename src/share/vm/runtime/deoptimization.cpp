@@ -1502,7 +1502,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       uint this_trap_count = 0;
       bool maybe_prior_trap = false;
       bool maybe_prior_recompile = false;
-      pdata = query_update_method_data(trap_mdo, trap_bci, reason,
+      pdata = query_update_method_data(trap_mdo, trap_bci, reason, true,
                                    //outputs:
                                    this_trap_count,
                                    maybe_prior_trap,
@@ -1636,25 +1636,31 @@ ProfileData*
 Deoptimization::query_update_method_data(methodDataHandle trap_mdo,
                                          int trap_bci,
                                          Deoptimization::DeoptReason reason,
+                                         bool update_total_trap_count,
                                          //outputs:
                                          uint& ret_this_trap_count,
                                          bool& ret_maybe_prior_trap,
                                          bool& ret_maybe_prior_recompile) {
-  uint prior_trap_count = trap_mdo->trap_count(reason);
-  uint this_trap_count  = trap_mdo->inc_trap_count(reason);
+  bool maybe_prior_trap = false;
+  bool maybe_prior_recompile = false;
+  uint this_trap_count = 0;
+  if (update_total_trap_count) {
+    uint prior_trap_count = trap_mdo->trap_count(reason);
+    this_trap_count  = trap_mdo->inc_trap_count(reason);
 
-  // If the runtime cannot find a place to store trap history,
-  // it is estimated based on the general condition of the method.
-  // If the method has ever been recompiled, or has ever incurred
-  // a trap with the present reason , then this BCI is assumed
-  // (pessimistically) to be the culprit.
-  bool maybe_prior_trap      = (prior_trap_count != 0);
-  bool maybe_prior_recompile = (trap_mdo->decompile_count() != 0);
-  ProfileData* pdata = NULL;
-
+    // If the runtime cannot find a place to store trap history,
+    // it is estimated based on the general condition of the method.
+    // If the method has ever been recompiled, or has ever incurred
+    // a trap with the present reason , then this BCI is assumed
+    // (pessimistically) to be the culprit.
+    maybe_prior_trap      = (prior_trap_count != 0);
+    maybe_prior_recompile = (trap_mdo->decompile_count() != 0);
+  }
 
   // For reasons which are recorded per bytecode, we check per-BCI data.
+  ProfileData* pdata = NULL;
   DeoptReason per_bc_reason = reason_recorded_per_bytecode_if_any(reason);
+  assert(per_bc_reason != NULL || update_total_trap_count, "must be");
   if (per_bc_reason != Reason_none) {
     // Find the profile data for this BCI.  If there isn't one,
     // try to allocate one from the MDO's set of spares.
@@ -1699,8 +1705,11 @@ Deoptimization::update_method_data_from_interpreter(methodDataHandle trap_mdo, i
   uint ignore_this_trap_count;
   bool ignore_maybe_prior_trap;
   bool ignore_maybe_prior_recompile;
+  // Graal uses the total counts to determine if deoptimizations are happening too frequently -> do not adjust total counts
+  bool update_total_counts = IS_GRAAL(false) NOT_GRAAL(true);
   query_update_method_data(trap_mdo, trap_bci,
                            (DeoptReason)reason,
+                           update_total_counts,
                            ignore_this_trap_count,
                            ignore_maybe_prior_trap,
                            ignore_maybe_prior_recompile);

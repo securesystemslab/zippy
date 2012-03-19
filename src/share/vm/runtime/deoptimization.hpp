@@ -42,7 +42,13 @@ class Deoptimization : AllStatic {
 #ifdef GRAAL
     Reason_many = -1,             // indicates presence of several reasons
     Reason_none = 0,              // indicates absence of a relevant deopt.
-    // Next 7 reasons are recorded per bytecode in DataLayout::trap_bits
+    // Next 7 reasons are recorded per bytecode in DataLayout::trap_bits.
+    // This is more complicated for Graal as Graal may deoptimize to *some* bytecode before the
+    // bytecode that actually caused the deopt (with inlining, Graal may even deoptimize to a
+    // bytecode in another method):
+    //  - bytecode y in method b() causes deopt
+    //  - Graal deoptimizes to bytecode x in method a()
+    // -> the deopt reason will be recorded for method a() at bytecode x
     Reason_null_check,
     Reason_range_check,
     Reason_class_check,
@@ -382,6 +388,7 @@ class Deoptimization : AllStatic {
   static ProfileData* query_update_method_data(methodDataHandle trap_mdo,
                                                int trap_bci,
                                                DeoptReason reason,
+                                               bool update_total_trap_count,
                                                //outputs:
                                                uint& ret_this_trap_count,
                                                bool& ret_maybe_prior_trap,

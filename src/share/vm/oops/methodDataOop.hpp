@@ -1485,17 +1485,13 @@ public:
   uint inc_trap_count(int reason) {
     // Count another trap, anywhere in this method.
     assert(reason >= 0, "must be single trap");
-    if ((uint)reason < _trap_hist_limit) {
-      uint cnt1 = 1 + _trap_hist._array[reason];
-      if ((cnt1 & _trap_hist_mask) != 0) {  // if no counter overflow...
-        _trap_hist._array[reason] = cnt1;
-        return cnt1;
-      } else {
-        return _trap_hist_mask + (++_nof_overflow_traps);
-      }
+    assert((uint)reason < _trap_hist_limit, "oob");
+    uint cnt1 = 1 + _trap_hist._array[reason];
+    if ((cnt1 & _trap_hist_mask) != 0) {  // if no counter overflow...
+      _trap_hist._array[reason] = cnt1;
+      return cnt1;
     } else {
-      // Could not represent the count in the histogram.
-      return (++_nof_overflow_traps);
+      return _trap_hist_mask + (++_nof_overflow_traps);
     }
   }
 
@@ -1516,6 +1512,10 @@ public:
   // Support for code generation
   static ByteSize data_offset() {
     return byte_offset_of(methodDataOopDesc, _data[0]);
+  }
+
+  static ByteSize trap_history_offset() {
+    return byte_offset_of(methodDataOopDesc, _trap_hist._array);
   }
 
   static ByteSize invocation_counter_offset() {
