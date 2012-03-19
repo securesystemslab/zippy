@@ -2452,6 +2452,7 @@ static inline uint64_t cast_uint64_t(size_t x)
   declare_constant(Location::on_stack)                                    \
   declare_constant(Location::in_register)                                 \
                                                                           \
+  /* TODO (chaeubl) those constants should be graal/c1/c2 specific */         \
   /*declare_constant(Deoptimization::Reason_many)*/                           \
   /*declare_constant(Deoptimization::Reason_none)*/                           \
   /*declare_constant(Deoptimization::Reason_null_check)*/                     \
