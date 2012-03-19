@@ -2127,7 +2127,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     }
     if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
     
-    SysClassPath scp_compiler(Arguments::get_sysclasspath());
+    SysClassPath scp_compiler("");
     struct dirent* dentry;
     char* tdbuf = NEW_C_HEAP_ARRAY(char, os::readdir_buf_size(graal_dir));
     errno = 0;

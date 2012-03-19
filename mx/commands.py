@@ -414,6 +414,12 @@ def build(args, vm=None):
         buildSuffix = 'graal'
         
     for build in builds:
+        if build == 'ide-build-target':
+            build = os.environ.get('IDE_BUILD_TARGET', 'product')
+            if len(build) == 0:
+                mx.log('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
+                continue
+
         jdk = _jdk(build, create=True)
             
         vmDir = join(_vmLibDirInJdk(jdk), vm)
@@ -751,9 +757,19 @@ def gate(args):
 def gv(args):
     """run the Graal Visualizer"""
     with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
-        mx.log('[Graal Visualizer output is in ' + fp.name + ']')
+        mx.log('[Graal Visualizer log is in ' + fp.name + ']')
+        if not exists(join(_graal_home, 'visualizer', 'build.xml')):
+            mx.log('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
     
+def igv(args):
+    """run the Ideal Graph Visualizer"""
+    with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
+        mx.log('[Ideal Graph Visualizer log is in ' + fp.name + ']')
+        if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
+            mx.log('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
+        mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
+
 def bench(args):
     """run benchmarks and parse their output for results
 
@@ -876,11 +892,12 @@ def mx_init():
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
         'hsdis': [hsdis, '[att]'],
+        'igv' : [igv, ''],
         'intro': [intro, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
-        'example': [example, '[-v] example names...'],
+        #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],

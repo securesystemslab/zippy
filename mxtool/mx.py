@@ -510,6 +510,7 @@ class ArgParser(ArgumentParser):
         ArgumentParser.__init__(self, prog='mx')
 
         self.add_argument('-v', action='store_true', dest='verbose', help='enable verbose output')
+        self.add_argument('-V', action='store_true', dest='very_verbose', help='enable very verbose output')
         self.add_argument('--dbg', type=int, dest='java_dbg_port', help='make Java processes wait on <port> for a debugger', metavar='<port>')
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
@@ -535,6 +536,9 @@ class ArgParser(ArgumentParser):
         # Give the timeout options a default value to avoid the need for hasattr() tests
         opts.__dict__.setdefault('timeout', 0)
         opts.__dict__.setdefault('ptimeout', 0)
+
+        if opts.very_verbose:
+            opts.verbose = True
 
         if opts.java_home is None:
             opts.java_home = os.environ.get('JAVA_HOME')
@@ -640,6 +644,10 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         assert isinstance(arg, types.StringTypes), 'argument is not a string: ' + str(arg)
 
     if _opts.verbose:
+        if _opts.very_verbose:
+            log('Environment variables:')
+            for key in sorted(os.environ.keys()):
+                log('    ' + key + '=' + os.environ[key])
         log(' '.join(args))
 
     if timeout is None and _opts.ptimeout != 0:
@@ -697,7 +705,10 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
-            raise subprocess.CalledProcessError(retcode, ' '.join(args))
+            if _opts.very_verbose:
+                raise subprocess.CalledProcessError(retcode, ' '.join(args))
+            else:
+                log('[exit code: ' + str(retcode)+ ']')
         abort(retcode)
 
     return retcode
@@ -727,7 +738,7 @@ A JavaCompliance simplifies comparing Java compliance values extracted from a JD
 class JavaCompliance:
     def __init__(self, ver):
         m = re.match('1\.(\d+).*', ver)
-        assert m is not None, 'not a recognized version string: ' + vstring
+        assert m is not None, 'not a recognized version string: ' + ver
         self.value = int(m.group(1))
 
     def __str__ (self):
@@ -957,6 +968,8 @@ def build(args, parser=None):
 
     javaCompliance = java().javaCompliance
 
+    defaultEcjPath = join(_mainSuite.dir, 'mx', 'ecj.jar')
+    
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force compilation even if class files are up to date')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
@@ -965,7 +978,7 @@ def build(args, parser=None):
     parser.add_argument('--projects', action='store', help='comma separated projects to build (omit to build all projects)')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
-    parser.add_argument('--jdt', help='Eclipse installation or path to ecj.jar for using the Eclipse batch compiler instead of javac', metavar='<path>')
+    parser.add_argument('--jdt', help='Eclipse installation or path to ecj.jar for using the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -976,6 +989,9 @@ def build(args, parser=None):
     if args.jdt is not None:
         if args.jdt.endswith('.jar'):
             jdtJar=args.jdt
+            if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath):
+                # Silently ignore JDT if default location is used but not ecj.jar exists there
+                jdtJar = None
         elif isdir(args.jdt):
             plugins = join(args.jdt, 'plugins')
             choices = [f for f in os.listdir(plugins) if fnmatch.fnmatch(f, 'org.eclipse.jdt.core_*.jar')]
@@ -1053,7 +1069,7 @@ def build(args, parser=None):
                                         with open(os.devnull) as devnull:
                                             subprocess.call('jasmin', stdout=devnull, stderr=subprocess.STDOUT)
                                         jasminAvailable = True
-                                    except OSError as e:
+                                    except OSError:
                                         jasminAvailable = False
 
                                 if jasminAvailable:
@@ -1119,15 +1135,21 @@ def build(args, parser=None):
                 run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
+                jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
+                         '-' + args.compliance,
+                         '-cp', cp, '-g', '-enableJavadoc',
+                         '-warn:-unusedImport,-unchecked',
+                         '-d', outputDir]
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties):
-                    raise SystemError('JDT properties file {0} not found'.format(jdtProperties))
-                run([java().java, '-Xmx1g', '-jar', jdtJar,
-                         '-properties', jdtProperties,
-                         '-' + args.compliance,
-                         '-cp', cp, '-g',
-                         '-warn:-unusedImport,-unchecked',
-                         '-d', outputDir, '@' + argfile.name])
+                    # Try to fix a missing properties file by running eclipseinit
+                    eclipseinit([])
+                if not exists(jdtProperties):
+                    log('JDT properties file {0} not found'.format(jdtProperties))
+                else:
+                    jdtArgs += ['-properties', jdtProperties]
+                jdtArgs.append('@' + argfile.name)
+                run(jdtArgs)
         finally:
             os.remove(argfileName)
 
@@ -1358,20 +1380,11 @@ def eclipseinit(args, suite=None):
         out.write(str(obj) + '\n')
 
     for p in projects():
+        if p.native:
+            continue
+        
         if not exists(p.dir):
             os.makedirs(p.dir)
-
-        if p.native:
-            eclipseNativeSettingsDir = join(suite.dir, 'mx', 'eclipse-native-settings')
-            if exists(eclipseNativeSettingsDir):
-                for name in os.listdir(eclipseNativeSettingsDir):
-                    path = join(eclipseNativeSettingsDir, name)
-                    if isfile(path):
-                        with open(join(eclipseNativeSettingsDir, name)) as f:
-                            content = f.read()
-                        content = content.replace('${javaHome}', java().jdk)
-                        update_file(join(p.dir, name), content)
-            continue
 
         out = StringIO.StringIO()
 
@@ -1402,8 +1415,10 @@ def eclipseinit(args, suite=None):
                         if isabs(path):
                             println(out, '\t<classpathentry exported="true" kind="lib" path="' + path + '"/>')
                         else:
-                            projRelPath = os.path.relpath(join(suite.dir, path), p.dir)
-                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + projRelPath + '"/>')
+                            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                            # safest to simply use absolute paths.
+                            println(out, '\t<classpathentry exported="true" kind="lib" path="' + join(suite.dir, path) + '"/>')
             else:
                 println(out, '\t<classpathentry combineaccessrules="false" exported="true" kind="src" path="/' + dep.name + '"/>')
 
