@@ -1149,7 +1149,7 @@ void OptoRuntime::deoptimize_caller_frame(JavaThread *thread, bool doit) {
     frame caller_frame = stub_frame.sender(&reg_map);
 
     // Deoptimize the caller frame.
-    Deoptimization::deoptimize_frame(thread, caller_frame.id());
+    Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_constraint);
   }
 }
 
