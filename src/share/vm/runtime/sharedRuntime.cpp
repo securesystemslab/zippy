@@ -789,6 +789,7 @@ JRT_ENTRY(void, SharedRuntime::throw_StackOverflowError(JavaThread* thread))
   throw_and_post_jvmti_exception(thread, exception);
 JRT_END
 
+#ifdef GRAAL
 address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason) {
   assert(deopt_reason > Deoptimization::Reason_none && deopt_reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
   if (TraceSignals) {
@@ -798,6 +799,7 @@ address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, add
   thread->_ScratchB = Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret);
   return (SharedRuntime::deopt_blob()->implicit_exception_uncommon_trap());
 }
+#endif
 
 JRT_ENTRY(void, SharedRuntime::throw_WrongMethodTypeException(JavaThread* thread, oopDesc* required, oopDesc* actual))
   assert(thread == JavaThread::current() && required->is_oop() && actual->is_oop(), "bad args");
