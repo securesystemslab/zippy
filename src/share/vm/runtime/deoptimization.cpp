@@ -1660,7 +1660,7 @@ Deoptimization::query_update_method_data(methodDataHandle trap_mdo,
   // For reasons which are recorded per bytecode, we check per-BCI data.
   ProfileData* pdata = NULL;
   DeoptReason per_bc_reason = reason_recorded_per_bytecode_if_any(reason);
-  assert(per_bc_reason != NULL || update_total_trap_count, "must be");
+  assert(per_bc_reason != Reason_none || update_total_trap_count, "must be");
   if (per_bc_reason != Reason_none) {
     // Find the profile data for this BCI.  If there isn't one,
     // try to allocate one from the MDO's set of spares.
