@@ -57,12 +57,11 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   int pc_offset() const           { return _pc_offset;   }
   int scope_decode_offset() const { return _scope_decode_offset; }
   int obj_decode_offset() const   { return _obj_decode_offset; }
-  jlong leaf_graph_id() const     { return _leaf_graph_id; }
+  jlong leaf_graph_id() const     { return GRAAL_ONLY(_leaf_graph_id) NOT_GRAAL(-1); }
 
   void set_pc_offset(int x)           { _pc_offset           = x; }
   void set_scope_decode_offset(int x) { _scope_decode_offset = x; }
   void set_obj_decode_offset(int x)   { _obj_decode_offset   = x; }
-  void set_leaf_graph_id(jlong x)     { _leaf_graph_id = x; }
 
   // Constructor (only used for static in nmethod.cpp)
   // Also used by ScopeDesc::sender()]
