@@ -209,7 +209,6 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 
 #ifdef GRAAL
   PcDesc* pc_desc = ((nmethod*) deoptee.cb())->pc_desc_at(deoptee.pc());
-  int decode_offset;
   if (pc_desc != NULL && pc_desc->leaf_graph_id() != -1) {
     GraalCompiler* compiler = (GraalCompiler*) ((nmethod*) deoptee.cb())->compiler();
     if (PrintDeoptimizationDetails) {
