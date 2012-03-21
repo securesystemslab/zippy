@@ -258,6 +258,14 @@
 #define NOT_EMBEDDED(code) code
 #endif
 
+#ifdef GRAAL
+#define GRAAL_ONLY(code...) code
+#define NOT_GRAAL(code...)
+#else
+#define GRAAL_ONLY(code...)
+#define NOT_GRAAL(code...) code
+#endif
+
 #define define_pd_global(type, name, value) const type pd_##name = value;
 
 #endif // SHARE_VM_UTILITIES_MACROS_HPP

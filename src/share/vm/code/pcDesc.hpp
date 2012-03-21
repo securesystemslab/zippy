@@ -38,6 +38,7 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   int _pc_offset;           // offset from start of nmethod
   int _scope_decode_offset; // offset for scope in nmethod
   int _obj_decode_offset;
+  GRAAL_ONLY(jlong _leaf_graph_id;)
 
   enum {
     PCDESC_reexecute               = 1 << 0,
@@ -56,14 +57,16 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   int pc_offset() const           { return _pc_offset;   }
   int scope_decode_offset() const { return _scope_decode_offset; }
   int obj_decode_offset() const   { return _obj_decode_offset; }
+  jlong leaf_graph_id() const     { return _leaf_graph_id; }
 
   void set_pc_offset(int x)           { _pc_offset           = x; }
   void set_scope_decode_offset(int x) { _scope_decode_offset = x; }
   void set_obj_decode_offset(int x)   { _obj_decode_offset   = x; }
+  void set_leaf_graph_id(jlong x)     { _leaf_graph_id = x; }
 
   // Constructor (only used for static in nmethod.cpp)
   // Also used by ScopeDesc::sender()]
-  PcDesc(int pc_offset, int scope_decode_offset, int obj_decode_offset);
+  PcDesc(int pc_offset, int scope_decode_offset, int obj_decode_offset, jlong leaf_graph_id);
 
   enum {
     // upper and lower exclusive limits real offsets:
@@ -81,7 +84,9 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   bool is_same_info(const PcDesc* pd) {
     return _scope_decode_offset == pd->_scope_decode_offset &&
       _obj_decode_offset == pd->_obj_decode_offset &&
-      _flags == pd->_flags;
+      _flags == pd->_flags
+      GRAAL_ONLY(&& _leaf_graph_id == pd->_leaf_graph_id)
+      ;
   }
 
   bool     is_method_handle_invoke()       const { return (_flags & PCDESC_is_method_handle_invoke) != 0;     }

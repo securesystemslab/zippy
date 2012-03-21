@@ -143,6 +143,10 @@ extern Monitor* JfrMsg_lock;                     // protects JFR messaging
 extern Mutex*   JfrBuffer_lock;                  // protects JFR buffer operations
 extern Mutex*   JfrStream_lock;                  // protects JFR stream access
 
+#ifdef GRAAL
+extern Mutex*   GraalDeoptLeafGraphIds_lock;     // protects access to the global array of deopt'ed leaf graphs
+#endif // GRAAL
+
 // A MutexLocker provides mutual exclusion with respect to a given mutex
 // for the scope which contains the locker.  The lock is an OS lock, not
 // an object lock, and the two do not interoperate.  Do not use Mutex-based

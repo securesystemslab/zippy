@@ -47,6 +47,8 @@ void GraalCompiler::initialize() {
   JavaThread* THREAD = JavaThread::current();
   TRACE_graal_1("GraalCompiler::initialize");
 
+  _deopted_leaf_graph_count = 0;
+
   initialize_buffer_blob();
   Runtime1::initialize(THREAD->get_buffer_blob());
 
@@ -89,6 +91,47 @@ void GraalCompiler::initialize() {
       }
     }
   }
+}
+
+void GraalCompiler::deopt_leaf_graph(jlong leaf_graph_id) {
+  assert(leaf_graph_id != -1, "unexpected leaf graph id");
+
+  if (_deopted_leaf_graph_count < LEAF_GRAPH_ARRAY_SIZE) {
+    MutexLockerEx y(GraalDeoptLeafGraphIds_lock, Mutex::_no_safepoint_check_flag);
+    if (_deopted_leaf_graph_count < LEAF_GRAPH_ARRAY_SIZE) {
+      _deopted_leaf_graphs[_deopted_leaf_graph_count++] = leaf_graph_id;
+    }
+  }
+}
+
+oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
+  if (_deopted_leaf_graph_count == 0) {
+    return NULL;
+  }
+  jlong* elements;
+  int length;
+  {
+    MutexLockerEx y(GraalDeoptLeafGraphIds_lock, Mutex::_no_safepoint_check_flag);
+    if (_deopted_leaf_graph_count == 0) {
+      return NULL;
+    }
+    if (_deopted_leaf_graph_count == LEAF_GRAPH_ARRAY_SIZE) {
+      length = 0;
+    } else {
+      length = _deopted_leaf_graph_count;
+    }
+    elements = new jlong[length];
+    for (int i = 0; i < length; i++) {
+      elements[i] = _deopted_leaf_graphs[i];
+    }
+    _deopted_leaf_graph_count = 0;
+  }
+  typeArrayOop array = oopFactory::new_longArray(length, CHECK_NULL);
+  for (int i = 0; i < length; i++) {
+    array->long_at_put(i, elements[i]);
+  }
+  delete elements;
+  return array;
 }
 
 void GraalCompiler::initialize_buffer_blob() {
