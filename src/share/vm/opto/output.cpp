@@ -815,7 +815,7 @@ void Compile::Process_OopMap_Node(MachNode *mach, int current_offset) {
   // Add the safepoint in the DebugInfoRecorder
   if( !mach->is_MachCall() ) {
     mcall = NULL;
-    debug_info()->add_safepoint(safepoint_pc_offset, sfn->_oop_map);
+    debug_info()->add_safepoint(safepoint_pc_offset, -1, sfn->_oop_map);
   } else {
     mcall = mach->as_MachCall();
 
@@ -833,7 +833,7 @@ void Compile::Process_OopMap_Node(MachNode *mach, int current_offset) {
       return_oop = true;
     }
     safepoint_pc_offset += mcall->ret_addr_offset();
-    debug_info()->add_safepoint(safepoint_pc_offset, mcall->_oop_map);
+    debug_info()->add_safepoint(safepoint_pc_offset, -1, mcall->_oop_map);
   }
 
   // Loop over the JVMState list to add scope information
