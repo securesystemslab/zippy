@@ -118,7 +118,7 @@ class SimpleCompPolicy : public NonTieredCompPolicy {
 
 // StackWalkCompPolicy - existing C2 policy
 
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
 class StackWalkCompPolicy : public NonTieredCompPolicy {
  public:
   virtual void method_invocation_event(methodHandle m, JavaThread* thread);
@@ -138,6 +138,6 @@ class StackWalkCompPolicy : public NonTieredCompPolicy {
   // negative filter: should send NOT be inlined?  returns NULL (--> inline) or rejection msg
 
 };
-//#endif
+#endif
 
 #endif // SHARE_VM_RUNTIME_COMPILATIONPOLICY_HPP

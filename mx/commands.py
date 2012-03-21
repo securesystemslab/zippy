@@ -384,6 +384,12 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log.close()
     return ret
     
+def jdkhome(args, vm=None):
+    """prints the JDK directory selected for the 'vm' command"""
+    
+    build = _vmbuild if _vmSourcesAvailable else 'product'
+    print join(_graal_home, 'jdk' + mx.java().version, build)
+
 def build(args, vm=None):
     """build the VM binary
     
@@ -894,6 +900,7 @@ def mx_init():
         'hsdis': [hsdis, '[att]'],
         'igv' : [igv, ''],
         'intro': [intro, ''],
+        'jdkhome': [jdkhome, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],

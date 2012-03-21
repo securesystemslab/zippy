@@ -76,8 +76,10 @@
 
 #ifdef GRAAL
 #define IS_GRAAL(code) code
+#define NOT_GRAAL(code)
 #else
 #define IS_GRAAL(code)
+#define NOT_GRAAL(code) code
 #endif
 
 #ifdef TIERED

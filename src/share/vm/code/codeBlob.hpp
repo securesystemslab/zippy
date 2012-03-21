@@ -407,7 +407,7 @@ class DeoptimizationBlob: public SingletonBlob {
 
   // (thomaswue) Offset when graal calls uncommon_trap.
   int _uncommon_trap_offset;
-  int _jmp_uncommon_trap_offset;
+  int _implicit_exception_uncommon_trap_offset;
 
 
   // Creation support
@@ -469,11 +469,11 @@ class DeoptimizationBlob: public SingletonBlob {
     assert(contains(code_begin() + _uncommon_trap_offset), "must be PC inside codeblob");
   }
   address uncommon_trap() const                  { return code_begin() + _uncommon_trap_offset;     }
-  void set_jmp_uncommon_trap_offset(int offset) {
-    _jmp_uncommon_trap_offset = offset;
-    assert(contains(code_begin() + _jmp_uncommon_trap_offset), "must be PC inside codeblob");
+  void set_implicit_exception_uncommon_trap_offset(int offset) {
+    _implicit_exception_uncommon_trap_offset = offset;
+    assert(contains(code_begin() + _implicit_exception_uncommon_trap_offset), "must be PC inside codeblob");
   }
-  address jmp_uncommon_trap() const                  { return code_begin() + _jmp_uncommon_trap_offset;     }
+  address implicit_exception_uncommon_trap() const                  { return code_begin() + _implicit_exception_uncommon_trap_offset;     }
 
 };
 
