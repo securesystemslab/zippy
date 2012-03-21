@@ -163,6 +163,7 @@ void graal_compute_offsets();
     int_field(CiFrame, numLocals)                                                       \
     int_field(CiFrame, numStack)                                                        \
     int_field(CiFrame, numLocks)                                                        \
+    long_field(CiFrame, leafGraphId)                                                    \
     boolean_field(CiFrame, rethrowException)                                            \
     boolean_field(CiFrame, duringCall)                                                  \
   end_class                                                                             \

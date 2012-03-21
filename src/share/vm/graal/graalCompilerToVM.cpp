@@ -967,6 +967,21 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiM
   return vtable_entry_offset;
 }
 
+// public native long[] getDeoptedLeafGraphIds();
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getDeoptedLeafGraphIds(JNIEnv *, jobject) {
+  TRACE_graal_3("CompilerToVM::getDeoptedLeafGraphIds");
+
+  VM_ENTRY_MARK;
+
+  // the contract for this method is as follows:
+  // returning null: no deopted leaf graphs
+  // returning array (size > 0): the ids of the deopted leaf graphs
+  // returning array (size == 0): there was an overflow, the compiler needs to clear its cache completely
+
+  oop array = GraalCompiler::instance()->dump_deopted_leaf_graphs(CHECK_NULL);
+  return JNIHandles::make_local(array);
+}
+
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_##f))
@@ -1030,6 +1045,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
   {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
   {CC"RiMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(RiMethod_vtableEntryOffset)},
+  {CC"getDeoptedLeafGraphIds",            CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
 };
 
 int CompilerToVM_methods_count() {

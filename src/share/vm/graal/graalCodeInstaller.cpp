@@ -440,19 +440,16 @@ void CodeInstaller::process_exception_handlers() {
   }
 }
 
-void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<ScopeValue*>* objects) {
-  oop caller_pos = CiCodePos::caller(code_pos);
-  if (caller_pos != NULL) {
-    record_scope(pc_offset, caller_pos, objects);
-  }
-  oop frame = NULL;
-  if (code_pos->klass()->klass_part()->name() == vmSymbols::com_oracle_max_cri_ci_CiFrame()) {
-    frame = code_pos;
+void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeValue*>* objects) {
+  assert(frame->klass() == CiFrame::klass(), "CiFrame expected");
+  oop caller_frame = CiCodePos::caller(frame);
+  if (caller_frame != NULL) {
+    record_scope(pc_offset, caller_frame, objects);
   }
 
-  oop hotspot_method = CiCodePos::method(code_pos);
+  oop hotspot_method = CiCodePos::method(frame);
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-  jint bci = CiCodePos::bci(code_pos);
+  jint bci = CiCodePos::bci(frame);
   bool reexecute;
   if (bci == -1) {
      reexecute = false;
@@ -468,64 +465,60 @@ void CodeInstaller::record_scope(jint pc_offset, oop code_pos, GrowableArray<Sco
     tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
   }
 
-  if (frame != NULL) {
-    jint local_count = CiFrame::numLocals(frame);
-    jint expression_count = CiFrame::numStack(frame);
-    jint monitor_count = CiFrame::numLocks(frame);
-    arrayOop values = (arrayOop) CiFrame::values(frame);
+  jint local_count = CiFrame::numLocals(frame);
+  jint expression_count = CiFrame::numStack(frame);
+  jint monitor_count = CiFrame::numLocks(frame);
+  arrayOop values = (arrayOop) CiFrame::values(frame);
 
-    assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
+  assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
 
-    GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
-    GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
-    GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
+  GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
+  GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
+  GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
 
-    if (TraceGraal >= 2) {
-      tty->print_cr("Scope at bci %d with %d values", bci, values->length());
-      tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
-    }
-
-    for (jint i = 0; i < values->length(); i++) {
-      ScopeValue* second = NULL;
-      oop value = ((oop*) values->base(T_OBJECT))[i];
-
-      if (i < local_count) {
-        ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
-        if (second != NULL) {
-          locals->append(second);
-        }
-        locals->append(first);
-      } else if (i < local_count + expression_count) {
-        ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
-        if (second != NULL) {
-          expressions->append(second);
-        }
-        expressions->append(first);
-      } else {
-        monitors->append(get_monitor_value(value, _total_frame_size, objects));
-      }
-      if (second != NULL) {
-        i++;
-        assert(i < values->length(), "double-slot value not followed by CiValue.IllegalValue");
-        assert(((oop*) values->base(T_OBJECT))[i] == CiValue::IllegalValue(), "double-slot value not followed by CiValue.IllegalValue");
-      }
-    }
-
-    _debug_recorder->dump_object_pool(objects);
-
-    DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
-    DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
-    DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
-
-    bool throw_exception = false;
-    if (CiFrame::rethrowException(frame)) {
-      throw_exception = true;
-    }
-
-    _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
-  } else {
-    _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, false, false, false, NULL, NULL, NULL);
+  if (TraceGraal >= 2) {
+    tty->print_cr("Scope at bci %d with %d values", bci, values->length());
+    tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
   }
+
+  for (jint i = 0; i < values->length(); i++) {
+    ScopeValue* second = NULL;
+    oop value = ((oop*) values->base(T_OBJECT))[i];
+
+    if (i < local_count) {
+      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
+      if (second != NULL) {
+        locals->append(second);
+      }
+      locals->append(first);
+    } else if (i < local_count + expression_count) {
+      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
+      if (second != NULL) {
+        expressions->append(second);
+      }
+      expressions->append(first);
+    } else {
+      monitors->append(get_monitor_value(value, _total_frame_size, objects));
+    }
+    if (second != NULL) {
+      i++;
+      assert(i < values->length(), "double-slot value not followed by CiValue.IllegalValue");
+      assert(((oop*) values->base(T_OBJECT))[i] == CiValue::IllegalValue(), "double-slot value not followed by CiValue.IllegalValue");
+    }
+  }
+
+  _debug_recorder->dump_object_pool(objects);
+
+  DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
+  DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
+  DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
+
+  bool throw_exception = false;
+  if (CiFrame::rethrowException(frame)) {
+    throw_exception = true;
+  }
+
+  _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
@@ -534,7 +527,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 
   // address instruction = _instructions->start() + pc_offset;
   // jint next_pc_offset = Assembler::locate_next_instruction(instruction) - _instructions->start();
-  _debug_recorder->add_safepoint(pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
+  _debug_recorder->add_safepoint(pc_offset, -1, create_oop_map(_total_frame_size, _parameter_count, debug_info));
 
   oop code_pos = CiDebugInfo::codePos(debug_info);
   record_scope(pc_offset, code_pos, new GrowableArray<ScopeValue*>());
@@ -648,9 +641,9 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (debug_info != NULL) {
-    _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
-    oop code_pos = CiDebugInfo::codePos(debug_info);
-    record_scope(next_pc_offset, code_pos, new GrowableArray<ScopeValue*>());
+    oop frame = CiDebugInfo::codePos(debug_info);
+    _debug_recorder->add_safepoint(next_pc_offset, CiFrame::leafGraphId(frame), create_oop_map(_total_frame_size, _parameter_count, debug_info));
+    record_scope(next_pc_offset, frame, new GrowableArray<ScopeValue*>());
   }
 
   if (runtime_call != NULL) {

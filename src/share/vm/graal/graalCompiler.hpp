@@ -23,13 +23,18 @@
 
 #include "compiler/abstractCompiler.hpp"
 
+#define LEAF_GRAPH_ARRAY_SIZE (8192)
+
 class GraalCompiler : public AbstractCompiler {
 
 private:
 
   bool                  _initialized;
 
-  static GraalCompiler*   _instance;
+  static GraalCompiler* _instance;
+
+  jlong                 _deopted_leaf_graphs[LEAF_GRAPH_ARRAY_SIZE];
+  int                   _deopted_leaf_graph_count;
 
 public:
 
@@ -55,6 +60,9 @@ public:
   virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);
 
   void compile_method(methodHandle target, int entry_bci, jboolean blocking);
+
+  void deopt_leaf_graph(jlong leaf_graph_id);
+  oop dump_deopted_leaf_graphs(TRAPS);
 
   // Print compilation timers and statistics
   virtual void print_timers();

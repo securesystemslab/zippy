@@ -40,7 +40,7 @@ void SharkDecacher::start_frame() {
   _oopmap = new OopMap(
     oopmap_slot_munge(stack()->oopmap_frame_size()),
     oopmap_slot_munge(arg_size()));
-  debug_info()->add_safepoint(pc_offset(), oopmap());
+  debug_info()->add_safepoint(pc_offset(), -1, oopmap());
 }
 
 void SharkDecacher::start_stack(int stack_depth) {

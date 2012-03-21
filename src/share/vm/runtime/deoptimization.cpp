@@ -86,6 +86,11 @@
 #endif
 #endif
 
+#ifdef GRAAL
+#include "graal/graalCompiler.hpp"
+#endif
+
+
 bool DeoptimizationMarker::_is_active = false;
 
 Deoptimization::UnrollBlock::UnrollBlock(int  size_of_deoptimized_frame,
@@ -201,6 +206,19 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   // Create a growable array of VFrames where each VFrame represents an inlined
   // Java frame.  This storage is allocated with the usual system arena.
   assert(deoptee.is_compiled_frame(), "Wrong frame type");
+
+#ifdef GRAAL
+  PcDesc* pc_desc = ((nmethod*) deoptee.cb())->pc_desc_at(deoptee.pc());
+  int decode_offset;
+  if (pc_desc != NULL && pc_desc->leaf_graph_id() != -1) {
+    GraalCompiler* compiler = (GraalCompiler*) ((nmethod*) deoptee.cb())->compiler();
+    if (PrintDeoptimizationDetails) {
+      tty->print_cr("leaf graph id: %d", pc_desc->leaf_graph_id());
+    }
+    compiler->deopt_leaf_graph(pc_desc->leaf_graph_id());
+  }
+#endif
+
   GrowableArray<compiledVFrame*>* chunk = new GrowableArray<compiledVFrame*>(10);
   vframe* vf = vframe::new_vframe(&deoptee, &map, thread);
   while (!vf->is_top()) {
@@ -1706,7 +1724,7 @@ Deoptimization::update_method_data_from_interpreter(methodDataHandle trap_mdo, i
   bool ignore_maybe_prior_trap;
   bool ignore_maybe_prior_recompile;
   // Graal uses the total counts to determine if deoptimizations are happening too frequently -> do not adjust total counts
-  bool update_total_counts = IS_GRAAL(false) NOT_GRAAL(true);
+  bool update_total_counts = GRAAL_ONLY(false) NOT_GRAAL(true);
   query_update_method_data(trap_mdo, trap_bci,
                            (DeoptReason)reason,
                            update_total_counts,

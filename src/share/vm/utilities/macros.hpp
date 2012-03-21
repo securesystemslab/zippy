@@ -75,10 +75,10 @@
 #endif // COMPILER2
 
 #ifdef GRAAL
-#define IS_GRAAL(code) code
+#define GRAAL_ONLY(code...) code
 #define NOT_GRAAL(code)
 #else
-#define IS_GRAAL(code)
+#define GRAAL_ONLY(code...)
 #define NOT_GRAAL(code) code
 #endif
 
