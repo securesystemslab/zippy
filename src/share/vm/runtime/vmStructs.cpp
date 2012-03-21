@@ -2452,26 +2452,32 @@ static inline uint64_t cast_uint64_t(size_t x)
   declare_constant(Location::on_stack)                                    \
   declare_constant(Location::in_register)                                 \
                                                                           \
-  declare_constant(Deoptimization::Reason_many)                           \
-  declare_constant(Deoptimization::Reason_none)                           \
-  declare_constant(Deoptimization::Reason_null_check)                     \
-  declare_constant(Deoptimization::Reason_null_assert)                    \
-  declare_constant(Deoptimization::Reason_range_check)                    \
-  declare_constant(Deoptimization::Reason_class_check)                    \
-  declare_constant(Deoptimization::Reason_array_check)                    \
-  declare_constant(Deoptimization::Reason_intrinsic)                      \
-  declare_constant(Deoptimization::Reason_bimorphic)                      \
-  declare_constant(Deoptimization::Reason_unloaded)                       \
-  declare_constant(Deoptimization::Reason_uninitialized)                  \
-  declare_constant(Deoptimization::Reason_unreached)                      \
-  declare_constant(Deoptimization::Reason_unhandled)                      \
-  declare_constant(Deoptimization::Reason_constraint)                     \
-  declare_constant(Deoptimization::Reason_div0_check)                     \
-  declare_constant(Deoptimization::Reason_age)                            \
-  declare_constant(Deoptimization::Reason_predicate)                      \
-  declare_constant(Deoptimization::Reason_loop_limit_check)               \
-  declare_constant(Deoptimization::Reason_LIMIT)                          \
-  declare_constant(Deoptimization::Reason_RECORDED_LIMIT)                 \
+  /* TODO (chaeubl) those constants should be graal/c1/c2 specific */         \
+  /*declare_constant(Deoptimization::Reason_many)*/                           \
+  /*declare_constant(Deoptimization::Reason_none)*/                           \
+  /*declare_constant(Deoptimization::Reason_null_check)*/                     \
+  /*declare_constant(Deoptimization::Reason_range_check)*/                    \
+  /*declare_constant(Deoptimization::Reason_class_check)*/                    \
+  /*declare_constant(Deoptimization::Reason_array_check)*/                    \
+  /*declare_constant(Deoptimization::Reason_unreached)*/                      \
+  /*declare_constant(Deoptimization::Reason_constraint)*/                     \
+  /*declare_constant(Deoptimization::Reason_div0_check)*/                     \
+  /*declare_constant(Deoptimization::Reason_type_checked_inlining)*/          \
+  /*declare_constant(Deoptimization::Reason_optimized_type_check)*/           \
+  /*declare_constant(Deoptimization::Reason_not_compiled_exception_handler)*/ \
+  /*declare_constant(Deoptimization::Reason_unresolved)*/                     \
+  /*declare_constant(Deoptimization::Reason_jsr_mismatch)*/                   \
+  /*declare_constant(Deoptimization::Reason_LIMIT)*/                          \
+  /*declare_constant(Deoptimization::Reason_RECORDED_LIMIT)*/                 \
+  /*declare_constant(Deoptimization::Reason_null_assert)*/                    \
+  /*declare_constant(Deoptimization::Reason_intrinsic)*/                      \
+  /*declare_constant(Deoptimization::Reason_bimorphic)*/                      \
+  /*declare_constant(Deoptimization::Reason_unloaded)*/                       \
+  /*declare_constant(Deoptimization::Reason_uninitialized) */                 \
+  /*declare_constant(Deoptimization::Reason_unhandled)*/                      \
+  /*declare_constant(Deoptimization::Reason_age)*/                            \
+  /*declare_constant(Deoptimization::Reason_predicate)*/                      \
+  /*declare_constant(Deoptimization::Reason_loop_limit_check)*/               \
                                                                           \
   /*********************/                                                 \
   /* Matcher (C2 only) */                                                 \

@@ -775,6 +775,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   
   set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
+  set_int(env, config, "methodDataOopTrapHistoryOffset", in_bytes(methodDataOopDesc::trap_history_offset()));
   set_int(env, config, "dataLayoutHeaderSize", DataLayout::header_size_in_bytes());
   set_int(env, config, "dataLayoutTagOffset", in_bytes(DataLayout::tag_offset()));
   set_int(env, config, "dataLayoutFlagsOffset", in_bytes(DataLayout::flags_offset()));

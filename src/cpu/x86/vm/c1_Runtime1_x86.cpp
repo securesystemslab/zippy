@@ -97,12 +97,23 @@ int StubAssembler::call_RT(Register oop_result1, Register oop_result2, address e
     if (oop_result2->is_valid()) {
       movptr(Address(thread, JavaThread::vm_result_2_offset()), NULL_WORD);
     }
+#ifdef GRAAL
     // (thomaswue) Deoptimize in case of an exception.
     restore_live_registers(this, false);
     movptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     leave();
-    movl(rscratch1, 2); // InvalidateRecompile
+    movl(rscratch1, Deoptimization::make_trap_request(Deoptimization::Reason_constraint, Deoptimization::Action_reinterpret));
     jump(RuntimeAddress(SharedRuntime::deopt_blob()->uncommon_trap()));
+#else
+    if (frame_size() == no_frame_size) {
+      leave();
+      jump(RuntimeAddress(StubRoutines::forward_exception_entry()));
+    } else if (_stub_id == Runtime1::forward_exception_id) {
+      should_not_reach_here();
+    } else {
+      jump(RuntimeAddress(Runtime1::entry_for(Runtime1::forward_exception_id)));
+    }
+#endif
     bind(L);
   }
   // get oop results if there are any and reset the values in the thread

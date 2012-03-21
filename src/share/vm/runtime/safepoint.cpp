@@ -1060,7 +1060,7 @@ void ThreadSafepointState::handle_polling_page_exception() {
     // as otherwise we may never deliver it.
     if (thread()->has_async_condition()) {
       ThreadInVMfromJavaNoAsyncException __tiv(thread());
-      Deoptimization::deoptimize_frame(thread(), caller_fr.id());
+      Deoptimization::deoptimize_frame(thread(), caller_fr.id(), Deoptimization::Reason_constraint);
     }
 
     // If an exception has been installed we must check for a pending deoptimization

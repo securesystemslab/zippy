@@ -75,9 +75,11 @@
 #endif // COMPILER2
 
 #ifdef GRAAL
-#define IS_GRAAL(code) code
+#define GRAAL_ONLY(code...) code
+#define NOT_GRAAL(code)
 #else
-#define IS_GRAAL(code)
+#define GRAAL_ONLY(code...)
+#define NOT_GRAAL(code) code
 #endif
 
 #ifdef TIERED
@@ -256,14 +258,6 @@
 #else
 #define EMBEDDED_ONLY(code)
 #define NOT_EMBEDDED(code) code
-#endif
-
-#ifdef GRAAL
-#define GRAAL_ONLY(code...) code
-#define NOT_GRAAL(code...)
-#else
-#define GRAAL_ONLY(code...)
-#define NOT_GRAAL(code...) code
 #endif
 
 #define define_pd_global(type, name, value) const type pd_##name = value;

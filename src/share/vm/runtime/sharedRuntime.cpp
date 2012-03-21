@@ -665,7 +665,7 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
     RegisterMap reg_map(thread);
     frame runtime_frame = thread->last_frame();
     frame caller_frame = runtime_frame.sender(&reg_map);
-    Deoptimization::deoptimize_frame(thread, caller_frame.id());
+    Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_not_compiled_exception_handler);
     return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
   }
 
@@ -789,14 +789,17 @@ JRT_ENTRY(void, SharedRuntime::throw_StackOverflowError(JavaThread* thread))
   throw_and_post_jvmti_exception(thread, exception);
 JRT_END
 
-address SharedRuntime::deoptimization_continuation(JavaThread* thread, address pc, nmethod* nm)
-{
+#ifdef GRAAL
+address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason) {
+  assert(deopt_reason > Deoptimization::Reason_none && deopt_reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
   if (TraceSignals) {
     tty->print_cr(err_msg("Deoptimizing on implicit exception at relative pc=%d in method %s", pc - nm->entry_point(), nm->method()->name()->as_C_string()));
   }
   thread->_ScratchA = (intptr_t)pc;
-  return (SharedRuntime::deopt_blob()->jmp_uncommon_trap());
+  thread->_ScratchB = Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret);
+  return (SharedRuntime::deopt_blob()->implicit_exception_uncommon_trap());
 }
+#endif
 
 JRT_ENTRY(void, SharedRuntime::throw_WrongMethodTypeException(JavaThread* thread, oopDesc* required, oopDesc* actual))
   assert(thread == JavaThread::current() && required->is_oop() && actual->is_oop(), "bad args");
@@ -891,7 +894,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           _implicit_null_throws++;
 #endif
 #ifdef GRAAL
-          target_pc = deoptimization_continuation(thread, pc, nm);
+          target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_null_check);
 #else
           target_pc = nm->continuation_for_implicit_exception(pc);
 #endif
@@ -914,7 +917,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
         if (TraceSignals) {
           tty->print_cr("graal implicit div0");
         }
-        target_pc = deoptimization_continuation(thread, pc, nm);
+        target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
 #else
         target_pc = nm->continuation_for_implicit_exception(pc);
 #endif

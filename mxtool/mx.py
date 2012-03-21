@@ -510,6 +510,7 @@ class ArgParser(ArgumentParser):
         ArgumentParser.__init__(self, prog='mx')
 
         self.add_argument('-v', action='store_true', dest='verbose', help='enable verbose output')
+        self.add_argument('-V', action='store_true', dest='very_verbose', help='enable very verbose output')
         self.add_argument('--dbg', type=int, dest='java_dbg_port', help='make Java processes wait on <port> for a debugger', metavar='<port>')
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
@@ -535,6 +536,9 @@ class ArgParser(ArgumentParser):
         # Give the timeout options a default value to avoid the need for hasattr() tests
         opts.__dict__.setdefault('timeout', 0)
         opts.__dict__.setdefault('ptimeout', 0)
+
+        if opts.very_verbose:
+            opts.verbose = True
 
         if opts.java_home is None:
             opts.java_home = os.environ.get('JAVA_HOME')
@@ -640,6 +644,10 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
         assert isinstance(arg, types.StringTypes), 'argument is not a string: ' + str(arg)
 
     if _opts.verbose:
+        if _opts.very_verbose:
+            log('Environment variables:')
+            for key in sorted(os.environ.keys()):
+                log('    ' + key + '=' + os.environ[key])
         log(' '.join(args))
 
     if timeout is None and _opts.ptimeout != 0:
@@ -697,7 +705,10 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
-            raise subprocess.CalledProcessError(retcode, ' '.join(args))
+            if _opts.very_verbose:
+                raise subprocess.CalledProcessError(retcode, ' '.join(args))
+            else:
+                log('[exit code: ' + str(retcode)+ ']')
         abort(retcode)
 
     return retcode

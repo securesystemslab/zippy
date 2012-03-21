@@ -179,6 +179,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     oop type = CiVirtualObject::type(value);
     int id = CiVirtualObject::id(value);
     klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type));
+    bool isLongArray = klass == Universe::longArrayKlassObj();
 
     for (jint i = 0; i < objects->length(); i++) {
       ObjectValue* obj = (ObjectValue*) objects->at(i);
@@ -198,6 +199,17 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       ScopeValue* cur_second = NULL;
       ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second);
       
+      if (isLongArray && cur_second == NULL) {
+        // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
+        // add an int 0 constant
+#ifdef BIG_ENDIAN
+        cur_second = value;
+        value = new ConstantIntValue(0);
+#else
+        cur_second = new ConstantIntValue(0);
+#endif
+      }
+
       if (cur_second != NULL) {
         sv->field_values()->append(cur_second);
       }

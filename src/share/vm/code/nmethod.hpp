@@ -596,7 +596,7 @@ public:
 
   // (thomaswue) When using graal, the address might be off by 5 (because this is the size of the call instruction.
   // (thomaswue) TODO: Replace this by a more general mechanism.
-  bool is_deopt_entry   (address pc) { return pc == deopt_handler_begin() IS_GRAAL( || pc == deopt_handler_begin() + 5); }
+  bool is_deopt_entry   (address pc) { return pc == deopt_handler_begin() GRAAL_ONLY( || pc == deopt_handler_begin() + 5); }
   bool is_deopt_mh_entry(address pc) { return pc == deopt_mh_handler_begin(); }
   // Accessor/mutator for the original pc of a frame before a frame was deopted.
   address get_original_pc(const frame* fr) { return *orig_pc_addr(fr); }

@@ -51,6 +51,9 @@
 #include "runtime/signature.hpp"
 #include "utilities/quickSort.hpp"
 #include "utilities/xmlstream.hpp"
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 
 // Implementation of methodOopDesc
@@ -658,6 +661,13 @@ void methodOopDesc::set_not_compilable(int comp_level, bool report) {
       }
   }
   CompilationPolicy::policy()->disable_compilation(this);
+
+#ifdef GRAAL
+  oop graal_mirror = this->graal_mirror();
+  if (graal_mirror != NULL) {
+    HotSpotMethodResolved::set_canBeInlined(graal_mirror, false);
+  }
+#endif
 }
 
 // Revert to using the interpreter and clear out the nmethod
