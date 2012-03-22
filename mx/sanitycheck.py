@@ -182,15 +182,15 @@ def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
     scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     tests = []
-    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher]))
-    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
+    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ingoreVms=['client', 'server']))
+    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g'], ingoreVms=['client', 'server']))
     return tests
 
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None):
+    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ingoreVms=[]):
         self.name = name
         self.group = group
         self.successREs = successREs
@@ -199,6 +199,8 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
         self.defaultCwd = defaultCwd
+        self.ingoreVms = ingoreVms;
+        
         
     def __str__(self):
         return self.name
@@ -207,6 +209,8 @@ class Test:
         """
         Run this program as a sanity test.
         """
+        if (vm in self.ingoreVms):
+            return True;
         if cwd is None:
             cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
@@ -246,6 +250,8 @@ class Test:
         """
         Run this program as a benchmark.
         """
+        if (vm in self.ingoreVms):
+            return {};
         if cwd is None:
             cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
