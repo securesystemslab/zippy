@@ -62,10 +62,14 @@ JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMIm
   if (RewriteBytecodes || RewriteFrequentPairs) {
     BytecodeStream s(method);
     while(!s.is_last_bytecode()) {
-      jbyte code = s.next();
-      env->SetByteArrayRegion(result, s.bci(), 1, &code);
+      s.next();
+      Bytecodes::Code code = s.raw_code();
+      if (!Bytecodes::is_java_code(code)) {
+        jbyte original_code = Bytecodes::java_code(code);
+        env->SetByteArrayRegion(result, s.bci(), 1, &original_code);
+      }
     }
-  }
+  }  
 
   // replace all breakpoints
   if (method->number_of_breakpoints() > 0) {
