@@ -116,7 +116,7 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
     if skipKitValidation:
         opts += ['-ikv']
     
-    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -146,7 +146,7 @@ def getDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m'])
+    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -176,21 +176,21 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("Scala-DaCapo-" + name, "Scala-DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m'])
+    return Test("Scala-DaCapo-" + name, "Scala-DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
     scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     tests = []
-    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher]))
-    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g']))
+    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ingoreVms=['client', 'server']))
+    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g'], ingoreVms=['client', 'server']))
     return tests
 
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None):
+    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ingoreVms=[]):
         self.name = name
         self.group = group
         self.successREs = successREs
@@ -199,6 +199,8 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
         self.defaultCwd = defaultCwd
+        self.ingoreVms = ingoreVms;
+        
         
     def __str__(self):
         return self.name
@@ -207,6 +209,8 @@ class Test:
         """
         Run this program as a sanity test.
         """
+        if (vm in self.ingoreVms):
+            return True;
         if cwd is None:
             cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)
@@ -246,6 +250,8 @@ class Test:
         """
         Run this program as a benchmark.
         """
+        if (vm in self.ingoreVms):
+            return {};
         if cwd is None:
             cwd = self.defaultCwd
         parser = OutputParser(nonZeroIsFatal = False)

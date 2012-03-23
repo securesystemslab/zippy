@@ -202,11 +202,11 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       if (isLongArray && cur_second == NULL) {
         // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
         // add an int 0 constant
-#ifdef BIG_ENDIAN
+#ifdef VM_LITTLE_ENDIAN
+        cur_second = new ConstantIntValue(0);
+#else
         cur_second = value;
         value = new ConstantIntValue(0);
-#else
-        cur_second = new ConstantIntValue(0);
 #endif
       }
 
