@@ -201,6 +201,11 @@ void klassKlass::oop_push_contents(PSPromotionManager* pm, oop obj) {
   if (PSScavenge::should_scavenge(p)) {
     pm->claim_or_forward_depth(p);
   }
+
+  p = k->adr_graal_mirror();
+  if (PSScavenge::should_scavenge(p)) {
+    pm->claim_or_forward_depth(p);
+  }
 }
 
 int klassKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {

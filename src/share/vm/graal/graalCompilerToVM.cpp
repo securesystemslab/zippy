@@ -52,9 +52,32 @@ methodDataOop getMethodDataFromHotSpotMethodData(jobject hotspot_method_data) {
 JNIEXPORT jbyteArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1code(JNIEnv *env, jobject, jobject hotspot_method) {
   TRACE_graal_3("CompilerToVM::RiMethod_code");
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
+  
+  // copy all bytecodes
   int code_size = method->code_size();
   jbyteArray result = env->NewByteArray(code_size);
   env->SetByteArrayRegion(result, 0, code_size, (const jbyte *) method->code_base());
+  
+  // iterate over all bytecodes and replace non-Java bytecodes
+  if (RewriteBytecodes || RewriteFrequentPairs) {
+    BytecodeStream s(method);
+    while(!s.is_last_bytecode()) {
+      jbyte code = s.next();
+      env->SetByteArrayRegion(result, s.bci(), 1, &code);
+    }
+  }
+
+  // replace all breakpoints
+  if (method->number_of_breakpoints() > 0) {
+    BreakpointInfo* bp = instanceKlass::cast(method->method_holder())->breakpoints();
+    for (; bp != NULL; bp = bp->next()) {
+      if (bp->match(method())) {
+        jbyte code = bp->orig_bytecode();
+        env->SetByteArrayRegion(result, bp->bci(), 1, &code);
+      }
+    }
+  }
+
   return result;
 }
 

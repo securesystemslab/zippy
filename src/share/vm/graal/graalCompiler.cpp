@@ -31,6 +31,7 @@
 #include "c1/c1_Runtime1.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "runtime/arguments.hpp"
+#include "runtime/compilationPolicy.hpp"
 
 GraalCompiler* GraalCompiler::_instance = NULL;
 
@@ -168,6 +169,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   JavaThread::current()->set_env(current_env);
   if (success != JNI_TRUE) {
     method->clear_queued_for_compilation();
+    CompilationPolicy::policy()->delay_compilation(method());
   }
 }
 
@@ -297,7 +299,6 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
     assert(method->graal_mirror()->is_a(HotSpotMethodResolved::klass()), "unexpected class...");
     return method->graal_mirror();
   }
-
   Handle name = VmIds::toString<Handle>(method->name(), CHECK_NULL);
 
   instanceKlass::cast(HotSpotMethodResolved::klass())->initialize(CHECK_NULL);

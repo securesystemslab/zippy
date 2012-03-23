@@ -38,6 +38,10 @@
 #include "oops/oop.inline2.hpp"
 #include "oops/symbol.hpp"
 #include "runtime/handles.inline.hpp"
+#ifndef SERIALGC
+#include "gc_implementation/parallelScavenge/psScavenge.inline.hpp"
+#include "oops/oop.pcgc.inline.hpp"
+#endif
 
 klassOop methodKlass::create_klass(TRAPS) {
   methodKlass o;
@@ -134,9 +138,7 @@ void methodKlass::oop_follow_contents(oop obj) {
 #ifdef GRAAL
   MarkSweep::mark_and_push(m->adr_graal_mirror());
 #endif
-  if (m->method_data() != NULL) {
-    MarkSweep::mark_and_push(m->adr_method_data());
-  }
+  MarkSweep::mark_and_push(m->adr_method_data());
 }
 
 #ifndef SERIALGC
@@ -151,11 +153,7 @@ void methodKlass::oop_follow_contents(ParCompactionManager* cm,
 #ifdef GRAAL
   PSParallelCompact::mark_and_push(cm, m->adr_graal_mirror());
 #endif
-#ifdef COMPILER2
-  if (m->method_data() != NULL) {
-    PSParallelCompact::mark_and_push(cm, m->adr_method_data());
-  }
-#endif
+  PSParallelCompact::mark_and_push(cm, m->adr_method_data());
 }
 #endif // SERIALGC
 
@@ -172,9 +170,8 @@ int methodKlass::oop_oop_iterate(oop obj, OopClosure* blk) {
 #ifdef GRAAL
   blk->do_oop(m->adr_graal_mirror());
 #endif
-  if (m->method_data() != NULL) {
-    blk->do_oop(m->adr_method_data());
-  }
+  blk->do_oop(m->adr_method_data());
+
   return size;
 }
 
@@ -196,10 +193,9 @@ int methodKlass::oop_oop_iterate_m(oop obj, OopClosure* blk, MemRegion mr) {
   adr = m->adr_graal_mirror();
   if (mr.contains(adr)) blk->do_oop(adr);
 #endif
-  if (m->method_data() != NULL) {
-    adr = m->adr_method_data();
-    if (mr.contains(adr)) blk->do_oop(adr);
-  }
+  adr = m->adr_method_data();
+  if (mr.contains(adr)) blk->do_oop(adr);
+
   return size;
 }
 
@@ -217,15 +213,21 @@ int methodKlass::oop_adjust_pointers(oop obj) {
 #ifdef GRAAL
   MarkSweep::adjust_pointer(m->adr_graal_mirror());
 #endif
-  if (m->method_data() != NULL) {
-    MarkSweep::adjust_pointer(m->adr_method_data());
-  }
+  MarkSweep::adjust_pointer(m->adr_method_data());
+
   return size;
 }
 
 #ifndef SERIALGC
 void methodKlass::oop_push_contents(PSPromotionManager* pm, oop obj) {
   assert(obj->is_method(), "should be method");
+  methodOop m = methodOop(obj);
+#ifdef GRAAL
+  oop* adr = m->adr_graal_mirror();
+  if(PSScavenge::should_scavenge(adr)) {
+    pm->claim_or_forward_depth(adr);
+  }
+#endif
 }
 
 int methodKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
@@ -236,11 +238,7 @@ int methodKlass::oop_update_pointers(ParCompactionManager* cm, oop obj) {
 #ifdef GRAAL
   PSParallelCompact::adjust_pointer(m->adr_graal_mirror());
 #endif
-#ifdef COMPILER2
-  if (m->method_data() != NULL) {
-    PSParallelCompact::adjust_pointer(m->adr_method_data());
-  }
-#endif // COMPILER2
+  PSParallelCompact::adjust_pointer(m->adr_method_data());
   return m->object_size();
 }
 #endif // SERIALGC

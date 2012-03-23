@@ -762,7 +762,7 @@ void methodDataOopDesc::initialize(methodHandle method) {
   // Set the method back-pointer.
   _method = method();
 #ifdef GRAAL
-  _graal_mirror = NULL;
+  set_graal_mirror(NULL);
 #endif
 
   if (TieredCompilation) {
