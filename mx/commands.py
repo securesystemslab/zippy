@@ -437,9 +437,7 @@ def build(args, vm=None):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
                 
-        # Update graal_paths.hpp
-        #for p in mx.project('com.oracle.max.graal.hotspot').all_deps([], False):
-        #    out.write('    prepend_to_graal_classpath(scp_compiler, graal_dir, "' + p.name + '");\n')
+        # Check that the declaration of graal_projects in arguments.cpp is up to date
         argumentsCpp = join(_graal_home, 'src', 'share', 'vm', 'runtime', 'arguments.cpp')
         assert exists(argumentsCpp), 'File does not exist: ' + argumentsCpp
         with open(argumentsCpp) as fp:
@@ -454,9 +452,9 @@ def build(args, vm=None):
             missing = expected - actual
             extra = actual - expected
             if len(missing) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing projects to declaration: ' + ','.join(missing))
+                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing projects to declaration:\n    ' + '\n    '.join(missing))
             if len(extra) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove projects from declaration: ' + ','.join(extra))
+                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove projects from declaration:\n    ' + '\n    '.join(extra))
                 
         if platform.system() == 'Windows':
             compilelogfile = _graal_home + '/graalCompile.log'
