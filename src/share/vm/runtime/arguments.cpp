@@ -2127,21 +2127,33 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     }
     if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
     
+    // this declaration is checked for correctness by 'mx build' - only
+    // modify its entries, not its name or shape
+    const char* graal_projects[] = {
+        "com.oracle.max.criutils",
+        "com.oracle.graal.hotspot",
+        "com.oracle.max.asm",
+        "com.oracle.graal.alloc",
+        "com.oracle.graal.snippets",
+        "com.oracle.graal.compiler",
+        "com.oracle.graal.nodes",
+        "com.oracle.graal.printer",
+        "com.oracle.max.cri",
+        "com.oracle.graal.debug",
+        "com.oracle.graal.graph",
+        "com.oracle.graal.lir",
+        "com.oracle.graal.lir.amd64",
+        "com.oracle.graal.java"
+    };
+
     SysClassPath scp_compiler("");
-    struct dirent* dentry;
-    char* tdbuf = NEW_C_HEAP_ARRAY(char, os::readdir_buf_size(graal_dir));
-    errno = 0;
-    DIR* graal_dir_handle = os::opendir(graal_dir);
-    while ((dentry = os::readdir(graal_dir_handle, (struct dirent *)tdbuf)) != NULL) {
-      if (strcmp(dentry->d_name, ".") != 0 && strcmp(dentry->d_name, "..") != 0 && strcmp(dentry->d_name, "com.oracle.graal.tests") != 0 && strcmp(dentry->d_name, "com.oracle.graal.jtt") != 0) {
-        prepend_to_graal_classpath(scp_compiler, graal_dir, dentry->d_name);
-        if (PrintVMOptions) {
-          tty->print_cr("Adding project directory %s to bootclasspath", dentry->d_name);
-        }
+    const int len = sizeof(graal_projects) / sizeof(char*);
+    for (int i = 0; i < len; i++) {
+      if (PrintVMOptions) {
+        tty->print_cr("Adding project directory %s to bootclasspath", graal_projects[i]);
       }
+      prepend_to_graal_classpath(scp_compiler, graal_dir, graal_projects[i]);
     }
-    os::closedir(graal_dir_handle);
-    FREE_C_HEAP_ARRAY(char, tdbuf);
     scp_compiler.expand_endorsed();
 
     Arguments::set_compilerclasspath(scp_compiler.combined_path());
