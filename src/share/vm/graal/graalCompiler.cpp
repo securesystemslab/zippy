@@ -80,7 +80,7 @@ void GraalCompiler::initialize() {
       Handle option = java_lang_String::create_from_str(arg, THREAD);
       jboolean result = VMToCompiler::setOption(option);
       if (!result) {
-        tty->print_cr("Invalid option for graal!");
+        tty->print_cr("Invalid option for graal: -G:%s", arg);
         vm_abort(false);
       }
     }
