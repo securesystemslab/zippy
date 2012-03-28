@@ -1138,7 +1138,6 @@ def build(args, parser=None):
                 jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
                          '-' + args.compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
-                         '-warn:-unusedImport,-unchecked',
                          '-d', outputDir]
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties):
