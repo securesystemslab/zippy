@@ -131,8 +131,11 @@ class methodOopDesc : public oopDesc {
   InvocationCounter _invocation_counter;         // Incremented before each activation of the method - used to trigger frequency-based optimizations
   InvocationCounter _backedge_counter;           // Incremented before each backedge taken - used to trigger frequencey-based optimizations
 
-  // com/oracle/graal/hotspot/HotSpotMethodResolved mirroring this method
-  oop               _graal_mirror;
+#ifdef GRAAL
+  oop               _graal_mirror;               // com/oracle/graal/hotspot/HotSpotMethodResolved mirroring this method
+  jlong             _graal_invocation_time;
+  int               _graal_priority;
+#endif
 #ifdef TIERED
   jlong             _prev_time;                   // Previous time the rate was acquired
   float             _rate;                        // Events (invocation and backedge counter increments) per millisecond
@@ -333,9 +336,17 @@ class methodOopDesc : public oopDesc {
   int invocation_count();
   int backedge_count();
 
+#ifdef GRAAL
   // graal mirror
   oop graal_mirror() const               { return _graal_mirror; }
   void set_graal_mirror(oop m)           { oop_store((oop*) &_graal_mirror, m); }
+
+  void set_graal_invocation_time(jlong time) { _graal_invocation_time = time; }
+  jlong graal_invocation_time()          { return _graal_invocation_time; }
+
+  void set_graal_priority(int prio)      { _graal_priority = prio; }
+  int graal_priority()                   { return _graal_priority; }
+#endif // GRAAL
 
   bool was_executed_more_than(int n);
   bool was_never_executed()                      { return !was_executed_more_than(0); }
@@ -565,6 +576,10 @@ class methodOopDesc : public oopDesc {
     return byte_offset_of(methodOopDesc, _method_data);
   }
   static ByteSize interpreter_invocation_counter_offset() { return byte_offset_of(methodOopDesc, _interpreter_invocation_count); }
+#ifdef GRAAL
+  static ByteSize graal_invocation_time_offset() { return byte_offset_of(methodOopDesc, _graal_invocation_time); }
+  static ByteSize graal_priority_offset()        { return byte_offset_of(methodOopDesc, _graal_priority); }
+#endif
 #ifndef PRODUCT
   static ByteSize compiled_invocation_counter_offset() { return byte_offset_of(methodOopDesc, _compiled_invocation_count); }
 #endif // not PRODUCT
@@ -730,8 +745,10 @@ class methodOopDesc : public oopDesc {
   // Garbage collection support
   oop*  adr_constMethod() const                  { return (oop*)&_constMethod;     }
   oop*  adr_constants() const                    { return (oop*)&_constants;       }
-  oop*  adr_graal_mirror() const                 { return (oop*)&_graal_mirror;    }
   oop*  adr_method_data() const                  { return (oop*)&_method_data;     }
+#ifdef GRAAL
+  oop*  adr_graal_mirror() const                 { return (oop*)&_graal_mirror;    }
+#endif
 };
 
 

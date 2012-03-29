@@ -317,7 +317,7 @@
   template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
-  template(compileMethod_signature,                   "(Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;IZ)Z")   \
+  template(compileMethod_signature,                   "(Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;IZI)Z")      \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
@@ -344,10 +344,10 @@
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/max/cri/ci/CiConstant;")         \
   template(getVMExits_name,                           "getVMExits")                                                     \
-  template(getVMExits_signature,                      "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")           \
+  template(getVMExits_signature,                      "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")               \
   template(getInstance_name,                          "getInstance")                                                    \
   template(initialize_name,                           "initialize")                                                     \
-  template(getInstance_signature,                     "()Lcom/oracle/graal/hotspot/Compiler;")                      \
+  template(getInstance_signature,                     "()Lcom/oracle/graal/hotspot/Compiler;")                          \
   template(forObject_name,                            "forObject")                                                      \
   template(callbackInternal_name,                     "callbackInternal")                                               \
   template(callback_signature,                        "(Ljava/lang/Object;)Ljava/lang/Object;")                         \

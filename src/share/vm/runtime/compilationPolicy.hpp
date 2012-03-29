@@ -116,6 +116,14 @@ class SimpleCompPolicy : public NonTieredCompPolicy {
   virtual void method_back_branch_event(methodHandle m, int bci, JavaThread* thread);
 };
 
+#ifdef GRAAL
+class GraalCompPolicy : public NonTieredCompPolicy {
+ public:
+  virtual void method_invocation_event(methodHandle m, JavaThread* thread);
+  virtual void method_back_branch_event(methodHandle m, int bci, JavaThread* thread);
+};
+#endif // GRAAL
+
 // StackWalkCompPolicy - existing C2 policy
 
 #if defined(COMPILER2) || defined(GRAAL)

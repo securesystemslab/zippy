@@ -3231,7 +3231,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
     set_tiered_flags();
   } else {
     // Check if the policy is valid. Policies 0 and 1 are valid for non-tiered setup.
-    if (CompilationPolicyChoice >= 2) {
+    if (CompilationPolicyChoice >= 2 && CompilationPolicyChoice < 4) {
       vm_exit_during_initialization(
         "Incompatible compilation policy selected", NULL);
     }

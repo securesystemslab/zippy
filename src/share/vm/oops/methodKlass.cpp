@@ -109,6 +109,8 @@ methodOop methodKlass::allocate(constMethodHandle xconst,
   m->clear_number_of_breakpoints();
 #ifdef GRAAL
   m->set_graal_mirror(NULL);
+  m->set_graal_invocation_time(0);
+  m->set_graal_priority(1000000);
 #endif
 
 #ifdef TIERED

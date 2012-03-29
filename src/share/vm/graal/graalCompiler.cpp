@@ -164,7 +164,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   JavaThread::current()->set_env(NULL);
   JavaThread::current()->set_compiling(true);
   Handle hotspot_method = GraalCompiler::createHotSpotMethodResolved(method, CHECK);
-  jboolean success = VMToCompiler::compileMethod(hotspot_method, entry_bci, blocking);
+  jboolean success = VMToCompiler::compileMethod(hotspot_method, entry_bci, blocking, method->graal_priority());
   JavaThread::current()->set_compiling(false);
   JavaThread::current()->set_env(current_env);
   if (success != JNI_TRUE) {

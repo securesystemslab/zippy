@@ -80,8 +80,15 @@ void compilationPolicy_init() {
     Unimplemented();
 #endif
     break;
+  case 4:
+#if defined(GRAAL)
+    CompilationPolicy::set_policy(new GraalCompPolicy());
+#else
+    Unimplemented();
+#endif
+    break;
   default:
-    fatal("CompilationPolicyChoice must be in the range: [0-3]");
+    fatal("CompilationPolicyChoice must be in the range: [0-4]");
   }
   CompilationPolicy::policy()->initialize();
 }
@@ -201,6 +208,7 @@ void NonTieredCompPolicy::reset_counter_for_invocation_event(methodHandle m) {
 }
 
 void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
+  GRAAL_ONLY(assert(false, "unexpected"));
   // Delay next back-branch event but pump up invocation counter to triger
   // whole method compilation.
   InvocationCounter* i = m->invocation_counter();
@@ -418,6 +426,56 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
     NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, CompLevel_highest_tier, true));)
   }
 }
+
+// GraalCompPolicy - compile current method
+
+#ifdef GRAAL
+
+void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread) {
+  int hot_count = m->invocation_count();
+  jlong hot_time = m->graal_invocation_time();
+  reset_counter_for_invocation_event(m);
+
+  if (is_compilation_enabled() && can_be_compiled(m)) {
+    nmethod* nm = m->code();
+    if (nm == NULL) {
+      if (hot_count > 1) {
+        jlong current_time = os::javaTimeNanos();
+        int time_per_call = (int) ((current_time - hot_time) / hot_count);
+        m->set_graal_invocation_time(current_time);
+        if (m->queued_for_compilation()) {
+          if (time_per_call < (m->graal_priority() / 5)) {
+            m->set_graal_priority(time_per_call);
+            m->clear_queued_for_compilation();
+          }
+        } else {
+          if (time_per_call < m->graal_priority()) {
+            m->set_graal_priority(time_per_call);
+          }
+        }
+      }
+      if (!m->queued_for_compilation()) {
+        CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier, m, hot_count, "count", thread);
+      }
+    }
+  } else {
+  }
+}
+
+void GraalCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThread* thread) {
+  int hot_count = m->backedge_count();
+  const char* comment = "backedge_count";
+
+  if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m)) {
+    CompileBroker::compile_method(m, bci, CompLevel_highest_tier,
+                                  m, hot_count, comment, thread);
+    NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, CompLevel_highest_tier, true));)
+  }
+}
+
+#endif // GRAAL
+
+
 // StackWalkCompPolicy - walk up stack to find a suitable method to compile
 
 #if defined(COMPILER2) || defined(GRAAL)
