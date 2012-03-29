@@ -53,3 +53,4 @@ bin/
 ^src/share/tools/IdealGraphVisualizer/nbplatform/
 ^.hgtip
 .DS_Store
+javadoc/
