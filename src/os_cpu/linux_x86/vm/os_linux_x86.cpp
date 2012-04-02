@@ -313,7 +313,7 @@ JVM_handle_linux_signal(int sig,
           if (thread->thread_state() == _thread_in_Java) {
             // Throw a stack overflow exception.  Guard pages will be reenabled
             // while unwinding the stack.
-            if (WizardMode) tty->print("implicit: %08x%08x\n", ((long)pc) >> 32, pc);
+            if (WizardMode) tty->print("implicit: %08x%08x\n", ((long long)pc) >> 32, pc);
             stub = SharedRuntime::continuation_for_implicit_exception(thread, pc, SharedRuntime::STACK_OVERFLOW);
           } else {
             // Thread was in the vm or native code.  Return and try to finish.
