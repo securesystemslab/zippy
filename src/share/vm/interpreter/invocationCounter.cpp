@@ -47,11 +47,12 @@ void InvocationCounter::set_carry() {
   // large value.  Now reduce the value, so that the method can be
   // executed many more times before re-entering the VM.
   int old_count = count();
-#ifdef GRAAL
-  int new_count = 1;
-#else
-  int new_count = MIN2(old_count, (int) (CompileThreshold / 2));
-#endif
+  int new_count;
+  if (CompilationPolicyChoice == 4) {
+    new_count = 1;
+  } else {
+    new_count = MIN2(old_count, (int) (CompileThreshold / 2));
+  }
   // prevent from going to zero, to distinguish from never-executed methods
   if (new_count == 0)  new_count = 1;
   if (old_count != new_count)  set(state(), new_count);
