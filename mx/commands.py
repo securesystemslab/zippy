@@ -520,7 +520,9 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         vm = _vm
         
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
-    mx.expand_project_in_args(args)  
+    mx.expand_project_in_args(args)
+    if len([a for a in args if 'PrintAssembly' in a]) != 0:
+        hsdis([])
     if mx.java().debug_port is not None:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
@@ -895,7 +897,8 @@ def hsdis(args):
     build = _vmbuild if _vmSourcesAvailable else 'product'
     lib = mx.lib_suffix('hsdis-amd64')
     path = join(_vmLibDirInJdk(_jdk(build)), lib)
-    mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
+    if not exists(path):
+        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
     
 def jacocoreport(args):
     """creates a JaCoCo coverage report

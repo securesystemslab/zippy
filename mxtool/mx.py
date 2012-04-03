@@ -728,8 +728,10 @@ def lib_suffix(name):
     os = get_os();
     if os == 'windows':
         return name + '.dll'
-    if os == 'linux':
+    if os == 'linux' or os == 'solaris':
         return name + '.so'
+    if os == 'darwin':
+        return name + '.dylib'
     return name
 
 """
