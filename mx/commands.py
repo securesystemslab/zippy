@@ -49,6 +49,8 @@ _vmbuild = 'product'
 
 _jacoco = 'off'
 
+_make_eclipse_launch = False
+
 _jacocoExcludes = ['com.oracle.graal.hotspot.snippets.ArrayCopySnippets',
                    'com.oracle.graal.snippets.DoubleSnippets',
                    'com.oracle.graal.snippets.FloatSnippets',
@@ -226,7 +228,7 @@ def dacapo(args):
         mx.abort('DaCapo failures: ' + str(failed))
     
 def intro(args):
-    """"run a simple program and visualize its compilation in the Graal Visualizer"""
+    """run a simple program and visualize its compilation in the Graal Visualizer"""
     # Start the visualizer in a separate thread
     t = Thread(target=gv, args=([[]]))
     t.start()
@@ -512,7 +514,7 @@ def build(args, vm=None):
             with open(jvmCfg, 'w') as f:
                 for line in lines:
                     f.write(line)
-    
+
 def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the VM selected by the '--vm' option"""
 
@@ -521,6 +523,8 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     mx.expand_project_in_args(args)
+    if _make_eclipse_launch:
+        mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
     if len([a for a in args if 'PrintAssembly' in a]) != 0:
         hsdis([])
     if mx.java().debug_port is not None:
@@ -943,6 +947,7 @@ def mx_init():
         mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product build of the VM')
         mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug build of the VM')
         mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug build of the VM')
+        mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
         
         commands.update({
             'export': [export, '[-options] [zipfile]'],
@@ -967,5 +972,7 @@ def mx_post_parse_cmd_line(opts):
         if hasattr(opts, 'vmbuild') and opts.vmbuild is not None:
             global _vmbuild
             _vmbuild = opts.vmbuild
+        global _make_eclipse_launch
+        _make_eclipse_launch = getattr(opts, 'make_eclipse_launch', False)
     global _jacoco
     _jacoco = opts.jacoco
