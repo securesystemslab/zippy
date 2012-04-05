@@ -106,7 +106,7 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
     error = re.compile(r"^Errors in benchmark: ")
     # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
     success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+(,|\.)[0-9]+( SPECjvm2008 (Base|Peak))? ops/m$")
-    matcher = Matcher(score, {'const:name' : 'benchmark', 'const:score' : 'score'}, startNewLine=True)
+    matcher = Matcher(score, {'const:group' : "const:SPECjvm2008", 'const:name' : 'benchmark', 'const:score' : 'score'}, startNewLine=True)
     
     opts = []
     if warmupTime is not None:
@@ -116,7 +116,7 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
     if skipKitValidation:
         opts += ['-ikv']
     
-    return Test("SPECjvm2008", "SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -143,10 +143,12 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$")
     dacapoFail = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) FAILED (warmup|) =====$")
     dacapoTime = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
+    dacapoTime1 = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) completed warmup 1 in (?P<time>[0-9]+) msec =====")
     
-    dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
+    dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
+    dacapoMatcher1 = Matcher(dacapoTime1, {'const:group' : "const:DaCapo-1stRun", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("DaCapo-" + name, "DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
+    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -174,25 +176,26 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$")
     dacapoTime = re.compile(r"===== DaCapo 0\.1\.0(-SNAPSHOT)? (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     
-    dacapoMatcher = Matcher(dacapoTime, {'const:name' : 'benchmark', 'const:score' : 'time'})
+    dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:Scala-DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("Scala-DaCapo-" + name, "Scala-DaCapo", ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
+    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
-    scoreMatcher = Matcher(time, {'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
+    scoreMatcher = Matcher(time, {'const:group' : 'const:Bootstrap', 'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
+    scoreMatcherBig = Matcher(time, {'const:group' : 'const:Bootstrap-bigHeap', 'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
+    
     tests = []
-    tests.append(Test("Bootstrap", "Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ingoreVms=['client', 'server']))
-    tests.append(Test("Bootstrap-bigHeap", "Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], vmOpts=['-Xms2g'], ingoreVms=['client', 'server']))
+    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ingoreVms=['client', 'server']))
+    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ingoreVms=['client', 'server']))
     return tests
 
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, group, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ingoreVms=[]):
+    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ingoreVms=[]):
         self.name = name
-        self.group = group
         self.successREs = successREs
         self.failureREs = failureREs + [re.compile(r"Exception occured in scope: ")]
         self.scoreMatchers = scoreMatchers
@@ -274,12 +277,15 @@ class Test:
         passed = False;
         
         for line in parsed:
-            assert (line.has_key('name') and line.has_key('score')) or line.has_key('passed')
+            assert (line.has_key('name') and line.has_key('score') and line.has_key('group')) or line.has_key('passed') or line.has_key('failed')
             if line.has_key('failed') and line['failed'] is '1':
                 mx.abort("Benchmark failed")
             if line.has_key('passed') and line['passed'] is '1':
                 passed = True
-            ret[line['name']] = line['score']
+            if line.has_key('name') and line.has_key('score') and line.has_key('group'):
+                if not ret.has_key(line['group']):
+                    ret[line['group']] = {};
+                ret[line['group']][line['name']] = line['score']
         
         if not passed:
             mx.abort("Benchmark failed (not passed)")

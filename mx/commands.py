@@ -847,9 +847,10 @@ def bench(args):
             benchmarks += [sanitycheck.getSPECjvm2008([specjvm], True, 120, 120)]
     
     for test in benchmarks:
-        if not results.has_key(test.group):
-            results[test.group] = {}
-        results[test.group].update(test.bench(vm))
+        for (group, res) in test.bench(vm).items():
+            if not results.has_key(group):
+                results[group] = {};
+            results[group].update(res)
     mx.log(json.dumps(results))
     if resultFile:
         with open(resultFile, 'w') as f:
