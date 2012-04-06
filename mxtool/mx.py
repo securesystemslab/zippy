@@ -129,7 +129,7 @@ import shutil, fnmatch, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
-from os.path import join, dirname, exists, getmtime, isabs, expandvars, isdir, isfile
+from os.path import join, basename, dirname, exists, getmtime, isabs, expandvars, isdir, isfile
 
 DEFAULT_JAVA_ARGS = '-ea -Xss2m -Xmx1g'
 
@@ -400,6 +400,36 @@ class Suite:
             if existing is not None:
                 abort('cannot redefine library  ' + l.name)
             _libs[l.name] = l
+
+class XML(xml.dom.minidom.Document):
+
+    def __init__(self):
+        xml.dom.minidom.Document.__init__(self)
+        self.current = self
+        
+    def open(self, tag, attributes={}):
+        element = self.createElement(tag)
+        for key, value in attributes.items():
+            element.setAttribute(key, value)
+        self.current.appendChild(element)
+        self.current = element
+        return self
+
+    def close(self):
+        assert self.current != self
+        self.current = self.current.parentNode
+        return self
+    
+    def element(self, tag, attributes={}):
+        return self.open(tag, attributes).close()
+            
+    def xml(self, indent='', newl='', escape=False):
+        assert self.current == self
+        result = self.toprettyxml(indent, newl, encoding="UTF-8")
+        if escape:
+            entities = { '"':  "&quot;", "'":  "&apos;", '\n': '&#10;' }
+            result = xml.sax.saxutils.escape(result, entities)
+        return result
 
 def get_os():
     """
@@ -1210,7 +1240,9 @@ If no projects are given, then all Java projects are checked."""
                 log('[no Java sources in {0} - skipping]'.format(sourceDir))
                 continue
 
-            timestampFile = join(p.suite.dir, 'mx', '.checkstyle' + sourceDir[len(p.suite.dir):].replace(os.sep, '_') + '.timestamp')
+            timestampFile = join(p.suite.dir, 'mx', 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp')
+            if not exists(dirname(timestampFile)):
+                os.makedirs(dirname(timestampFile))
             mustCheck = False
             if exists(timestampFile):
                 timestamp = os.path.getmtime(timestampFile)
@@ -1371,6 +1403,82 @@ def projectgraph(args, suite=None):
         for dep in p.canonical_deps():
             print '"' + p.name + '"->"' + dep + '"'
     print '}'
+    
+def make_eclipse_launch(args, jre, name=None, deps=[]):
+    """
+    Creates an Eclipse launch configuration file.
+    """
+    mainClass = None
+    vmArgs = []
+    appArgs = []
+    cp = None
+    argsCopy = list(reversed(args))
+    while len(argsCopy) != 0:
+        a = argsCopy.pop()
+        if a == '-jar':
+            mainClass = '-jar'
+            appArgs = list(reversed(argsCopy))
+            break
+        if a == '-cp' or a == '-classpath':
+            assert len(argsCopy) != 0
+            cp = argsCopy.pop()
+            vmArgs.append(a)
+            vmArgs.append(cp)
+        elif a.startswith('-'):
+            vmArgs.append(a)
+        else:
+            mainClass = a
+            appArgs = list(reversed(argsCopy))
+            break
+    
+    if mainClass is None:
+        log('Cannot create Eclipse launch configuration without main class')
+        return False
+    
+    if name is None:
+        if mainClass == '-jar':
+            name = basename(appArgs[0])
+        else:
+            name = mainClass
+        name = time.strftime('%Y-%m-%d-%H%M%S_' + name)
+
+    slm = XML()
+    slm.open('sourceLookupDirector')
+    slm.open('sourceContainers', {'duplicates' : 'false'})
+
+    if cp is not None:
+        for e in cp.split(os.pathsep):
+            for s in suites():
+                deps += [p for p in s.projects if e == p.output_dir()]
+                deps += [l for l in s.libs if e == l.get_path(False)]
+    
+    for dep in deps:
+        if dep.isLibrary():
+            if hasattr(dep, 'eclipse.container'):
+                memento = XML().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml()
+                slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
+        else:
+            memento = XML().element('javaProject', {'name' : dep.name}).xml()
+            slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
+
+    slm.close()
+    slm.close()
+    launch = XML()
+    launch.open('launchConfiguration', {'type' : 'org.eclipse.jdt.launching.localJavaApplication'})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.debug.core.source_locator_id', 'value' : 'org.eclipse.jdt.launching.sourceLocator.JavaSourceLookupDirector'})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.debug.core.source_locator_memento', 'value' : '%s'})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.JRE_CONTAINER', 'value' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/' + jre})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.MAIN_TYPE', 'value' : mainClass})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.PROGRAM_ARGUMENTS', 'value' : ' '.join(appArgs)})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.PROJECT_ATTR', 'value' : ''})
+    launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.VM_ARGUMENTS', 'value' : ' '.join(vmArgs)})
+    launch.close()
+    launch = launch.xml(newl='\n') % slm.xml(escape=True)
+
+    eclipseLaunches = join('mx', 'eclipse-launches')
+    if not exists(eclipseLaunches):
+        os.makedirs(eclipseLaunches)
+    return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
 def eclipseinit(args, suite=None):
     """(re)generate Eclipse project configurations"""
@@ -1383,6 +1491,8 @@ def eclipseinit(args, suite=None):
 
     source_locator_memento = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n<sourceLookupDirector><sourceContainers duplicates="false">'
     entities = { '"':  "&quot;", "'":  "&apos;", '\n': '&#10;' }
+
+    sml = XML()
 
     for p in projects():
         if p.native:
@@ -1527,7 +1637,11 @@ def eclipseinit(args, suite=None):
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value=""/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_CONNECTOR_ID" value="org.eclipse.jdt.launching.socketAttachConnector"/>
 </launchConfiguration>""".format(xml.sax.saxutils.escape(source_locator_memento, entities))
-    update_file(join(suite.dir, 'mx', 'attach-8000.launch'), launch)
+
+    eclipseLaunches = join(suite.dir, 'mx', 'eclipse-launches')
+    if not exists(eclipseLaunches):
+        os.makedirs(eclipseLaunches)
+    update_file(join(eclipseLaunches, 'attach-8000.launch'), launch)
 
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
