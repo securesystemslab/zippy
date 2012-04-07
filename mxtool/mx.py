@@ -401,14 +401,46 @@ class Suite:
                 abort('cannot redefine library  ' + l.name)
             _libs[l.name] = l
 
+class XMLElement(xml.dom.minidom.Element):
+    def writexml(self, writer, indent="", addindent="", newl=""):
+        writer.write(indent+"<" + self.tagName)
+    
+        attrs = self._get_attributes()
+        a_names = attrs.keys()
+        a_names.sort()
+    
+        for a_name in a_names:
+            writer.write(" %s=\"" % a_name)
+            xml.dom.minidom._write_data(writer, attrs[a_name].value)
+            writer.write("\"")
+        if self.childNodes:
+            if not self.ownerDocument.padTextNodeWithoutSiblings and len(self.childNodes) == 1 and isinstance(self.childNodes[0], xml.dom.minidom.Text):
+                # if the only child of an Element node is a Text node, then the
+                # text is printed without any indentation or new line padding  
+                writer.write(">")
+                self.childNodes[0].writexml(writer)
+                writer.write("</%s>%s" % (self.tagName,newl))
+            else:
+                writer.write(">%s"%(newl))
+                for node in self.childNodes:
+                    node.writexml(writer,indent+addindent,addindent,newl)
+                writer.write("%s</%s>%s" % (indent,self.tagName,newl))
+        else:
+            writer.write("/>%s"%(newl))
 
-class XML(xml.dom.minidom.Document):
+class XMLDoc(xml.dom.minidom.Document):
 
     def __init__(self):
         xml.dom.minidom.Document.__init__(self)
         self.current = self
         self.padTextNodeWithoutSiblings = False
 
+    def createElement(self, tagName):
+        # overwritten to create XMLElement
+        e = XMLElement(tagName)
+        e.ownerDocument = self
+        return e
+    
     def open(self, tag, attributes={}, data=None):
         element = self.createElement(tag)
         for key, value in attributes.items():
@@ -436,35 +468,6 @@ class XML(xml.dom.minidom.Document):
             result = xml.sax.saxutils.escape(result, entities)
         return result
 
-    @staticmethod
-    def _Element_writexml(self, writer, indent="", addindent="", newl=""):
-        # Monkey patch: if the only child of an Element node is a Text node, then the
-        # text is printed without any indentation or new line padding  
-        writer.write(indent+"<" + self.tagName)
-    
-        attrs = self._get_attributes()
-        a_names = attrs.keys()
-        a_names.sort()
-    
-        for a_name in a_names:
-            writer.write(" %s=\"" % a_name)
-            xml.dom.minidom._write_data(writer, attrs[a_name].value)
-            writer.write("\"")
-        if self.childNodes:
-            if not self.ownerDocument.padTextNodeWithoutSiblings and len(self.childNodes) == 1 and isinstance(self.childNodes[0], xml.dom.minidom.Text):
-                writer.write(">")
-                self.childNodes[0].writexml(writer)
-                writer.write("</%s>%s" % (self.tagName,newl))
-            else:
-                writer.write(">%s"%(newl))
-                for node in self.childNodes:
-                    node.writexml(writer,indent+addindent,addindent,newl)
-                writer.write("%s</%s>%s" % (indent,self.tagName,newl))
-        else:
-            writer.write("/>%s"%(newl))
-                
-xml.dom.minidom.Element.writexml = XML._Element_writexml
-    
 def get_os():
     """
     Get a canonical form of sys.platform.
@@ -1440,17 +1443,17 @@ def projectgraph(args, suite=None):
     
     
 def _source_locator_memento(deps):
-    slm = XML()
+    slm = XMLDoc()
     slm.open('sourceLookupDirector')
     slm.open('sourceContainers', {'duplicates' : 'false'})
 
     for dep in deps:
         if dep.isLibrary():
             if hasattr(dep, 'eclipse.container'):
-                memento = XML().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml()
+                memento = XMLDoc().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml()
                 slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
         else:
-            memento = XML().element('javaProject', {'name' : dep.name}).xml()
+            memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml()
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
 
     slm.close('sourceContainers')
@@ -1462,7 +1465,7 @@ def make_eclipse_attach(hostname, port, name=None, deps=[]):
     Creates an Eclipse launch configuration file for attaching to a Java process.
     """
     slm = _source_locator_memento(deps)
-    launch = XML()
+    launch = XMLDoc()
     launch.open('launchConfiguration', {'type' : 'org.eclipse.jdt.launching.remoteJavaApplication'})
     launch.element('stringAttribute', {'key' : 'org.eclipse.debug.core.source_locator_id', 'value' : 'org.eclipse.jdt.launching.sourceLocator.JavaSourceLookupDirector'})
     launch.element('stringAttribute', {'key' : 'org.eclipse.debug.core.source_locator_memento', 'value' : '%s'})
@@ -1531,7 +1534,7 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
     
     slm = _source_locator_memento(deps)
     
-    launch = XML()
+    launch = XMLDoc()
     launch.open('launchConfiguration', {'type' : 'org.eclipse.jdt.launching.localJavaApplication'})
     launch.element('stringAttribute', {'key' : 'org.eclipse.debug.core.source_locator_id', 'value' : 'org.eclipse.jdt.launching.sourceLocator.JavaSourceLookupDirector'})
     launch.element('stringAttribute', {'key' : 'org.eclipse.debug.core.source_locator_memento', 'value' : '%s'})
@@ -1561,7 +1564,7 @@ def eclipseinit(args, suite=None):
         if not exists(p.dir):
             os.makedirs(p.dir)
 
-        out = XML()
+        out = XMLDoc()
         out.open('classpath')
         
         for src in p.srcDirs:
@@ -1602,7 +1605,7 @@ def eclipseinit(args, suite=None):
 
         csConfig = join(project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
         if exists(csConfig):
-            out = XML()
+            out = XMLDoc()
 
             dotCheckstyle = join(p.dir, ".checkstyle")
             checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
@@ -1632,7 +1635,7 @@ def eclipseinit(args, suite=None):
             out.close('fileset-config')
             update_file(dotCheckstyle, out.xml(indent='\t', newl='\n'))
 
-        out = XML()
+        out = XMLDoc()
         out.open('projectDescription')
         out.element('name', data=p.name)
         out.element('comment', data='')
@@ -1686,14 +1689,14 @@ def netbeansinit(args, suite=None):
         if not exists(join(p.dir, 'nbproject')):
             os.makedirs(join(p.dir, 'nbproject'))
 
-        out = XML()
+        out = XMLDoc()
         out.open('project', {'name' : p.name, 'default' : 'default', 'basedir' : '.'})
         out.element('description', data='Builds, tests, and runs the project ' + p.name + '.')
         out.element('import', {'file' : 'nbproject/build-impl.xml'})
         out.close('project')
         updated = update_file(join(p.dir, 'build.xml'), out.xml(indent='\t', newl='\n')) or updated
 
-        out = XML()
+        out = XMLDoc()
         out.open('project', {'xmlns' : 'http://www.netbeans.org/ns/project/1'})
         out.element('type', data='org.netbeans.modules.java.j2seproject')
         out.open('configuration')
