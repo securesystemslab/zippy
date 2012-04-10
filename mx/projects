@@ -31,7 +31,7 @@ project@com.oracle.graal.hotspot@javaCompliance=1.7
 
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
-project@com.oracle.graal.graph@sourceDirs=src
+project@com.oracle.graal.graph@sourceDirs=src,test
 project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,JUNIT
 project@com.oracle.graal.graph@javaCompliance=1.7
 
