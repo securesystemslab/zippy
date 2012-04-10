@@ -1633,7 +1633,7 @@ def eclipseinit(args, suite=None):
                 out.close('filter')
 
             out.close('fileset-config')
-            update_file(dotCheckstyle, out.xml(indent='\t', newl='\n'))
+            update_file(dotCheckstyle, out.xml(indent='  ', newl='\n'))
 
         out = XMLDoc()
         out.open('projectDescription')
