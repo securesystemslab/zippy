@@ -185,7 +185,6 @@ def dacapo(args):
     DaCapo harness."""
 
     numTests = {}
-    
     if len(args) > 0:
         level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
         if level is not None:
@@ -218,10 +217,11 @@ def dacapo(args):
     
     # The remainder are VM options 
     vmOpts = [arg for arg in args if not arg.startswith('@')]
+    vm = _vm
     
     failed = []
     for (test, n) in numTests.items():
-        if not sanitycheck.getDacapo(test, n, dacapoArgs).test('graal', opts=vmOpts):
+        if not sanitycheck.getDacapo(test, n, dacapoArgs).test(vm, opts=vmOpts):
             failed.append(test)
     
     if len(failed) != 0:
@@ -280,10 +280,11 @@ def scaladacapo(args):
     
     # The remainder are VM options 
     vmOpts = [arg for arg in args if not arg.startswith('@')]
+    vm = _vm;
     
     failed = []
     for (test, n) in numTests.items():
-        if not sanitycheck.getScalaDacapo(test, n, dacapoArgs).test('graal', opts=vmOpts):
+        if not sanitycheck.getScalaDacapo(test, n, dacapoArgs).test(vm, opts=vmOpts):
             failed.append(test)
     
     if len(failed) != 0:
@@ -895,7 +896,8 @@ def specjvm2008(args):
             mx.abort('-it (Iteration time) needs a numeric value (seconds)')
         vmArgs.remove('-it')
         benchArgs.remove(args[itIdx+1])
-    sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench('graal', opts=vmArgs)
+    vm = _vm;
+    sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench(vm, opts=vmArgs)
     
 def hsdis(args):
     """install the hsdis library
