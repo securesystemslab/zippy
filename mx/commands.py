@@ -687,6 +687,7 @@ def gate(args):
             return self
              
     parser = ArgumentParser(prog='mx gate');
+    parser.add_argument('-j', '--omit-java-clean', action='store_false', dest='cleanJava', help='omit cleaning Java native code')
     parser.add_argument('-n', '--omit-native-build', action='store_false', dest='buildNative', help='omit cleaning and building native code')
     parser.add_argument('-g', '--only-build-graalvm', action='store_false', dest='buildNonGraal', help='only build the Graal VM')
     parser.add_argument('--jacocout', help='specify the output directory for jacoco report')
@@ -698,7 +699,12 @@ def gate(args):
     try:
         
         t = Task('Clean')
-        clean([] if args.buildNative else ['--no-native'])
+        cleanArgs = []
+        if not args.buildNative:
+            cleanArgs.append('--no-native')
+        if not args.cleanJava:
+            cleanArgs.append('--no-java')
+        clean(cleanArgs)
         tasks.append(t.stop())
         
         t = Task('BuildJava')
