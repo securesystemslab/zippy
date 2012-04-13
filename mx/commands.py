@@ -471,13 +471,15 @@ def build(args, vm=None):
             timestamp = os.path.getmtime(timestampFile)
             sources = []
             for d in ['src', 'make']:
-                for root, _, files in os.walk(join(_graal_home, d)):
+                for root, dirnames, files in os.walk(join(_graal_home, d)):
                     # ignore <graal>/src/share/tools
-                    if root != join(_graal_home, 'src', 'share', 'tools'):
-                        sources += [join(root, name) for name in files]
+                    if root == join(_graal_home, 'src', 'share'):
+                        dirnames.remove('tools')
+                    sources += [join(root, name) for name in files]
             for f in sources:
                 if len(f) != 0 and os.path.getmtime(f) > timestamp:
                     mustBuild = True
+                    break
                     
         if not mustBuild:
             mx.log('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
@@ -774,7 +776,7 @@ def gate(args):
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
                 if not test.test('graal'):
-                    t.abort(test.group + ' ' + test.name + ' Failed')
+                    t.abort(test.name + ' Failed')
                 tasks.append(t.stop())
         
         if args.jacocout is not None:
