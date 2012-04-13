@@ -953,6 +953,19 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(result());
 }
 
+// public StackTraceElement RiMethod_toStackTraceElement(HotSpotMethodResolved method, int bci);
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiMethod_1toStackTraceElement(JNIEnv *env, jobject, jobject hotspot_method, int bci) {
+  TRACE_graal_3("CompilerToVM::RiMethod_toStackTraceElement");
+
+  VM_ENTRY_MARK;
+  ResourceMark rm;
+  HandleMark hm;
+
+  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
+  oop element = java_lang_StackTraceElement::create(method, bci, CHECK_NULL);
+  return JNIHandles::make_local(element);
+}
+
 // public Object executeCompiledMethod(HotSpotCompiledMethod method, Object arg1, Object arg2, Object arg3);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_executeCompiledMethod(JNIEnv *env, jobject, jobject method, jobject arg1, jobject arg2, jobject arg3) {
   TRACE_graal_3("CompilerToVM::executeCompiledMethod");
@@ -1035,6 +1048,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"
 #define CLASS           "Ljava/lang/Class;"
+#define STACK_TRACE_ELEMENT "Ljava/lang/StackTraceElement;"
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"RiMethod_code",                     CC"("RESOLVED_METHOD")[B",                            FN_PTR(RiMethod_1code)},
@@ -1070,6 +1084,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                           FN_PTR(installStub)},
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
+  {CC"RiMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(RiMethod_1toStackTraceElement)},
   {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
   {CC"RiMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(RiMethod_vtableEntryOffset)},
   {CC"getDeoptedLeafGraphIds",            CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
