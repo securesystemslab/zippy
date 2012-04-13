@@ -1909,7 +1909,7 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 		__ enter();
 		oop_maps = new OopMapSet();
 		OopMap* oop_map = save_live_registers(sasm, 0);
-		int call_offset = __ call_RT(rax, noreg, (address)graal_create_out_of_bounds_exception, c_rarg0);
+		int call_offset = __ call_RT(rax, noreg, (address)graal_create_out_of_bounds_exception, j_rarg0);
 		oop_maps->add_gc_map(call_offset, oop_map);
 		__ leave();
 		__ ret(0);
