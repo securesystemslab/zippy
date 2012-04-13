@@ -443,10 +443,16 @@ void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread
         jlong current_time = os::javaTimeNanos();
         int time_per_call = (int) ((current_time - hot_time) / hot_count);
         m->set_graal_invocation_time(current_time);
-        if (m->queued_for_compilation()) {
-          if (time_per_call < (m->graal_priority() / 5)) {
-            m->set_graal_priority(time_per_call);
-            m->clear_queued_for_compilation();
+        if (UseNewCode) {
+          if (m->queued_for_compilation()) {
+            if (time_per_call < (m->graal_priority() / 5)) {
+              m->set_graal_priority(time_per_call);
+              m->clear_queued_for_compilation();
+            }
+          } else {
+            if (time_per_call < m->graal_priority()) {
+              m->set_graal_priority(time_per_call);
+            }
           }
         } else {
           if (time_per_call < m->graal_priority()) {
@@ -458,7 +464,6 @@ void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread
         CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier, m, hot_count, "count", thread);
       }
     }
-  } else {
   }
 }
 
