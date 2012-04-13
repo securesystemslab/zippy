@@ -91,6 +91,9 @@ def clean(args):
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
         mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
+        jdks = join(_graal_home, 'jdk' + mx.java().version)
+        if exists(jdks):
+            shutil.rmtree(jdks)
 
 def export(args):
     """create a GraalVM zip file for distribution"""
@@ -458,7 +461,28 @@ def build(args, vm=None):
                 mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing projects to declaration:\n    ' + '\n    '.join(missing))
             if len(extra) != 0:
                 mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove projects from declaration:\n    ' + '\n    '.join(extra))
-                
+
+        # Check if a build really needs to be done
+        timestampFile = join(vmDir, '.build-timestamp')
+        if opts2.force or not exists(timestampFile):
+            mustBuild = True 
+        else:
+            mustBuild = False 
+            timestamp = os.path.getmtime(timestampFile)
+            sources = []
+            for d in ['src', 'make']:
+                for root, _, files in os.walk(join(_graal_home, d)):
+                    # ignore <graal>/src/share/tools
+                    if root != join(_graal_home, 'src', 'share', 'tools'):
+                        sources += [join(root, name) for name in files]
+            for f in sources:
+                if len(f) != 0 and os.path.getmtime(f) > timestamp:
+                    mustBuild = True
+                    
+        if not mustBuild:
+            mx.log('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
+            continue
+
         if platform.system() == 'Windows':
             compilelogfile = _graal_home + '/graalCompile.log'
             mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')
@@ -515,6 +539,11 @@ def build(args, vm=None):
             with open(jvmCfg, 'w') as f:
                 for line in lines:
                     f.write(line)
+
+        if exists(timestampFile):
+            os.utime(timestampFile, None)
+        else:
+            file(timestampFile, 'a')
 
 def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the VM selected by the '--vm' option"""

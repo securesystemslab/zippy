@@ -1041,7 +1041,7 @@ def build(args, parser=None):
     defaultEcjPath = join(_mainSuite.dir, 'mx', 'ecj.jar')
     
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
-    parser.add_argument('-f', action='store_true', dest='force', help='force compilation even if class files are up to date')
+    parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
     parser.add_argument('--source', dest='compliance', help='Java compliance level', default=str(javaCompliance))
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
