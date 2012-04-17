@@ -944,6 +944,16 @@ def hsdis(args):
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
     
+def hcfdis(args):
+    """disassembles HexCodeFiles embedded in text files
+
+    Run a tool over the input files to convert all embedded HexCodeFiles
+    to a disassembled format."""
+    path = join(_graal_home, 'lib', 'hcfdis.jar')
+    if not exists(path):
+        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis.jar'])
+    mx.run_java(['-jar', path] + args)
+
 def jacocoreport(args):
     """creates a JaCoCo coverage report
 
@@ -964,6 +974,7 @@ def mx_init():
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
         'hsdis': [hsdis, '[att]'],
+        'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'intro': [intro, ''],
         'jdkhome': [jdkhome, ''],
