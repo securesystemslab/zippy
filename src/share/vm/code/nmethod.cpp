@@ -833,19 +833,28 @@ nmethod::nmethod(
     _consts_offset           = content_offset()      + code_buffer->total_offset_of(code_buffer->consts());
     _stub_offset             = content_offset()      + code_buffer->total_offset_of(code_buffer->stubs());
 
-    // Exception handler and deopt handler are in the stub section
-    assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
-    assert(offsets->value(CodeOffsets::Deopt     ) != -1, "must be set");
 #ifdef GRAAL
       // graal produces no (!) stub section
-      _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
-      _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
+      if (offsets->value(CodeOffsets::Exceptions) != -1) {
+        _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
+      } else {
+        _exception_offset = -1;
+      }
+      if (offsets->value(CodeOffsets::Deopt) != -1) {
+        _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
+      } else {
+        _deoptimize_offset = -1;
+      }
       if (offsets->value(CodeOffsets::DeoptMH) != -1) {
         _deoptimize_mh_offset  = code_offset()          + offsets->value(CodeOffsets::DeoptMH);
       } else {
         _deoptimize_mh_offset  = -1;
       }
 #else
+    // Exception handler and deopt handler are in the stub section
+    assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
+    assert(offsets->value(CodeOffsets::Deopt     ) != -1, "must be set");
+
       _exception_offset        = _stub_offset          + offsets->value(CodeOffsets::Exceptions);
       _deoptimize_offset       = _stub_offset          + offsets->value(CodeOffsets::Deopt);
       if (offsets->value(CodeOffsets::DeoptMH) != -1) {

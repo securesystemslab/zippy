@@ -477,9 +477,6 @@ nmethod* GraalEnv::register_method(methodHandle& method,
       return NULL;
     }
 
-    assert(offsets->value(CodeOffsets::Deopt) != -1, "must have deopt entry");
-    assert(offsets->value(CodeOffsets::Exceptions) != -1, "must have exception entry");
-
     nm =  nmethod::new_nmethod(method,
                                compile_id,
                                entry_bci,
@@ -531,13 +528,13 @@ nmethod* GraalEnv::register_method(methodHandle& method,
               old->make_not_entrant();
             }
           }
-          if (TraceNMethodInstalls ) {
+          if (TraceNMethodInstalls) {
             ResourceMark rm;
             char *method_name = method->name_and_sig_as_C_string();
             ttyLocker ttyl;
-            tty->print_cr("Installing method (%d) %s ",
+            tty->print_cr("Installing method (%d) %s [entry point: %p]",
                           comp_level,
-                          method_name);
+                          method_name, nm->entry_point());
           }
           // Allow the code to be executed
           method->set_code(method, nm);

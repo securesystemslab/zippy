@@ -340,6 +340,9 @@ class nmethod : public CodeBlob {
   bool is_compiled_by_c2() const;
   bool is_compiled_by_shark() const;
 
+
+#define CHECK_POSITIVE(val) assert(val, "should be positive")
+
   // boundaries for different parts
   address consts_begin          () const          { return           header_begin() + _consts_offset        ; }
   address consts_end            () const          { return           header_begin() +  code_offset()        ; }
@@ -347,8 +350,8 @@ class nmethod : public CodeBlob {
   address insts_end             () const          { return           header_begin() + _stub_offset          ; }
   address stub_begin            () const          { return           header_begin() + _stub_offset          ; }
   address stub_end              () const          { return           header_begin() + _oops_offset          ; }
-  address exception_begin       () const          { return           header_begin() + _exception_offset     ; }
-  address deopt_handler_begin   () const          { return           header_begin() + _deoptimize_offset    ; }
+  address exception_begin       () const          { assert(_exception_offset >= 0, "no exception handler"); return header_begin() + _exception_offset ; }
+  address deopt_handler_begin   () const          { assert(_deoptimize_offset >= 0, "no deopt handler"); return header_begin() + _deoptimize_offset ; }
   address deopt_mh_handler_begin() const          { return           header_begin() + _deoptimize_mh_offset ; }
   address unwind_handler_begin  () const          { return _unwind_handler_offset != -1 ? (header_begin() + _unwind_handler_offset) : NULL; }
   oop*    oops_begin            () const          { return (oop*)   (header_begin() + _oops_offset)         ; }
