@@ -1447,6 +1447,10 @@ def _source_locator_memento(deps):
     slm.open('sourceLookupDirector')
     slm.open('sourceContainers', {'duplicates' : 'false'})
 
+    # Every Java program depends on the JRE
+    memento = XMLDoc().element('classpathContainer', {'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'}).xml()
+    slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
+        
     for dep in deps:
         if dep.isLibrary():
             if hasattr(dep, 'eclipse.container'):
