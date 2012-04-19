@@ -240,7 +240,7 @@ def intro(args):
     mx.log('Waiting 5 seconds for visualizer to start')
     time.sleep(5)
     
-    vm(['-G:Dump=HelloWorld', '-G:MethodFilter=main', '-Xcomp', '-XX:CompileOnly=HelloWorld::main', '-cp', mx.classpath('com.oracle.graal.examples')] + args + ['examples.HelloWorld'])
+    vm(['-G:Dump=', '-G:MethodFilter=greet', '-Xcomp', '-XX:CompileOnly=HelloWorld::greet', '-cp', mx.classpath('com.oracle.graal.examples')] + args + ['examples.HelloWorld'])
 
 def scaladacapo(args):
     """run one or all Scala DaCapo benchmarks
