@@ -547,6 +547,14 @@ def build(args, vm=None):
         else:
             file(timestampFile, 'a')
 
+def vmg(args):
+    """run the debug build of VM selected by the '--vm' option"""
+    return vm(args, vmbuild='debug')
+
+def vmfg(args):
+    """run the fastdebug build of VM selected by the '--vm' option"""
+    return vm(args, vmbuild='fastdebug')
+
 def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, vmbuild=None):
     """run the VM selected by the '--vm' option"""
 
@@ -988,7 +996,9 @@ def mx_init():
         'unittest' : [unittest, '[filters...]'],
         'jtt' : [jtt, '[filters...]'],
         'jacocoreport' : [jacocoreport, '[output directory]'],
-        'vm': [vm, '[-options] class [args...]']
+        'vm': [vm, '[-options] class [args...]'],
+        'vmg': [vmg, '[-options] class [args...]'],
+        'vmfg': [vmfg, '[-options] class [args...]']
     }
     
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
