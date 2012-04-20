@@ -815,9 +815,6 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_OSR_ENTRY:
         _offsets.set_value(CodeOffsets::OSR_Entry, pc_offset);
         break;
-      case MARK_UNWIND_ENTRY:
-        _offsets.set_value(CodeOffsets::UnwindHandler, pc_offset);
-        break;
       case MARK_EXCEPTION_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Exceptions, pc_offset);
         break;

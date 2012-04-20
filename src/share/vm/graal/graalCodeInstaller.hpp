@@ -31,7 +31,7 @@ private:
     MARK_VERIFIED_ENTRY             = 0x0001,
     MARK_UNVERIFIED_ENTRY           = 0x0002,
     MARK_OSR_ENTRY                  = 0x0003,
-    MARK_UNWIND_ENTRY               = 0x0004,
+  //MARK_UNWIND_ENTRY               = 0x0004,
     MARK_EXCEPTION_HANDLER_ENTRY    = 0x0005,
     MARK_DEOPT_HANDLER_ENTRY        = 0x0006,
     MARK_STATIC_CALL_STUB           = 0x1000,
