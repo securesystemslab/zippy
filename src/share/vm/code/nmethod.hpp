@@ -116,6 +116,7 @@ class nmethod : public CodeBlob {
   int       _entry_bci;        // != InvocationEntryBci if this nmethod is an on-stack replacement method
   jmethodID _jmethod_id;       // Cache of method()->jmethod_id()
 
+  // Needed to keep nmethods alive that are not the default nmethod for the associated methodOop
   oop       _graal_compiled_method;
 
   // To support simple linked-list chaining of nmethods:
