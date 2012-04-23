@@ -85,7 +85,7 @@ public:
   CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code);
 
   // constructor used to create a stub
-  CodeInstaller(Handle& target_method, jlong& id);
+  CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id);
 
   static address runtime_call_target_address(oop runtime_call);
 

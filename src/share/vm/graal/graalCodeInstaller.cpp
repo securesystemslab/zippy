@@ -297,7 +297,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_c
 }
 
 // constructor used to create a stub
-CodeInstaller::CodeInstaller(Handle& target_method, jlong& id) {
+CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id) {
   No_Safepoint_Verifier no_safepoint;
   _env = CURRENT_ENV;
   
@@ -312,7 +312,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, jlong& id) {
   initialize_buffer(buffer);
 
   const char* cname = java_lang_String::as_utf8_string(_name);
-  BufferBlob* blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
+  blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
   IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
   id = VmIds::addStub(blob->code_begin());
 }

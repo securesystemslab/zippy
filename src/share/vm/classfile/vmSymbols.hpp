@@ -273,6 +273,7 @@
   template(com_oracle_graal_hotspot_ri_HotSpotMethodResolved,     "com/oracle/graal/hotspot/ri/HotSpotMethodResolvedImpl")        \
   template(com_oracle_graal_hotspot_HotSpotTargetMethod,          "com/oracle/graal/hotspot/HotSpotTargetMethod")                 \
   template(com_oracle_graal_hotspot_ri_HotSpotMethodData,         "com/oracle/graal/hotspot/ri/HotSpotMethodData")                \
+  template(com_oracle_graal_hotspot_HotSpotCodeInfo,              "com/oracle/graal/hotspot/ri/HotSpotCodeInfo")                  \
   template(com_oracle_graal_hotspot_HotSpotField,                 "com/oracle/graal/hotspot/ri/HotSpotField")                     \
   template(com_oracle_graal_hotspot_HotSpotCompiledMethod,        "com/oracle/graal/hotspot/ri/HotSpotCompiledMethod")            \
   template(com_oracle_graal_hotspot_HotSpotOptions,               "com/oracle/graal/hotspot/HotSpotOptions")                      \

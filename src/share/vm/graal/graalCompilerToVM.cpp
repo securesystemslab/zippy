@@ -877,7 +877,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public HotSpotCompiledMethod installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code) {
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code, jobject info) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -886,6 +886,13 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   Arena arena;
   ciEnv env(&arena);
   CodeInstaller installer(targetMethodHandle, nm, install_code != 0);
+
+  if (info != NULL) {
+    arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
+    memcpy(codeCopy->base(T_BYTE), nm->code_begin(), nm->code_size());
+    HotSpotCodeInfo::set_code(info, codeCopy);
+    HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
+  }
 
   // if install_code is true then we installed the code into the given method, no need to return an RiCompiledMethod
   if (!install_code && nm != NULL) {
@@ -903,7 +910,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public long installStub(HotSpotTargetMethod targetMethod, String name);
-JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod) {
+JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod, jobject info) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
@@ -911,7 +918,16 @@ JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_in
   jlong id;
   Arena arena;
   ciEnv env(&arena);
-  CodeInstaller installer(targetMethodHandle, id);
+  BufferBlob* blob;
+  CodeInstaller installer(targetMethodHandle, blob, id);
+
+  if (info != NULL) {
+    arrayOop codeCopy = oopFactory::new_byteArray(blob->code_size(), CHECK_0);
+    memcpy(codeCopy->base(T_BYTE), blob->code_begin(), blob->code_size());
+    HotSpotCodeInfo::set_code(info, codeCopy);
+    HotSpotCodeInfo::set_start(info, (jlong) blob->code_begin());
+  }
+
   return id;
 }
 
@@ -1114,6 +1130,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define CONFIG          "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD       "Lcom/oracle/graal/hotspot/ri/HotSpotMethod;"
 #define HS_COMP_METHOD  "Lcom/oracle/graal/hotspot/ri/HotSpotCompiledMethod;"
+#define HS_CODE_INFO    "Lcom/oracle/graal/hotspot/ri/HotSpotCodeInfo;"
 #define METHOD_DATA     "Lcom/oracle/graal/hotspot/ri/HotSpotMethodData;"
 #define CI_CONSTANT     "Lcom/oracle/max/cri/ci/CiConstant;"
 #define CI_KIND         "Lcom/oracle/max/cri/ci/CiKind;"
@@ -1153,8 +1170,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                             FN_PTR(getMaxCallTargetOffset)},
   {CC"getType",                           CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
   {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
-  {CC"installMethod",                     CC"("TARGET_METHOD"Z)"HS_COMP_METHOD,                 FN_PTR(installMethod)},
-  {CC"installStub",                       CC"("TARGET_METHOD")"PROXY,                           FN_PTR(installStub)},
+  {CC"installMethod",                     CC"("TARGET_METHOD"Z"HS_CODE_INFO")"HS_COMP_METHOD,   FN_PTR(installMethod)},
+  {CC"installStub",                       CC"("TARGET_METHOD HS_CODE_INFO")"PROXY,              FN_PTR(installStub)},
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
   {CC"RiMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(RiMethod_1toStackTraceElement)},
