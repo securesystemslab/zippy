@@ -26,16 +26,16 @@
 
 // this is a *global* handle
 jobject VMToCompiler::_compilerPermObject = NULL;
-jobject VMToCompiler::_vmExitsPermObject = NULL;
-jobject VMToCompiler::_vmExitsPermKlass = NULL;
+jobject VMToCompiler::_vmToCompilerPermObject = NULL;
+jobject VMToCompiler::_vmToCompilerPermKlass = NULL;
 
-KlassHandle VMToCompiler::vmExitsKlass() {
-  if (JNIHandles::resolve(_vmExitsPermKlass) == NULL) {
+KlassHandle VMToCompiler::vmToCompilerKlass() {
+  if (JNIHandles::resolve(_vmToCompilerPermKlass) == NULL) {
     klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(result, "Couldn't find class com.oracle.graal.hotspot.bridge.VMToCompiler");
-    _vmExitsPermKlass = JNIHandles::make_global(result);
+    _vmToCompilerPermKlass = JNIHandles::make_global(result);
   }
-  return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmExitsPermKlass));
+  return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmToCompilerPermKlass));
 }
 
 Handle VMToCompiler::compilerInstance() {
@@ -52,18 +52,18 @@ Handle VMToCompiler::compilerInstance() {
 }
 
 Handle VMToCompiler::instance() {
-  if (JNIHandles::resolve(_vmExitsPermObject) == NULL) {
+  if (JNIHandles::resolve(_vmToCompilerPermObject) == NULL) {
     KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.Compiler");
 
     JavaValue result(T_OBJECT);
     JavaCallArguments args;
     args.set_receiver(compilerInstance());
-    JavaCalls::call_interface(&result, compilerKlass, vmSymbols::getVMExits_name(), vmSymbols::getVMExits_signature(), &args, Thread::current());
-    check_pending_exception("Couldn't get VMExits");
-    _vmExitsPermObject = JNIHandles::make_global((oop) result.get_jobject());
+    JavaCalls::call_interface(&result, compilerKlass, vmSymbols::getVMToCompiler_name(), vmSymbols::getVMToCompiler_signature(), &args, Thread::current());
+    check_pending_exception("Couldn't get VMToCompiler");
+    _vmToCompilerPermObject = JNIHandles::make_global((oop) result.get_jobject());
   }
-  return Handle(JNIHandles::resolve_non_null(_vmExitsPermObject));
+  return Handle(JNIHandles::resolve_non_null(_vmToCompilerPermObject));
 }
 
 void VMToCompiler::initializeCompiler() {
@@ -107,7 +107,7 @@ jboolean VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jbool
   args.push_int(entry_bci);
   args.push_int(blocking);
   args.push_int(priority);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
   return result.get_jboolean();
 }
@@ -119,16 +119,16 @@ void VMToCompiler::shutdownCompiler() {
     JavaValue result(T_VOID);
     JavaCallArguments args;
     args.push_oop(instance());
-    JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::shutdownCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
+    JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::shutdownCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
     check_pending_exception("Error while calling shutdownCompiler");
 
     JNIHandles::destroy_global(_compilerPermObject);
-    JNIHandles::destroy_global(_vmExitsPermObject);
-    JNIHandles::destroy_global(_vmExitsPermKlass);
+    JNIHandles::destroy_global(_vmToCompilerPermObject);
+    JNIHandles::destroy_global(_vmToCompilerPermKlass);
 
     _compilerPermObject = NULL;
-    _vmExitsPermObject = NULL;
-    _vmExitsPermKlass = NULL;
+    _vmToCompilerPermObject = NULL;
+    _vmToCompilerPermKlass = NULL;
   }
 }
 
@@ -137,7 +137,7 @@ void VMToCompiler::startCompiler() {
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::startCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::startCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
   check_pending_exception("Error while calling startCompiler");
 }
 
@@ -146,7 +146,7 @@ void VMToCompiler::bootstrap() {
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::bootstrap_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::bootstrap_name(), vmSymbols::void_method_signature(), &args, THREAD);
   check_pending_exception("Error while calling boostrap");
 }
 
@@ -157,7 +157,7 @@ oop VMToCompiler::createRiMethodResolved(jlong vmId, Handle name, TRAPS) {
   args.push_oop(instance());
   args.push_long(vmId);
   args.push_oop(name);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethodResolved_name(), vmSymbols::createRiMethodResolved_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiMethodResolved_name(), vmSymbols::createRiMethodResolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiMethodResolved");
   return (oop) result.get_jobject();
 }
@@ -170,7 +170,7 @@ oop VMToCompiler::createRiMethodUnresolved(Handle name, Handle signature, Handle
   args.push_oop(name);
   args.push_oop(signature);
   args.push_oop(holder);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiMethodUnresolved_name(), vmSymbols::createRiMethodUnresolved_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiMethodUnresolved_name(), vmSymbols::createRiMethodUnresolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiMethodUnresolved");
   return (oop) result.get_jobject();
 }
@@ -187,7 +187,7 @@ oop VMToCompiler::createRiField(Handle holder, Handle name, Handle type, int ind
   args.push_oop(type);
   args.push_int(index);
   args.push_int(flags);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiField_name(), vmSymbols::createRiField_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiField");
   assert(result.get_type() == T_OBJECT, "just checking");
   return (oop) result.get_jobject();
@@ -200,7 +200,7 @@ oop VMToCompiler::createRiType(jlong vmId, Handle name, TRAPS) {
   args.push_oop(instance());
   args.push_long(vmId);
   args.push_oop(name);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiType_name(), vmSymbols::createRiType_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiType_name(), vmSymbols::createRiType_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiType");
   return (oop) result.get_jobject();
 }
@@ -210,7 +210,7 @@ oop VMToCompiler::createRiTypePrimitive(int basic_type, TRAPS) {
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_int(basic_type);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypePrimitive_name(), vmSymbols::createRiTypePrimitive_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiTypePrimitive_name(), vmSymbols::createRiTypePrimitive_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypePrimitive");
   return (oop) result.get_jobject();
 }
@@ -221,7 +221,7 @@ oop VMToCompiler::createRiTypeUnresolved(Handle name, TRAPS) {
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(name);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiTypeUnresolved_name(), vmSymbols::createRiTypeUnresolved_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiTypeUnresolved");
   return (oop) result.get_jobject();
 }
@@ -232,7 +232,7 @@ oop VMToCompiler::createRiSignature(Handle name, TRAPS) {
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(name);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createRiSignature_name(), vmSymbols::createRiSignature_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createRiSignature_name(), vmSymbols::createRiSignature_signature(), &args, THREAD);
   check_pending_exception("Error while calling createRiSignature");
   return (oop) result.get_jobject();
 }
@@ -243,7 +243,7 @@ oop VMToCompiler::createCiConstant(Handle kind, jlong value, TRAPS) {
   args.push_oop(instance());
   args.push_oop(kind());
   args.push_long(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstant_name(), vmSymbols::createCiConstant_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createCiConstant_name(), vmSymbols::createCiConstant_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
   return (oop) result.get_jobject();
 
@@ -254,7 +254,7 @@ oop VMToCompiler::createCiConstantFloat(jfloat value, TRAPS) {
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_float(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantFloat_name(), vmSymbols::createCiConstantFloat_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createCiConstantFloat_name(), vmSymbols::createCiConstantFloat_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantFloat");
   return (oop) result.get_jobject();
 
@@ -265,7 +265,7 @@ oop VMToCompiler::createCiConstantDouble(jdouble value, TRAPS) {
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_double(value);
-  JavaCalls::call_interface(&result, vmExitsKlass(), vmSymbols::createCiConstantDouble_name(), vmSymbols::createCiConstantDouble_signature(), &args, THREAD);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createCiConstantDouble_name(), vmSymbols::createCiConstantDouble_signature(), &args, THREAD);
   check_pending_exception("Error while calling createCiConstantDouble");
   return (oop) result.get_jobject();
 }

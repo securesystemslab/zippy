@@ -344,8 +344,8 @@
   template(createCiConstantDouble_signature,          "(D)Lcom/oracle/max/cri/ci/CiConstant;")                          \
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
   template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/max/cri/ci/CiConstant;")         \
-  template(getVMExits_name,                           "getVMExits")                                                     \
-  template(getVMExits_signature,                      "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")               \
+  template(getVMToCompiler_name,                      "getVMToCompiler")                                                     \
+  template(getVMToCompiler_signature,                 "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")               \
   template(getInstance_name,                          "getInstance")                                                    \
   template(initialize_name,                           "initialize")                                                     \
   template(getInstance_signature,                     "()Lcom/oracle/graal/hotspot/Compiler;")                          \

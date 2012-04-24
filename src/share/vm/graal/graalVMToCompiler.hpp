@@ -33,10 +33,10 @@ class VMToCompiler : public AllStatic {
 
 private:
   static jobject _compilerPermObject;
-  static jobject _vmExitsPermObject;
-  static jobject _vmExitsPermKlass;
+  static jobject _vmToCompilerPermObject;
+  static jobject _vmToCompilerPermKlass;
 
-  static KlassHandle vmExitsKlass();
+  static KlassHandle vmToCompilerKlass();
   static Handle instance();
 
 public:
