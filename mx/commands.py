@@ -916,6 +916,9 @@ def specjvm2008(args):
     wt = None
     it = None
     skipValid = False
+    if '-v' in vmArgs:
+        vmArgs.remove('-v')
+        benchArgs.append('-v')
     if '-ikv' in vmArgs:
         skipValid = True
         vmArgs.remove('-ikv')
