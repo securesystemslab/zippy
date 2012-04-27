@@ -1111,6 +1111,30 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(array);
 }
 
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_decodePC(JNIEnv *, jobject, jlong pc) {
+  TRACE_graal_3("CompilerToVM::decodePC");
+
+  VM_ENTRY_MARK;
+
+  stringStream(st);
+  CodeBlob* blob = CodeCache::find_blob_unsafe((void*) pc);
+  if (blob == NULL) {
+    st.print("[unidentified pc]");
+  } else {
+    st.print(blob->name());
+
+    nmethod* nm = blob->as_nmethod_or_null();
+    if (nm != NULL && nm->method() != NULL) {
+      st.print(" %s.", nm->method()->method_holder()->klass_part()->external_name());
+      nm->method()->name()->print_symbol_on(&st);
+      st.print("  @ %d", pc - (jlong) nm->entry_point());
+    }
+  }
+  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
+  return JNIHandles::make_local(result());
+
+}
+
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_##f))
@@ -1179,6 +1203,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"executeCompiledMethodVarargs",      CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
   {CC"RiMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(RiMethod_vtableEntryOffset)},
   {CC"getDeoptedLeafGraphIds",            CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
+  {CC"decodePC",                          CC"(J)"STRING,                                        FN_PTR(decodePC)},
 };
 
 int CompilerToVM_methods_count() {
