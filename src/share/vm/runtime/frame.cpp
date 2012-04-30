@@ -740,8 +740,9 @@ void frame::print_on_error(outputStream* st, char* buf, int buflen, bool verbose
     } else if (_cb->is_nmethod()) {
       methodOop m = ((nmethod *)_cb)->method();
       if (m != NULL) {
+        address code = _cb->code_begin();
         m->name_and_sig_as_C_string(buf, buflen);
-        st->print("J  %s", buf);
+        st->print("J  %s [" PTR_FORMAT "+%d]", buf, code, pc() - code);
       } else {
         st->print("J  " PTR_FORMAT, pc());
       }
