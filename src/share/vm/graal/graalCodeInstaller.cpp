@@ -743,8 +743,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
     case 's':
     case 'c':
     case 'i':
-      fatal("int-sized values not expected in DataPatch")
-      ;
+      fatal("int-sized values not expected in DataPatch");
       break;
     case 'f':
     case 'j':
@@ -773,9 +772,9 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
       Handle obj = CiConstant::object(constant);
 
-      if (obj->is_a(HotSpotTypeResolved::klass())) {
+      if (obj->is_a(HotSpotKlassOop::klass())) {
         assert(!obj.is_null(), "");
-        *((jobject*) operand) = JNIHandles::make_local(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(obj)));
+        *((jobject*) operand) = JNIHandles::make_local(java_lang_Class::as_klassOop(HotSpotKlassOop::javaMirror(obj)));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_graal_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
       } else {

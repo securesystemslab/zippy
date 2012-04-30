@@ -58,6 +58,9 @@ void graal_compute_offsets();
     boolean_field(HotSpotTypeResolved, isInterface)                                     \
     int_field(HotSpotTypeResolved, instanceSize)                                        \
   end_class                                                                             \
+  start_class(HotSpotKlassOop)                                                          \
+    oop_field(HotSpotKlassOop, javaMirror, "Ljava/lang/Class;")                         \
+    end_class                                                                           \
   start_class(HotSpotMethodResolved)                                                    \
     oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/graal/hotspot/Compiler;")   \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \

@@ -189,6 +189,7 @@ class SymbolPropertyTable;
                                                                                                                          \
   /* Support for Graal */                                                                                                \
   template(HotSpotTypeResolved_klass,             com_oracle_graal_hotspot_HotSpotTypeResolved,                 Opt) \
+  template(HotSpotKlassOop_klass,                 com_oracle_graal_hotspot_HotSpotKlassOop,                     Opt) \
   template(HotSpotType_klass,                     com_oracle_graal_hotspot_HotSpotType,                         Opt) \
   template(HotSpotField_klass,                    com_oracle_graal_hotspot_HotSpotField,                        Opt) \
   template(HotSpotCompiledMethod_klass,           com_oracle_graal_hotspot_HotSpotCompiledMethod,               Opt) \
