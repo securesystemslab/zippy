@@ -51,15 +51,6 @@ _jacoco = 'off'
 
 _make_eclipse_launch = False
 
-_jacocoExcludes = ['com.oracle.graal.hotspot.snippets.ArrayCopySnippets',
-                   'com.oracle.graal.snippets.DoubleSnippets',
-                   'com.oracle.graal.snippets.FloatSnippets',
-                   'com.oracle.graal.snippets.MathSnippetsX86',
-                   'com.oracle.graal.snippets.NodeClassSnippets',
-                   'com.oracle.graal.hotspot.snippets.SystemSnippets',
-                   'com.oracle.graal.hotspot.snippets.UnsafeSnippets',
-                   'com.oracle.graal.compiler.tests.*']
-
 _copyrightTemplate = """/*
  * Copyright (c) {0}, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -571,15 +562,48 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
+        # Exclude all compiler tests and snippets
+        excludes = ['com.oracle.graal.compiler.tests.*']
+        for p in mx.projects():
+            for s in p.source_dirs():
+                _add_classes_with_annotation(excludes, s, None, '@Snippet')
+                _add_classes_with_annotation(excludes, s, None, '@ClassSubstitution')
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
                         'includes' : 'com.oracle.*',
-                        'excludes' : ':'.join(_jacocoExcludes)
+                        'excludes' : ':'.join(excludes)
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+
+def _add_classes_with_annotation(classes, srcDir, pkgRoot, annotation):
+    """
+    Scan 'srcDir' for Java source files containing a line starting with 'annotation'
+    (ignoring preceding whitespace) and add the fully qualified class name
+    to 'classes' for each Java source file matched.
+    """
+    pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
+    for root, _, files in os.walk(srcDir):
+        for name in files:
+            if name.endswith('.java') and name != 'package-info.java':
+                hasTest = False
+                with open(join(root, name)) as f:
+                    pkg = None
+                    for line in f:
+                        if line.startswith("package "):
+                            match = pkgDecl.match(line)
+                            if match:
+                                pkg = match.group(1)
+                        else:
+                            if line.strip().startswith(annotation):
+                                hasTest = True
+                                break
+                if hasTest:
+                    assert pkg is not None
+                    if pkgRoot is None or pkg.startswith(pkgRoot):
+                        classes.append(pkg + '.' + name[:-len('.java')])
 
 
 # Table of unit tests.
@@ -593,28 +617,6 @@ _unittests = {
 _jtttests = {
     'com.oracle.graal.jtt': ['com.oracle.graal.jtt'],
 }
-
-def _add_test_classes(testClassList, searchDir, pkgRoot):
-    pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
-    for root, _, files in os.walk(searchDir):
-        for name in files:
-            if name.endswith('.java') and name != 'package-info.java':
-                hasTest = False
-                with open(join(root, name)) as f:
-                    pkg = None
-                    for line in f:
-                        if line.startswith("package "):
-                            match = pkgDecl.match(line)
-                            if match:
-                                pkg = match.group(1)
-                        else:
-                            if line.strip().startswith('@Test'):
-                                hasTest = True
-                                break
-                if hasTest:
-                    assert pkg is not None
-                    if pkg.startswith(pkgRoot):
-                        testClassList.append(pkg + '.' + name[:-len('.java')])
 
 def unittest(args):
     """run the Graal Compiler Unit Tests in the GraalVM
@@ -637,13 +639,13 @@ def unittest(args):
         p = mx.project(proj)
         classes = []
         for pkg in _unittests[proj]:
-            _add_test_classes(classes, join(p.dir, 'src'), pkg)
+            _add_classes_with_annotation(classes, join(p.dir, 'src'), pkg, '@Test')
     
         if len(pos) != 0:
             classes = [c for c in classes if containsAny(c, pos)]
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
-            
+        
         vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
     
 def jtt(args):
@@ -667,7 +669,7 @@ def jtt(args):
         p = mx.project(proj)
         classes = []
         for pkg in _jtttests[proj]:
-            _add_test_classes(classes, join(p.dir, 'src'), pkg)
+            _add_classes_with_annotation(classes, join(p.dir, 'src'), pkg, '@Test')
     
         if len(pos) != 0:
             classes = [c for c in classes if containsAny(c, pos)]
