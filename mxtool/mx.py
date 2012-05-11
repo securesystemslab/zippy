@@ -1685,6 +1685,9 @@ def netbeansinit(args, suite=None):
     if suite is None:
         suite = _mainSuite
 
+    def println(out, obj):
+        out.write(str(obj) + '\n')
+
     updated = False
     for p in projects():
         if p.native:
@@ -1898,60 +1901,94 @@ def javadoc(args):
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
     parser.add_argument('--argfile', action='store', help='name of file containing extra javadoc options')
     parser.add_argument('-m', '--memory', action='store', help='-Xmx value to pass to underlying JVM')
-    
+    parser.add_argument('--wiki', action='store_true', help='generate Confluence Wiki format for package-info.java files')
+    parser.add_argument('--packages', action='store', help='comma separated packages to process (omit to process all packages)')
+
     args = parser.parse_args(args)
-    
+
     # build list of projects to be processed
     candidates = sorted_deps()
     if args.projects is not None:
         candidates = [project(name) for name in args.projects.split(',')]
-        
+
+    # optionally restrict packages within a project (most useful for wiki)
+    packages = []
+    if args.packages is not None:
+        packages = [name for name in args.packages.split(',')]
+
+    # the WikiDoclet cannot see the -classpath argument passed to javadoc so we pass the
+    # full list of projects as an explicit argument, thereby enabling it to map classes
+    # to projects, which is needed to generate Wiki links to the source code.
+    # There is no virtue in running the doclet on dependent projects as there are
+    # no generated links between Wiki pages
+    docletArgs = []
+    if args.wiki:
+        docDir = 'wikidoc'
+        toolsDir = project('com.oracle.max.tools').output_dir()
+        baseDir = project('com.oracle.max.base').output_dir()
+        dp = os.pathsep.join([toolsDir, baseDir])
+        project_list = ','.join(p.name for p in sorted_deps())
+        docletArgs = ['-docletpath', dp, '-doclet', 'com.oracle.max.tools.javadoc.wiki.WikiDoclet', '-projects', project_list]
+    else:
+        docDir = 'javadoc'
+
+    def check_package_list(p):
+        if args.wiki:
+            return True
+        else:
+            return not exists(join(p.dir, docDir, 'package-list'))
+
     def assess_candidate(p, projects):
         if p in projects:
             return False
-        if args.force or args.unified or not exists(join(p.dir, 'javadoc', 'package-list')):
+        if args.force or args.unified or check_package_list(p):
             projects.append(p)
             return True
         return False
-        
+
     projects = []
     for p in candidates:
         if not p.native:
-            deps = p.all_deps([], includeLibs=False, includeSelf=False)
-            for d in deps:
-                assess_candidate(d, projects)
+            if not args.wiki:
+                deps = p.all_deps([], includeLibs=False, includeSelf=False)
+                for d in deps:
+                    assess_candidate(d, projects)
             if not assess_candidate(p, projects):
                 log('[package-list file exists - skipping {0}]'.format(p.name))
 
-    
+
     def find_packages(sourceDirs, pkgs=set()):
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
                 if len([name for name in files if name.endswith('.java')]) != 0:
-                    pkgs.add(root[len(sourceDir) + 1:].replace('/','.'))
+                    pkg = root[len(sourceDir) + 1:].replace('/','.')
+                    if (len(packages) == 0) | (pkg in packages):
+                        pkgs.add(pkg)
         return pkgs
 
     extraArgs = []
     if args.argfile is not None:
         extraArgs += ['@' + args.argfile]
+    memory = '2g'
     if args.memory is not None:
-        extraArgs.append('-J-Xmx' + args.memory)
+        memory = args.memory
+    memory = '-J-Xmx' + memory
 
     if not args.unified:
         for p in projects:
             pkgs = find_packages(p.source_dirs(), set())
             deps = p.all_deps([], includeLibs=False, includeSelf=False)
-            links = ['-link', 'http://docs.oracle.com/javase/6/docs/api/']
-            out = join(p.dir, 'javadoc')
+            links = ['-link', 'http://docs.oracle.com/javase/' + str(p.javaCompliance.value) + '/docs/api/']
+            out = join(p.dir, docDir)
             for d in deps:
-                depOut = join(d.dir, 'javadoc')
+                depOut = join(d.dir, docDir)
                 links.append('-link')
                 links.append(os.path.relpath(depOut, out))
             cp = classpath(p.name, includeSelf=True)
             sp = os.pathsep.join(p.source_dirs())
-            log('Generating javadoc for {0} in {1}'.format(p.name, out))
-            run([java().javadoc, '-J-Xmx2g', '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + links + extraArgs + list(pkgs))
-            log('Generated javadoc for {0} in {1}'.format(p.name, out))
+            log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
+            run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + docletArgs + links + extraArgs + list(pkgs))
+            log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
     else:
         pkgs = set()
         sp = []
@@ -1960,14 +1997,14 @@ def javadoc(args):
             find_packages(p.source_dirs(), pkgs)
             sp += p.source_dirs()
             names.append(p.name)
-            
-        links = ['-link', 'http://docs.oracle.com/javase/6/docs/api/']
-        out = join(_mainSuite.dir, 'javadoc')
+
+        links = ['-link', 'http://docs.oracle.com/javase/' + str(_java.javaCompliance.value) + '/docs/api/']
+        out = join(_mainSuite.dir, docDir)
         cp = classpath()
         sp = os.pathsep.join(sp)
-        log('Generating javadoc for {0} in {1}'.format(', '.join(names), out))
-        run([java().javadoc, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + links + extraArgs + list(pkgs))
-        log('Generated javadoc for {0} in {1}'.format(', '.join(names), out))
+        log('Generating {2} for {0} in {1}'.format(', '.join(names), out, docDir))
+        run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + docletArgs + links + extraArgs + list(pkgs))
+        log('Generated {2} for {0} in {1}'.format(', '.join(names), out, docDir))
 
 def javap(args):
     """launch javap with a -classpath option denoting all available classes
