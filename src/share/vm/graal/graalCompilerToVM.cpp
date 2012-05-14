@@ -1047,7 +1047,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 
   if (jap.get_ret_type() == T_VOID) {
     return NULL;
-  } else if (jap.get_ret_type() == T_OBJECT) {
+  } else if (jap.get_ret_type() == T_OBJECT || jap.get_ret_type() == T_ARRAY) {
     return JNIHandles::make_local((oop) result.get_jobject());
   } else {
     oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
