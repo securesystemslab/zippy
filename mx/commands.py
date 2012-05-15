@@ -676,7 +676,7 @@ def jtt(args):
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
             
-        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=::test', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=com/oracle/graal/jtt', '-XX:CompileCommand=exclude,com/oracle/graal/jtt*.run*', '-XX:CompileCommand=quiet', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
     
 def buildvms(args):
     """build one or more VMs in various configurations"""
