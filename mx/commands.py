@@ -736,6 +736,10 @@ def gate(args):
 
     args = parser.parse_args(args)
 
+    global _vmbuild
+    global _vm
+    global _jacoco
+    
     tasks = []             
     total = Task('Gate')
     try:
@@ -752,9 +756,7 @@ def gate(args):
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
-        global _jacoco
         for vmbuild in ['fastdebug', 'product']:
-            global _vmbuild
             _vmbuild = vmbuild
             
             if args.buildNative:
@@ -816,6 +818,18 @@ def gate(args):
             t = Task('BuildHotSpotVarieties')
             buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
             tasks.append(t.stop())
+
+            for vmbuild in ['product', 'fastdebug']:
+                _vmbuild = vmbuild
+                for theVm in ['client', 'server']:
+                    _vm = theVm
+                    # TODO: remove once regression in fastdebug-server has been fixed
+                    if vmbuild == 'fastdebug' and theVm == 'server':
+                        continue
+
+                    t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
+                    dacapo(['pmd'])
+                    tasks.append(t.stop())
         
     except KeyboardInterrupt:
         total.abort(1)
