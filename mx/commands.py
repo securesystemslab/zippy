@@ -816,6 +816,20 @@ def gate(args):
             t = Task('BuildHotSpotVarieties')
             buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
             tasks.append(t.stop())
+
+            for vmbuild in ['product', 'fastdebug']:
+                global _vmbuild
+                _vmbuild = vmbuild
+                for theVm in ['client', 'server']:
+                    global _vm
+                    _vm = theVm
+                    # TODO: remove once regression in fastdebug-server has been fixed
+                    if vmbuild == 'fastdebug' and theVm == 'server':
+                        continue
+
+                    t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
+                    dacapo(['pmd'])
+                    tasks.append(t.stop())
         
     except KeyboardInterrupt:
         total.abort(1)
