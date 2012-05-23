@@ -823,9 +823,6 @@ def gate(args):
                 _vmbuild = vmbuild
                 for theVm in ['client', 'server']:
                     _vm = theVm
-                    # TODO: remove once regression in fastdebug-server has been fixed
-                    if vmbuild == 'fastdebug' and theVm == 'server':
-                        continue
 
                     t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
                     dacapo(['pmd'])
