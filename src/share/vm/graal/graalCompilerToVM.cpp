@@ -909,28 +909,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   }
 }
 
-// public long installStub(HotSpotTargetMethod targetMethod, String name);
-JNIEXPORT jlong JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installStub(JNIEnv *jniEnv, jobject, jobject targetMethod, jobject info) {
-  VM_ENTRY_MARK;
-  ResourceMark rm;
-  HandleMark hm;
-  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
-  jlong id;
-  Arena arena;
-  ciEnv env(&arena);
-  BufferBlob* blob;
-  CodeInstaller installer(targetMethodHandle, blob, id);
-
-  if (info != NULL) {
-    arrayOop codeCopy = oopFactory::new_byteArray(blob->code_size(), CHECK_0);
-    memcpy(codeCopy->base(T_BYTE), blob->code_begin(), blob->code_size());
-    HotSpotCodeInfo::set_code(info, codeCopy);
-    HotSpotCodeInfo::set_start(info, (jlong) blob->code_begin());
-  }
-
-  return id;
-}
-
 // public String disassembleNative(byte[] code, long address);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_disassembleNative(JNIEnv *jniEnv, jobject, jbyteArray code, jlong start_address) {
   TRACE_graal_3("CompilerToVM::disassembleNative");
@@ -1195,7 +1173,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getType",                           CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
   {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
   {CC"installMethod",                     CC"("TARGET_METHOD"Z"HS_CODE_INFO")"HS_COMP_METHOD,   FN_PTR(installMethod)},
-  {CC"installStub",                       CC"("TARGET_METHOD HS_CODE_INFO")"PROXY,              FN_PTR(installStub)},
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
   {CC"RiMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(RiMethod_1toStackTraceElement)},
