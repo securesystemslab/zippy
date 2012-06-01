@@ -275,6 +275,7 @@ Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, 
   HotSpotTypeResolved::set_simpleName(obj, name());
   HotSpotTypeResolved::set_accessFlags(obj, klass->access_flags().as_int());
   HotSpotTypeResolved::set_isInterface(obj, klass->is_interface());
+  HotSpotTypeResolved::set_superCheckOffset(obj, klass->super_check_offset());
   HotSpotTypeResolved::set_isInstanceClass(obj, klass->oop_is_instance());
 
   if (klass->oop_is_javaArray()) {

@@ -53,6 +53,7 @@ void graal_compute_offsets();
     boolean_field(HotSpotTypeResolved, hasFinalizer)                                    \
     boolean_field(HotSpotTypeResolved, hasSubclass)                                     \
     boolean_field(HotSpotTypeResolved, hasFinalizableSubclass)                          \
+    int_field(HotSpotTypeResolved, superCheckOffset)                                    \
     boolean_field(HotSpotTypeResolved, isArrayClass)                                    \
     boolean_field(HotSpotTypeResolved, isInstanceClass)                                 \
     boolean_field(HotSpotTypeResolved, isInterface)                                     \
