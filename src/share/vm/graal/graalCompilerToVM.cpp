@@ -789,6 +789,9 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);
   set_int(env, config, "hubOffset", oopDesc::klass_offset_in_bytes());
+  set_int(env, config, "superCheckOffsetOffset", in_bytes(Klass::super_check_offset_offset()));
+  set_int(env, config, "secondarySuperCacheOffset", in_bytes(Klass::secondary_super_cache_offset()));
+  set_int(env, config, "secondarySupersOffset", in_bytes(Klass::secondary_supers_offset()));
   set_int(env, config, "arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
   set_int(env, config, "klassStateOffset", in_bytes(instanceKlass::init_state_offset()));
   set_int(env, config, "klassStateFullyInitialized", (int)instanceKlass::fully_initialized);
@@ -1021,6 +1024,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   if (nm == NULL || !nm->is_alive()) {
     THROW_0(vmSymbols::MethodInvalidatedException());
   }
+
   JavaCalls::call(&result, mh, nm, &jca, CHECK_NULL);
 
   if (jap.get_ret_type() == T_VOID) {
