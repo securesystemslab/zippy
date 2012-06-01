@@ -20,7 +20,7 @@
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881.305678577" name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.base.1866612258" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.2075405295" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
-							<builder arguments="${workspace_loc:/hotspot}/../mxtool/mx build" autoBuildTarget="ide-build-target" buildPath="${workspace_loc:/hotspot}/.." cleanBuildTarget="clean" command="bash" enableAutoBuild="true" enableCleanBuild="false" enabledIncrementalBuild="false" id="cdt.managedbuild.target.gnu.builder.base.81453037" incrementalBuildTarget="jvmg1" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base">
+							<builder arguments="${workspace_loc:/hotspot}/../mxtool/mx build" autoBuildTarget="ide-build-target" buildPath="${workspace_loc:/hotspot}/.." cleanBuildTarget="clean" command="bash" enableAutoBuild="true" enableCleanBuild="false" enabledIncrementalBuild="false" id="cdt.managedbuild.target.gnu.builder.base.81453037" incrementalBuildTarget="jvmg1" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base">
 								<outputEntries>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name=""/>
 								</outputEntries>
@@ -80,14 +80,15 @@
 			<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 			<storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
 			<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
-			<storageModule moduleId="scannerConfiguration"/>
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="hotspot.null.1712822257" name="hotspot"/>
 	</storageModule>
-	<storageModule moduleId="refreshScope" versionNumber="1">
-		<resource resourceType="PROJECT" workspacePath="/hotspot"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Default">
+			<resource resourceType="PROJECT" workspacePath="/hotspot"/>
+		</configuration>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
@@ -111,4 +112,5 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 </cproject>
