@@ -191,7 +191,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     // class C extends B { public void foo() { } }
     // class D extends B { }
     // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
-    return false;
+    return NULL;
   }
   methodHandle unique_concrete;
   {
