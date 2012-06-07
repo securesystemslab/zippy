@@ -28,6 +28,12 @@ project@com.oracle.graal.api@sourceDirs=src
 project@com.oracle.graal.api@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api@javaCompliance=1.7
 
+# graal.api.meta
+project@com.oracle.graal.api.meta@subDir=graal
+project@com.oracle.graal.api.meta@sourceDirs=src
+project@com.oracle.graal.api.meta@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.meta@javaCompliance=1.7
+
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
@@ -133,7 +139,7 @@ project@com.oracle.max.asm@javaCompliance=1.7
 # max.cri
 project@com.oracle.max.cri@subDir=graal
 project@com.oracle.max.cri@sourceDirs=src
-project@com.oracle.max.cri@dependencies=
+project@com.oracle.max.cri@dependencies=com.oracle.graal.api.meta
 project@com.oracle.max.cri@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.cri@javaCompliance=1.7
 
