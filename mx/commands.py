@@ -565,8 +565,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         # Exclude all compiler tests and snippets
         excludes = ['com.oracle.graal.compiler.tests.*']
         for p in mx.projects():
-            _add_classes_with_annotation(excludes, p, None, '@Snippet', includeInnerClasses=True)
-            _add_classes_with_annotation(excludes, p, None, '@ClassSubstitution', includeInnerClasses=True)
+            _find_classes_with_annotations(excludes, p, None, ['@Snippet', '@ClassSubstitution'], includeInnerClasses=True)
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
@@ -577,19 +576,21 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
     return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
-def _add_classes_with_annotation(classes, p, pkgRoot, annotation, includeInnerClasses=False):
+def _find_classes_with_annotations(classes, p, pkgRoot, annotations, includeInnerClasses=False):
     """
     Scan the sources of project 'p' for Java source files containing a line starting with 'annotation'
     (ignoring preceding whitespace) and add the fully qualified class name
     to 'classes' for each Java source file matched.
     """
+    for a in annotations:
+        assert a.startswith('@')
     pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
     for srcDir in p.source_dirs():
         outputDir = p.output_dir()
         for root, _, files in os.walk(srcDir):
             for name in files:
                 if name.endswith('.java') and name != 'package-info.java':
-                    hasTest = False
+                    annotationFound = False
                     with open(join(root, name)) as f:
                         pkg = None
                         for line in f:
@@ -598,10 +599,14 @@ def _add_classes_with_annotation(classes, p, pkgRoot, annotation, includeInnerCl
                                 if match:
                                     pkg = match.group(1)
                             else:
-                                if line.strip().startswith(annotation):
-                                    hasTest = True
+                                stripped = line.strip()
+                                for a in annotations:
+                                    if stripped == a or stripped.startswith(a + '('):
+                                        annotationFound = True
+                                        break
+                                if annotationFound:
                                     break
-                    if hasTest:
+                    if annotationFound:
                         basename = name[:-len('.java')]
                         assert pkg is not None
                         if pkgRoot is None or pkg.startswith(pkgRoot):
@@ -647,7 +652,7 @@ def unittest(args):
         p = mx.project(proj)
         classes = []
         for pkg in _unittests[proj]:
-            _add_classes_with_annotation(classes, p, pkg, '@Test')
+            _find_classes_with_annotations(classes, p, pkg, ['@Test'])
     
         if len(pos) != 0:
             classes = [c for c in classes if containsAny(c, pos)]
@@ -677,7 +682,7 @@ def jtt(args):
         p = mx.project(proj)
         classes = []
         for pkg in _jtttests[proj]:
-            _add_classes_with_annotation(classes, p, pkg, '@Test')
+            _find_classes_with_annotations(classes, p, pkg, ['@Test'])
     
         if len(pos) != 0:
             classes = [c for c in classes if containsAny(c, pos)]
