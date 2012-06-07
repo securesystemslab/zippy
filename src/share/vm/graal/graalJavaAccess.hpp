@@ -65,7 +65,7 @@ void graal_compute_offsets();
   start_class(HotSpotMethodResolved)                                                    \
     oop_field(HotSpotMethodResolved, compiler, "Lcom/oracle/graal/hotspot/Compiler;")   \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
-    oop_field(HotSpotMethodResolved, holder, "Lcom/oracle/max/cri/ri/RiResolvedType;")  \
+    oop_field(HotSpotMethodResolved, holder, "Lcom/oracle/graal/api/meta/RiResolvedType;")  \
     oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/Object;")                  \
     int_field(HotSpotMethodResolved, codeSize)                                          \
     int_field(HotSpotMethodResolved, accessFlags)                                       \
@@ -83,14 +83,14 @@ void graal_compute_offsets();
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \
   end_class                                                                             \
   start_class(HotSpotField)                                                             \
-    oop_field(HotSpotField, constant, "Lcom/oracle/max/cri/ri/RiConstant;")             \
+    oop_field(HotSpotField, constant, "Lcom/oracle/graal/api/meta/RiConstant;")             \
     int_field(HotSpotField, offset)                                                     \
     int_field(HotSpotField, accessFlags)                                                \
   end_class                                                                             \
   start_class(HotSpotCompiledMethod)                                                    \
     oop_field(HotSpotCompiledMethod, compiler, "Lcom/oracle/graal/hotspot/Compiler;")   \
     long_field(HotSpotCompiledMethod, nmethod)                                          \
-    oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;")\
+    oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;")\
   end_class                                                                             \
   start_class(HotSpotCodeInfo)                                                          \
     long_field(HotSpotCodeInfo, start)                                                  \
@@ -111,7 +111,7 @@ void graal_compute_offsets();
     int_field(HotSpotExceptionHandler, endBci)                                          \
     int_field(HotSpotExceptionHandler, handlerBci)                                      \
     int_field(HotSpotExceptionHandler, catchClassIndex)                                 \
-    oop_field(HotSpotExceptionHandler, catchClass, "Lcom/oracle/max/cri/ri/RiType;")    \
+    oop_field(HotSpotExceptionHandler, catchClass, "Lcom/oracle/graal/api/meta/RiType;")    \
   end_class                                                                             \
   start_class(CiTargetMethod)                                                           \
     int_field(CiTargetMethod, frameSize)                                                \
@@ -124,16 +124,16 @@ void graal_compute_offsets();
     oop_field(CiAssumptions, list, "[Lcom/oracle/max/cri/ci/CiAssumptions$Assumption;") \
   end_class                                                                             \
   start_class(CiAssumptions_MethodContents)                                             \
-    oop_field(CiAssumptions_MethodContents, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
+    oop_field(CiAssumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;") \
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteSubtype)                                            \
-    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/oracle/max/cri/ri/RiResolvedType;") \
-    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/oracle/max/cri/ri/RiResolvedType;") \
+    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/oracle/graal/api/meta/RiResolvedType;") \
+    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/oracle/graal/api/meta/RiResolvedType;") \
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteMethod)                                             \
-    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
-    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/oracle/max/cri/ri/RiResolvedType;") \
-    oop_field(CiAssumptions_ConcreteMethod, impl, "Lcom/oracle/max/cri/ri/RiResolvedMethod;") \
+    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;") \
+    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/oracle/graal/api/meta/RiResolvedType;") \
+    oop_field(CiAssumptions_ConcreteMethod, impl, "Lcom/oracle/graal/api/meta/RiResolvedMethod;") \
   end_class                                                                             \
   start_class(CiTargetMethod_Site)                                                      \
     int_field(CiTargetMethod_Site, pcOffset)                                            \
@@ -143,7 +143,7 @@ void graal_compute_offsets();
     oop_field(CiTargetMethod_Call, debugInfo, "Lcom/oracle/max/cri/ci/CiDebugInfo;")    \
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \
-    oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/max/cri/ri/RiConstant;") \
+    oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/graal/api/meta/RiConstant;") \
     int_field(CiTargetMethod_DataPatch, alignment)                                      \
   end_class                                                                             \
   start_class(CiTargetMethod_Safepoint)                                                 \
@@ -158,8 +158,8 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
     oop_field(CiDebugInfo, codePos, "Lcom/oracle/max/cri/ci/CiCodePos;")                \
-    oop_field(CiDebugInfo, registerRefMap, "Lcom/oracle/max/cri/ci/CiBitMap;")          \
-    oop_field(CiDebugInfo, frameRefMap, "Lcom/oracle/max/cri/ci/CiBitMap;")             \
+    oop_field(CiDebugInfo, registerRefMap, "Lcom/oracle/graal/api/meta/RiBitMap;")          \
+    oop_field(CiDebugInfo, frameRefMap, "Lcom/oracle/graal/api/meta/RiBitMap;")             \
   end_class                                                                             \
   start_class(GraalBitMap)                                                              \
     int_field(GraalBitMap, size)                                                        \
@@ -167,7 +167,7 @@ void graal_compute_offsets();
     oop_field(GraalBitMap, extra, "[J")                                                 \
   end_class                                                                             \
   start_class(CiFrame)                                                                  \
-    oop_field(CiFrame, values, "[Lcom/oracle/max/cri/ci/CiValue;")                      \
+    oop_field(CiFrame, values, "[Lcom/oracle/graal/api/meta/RiValue;")                      \
     int_field(CiFrame, numLocals)                                                       \
     int_field(CiFrame, numStack)                                                        \
     int_field(CiFrame, numLocks)                                                        \
@@ -177,22 +177,22 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
     oop_field(CiCodePos, caller, "Lcom/oracle/max/cri/ci/CiCodePos;")                   \
-    oop_field(CiCodePos, method, "Lcom/oracle/max/cri/ri/RiResolvedMethod;")            \
+    oop_field(CiCodePos, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;")            \
     int_field(CiCodePos, bci)                                                           \
   end_class                                                                             \
   start_class(CiConstant)                                                               \
-    oop_field(CiConstant, kind, "Lcom/oracle/max/cri/ri/RiKind;")                       \
+    oop_field(CiConstant, kind, "Lcom/oracle/graal/api/meta/RiKind;")                       \
     oop_field(CiConstant, object, "Ljava/lang/Object;")                                 \
     long_field(CiConstant, primitive)                                                   \
   end_class                                                                             \
   start_class(CiKind)                                                                   \
     char_field(CiKind, typeChar)                                                        \
-    static_oop_field(CiKind, Boolean, "Lcom/oracle/max/cri/ri/RiKind;");                \
-    static_oop_field(CiKind, Byte, "Lcom/oracle/max/cri/ri/RiKind;");                   \
-    static_oop_field(CiKind, Char, "Lcom/oracle/max/cri/ri/RiKind;");                   \
-    static_oop_field(CiKind, Short, "Lcom/oracle/max/cri/ri/RiKind;");                  \
-    static_oop_field(CiKind, Int, "Lcom/oracle/max/cri/ri/RiKind;");                    \
-    static_oop_field(CiKind, Long, "Lcom/oracle/max/cri/ri/RiKind;");                   \
+    static_oop_field(CiKind, Boolean, "Lcom/oracle/graal/api/meta/RiKind;");                \
+    static_oop_field(CiKind, Byte, "Lcom/oracle/graal/api/meta/RiKind;");                   \
+    static_oop_field(CiKind, Char, "Lcom/oracle/graal/api/meta/RiKind;");                   \
+    static_oop_field(CiKind, Short, "Lcom/oracle/graal/api/meta/RiKind;");                  \
+    static_oop_field(CiKind, Int, "Lcom/oracle/graal/api/meta/RiKind;");                    \
+    static_oop_field(CiKind, Long, "Lcom/oracle/graal/api/meta/RiKind;");                   \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
@@ -214,8 +214,8 @@ void graal_compute_offsets();
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
   start_class(CiValue)                                                                  \
-    oop_field(CiValue, kind, "Lcom/oracle/max/cri/ri/RiKind;")                          \
-    static_oop_field(CiValue, IllegalValue, "Lcom/oracle/max/cri/ci/CiValue;");         \
+    oop_field(CiValue, kind, "Lcom/oracle/graal/api/meta/RiKind;")                          \
+    static_oop_field(CiValue, IllegalValue, "Lcom/oracle/graal/api/meta/RiValue;");         \
   end_class                                                                             \
   start_class(CiRegisterValue)                                                          \
     oop_field(CiRegisterValue, reg, "Lcom/oracle/max/cri/ci/CiRegister;")               \
@@ -229,12 +229,12 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiVirtualObject)                                                          \
     int_field(CiVirtualObject, id)                                                      \
-    oop_field(CiVirtualObject, type, "Lcom/oracle/max/cri/ri/RiType;")                  \
-    oop_field(CiVirtualObject, values, "[Lcom/oracle/max/cri/ci/CiValue;")              \
+    oop_field(CiVirtualObject, type, "Lcom/oracle/graal/api/meta/RiType;")                  \
+    oop_field(CiVirtualObject, values, "[Lcom/oracle/graal/api/meta/RiValue;")              \
   end_class                                                                             \
   start_class(CiMonitorValue)                                                           \
-    oop_field(CiMonitorValue, owner, "Lcom/oracle/max/cri/ci/CiValue;")                 \
-    oop_field(CiMonitorValue, lockData, "Lcom/oracle/max/cri/ci/CiValue;")              \
+    oop_field(CiMonitorValue, owner, "Lcom/oracle/graal/api/meta/RiValue;")                 \
+    oop_field(CiMonitorValue, lockData, "Lcom/oracle/graal/api/meta/RiValue;")              \
     boolean_field(CiMonitorValue, eliminated)                                           \
   end_class                                                                             \
   /* end*/
