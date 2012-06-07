@@ -51,7 +51,7 @@ project@com.oracle.graal.api.interpreter@javaCompliance=1.7
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.oracle.graal.api.interpreter,com.oracle.graal.api
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
