@@ -153,7 +153,7 @@ project@com.oracle.max.asm@javaCompliance=1.7
 # max.cri
 project@com.oracle.max.cri@subDir=graal
 project@com.oracle.max.cri@sourceDirs=src
-project@com.oracle.max.cri@dependencies=com.oracle.graal.api.meta
+project@com.oracle.max.cri@dependencies=com.oracle.graal.api.meta,com.oracle.graal.api.code
 project@com.oracle.max.cri@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.cri@javaCompliance=1.7
 
