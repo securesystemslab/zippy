@@ -83,7 +83,7 @@ void graal_compute_offsets();
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \
   end_class                                                                             \
   start_class(HotSpotField)                                                             \
-    oop_field(HotSpotField, constant, "Lcom/oracle/max/cri/ci/CiConstant;")             \
+    oop_field(HotSpotField, constant, "Lcom/oracle/max/cri/ri/RiConstant;")             \
     int_field(HotSpotField, offset)                                                     \
     int_field(HotSpotField, accessFlags)                                                \
   end_class                                                                             \
@@ -143,7 +143,7 @@ void graal_compute_offsets();
     oop_field(CiTargetMethod_Call, debugInfo, "Lcom/oracle/max/cri/ci/CiDebugInfo;")    \
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \
-    oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/max/cri/ci/CiConstant;") \
+    oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/max/cri/ri/RiConstant;") \
     int_field(CiTargetMethod_DataPatch, alignment)                                      \
   end_class                                                                             \
   start_class(CiTargetMethod_Safepoint)                                                 \
@@ -181,18 +181,18 @@ void graal_compute_offsets();
     int_field(CiCodePos, bci)                                                           \
   end_class                                                                             \
   start_class(CiConstant)                                                               \
-    oop_field(CiConstant, kind, "Lcom/oracle/max/cri/ci/CiKind;")                       \
+    oop_field(CiConstant, kind, "Lcom/oracle/max/cri/ri/RiKind;")                       \
     oop_field(CiConstant, object, "Ljava/lang/Object;")                                 \
     long_field(CiConstant, primitive)                                                   \
   end_class                                                                             \
   start_class(CiKind)                                                                   \
     char_field(CiKind, typeChar)                                                        \
-    static_oop_field(CiKind, Boolean, "Lcom/oracle/max/cri/ci/CiKind;");                \
-    static_oop_field(CiKind, Byte, "Lcom/oracle/max/cri/ci/CiKind;");                   \
-    static_oop_field(CiKind, Char, "Lcom/oracle/max/cri/ci/CiKind;");                   \
-    static_oop_field(CiKind, Short, "Lcom/oracle/max/cri/ci/CiKind;");                  \
-    static_oop_field(CiKind, Int, "Lcom/oracle/max/cri/ci/CiKind;");                    \
-    static_oop_field(CiKind, Long, "Lcom/oracle/max/cri/ci/CiKind;");                   \
+    static_oop_field(CiKind, Boolean, "Lcom/oracle/max/cri/ri/RiKind;");                \
+    static_oop_field(CiKind, Byte, "Lcom/oracle/max/cri/ri/RiKind;");                   \
+    static_oop_field(CiKind, Char, "Lcom/oracle/max/cri/ri/RiKind;");                   \
+    static_oop_field(CiKind, Short, "Lcom/oracle/max/cri/ri/RiKind;");                  \
+    static_oop_field(CiKind, Int, "Lcom/oracle/max/cri/ri/RiKind;");                    \
+    static_oop_field(CiKind, Long, "Lcom/oracle/max/cri/ri/RiKind;");                   \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/oracle/max/cri/ci/CiRuntimeCall;"); \
@@ -214,7 +214,7 @@ void graal_compute_offsets();
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
   start_class(CiValue)                                                                  \
-    oop_field(CiValue, kind, "Lcom/oracle/max/cri/ci/CiKind;")                          \
+    oop_field(CiValue, kind, "Lcom/oracle/max/cri/ri/RiKind;")                          \
     static_oop_field(CiValue, IllegalValue, "Lcom/oracle/max/cri/ci/CiValue;");         \
   end_class                                                                             \
   start_class(CiRegisterValue)                                                          \

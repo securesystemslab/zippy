@@ -310,10 +310,10 @@
   template(com_oracle_max_cri_ci_CiRegisterValue,                     "com/oracle/max/cri/ci/CiRegisterValue")                            \
   template(com_oracle_max_cri_ci_CiRegister,                          "com/oracle/max/cri/ci/CiRegister")                                 \
   template(com_oracle_max_cri_ci_CiCodePos,                           "com/oracle/max/cri/ci/CiCodePos")                                  \
-  template(com_oracle_max_cri_ci_CiConstant,                          "com/oracle/max/cri/ci/CiConstant")                                 \
+  template(com_oracle_max_cri_ci_CiConstant,                          "com/oracle/max/cri/ri/RiConstant")                                 \
   template(com_oracle_max_cri_ci_CiVirtualObject,                     "com/oracle/max/cri/ci/CiVirtualObject")                            \
   template(com_oracle_max_cri_ci_CiMonitorValue,                      "com/oracle/max/cri/ci/CiMonitorValue")                             \
-  template(com_oracle_max_cri_ci_CiKind,                              "com/oracle/max/cri/ci/CiKind")                                     \
+  template(com_oracle_max_cri_ci_CiKind,                              "com/oracle/max/cri/ri/RiKind")                                     \
   template(com_oracle_max_cri_ci_CiRuntimeCall,                       "com/oracle/max/cri/ci/CiRuntimeCall")                              \
   template(startCompiler_name,                        "startCompiler")                                                  \
   template(bootstrap_name,                            "bootstrap")                                                      \
@@ -338,13 +338,13 @@
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
   template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/oracle/max/cri/ri/RiType;")             \
   template(createCiConstant_name,                     "createCiConstant")                                               \
-  template(createCiConstant_signature,                "(Lcom/oracle/max/cri/ci/CiKind;J)Lcom/oracle/max/cri/ci/CiConstant;") \
+  template(createCiConstant_signature,                "(Lcom/oracle/max/cri/ri/RiKind;J)Lcom/oracle/max/cri/ri/RiConstant;") \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
-  template(createCiConstantFloat_signature,           "(F)Lcom/oracle/max/cri/ci/CiConstant;")                          \
+  template(createCiConstantFloat_signature,           "(F)Lcom/oracle/max/cri/ri/RiConstant;")                          \
   template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \
-  template(createCiConstantDouble_signature,          "(D)Lcom/oracle/max/cri/ci/CiConstant;")                          \
+  template(createCiConstantDouble_signature,          "(D)Lcom/oracle/max/cri/ri/RiConstant;")                          \
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
-  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/max/cri/ci/CiConstant;")         \
+  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/max/cri/ri/RiConstant;")         \
   template(getVMToCompiler_name,                      "getVMToCompiler")                                                     \
   template(getVMToCompiler_signature,                 "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")               \
   template(getInstance_name,                          "getInstance")                                                    \
