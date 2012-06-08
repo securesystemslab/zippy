@@ -163,7 +163,7 @@ void graal_compute_offsets();
     oop_field(GraalBitMap, extra, "[J")                                                 \
   end_class                                                                             \
   start_class(CiFrame)                                                                  \
-    oop_field(CiFrame, values, "[Lcom/oracle/graal/api/meta/RiValue;")                      \
+    oop_field(CiFrame, values, "[Lcom/oracle/graal/api/meta/Value;")                      \
     int_field(CiFrame, numLocals)                                                       \
     int_field(CiFrame, numStack)                                                        \
     int_field(CiFrame, numLocks)                                                        \
@@ -211,7 +211,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiValue)                                                                  \
     oop_field(CiValue, kind, "Lcom/oracle/graal/api/meta/RiKind;")                          \
-    static_oop_field(CiValue, IllegalValue, "Lcom/oracle/graal/api/meta/RiValue;");         \
+    static_oop_field(CiValue, IllegalValue, "Lcom/oracle/graal/api/meta/Value;");         \
   end_class                                                                             \
   start_class(CiRegisterValue)                                                          \
     oop_field(CiRegisterValue, reg, "Lcom/oracle/graal/api/code/CiRegister;")               \
@@ -226,11 +226,11 @@ void graal_compute_offsets();
   start_class(CiVirtualObject)                                                          \
     int_field(CiVirtualObject, id)                                                      \
     oop_field(CiVirtualObject, type, "Lcom/oracle/graal/api/meta/RiType;")                  \
-    oop_field(CiVirtualObject, values, "[Lcom/oracle/graal/api/meta/RiValue;")              \
+    oop_field(CiVirtualObject, values, "[Lcom/oracle/graal/api/meta/Value;")              \
   end_class                                                                             \
   start_class(CiMonitorValue)                                                           \
-    oop_field(CiMonitorValue, owner, "Lcom/oracle/graal/api/meta/RiValue;")                 \
-    oop_field(CiMonitorValue, lockData, "Lcom/oracle/graal/api/meta/RiValue;")              \
+    oop_field(CiMonitorValue, owner, "Lcom/oracle/graal/api/meta/Value;")                 \
+    oop_field(CiMonitorValue, lockData, "Lcom/oracle/graal/api/meta/Value;")              \
     boolean_field(CiMonitorValue, eliminated)                                           \
   end_class                                                                             \
   /* end*/

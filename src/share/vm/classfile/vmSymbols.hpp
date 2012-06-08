@@ -304,7 +304,7 @@
   template(com_oracle_max_cri_ci_CiBitMap,	                          "com/oracle/graal/api/code/CiBitMap")                                   \
   template(com_oracle_max_cri_ci_CiDebugInfo,                         "com/oracle/graal/api/code/CiDebugInfo")                                \
   template(com_oracle_max_cri_ci_CiFrame,                             "com/oracle/graal/api/code/CiFrame")                                    \
-  template(com_oracle_max_cri_ci_CiValue,                             "com/oracle/graal/api/meta/RiValue")                                    \
+  template(com_oracle_max_cri_ci_CiValue,                             "com/oracle/graal/api/meta/Value")                                    \
   template(com_oracle_max_cri_ci_CiStackSlot,                         "com/oracle/graal/api/code/CiStackSlot")                                \
   template(com_oracle_max_cri_ci_CiRegisterValue,                     "com/oracle/graal/api/code/CiRegisterValue")                            \
   template(com_oracle_max_cri_ci_CiRegister,                          "com/oracle/graal/api/code/CiRegister")                                 \
