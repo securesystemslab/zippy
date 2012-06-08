@@ -62,6 +62,13 @@ project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.orac
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
+# graal.hotspot.server
+project@com.oracle.graal.hotspot.server@subDir=graal
+project@com.oracle.graal.hotspot.server@sourceDirs=src
+project@com.oracle.graal.hotspot.server@dependencies=com.oracle.graal.hotspot
+project@com.oracle.graal.hotspot.server@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.server@javaCompliance=1.7
+
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
