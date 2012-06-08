@@ -147,7 +147,7 @@ project@com.oracle.graal.printer@javaCompliance=1.7
 # graal.test
 project@com.oracle.graal.tests@subDir=graal
 project@com.oracle.graal.tests@sourceDirs=src
-project@com.oracle.graal.tests@dependencies=JUNIT,com.oracle.graal.printer
+project@com.oracle.graal.tests@dependencies=JUNIT,com.oracle.graal.printer,com.oracle.graal.api
 project@com.oracle.graal.tests@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.tests@javaCompliance=1.7
 
