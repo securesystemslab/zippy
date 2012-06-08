@@ -41,7 +41,7 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
 Handle VMToCompiler::compilerInstance() {
   if (JNIHandles::resolve(_compilerPermObject) == NULL) {
     KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotCompilerImpl");
+    check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotGraalRuntime");
 
     JavaValue result(T_OBJECT);
     JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::getInstance_name(), vmSymbols::getInstance_signature(), Thread::current());

@@ -282,7 +282,7 @@
   template(com_oracle_graal_hotspot_HotSpotKlassOop,              "com/oracle/graal/hotspot/ri/HotSpotKlassOop")                  \
   template(com_oracle_graal_hotspot_HotSpotExceptionHandler,      "com/oracle/graal/hotspot/ri/HotSpotExceptionHandler")          \
   template(com_oracle_graal_hotspot_HotSpotProxy,                 "com/oracle/graal/hotspot/HotSpotProxy")                        \
-  template(com_oracle_graal_hotspot_CompilerImpl,                 "com/oracle/graal/hotspot/HotSpotCompilerImpl")                        \
+  template(com_oracle_graal_hotspot_CompilerImpl,                 "com/oracle/graal/hotspot/HotSpotGraalRuntime")                        \
   template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/graal/api/meta/RiMethod")                                   \
   template(com_oracle_max_cri_ri_RiResolvedField,                     "com/oracle/graal/api/meta/RiResolvedField")                            \
   template(com_oracle_max_cri_ri_RiType,                              "com/oracle/graal/api/meta/RiType")                                     \
@@ -348,7 +348,7 @@
   template(getVMToCompiler_signature,                 "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")               \
   template(getInstance_name,                          "getInstance")                                                    \
   template(initialize_name,                           "initialize")                                                     \
-  template(getInstance_signature,                     "()Lcom/oracle/graal/hotspot/HotSpotCompilerImpl;")                          \
+  template(getInstance_signature,                     "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                          \
   template(forObject_name,                            "forObject")                                                      \
   template(callbackInternal_name,                     "callbackInternal")                                               \
   template(callback_signature,                        "(Ljava/lang/Object;)Ljava/lang/Object;")                         \
