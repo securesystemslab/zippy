@@ -260,8 +260,6 @@ Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, 
   Handle obj = instanceKlass::cast(HotSpotTypeResolved::klass())->allocate_instance(CHECK_NULL);
   assert(obj() != NULL, "must succeed in allocating instance");
 
-  HotSpotTypeResolved::set_compiler(obj, VMToCompiler::compilerInstance()());
-
   if (klass->oop_is_instance()) {
     ResourceMark rm;
     instanceKlass* ik = (instanceKlass*)klass()->klass_part();
@@ -305,8 +303,7 @@ Handle GraalCompiler::createHotSpotMethodResolved(methodHandle method, TRAPS) {
   instanceKlass::cast(HotSpotMethodResolved::klass())->initialize(CHECK_NULL);
   Handle obj = instanceKlass::cast(HotSpotMethodResolved::klass())->allocate_instance(CHECK_NULL);
   assert(obj() != NULL, "must succeed in allocating instance");
-  
-  HotSpotMethodResolved::set_compiler(obj, VMToCompiler::compilerInstance()());
+
   // (thomaswue) Cannot use reflection here, because the compiler thread could dead lock with the running application.
   // oop reflected = getReflectedMethod(method(), CHECK_NULL);
   HotSpotMethodResolved::set_javaMirror(obj, method());
@@ -337,7 +334,6 @@ Handle GraalCompiler::createHotSpotMethodData(methodDataHandle method_data, TRAP
   Handle obj = instanceKlass::cast(HotSpotMethodData::klass())->allocate_instance(CHECK_NULL);
   assert(obj.not_null(), "must succeed in allocating instance");
   
-  HotSpotMethodData::set_compiler(obj, VMToCompiler::compilerInstance()());
   HotSpotMethodData::set_hotspotMirror(obj, method_data());
   HotSpotMethodData::set_normalDataSize(obj, method_data()->data_size());
   HotSpotMethodData::set_extraDataSize(obj, method_data()->extra_data_size());

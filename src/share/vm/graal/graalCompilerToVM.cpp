@@ -902,7 +902,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     instanceKlass::cast(HotSpotCompiledMethod::klass())->initialize(CHECK_NULL);
     Handle obj = instanceKlass::cast(HotSpotCompiledMethod::klass())->allocate_permanent_instance(CHECK_NULL);
     assert(obj() != NULL, "must succeed in allocating instance");
-    HotSpotCompiledMethod::set_compiler(obj, VMToCompiler::compilerInstance()());
     HotSpotCompiledMethod::set_nmethod(obj, (jlong) nm);
     HotSpotCompiledMethod::set_method(obj, HotSpotTargetMethod::method(targetMethod));
     nm->set_graal_compiled_method(obj());
