@@ -897,7 +897,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
   }
 
-  // if install_code is true then we installed the code into the given method, no need to return an RiCompiledMethod
+  // if install_code is true then we installed the code into the given method, no need to return an InstalledCode
   if (!install_code && nm != NULL) {
     instanceKlass::cast(HotSpotCompiledMethod::klass())->initialize(CHECK_NULL);
     Handle obj = instanceKlass::cast(HotSpotCompiledMethod::klass())->allocate_permanent_instance(CHECK_NULL);

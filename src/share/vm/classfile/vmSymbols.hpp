@@ -352,7 +352,7 @@
   template(forObject_name,                            "forObject")                                                      \
   template(callbackInternal_name,                     "callbackInternal")                                               \
   template(callback_signature,                        "(Ljava/lang/Object;)Ljava/lang/Object;")                         \
-  template(MethodInvalidatedException,                "com/oracle/graal/api/meta/RiCompiledMethod$MethodInvalidatedException") \
+  template(MethodInvalidatedException,                "com/oracle/graal/api/meta/InstalledCode$MethodInvalidatedException") \
                                                                                                                         \
                                                                                                   \
   /* common method and field names */                                                             \
