@@ -28,5 +28,9 @@ JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
   ThreadToNativeFromVM ttnfv(thread);
   jclass klass = env->FindClass("com/oracle/graal/hotspot/HotSpotGraalRuntime");
   guarantee(klass != NULL, "Could not find class com.oracle.graal.hotspot.HotSpotGraalRuntime");
-  return env->AllocObject(klass);
+  jmethodID constructor = env->GetMethodID(klass, "<init>", "()V");
+  guarantee(constructor != NULL, "Constructor of HotSpotGraalRuntime must not have any parameters");
+  jobject newObj = env->AllocObject(klass);
+  env->CallVoidMethod(newObj, constructor);
+  return newObj;
 JVM_END
