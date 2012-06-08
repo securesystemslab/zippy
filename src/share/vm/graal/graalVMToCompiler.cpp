@@ -66,15 +66,6 @@ Handle VMToCompiler::instance() {
   return Handle(JNIHandles::resolve_non_null(_vmToCompilerPermObject));
 }
 
-void VMToCompiler::initializeCompiler() {
-  KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.CompilerImpl");
-
-  JavaValue result(T_VOID);
-  JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::void_method_signature(), Thread::current());
-  check_pending_exception("Couldn't initialize compiler");
-}
-
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
   KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());

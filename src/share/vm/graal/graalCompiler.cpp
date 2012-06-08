@@ -73,7 +73,6 @@ void GraalCompiler::initialize() {
   {
     VM_ENTRY_MARK;
     HandleMark hm;
-    VMToCompiler::initializeCompiler();
     VMToCompiler::setDefaultOptions();
     for (int i = 0; i < Arguments::num_graal_args(); ++i) {
       const char* arg = Arguments::graal_args_array()[i];

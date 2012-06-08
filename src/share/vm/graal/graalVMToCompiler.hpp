@@ -40,8 +40,6 @@ private:
   static Handle instance();
 
 public:
-  static void initializeCompiler();
-
   static Handle compilerInstance();
 
   static jobject compilerPermObject() {
