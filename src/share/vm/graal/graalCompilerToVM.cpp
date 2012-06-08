@@ -1138,7 +1138,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define HS_CODE_INFO    "Lcom/oracle/graal/hotspot/ri/HotSpotCodeInfo;"
 #define METHOD_DATA     "Lcom/oracle/graal/hotspot/ri/HotSpotMethodData;"
 #define CI_CONSTANT     "Lcom/oracle/graal/api/meta/Constant;"
-#define CI_KIND         "Lcom/oracle/graal/api/meta/RiKind;"
+#define CI_KIND         "Lcom/oracle/graal/api/meta/Kind;"
 #define CI_RUNTIME_CALL "Lcom/oracle/graal/api/code/CiRuntimeCall;"
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"

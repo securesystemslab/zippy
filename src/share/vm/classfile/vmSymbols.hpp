@@ -312,7 +312,7 @@
   template(com_oracle_max_cri_ci_CiConstant,                          "com/oracle/graal/api/meta/Constant")                                 \
   template(com_oracle_max_cri_ci_CiVirtualObject,                     "com/oracle/graal/api/code/CiVirtualObject")                            \
   template(com_oracle_max_cri_ci_CiMonitorValue,                      "com/oracle/graal/api/code/CiMonitorValue")                             \
-  template(com_oracle_max_cri_ci_CiKind,                              "com/oracle/graal/api/meta/RiKind")                                     \
+  template(com_oracle_max_cri_ci_CiKind,                              "com/oracle/graal/api/meta/Kind")                                     \
   template(com_oracle_max_cri_ci_CiRuntimeCall,                       "com/oracle/graal/api/code/CiRuntimeCall")                              \
   template(startCompiler_name,                        "startCompiler")                                                  \
   template(bootstrap_name,                            "bootstrap")                                                      \
@@ -337,7 +337,7 @@
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
   template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/RiType;")             \
   template(createCiConstant_name,                     "createCiConstant")                                               \
-  template(createCiConstant_signature,                "(Lcom/oracle/graal/api/meta/RiKind;J)Lcom/oracle/graal/api/meta/Constant;") \
+  template(createCiConstant_signature,                "(Lcom/oracle/graal/api/meta/Kind;J)Lcom/oracle/graal/api/meta/Constant;") \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
   template(createCiConstantFloat_signature,           "(F)Lcom/oracle/graal/api/meta/Constant;")                          \
   template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \

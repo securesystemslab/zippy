@@ -177,18 +177,18 @@ void graal_compute_offsets();
     int_field(CiCodePos, bci)                                                           \
   end_class                                                                             \
   start_class(CiConstant)                                                               \
-    oop_field(CiConstant, kind, "Lcom/oracle/graal/api/meta/RiKind;")                       \
+    oop_field(CiConstant, kind, "Lcom/oracle/graal/api/meta/Kind;")                       \
     oop_field(CiConstant, object, "Ljava/lang/Object;")                                 \
     long_field(CiConstant, primitive)                                                   \
   end_class                                                                             \
   start_class(CiKind)                                                                   \
     char_field(CiKind, typeChar)                                                        \
-    static_oop_field(CiKind, Boolean, "Lcom/oracle/graal/api/meta/RiKind;");                \
-    static_oop_field(CiKind, Byte, "Lcom/oracle/graal/api/meta/RiKind;");                   \
-    static_oop_field(CiKind, Char, "Lcom/oracle/graal/api/meta/RiKind;");                   \
-    static_oop_field(CiKind, Short, "Lcom/oracle/graal/api/meta/RiKind;");                  \
-    static_oop_field(CiKind, Int, "Lcom/oracle/graal/api/meta/RiKind;");                    \
-    static_oop_field(CiKind, Long, "Lcom/oracle/graal/api/meta/RiKind;");                   \
+    static_oop_field(CiKind, Boolean, "Lcom/oracle/graal/api/meta/Kind;");                \
+    static_oop_field(CiKind, Byte, "Lcom/oracle/graal/api/meta/Kind;");                   \
+    static_oop_field(CiKind, Char, "Lcom/oracle/graal/api/meta/Kind;");                   \
+    static_oop_field(CiKind, Short, "Lcom/oracle/graal/api/meta/Kind;");                  \
+    static_oop_field(CiKind, Int, "Lcom/oracle/graal/api/meta/Kind;");                    \
+    static_oop_field(CiKind, Long, "Lcom/oracle/graal/api/meta/Kind;");                   \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
     static_oop_field(CiRuntimeCall, UnwindException, "Lcom/oracle/graal/api/code/CiRuntimeCall;"); \
@@ -210,7 +210,7 @@ void graal_compute_offsets();
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
   start_class(CiValue)                                                                  \
-    oop_field(CiValue, kind, "Lcom/oracle/graal/api/meta/RiKind;")                          \
+    oop_field(CiValue, kind, "Lcom/oracle/graal/api/meta/Kind;")                          \
     static_oop_field(CiValue, IllegalValue, "Lcom/oracle/graal/api/meta/Value;");         \
   end_class                                                                             \
   start_class(CiRegisterValue)                                                          \
