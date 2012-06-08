@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,24 +20,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.*;
-import com.oracle.graal.hotspot.bridge.*;
-import com.oracle.graal.hotspot.ri.*;
+class GraalRuntime : public AllStatic {
 
-public interface HotSpotCompiler {
+private:
+  jobject _runtimeObject;
 
-    CompilerToVM getCompilerToVM();
-    VMToCompiler getVMToCompiler();
-    GraalCompiler getCompiler();
-    RiType lookupType(String returnType, HotSpotTypeResolved accessingClass, boolean eagerResolve);
-    HotSpotVMConfig getConfig();
-    HotSpotRuntime getRuntime();
-    CiTarget getTarget();
-    HotSpotGraphCache getCache();
-    void evictDeoptedGraphs();
+public:
+  static jobject instance() { return _runtimeObject; }
 
-}
+};

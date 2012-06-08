@@ -44,6 +44,10 @@ public:
 
   static Handle compilerInstance();
 
+  static jobject compilerPermObject() {
+    return _compilerPermObject;
+  }
+
   // public static boolean HotSpotOptions.setOption(String option);
   static jboolean setOption(Handle option);
 

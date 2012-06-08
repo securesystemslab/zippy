@@ -53,13 +53,13 @@ Handle VMToCompiler::compilerInstance() {
 
 Handle VMToCompiler::instance() {
   if (JNIHandles::resolve(_vmToCompilerPermObject) == NULL) {
-    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_Compiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_CompilerImpl(), SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.Compiler");
 
     JavaValue result(T_OBJECT);
     JavaCallArguments args;
     args.set_receiver(compilerInstance());
-    JavaCalls::call_interface(&result, compilerKlass, vmSymbols::getVMToCompiler_name(), vmSymbols::getVMToCompiler_signature(), &args, Thread::current());
+    JavaCalls::call_virtual(&result, compilerKlass, vmSymbols::getVMToCompiler_name(), vmSymbols::getVMToCompiler_signature(), &args, Thread::current());
     check_pending_exception("Couldn't get VMToCompiler");
     _vmToCompilerPermObject = JNIHandles::make_global((oop) result.get_jobject());
   }
