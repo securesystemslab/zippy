@@ -80,7 +80,7 @@ void graal_compute_offsets();
     oop_field(HotSpotType, name, "Ljava/lang/String;")                                  \
   end_class                                                                             \
   start_class(HotSpotField)                                                             \
-    oop_field(HotSpotField, constant, "Lcom/oracle/graal/api/meta/RiConstant;")             \
+    oop_field(HotSpotField, constant, "Lcom/oracle/graal/api/meta/Constant;")             \
     int_field(HotSpotField, offset)                                                     \
     int_field(HotSpotField, accessFlags)                                                \
   end_class                                                                             \
@@ -139,7 +139,7 @@ void graal_compute_offsets();
     oop_field(CiTargetMethod_Call, debugInfo, "Lcom/oracle/graal/api/code/CiDebugInfo;")    \
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \
-    oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/graal/api/meta/RiConstant;") \
+    oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/graal/api/meta/Constant;") \
     int_field(CiTargetMethod_DataPatch, alignment)                                      \
   end_class                                                                             \
   start_class(CiTargetMethod_Safepoint)                                                 \

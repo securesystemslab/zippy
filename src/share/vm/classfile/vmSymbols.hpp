@@ -309,7 +309,7 @@
   template(com_oracle_max_cri_ci_CiRegisterValue,                     "com/oracle/graal/api/code/CiRegisterValue")                            \
   template(com_oracle_max_cri_ci_CiRegister,                          "com/oracle/graal/api/code/CiRegister")                                 \
   template(com_oracle_max_cri_ci_CiCodePos,                           "com/oracle/graal/api/code/CiCodePos")                                  \
-  template(com_oracle_max_cri_ci_CiConstant,                          "com/oracle/graal/api/meta/RiConstant")                                 \
+  template(com_oracle_max_cri_ci_CiConstant,                          "com/oracle/graal/api/meta/Constant")                                 \
   template(com_oracle_max_cri_ci_CiVirtualObject,                     "com/oracle/graal/api/code/CiVirtualObject")                            \
   template(com_oracle_max_cri_ci_CiMonitorValue,                      "com/oracle/graal/api/code/CiMonitorValue")                             \
   template(com_oracle_max_cri_ci_CiKind,                              "com/oracle/graal/api/meta/RiKind")                                     \
@@ -337,13 +337,13 @@
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
   template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/RiType;")             \
   template(createCiConstant_name,                     "createCiConstant")                                               \
-  template(createCiConstant_signature,                "(Lcom/oracle/graal/api/meta/RiKind;J)Lcom/oracle/graal/api/meta/RiConstant;") \
+  template(createCiConstant_signature,                "(Lcom/oracle/graal/api/meta/RiKind;J)Lcom/oracle/graal/api/meta/Constant;") \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
-  template(createCiConstantFloat_signature,           "(F)Lcom/oracle/graal/api/meta/RiConstant;")                          \
+  template(createCiConstantFloat_signature,           "(F)Lcom/oracle/graal/api/meta/Constant;")                          \
   template(createCiConstantDouble_name,               "createCiConstantDouble")                                         \
-  template(createCiConstantDouble_signature,          "(D)Lcom/oracle/graal/api/meta/RiConstant;")                          \
+  template(createCiConstantDouble_signature,          "(D)Lcom/oracle/graal/api/meta/Constant;")                          \
   template(createCiConstantObject_name,               "createCiConstantObject")                                         \
-  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/graal/api/meta/RiConstant;")         \
+  template(createCiConstantObject_signature,          "(Ljava/lang/Object;)Lcom/oracle/graal/api/meta/Constant;")         \
   template(getVMToCompiler_name,                      "getVMToCompiler")                                                     \
   template(getVMToCompiler_signature,                 "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")               \
   template(getInstance_name,                          "getInstance")                                                    \
