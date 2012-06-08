@@ -154,8 +154,8 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
     oop_field(CiDebugInfo, codePos, "Lcom/oracle/graal/api/code/CiCodePos;")                \
-    oop_field(CiDebugInfo, registerRefMap, "Lcom/oracle/graal/api/meta/RiBitMap;")          \
-    oop_field(CiDebugInfo, frameRefMap, "Lcom/oracle/graal/api/meta/RiBitMap;")             \
+    oop_field(CiDebugInfo, registerRefMap, "Lcom/oracle/graal/api/code/CiBitMap;")          \
+    oop_field(CiDebugInfo, frameRefMap, "Lcom/oracle/graal/api/code/CiBitMap;")             \
   end_class                                                                             \
   start_class(GraalBitMap)                                                              \
     int_field(GraalBitMap, size)                                                        \
