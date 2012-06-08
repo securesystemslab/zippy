@@ -121,6 +121,9 @@ extern "C" {
   void JNICALL JVM_RegisterUnsafeMethods(JNIEnv *env, jclass unsafecls);
   void JNICALL JVM_RegisterMethodHandleMethods(JNIEnv *env, jclass unsafecls);
   void JNICALL JVM_RegisterPerfMethods(JNIEnv *env, jclass perfclass);
+#ifdef GRAAL
+  jobject JNICALL JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass);
+#endif
 }
 
 #define CC (char*)  /* cast a literal from (const char*) */
@@ -134,6 +137,10 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_sun_misc_Unsafe_registerNatives",                      NULL, FN_PTR(JVM_RegisterUnsafeMethods)       },
   { CC"Java_java_lang_invoke_MethodHandleNatives_registerNatives", NULL, FN_PTR(JVM_RegisterMethodHandleMethods) },
   { CC"Java_sun_misc_Perf_registerNatives",                        NULL, FN_PTR(JVM_RegisterPerfMethods)         }
+#ifdef GRAAL
+  ,
+  { CC"Java_com_oracle_graal_api_Graal_initializeRuntime",         NULL, FN_PTR(JVM_InitializeGraalRuntime)      }
+#endif
 };
 
 static address lookup_special_native(char* jni_name) {

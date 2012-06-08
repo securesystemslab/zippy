@@ -28,6 +28,13 @@ project@com.oracle.graal.api@sourceDirs=src
 project@com.oracle.graal.api@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api@javaCompliance=1.7
 
+# graal.api.test
+project@com.oracle.graal.api.test@subDir=graal
+project@com.oracle.graal.api.test@sourceDirs=src
+project@com.oracle.graal.api.test@dependencies=JUNIT,com.oracle.graal.api
+project@com.oracle.graal.api.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.test@javaCompliance=1.7
+
 # graal.api.meta
 project@com.oracle.graal.api.meta@subDir=graal
 project@com.oracle.graal.api.meta@sourceDirs=src

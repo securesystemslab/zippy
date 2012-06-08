@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,33 +20,13 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api;
 
+#include "precompiled.hpp"
 
-public class Graal {
-
-    private static GraalRuntime runtime;
-
-    private static native GraalRuntime initializeRuntime();
-
-    public static GraalRuntime getRuntime() {
-        return runtime;
-    }
-
-    static {
-        try {
-            runtime = initializeRuntime();
-        } catch (UnsatisfiedLinkError e) {
-            runtime = new GraalRuntime() {
-                @Override
-                public String getName() {
-                    return "";
-                }
-                @Override
-                public <T> T getCapability(Class<T> clazz) {
-                    return null;
-                }
-            };
-        }
-    }
-}
+// JVM_InitializeGraalRuntime
+JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
+  ThreadToNativeFromVM ttnfv(thread);
+  jclass klass = env->FindClass("com/oracle/graal/hotspot/HotSpotGraalRuntime");
+  guarantee(klass != NULL, "Could not find class com.oracle.graal.hotspot.HotSpotGraalRuntime");
+  return env->AllocObject(klass);
+JVM_END
