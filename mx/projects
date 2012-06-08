@@ -22,10 +22,36 @@ library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20110908.085753-2.jar
 
+# graal.api
+project@com.oracle.graal.api@subDir=graal
+project@com.oracle.graal.api@sourceDirs=src
+project@com.oracle.graal.api@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api@javaCompliance=1.7
+
+# graal.api.meta
+project@com.oracle.graal.api.meta@subDir=graal
+project@com.oracle.graal.api.meta@sourceDirs=src
+project@com.oracle.graal.api.meta@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.meta@javaCompliance=1.7
+
+# graal.api.code
+project@com.oracle.graal.api.code@subDir=graal
+project@com.oracle.graal.api.code@sourceDirs=src
+project@com.oracle.graal.api.code@dependencies=com.oracle.graal.api.meta
+project@com.oracle.graal.api.code@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.code@javaCompliance=1.7
+
+# graal.api.interpreter
+project@com.oracle.graal.api.interpreter@subDir=graal
+project@com.oracle.graal.api.interpreter@sourceDirs=src
+project@com.oracle.graal.api.interpreter@dependencies=com.oracle.graal.api.meta
+project@com.oracle.graal.api.interpreter@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.interpreter@javaCompliance=1.7
+
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.oracle.graal.api.interpreter,com.oracle.graal.api
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
@@ -127,7 +153,7 @@ project@com.oracle.max.asm@javaCompliance=1.7
 # max.cri
 project@com.oracle.max.cri@subDir=graal
 project@com.oracle.max.cri@sourceDirs=src
-project@com.oracle.max.cri@dependencies=
+project@com.oracle.max.cri@dependencies=com.oracle.graal.api.code
 project@com.oracle.max.cri@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.cri@javaCompliance=1.7
 
