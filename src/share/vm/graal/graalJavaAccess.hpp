@@ -152,7 +152,7 @@ void graal_compute_offsets();
     oop_field(CiTargetMethod_Mark, references, "[Lcom/oracle/graal/api/code/CompilationResult$Mark;") \
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
-    oop_field(CiDebugInfo, codePos, "Lcom/oracle/graal/api/code/BytecodePosition;")                \
+    oop_field(CiDebugInfo, bytecodePosition, "Lcom/oracle/graal/api/code/BytecodePosition;")                \
     oop_field(CiDebugInfo, registerRefMap, "Ljava/util/BitSet;")          \
     oop_field(CiDebugInfo, frameRefMap, "Ljava/util/BitSet;")             \
   end_class                                                                             \

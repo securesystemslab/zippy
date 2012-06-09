@@ -529,7 +529,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   // jint next_pc_offset = Assembler::locate_next_instruction(instruction) - _instructions->start();
   _debug_recorder->add_safepoint(pc_offset, -1, create_oop_map(_total_frame_size, _parameter_count, debug_info));
 
-  oop code_pos = CiDebugInfo::codePos(debug_info);
+  oop code_pos = CiDebugInfo::bytecodePosition(debug_info);
   record_scope(pc_offset, code_pos, new GrowableArray<ScopeValue*>());
 
   _debug_recorder->end_safepoint(pc_offset);
@@ -641,7 +641,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (debug_info != NULL) {
-    oop frame = CiDebugInfo::codePos(debug_info);
+    oop frame = CiDebugInfo::bytecodePosition(debug_info);
     _debug_recorder->add_safepoint(next_pc_offset, CiFrame::leafGraphId(frame), create_oop_map(_total_frame_size, _parameter_count, debug_info));
     record_scope(next_pc_offset, frame, new GrowableArray<ScopeValue*>());
   }

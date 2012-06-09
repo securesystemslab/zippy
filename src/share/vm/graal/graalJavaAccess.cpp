@@ -36,8 +36,9 @@ void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, cons
     tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass_oop->klass_part()->name()->as_C_string());
   }
 #endif
-  guarantee(name_symbol != NULL, "symbol not found - class layout changed?");
-  guarantee(signature_symbol != NULL, "symbol not found - class layout changed?");
+  if (name_symbol == NULL || signature_symbol == NULL) {
+    guarantee(false, err_msg("symbol not found - class layout of %s changed?", klass_oop->klass_part()->name()->as_C_string()));
+  }
 
   instanceKlass* ik = instanceKlass::cast(klass_oop);
   fieldDescriptor fd;
