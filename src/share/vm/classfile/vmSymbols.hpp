@@ -280,7 +280,6 @@
   template(com_oracle_graal_hotspot_HotSpotTypeResolved,          "com/oracle/graal/hotspot/ri/HotSpotTypeResolvedImpl")          \
   template(com_oracle_graal_hotspot_HotSpotType,                  "com/oracle/graal/hotspot/ri/HotSpotType")                      \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,              "com/oracle/graal/hotspot/ri/HotSpotKlassOop")                  \
-  template(com_oracle_graal_hotspot_HotSpotExceptionHandler,      "com/oracle/graal/api/meta/ExceptionHandler")          \
   template(com_oracle_graal_hotspot_HotSpotProxy,                 "com/oracle/graal/hotspot/HotSpotProxy")                        \
   template(com_oracle_graal_hotspot_CompilerImpl,                 "com/oracle/graal/hotspot/HotSpotGraalRuntime")                        \
   template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/graal/api/meta/JavaMethod")                                   \
@@ -288,11 +287,11 @@
   template(com_oracle_max_cri_ri_RiType,                              "com/oracle/graal/api/meta/JavaType")                                     \
   template(com_oracle_max_cri_ri_RiConstantPool,                      "com/oracle/graal/api/meta/ConstantPool")                             \
   template(com_oracle_max_cri_ri_RiExceptionHandler,                  "com/oracle/graal/api/meta/ExceptionHandler")                         \
-  template(com_oracle_max_cri_ci_CiAssumptions,                       "com/oracle/graal/api/code/CiAssumptions")                              \
-  template(com_oracle_max_cri_ci_CiAssumptions_MethodContents,        "com/oracle/graal/api/code/CiAssumptions$MethodContents")               \
-  template(com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,       "com/oracle/graal/api/code/CiAssumptions$ConcreteSubtype")              \
-  template(com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,        "com/oracle/graal/api/code/CiAssumptions$ConcreteMethod")               \
-  template(com_oracle_max_cri_ci_CiGenericCallback,                   "com/oracle/graal/api/code/CiGenericCallback")                          \
+  template(com_oracle_max_cri_ci_CiAssumptions,                       "com/oracle/graal/api/code/Assumptions")                              \
+  template(com_oracle_max_cri_ci_CiAssumptions_MethodContents,        "com/oracle/graal/api/code/Assumptions$MethodContents")               \
+  template(com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,       "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")              \
+  template(com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,        "com/oracle/graal/api/code/Assumptions$ConcreteMethod")               \
+  template(com_oracle_max_cri_ci_CiGenericCallback,                   "com/oracle/graal/api/code/GenericCallback")                          \
   template(com_oracle_max_cri_ci_CiTargetMethod,                      "com/oracle/graal/api/code/CompilationResult")                             \
   template(com_oracle_max_cri_ci_CiTargetMethod_Site,                 "com/oracle/graal/api/code/CompilationResult$Site")                        \
   template(com_oracle_max_cri_ci_CiTargetMethod_Call,                 "com/oracle/graal/api/code/CompilationResult$Call")                        \
@@ -301,18 +300,18 @@
   template(com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,     "com/oracle/graal/api/code/CompilationResult$ExceptionHandler")            \
   template(com_oracle_max_cri_ci_CiTargetMethod_Mark,                 "com/oracle/graal/api/code/CompilationResult$Mark")                        \
   template(com_oracle_max_cri_ci_CiBitMap,	                          "java/util/BitSet")                                   \
-  template(com_oracle_max_cri_ci_CiDebugInfo,                         "com/oracle/graal/api/code/CiDebugInfo")                                \
-  template(com_oracle_max_cri_ci_CiFrame,                             "com/oracle/graal/api/code/CiFrame")                                    \
+  template(com_oracle_max_cri_ci_CiDebugInfo,                         "com/oracle/graal/api/code/DebugInfo")                                \
+  template(com_oracle_max_cri_ci_CiFrame,                             "com/oracle/graal/api/code/BytecodeFrame")                                    \
   template(com_oracle_max_cri_ci_CiValue,                             "com/oracle/graal/api/meta/Value")                                    \
-  template(com_oracle_max_cri_ci_CiStackSlot,                         "com/oracle/graal/api/code/CiStackSlot")                                \
-  template(com_oracle_max_cri_ci_CiRegisterValue,                     "com/oracle/graal/api/code/CiRegisterValue")                            \
-  template(com_oracle_max_cri_ci_CiRegister,                          "com/oracle/graal/api/code/CiRegister")                                 \
-  template(com_oracle_max_cri_ci_CiCodePos,                           "com/oracle/graal/api/code/CiCodePos")                                  \
+  template(com_oracle_max_cri_ci_CiStackSlot,                         "com/oracle/graal/api/code/StackSlot")                                \
+  template(com_oracle_max_cri_ci_CiRegisterValue,                     "com/oracle/graal/api/code/RegisterValue")                            \
+  template(com_oracle_max_cri_ci_CiRegister,                          "com/oracle/graal/api/code/Register")                                 \
+  template(com_oracle_max_cri_ci_CiCodePos,                           "com/oracle/graal/api/code/BytecodePosition")                                  \
   template(com_oracle_max_cri_ci_CiConstant,                          "com/oracle/graal/api/meta/Constant")                                 \
-  template(com_oracle_max_cri_ci_CiVirtualObject,                     "com/oracle/graal/api/code/CiVirtualObject")                            \
-  template(com_oracle_max_cri_ci_CiMonitorValue,                      "com/oracle/graal/api/code/CiMonitorValue")                             \
+  template(com_oracle_max_cri_ci_CiVirtualObject,                     "com/oracle/graal/api/code/VirtualObject")                            \
+  template(com_oracle_max_cri_ci_CiMonitorValue,                      "com/oracle/graal/api/code/MonitorValue")                             \
   template(com_oracle_max_cri_ci_CiKind,                              "com/oracle/graal/api/meta/Kind")                                     \
-  template(com_oracle_max_cri_ci_CiRuntimeCall,                       "com/oracle/graal/api/code/CiRuntimeCall")                              \
+  template(com_oracle_max_cri_ci_CiRuntimeCall,                       "com/oracle/graal/api/code/RuntimeCall")                              \
   template(startCompiler_name,                        "startCompiler")                                                  \
   template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \

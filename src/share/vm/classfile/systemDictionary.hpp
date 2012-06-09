@@ -197,7 +197,6 @@ class SymbolPropertyTable;
   template(HotSpotMethodResolved_klass,           com_oracle_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
   template(HotSpotMethodData_klass,               com_oracle_graal_hotspot_ri_HotSpotMethodData,                Opt) \
   template(HotSpotTargetMethod_klass,             com_oracle_graal_hotspot_HotSpotTargetMethod,                 Opt) \
-  template(HotSpotExceptionHandler_klass,         com_oracle_graal_hotspot_HotSpotExceptionHandler,             Opt) \
   template(HotSpotProxy_klass,                    com_oracle_graal_hotspot_HotSpotProxy,                        Opt) \
   template(CiAssumptions_klass,                   com_oracle_max_cri_ci_CiAssumptions,                              Opt) \
   template(CiAssumptions_MethodContents_klass,    com_oracle_max_cri_ci_CiAssumptions_MethodContents,               Opt) \

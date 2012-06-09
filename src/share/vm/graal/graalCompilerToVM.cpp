@@ -103,30 +103,30 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVM
   typeArrayHandle handlers = method->exception_table();
   int handler_count = handlers.is_null() ? 0 : handlers->length() / 4;
 
-  instanceKlass::cast(HotSpotExceptionHandler::klass())->initialize(CHECK_NULL);
+  instanceKlass::cast(RiExceptionHandler::klass())->initialize(CHECK_NULL);
   objArrayHandle array = oopFactory::new_objArray(SystemDictionary::RiExceptionHandler_klass(), handler_count, CHECK_NULL);
 
   for (int i = 0; i < handler_count; i++) {
     // exception handlers are stored as four integers: start bci, end bci, handler bci, catch class constant pool index
     int base = i * 4;
-    Handle entry = instanceKlass::cast(HotSpotExceptionHandler::klass())->allocate_instance(CHECK_NULL);
-    HotSpotExceptionHandler::set_startBCI(entry, handlers->int_at(base + 0));
-    HotSpotExceptionHandler::set_endBCI(entry, handlers->int_at(base + 1));
-    HotSpotExceptionHandler::set_handlerBCI(entry, handlers->int_at(base + 2));
+    Handle entry = instanceKlass::cast(RiExceptionHandler::klass())->allocate_instance(CHECK_NULL);
+    RiExceptionHandler::set_startBCI(entry, handlers->int_at(base + 0));
+    RiExceptionHandler::set_endBCI(entry, handlers->int_at(base + 1));
+    RiExceptionHandler::set_handlerBCI(entry, handlers->int_at(base + 2));
     int catch_class_index = handlers->int_at(base + 3);
-    HotSpotExceptionHandler::set_catchTypeCPI(entry, catch_class_index);
+    RiExceptionHandler::set_catchTypeCPI(entry, catch_class_index);
 
     if (catch_class_index == 0) {
-      HotSpotExceptionHandler::set_catchType(entry, NULL);
+      RiExceptionHandler::set_catchType(entry, NULL);
     } else {
       constantPoolOop cp = instanceKlass::cast(method->method_holder())->constants();
       KlassHandle loading_klass = method->method_holder();
       Handle catch_class = GraalCompiler::get_RiType(cp, catch_class_index, loading_klass, CHECK_NULL);
       if (catch_class->klass() == HotSpotTypeResolved::klass() && java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(catch_class)) == SystemDictionary::Throwable_klass()) {
-        HotSpotExceptionHandler::set_catchType(entry, NULL);
-        HotSpotExceptionHandler::set_catchTypeCPI(entry, 0);
+        RiExceptionHandler::set_catchType(entry, NULL);
+        RiExceptionHandler::set_catchTypeCPI(entry, 0);
       } else {
-        HotSpotExceptionHandler::set_catchType(entry, catch_class());
+        RiExceptionHandler::set_catchType(entry, catch_class());
       }
     }
     array->obj_at_put(i, entry());
@@ -1139,7 +1139,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define METHOD_DATA     "Lcom/oracle/graal/hotspot/ri/HotSpotMethodData;"
 #define CI_CONSTANT     "Lcom/oracle/graal/api/meta/Constant;"
 #define CI_KIND         "Lcom/oracle/graal/api/meta/Kind;"
-#define CI_RUNTIME_CALL "Lcom/oracle/graal/api/code/CiRuntimeCall;"
+#define CI_RUNTIME_CALL "Lcom/oracle/graal/api/code/RuntimeCall;"
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"
 #define CLASS           "Ljava/lang/Class;"

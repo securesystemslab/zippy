@@ -101,22 +101,22 @@ void graal_compute_offsets();
     oop_field(HotSpotTargetMethod, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;") \
     oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;") \
   end_class                                                                             \
-  start_class(HotSpotExceptionHandler)                                                  \
-    int_field(HotSpotExceptionHandler, startBCI)                                        \
-    int_field(HotSpotExceptionHandler, endBCI)                                          \
-    int_field(HotSpotExceptionHandler, handlerBCI)                                      \
-    int_field(HotSpotExceptionHandler, catchTypeCPI)                                 \
-    oop_field(HotSpotExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")    \
+  start_class(RiExceptionHandler)                                                  \
+    int_field(RiExceptionHandler, startBCI)                                        \
+    int_field(RiExceptionHandler, endBCI)                                          \
+    int_field(RiExceptionHandler, handlerBCI)                                      \
+    int_field(RiExceptionHandler, catchTypeCPI)                                 \
+    oop_field(RiExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")    \
   end_class                                                                             \
   start_class(CiTargetMethod)                                                           \
     int_field(CiTargetMethod, frameSize)                                                \
     int_field(CiTargetMethod, customStackAreaOffset)                                    \
     oop_field(CiTargetMethod, targetCode, "[B")                                         \
-    oop_field(CiTargetMethod, assumptions, "Lcom/oracle/graal/api/code/CiAssumptions;")     \
+    oop_field(CiTargetMethod, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")     \
     int_field(CiTargetMethod, targetCodeSize)                                           \
   end_class                                                                             \
   start_class(CiAssumptions)                                                            \
-    oop_field(CiAssumptions, list, "[Lcom/oracle/graal/api/code/CiAssumptions$Assumption;") \
+    oop_field(CiAssumptions, list, "[Lcom/oracle/graal/api/code/Assumptions$Assumption;") \
   end_class                                                                             \
   start_class(CiAssumptions_MethodContents)                                             \
     oop_field(CiAssumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
@@ -135,14 +135,14 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiTargetMethod_Call)                                                      \
     oop_field(CiTargetMethod_Call, target, "Ljava/lang/Object;")                        \
-    oop_field(CiTargetMethod_Call, debugInfo, "Lcom/oracle/graal/api/code/CiDebugInfo;")    \
+    oop_field(CiTargetMethod_Call, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")    \
   end_class                                                                             \
   start_class(CiTargetMethod_DataPatch)                                                 \
     oop_field(CiTargetMethod_DataPatch, constant, "Lcom/oracle/graal/api/meta/Constant;") \
     int_field(CiTargetMethod_DataPatch, alignment)                                      \
   end_class                                                                             \
   start_class(CiTargetMethod_Safepoint)                                                 \
-    oop_field(CiTargetMethod_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/CiDebugInfo;") \
+    oop_field(CiTargetMethod_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;") \
   end_class                                                                             \
   start_class(CiTargetMethod_ExceptionHandler)                                          \
     int_field(CiTargetMethod_ExceptionHandler, handlerPos)                              \
@@ -152,7 +152,7 @@ void graal_compute_offsets();
     oop_field(CiTargetMethod_Mark, references, "[Lcom/oracle/graal/api/code/CompilationResult$Mark;") \
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
-    oop_field(CiDebugInfo, codePos, "Lcom/oracle/graal/api/code/CiCodePos;")                \
+    oop_field(CiDebugInfo, codePos, "Lcom/oracle/graal/api/code/BytecodePosition;")                \
     oop_field(CiDebugInfo, registerRefMap, "Ljava/util/BitSet;")          \
     oop_field(CiDebugInfo, frameRefMap, "Ljava/util/BitSet;")             \
   end_class                                                                             \
@@ -169,7 +169,7 @@ void graal_compute_offsets();
     boolean_field(CiFrame, duringCall)                                                  \
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
-    oop_field(CiCodePos, caller, "Lcom/oracle/graal/api/code/CiCodePos;")                   \
+    oop_field(CiCodePos, caller, "Lcom/oracle/graal/api/code/BytecodePosition;")                   \
     oop_field(CiCodePos, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")            \
     int_field(CiCodePos, bci)                                                           \
   end_class                                                                             \
@@ -188,21 +188,21 @@ void graal_compute_offsets();
     static_oop_field(CiKind, Long, "Lcom/oracle/graal/api/meta/Kind;");                   \
   end_class                                                                             \
   start_class(CiRuntimeCall)                                                            \
-    static_oop_field(CiRuntimeCall, UnwindException, "Lcom/oracle/graal/api/code/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, RegisterFinalizer, "Lcom/oracle/graal/api/code/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, SetDeoptInfo, "Lcom/oracle/graal/api/code/CiRuntimeCall;");    \
-    static_oop_field(CiRuntimeCall, CreateNullPointerException, "Lcom/oracle/graal/api/code/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, CreateOutOfBoundsException, "Lcom/oracle/graal/api/code/CiRuntimeCall;"); \
-    static_oop_field(CiRuntimeCall, JavaTimeMillis, "Lcom/oracle/graal/api/code/CiRuntimeCall;");  \
-    static_oop_field(CiRuntimeCall, JavaTimeNanos, "Lcom/oracle/graal/api/code/CiRuntimeCall;");   \
-    static_oop_field(CiRuntimeCall, Debug, "Lcom/oracle/graal/api/code/CiRuntimeCall;");           \
-    static_oop_field(CiRuntimeCall, ArithmeticFrem, "Lcom/oracle/graal/api/code/CiRuntimeCall;");  \
-    static_oop_field(CiRuntimeCall, ArithmeticDrem, "Lcom/oracle/graal/api/code/CiRuntimeCall;");  \
-    static_oop_field(CiRuntimeCall, ArithmeticCos, "Lcom/oracle/graal/api/code/CiRuntimeCall;");   \
-    static_oop_field(CiRuntimeCall, ArithmeticTan, "Lcom/oracle/graal/api/code/CiRuntimeCall;");   \
-    static_oop_field(CiRuntimeCall, ArithmeticSin, "Lcom/oracle/graal/api/code/CiRuntimeCall;");   \
-    static_oop_field(CiRuntimeCall, Deoptimize, "Lcom/oracle/graal/api/code/CiRuntimeCall;");      \
-    static_oop_field(CiRuntimeCall, GenericCallback, "Lcom/oracle/graal/api/code/CiRuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, UnwindException, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, RegisterFinalizer, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, SetDeoptInfo, "Lcom/oracle/graal/api/code/RuntimeCall;");    \
+    static_oop_field(CiRuntimeCall, CreateNullPointerException, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, CreateOutOfBoundsException, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
+    static_oop_field(CiRuntimeCall, JavaTimeMillis, "Lcom/oracle/graal/api/code/RuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, JavaTimeNanos, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, Debug, "Lcom/oracle/graal/api/code/RuntimeCall;");           \
+    static_oop_field(CiRuntimeCall, ArithmeticFrem, "Lcom/oracle/graal/api/code/RuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, ArithmeticDrem, "Lcom/oracle/graal/api/code/RuntimeCall;");  \
+    static_oop_field(CiRuntimeCall, ArithmeticCos, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, ArithmeticTan, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, ArithmeticSin, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
+    static_oop_field(CiRuntimeCall, Deoptimize, "Lcom/oracle/graal/api/code/RuntimeCall;");      \
+    static_oop_field(CiRuntimeCall, GenericCallback, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
   end_class                                                                             \
   start_class(RiMethod)                                                                 \
   end_class                                                                             \
@@ -211,7 +211,7 @@ void graal_compute_offsets();
     static_oop_field(CiValue, IllegalValue, "Lcom/oracle/graal/api/meta/Value;");         \
   end_class                                                                             \
   start_class(CiRegisterValue)                                                          \
-    oop_field(CiRegisterValue, reg, "Lcom/oracle/graal/api/code/CiRegister;")               \
+    oop_field(CiRegisterValue, reg, "Lcom/oracle/graal/api/code/Register;")               \
   end_class                                                                             \
   start_class(CiRegister)                                                               \
     int_field(CiRegister, number)                                                       \
