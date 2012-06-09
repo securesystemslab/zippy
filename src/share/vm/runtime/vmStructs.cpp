@@ -230,7 +230,7 @@
 // type name, indicating an "opaque" type to the serviceability agent.
 
 // NOTE: there is an interdependency between this file and
-// HotSpotTypeDataBase.java, which parses the type strings.
+// HotSpotJavaTypeDataBase.java, which parses the type strings.
 
 #ifndef REG_COUNT
   #define REG_COUNT 0

@@ -68,11 +68,11 @@ static int bitmap_size(oop bit_map) {
   return arr->length() * MapWordBits;
 }
 
-// creates a hotspot oop map out of the byte arrays provided by CiDebugInfo
+// creates a hotspot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
-  oop register_map = (oop) CiDebugInfo::registerRefMap(debug_info);
-  oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
+  oop register_map = (oop) DebugInfo::registerRefMap(debug_info);
+  oop frame_map = (oop) DebugInfo::frameRefMap(debug_info);
 
   if (register_map != NULL) {
     for (jint i = 0; i < NUM_CPU_REGS; i++) {
@@ -104,16 +104,16 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
 // TODO: finish this - graal doesn't provide any scope values at the moment
 static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
   second = NULL;
-  if (value == CiValue::IllegalValue()) {
+  if (value == Value::IllegalValue()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
-  BasicType type = GraalCompiler::kindToBasicType(CiKind::typeChar(CiValue::kind(value)));
+  BasicType type = GraalCompiler::kindToBasicType(Kind::typeChar(Value::kind(value)));
   Location::Type locationType = Location::normal;
   if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
 
-  if (value->is_a(CiRegisterValue::klass())) {
-    jint number = CiRegister::number(CiRegisterValue::reg(value));
+  if (value->is_a(RegisterValue::klass())) {
+    jint number = code_Register::number(RegisterValue::reg(value));
     if (number < 16) {
       if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
         locationType = Location::int_in_long;
@@ -141,14 +141,14 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       }
       return value;
     }
-  } else if (value->is_a(CiStackSlot::klass())) {
+  } else if (value->is_a(StackSlot::klass())) {
     if (type == T_DOUBLE) {
       locationType = Location::dbl;
     } else if (type == T_LONG) {
       locationType = Location::lng;
     }
-    jint offset = CiStackSlot::offset(value);
-    if (CiStackSlot::addFrameSize(value)) {
+    jint offset = StackSlot::offset(value);
+    if (StackSlot::addFrameSize(value)) {
       offset += total_frame_size;
     }
     ScopeValue* value = new LocationValue(Location::new_stk_loc(locationType, offset));
@@ -156,16 +156,16 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       second = value;
     }
     return value;
-  } else if (value->is_a(CiConstant::klass())){
-    oop obj = CiConstant::object(value);
-    jlong prim = CiConstant::primitive(value);
+  } else if (value->is_a(Constant::klass())){
+    oop obj = Constant::object(value);
+    jlong prim = Constant::primitive(value);
     if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
       return new ConstantIntValue(*(jint*)&prim);
     } else if (type == T_LONG || type == T_DOUBLE) {
       second = new ConstantIntValue(0);
       return new ConstantLongValue(prim);
     } else if (type == T_OBJECT) {
-      oop obj = CiConstant::object(value);
+      oop obj = Constant::object(value);
       if (obj == NULL) {
         return new ConstantOopWriteValue(NULL);
       } else {
@@ -175,10 +175,10 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       return new ConstantLongValue(prim);
     }
     tty->print("%i", type);
-  } else if (value->is_a(CiVirtualObject::klass())) {
-    oop type = CiVirtualObject::type(value);
-    int id = CiVirtualObject::id(value);
-    klassOop klass = java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type));
+  } else if (value->is_a(VirtualObject::klass())) {
+    oop type = VirtualObject::type(value);
+    int id = VirtualObject::id(value);
+    klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type));
     bool isLongArray = klass == Universe::longArrayKlassObj();
 
     for (jint i = 0; i < objects->length(); i++) {
@@ -190,7 +190,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
 
     ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), klass)));
 
-    arrayOop values = (arrayOop) CiVirtualObject::values(value);
+    arrayOop values = (arrayOop) VirtualObject::values(value);
     for (jint i = 0; i < values->length(); i++) {
       ((oop*) values->base(T_OBJECT))[i];
     }
@@ -226,19 +226,19 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
 }
 
 static MonitorValue* get_monitor_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects) {
-  guarantee(value->is_a(CiMonitorValue::klass()), "Monitors must be of type CiMonitorValue");
+  guarantee(value->is_a(code_MonitorValue::klass()), "Monitors must be of type MonitorValue");
 
   ScopeValue* second = NULL;
-  ScopeValue* owner_value = get_hotspot_value(CiMonitorValue::owner(value), total_frame_size, objects, second);
+  ScopeValue* owner_value = get_hotspot_value(code_MonitorValue::owner(value), total_frame_size, objects, second);
   assert(second == NULL, "monitor cannot occupy two stack slots");
 
-  ScopeValue* lock_data_value = get_hotspot_value(CiMonitorValue::lockData(value), total_frame_size, objects, second);
+  ScopeValue* lock_data_value = get_hotspot_value(code_MonitorValue::lockData(value), total_frame_size, objects, second);
   assert(second == lock_data_value, "monitor is LONG value that occupies two stack slots");
   assert(lock_data_value->is_location(), "invalid monitor location");
   Location lock_data_loc = ((LocationValue*)lock_data_value)->location();
 
   bool eliminated = false;
-  if (CiMonitorValue::eliminated(value)) {
+  if (code_MonitorValue::eliminated(value)) {
     eliminated = true;
   }
 
@@ -250,18 +250,18 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
-  Handle assumptions_handle = CiTargetMethod::assumptions(HotSpotTargetMethod::targetMethod(target_method));
+  Handle assumptions_handle = InstalledCode::assumptions(HotSpotTargetMethod::targetMethod(target_method));
   if (!assumptions_handle.is_null()) {
-    objArrayHandle assumptions(Thread::current(), (objArrayOop)CiAssumptions::list(assumptions_handle()));
+    objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
     int length = assumptions->length();
     for (int i = 0; i < length; ++i) {
       Handle assumption = assumptions->obj_at(i);
       if (!assumption.is_null()) {
-        if (assumption->klass() == CiAssumptions_MethodContents::klass()) {
+        if (assumption->klass() == Assumptions_MethodContents::klass()) {
           assumption_MethodContents(assumption);
-        } else if (assumption->klass() == CiAssumptions_ConcreteSubtype::klass()) {
+        } else if (assumption->klass() == Assumptions_ConcreteSubtype::klass()) {
           assumption_ConcreteSubtype(assumption);
-        } else if (assumption->klass() == CiAssumptions_ConcreteMethod::klass()) {
+        } else if (assumption->klass() == Assumptions_ConcreteMethod::klass()) {
           assumption_ConcreteMethod(assumption);
         } else {
           assumption->print();
@@ -327,11 +327,11 @@ void CodeInstaller::initialize_fields(oop target_method) {
   _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
   _exception_handlers = (arrayOop) HotSpotTargetMethod::exceptionHandlers(target_method);
 
-  _code = (arrayOop) CiTargetMethod::targetCode(_citarget_method);
-  _code_size = CiTargetMethod::targetCodeSize(_citarget_method);
+  _code = (arrayOop) InstalledCode::targetCode(_citarget_method);
+  _code_size = InstalledCode::targetCodeSize(_citarget_method);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CiTargetMethod::frameSize(_citarget_method) + HeapWordSize;
-  _custom_stack_area_offset = CiTargetMethod::customStackAreaOffset(_citarget_method);
+  _total_frame_size = InstalledCode::frameSize(_citarget_method) + HeapWordSize;
+  _custom_stack_area_offset = InstalledCode::customStackAreaOffset(_citarget_method);
 
 
   // (very) conservative estimate: each site needs a constant section entry
@@ -365,18 +365,18 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   oop* sites = (oop*) _sites->base(T_OBJECT);
   for (int i = 0; i < _sites->length(); i++) {
     oop site = sites[i];
-    jint pc_offset = CiTargetMethod_Site::pcOffset(site);
+    jint pc_offset = InstalledCode_Site::pcOffset(site);
 
-    if (site->is_a(CiTargetMethod_Call::klass())) {
+    if (site->is_a(InstalledCode_Call::klass())) {
       TRACE_graal_4("call at %i", pc_offset);
       site_Call(buffer, pc_offset, site);
-    } else if (site->is_a(CiTargetMethod_Safepoint::klass())) {
+    } else if (site->is_a(InstalledCode_Safepoint::klass())) {
       TRACE_graal_4("safepoint at %i", pc_offset);
       site_Safepoint(buffer, pc_offset, site);
-    } else if (site->is_a(CiTargetMethod_DataPatch::klass())) {
+    } else if (site->is_a(InstalledCode_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
       site_DataPatch(buffer, pc_offset, site);
-    } else if (site->is_a(CiTargetMethod_Mark::klass())) {
+    } else if (site->is_a(InstalledCode_Mark::klass())) {
       TRACE_graal_4("mark at %i", pc_offset);
       site_Mark(buffer, pc_offset, site);
     } else {
@@ -386,7 +386,7 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 }
 
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
-  Handle method_handle = CiAssumptions_MethodContents::method(assumption());
+  Handle method_handle = Assumptions_MethodContents::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
 
@@ -394,11 +394,11 @@ void CodeInstaller::assumption_MethodContents(Handle assumption) {
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
-  Handle context_handle = CiAssumptions_ConcreteSubtype::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_handle)));
+  Handle context_handle = Assumptions_ConcreteSubtype::context(assumption());
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(context_handle)));
 
-  Handle type_handle = CiAssumptions_ConcreteSubtype::subtype(assumption());
-  ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(type_handle)));
+  Handle type_handle = Assumptions_ConcreteSubtype::subtype(assumption());
+  ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type_handle)));
 
   _dependencies->assert_leaf_type(type);
   if (context != type) {
@@ -408,12 +408,12 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
 }
 
 void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
-  Handle impl_handle = CiAssumptions_ConcreteMethod::impl(assumption());
+  Handle impl_handle = Assumptions_ConcreteMethod::impl(assumption());
   methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(impl());
   
-  Handle context_handle = CiAssumptions_ConcreteMethod::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(context_handle)));
+  Handle context_handle = Assumptions_ConcreteMethod::context(assumption());
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(context_handle)));
   _dependencies->assert_unique_concrete_method(context, m);
 }
 
@@ -428,8 +428,8 @@ void CodeInstaller::process_exception_handlers() {
     oop* exception_handlers = (oop*) _exception_handlers->base(T_OBJECT);
     for (int i = 0; i < _exception_handlers->length(); i++) {
       oop exc = exception_handlers[i];
-      jint pc_offset = CiTargetMethod_Site::pcOffset(exc);
-      jint handler_offset = CiTargetMethod_ExceptionHandler::handlerPos(exc);
+      jint pc_offset = InstalledCode_Site::pcOffset(exc);
+      jint handler_offset = InstalledCode_ExceptionHandler::handlerPos(exc);
 
       // Subtable header
       _exception_handler_table.add_entry(HandlerTableEntry(1, pc_offset, 0));
@@ -441,15 +441,15 @@ void CodeInstaller::process_exception_handlers() {
 }
 
 void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeValue*>* objects) {
-  assert(frame->klass() == CiFrame::klass(), "CiFrame expected");
-  oop caller_frame = CiCodePos::caller(frame);
+  assert(frame->klass() == BytecodeFrame::klass(), "BytecodeFrame expected");
+  oop caller_frame = BytecodePosition::caller(frame);
   if (caller_frame != NULL) {
     record_scope(pc_offset, caller_frame, objects);
   }
 
-  oop hotspot_method = CiCodePos::method(frame);
+  oop hotspot_method = BytecodePosition::method(frame);
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
-  jint bci = CiCodePos::bci(frame);
+  jint bci = BytecodePosition::bci(frame);
   bool reexecute;
   if (bci == -1) {
      reexecute = false;
@@ -457,7 +457,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
     reexecute = Interpreter::bytecode_should_reexecute(code);
     if (frame != NULL) {
-      reexecute = (CiFrame::duringCall(frame) == 0);
+      reexecute = (BytecodeFrame::duringCall(frame) == 0);
     }
   }
 
@@ -465,10 +465,10 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
   }
 
-  jint local_count = CiFrame::numLocals(frame);
-  jint expression_count = CiFrame::numStack(frame);
-  jint monitor_count = CiFrame::numLocks(frame);
-  arrayOop values = (arrayOop) CiFrame::values(frame);
+  jint local_count = BytecodeFrame::numLocals(frame);
+  jint expression_count = BytecodeFrame::numStack(frame);
+  jint monitor_count = BytecodeFrame::numLocks(frame);
+  arrayOop values = (arrayOop) BytecodeFrame::values(frame);
 
   assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
 
@@ -502,8 +502,8 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     }
     if (second != NULL) {
       i++;
-      assert(i < values->length(), "double-slot value not followed by CiValue.IllegalValue");
-      assert(((oop*) values->base(T_OBJECT))[i] == CiValue::IllegalValue(), "double-slot value not followed by CiValue.IllegalValue");
+      assert(i < values->length(), "double-slot value not followed by Value.IllegalValue");
+      assert(((oop*) values->base(T_OBJECT))[i] == Value::IllegalValue(), "double-slot value not followed by Value.IllegalValue");
     }
   }
 
@@ -514,7 +514,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
   bool throw_exception = false;
-  if (CiFrame::rethrowException(frame)) {
+  if (BytecodeFrame::rethrowException(frame)) {
     throw_exception = true;
   }
 
@@ -522,14 +522,14 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop debug_info = CiTargetMethod_Safepoint::debugInfo(site);
+  oop debug_info = InstalledCode_Safepoint::debugInfo(site);
   assert(debug_info != NULL, "debug info expected");
 
   // address instruction = _instructions->start() + pc_offset;
   // jint next_pc_offset = Assembler::locate_next_instruction(instruction) - _instructions->start();
   _debug_recorder->add_safepoint(pc_offset, -1, create_oop_map(_total_frame_size, _parameter_count, debug_info));
 
-  oop code_pos = CiDebugInfo::bytecodePosition(debug_info);
+  oop code_pos = DebugInfo::bytecodePosition(debug_info);
   record_scope(pc_offset, code_pos, new GrowableArray<ScopeValue*>());
 
   _debug_recorder->end_safepoint(pc_offset);
@@ -537,50 +537,50 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 
 address CodeInstaller::runtime_call_target_address(oop runtime_call) {
   address target_addr = 0x0;
-  if (runtime_call == CiRuntimeCall::Debug()) {
-    TRACE_graal_3("CiRuntimeCall::Debug()");
-  } else if (runtime_call == CiRuntimeCall::UnwindException()) {
+  if (runtime_call == RuntimeCall::Debug()) {
+    TRACE_graal_3("RuntimeCall::Debug()");
+  } else if (runtime_call == RuntimeCall::UnwindException()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id);
-    TRACE_graal_3("CiRuntimeCall::UnwindException()");
-  } else if (runtime_call == CiRuntimeCall::SetDeoptInfo()) {
+    TRACE_graal_3("RuntimeCall::UnwindException()");
+  } else if (runtime_call == RuntimeCall::SetDeoptInfo()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_set_deopt_info_id);
-    TRACE_graal_3("CiRuntimeCall::SetDeoptInfo()");
-  } else if (runtime_call == CiRuntimeCall::CreateNullPointerException()) {
+    TRACE_graal_3("RuntimeCall::SetDeoptInfo()");
+  } else if (runtime_call == RuntimeCall::CreateNullPointerException()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id);
-    TRACE_graal_3("CiRuntimeCall::CreateNullPointerException()");
-  } else if (runtime_call == CiRuntimeCall::CreateOutOfBoundsException()) {
+    TRACE_graal_3("RuntimeCall::CreateNullPointerException()");
+  } else if (runtime_call == RuntimeCall::CreateOutOfBoundsException()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id);
-    TRACE_graal_3("CiRuntimeCall::CreateOutOfBoundsException()");
-  } else if (runtime_call == CiRuntimeCall::JavaTimeMillis()) {
+    TRACE_graal_3("RuntimeCall::CreateOutOfBoundsException()");
+  } else if (runtime_call == RuntimeCall::JavaTimeMillis()) {
     target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
-    TRACE_graal_3("CiRuntimeCall::JavaTimeMillis()");
-  } else if (runtime_call == CiRuntimeCall::JavaTimeNanos()) {
+    TRACE_graal_3("RuntimeCall::JavaTimeMillis()");
+  } else if (runtime_call == RuntimeCall::JavaTimeNanos()) {
     target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
-    TRACE_graal_3("CiRuntimeCall::JavaTimeNanos()");
-  } else if (runtime_call == CiRuntimeCall::ArithmeticFrem()) {
+    TRACE_graal_3("RuntimeCall::JavaTimeNanos()");
+  } else if (runtime_call == RuntimeCall::ArithmeticFrem()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id);
-    TRACE_graal_3("CiRuntimeCall::ArithmeticFrem()");
-  } else if (runtime_call == CiRuntimeCall::ArithmeticDrem()) {
+    TRACE_graal_3("RuntimeCall::ArithmeticFrem()");
+  } else if (runtime_call == RuntimeCall::ArithmeticDrem()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id);
-    TRACE_graal_3("CiRuntimeCall::ArithmeticDrem()");
-  } else if (runtime_call == CiRuntimeCall::ArithmeticSin()) {
+    TRACE_graal_3("RuntimeCall::ArithmeticDrem()");
+  } else if (runtime_call == RuntimeCall::ArithmeticSin()) {
     target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
-    TRACE_graal_3("CiRuntimeCall::ArithmeticSin()");
-  } else if (runtime_call == CiRuntimeCall::ArithmeticCos()) {
+    TRACE_graal_3("RuntimeCall::ArithmeticSin()");
+  } else if (runtime_call == RuntimeCall::ArithmeticCos()) {
     target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
-    TRACE_graal_3("CiRuntimeCall::ArithmeticCos()");
-  } else if (runtime_call == CiRuntimeCall::ArithmeticTan()) {
+    TRACE_graal_3("RuntimeCall::ArithmeticCos()");
+  } else if (runtime_call == RuntimeCall::ArithmeticTan()) {
     target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
-    TRACE_graal_3("CiRuntimeCall::ArithmeticTan()");
-  } else if (runtime_call == CiRuntimeCall::RegisterFinalizer()) {
+    TRACE_graal_3("RuntimeCall::ArithmeticTan()");
+  } else if (runtime_call == RuntimeCall::RegisterFinalizer()) {
     target_addr = Runtime1::entry_for(Runtime1::register_finalizer_id);
-    TRACE_graal_3("CiRuntimeCall::RegisterFinalizer()");
-  } else if (runtime_call == CiRuntimeCall::Deoptimize()) {
+    TRACE_graal_3("RuntimeCall::RegisterFinalizer()");
+  } else if (runtime_call == RuntimeCall::Deoptimize()) {
     target_addr = SharedRuntime::deopt_blob()->uncommon_trap();
-    TRACE_graal_3("CiRuntimeCall::Deoptimize()");
-  } else if (runtime_call == CiRuntimeCall::GenericCallback()) {
+    TRACE_graal_3("RuntimeCall::Deoptimize()");
+  } else if (runtime_call == RuntimeCall::GenericCallback()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_generic_callback_id);
-    TRACE_graal_3("CiRuntimeCall::GenericCallback()");
+    TRACE_graal_3("RuntimeCall::GenericCallback()");
   } else {
     runtime_call->print();
     fatal("runtime_call not implemented");
@@ -589,22 +589,22 @@ address CodeInstaller::runtime_call_target_address(oop runtime_call) {
 }
 
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop target = CiTargetMethod_Call::target(site);
+  oop target = InstalledCode_Call::target(site);
   instanceKlass* target_klass = instanceKlass::cast(target->klass());
 
-  oop runtime_call = NULL; // CiRuntimeCall
-  oop hotspot_method = NULL; // RiMethod
+  oop runtime_call = NULL; // RuntimeCall
+  oop hotspot_method = NULL; // JavaMethod
   oop global_stub = NULL;
 
   if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
     global_stub = target;
-  } else if (target_klass->name() == vmSymbols::com_oracle_max_cri_ci_CiRuntimeCall()) {
+  } else if (target_klass->name() == vmSymbols::com_oracle_graal_api_code_RuntimeCall()) {
     runtime_call = target;
   } else {
     hotspot_method = target;
   }
 
-  oop debug_info = CiTargetMethod_Call::debugInfo(site);
+  oop debug_info = InstalledCode_Call::debugInfo(site);
 
   assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
@@ -641,13 +641,13 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (debug_info != NULL) {
-    oop frame = CiDebugInfo::bytecodePosition(debug_info);
-    _debug_recorder->add_safepoint(next_pc_offset, CiFrame::leafGraphId(frame), create_oop_map(_total_frame_size, _parameter_count, debug_info));
+    oop frame = DebugInfo::bytecodePosition(debug_info);
+    _debug_recorder->add_safepoint(next_pc_offset, BytecodeFrame::leafGraphId(frame), create_oop_map(_total_frame_size, _parameter_count, debug_info));
     record_scope(next_pc_offset, frame, new GrowableArray<ScopeValue*>());
   }
 
   if (runtime_call != NULL) {
-    if (runtime_call != CiRuntimeCall::Debug()) {
+    if (runtime_call != RuntimeCall::Debug()) {
       address target_addr = runtime_call_target_address(runtime_call);
 
       if (inst->is_call()) {
@@ -676,12 +676,12 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     TRACE_graal_3("relocating (stub)  at %016x", inst);
   } else { // method != NULL
-    assert(hotspot_method != NULL, "unexpected RiMethod");
+    assert(hotspot_method != NULL, "unexpected JavaMethod");
     assert(debug_info != NULL, "debug info expected");
 
     methodOop method = NULL;
     // we need to check, this might also be an unresolved method
-    if (hotspot_method->is_a(HotSpotMethodResolved::klass())) {
+    if (hotspot_method->is_a(HotSpotResolvedJavaMethod::klass())) {
       method = getMethodFromHotSpotMethod(hotspot_method);
     }
 
@@ -730,13 +730,13 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 }
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop constant = CiTargetMethod_DataPatch::constant(site);
-  int alignment = CiTargetMethod_DataPatch::alignment(site);
-  oop kind = CiConstant::kind(constant);
+  oop constant = InstalledCode_DataPatch::constant(site);
+  int alignment = InstalledCode_DataPatch::alignment(site);
+  oop kind = Constant::kind(constant);
 
   address instruction = _instructions->start() + pc_offset;
 
-  char typeChar = CiKind::typeChar(kind);
+  char typeChar = Kind::typeChar(kind);
   switch (typeChar) {
     case 'z':
     case 'b':
@@ -758,7 +758,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       // we don't care if this is a long/double/etc., the primitive field contains the right bits
       address dest = _constants->start() + size;
       _constants->set_end(dest + BytesPerLong);
-      *(jlong*) dest = CiConstant::primitive(constant);
+      *(jlong*) dest = Constant::primitive(constant);
 
       long disp = dest - next_instruction;
       assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
@@ -770,13 +770,13 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
     }
     case 'a': {
       address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-      Handle obj = CiConstant::object(constant);
+      Handle obj = Constant::object(constant);
 
       if (obj->is_a(HotSpotKlassOop::klass())) {
         assert(!obj.is_null(), "");
         *((jobject*) operand) = JNIHandles::make_local(java_lang_Class::as_klassOop(HotSpotKlassOop::javaMirror(obj)));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-        TRACE_graal_3("relocating (HotSpotType) at %016x/%016x", instruction, operand);
+        TRACE_graal_3("relocating (HotSpotJavaType) at %016x/%016x", instruction, operand);
       } else {
         jobject value = JNIHandles::make_local(obj());
         if (obj() == HotSpotProxy::DUMMY_CONSTANT_OBJ()) {
@@ -789,14 +789,14 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       break;
     }
     default:
-      fatal("unexpected CiKind in DataPatch");
+      fatal("unexpected Kind in DataPatch");
       break;
   }
 }
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop id_obj = CiTargetMethod_Mark::id(site);
-  arrayOop references = (arrayOop) CiTargetMethod_Mark::references(site);
+  oop id_obj = InstalledCode_Mark::id(site);
+  arrayOop references = (arrayOop) InstalledCode_Mark::references(site);
 
   if (id_obj != NULL) {
     assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");
@@ -823,7 +823,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_STATIC_CALL_STUB: {
         assert(references->length() == 1, "static call stub needs one reference");
         oop ref = ((oop*) references->base(T_OBJECT))[0];
-        address call_pc = _instructions->start() + CiTargetMethod_Site::pcOffset(ref);
+        address call_pc = _instructions->start() + InstalledCode_Site::pcOffset(ref);
         _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         break;
@@ -868,14 +868,14 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         assert(references->length() == 2, "MARK_KLASS_PATCHING/MARK_ACCESS_FIELD_PATCHING needs 2 references");
         oop ref1 = ((oop*) references->base(T_OBJECT))[0];
         oop ref2 = ((oop*) references->base(T_OBJECT))[1];
-        int i_byte_count = CiTargetMethod_Site::pcOffset(ref2) - CiTargetMethod_Site::pcOffset(ref1);
+        int i_byte_count = InstalledCode_Site::pcOffset(ref2) - InstalledCode_Site::pcOffset(ref1);
         assert(i_byte_count == (unsigned char)i_byte_count, "invalid offset");
         *byte_count = i_byte_count;
         *being_initialized_entry_offset = *byte_count + *byte_skip;
 
         // we need to correct the offset of a field access - it's created with MAX_INT to ensure the correct size, and hotspot expects 0
         if (id == MARK_ACCESS_FIELD_PATCHING) {
-          NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + CiTargetMethod_Site::pcOffset(ref1));
+          NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + InstalledCode_Site::pcOffset(ref1));
           assert(inst->offset() == max_jint, "unexpected offset value");
           inst->set_offset(0);
         }

@@ -665,7 +665,7 @@ void methodOopDesc::set_not_compilable(int comp_level, bool report) {
 #ifdef GRAAL
   oop graal_mirror = this->graal_mirror();
   if (graal_mirror != NULL) {
-    HotSpotMethodResolved::set_canBeInlined(graal_mirror, false);
+    HotSpotResolvedJavaMethod::set_canBeInlined(graal_mirror, false);
   }
 #endif
 }

@@ -64,38 +64,35 @@ public:
   // public abstract void bootstrap();
   static void bootstrap();
 
-  // public abstract RiMethod createRiMethodResolved(long vmId, String name);
-  static oop createRiMethodResolved(jlong vmId, Handle name, TRAPS);
+  // public abstract JavaMethod createResolvedJavaMethod(long vmId, String name);
+  static oop createResolvedJavaMethod(jlong vmId, Handle name, TRAPS);
 
-  // public abstract RiMethod createRiMethodUnresolved(String name, String signature, RiType holder);
-  static oop createRiMethodUnresolved(Handle name, Handle signature, Handle holder, TRAPS);
+  // public abstract JavaMethod createJavaMethod(String name, String signature, JavaType holder);
+  static oop createJavaMethod(Handle name, Handle signature, Handle holder, TRAPS);
 
-  // public abstract RiField createRiField(RiType holder, String name, RiType type, int flags, int offset);
-  static oop createRiField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS);
+  // public abstract JavaField createJavaField(JavaType holder, String name, JavaType type, int flags, int offset);
+  static oop createJavaField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS);
 
-  // public abstract RiType createRiType(long vmId, String name);
-  static oop createRiType(jlong vmId, Handle name, TRAPS);
+  // public abstract JavaType createJavaType(String name);
+  static oop createJavaType(Handle name, TRAPS);
 
-  // public abstract RiType createRiTypeUnresolved(String name);
-  static oop createRiTypeUnresolved(Handle name, TRAPS);
+  // public abstract JavaType createPrimitiveJavaType(int basicType);
+  static oop createPrimitiveJavaType(int basicType, TRAPS);
 
-  // public abstract RiType createRiTypePrimitive(int basicType);
-  static oop createRiTypePrimitive(int basicType, TRAPS);
+  // public abstract Signature createSignature(String signature);
+  static oop createSignature(Handle name, TRAPS);
 
-  // public abstract RiSignature createRiSignature(String signature);
-  static oop createRiSignature(Handle name, TRAPS);
+  // public abstract Constant createConstant(Kind kind, long value);
+  static oop createConstant(Handle kind, jlong value, TRAPS);
 
-  // public abstract CiConstant createCiConstant(CiKind kind, long value);
-  static oop createCiConstant(Handle kind, jlong value, TRAPS);
+  // public abstract Constant createConstantFloat(float value);
+  static oop createConstantFloat(jfloat value, TRAPS);
 
-  // public abstract CiConstant createCiConstantFloat(float value);
-  static oop createCiConstantFloat(jfloat value, TRAPS);
+  // public abstract Constant createConstantDouble(double value);
+  static oop createConstantDouble(jdouble value, TRAPS);
 
-  // public abstract CiConstant createCiConstantDouble(double value);
-  static oop createCiConstantDouble(jdouble value, TRAPS);
-
-  // public abstract CiConstant createCiConstantObject(long vmId);
-  static oop createCiConstantObject(Handle object, TRAPS);
+  // public abstract Constant createConstantObject(long vmId);
+  static oop createConstantObject(Handle object, TRAPS);
 };
 
 inline void check_pending_exception(const char* message, bool dump_core = false) {

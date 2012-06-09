@@ -67,14 +67,14 @@ public:
   // Print compilation timers and statistics
   virtual void print_timers();
   
-  static Handle get_RiTypeFromSignature(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
-  static Handle get_RiType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
-  static Handle get_RiType(Symbol* klass_name, TRAPS);
-  static Handle get_RiType(KlassHandle klass, TRAPS);
-  static Handle get_RiField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS);
+  static Handle get_JavaTypeFromSignature(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
+  static Handle get_JavaType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
+  static Handle get_JavaType(Symbol* klass_name, TRAPS);
+  static Handle get_JavaType(KlassHandle klass, TRAPS);
+  static Handle get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS);
 
-  static Handle createHotSpotTypeResolved(KlassHandle klass, Handle name, TRAPS);
-  static Handle createHotSpotMethodResolved(methodHandle method, TRAPS);
+  static Handle createHotSpotResolvedJavaType(KlassHandle klass, Handle name, TRAPS);
+  static Handle createHotSpotResolvedJavaMethod(methodHandle method, TRAPS);
   static Handle createHotSpotMethodData(methodDataHandle method_data, TRAPS);
 
   void exit();

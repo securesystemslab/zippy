@@ -79,8 +79,8 @@ void FilteredFieldsMap::initialize() {
     _filtered_fields->append(new FilteredField(SystemDictionary::reflect_UnsafeStaticFieldAccessorImpl_klass(), offset));
   }
 #ifdef GRAAL
-  compute_offset(offset, SystemDictionary::HotSpotMethodResolved_klass(), "javaMirror", "Ljava/lang/Object;", false);
-  _filtered_fields->append(new FilteredField(SystemDictionary::HotSpotMethodResolved_klass(), offset));
+  compute_offset(offset, SystemDictionary::HotSpotResolvedJavaMethod_klass(), "javaMirror", "Ljava/lang/Object;", false);
+  _filtered_fields->append(new FilteredField(SystemDictionary::HotSpotResolvedJavaMethod_klass(), offset));
   compute_offset(offset, SystemDictionary::HotSpotMethodData_klass(), "hotspotMirror", "Ljava/lang/Object;", false);
   _filtered_fields->append(new FilteredField(SystemDictionary::HotSpotMethodData_klass(), offset));
 #endif

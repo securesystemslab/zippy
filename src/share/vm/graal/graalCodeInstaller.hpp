@@ -22,7 +22,7 @@
  */
 
 /*
- * This class handles the conversion from a CiTargetMethod to a CodeBlob or an nmethod.
+ * This class handles the conversion from a InstalledCode to a CodeBlob or an nmethod.
  */
 class CodeInstaller {
 private:
@@ -90,7 +90,7 @@ public:
   static address runtime_call_target_address(oop runtime_call);
 
 private:
-  // extract the fields of the CiTargetMethod
+  // extract the fields of the InstalledCode
   void initialize_fields(oop target_method);
   void initialize_assumptions(oop target_method);
 

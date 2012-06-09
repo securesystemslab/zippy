@@ -186,47 +186,49 @@ class SymbolPropertyTable;
   template(Short_klass,                  java_lang_Short,                Pre) \
   template(Integer_klass,                java_lang_Integer,              Pre) \
   template(Long_klass,                   java_lang_Long,                 Pre) \
-                                                                                                                         \
-  /* Support for Graal */                                                                                                \
-  template(HotSpotTypeResolved_klass,             com_oracle_graal_hotspot_HotSpotTypeResolved,                 Opt) \
+                                                                                                                     \
+  /* Support for Graal */                                                                                            \
+  template(GraalBitMap_klass,                     java_util_BitSet,                                             Opt) \
+  /* graal.hotspot */                                                                                                \
   template(HotSpotKlassOop_klass,                 com_oracle_graal_hotspot_HotSpotKlassOop,                     Opt) \
-  template(HotSpotType_klass,                     com_oracle_graal_hotspot_HotSpotType,                         Opt) \
-  template(HotSpotField_klass,                    com_oracle_graal_hotspot_HotSpotField,                        Opt) \
-  template(HotSpotCompiledMethod_klass,           com_oracle_graal_hotspot_HotSpotCompiledMethod,               Opt) \
-  template(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_HotSpotCodeInfo,                     Opt) \
-  template(HotSpotMethodResolved_klass,           com_oracle_graal_hotspot_ri_HotSpotMethodResolved,            Opt) \
-  template(HotSpotMethodData_klass,               com_oracle_graal_hotspot_ri_HotSpotMethodData,                Opt) \
-  template(HotSpotTargetMethod_klass,             com_oracle_graal_hotspot_HotSpotTargetMethod,                 Opt) \
   template(HotSpotProxy_klass,                    com_oracle_graal_hotspot_HotSpotProxy,                        Opt) \
-  template(CiAssumptions_klass,                   com_oracle_max_cri_ci_CiAssumptions,                              Opt) \
-  template(CiAssumptions_MethodContents_klass,    com_oracle_max_cri_ci_CiAssumptions_MethodContents,               Opt) \
-  template(CiAssumptions_ConcreteSubtype_klass,   com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,              Opt) \
-  template(CiAssumptions_ConcreteMethod_klass,    com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,               Opt) \
-  template(CiTargetMethod_klass,                  com_oracle_max_cri_ci_CiTargetMethod,                             Opt) \
-  template(CiTargetMethod_Site_klass,             com_oracle_max_cri_ci_CiTargetMethod_Site,                        Opt) \
-  template(CiTargetMethod_Call_klass,             com_oracle_max_cri_ci_CiTargetMethod_Call,                        Opt) \
-  template(CiTargetMethod_DataPatch_klass,        com_oracle_max_cri_ci_CiTargetMethod_DataPatch,                   Opt) \
-  template(CiTargetMethod_Safepoint_klass,        com_oracle_max_cri_ci_CiTargetMethod_Safepoint,                   Opt) \
-  template(CiTargetMethod_ExceptionHandler_klass, com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,            Opt) \
-  template(CiTargetMethod_Mark_klass,             com_oracle_max_cri_ci_CiTargetMethod_Mark,                        Opt) \
-  template(GraalBitMap_klass,                     com_oracle_max_cri_ci_CiBitMap,                                   Opt) \
-  template(CiDebugInfo_klass,                     com_oracle_max_cri_ci_CiDebugInfo,                                Opt) \
-  template(CiFrame_klass,                         com_oracle_max_cri_ci_CiFrame,                                    Opt) \
-  template(CiValue_klass,                         com_oracle_max_cri_ci_CiValue,                                    Opt) \
-  template(CiStackSlot_klass,                     com_oracle_max_cri_ci_CiStackSlot,                                Opt) \
-  template(CiRegisterValue_klass,                 com_oracle_max_cri_ci_CiRegisterValue,                            Opt) \
-  template(CiRegister_klass,                      com_oracle_max_cri_ci_CiRegister,                                 Opt) \
-  template(CiCodePos_klass,                       com_oracle_max_cri_ci_CiCodePos,                                  Opt) \
-  template(CiConstant_klass,                      com_oracle_max_cri_ci_CiConstant,                                 Opt) \
-  template(CiVirtualObject_klass,                 com_oracle_max_cri_ci_CiVirtualObject,                            Opt) \
-  template(CiMonitorValue_klass,                  com_oracle_max_cri_ci_CiMonitorValue,                             Opt) \
-  template(CiKind_klass,                          com_oracle_max_cri_ci_CiKind,                                     Opt) \
-  template(CiRuntimeCall_klass,                   com_oracle_max_cri_ci_CiRuntimeCall,                              Opt) \
-  template(RiMethod_klass,                        com_oracle_max_cri_ri_RiMethod,                                   Opt) \
-  template(RiType_klass,                          com_oracle_max_cri_ri_RiType,                                     Opt) \
-  template(RiResolvedField_klass,                 com_oracle_max_cri_ri_RiResolvedField,                            Opt) \
-  template(RiExceptionHandler_klass,              com_oracle_max_cri_ri_RiExceptionHandler,                         Opt) \
-
+  template(HotSpotTargetMethod_klass,             com_oracle_graal_hotspot_HotSpotTargetMethod,                 Opt) \
+  template(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
+  template(HotSpotCompiledMethod_klass,           com_oracle_graal_hotspot_meta_HotSpotCompiledMethod,          Opt) \
+  template(HotSpotJavaType_klass,                 com_oracle_graal_hotspot_meta_HotSpotJavaType,                Opt) \
+  template(HotSpotMethodData_klass,               com_oracle_graal_hotspot_meta_HotSpotMethodData,              Opt) \
+  template(HotSpotResolvedJavaField_klass,        com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,       Opt) \
+  template(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Opt) \
+  template(HotSpotResolvedJavaType_klass,         com_oracle_graal_hotspot_meta_HotSpotResolvedJavaType,        Opt) \
+  /* graal.api.code */                                                                                               \
+  template(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
+  template(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
+  template(Assumptions_ConcreteSubtype_klass,     com_oracle_graal_api_code_Assumptions_ConcreteSubtype,        Opt) \
+  template(Assumptions_MethodContents_klass,      com_oracle_graal_api_code_Assumptions_MethodContents,         Opt) \
+  template(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
+  template(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
+  template(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
+  template(InstalledCode_klass,                   com_oracle_graal_api_code_InstalledCode,                      Opt) \
+  template(InstalledCode_Call_klass,              com_oracle_graal_api_code_InstalledCode_Call,                 Opt) \
+  template(InstalledCode_DataPatch_klass,         com_oracle_graal_api_code_InstalledCode_DataPatch,            Opt) \
+  template(InstalledCode_ExceptionHandler_klass,  com_oracle_graal_api_code_InstalledCode_ExceptionHandler,     Opt) \
+  template(InstalledCode_Mark_klass,              com_oracle_graal_api_code_InstalledCode_Mark,                 Opt) \
+  template(InstalledCode_Safepoint_klass,         com_oracle_graal_api_code_InstalledCode_Safepoint,            Opt) \
+  template(InstalledCode_Site_klass,              com_oracle_graal_api_code_InstalledCode_Site,                 Opt) \
+  template(code_MonitorValue_klass,               com_oracle_graal_api_code_MonitorValue,                       Opt) \
+  template(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
+  template(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
+  template(RuntimeCall_klass,                     com_oracle_graal_api_code_RuntimeCall,                        Opt) \
+  template(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Opt) \
+  template(VirtualObject_klass,                   com_oracle_graal_api_code_VirtualObject,                      Opt) \
+  /* graal.api.meta */                                                                                               \
+  template(Constant_klass,                        com_oracle_graal_api_meta_Constant,                           Opt) \
+  template(ExceptionHandler_klass,                com_oracle_graal_api_meta_ExceptionHandler,                   Opt) \
+  template(Kind_klass,                            com_oracle_graal_api_meta_Kind,                               Opt) \
+  template(JavaMethod_klass,                      com_oracle_graal_api_meta_JavaMethod,                         Opt) \
+  template(JavaType_klass,                        com_oracle_graal_api_meta_JavaType,                           Opt) \
+  template(ResolvedJavaField_klass,               com_oracle_graal_api_meta_ResolvedJavaField,                  Opt) \
+  template(Value_klass,                           com_oracle_graal_api_meta_Value,                              Opt) \
   /*end*/
 
 
