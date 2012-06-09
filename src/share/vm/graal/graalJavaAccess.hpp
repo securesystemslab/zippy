@@ -63,7 +63,7 @@ void graal_compute_offsets();
     end_class                                                                           \
   start_class(HotSpotMethodResolved)                                                    \
     oop_field(HotSpotMethodResolved, name, "Ljava/lang/String;")                        \
-    oop_field(HotSpotMethodResolved, holder, "Lcom/oracle/graal/api/meta/RiResolvedType;")  \
+    oop_field(HotSpotMethodResolved, holder, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")  \
     oop_field(HotSpotMethodResolved, javaMirror, "Ljava/lang/Object;")                  \
     int_field(HotSpotMethodResolved, codeSize)                                          \
     int_field(HotSpotMethodResolved, accessFlags)                                       \
@@ -86,7 +86,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotCompiledMethod)                                                    \
     long_field(HotSpotCompiledMethod, nmethod)                                          \
-    oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;")\
+    oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")\
   end_class                                                                             \
   start_class(HotSpotCodeInfo)                                                          \
     long_field(HotSpotCodeInfo, start)                                                  \
@@ -107,7 +107,7 @@ void graal_compute_offsets();
     int_field(HotSpotExceptionHandler, endBci)                                          \
     int_field(HotSpotExceptionHandler, handlerBci)                                      \
     int_field(HotSpotExceptionHandler, catchClassIndex)                                 \
-    oop_field(HotSpotExceptionHandler, catchClass, "Lcom/oracle/graal/api/meta/RiType;")    \
+    oop_field(HotSpotExceptionHandler, catchClass, "Lcom/oracle/graal/api/meta/JavaType;")    \
   end_class                                                                             \
   start_class(CiTargetMethod)                                                           \
     int_field(CiTargetMethod, frameSize)                                                \
@@ -120,16 +120,16 @@ void graal_compute_offsets();
     oop_field(CiAssumptions, list, "[Lcom/oracle/graal/api/code/CiAssumptions$Assumption;") \
   end_class                                                                             \
   start_class(CiAssumptions_MethodContents)                                             \
-    oop_field(CiAssumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;") \
+    oop_field(CiAssumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteSubtype)                                            \
-    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/oracle/graal/api/meta/RiResolvedType;") \
-    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/oracle/graal/api/meta/RiResolvedType;") \
+    oop_field(CiAssumptions_ConcreteSubtype, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
+    oop_field(CiAssumptions_ConcreteSubtype, subtype, "Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
   end_class                                                                             \
   start_class(CiAssumptions_ConcreteMethod)                                             \
-    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;") \
-    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/oracle/graal/api/meta/RiResolvedType;") \
-    oop_field(CiAssumptions_ConcreteMethod, impl, "Lcom/oracle/graal/api/meta/RiResolvedMethod;") \
+    oop_field(CiAssumptions_ConcreteMethod, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
+    oop_field(CiAssumptions_ConcreteMethod, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
+    oop_field(CiAssumptions_ConcreteMethod, impl, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
   end_class                                                                             \
   start_class(CiTargetMethod_Site)                                                      \
     int_field(CiTargetMethod_Site, pcOffset)                                            \
@@ -173,7 +173,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiCodePos)                                                                \
     oop_field(CiCodePos, caller, "Lcom/oracle/graal/api/code/CiCodePos;")                   \
-    oop_field(CiCodePos, method, "Lcom/oracle/graal/api/meta/RiResolvedMethod;")            \
+    oop_field(CiCodePos, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")            \
     int_field(CiCodePos, bci)                                                           \
   end_class                                                                             \
   start_class(CiConstant)                                                               \
@@ -225,7 +225,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiVirtualObject)                                                          \
     int_field(CiVirtualObject, id)                                                      \
-    oop_field(CiVirtualObject, type, "Lcom/oracle/graal/api/meta/RiType;")                  \
+    oop_field(CiVirtualObject, type, "Lcom/oracle/graal/api/meta/JavaType;")                  \
     oop_field(CiVirtualObject, values, "[Lcom/oracle/graal/api/meta/Value;")              \
   end_class                                                                             \
   start_class(CiMonitorValue)                                                           \

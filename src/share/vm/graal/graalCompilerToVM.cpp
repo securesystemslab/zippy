@@ -667,7 +667,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(THREAD, GraalCompiler::createHotSpotTypeResolved(arr, name, THREAD)());
 }
 
-// public RiResolvedField[] RiType_fields(HotSpotTypeResolved klass);
+// public ResolvedJavaField[] RiType_fields(HotSpotTypeResolved klass);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_RiType_1fields(JNIEnv *, jobject, jobject klass) {
   TRACE_graal_3("CompilerToVM::RiType_fields");
   VM_ENTRY_MARK;
@@ -1121,16 +1121,16 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_##f))
 
 #define PROXY           "J"
-#define TYPE            "Lcom/oracle/graal/api/meta/RiType;"
+#define TYPE            "Lcom/oracle/graal/api/meta/JavaType;"
 #define RESOLVED_TYPE   "Lcom/oracle/graal/hotspot/ri/HotSpotTypeResolved;"
-#define METHOD          "Lcom/oracle/graal/api/meta/RiMethod;"
+#define METHOD          "Lcom/oracle/graal/api/meta/JavaMethod;"
 #define RESOLVED_METHOD "Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;"
 #define REFLECT_METHOD  "Ljava/lang/reflect/Method;"
-#define SIGNATURE       "Lcom/oracle/graal/api/meta/RiSignature;"
-#define FIELD           "Lcom/oracle/graal/api/meta/RiField;"
-#define RESOLVED_FIELD  "Lcom/oracle/graal/api/meta/RiResolvedField;"
-#define CONSTANT_POOL   "Lcom/oracle/graal/api/meta/RiConstantPool;"
-#define EXCEPTION_HANDLERS "[Lcom/oracle/graal/api/meta/RiExceptionHandler;"
+#define SIGNATURE       "Lcom/oracle/graal/api/meta/Signature;"
+#define FIELD           "Lcom/oracle/graal/api/meta/JavaField;"
+#define RESOLVED_FIELD  "Lcom/oracle/graal/api/meta/ResolvedJavaField;"
+#define CONSTANT_POOL   "Lcom/oracle/graal/api/meta/ConstantPool;"
+#define EXCEPTION_HANDLERS "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define TARGET_METHOD   "Lcom/oracle/graal/hotspot/HotSpotTargetMethod;"
 #define CONFIG          "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD       "Lcom/oracle/graal/hotspot/ri/HotSpotMethod;"

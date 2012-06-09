@@ -283,11 +283,11 @@
   template(com_oracle_graal_hotspot_HotSpotExceptionHandler,      "com/oracle/graal/hotspot/ri/HotSpotExceptionHandler")          \
   template(com_oracle_graal_hotspot_HotSpotProxy,                 "com/oracle/graal/hotspot/HotSpotProxy")                        \
   template(com_oracle_graal_hotspot_CompilerImpl,                 "com/oracle/graal/hotspot/HotSpotGraalRuntime")                        \
-  template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/graal/api/meta/RiMethod")                                   \
-  template(com_oracle_max_cri_ri_RiResolvedField,                     "com/oracle/graal/api/meta/RiResolvedField")                            \
-  template(com_oracle_max_cri_ri_RiType,                              "com/oracle/graal/api/meta/RiType")                                     \
-  template(com_oracle_max_cri_ri_RiConstantPool,                      "com/oracle/graal/api/meta/RiConstantPool")                             \
-  template(com_oracle_max_cri_ri_RiExceptionHandler,                  "com/oracle/graal/api/meta/RiExceptionHandler")                         \
+  template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/graal/api/meta/JavaMethod")                                   \
+  template(com_oracle_max_cri_ri_RiResolvedField,                     "com/oracle/graal/api/meta/ResolvedJavaField")                            \
+  template(com_oracle_max_cri_ri_RiType,                              "com/oracle/graal/api/meta/JavaType")                                     \
+  template(com_oracle_max_cri_ri_RiConstantPool,                      "com/oracle/graal/api/meta/ConstantPool")                             \
+  template(com_oracle_max_cri_ri_RiExceptionHandler,                  "com/oracle/graal/api/meta/ExceptionHandler")                         \
   template(com_oracle_max_cri_ci_CiAssumptions,                       "com/oracle/graal/api/code/CiAssumptions")                              \
   template(com_oracle_max_cri_ci_CiAssumptions_MethodContents,        "com/oracle/graal/api/code/CiAssumptions$MethodContents")               \
   template(com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,       "com/oracle/graal/api/code/CiAssumptions$ConcreteSubtype")              \
@@ -300,7 +300,6 @@
   template(com_oracle_max_cri_ci_CiTargetMethod_Safepoint,            "com/oracle/graal/api/code/CiTargetMethod$Safepoint")                   \
   template(com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,     "com/oracle/graal/api/code/CiTargetMethod$ExceptionHandler")            \
   template(com_oracle_max_cri_ci_CiTargetMethod_Mark,                 "com/oracle/graal/api/code/CiTargetMethod$Mark")                        \
-  template(com_oracle_graal_graph_BitMap,                         "com/oracle/graal/graph/BitMap")                                \
   template(com_oracle_max_cri_ci_CiBitMap,	                          "com/oracle/graal/api/code/CiBitMap")                                   \
   template(com_oracle_max_cri_ci_CiDebugInfo,                         "com/oracle/graal/api/code/CiDebugInfo")                                \
   template(com_oracle_max_cri_ci_CiFrame,                             "com/oracle/graal/api/code/CiFrame")                                    \
@@ -323,19 +322,19 @@
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
   template(createRiMethodResolved_name,               "createRiMethodResolved")                                         \
-  template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/oracle/graal/api/meta/RiMethod;")          \
+  template(createRiMethodResolved_signature,          "(JLjava/lang/String;)Lcom/oracle/graal/api/meta/JavaMethod;")          \
   template(createRiMethodUnresolved_name,             "createRiMethodUnresolved")                                       \
-  template(createRiMethodUnresolved_signature,        "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/RiType;)Lcom/oracle/graal/api/meta/RiMethod;") \
+  template(createRiMethodUnresolved_signature,        "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;)Lcom/oracle/graal/api/meta/JavaMethod;") \
   template(createRiSignature_name,                    "createRiSignature")                                              \
-  template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/RiSignature;")        \
+  template(createRiSignature_signature,               "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/Signature;")        \
   template(createRiField_name,                        "createRiField")                                                  \
-  template(createRiField_signature,                   "(Lcom/oracle/graal/api/meta/RiType;Ljava/lang/String;Lcom/oracle/graal/api/meta/RiType;II)Lcom/oracle/graal/api/meta/RiField;") \
+  template(createRiField_signature,                   "(Lcom/oracle/graal/api/meta/JavaType;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;II)Lcom/oracle/graal/api/meta/JavaField;") \
   template(createRiType_name,                         "createRiType")                                                   \
-  template(createRiType_signature,                    "(JLjava/lang/String;)Lcom/oracle/graal/api/meta/RiType;")            \
+  template(createRiType_signature,                    "(JLjava/lang/String;)Lcom/oracle/graal/api/meta/JavaType;")            \
   template(createRiTypePrimitive_name,                "createRiTypePrimitive")                                          \
-  template(createRiTypePrimitive_signature,           "(I)Lcom/oracle/graal/api/meta/RiType;")                              \
+  template(createRiTypePrimitive_signature,           "(I)Lcom/oracle/graal/api/meta/JavaType;")                              \
   template(createRiTypeUnresolved_name,               "createRiTypeUnresolved")                                         \
-  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/RiType;")             \
+  template(createRiTypeUnresolved_signature,          "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/JavaType;")             \
   template(createCiConstant_name,                     "createCiConstant")                                               \
   template(createCiConstant_signature,                "(Lcom/oracle/graal/api/meta/Kind;J)Lcom/oracle/graal/api/meta/Constant;") \
   template(createCiConstantFloat_name,                "createCiConstantFloat")                                          \
