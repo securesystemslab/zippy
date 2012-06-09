@@ -96,7 +96,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
     oop_field(HotSpotTargetMethod, targetMethod, "Lcom/oracle/graal/api/code/CompilationResult;") \
-    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;") \
+    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/graal/hotspot/meta/HotSpotMethodResolved;") \
     oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
     oop_field(HotSpotTargetMethod, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;") \
     oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;") \

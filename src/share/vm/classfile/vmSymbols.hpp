@@ -270,16 +270,16 @@
                                                                                                                                           \
   /* Support for Graal */                                                                                                                 \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,          "com/oracle/graal/hotspot/bridge/VMToCompiler")                 \
-  template(com_oracle_graal_hotspot_ri_HotSpotMethodResolved,     "com/oracle/graal/hotspot/ri/HotSpotMethodResolvedImpl")        \
+  template(com_oracle_graal_hotspot_ri_HotSpotMethodResolved,     "com/oracle/graal/hotspot/meta/HotSpotMethodResolvedImpl")        \
   template(com_oracle_graal_hotspot_HotSpotTargetMethod,          "com/oracle/graal/hotspot/HotSpotTargetMethod")                 \
-  template(com_oracle_graal_hotspot_ri_HotSpotMethodData,         "com/oracle/graal/hotspot/ri/HotSpotMethodData")                \
-  template(com_oracle_graal_hotspot_HotSpotCodeInfo,              "com/oracle/graal/hotspot/ri/HotSpotCodeInfo")                  \
-  template(com_oracle_graal_hotspot_HotSpotField,                 "com/oracle/graal/hotspot/ri/HotSpotField")                     \
-  template(com_oracle_graal_hotspot_HotSpotCompiledMethod,        "com/oracle/graal/hotspot/ri/HotSpotCompiledMethod")            \
+  template(com_oracle_graal_hotspot_ri_HotSpotMethodData,         "com/oracle/graal/hotspot/meta/HotSpotMethodData")                \
+  template(com_oracle_graal_hotspot_HotSpotCodeInfo,              "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                  \
+  template(com_oracle_graal_hotspot_HotSpotField,                 "com/oracle/graal/hotspot/meta/HotSpotField")                     \
+  template(com_oracle_graal_hotspot_HotSpotCompiledMethod,        "com/oracle/graal/hotspot/meta/HotSpotCompiledMethod")            \
   template(com_oracle_graal_hotspot_HotSpotOptions,               "com/oracle/graal/hotspot/HotSpotOptions")                      \
-  template(com_oracle_graal_hotspot_HotSpotTypeResolved,          "com/oracle/graal/hotspot/ri/HotSpotTypeResolvedImpl")          \
-  template(com_oracle_graal_hotspot_HotSpotType,                  "com/oracle/graal/hotspot/ri/HotSpotType")                      \
-  template(com_oracle_graal_hotspot_HotSpotKlassOop,              "com/oracle/graal/hotspot/ri/HotSpotKlassOop")                  \
+  template(com_oracle_graal_hotspot_HotSpotTypeResolved,          "com/oracle/graal/hotspot/meta/HotSpotTypeResolvedImpl")          \
+  template(com_oracle_graal_hotspot_HotSpotType,                  "com/oracle/graal/hotspot/meta/HotSpotType")                      \
+  template(com_oracle_graal_hotspot_HotSpotKlassOop,              "com/oracle/graal/hotspot/meta/HotSpotKlassOop")                  \
   template(com_oracle_graal_hotspot_HotSpotProxy,                 "com/oracle/graal/hotspot/HotSpotProxy")                        \
   template(com_oracle_graal_hotspot_CompilerImpl,                 "com/oracle/graal/hotspot/HotSpotGraalRuntime")                        \
   template(com_oracle_max_cri_ri_RiMethod,                            "com/oracle/graal/api/meta/JavaMethod")                                   \
@@ -316,7 +316,7 @@
   template(bootstrap_name,                            "bootstrap")                                                      \
   template(shutdownCompiler_name,                     "shutdownCompiler")                                               \
   template(compileMethod_name,                        "compileMethod")                                                  \
-  template(compileMethod_signature,                   "(Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;IZI)Z")      \
+  template(compileMethod_signature,                   "(Lcom/oracle/graal/hotspot/meta/HotSpotMethodResolved;IZI)Z")      \
   template(setOption_name,                            "setOption")                                                      \
   template(setDefaultOptions_name,                    "setDefaultOptions")                                              \
   template(setOption_signature,                       "(Ljava/lang/String;)Z")                                          \
