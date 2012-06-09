@@ -300,7 +300,7 @@
   template(com_oracle_max_cri_ci_CiTargetMethod_Safepoint,            "com/oracle/graal/api/code/CiTargetMethod$Safepoint")                   \
   template(com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,     "com/oracle/graal/api/code/CiTargetMethod$ExceptionHandler")            \
   template(com_oracle_max_cri_ci_CiTargetMethod_Mark,                 "com/oracle/graal/api/code/CiTargetMethod$Mark")                        \
-  template(com_oracle_max_cri_ci_CiBitMap,	                          "com/oracle/graal/api/code/CiBitMap")                                   \
+  template(com_oracle_max_cri_ci_CiBitMap,	                          "java/util/BitSet")                                   \
   template(com_oracle_max_cri_ci_CiDebugInfo,                         "com/oracle/graal/api/code/CiDebugInfo")                                \
   template(com_oracle_max_cri_ci_CiFrame,                             "com/oracle/graal/api/code/CiFrame")                                    \
   template(com_oracle_max_cri_ci_CiValue,                             "com/oracle/graal/api/meta/Value")                                    \

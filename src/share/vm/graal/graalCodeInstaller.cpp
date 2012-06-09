@@ -53,18 +53,19 @@ VMReg get_hotspot_reg(jint graal_reg) {
   }
 }
 
+const int MapWordBits = 64;
+
 static bool is_bit_set(oop bit_map, int i) {
-  const int MapWordBits = 64;
-  if (i < MapWordBits) {
-    jlong low = GraalBitMap::low(bit_map);
-    return (low & (1LL << i)) != 0;
-  } else {
-    jint extra_idx = (i - MapWordBits) / MapWordBits;
-    arrayOop extra = (arrayOop) GraalBitMap::extra(bit_map);
-    assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
-    jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
-    return (word & (1LL << (i % MapWordBits))) != 0;
-  }
+  jint extra_idx = i / MapWordBits;
+  arrayOop extra = (arrayOop) GraalBitMap::words(bit_map);
+  assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
+  jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
+  return (word & (1LL << (i % MapWordBits))) != 0;
+}
+
+static int bitmap_size(oop bit_map) {
+  arrayOop arr = (arrayOop) GraalBitMap::words(bit_map);
+  return arr->length() * MapWordBits;
 }
 
 // creates a hotspot oop map out of the byte arrays provided by CiDebugInfo
@@ -74,7 +75,6 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   oop frame_map = (oop) CiDebugInfo::frameRefMap(debug_info);
 
   if (register_map != NULL) {
-    assert(GraalBitMap::size(register_map) == (unsigned) NUM_CPU_REGS, "unexpected register_map length");
     for (jint i = 0; i < NUM_CPU_REGS; i++) {
       bool is_oop = is_bit_set(register_map, i);
       VMReg reg = get_hotspot_reg(i);
@@ -87,7 +87,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
     }
   }
 
-  for (jint i = 0; i < GraalBitMap::size(frame_map); i++) {
+  for (jint i = 0; i < bitmap_size(frame_map); i++) {
     bool is_oop = is_bit_set(frame_map, i);
     // hotspot stack slots are 4 bytes
     VMReg reg = VMRegImpl::stack2reg(i * 2);
