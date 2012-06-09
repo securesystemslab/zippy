@@ -110,23 +110,23 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVM
     // exception handlers are stored as four integers: start bci, end bci, handler bci, catch class constant pool index
     int base = i * 4;
     Handle entry = instanceKlass::cast(HotSpotExceptionHandler::klass())->allocate_instance(CHECK_NULL);
-    HotSpotExceptionHandler::set_startBci(entry, handlers->int_at(base + 0));
-    HotSpotExceptionHandler::set_endBci(entry, handlers->int_at(base + 1));
-    HotSpotExceptionHandler::set_handlerBci(entry, handlers->int_at(base + 2));
+    HotSpotExceptionHandler::set_startBCI(entry, handlers->int_at(base + 0));
+    HotSpotExceptionHandler::set_endBCI(entry, handlers->int_at(base + 1));
+    HotSpotExceptionHandler::set_handlerBCI(entry, handlers->int_at(base + 2));
     int catch_class_index = handlers->int_at(base + 3);
-    HotSpotExceptionHandler::set_catchClassIndex(entry, catch_class_index);
+    HotSpotExceptionHandler::set_catchTypeCPI(entry, catch_class_index);
 
     if (catch_class_index == 0) {
-      HotSpotExceptionHandler::set_catchClass(entry, NULL);
+      HotSpotExceptionHandler::set_catchType(entry, NULL);
     } else {
       constantPoolOop cp = instanceKlass::cast(method->method_holder())->constants();
       KlassHandle loading_klass = method->method_holder();
       Handle catch_class = GraalCompiler::get_RiType(cp, catch_class_index, loading_klass, CHECK_NULL);
       if (catch_class->klass() == HotSpotTypeResolved::klass() && java_lang_Class::as_klassOop(HotSpotTypeResolved::javaMirror(catch_class)) == SystemDictionary::Throwable_klass()) {
-        HotSpotExceptionHandler::set_catchClass(entry, NULL);
-        HotSpotExceptionHandler::set_catchClassIndex(entry, 0);
+        HotSpotExceptionHandler::set_catchType(entry, NULL);
+        HotSpotExceptionHandler::set_catchTypeCPI(entry, 0);
       } else {
-        HotSpotExceptionHandler::set_catchClass(entry, catch_class());
+        HotSpotExceptionHandler::set_catchType(entry, catch_class());
       }
     }
     array->obj_at_put(i, entry());

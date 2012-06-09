@@ -103,11 +103,11 @@ void graal_compute_offsets();
     oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/graal/api/code/CiTargetMethod$ExceptionHandler;") \
   end_class                                                                             \
   start_class(HotSpotExceptionHandler)                                                  \
-    int_field(HotSpotExceptionHandler, startBci)                                        \
-    int_field(HotSpotExceptionHandler, endBci)                                          \
-    int_field(HotSpotExceptionHandler, handlerBci)                                      \
-    int_field(HotSpotExceptionHandler, catchClassIndex)                                 \
-    oop_field(HotSpotExceptionHandler, catchClass, "Lcom/oracle/graal/api/meta/JavaType;")    \
+    int_field(HotSpotExceptionHandler, startBCI)                                        \
+    int_field(HotSpotExceptionHandler, endBCI)                                          \
+    int_field(HotSpotExceptionHandler, handlerBCI)                                      \
+    int_field(HotSpotExceptionHandler, catchTypeCPI)                                 \
+    oop_field(HotSpotExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")    \
   end_class                                                                             \
   start_class(CiTargetMethod)                                                           \
     int_field(CiTargetMethod, frameSize)                                                \
