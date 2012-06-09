@@ -284,7 +284,6 @@ Handle GraalCompiler::createHotSpotTypeResolved(KlassHandle klass, Handle name, 
   }
 
   // TODO replace these with correct values
-  HotSpotTypeResolved::set_hasSubclass(obj, false);
   HotSpotTypeResolved::set_hasFinalizableSubclass(obj, false);
 
   klass->set_graal_mirror(obj());

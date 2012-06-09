@@ -50,7 +50,6 @@ void graal_compute_offsets();
     oop_field(HotSpotTypeResolved, simpleName, "Ljava/lang/String;")                    \
     int_field(HotSpotTypeResolved, accessFlags)                                         \
     boolean_field(HotSpotTypeResolved, hasFinalizer)                                    \
-    boolean_field(HotSpotTypeResolved, hasSubclass)                                     \
     boolean_field(HotSpotTypeResolved, hasFinalizableSubclass)                          \
     int_field(HotSpotTypeResolved, superCheckOffset)                                    \
     boolean_field(HotSpotTypeResolved, isArrayClass)                                    \
