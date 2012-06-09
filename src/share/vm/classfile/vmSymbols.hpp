@@ -293,13 +293,13 @@
   template(com_oracle_max_cri_ci_CiAssumptions_ConcreteSubtype,       "com/oracle/graal/api/code/CiAssumptions$ConcreteSubtype")              \
   template(com_oracle_max_cri_ci_CiAssumptions_ConcreteMethod,        "com/oracle/graal/api/code/CiAssumptions$ConcreteMethod")               \
   template(com_oracle_max_cri_ci_CiGenericCallback,                   "com/oracle/graal/api/code/CiGenericCallback")                          \
-  template(com_oracle_max_cri_ci_CiTargetMethod,                      "com/oracle/graal/api/code/CiTargetMethod")                             \
-  template(com_oracle_max_cri_ci_CiTargetMethod_Site,                 "com/oracle/graal/api/code/CiTargetMethod$Site")                        \
-  template(com_oracle_max_cri_ci_CiTargetMethod_Call,                 "com/oracle/graal/api/code/CiTargetMethod$Call")                        \
-  template(com_oracle_max_cri_ci_CiTargetMethod_DataPatch,            "com/oracle/graal/api/code/CiTargetMethod$DataPatch")                   \
-  template(com_oracle_max_cri_ci_CiTargetMethod_Safepoint,            "com/oracle/graal/api/code/CiTargetMethod$Safepoint")                   \
-  template(com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,     "com/oracle/graal/api/code/CiTargetMethod$ExceptionHandler")            \
-  template(com_oracle_max_cri_ci_CiTargetMethod_Mark,                 "com/oracle/graal/api/code/CiTargetMethod$Mark")                        \
+  template(com_oracle_max_cri_ci_CiTargetMethod,                      "com/oracle/graal/api/code/CompilationResult")                             \
+  template(com_oracle_max_cri_ci_CiTargetMethod_Site,                 "com/oracle/graal/api/code/CompilationResult$Site")                        \
+  template(com_oracle_max_cri_ci_CiTargetMethod_Call,                 "com/oracle/graal/api/code/CompilationResult$Call")                        \
+  template(com_oracle_max_cri_ci_CiTargetMethod_DataPatch,            "com/oracle/graal/api/code/CompilationResult$DataPatch")                   \
+  template(com_oracle_max_cri_ci_CiTargetMethod_Safepoint,            "com/oracle/graal/api/code/CompilationResult$Safepoint")                   \
+  template(com_oracle_max_cri_ci_CiTargetMethod_ExceptionHandler,     "com/oracle/graal/api/code/CompilationResult$ExceptionHandler")            \
+  template(com_oracle_max_cri_ci_CiTargetMethod_Mark,                 "com/oracle/graal/api/code/CompilationResult$Mark")                        \
   template(com_oracle_max_cri_ci_CiBitMap,	                          "java/util/BitSet")                                   \
   template(com_oracle_max_cri_ci_CiDebugInfo,                         "com/oracle/graal/api/code/CiDebugInfo")                                \
   template(com_oracle_max_cri_ci_CiFrame,                             "com/oracle/graal/api/code/CiFrame")                                    \

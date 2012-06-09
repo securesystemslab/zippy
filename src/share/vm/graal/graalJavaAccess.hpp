@@ -95,11 +95,11 @@ void graal_compute_offsets();
     static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \
   end_class                                                                             \
   start_class(HotSpotTargetMethod)                                                      \
-    oop_field(HotSpotTargetMethod, targetMethod, "Lcom/oracle/graal/api/code/CiTargetMethod;") \
+    oop_field(HotSpotTargetMethod, targetMethod, "Lcom/oracle/graal/api/code/CompilationResult;") \
     oop_field(HotSpotTargetMethod, method, "Lcom/oracle/graal/hotspot/ri/HotSpotMethodResolved;") \
     oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
-    oop_field(HotSpotTargetMethod, sites, "[Lcom/oracle/graal/api/code/CiTargetMethod$Site;") \
-    oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/graal/api/code/CiTargetMethod$ExceptionHandler;") \
+    oop_field(HotSpotTargetMethod, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;") \
+    oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;") \
   end_class                                                                             \
   start_class(HotSpotExceptionHandler)                                                  \
     int_field(HotSpotExceptionHandler, startBCI)                                        \
@@ -149,7 +149,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(CiTargetMethod_Mark)                                                      \
     oop_field(CiTargetMethod_Mark, id, "Ljava/lang/Object;")                            \
-    oop_field(CiTargetMethod_Mark, references, "[Lcom/oracle/graal/api/code/CiTargetMethod$Mark;") \
+    oop_field(CiTargetMethod_Mark, references, "[Lcom/oracle/graal/api/code/CompilationResult$Mark;") \
   end_class                                                                             \
   start_class(CiDebugInfo)                                                              \
     oop_field(CiDebugInfo, codePos, "Lcom/oracle/graal/api/code/CiCodePos;")                \
