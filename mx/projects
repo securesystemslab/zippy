@@ -111,10 +111,17 @@ project@com.oracle.graal.alloc@javaCompliance=1.7
 
 # graal.snippets
 project@com.oracle.graal.snippets@subDir=graal
-project@com.oracle.graal.snippets@sourceDirs=src,test
+project@com.oracle.graal.snippets@sourceDirs=src
 project@com.oracle.graal.snippets@dependencies=com.oracle.graal.printer
 project@com.oracle.graal.snippets@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.snippets@javaCompliance=1.7
+
+# graal.snippets.test
+project@com.oracle.graal.snippets.test@subDir=graal
+project@com.oracle.graal.snippets.test@sourceDirs=src
+project@com.oracle.graal.snippets.test@dependencies=com.oracle.graal.snippets
+project@com.oracle.graal.snippets.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.snippets.test@javaCompliance=1.7
 
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
