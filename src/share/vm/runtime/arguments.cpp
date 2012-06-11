@@ -2147,6 +2147,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.graal.graph",
         "com.oracle.graal.lir",
         "com.oracle.graal.lir.amd64",
+        "com.oracle.graal.bytecode",
         "com.oracle.graal.java"
     };
 
