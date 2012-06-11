@@ -151,10 +151,16 @@ project@com.oracle.graal.boot.test@dependencies=JUNIT,com.oracle.graal.boot
 project@com.oracle.graal.boot.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.boot.test@javaCompliance=1.7
 
+# graal.bytecode
+project@com.oracle.graal.bytecode@subDir=graal
+project@com.oracle.graal.bytecode@sourceDirs=src
+project@com.oracle.graal.bytecode@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.bytecode@javaCompliance=1.7
+
 # graal.java
 project@com.oracle.graal.java@subDir=graal
 project@com.oracle.graal.java@sourceDirs=src
-project@com.oracle.graal.java@dependencies=com.oracle.graal.compiler
+project@com.oracle.graal.java@dependencies=com.oracle.graal.compiler,com.oracle.graal.bytecode
 project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.7
 
