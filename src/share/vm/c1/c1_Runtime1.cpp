@@ -212,6 +212,8 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
+    case graal_log_primitive_id:
+    case graal_log_object_id:
 #endif
       break;
 
@@ -738,7 +740,65 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
   }
 JRT_END
 
-#endif
+JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jboolean newline, jboolean string))
+  if (!string) {
+    tty->print("%p", obj);
+  } else {
+    assert(obj != NULL && java_lang_String::is_instance(obj), "must be");
+
+    typeArrayOop value  = java_lang_String::value(obj);
+    int          offset = java_lang_String::offset(obj);
+    int          length = java_lang_String::length(obj);
+
+    if (length != 0) {
+      if (value == NULL) {
+        // This can happen if, e.g., printing a String
+        // object before its initializer has been called
+        tty->print("null");
+      } else if (length < 256 - 1) {
+        // Use an intermediate buffer to try and prevent interlacing of multi-threaded output
+        char buf[256];
+        for (int index = 0; index < length; index++) {
+          buf[index] = value->char_at(index + offset);
+        }
+        buf[length] = 0;
+        tty->print("%s", buf);
+      } else {
+        for (int index = 0; index < length; index++) {
+          tty->print("%c", value->char_at(index + offset));
+        }
+      }
+    }
+  }
+  if (newline) {
+    tty->cr();
+  }
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
+  union {
+      jlong l;
+      jdouble d;
+      jfloat f;
+  } uu;
+  uu.l = value;
+  switch (typeChar) {
+    case 'z': tty->print(value == 0 ? "false" : "true"); break;
+    case 'b': tty->print("%d", (jbyte) value); break;
+    case 'c': tty->print("%c", (jchar) value); break;
+    case 's': tty->print("%d", (jshort) value); break;
+    case 'i': tty->print("%d", (jint) value); break;
+    case 'f': tty->print("%f", uu.f); break;
+    case 'j': tty->print(INT64_FORMAT, value); break;
+    case 'd': tty->print("%lf", uu.d); break;
+    default: assert(false, "unknown typeChar"); break;
+  }
+  if (newline) {
+    tty->cr();
+  }
+JRT_END
+
+#endif /* GRAAL */
 
 
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))

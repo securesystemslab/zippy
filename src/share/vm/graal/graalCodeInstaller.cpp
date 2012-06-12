@@ -581,6 +581,12 @@ address CodeInstaller::runtime_call_target_address(oop runtime_call) {
   } else if (runtime_call == RuntimeCall::GenericCallback()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_generic_callback_id);
     TRACE_graal_3("RuntimeCall::GenericCallback()");
+  } else if (runtime_call == RuntimeCall::LogPrimitive()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_log_primitive_id);
+    TRACE_graal_3("RuntimeCall::LogPrimitive()");
+  } else if (runtime_call == RuntimeCall::LogObject()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_log_object_id);
+    TRACE_graal_3("RuntimeCall::LogObject()");
   } else {
     runtime_call->print();
     fatal("runtime_call not implemented");
@@ -598,7 +604,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
     global_stub = target;
-  } else if (target_klass->name() == vmSymbols::com_oracle_graal_api_code_RuntimeCall()) {
+  } else if (target->is_a(RuntimeCall::klass())) {
     runtime_call = target;
   } else {
     hotspot_method = target;
