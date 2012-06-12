@@ -648,6 +648,36 @@ JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* thre
 JRT_END
 
 #ifdef GRAAL
+
+JRT_ENTRY(void, Runtime1::graal_create_null_exception(JavaThread* thread))
+  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_create_out_of_bounds_exception(JavaThread* thread, jint index))
+  char message[jintAsStringSize];
+  sprintf(message, "%d", index);
+  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_generic_callback(JavaThread* thread, oop _callback, oop _argument))
+  HandleMark hm;
+  Handle callback(_callback);
+  Handle argument(_argument);
+
+  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_api_code_GenericCallback(), SystemDictionary::java_system_loader(), NULL, thread);
+  if (klass.is_null()) {
+    tty->print_cr("couldn't resolve com_oracle_graal_api_code_GenericCallback");
+  }
+
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(Handle(callback));
+  args.push_oop(Handle(argument));
+  JavaCalls::call_virtual(&result, klass, vmSymbols::callbackInternal_name(), vmSymbols::callback_signature(), &args, thread);
+
+  thread->set_vm_result((oop) result.get_jobject());
+JRT_END
+
 JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT

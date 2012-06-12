@@ -199,6 +199,9 @@ class Runtime1: public AllStatic {
   static void monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock);
   static void monitorexit (JavaThread* thread, BasicObjectLock* lock);
 #ifdef GRAAL
+  static void graal_create_null_exception(JavaThread* thread);
+  static void graal_create_out_of_bounds_exception(JavaThread* thread, jint index);
+  static void graal_generic_callback(JavaThread* thread, oop _callback, oop _argument);
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
 #endif
