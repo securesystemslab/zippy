@@ -1885,6 +1885,22 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
+    case graal_log_primitive_id: {
+      __ enter();
+      __ call_RT(noreg, noreg, (address)graal_log_primitive, j_rarg0, j_rarg1, j_rarg2);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+
+    case graal_log_object_id: {
+      __ enter();
+      __ call_RT(noreg, noreg, (address)graal_log_object, j_rarg0, j_rarg1, j_rarg2);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+
     case graal_generic_callback_id: {
     __ enter();
     oop_maps = new OopMapSet();
