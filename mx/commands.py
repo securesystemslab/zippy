@@ -338,6 +338,11 @@ def _jdk(build='product', create=False):
                 for line in lines:
                     f.write(line)
                     
+            # Install a copy of the disassembler library
+            try:
+                hsdis([], copyToDir=_vmLibDirInJdk(jdk))
+            except SystemExit:
+                pass
     else:
         if not exists(jdk):
             mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx build ' + build + '\'')
@@ -553,11 +558,12 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         vm = _vm
         
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
+    jdk = _jdk(build)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
     if len([a for a in args if 'PrintAssembly' in a]) != 0:
-        hsdis([])
+        hsdis([], copyToDir=_vmLibDirInJdk(jdk))
     if mx.java().debug_port is not None:
         args = ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(mx.java().debug_port)] + args
     if _jacoco == 'on' or _jacoco == 'append':
@@ -573,7 +579,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
                         'excludes' : ':'.join(excludes)
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
-    exe = join(_jdk(build), 'bin', mx.exe_suffix('java'))
+    exe = join(jdk, 'bin', mx.exe_suffix('java'))
     return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(classes, p, pkgRoot, annotations, includeInnerClasses=False):
@@ -967,19 +973,20 @@ def specjvm2008(args):
     vm = _vm;
     sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench(vm, opts=vmArgs)
     
-def hsdis(args):
-    """install the hsdis library
+def hsdis(args, copyToDir=None):
+    """downloads the hsdis library
 
     This is needed to support HotSpot's assembly dumping features.
-    By default it installs the Intel syntax version, use the 'att' argument to install AT&T syntax."""
+    By default it downloads the Intel syntax version, use the 'att' argument to install AT&T syntax."""
     flavor = 'intel'
     if 'att' in args:
         flavor = 'att'
-    build = _vmbuild if _vmSourcesAvailable else 'product'
     lib = mx.lib_suffix('hsdis-amd64')
-    path = join(_vmLibDirInJdk(_jdk(build)), lib)
+    path = join(_graal_home, 'lib', lib)
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
+    if copyToDir is not None and exists(copyToDir):
+        shutil.copy(path, copyToDir)
     
 def hcfdis(args):
     """disassembles HexCodeFiles embedded in text files
