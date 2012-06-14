@@ -1887,7 +1887,11 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
     case graal_log_primitive_id: {
       __ enter();
-      __ call_RT(noreg, noreg, (address)graal_log_primitive, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 0);
+      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_primitive, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps->add_gc_map(call_offset, oop_map);
+      restore_live_registers(sasm);
       __ leave();
       __ ret(0);
       break;
@@ -1895,7 +1899,11 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
     case graal_log_object_id: {
       __ enter();
-      __ call_RT(noreg, noreg, (address)graal_log_object, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 0);
+      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_object, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps->add_gc_map(call_offset, oop_map);
+      restore_live_registers(sasm);
       __ leave();
       __ ret(0);
       break;
