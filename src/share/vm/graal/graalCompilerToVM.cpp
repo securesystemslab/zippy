@@ -785,6 +785,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_boolean(env, config, "useFastLocking", UseFastLocking);
   set_boolean(env, config, "useFastNewObjectArray", UseFastNewObjectArray);
   set_boolean(env, config, "useFastNewTypeArray", UseFastNewTypeArray);
+  set_boolean(env, config, "useTLAB", UseTLAB);
   set_int(env, config, "codeEntryAlignment", CodeEntryAlignment);
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);

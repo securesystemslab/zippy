@@ -648,6 +648,36 @@ JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* thre
 JRT_END
 
 #ifdef GRAAL
+
+JRT_ENTRY(void, Runtime1::graal_create_null_exception(JavaThread* thread))
+  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_create_out_of_bounds_exception(JavaThread* thread, jint index))
+  char message[jintAsStringSize];
+  sprintf(message, "%d", index);
+  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_generic_callback(JavaThread* thread, oop _callback, oop _argument))
+  HandleMark hm;
+  Handle callback(_callback);
+  Handle argument(_argument);
+
+  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_api_code_GenericCallback(), SystemDictionary::java_system_loader(), NULL, thread);
+  if (klass.is_null()) {
+    tty->print_cr("couldn't resolve com_oracle_graal_api_code_GenericCallback");
+  }
+
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(Handle(callback));
+  args.push_oop(Handle(argument));
+  JavaCalls::call_virtual(&result, klass, vmSymbols::callbackInternal_name(), vmSymbols::callback_signature(), &args, thread);
+
+  thread->set_vm_result((oop) result.get_jobject());
+JRT_END
+
 JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT
@@ -708,7 +738,72 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
   }
 JRT_END
 
-#endif
+JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jboolean newline, jboolean string))
+  if (!string) {
+    tty->print("%p", obj);
+  } else {
+    assert(obj != NULL && java_lang_String::is_instance(obj), "must be");
+
+    typeArrayOop value  = java_lang_String::value(obj);
+    int          offset = java_lang_String::offset(obj);
+    int          length = java_lang_String::length(obj);
+
+    if (length != 0) {
+      int printLength = MIN2(length, 1024);
+      if (value == NULL) {
+        // This can happen if, e.g., printing a String
+        // object before its initializer has been called
+        tty->print("null");
+      } else if (printLength < 256 - 1) {
+        // Use an intermediate buffer to try and prevent interlacing of multi-threaded output
+        char buf[256];
+        for (int index = 0; index < printLength; index++) {
+          buf[index] = value->char_at(index + offset);
+        }
+        buf[printLength] = 0;
+        tty->print("%s", buf);
+        if (printLength < length) {
+          tty->print("... (%d more)", length - printLength);
+        }
+      } else {
+        for (int index = 0; index < printLength; index++) {
+          tty->print("%c", value->char_at(index + offset));
+        }
+        if (printLength < length) {
+          tty->print("... (%d more)", length - printLength);
+        }
+      }
+    }
+  }
+  if (newline) {
+    tty->cr();
+  }
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
+  union {
+      jlong l;
+      jdouble d;
+      jfloat f;
+  } uu;
+  uu.l = value;
+  switch (typeChar) {
+    case 'z': tty->print(value == 0 ? "false" : "true"); break;
+    case 'b': tty->print("%d", (jbyte) value); break;
+    case 'c': tty->print("%c", (jchar) value); break;
+    case 's': tty->print("%d", (jshort) value); break;
+    case 'i': tty->print("%d", (jint) value); break;
+    case 'f': tty->print("%f", uu.f); break;
+    case 'j': tty->print(INT64_FORMAT, value); break;
+    case 'd': tty->print("%lf", uu.d); break;
+    default: assert(false, "unknown typeChar"); break;
+  }
+  if (newline) {
+    tty->cr();
+  }
+JRT_END
+
+#endif /* GRAAL */
 
 
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))

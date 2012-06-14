@@ -990,37 +990,6 @@ OopMapSet* Runtime1::generate_patching(StubAssembler* sasm, address target) {
   return oop_maps;
 }
 
-#ifdef GRAAL
-JRT_ENTRY(void, graal_create_null_exception(JavaThread* thread))
-  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
-JRT_END
-
-JRT_ENTRY(void, graal_create_out_of_bounds_exception(JavaThread* thread, jint index))
-  char message[jintAsStringSize];
-  sprintf(message, "%d", index);
-  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
-JRT_END
-
-JRT_ENTRY(void, graal_generic_callback(JavaThread* thread, oop _callback, oop _argument))
-  HandleMark hm;
-  Handle callback(_callback);
-  Handle argument(_argument);
-
-  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_api_code_GenericCallback(), SystemDictionary::java_system_loader(), NULL, thread);
-  if (klass.is_null()) {
-    tty->print_cr("couldn't resolve com_oracle_graal_api_code_GenericCallback");
-  }
-
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(Handle(callback));
-  args.push_oop(Handle(argument));
-  JavaCalls::call_virtual(&result, klass, vmSymbols::callbackInternal_name(), vmSymbols::callback_signature(), &args, thread);
-
-  thread->set_vm_result((oop) result.get_jobject());
-JRT_END
-#endif
-
 OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
   // for better readability
@@ -1913,6 +1882,30 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 		oop_maps->add_gc_map(call_offset, oop_map);
 		__ leave();
 		__ ret(0);
+      break;
+    }
+
+    case graal_log_primitive_id: {
+      __ enter();
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 0);
+      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_primitive, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps->add_gc_map(call_offset, oop_map);
+      restore_live_registers(sasm);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+
+    case graal_log_object_id: {
+      __ enter();
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 0);
+      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_object, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps->add_gc_map(call_offset, oop_map);
+      restore_live_registers(sasm);
+      __ leave();
+      __ ret(0);
       break;
     }
 

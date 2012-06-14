@@ -172,6 +172,13 @@ class Project(Dependency):
         self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance is not None else None
         self.native = False
         self.dir = dir
+        
+        # Create directories for projects that don't yet exist
+        if not exists(dir):
+            os.mkdir(dir)
+        for s in self.source_dirs():
+            if not exists(s):
+                os.mkdir(s)
 
     def all_deps(self, deps, includeLibs, includeSelf=True):
         """
