@@ -212,8 +212,6 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
-    case graal_log_primitive_id:
-    case graal_log_object_id:
 #endif
       break;
 
@@ -751,21 +749,28 @@ JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jboolean
     int          length = java_lang_String::length(obj);
 
     if (length != 0) {
+      int printLength = MIN2(length, 1024);
       if (value == NULL) {
         // This can happen if, e.g., printing a String
         // object before its initializer has been called
         tty->print("null");
-      } else if (length < 256 - 1) {
+      } else if (printLength < 256 - 1) {
         // Use an intermediate buffer to try and prevent interlacing of multi-threaded output
         char buf[256];
-        for (int index = 0; index < length; index++) {
+        for (int index = 0; index < printLength; index++) {
           buf[index] = value->char_at(index + offset);
         }
-        buf[length] = 0;
+        buf[printLength] = 0;
         tty->print("%s", buf);
+        if (printLength < length) {
+          tty->print("... (%d more)", length - printLength);
+        }
       } else {
-        for (int index = 0; index < length; index++) {
+        for (int index = 0; index < printLength; index++) {
           tty->print("%c", value->char_at(index + offset));
+        }
+        if (printLength < length) {
+          tty->print("... (%d more)", length - printLength);
         }
       }
     }
