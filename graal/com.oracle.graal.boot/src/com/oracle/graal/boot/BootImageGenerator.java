@@ -22,7 +22,24 @@
  */
 package com.oracle.graal.boot;
 
+import java.lang.reflect.*;
+
+import com.oracle.graal.debug.*;
+
 
 public class BootImageGenerator {
+
+    private final BootImageClassLoader classLoader = new BootImageClassLoader();
+
+    public void addEntryMethod(Class<?> clazz, String name, Class<?> ... parameterTypes) {
+        Class<?> convertedClass = classLoader.convert(clazz);
+        Method method;
+        try {
+            method = convertedClass.getDeclaredMethod(name, parameterTypes);
+        } catch (NoSuchMethodException | SecurityException e) {
+            throw new RuntimeException("Could not find method " + name + " with parameter types " + parameterTypes + " in class " + convertedClass.getCanonicalName());
+        }
+        Debug.log("Adding method %s.%s to the boot image", method.getClass().getName(), method.getName());
+    }
 
 }
