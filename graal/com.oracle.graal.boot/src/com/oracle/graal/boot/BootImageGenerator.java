@@ -24,12 +24,15 @@ package com.oracle.graal.boot;
 
 import java.lang.reflect.*;
 
+import com.oracle.graal.api.*;
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 
 
 public class BootImageGenerator {
 
     private final BootImageClassLoader classLoader = new BootImageClassLoader();
+    private final MetaAccessProvider metaAccess = Graal.getRequiredCapability(MetaAccessProvider.class);
 
     public void addEntryMethod(Class<?> clazz, String name, Class<?> ... parameterTypes) {
         Class<?> convertedClass = classLoader.convert(clazz);
@@ -40,6 +43,16 @@ public class BootImageGenerator {
             throw new RuntimeException("Could not find method " + name + " with parameter types " + parameterTypes + " in class " + convertedClass.getCanonicalName());
         }
         Debug.log("Adding method %s.%s to the boot image", method.getClass().getName(), method.getName());
+        addEntryMethod(metaAccess.getResolvedJavaMethod(method));
     }
 
+
+    private void addEntryMethod(ResolvedJavaMethod javaMethod) {
+
+    }
+
+
+    public void logState() {
+        Debug.log("State");
+    }
 }

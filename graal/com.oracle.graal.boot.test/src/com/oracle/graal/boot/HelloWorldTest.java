@@ -22,25 +22,13 @@
  */
 package com.oracle.graal.boot;
 
-import java.io.*;
-import java.lang.reflect.*;
-
 import com.oracle.graal.boot.test.helloworld.*;
 
 
 public class HelloWorldTest {
-    public static void main(String[] args) throws NoSuchMethodException, SecurityException, IOException {
-        Method entryPoint = HelloWorldTestProgram.class.getMethod("main", String[].class);
-        System.out.println(HelloWorldTestProgram.class.getCanonicalName());
-        InputStream inputStream = HelloWorldTestProgram.class.getClassLoader().getResourceAsStream(HelloWorldTestProgram.class.getName().replace('.', '/').concat(".class"));
-
-        byte[] byteCodes = new byte[inputStream.available()];
-        inputStream.read(byteCodes);
-        System.out.println(byteCodes);
-        ClassLoader l = new ClassLoader() {
-
-
-        };
-
+    public static void main(String[] args) {
+        BootImageGenerator generator = new BootImageGenerator();
+        generator.addEntryMethod(HelloWorldTestProgram.class, "main", String[].class);
+        generator.logState();
     }
 }
