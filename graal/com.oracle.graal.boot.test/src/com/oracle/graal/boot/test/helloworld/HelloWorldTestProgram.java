@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.boot.test.helloworld;
 
-
 public class HelloWorldTestProgram {
     public static void main(String[] args) {
         System.out.println("Hello world!");

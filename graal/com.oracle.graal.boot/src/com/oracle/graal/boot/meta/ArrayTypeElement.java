@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,34 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.java;
+package com.oracle.graal.boot.meta;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 
-/**
- * The {@code ExceptionObject} instruction represents the incoming exception object to an exception handler.
- */
-public class ExceptionObjectNode extends AbstractStateSplit implements StateSplit, LIRLowerable, MemoryCheckpoint {
 
-    /**
-     * Constructs a new ExceptionObject instruction.
-     */
-    public ExceptionObjectNode(MetaAccessProvider runtime) {
-        super(StampFactory.declared(runtime.getResolvedJavaType(Throwable.class)));
+public class ArrayTypeElement extends Element {
+
+    private ResolvedJavaType javaType;
+
+    public ArrayTypeElement(ResolvedJavaType javaType) {
+        super(javaType.componentType());
+        this.javaType = javaType;
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.visitExceptionObject(this);
-    }
-
-    @Override
-    public boolean verify() {
-        assertTrue(stateAfter() != null, "an exception handler needs a frame state");
-        return super.verify();
+    public String toString() {
+        return javaType + super.toString();
     }
 }

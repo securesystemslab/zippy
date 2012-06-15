@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,34 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.java;
+package com.oracle.graal.boot;
 
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.boot.*;
 
-/**
- * The {@code ExceptionObject} instruction represents the incoming exception object to an exception handler.
- */
-public class ExceptionObjectNode extends AbstractStateSplit implements StateSplit, LIRLowerable, MemoryCheckpoint {
 
-    /**
-     * Constructs a new ExceptionObject instruction.
-     */
-    public ExceptionObjectNode(MetaAccessProvider runtime) {
-        super(StampFactory.declared(runtime.getResolvedJavaType(Throwable.class)));
+
+public abstract class UniverseExpansionOp implements Runnable {
+
+    public void post(BigBang store) {
+        store.postOperation(this);
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.visitExceptionObject(this);
+    public void run() {
+        expand();
     }
 
-    @Override
-    public boolean verify() {
-        assertTrue(stateAfter() != null, "an exception handler needs a frame state");
-        return super.verify();
-    }
+    protected abstract void expand();
 }

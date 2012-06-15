@@ -29,6 +29,6 @@ public class HelloWorldTest {
     public static void main(String[] args) {
         BootImageGenerator generator = new BootImageGenerator();
         generator.addEntryMethod(HelloWorldTestProgram.class, "main", String[].class);
-        generator.logState();
+        generator.printState();
     }
 }
