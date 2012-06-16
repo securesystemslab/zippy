@@ -54,9 +54,7 @@ public class BootImageGenerator {
         bigbang.finish();
     }
 
-
-    public void printState() {
-        System.out.println("State of boot image generation");
-        bigbang.printState();
+    public BigBang getBigBang() {
+        return bigbang;
     }
 }

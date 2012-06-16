@@ -47,7 +47,7 @@ public class InvokeElement extends Element {
     @Override
     protected synchronized void unionTypes(BigBang bb, Node sourceNode, Set<ResolvedJavaType> newSeenTypes) {
 
-        System.out.println("union invoke element " + this);
+        System.out.println("union invoke element " + this + " new types = " + newSeenTypes + " sourceNode= " + sourceNode);
         int index = 0;
         for (Node arg : methodCallTarget.arguments()) {
             if (arg == sourceNode) {
@@ -63,12 +63,22 @@ public class InvokeElement extends Element {
         return "Invoke[bci=" + methodCallTarget.invoke().stateAfter().method() + "," + methodCallTarget.targetMethod() + "]";
     }
 
+    public synchronized void expandStaticMethod(BigBang bb) {
+        if (methodCallTarget.isStatic()) {
+            ResolvedJavaMethod method = methodCallTarget.targetMethod();
+            concreteTargets.add(method);
+            MethodElement processedMethod = bb.getProcessedMethod(method);
+            processedMethod.postParseGraph(bb);
+        }
+    }
+
     private void unionTypes(BigBang bb, @SuppressWarnings("unused") Node sourceNode, Set<ResolvedJavaType> newSeenTypes, int index) {
         if (index == 0 && !methodCallTarget.isStatic()) {
             for (ResolvedJavaType type : newSeenTypes) {
                 if (seenTypes.add(type)) {
                     // There is a new receiver type!
                     ResolvedJavaMethod method = type.resolveMethodImpl(methodCallTarget.targetMethod());
+                    System.out.println("resolved method " + method + " for type " + type + " and method " + methodCallTarget.targetMethod());
                     if (method == null) {
                         System.out.println("!!! type = " + type + " / " + methodCallTarget.targetMethod());
                     }

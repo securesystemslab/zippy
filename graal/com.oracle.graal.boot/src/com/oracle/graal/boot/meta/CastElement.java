@@ -22,21 +22,40 @@
  */
 package com.oracle.graal.boot.meta;
 
-import com.oracle.graal.nodes.*;
+import java.util.*;
+
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.boot.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.java.*;
 
 
-public class PhiElement extends Element {
+public class CastElement extends Element {
 
-    private PhiNode phi;
+    private CheckCastNode checkCastNode;
 
-    public PhiElement(PhiNode phi) {
-        super(null);
-        this.phi = phi;
-        usages.add(phi);
+    public CastElement(CheckCastNode checkCastNode) {
+        super(checkCastNode.targetClass());
+        this.checkCastNode = checkCastNode;
+        this.usages.add(checkCastNode);
+    }
+
+    @Override
+    protected synchronized void unionTypes(BigBang bb, Node sourceNode, Set<ResolvedJavaType> newSeenTypes) {
+        Set<ResolvedJavaType> newSet = new HashSet<>();
+        // Filter through checkcast.
+        for (ResolvedJavaType type : newSeenTypes) {
+            if (type.isSubtypeOf(checkCastNode.targetClass())) {
+                newSet.add(type);
+            } else {
+                System.out.println("filtering " + type + " vs " + checkCastNode.targetClass());
+            }
+        }
+        super.unionTypes(bb, sourceNode, newSet);
     }
 
     @Override
     public String toString() {
-        return "phi " + phi;
+        return "cast " + checkCastNode.targetClass();
     }
 }

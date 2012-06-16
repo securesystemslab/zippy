@@ -22,7 +22,13 @@
  */
 package com.oracle.graal.boot.meta;
 
+import java.util.*;
+
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.boot.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.java.*;
 
 
 public class ArrayTypeElement extends Element {
@@ -36,6 +42,28 @@ public class ArrayTypeElement extends Element {
 
     @Override
     public String toString() {
-        return javaType + super.toString();
+        return "arrayTypeElement: " + javaType;
+    }
+
+    @Override
+    protected void propagateTypesToUsage(BigBang bb, Node use, Set<ResolvedJavaType> set, Element element) {
+        LoadIndexedNode load = (LoadIndexedNode) use;
+        ResolvedJavaType declaredType = load.array().stamp().declaredType();
+        if (declaredType == null) {
+            System.out.println("FATAL error: Array access without declared type!");
+            System.out.println(load.array());
+            System.out.println(((StructuredGraph) load.graph()).method());
+            System.exit(-1);
+        }
+        ResolvedJavaType componentType = declaredType.componentType();
+        Set<ResolvedJavaType> newSet = new HashSet<>();
+        for (ResolvedJavaType myType : set) {
+            if (myType.isSubtypeOf(componentType)) {
+                newSet.add(myType);
+            }
+        }
+        if (newSet.size() > 0) {
+            super.propagateTypesToUsage(bb, use, newSet, element);
+        }
     }
 }

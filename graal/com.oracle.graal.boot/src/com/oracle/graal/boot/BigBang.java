@@ -35,7 +35,7 @@ import com.oracle.graal.nodes.java.*;
 
 public class BigBang {
 
-    private static final int THREADS = 1;
+    private static final int THREADS = 4;
 
     private MetaAccessProvider metaAccessProvider;
     private int postedOperationCount;
@@ -83,20 +83,26 @@ public class BigBang {
             if (node instanceof PhiNode) {
                 PhiNode phiNode = (PhiNode) node;
                 resultElement = new PhiElement(phiNode);
+            } else if (node instanceof CheckCastNode) {
+                CheckCastNode checkCastNode = (CheckCastNode) node;
+                resultElement = new CastElement(checkCastNode);
+            } else if (node instanceof ValueProxyNode) {
+                ValueProxyNode proxyNode = (ValueProxyNode) node;
+                resultElement = new ProxyElement(proxyNode);
             } else if (node instanceof StoreFieldNode) {
                 StoreFieldNode storeFieldNode = (StoreFieldNode) node;
                 resultElement = getProcessedField(storeFieldNode.field());
             } else if (node instanceof StoreIndexedNode) {
                 StoreIndexedNode storeIndexedNode = (StoreIndexedNode) node;
                 if (storeIndexedNode.elementKind() == Kind.Object) {
-                    resultElement = getProcessedArrayType(storeIndexedNode.array().stamp().declaredType());
+                    resultElement = getProcessedArrayType(metaAccessProvider.getResolvedJavaType(Object[].class));
                 }
             } else if (node instanceof ReturnNode) {
                 ReturnNode returnNode = (ReturnNode) node;
                 ResolvedJavaMethod method = ((StructuredGraph) returnNode.graph()).method();
                 resultElement = getProcessedMethod(method);
             } else {
-                if (node instanceof FrameState || node instanceof MonitorEnterNode || node instanceof MonitorExitNode || node instanceof LoadFieldNode || node instanceof IsNullNode) {
+                if (node instanceof FrameState || node instanceof MonitorEnterNode || node instanceof MonitorExitNode || node instanceof LoadFieldNode || node instanceof IsNullNode || node instanceof InstanceOfNode) {
                     // OK.
                 } else {
                     System.out.println("Unknown sink - black hole? " + node);
@@ -123,7 +129,9 @@ public class BigBang {
     }
 
     public synchronized void registerSourceCallTargetNode(MethodCallTargetNode methodCallTargetNode) {
-        sinkMap.put(methodCallTargetNode, new InvokeElement(methodCallTargetNode));
+        InvokeElement invokeElement = new InvokeElement(methodCallTargetNode);
+        sinkMap.put(methodCallTargetNode, invokeElement);
+        invokeElement.expandStaticMethod(this);
     }
 
     public synchronized void registerSourceNode(Node node) {
@@ -133,7 +141,9 @@ public class BigBang {
             resultElement = getProcessedField(loadFieldNode.field());
         } else if (node instanceof LoadIndexedNode) {
             LoadIndexedNode loadIndexedNode = (LoadIndexedNode) node;
-            resultElement = getProcessedArrayType(loadIndexedNode.array().stamp().declaredType());
+            if (loadIndexedNode.kind() == Kind.Object) {
+                resultElement = getProcessedArrayType(metaAccessProvider.getResolvedJavaType(Object[].class));
+            }
         } else if (node instanceof LocalNode) {
             LocalNode localNode = (LocalNode) node;
             if (localNode.kind() == Kind.Object) {
@@ -240,7 +250,7 @@ public class BigBang {
 
     }
 
-    public synchronized void printState() {
+    public synchronized int[] printState() {
 
         int nativeMethodCount = 0;
         for (MethodElement methodElement : methodMap.values()) {
@@ -266,7 +276,9 @@ public class BigBang {
         int fieldCount = 0;
         for (FieldElement fieldElement : fieldMap.values()) {
             if (fieldElement.getUsageCount() > 0) {
-                System.out.println("Included field: " + fieldElement.getJavaField());
+                System.out.print("Included field: " + fieldElement.getJavaField() + " / ");
+                fieldElement.printSeenTypes();
+                System.out.println();
                 fieldCount++;
                 includedTypes.add(fieldElement.getJavaField().holder());
             }
@@ -280,5 +292,6 @@ public class BigBang {
         System.out.println("Number of included method: " + methodCount);
         System.out.println("Number of included fields: " + fieldCount);
         System.out.println("Number of included types: " + includedTypes.size());
+        return new int[]{nativeMethodCount, methodCount, fieldCount, includedTypes.size()};
     }
 }

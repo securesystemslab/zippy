@@ -22,9 +22,6 @@
  */
 package com.oracle.graal.boot;
 
-import com.oracle.graal.boot.*;
-
-
 
 public abstract class UniverseExpansionOp implements Runnable {
 

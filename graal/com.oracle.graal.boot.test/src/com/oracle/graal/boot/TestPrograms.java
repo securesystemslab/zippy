@@ -22,13 +22,39 @@
  */
 package com.oracle.graal.boot;
 
-import com.oracle.graal.boot.test.helloworld.*;
+import java.util.*;
 
+public class TestPrograms {
+    public static void helloWorldTest() {
+        System.out.println("Hello world!");
+    }
 
-public class HelloWorldTest {
-    public static void main(String[] args) {
-        BootImageGenerator generator = new BootImageGenerator();
-        generator.addEntryMethod(HelloWorldTestProgram.class, "main", String[].class);
-        generator.printState();
+    public static void formattedOutputTest() {
+        System.out.printf("%s %s!", "Hello", "world");
+    }
+
+    @SuppressWarnings("unused")
+    public static void newTest() {
+        Integer x = new Integer(5);
+    }
+
+    public static void arraycopyTest() {
+        Object[] arr = new Object[1];
+        arr[0] = new TestObject();
+        TestObject[] newArr = Arrays.copyOf(arr, 1, TestObject[].class);
+        newArr[0].testMethod();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void arrayListTest() {
+        ArrayList list = new ArrayList();
+        list.add(new TestObject());
+        TestObject[] newArr = (TestObject[]) list.toArray(new TestObject[0]);
+        newArr[0].testMethod();
+    }
+
+    public static class TestObject {
+        public void testMethod() {
+        }
     }
 }

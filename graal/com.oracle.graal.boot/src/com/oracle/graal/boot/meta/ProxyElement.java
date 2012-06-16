@@ -20,10 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.boot.test.helloworld;
+package com.oracle.graal.boot.meta;
 
-public class HelloWorldTestProgram {
-    public static void main(String[] args) {
-        System.out.println("Hello world!");
+import com.oracle.graal.nodes.*;
+
+
+public class ProxyElement extends Element {
+
+    private ValueProxyNode proxy;
+
+    public ProxyElement(ValueProxyNode proxy) {
+        super(null);
+        this.proxy = proxy;
+        usages.add(proxy);
+    }
+
+    @Override
+    public String toString() {
+        return "value proxy " + proxy;
     }
 }

@@ -101,16 +101,27 @@ public class Element {
         }
     }
 
-    public static void propagateTypes(BigBang bb, Node n, Set<ResolvedJavaType> types) {
+    public void propagateTypes(BigBang bb, Node n, Set<ResolvedJavaType> types) {
         if (types.size() != 0) {
             Set<ResolvedJavaType> newSet = new HashSet<>(types);
             for (Node use : n.usages()) {
                 Element element = bb.getSinkElement(use, n);
                 assert element != null;
                 if (element != BLACK_HOLE) {
-                    element.postUnionTypes(bb, n, newSet);
+                    propagateTypesToUsage(bb, n, newSet, element);
                 }
             }
+        }
+    }
+
+    protected void propagateTypesToUsage(BigBang bb, Node use, Set<ResolvedJavaType> newSet, Element element) {
+        element.postUnionTypes(bb, use, newSet);
+    }
+
+
+    public synchronized void printSeenTypes() {
+        for (ResolvedJavaType type : seenTypes) {
+            System.out.print(type.name() + " ");
         }
     }
 }

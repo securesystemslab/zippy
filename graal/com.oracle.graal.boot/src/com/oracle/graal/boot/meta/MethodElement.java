@@ -28,6 +28,7 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.boot.*;
 import com.oracle.graal.compiler.*;
+import com.oracle.graal.compiler.phases.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.java.GraphBuilderConfiguration.*;
@@ -79,13 +80,17 @@ public class MethodElement extends Element {
         }.post(bb);
     }
 
-    protected synchronized void parseGraph(final BigBang bb) {
-        if (graph != null) {
-            // Graph already exists => quit operation.
-            return;
+    protected void parseGraph(final BigBang bb) {
+        StructuredGraph newGraph = null;
+        synchronized (this) {
+            if (graph != null) {
+                // Graph already exists => quit operation.
+                return;
+            }
+            newGraph = new StructuredGraph(resolvedJavaMethod);
+            this.graph = newGraph;
         }
-        StructuredGraph newGraph = new StructuredGraph(resolvedJavaMethod);
-        this.graph = newGraph;
+
         if (Modifier.isNative(resolvedJavaMethod.accessFlags())) {
             System.out.println("NATIVE METHOD " + resolvedJavaMethod);
             return;
@@ -95,6 +100,8 @@ public class MethodElement extends Element {
         GraphBuilderConfiguration config = new GraphBuilderConfiguration(ResolvePolicy.Eager, null);
         GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(bb.getMetaAccess(), config, OptimisticOptimizations.NONE);
         graphBuilderPhase.apply(newGraph);
+        new PhiStampPhase().apply(newGraph);
+
         for (MethodCallTargetNode callTargetNode : newGraph.getNodes(MethodCallTargetNode.class)) {
             bb.registerSourceCallTargetNode(callTargetNode);
         }
@@ -107,7 +114,13 @@ public class MethodElement extends Element {
             Set<ResolvedJavaType> types = new HashSet<>();
             types.add(newInstance.instanceClass());
             System.out.println("propagate new instance " + newInstance + ", " + newInstance.instanceClass());
-            Element.propagateTypes(bb, newInstance, types);
+            for (Node use : newInstance.usages()) {
+                Element element = bb.getSinkElement(use, newInstance);
+                assert element != null;
+                if (element != BLACK_HOLE) {
+                    element.postUnionTypes(bb, newInstance, types);
+                }
+            }
         }
     }
 
