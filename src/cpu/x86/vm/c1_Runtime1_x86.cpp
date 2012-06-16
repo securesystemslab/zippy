@@ -1036,6 +1036,10 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
           __ push(rdi);
           __ push(rbx);
+#ifdef GRAAL
+          __ push(rcx);
+          __ push(rsi);
+#endif
 
           if (id == fast_new_instance_init_check_id) {
             // make sure the klass is initialized
@@ -1074,6 +1078,10 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
           __ initialize_object(obj, klass, obj_size, 0, t1, t2);
           __ verify_oop(obj);
+#ifdef GRAAL
+          __ pop(rsi);
+          __ pop(rcx);
+#endif
           __ pop(rbx);
           __ pop(rdi);
           __ ret(0);
@@ -1087,11 +1095,19 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
 
           __ initialize_object(obj, klass, obj_size, 0, t1, t2);
           __ verify_oop(obj);
+#ifdef GRAAL
+          __ pop(rsi);
+          __ pop(rcx);
+#endif
           __ pop(rbx);
           __ pop(rdi);
           __ ret(0);
 
           __ bind(slow_path);
+#ifdef GRAAL
+          __ pop(rsi);
+          __ pop(rcx);
+#endif
           __ pop(rbx);
           __ pop(rdi);
         }
@@ -1939,8 +1955,8 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
-    case graal_verify_pointer_id: {
-      __ verify_oop(r13, "graal verify pointer");
+    case graal_verify_oop_id: {
+      __ verify_oop(r13, "graal verify oop");
       __ ret(0);
       break;
     }

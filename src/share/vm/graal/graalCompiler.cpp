@@ -278,8 +278,12 @@ Handle GraalCompiler::createHotSpotResolvedJavaType(KlassHandle klass, Handle na
   if (klass->oop_is_javaArray()) {
     HotSpotResolvedJavaType::set_isArrayClass(obj, true);
   } else {
+    int size = instanceKlass::cast(klass())->size_helper() * HeapWordSize;
+    if (!instanceKlass::cast(klass())->can_be_fastpath_allocated()) {
+      size = -size;
+    }
     HotSpotResolvedJavaType::set_isArrayClass(obj, false);
-    HotSpotResolvedJavaType::set_instanceSize(obj, instanceKlass::cast(klass())->size_helper() * HeapWordSize);
+    HotSpotResolvedJavaType::set_instanceSize(obj, size);
     HotSpotResolvedJavaType::set_hasFinalizer(obj, klass->has_finalizer());
   }
 
