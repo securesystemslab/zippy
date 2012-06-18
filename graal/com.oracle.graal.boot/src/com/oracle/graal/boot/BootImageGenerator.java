@@ -22,7 +22,39 @@
  */
 package com.oracle.graal.boot;
 
+import java.lang.reflect.*;
+
+import com.oracle.graal.api.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.boot.meta.*;
+
 
 public class BootImageGenerator {
 
+    private final BootImageClassLoader classLoader = new BootImageClassLoader();
+    private final MetaAccessProvider metaAccess = Graal.getRequiredCapability(MetaAccessProvider.class);
+    private final BigBang bigbang = new BigBang(metaAccess);
+
+    public void addEntryMethod(Class<?> clazz, String name, Class<?> ... parameterTypes) {
+        Class<?> convertedClass = classLoader.convert(clazz);
+        Method method;
+        try {
+            method = convertedClass.getDeclaredMethod(name, parameterTypes);
+        } catch (NoSuchMethodException | SecurityException e) {
+            throw new RuntimeException("Could not find method " + name + " with parameter types " + parameterTypes + " in class " + convertedClass.getCanonicalName());
+        }
+        System.out.printf("Adding method %s.%s to the boot image\n", method.getDeclaringClass().getName(), method.getName());
+        addEntryMethod(metaAccess.getResolvedJavaMethod(method));
+    }
+
+
+    private void addEntryMethod(ResolvedJavaMethod javaMethod) {
+        MethodElement methodElement = bigbang.getProcessedMethod(javaMethod);
+        methodElement.postParseGraph(bigbang);
+        bigbang.finish();
+    }
+
+    public BigBang getBigBang() {
+        return bigbang;
+    }
 }

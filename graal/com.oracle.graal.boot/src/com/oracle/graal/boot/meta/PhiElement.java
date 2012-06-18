@@ -20,11 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.boot.test.helloworld;
+package com.oracle.graal.boot.meta;
+
+import com.oracle.graal.nodes.*;
 
 
-public class HelloWorldTestProgram {
-    public static void main(String[] args) {
-        System.out.println("Hello world!");
+public class PhiElement extends Element {
+
+    private PhiNode phi;
+
+    public PhiElement(PhiNode phi) {
+        super(null);
+        this.phi = phi;
+        usages.add(phi);
+    }
+
+    @Override
+    public String toString() {
+        return "phi " + phi;
     }
 }

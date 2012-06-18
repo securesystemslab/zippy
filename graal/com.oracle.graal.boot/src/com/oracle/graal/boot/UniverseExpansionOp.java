@@ -23,6 +23,16 @@
 package com.oracle.graal.boot;
 
 
-public class HelloWorldTest {
+public abstract class UniverseExpansionOp implements Runnable {
 
+    public void post(BigBang store) {
+        store.postOperation(this);
+    }
+
+    @Override
+    public void run() {
+        expand();
+    }
+
+    protected abstract void expand();
 }

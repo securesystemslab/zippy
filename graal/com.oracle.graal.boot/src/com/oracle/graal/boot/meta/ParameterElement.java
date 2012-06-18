@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,34 +20,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.java;
+package com.oracle.graal.boot.meta;
+
+import java.lang.reflect.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 
-/**
- * The {@code ExceptionObject} instruction represents the incoming exception object to an exception handler.
- */
-public class ExceptionObjectNode extends AbstractStateSplit implements StateSplit, LIRLowerable, MemoryCheckpoint {
 
-    /**
-     * Constructs a new ExceptionObject instruction.
-     */
-    public ExceptionObjectNode(MetaAccessProvider runtime) {
-        super(StampFactory.declared(runtime.getResolvedJavaType(Throwable.class)));
+public class ParameterElement extends Element {
+
+    private int index;
+    private ResolvedJavaMethod method;
+
+    public ParameterElement(ResolvedJavaMethod method, int index) {
+        super(calculateDeclaredType(method, index));
+        this.method = method;
+        this.index = index;
+    }
+
+    private static ResolvedJavaType calculateDeclaredType(ResolvedJavaMethod m, int i) {
+        if (Modifier.isStatic(m.accessFlags())) {
+            return m.signature().argumentTypeAt(i, m.holder()).resolve(m.holder());
+        } else {
+            if (i == 0) {
+                return m.holder();
+            }
+            return m.signature().argumentTypeAt(i - 1, m.holder()).resolve(m.holder());
+        }
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.visitExceptionObject(this);
+    public String toString() {
+        return "[Parameter, index= " + index + " of method " + method + "]";
     }
 
-    @Override
-    public boolean verify() {
-        assertTrue(stateAfter() != null, "an exception handler needs a frame state");
-        return super.verify();
-    }
 }
