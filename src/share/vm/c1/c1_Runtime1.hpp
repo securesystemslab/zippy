@@ -76,7 +76,7 @@ class StubAssembler;
   stub(graal_arithmetic_drem)        \
   stub(graal_monitorenter)           \
   stub(graal_monitorexit)            \
-  stub(graal_verify_pointer)         \
+  stub(graal_verify_oop)         \
   stub(graal_set_deopt_info)         \
   stub(graal_create_null_pointer_exception) \
   stub(graal_create_out_of_bounds_exception) \

@@ -147,7 +147,7 @@ project@com.oracle.graal.compiler@javaCompliance=1.7
 # graal.boot
 project@com.oracle.graal.boot@subDir=graal
 project@com.oracle.graal.boot@sourceDirs=src
-project@com.oracle.graal.boot@dependencies=com.oracle.graal.compiler
+project@com.oracle.graal.boot@dependencies=com.oracle.graal.java,com.oracle.graal.api
 project@com.oracle.graal.boot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.boot@javaCompliance=1.7
 
