@@ -175,7 +175,7 @@ def dacapo(args):
     """run one or all DaCapo benchmarks
     
     DaCapo options are distinguished from VM options by a '@' prefix.
-    For example, '@--iterations @5' will pass '--iterations 5' to the
+    For example, '@-n @5' will pass '-n 5' to the
     DaCapo harness."""
 
     numTests = {}
@@ -624,18 +624,30 @@ def _find_classes_with_annotations(classes, p, pkgRoot, annotations, includeInne
                                 elif e == basename + '.class':
                                     classes.append(pkg + '.' + basename)
 
+def _run_tests(args, harnessName, harness):
+    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
+    neg = [a[1:] for a in args if a[0] == '-']
+    vmArgs = [a[1:] for a in args if a[0] == '@']
 
-# Table of unit tests.
-# Keys are project names, values are package name lists.
-# All source files in the given (project,package) pairs are scanned for lines
-# containing '@Test'. These are then determined to be the classes defining
-# unit tests.
-_unittests = {
-    'com.oracle.graal.tests': ['com.oracle.graal.compiler.tests'],
-}
-_jtttests = {
-    'com.oracle.graal.jtt': ['com.oracle.graal.jtt'],
-}
+    def containsAny(c, substrings):
+        for s in substrings:
+            if s in c:
+                return True
+        return False
+    
+    for p in mx.projects():
+        if getattr(p, 'testHarness', None) == harnessName:
+            classes = []
+            _find_classes_with_annotations(classes, p, None, ['@Test'])
+        
+            if len(pos) != 0:
+                classes = [c for c in classes if containsAny(c, pos)]
+            if len(neg) != 0:
+                classes = [c for c in classes if not containsAny(c, neg)]
+            
+            if len(classes) != 0:
+                mx.log('running tests in ' + p.name)
+                harness(p, vmArgs, classes)                
 
 def unittest(args):
     """run the Graal Compiler Unit Tests in the GraalVM
@@ -644,28 +656,9 @@ def unittest(args):
     include a filter as a substring are run. Negative filters are
     those with a '-' prefix. VM args should have a @ prefix."""
     
-    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
-    neg = [a[1:] for a in args if a[0] == '-']
-    vmArgs = [a[1:] for a in args if a[0] == '@']
-
-    def containsAny(c, substrings):
-        for s in substrings:
-            if s in c:
-                return True
-        return False
-    
-    for proj in _unittests.iterkeys():
-        p = mx.project(proj)
-        classes = []
-        for pkg in _unittests[proj]:
-            _find_classes_with_annotations(classes, p, pkg, ['@Test'])
-    
-        if len(pos) != 0:
-            classes = [c for c in classes if containsAny(c, pos)]
-        if len(neg) != 0:
-            classes = [c for c in classes if not containsAny(c, neg)]
-        
-        vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+    def harness(p, vmArgs, classes):
+        vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
+    _run_tests(args, 'unittest', harness)
     
 def jtt(args):
     """run the Java Tester Tests in the GraalVM
@@ -674,28 +667,9 @@ def jtt(args):
     include a filter as a substring are run. Negative filters are
     those with a '-' prefix. VM args should have a @ prefix."""
     
-    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
-    neg = [a[1:] for a in args if a[0] == '-']
-    vmArgs = [a[1:] for a in args if a[0] == '@']
-
-    def containsAny(c, substrings):
-        for s in substrings:
-            if s in c:
-                return True
-        return False
-    
-    for proj in _jtttests.iterkeys():
-        p = mx.project(proj)
-        classes = []
-        for pkg in _jtttests[proj]:
-            _find_classes_with_annotations(classes, p, pkg, ['@Test'])
-    
-        if len(pos) != 0:
-            classes = [c for c in classes if containsAny(c, pos)]
-        if len(neg) != 0:
-            classes = [c for c in classes if not containsAny(c, neg)]
-            
-        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=com/oracle/graal/jtt', '-XX:CompileCommand=compileonly,java/lang/Object::<init>', '-XX:CompileCommand=quiet', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+    def harness(p, vmArgs, classes):
+        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=com/oracle/graal/jtt', '-XX:CompileCommand=compileonly,java/lang/Object::<init>', '-XX:CompileCommand=quiet', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
+    _run_tests(args, 'jtt', harness)
     
 def buildvms(args):
     """build one or more VMs in various configurations"""
