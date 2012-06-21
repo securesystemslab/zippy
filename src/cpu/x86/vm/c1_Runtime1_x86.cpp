@@ -1956,7 +1956,10 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
     }
 
     case graal_verify_oop_id: {
+      // We use enter & leave so that a better stack trace is produced in the hs_err file
+      __ enter();
       __ verify_oop(r13, "graal verify oop");
+      __ leave();
       __ ret(0);
       break;
     }
