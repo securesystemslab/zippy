@@ -51,7 +51,7 @@ public class InvokeElement extends Element {
         int index = 0;
         for (Node arg : methodCallTarget.arguments()) {
             if (arg == sourceNode) {
-                System.out.println("source node " + sourceNode + " is at index " + index + " declaredType=" + ((ValueNode) sourceNode).stamp().declaredType());
+                System.out.println("source node " + sourceNode + " is at index " + index + " stamp=" + ((ValueNode) sourceNode).stamp());
                 unionTypes(bb, sourceNode, newSeenTypes, index);
             }
             ++index;
