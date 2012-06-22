@@ -286,12 +286,22 @@ def scaladacapo(args):
 
 def _vmLibDirInJdk(jdk):
     """
-    Get the directory within a JDK where jvm.cfg file and the server
-    and client subdirectories are located.
+    Get the directory within a JDK where the server and client 
+    subdirectories are located.
     """
     if platform.system() == 'Darwin':
         return join(jdk, 'jre', 'lib')
+    if platform.system() == 'Windows':
+        return join(jdk, 'jre', 'bin')
     return join(jdk, 'jre', 'lib', 'amd64')
+
+def _vmCfgInJdk(jdk):
+    """
+    Get the jvm.cfg file.
+    """
+    if platform.system() == 'Windows':
+        return join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+    return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdk(build='product', create=False):
     """
@@ -315,7 +325,7 @@ def _jdk(build='product', create=False):
                 
             # Make a copy of the default VM so that this JDK can be
             # reliably used as the bootstrap for a HotSpot build.                
-            jvmCfg = join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+            jvmCfg = _vmCfgInJdk(jdk)
             if not exists(jvmCfg):
                 mx.abort(jvmCfg + ' does not exist')
                 
@@ -364,9 +374,9 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log = open(logFile, 'w')
     ret = False
     while True:
-        line = stdout.readline().decode()
+        line = stdout.readline().decode(sys.stdout.encoding)
         if logFile:
-            log.write(line)
+            log.write(line.encode('utf-8'))
         line = line.strip()
         mx.log(line)
         if line == STARTTOKEN:
@@ -380,7 +390,14 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
             if match:
                 ret = True
         if line == ENDTOKEN:
-            break
+            if not findInOutput:
+                stdin.write('echo ERR%errorlevel%' + newLine)
+            else:
+                break
+        if line.startswith('ERR'):
+            if line == 'ERR0':
+                ret = True
+            break;
     stdin.write('exit' + newLine)
     if logFile:
         log.close()
@@ -495,8 +512,7 @@ def build(args, vm=None):
                 mx.log('Error executing create command')
                 return 
             winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=' + project_config + ' /p:Platform=x64'
-            winBuildSuccess = re.compile('Build succeeded.')
-            if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
+            if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile):
                 mx.log('Error building project')
                 return 
         else:
@@ -516,7 +532,7 @@ def build(args, vm=None):
             
             mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
         
-        jvmCfg = join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+        jvmCfg = _vmCfgInJdk(jdk)
         found = False
         if not exists(jvmCfg):
             mx.abort(jvmCfg + ' does not exist')
