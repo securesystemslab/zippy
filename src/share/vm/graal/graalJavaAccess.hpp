@@ -56,10 +56,10 @@ void graal_compute_offsets();
     boolean_field(HotSpotResolvedJavaType, isInstanceClass)                                 \
     boolean_field(HotSpotResolvedJavaType, isInterface)                                     \
     int_field(HotSpotResolvedJavaType, instanceSize)                                        \
-  end_class                                                                             \
-  start_class(HotSpotKlassOop)                                                          \
-    oop_field(HotSpotKlassOop, javaMirror, "Ljava/lang/Class;")                         \
-    end_class                                                                           \
+  end_class                                                                                 \
+  start_class(HotSpotKlassOop)                                                              \
+    oop_field(HotSpotKlassOop, type, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")        \
+    end_class                                                                               \
   start_class(HotSpotResolvedJavaMethod)                                                    \
     oop_field(HotSpotResolvedJavaMethod, name, "Ljava/lang/String;")                        \
     oop_field(HotSpotResolvedJavaMethod, holder, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")  \

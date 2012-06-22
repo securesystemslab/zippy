@@ -780,7 +780,9 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
 
       if (obj->is_a(HotSpotKlassOop::klass())) {
         assert(!obj.is_null(), "");
-        *((jobject*) operand) = JNIHandles::make_local(java_lang_Class::as_klassOop(HotSpotKlassOop::javaMirror(obj)));
+        oop type = HotSpotKlassOop::type(obj);
+        klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type));
+        *((jobject*) operand) = JNIHandles::make_local(klass);
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_graal_3("relocating (HotSpotJavaType) at %016x/%016x", instruction, operand);
       } else {
