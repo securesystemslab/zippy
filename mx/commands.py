@@ -788,7 +788,7 @@ def gate(args):
                 _jacoco = 'append'
             
             t = Task('JavaTesterTests:' + vmbuild)
-            jtt([])
+            jtt(['@-XX:CompileCommand=exclude,*::run*'] if vmbuild == 'product'  else [])
             tasks.append(t.stop())
             
             if vmbuild == 'product' and args.jacocout is not None:
