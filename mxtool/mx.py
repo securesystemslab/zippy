@@ -223,11 +223,17 @@ class Project(Dependency):
             if d == 1:
                 result.add(n)
 
-
         if len(result) == len(self.deps) and frozenset(self.deps) == result:
             return self.deps
         return result;
 
+    def max_depth(self):
+        """
+        Get the maximum canonical distance between this project and its most distant dependency.
+        """
+        distances = dict()
+        self._compute_max_dep_distances(self.name, distances, 0)
+        return max(distances.values())        
 
     def source_dirs(self):
         """
@@ -1499,7 +1505,6 @@ def projectgraph(args, suite=None):
             print '"' + p.name + '"->"' + dep + '"'
     print '}'
 
-
 def _source_locator_memento(deps):
     slm = XMLDoc()
     slm.open('sourceLookupDirector')
@@ -1954,10 +1959,12 @@ def javadoc(args):
     """generate javadoc for some/all Java projects"""
 
     parser = ArgumentParser(prog='mx javadoc')
+    parser.add_argument('-d', '--base', action='store', help='base directory for output')
     parser.add_argument('--unified', action='store_true', help='put javadoc in a single directory instead of one per project')
     parser.add_argument('--force', action='store_true', help='(re)generate javadoc even if package-list file exists')
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
     parser.add_argument('--argfile', action='store', help='name of file containing extra javadoc options')
+    parser.add_argument('--arg', action='append', dest='extra_args', help='extra Javadoc arguments (e.g. --arg @-use)', metavar='@<arg>', default=[])
     parser.add_argument('-m', '--memory', action='store', help='-Xmx value to pass to underlying JVM')
     parser.add_argument('--wiki', action='store_true', help='generate Confluence Wiki format for package-info.java files')
     parser.add_argument('--packages', action='store', help='comma separated packages to process (omit to process all packages)')
@@ -1990,11 +1997,16 @@ def javadoc(args):
     else:
         docDir = 'javadoc'
 
+    def outDir(p):
+        if args.base is None:
+            return join(p.dir, docDir)
+        return join(args.base, p.name, docDir)
+
     def check_package_list(p):
         if args.wiki:
             return True
         else:
-            return not exists(join(p.dir, docDir, 'package-list'))
+            return not exists(join(outDir(p), 'package-list'))
 
     def assess_candidate(p, projects):
         if p in projects:
@@ -2024,7 +2036,7 @@ def javadoc(args):
                         pkgs.add(pkg)
         return pkgs
 
-    extraArgs = []
+    extraArgs = [a.lstrip('@') for a in args.extra_args]
     if args.argfile is not None:
         extraArgs += ['@' + args.argfile]
     memory = '2g'
@@ -2037,9 +2049,9 @@ def javadoc(args):
             pkgs = find_packages(p.source_dirs(), set())
             deps = p.all_deps([], includeLibs=False, includeSelf=False)
             links = ['-link', 'http://docs.oracle.com/javase/' + str(p.javaCompliance.value) + '/docs/api/']
-            out = join(p.dir, docDir)
+            out = outDir(p)
             for d in deps:
-                depOut = join(d.dir, docDir)
+                depOut = outDir(d)
                 links.append('-link')
                 links.append(os.path.relpath(depOut, out))
             cp = classpath(p.name, includeSelf=True)
@@ -2058,6 +2070,8 @@ def javadoc(args):
 
         links = ['-link', 'http://docs.oracle.com/javase/' + str(_java.javaCompliance.value) + '/docs/api/']
         out = join(_mainSuite.dir, docDir)
+        if args.base is not None:
+            out = join(args.base, docDir)
         cp = classpath()
         sp = os.pathsep.join(sp)
         log('Generating {2} for {0} in {1}'.format(', '.join(names), out, docDir))
@@ -2132,11 +2146,27 @@ commands = {
 
 _argParser = ArgParser()
 
+def _findPrimarySuite():
+    # try current working directory first
+    mxDir = join(os.getcwd(), 'mx')
+    if exists(mxDir) and isdir(mxDir):
+        return dirname(mxDir)
+
+    # now search path of my executable
+    me = sys.argv[0]
+    parent = dirname(me)
+    while parent:
+        mxDir = join(parent, 'mx')
+        if exists(mxDir) and isdir(mxDir):
+            return parent
+        parent = dirname(parent)
+    return None
+
 def main():
-    cwdMxDir = join(os.getcwd(), 'mx')
-    if exists(cwdMxDir) and isdir(cwdMxDir):
+    primarySuiteDir = _findPrimarySuite()
+    if primarySuiteDir:
         global _mainSuite
-        _mainSuite = _loadSuite(os.getcwd(), True)
+        _mainSuite = _loadSuite(primarySuiteDir, True)
 
     opts, commandAndArgs = _argParser._parse_cmd_line()
 
