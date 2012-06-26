@@ -175,7 +175,7 @@ def dacapo(args):
     """run one or all DaCapo benchmarks
     
     DaCapo options are distinguished from VM options by a '@' prefix.
-    For example, '@--iterations @5' will pass '--iterations 5' to the
+    For example, '@-n @5' will pass '-n 5' to the
     DaCapo harness."""
 
     numTests = {}
@@ -286,12 +286,22 @@ def scaladacapo(args):
 
 def _vmLibDirInJdk(jdk):
     """
-    Get the directory within a JDK where jvm.cfg file and the server
-    and client subdirectories are located.
+    Get the directory within a JDK where the server and client 
+    subdirectories are located.
     """
     if platform.system() == 'Darwin':
         return join(jdk, 'jre', 'lib')
+    if platform.system() == 'Windows':
+        return join(jdk, 'jre', 'bin')
     return join(jdk, 'jre', 'lib', 'amd64')
+
+def _vmCfgInJdk(jdk):
+    """
+    Get the jvm.cfg file.
+    """
+    if platform.system() == 'Windows':
+        return join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+    return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdk(build='product', create=False):
     """
@@ -315,7 +325,7 @@ def _jdk(build='product', create=False):
                 
             # Make a copy of the default VM so that this JDK can be
             # reliably used as the bootstrap for a HotSpot build.                
-            jvmCfg = join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+            jvmCfg = _vmCfgInJdk(jdk)
             if not exists(jvmCfg):
                 mx.abort(jvmCfg + ' does not exist')
                 
@@ -364,9 +374,9 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log = open(logFile, 'w')
     ret = False
     while True:
-        line = stdout.readline().decode()
+        line = stdout.readline().decode(sys.stdout.encoding)
         if logFile:
-            log.write(line)
+            log.write(line.encode('utf-8'))
         line = line.strip()
         mx.log(line)
         if line == STARTTOKEN:
@@ -380,7 +390,14 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
             if match:
                 ret = True
         if line == ENDTOKEN:
-            break
+            if not findInOutput:
+                stdin.write('echo ERR%errorlevel%' + newLine)
+            else:
+                break
+        if line.startswith('ERR'):
+            if line == 'ERR0':
+                ret = True
+            break;
     stdin.write('exit' + newLine)
     if logFile:
         log.close()
@@ -495,8 +512,7 @@ def build(args, vm=None):
                 mx.log('Error executing create command')
                 return 
             winBuildCmd = 'msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcxproj /p:Configuration=' + project_config + ' /p:Platform=x64'
-            winBuildSuccess = re.compile('Build succeeded.')
-            if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile, winBuildSuccess):
+            if not _runInDebugShell(winBuildCmd, _graal_home, compilelogfile):
                 mx.log('Error building project')
                 return 
         else:
@@ -516,7 +532,7 @@ def build(args, vm=None):
             
             mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
         
-        jvmCfg = join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+        jvmCfg = _vmCfgInJdk(jdk)
         found = False
         if not exists(jvmCfg):
             mx.abort(jvmCfg + ' does not exist')
@@ -624,18 +640,30 @@ def _find_classes_with_annotations(classes, p, pkgRoot, annotations, includeInne
                                 elif e == basename + '.class':
                                     classes.append(pkg + '.' + basename)
 
+def _run_tests(args, harnessName, harness):
+    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
+    neg = [a[1:] for a in args if a[0] == '-']
+    vmArgs = [a[1:] for a in args if a[0] == '@']
 
-# Table of unit tests.
-# Keys are project names, values are package name lists.
-# All source files in the given (project,package) pairs are scanned for lines
-# containing '@Test'. These are then determined to be the classes defining
-# unit tests.
-_unittests = {
-    'com.oracle.graal.tests': ['com.oracle.graal.compiler.tests'],
-}
-_jtttests = {
-    'com.oracle.graal.jtt': ['com.oracle.graal.jtt'],
-}
+    def containsAny(c, substrings):
+        for s in substrings:
+            if s in c:
+                return True
+        return False
+    
+    for p in mx.projects():
+        if getattr(p, 'testHarness', None) == harnessName:
+            classes = []
+            _find_classes_with_annotations(classes, p, None, ['@Test'])
+        
+            if len(pos) != 0:
+                classes = [c for c in classes if containsAny(c, pos)]
+            if len(neg) != 0:
+                classes = [c for c in classes if not containsAny(c, neg)]
+            
+            if len(classes) != 0:
+                mx.log('running tests in ' + p.name)
+                harness(p, vmArgs, classes)                
 
 def unittest(args):
     """run the Graal Compiler Unit Tests in the GraalVM
@@ -644,28 +672,9 @@ def unittest(args):
     include a filter as a substring are run. Negative filters are
     those with a '-' prefix. VM args should have a @ prefix."""
     
-    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
-    neg = [a[1:] for a in args if a[0] == '-']
-    vmArgs = [a[1:] for a in args if a[0] == '@']
-
-    def containsAny(c, substrings):
-        for s in substrings:
-            if s in c:
-                return True
-        return False
-    
-    for proj in _unittests.iterkeys():
-        p = mx.project(proj)
-        classes = []
-        for pkg in _unittests[proj]:
-            _find_classes_with_annotations(classes, p, pkg, ['@Test'])
-    
-        if len(pos) != 0:
-            classes = [c for c in classes if containsAny(c, pos)]
-        if len(neg) != 0:
-            classes = [c for c in classes if not containsAny(c, neg)]
-        
-        vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+    def harness(p, vmArgs, classes):
+        vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
+    _run_tests(args, 'unittest', harness)
     
 def jtt(args):
     """run the Java Tester Tests in the GraalVM
@@ -674,28 +683,9 @@ def jtt(args):
     include a filter as a substring are run. Negative filters are
     those with a '-' prefix. VM args should have a @ prefix."""
     
-    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
-    neg = [a[1:] for a in args if a[0] == '-']
-    vmArgs = [a[1:] for a in args if a[0] == '@']
-
-    def containsAny(c, substrings):
-        for s in substrings:
-            if s in c:
-                return True
-        return False
-    
-    for proj in _jtttests.iterkeys():
-        p = mx.project(proj)
-        classes = []
-        for pkg in _jtttests[proj]:
-            _find_classes_with_annotations(classes, p, pkg, ['@Test'])
-    
-        if len(pos) != 0:
-            classes = [c for c in classes if containsAny(c, pos)]
-        if len(neg) != 0:
-            classes = [c for c in classes if not containsAny(c, neg)]
-            
-        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=com/oracle/graal/jtt', '-XX:CompileCommand=compileonly,java/lang/Object::<init>', '-XX:CompileCommand=quiet', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(proj), 'org.junit.runner.JUnitCore'] + classes)
+    def harness(p, vmArgs, classes):
+        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=com/oracle/graal/jtt', '-XX:CompileCommand=compileonly,java/lang/Object::<init>', '-XX:CompileCommand=quiet', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
+    _run_tests(args, 'jtt', harness)
     
 def buildvms(args):
     """build one or more VMs in various configurations"""
@@ -798,7 +788,7 @@ def gate(args):
                 _jacoco = 'append'
             
             t = Task('JavaTesterTests:' + vmbuild)
-            jtt([])
+            jtt(['@-XX:CompileCommand=exclude,*::run*'] if vmbuild == 'product'  else [])
             tasks.append(t.stop())
             
             if vmbuild == 'product' and args.jacocout is not None:

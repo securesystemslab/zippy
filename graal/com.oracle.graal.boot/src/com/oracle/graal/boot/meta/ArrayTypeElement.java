@@ -48,14 +48,14 @@ public class ArrayTypeElement extends Element {
     @Override
     protected void propagateTypesToUsage(BigBang bb, Node use, Set<ResolvedJavaType> set, Element element) {
         LoadIndexedNode load = (LoadIndexedNode) use;
-        ResolvedJavaType declaredType = load.array().stamp().declaredType();
-        if (declaredType == null) {
-            System.out.println("FATAL error: Array access without declared type!");
+        ResolvedJavaType type = load.array().objectStamp().type();
+        if (type == null) {
+            System.out.println("FATAL error: Array access without type!");
             System.out.println(load.array());
             System.out.println(((StructuredGraph) load.graph()).method());
             System.exit(-1);
         }
-        ResolvedJavaType componentType = declaredType.componentType();
+        ResolvedJavaType componentType = type.componentType();
         Set<ResolvedJavaType> newSet = new HashSet<>();
         for (ResolvedJavaType myType : set) {
             if (myType.isSubtypeOf(componentType)) {
