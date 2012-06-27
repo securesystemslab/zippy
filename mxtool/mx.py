@@ -2038,8 +2038,21 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                 links.append(os.path.relpath(depOut, out))
             cp = classpath(p.name, includeSelf=True)
             sp = os.pathsep.join(p.source_dirs())
+            overviewFile = join(p.dir, 'overview.html')
+            overview = []
+            if exists(overviewFile):
+                overview = ['-overview', overviewFile]
             log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
-            run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + links + extraArgs + list(pkgs))
+            run([java().javadoc, memory,
+                 '-windowtitle', p.name + ' javadoc',
+                 '-classpath', cp,
+                 '-quiet',
+                 '-d', out,
+                 '-sourcepath', sp] +
+                 links +
+                 extraArgs +
+                 overview +
+                 list(pkgs))
             log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
     else:
         pkgs = set()
