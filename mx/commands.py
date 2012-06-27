@@ -1059,7 +1059,7 @@ def _fix_overview_summary(path, topLink):
         mx.log('Could not find footer section in ' + path)
         return
 
-    content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + chunk2.text + topLink +'</div></div></div>')
+    content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + topLink + chunk2.text +'</div></div></div>')
     content = chunk2.replace(content, '')
     
     with open(path, 'w') as fp:
@@ -1094,8 +1094,8 @@ def site(args):
             shutil.rmtree(unified)
         mx.javadoc(['--base', args.base,
                     '--unified',
-                    '--arg', '@-windowtitle', '--arg', '@Unified Graal Javadoc',
-                    '--arg', '@-doctitle', '--arg', '@Unified Graal Javadoc',
+                    '--arg', '@-windowtitle', '--arg', '@Graal OpenJDK Project Documentation',
+                    '--arg', '@-doctitle', '--arg', '@Graal OpenJDK Project Documentation',
                     '--arg', '@-overview', '--arg', '@' + join(_graal_home, 'graal', 'overview.html')])
         os.rename(join(args.base, 'javadoc'), unified)
 
@@ -1146,7 +1146,7 @@ def site(args):
                 topLink = ''
                 if top != path:
                     link = os.path.relpath(join(args.base, 'all', 'index.html'), dirname(path))
-                    topLink = '<p><a href="' + link + '", target="_top">[return to the unified Graal javadoc]</a></p>'
+                    topLink = '<p><a href="' + link + '", target="_top">[return to the overall Graal documentation]</a></p>'
                 _fix_overview_summary(path, topLink)
     
     print 'Created website - root is ' + join(unified, 'index.html')
