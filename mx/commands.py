@@ -1103,12 +1103,13 @@ def site(args):
     _, tmp = tempfile.mkstemp()
     try:
         svg = join(args.base, 'all', 'modules.svg')
+        jpg = join(args.base, 'all', 'modules.jpg')
         with open(tmp, 'w') as fp:
             print >> fp, 'digraph projects {'
             print >> fp, 'rankdir=BT;'
             print >> fp, 'size = "13,13";'
             print >> fp, 'node [shape=rect, fontcolor="blue"];'
-            print >> fp, 'edge [color="green"];'
+            #print >> fp, 'edge [color="green"];'
             for p in mx.projects():
                 print >> fp, '"' + p.name + '" [URL = "../' + p.name + '/javadoc/index.html", target = "_top"]'  
                 for dep in p.canonical_deps():
@@ -1122,7 +1123,7 @@ def site(args):
                 print >> fp, '{ rank = same; "' + '"; "'.join(names) + '"; }' 
             print >> fp, '}'
 
-        mx.run(['dot', '-Tsvg', '-o' + svg, tmp])
+        mx.run(['dot', '-Tsvg', '-o' + svg, '-Tjpg', '-o' + jpg, tmp])
         
     finally:
         os.remove(tmp)
