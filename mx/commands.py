@@ -1001,6 +1001,68 @@ def jacocoreport(args):
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
     
+def site(args):
+    """creates a website containing javadoc and the project dependency graph"""
+    
+    parser = ArgumentParser(prog='site')
+    parser.add_argument('-d', '--base', action='store', help='directory for generated site', required=True, metavar='<dir>')
+    parser.add_argument('-c', '--clean', action='store_true', help='remove existing site in <dir>')
+
+    args = parser.parse_args(args)
+    
+    args.base = os.path.abspath(args.base)
+    
+    if not exists(args.base):
+        os.mkdir(args.base)
+    elif args.clean:
+        shutil.rmtree(args.base)
+        os.mkdir(args.base)
+    
+    mx.javadoc(['--base', args.base])
+
+    unified = join(args.base, 'all')
+    if exists(unified):
+        shutil.rmtree(unified)
+    mx.javadoc(['--base', args.base, '--unified', '--arg', '@-overview', '--arg', '@' + join(_graal_home, 'graal', 'overview.html')])
+    os.rename(join(args.base, 'javadoc'), unified)
+        
+    _, tmp = tempfile.mkstemp()
+    try:
+        svg = join(args.base, 'all', 'modules.svg')
+        with open(tmp, 'w') as fp:
+            print >> fp, 'digraph projects {'
+            print >> fp, 'rankdir=BT;'
+            print >> fp, 'size = "13,13";'
+            print >> fp, 'node [shape=rect, fontcolor="blue"];'
+            print >> fp, 'edge [color="green"];'
+            for p in mx.projects():
+                print >> fp, '"' + p.name + '" [URL = "../' + p.name + '/javadoc/index.html", target = "_top"]'  
+                for dep in p.canonical_deps():
+                    if mx.project(dep, False):
+                        print >> fp, '"' + p.name + '" -> "' + dep + '"'
+            depths = dict()
+            for p in mx.projects():
+                d = p.max_depth()
+                depths.setdefault(d, list()).append(p.name)
+            for d, names in depths.iteritems():
+                print >> fp, '{ rank = same; "' + '"; "'.join(names) + '"; }' 
+            print >> fp, '}'
+
+        mx.run(['dot', '-Tsvg', '-o' + svg, tmp])
+        
+        # Post-process generated SVG to remove unified title elements which most browsers
+        # render as redundant (and annoying) tooltips.
+        with open(svg, 'r') as fp:
+            content = fp.read()
+        content = re.sub('<title>.*</title>', '', content)
+        content = re.sub('xlink:title="[^"]*"', '', content)
+        with open(svg, 'w') as fp:
+            fp.write(content)
+        
+        print 'Created website - root is ' + join(unified, 'index.html')
+    finally:
+        os.remove(tmp)
+    
 def mx_init():
     _vmbuild = 'product'
     commands = {
@@ -1022,6 +1084,7 @@ def mx_init():
         'unittest' : [unittest, '[filters...]'],
         'jtt' : [jtt, '[filters...]'],
         'jacocoreport' : [jacocoreport, '[output directory]'],
+        'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
         'vmg': [vmg, '[-options] class [args...]'],
         'vmfg': [vmfg, '[-options] class [args...]']
