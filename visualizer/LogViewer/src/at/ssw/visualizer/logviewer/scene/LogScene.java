@@ -118,6 +118,7 @@ public class LogScene extends JPanel {
         Dimension dim = tblResult.getPreferredScrollableViewportSize();
         tblResult.setPreferredScrollableViewportSize(new Dimension(dim.width, 10*tblResult.getRowHeight() + tblResult.getTableHeader().getHeight()));
         JScrollPane scpTblResult = new JScrollPane(tblResult);
+        scpTblResult.setMinimumSize(new Dimension(dim.width, 10*tblResult.getRowHeight() + tblResult.getTableHeader().getHeight()));
         
         logViewer = new BookmarkableLogViewer();
         
@@ -255,10 +256,6 @@ public class LogScene extends JPanel {
         
         gbc.gridy++;
         logViewerPanel.add(btnBookmarkList, gbc);
-        
-        pnl.setMinimumSize(new Dimension(500,800));
-        pnl.setMaximumSize(new Dimension(500,800));
-        pnl.setPreferredSize(new Dimension(500,800));
         
         this.setLayout(new BorderLayout());
         this.add(pnl, BorderLayout.CENTER);
