@@ -2013,8 +2013,8 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
                 if len([name for name in files if name.endswith('.java')]) != 0:
-                    pkg = root[len(sourceDir) + 1:].replace('/','.')
-                    if (len(packages) == 0) | (pkg in packages):
+                    pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                    if len(packages) == 0 or pkg in packages:
                         pkgs.add(pkg)
         return pkgs
 
