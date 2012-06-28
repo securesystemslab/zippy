@@ -127,7 +127,7 @@ project@com.oracle.graal.snippets.test@testHarness=unittest
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src,test
-project@com.oracle.graal.nodes@dependencies=com.oracle.max.cri,com.oracle.graal.graph
+project@com.oracle.graal.nodes@dependencies=com.oracle.max.criutils,com.oracle.graal.graph
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
 
