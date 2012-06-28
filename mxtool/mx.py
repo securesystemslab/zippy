@@ -2028,6 +2028,9 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
 
     if not args.unified:
         for p in projects:
+            # The project must be built to ensure javadoc can find class files for all referenced classes
+            build(['--no-native', '--projects', p.name])
+            
             pkgs = find_packages(p.source_dirs(), set())
             deps = p.all_deps([], includeLibs=False, includeSelf=False)
             links = ['-link', 'http://docs.oracle.com/javase/' + str(p.javaCompliance.value) + '/docs/api/']
@@ -2055,6 +2058,9 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                  list(pkgs))
             log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
     else:
+        # The projects must be built to ensure javadoc can find class files for all referenced classes
+        build(['--no-native'])
+        
         pkgs = set()
         sp = []
         names = []
