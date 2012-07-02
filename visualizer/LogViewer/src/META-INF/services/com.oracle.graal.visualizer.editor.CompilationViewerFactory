@@ -1,1 +1,1 @@
-at.ssw.visualizer.logviewer.LogCompilationViewerFactory
+com.oracle.graal.visualizer.logviewer.LogCompilationViewerFactory
