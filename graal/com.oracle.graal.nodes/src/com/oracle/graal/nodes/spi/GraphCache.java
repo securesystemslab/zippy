@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,24 +20,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.cri;
+package com.oracle.graal.nodes.spi;
 
-import java.util.*;
-
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 
-/**
- * Graal-specific extensions for the runtime interface that must be implemented by the VM.
- */
-public interface ExtendedRiRuntime extends CodeCacheProvider {
 
-    void lower(Node n, CiLoweringTool tool);
+public interface GraphCache {
 
-    StructuredGraph intrinsicGraph(ResolvedJavaMethod caller, int bci, ResolvedJavaMethod method, List<? extends Node> parameters);
+    void put(StructuredGraph graph);
 
-    CompilationResult compile(ResolvedJavaMethod method, StructuredGraph graph);
+    StructuredGraph get(ResolvedJavaMethod method);
 
 }

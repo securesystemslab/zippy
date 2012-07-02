@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.hotspot.meta;
 
-import static com.oracle.max.cri.util.MemoryBarriers.*;
+import static com.oracle.max.criutils.MemoryBarriers.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -34,7 +34,6 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.JavaType.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.target.*;
-import com.oracle.graal.cri.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.nodes.*;
@@ -44,6 +43,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.snippets.*;
 import com.oracle.max.criutils.*;
@@ -51,7 +51,7 @@ import com.oracle.max.criutils.*;
 /**
  * CRI runtime implementation for the HotSpot VM.
  */
-public class HotSpotRuntime implements ExtendedRiRuntime {
+public class HotSpotRuntime implements GraalCodeCacheProvider {
     public final HotSpotVMConfig config;
     final HotSpotRegisterConfig regConfig;
     private final HotSpotRegisterConfig globalStubRegConfig;
@@ -227,7 +227,7 @@ public class HotSpotRuntime implements ExtendedRiRuntime {
     }
 
     @Override
-    public void lower(Node n, CiLoweringTool tool) {
+    public void lower(Node n, LoweringTool tool) {
         StructuredGraph graph = (StructuredGraph) n.graph();
         if (n instanceof ArrayLengthNode) {
             ArrayLengthNode arrayLengthNode = (ArrayLengthNode) n;
@@ -390,7 +390,7 @@ public class HotSpotRuntime implements ExtendedRiRuntime {
                 return true;
             }
             ResolvedJavaMethod method = graph.method();
-            return method != null && CodeUtil.format("%H.%n", method).contains(option);
+            return method != null && MetaUtil.format("%H.%n", method).contains(option);
         }
         return false;
     }
@@ -403,7 +403,7 @@ public class HotSpotRuntime implements ExtendedRiRuntime {
         return safeRead(array.graph(), Kind.Int, array, config.arrayLengthOffset, StampFactory.positiveInt(), leafGraphId);
     }
 
-    private static ValueNode createBoundsCheck(AccessIndexedNode n, CiLoweringTool tool) {
+    private static ValueNode createBoundsCheck(AccessIndexedNode n, LoweringTool tool) {
         StructuredGraph graph = (StructuredGraph) n.graph();
         ArrayLengthNode arrayLength = graph.add(new ArrayLengthNode(n.array()));
         ValueNode guard = tool.createGuard(graph.unique(new IntegerBelowThanNode(n.index(), arrayLength)), DeoptimizationReason.BoundsCheckException, DeoptimizationAction.InvalidateReprofile, n.leafGraphId());

@@ -1248,27 +1248,10 @@ def build(args, parser=None):
         try:
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                errFilt = None
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name]
                 if not args.warnAPI:
-                    class Filter:
-                        """
-                        Class to errFilt the 'is Sun proprietary API and may be removed in a future release'
-                        warning when compiling the VM classes.
-
-                        """
-                        def __init__(self):
-                            self.c = 0
-
-                        def eat(self, line):
-                            if 'proprietary API' in line:
-                                self.c = 2
-                            elif self.c != 0:
-                                self.c -= 1
-                            else:
-                                log(line.rstrip())
-                    errFilt=Filter().eat
-
-                run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
+                    javacCmd.append('-XDignore.symbol.file')
+                run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
                 jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
@@ -1965,6 +1948,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
     parser.add_argument('--unified', action='store_true', help='put javadoc in a single directory instead of one per project')
     parser.add_argument('--force', action='store_true', help='(re)generate javadoc even if package-list file exists')
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
+    parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--argfile', action='store', help='name of file containing extra javadoc options')
     parser.add_argument('--arg', action='append', dest='extra_args', help='extra Javadoc arguments (e.g. --arg @-use)', metavar='@<arg>', default=[])
     parser.add_argument('-m', '--memory', action='store', help='-Xmx value to pass to underlying JVM')
@@ -2013,8 +1997,8 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
                 if len([name for name in files if name.endswith('.java')]) != 0:
-                    pkg = root[len(sourceDir) + 1:].replace('/','.')
-                    if (len(packages) == 0) | (pkg in packages):
+                    pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                    if len(packages) == 0 or pkg in packages:
                         pkgs.add(pkg)
         return pkgs
 
@@ -2028,6 +2012,9 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
 
     if not args.unified:
         for p in projects:
+            # The project must be built to ensure javadoc can find class files for all referenced classes
+            build(['--no-native', '--projects', p.name])
+            
             pkgs = find_packages(p.source_dirs(), set())
             deps = p.all_deps([], includeLibs=False, includeSelf=False)
             links = ['-link', 'http://docs.oracle.com/javase/' + str(p.javaCompliance.value) + '/docs/api/']
@@ -2038,10 +2025,31 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                 links.append(os.path.relpath(depOut, out))
             cp = classpath(p.name, includeSelf=True)
             sp = os.pathsep.join(p.source_dirs())
+            overviewFile = join(p.dir, 'overview.html')
+            overview = []
+            if exists(overviewFile):
+                overview = ['-overview', overviewFile]
+            nowarnAPI = []
+            if not args.warnAPI:
+                nowarnAPI.append('-XDignore.symbol.file')
             log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
-            run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + links + extraArgs + list(pkgs))
+            run([java().javadoc, memory,
+                 '-windowtitle', p.name + ' javadoc',
+                 '-XDignore.symbol.file',
+                 '-classpath', cp,
+                 '-quiet',
+                 '-d', out,
+                 '-sourcepath', sp] +
+                 links +
+                 extraArgs +
+                 overview +
+                 nowarnAPI +
+                 list(pkgs))
             log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
     else:
+        # The projects must be built to ensure javadoc can find class files for all referenced classes
+        build(['--no-native'])
+        
         pkgs = set()
         sp = []
         names = []
@@ -2056,8 +2064,19 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
             out = join(args.base, docDir)
         cp = classpath()
         sp = os.pathsep.join(sp)
+        nowarnAPI = []
+        if not args.warnAPI:
+            nowarnAPI.append('-XDignore.symbol.file')
         log('Generating {2} for {0} in {1}'.format(', '.join(names), out, docDir))
-        run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + links + extraArgs + list(pkgs))
+        run([java().javadoc, memory,
+             '-classpath', cp,
+             '-quiet',
+             '-d', out,
+             '-sourcepath', sp] +
+             links +
+             extraArgs +
+             nowarnAPI +
+             list(pkgs))
         log('Generated {2} for {0} in {1}'.format(', '.join(names), out, docDir))
 
 def findclass(args):

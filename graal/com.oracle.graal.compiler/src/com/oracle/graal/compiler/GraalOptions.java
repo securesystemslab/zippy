@@ -22,11 +22,9 @@
  */
 package com.oracle.graal.compiler;
 
-import com.oracle.max.criutils.TTY.Filter;
 
 /**
  * This class encapsulates options that control the behavior of the Graal compiler.
- * The help message for each option is specified by a {@linkplain #helpMap help map}.
  *
  * (thomaswue) WARNING: Fields of this class are treated as final by Graal.
  */
@@ -105,6 +103,8 @@ public final class GraalOptions {
     public static boolean FullUnroll                         = true;
     public static int     FullUnrollMaxNodes                 = 150; // TODO (gd) tune
     public static boolean LoopUnswitch                       = ____;
+    public static int     LoopUnswitchMaxIncrease            = 50;
+    public static int     LoopUnswitchUncertaintyBoost       = 5;
 
     // debugging settings
     public static int     MethodEndBreakpointGuards          = 0;
@@ -114,9 +114,6 @@ public final class GraalOptions {
     public static boolean VerifyPhases                       = true;
     public static boolean CreateDeoptInfo                    = ____;
 
-    /**
-     * See {@link Filter#Filter(String, Object)}.
-     */
     public static String  PrintFilter                        = null;
 
     // printing settings
@@ -266,16 +263,6 @@ public final class GraalOptions {
      */
     public static String HIRLowerCheckcast = "";
     public static String HIRLowerNewInstance = "";
-
-    /**
-     * The profiling info cache directory.
-     */
-    public static String PICache = null;
-
-    /**
-     * Filters the methods for which profiling info is loaded from/saved to the {@link #PICache}.
-     */
-    public static String PIFilter = null;
 
     static {
         // turn detailed assertions on when the general assertions are on (misusing the assert keyword for this)
