@@ -53,8 +53,26 @@ public class TestPrograms {
         newArr[0].testMethod();
     }
 
+    @SuppressWarnings("unchecked")
+    public static void arrayListTestWithCalls() {
+        ArrayList list = createNewArrayList();
+        list.add(new TestObject());
+        TestObject[] newArr = (TestObject[]) list.toArray(new TestObject[0]);
+        TestObject t2 = newArr[0].testMethod();
+        t2.testMethod2();
+    }
+
+    private static ArrayList createNewArrayList() {
+        return new ArrayList();
+    }
+
     public static class TestObject {
-        public void testMethod() {
+        public TestObject testMethod() {
+            return new TestObject();
+        }
+
+        public void testMethod2() {
+
         }
     }
 }
