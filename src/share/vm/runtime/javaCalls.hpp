@@ -159,6 +159,12 @@ class JavaCallArguments : public StackObj {
   inline void push_float(float f)   { _is_oop[_size] = false;
                                JNITypes::put_float(f, _value, _size); }
 
+  inline oop* get_raw_oop(int& pos)   { return (oop*)JNITypes::get_obj(_value, pos); }
+  inline jint get_int(int& pos)       { return JNITypes::get_int(_value, pos); }
+  inline jdouble get_double(int& pos) { return JNITypes::get_double(_value, pos); }
+  inline jlong get_long(int& pos)     { return JNITypes::get_long(_value, pos); }
+  inline jfloat get_float(int& pos)   { return JNITypes::get_float(_value, pos); }
+
   // receiver
   Handle receiver() {
     assert(_size > 0, "must at least be one argument");
@@ -191,7 +197,7 @@ class JavaCallArguments : public StackObj {
 
 class JavaCalls: AllStatic {
   static void call_helper(JavaValue* result, methodHandle* method, nmethod* nm, JavaCallArguments* args, TRAPS);
- public:
+public:
   // Optimized Constuctor call
   static void call_default_constructor(JavaThread* thread, methodHandle method, Handle receiver, TRAPS);
 

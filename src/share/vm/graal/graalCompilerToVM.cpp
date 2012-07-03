@@ -802,7 +802,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "instanceHeaderPrototypeOffset", in_bytes(Klass::prototype_header_offset()));
   set_int(env, config, "threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
-  set_int(env, config, "threadMultiNewArrayStorage", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
+  set_int(env, config, "threadMultiNewArrayStorageOffset", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
   set_int(env, config, "classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   
   set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
@@ -966,48 +966,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(element);
 }
 
-class JavaArgumentPusher : public SignatureIterator {
- protected:
-  JavaCallArguments*  _jca;
-  arrayOop _args;
-  int _index;
-
-  oop next_arg(BasicType expectedType) {
-    assert(_index < _args->length(), "out of bounds");
-    oop arg = ((oop*) _args->base(T_OBJECT))[_index++];
-    assert(expectedType == T_OBJECT || java_lang_boxing_object::is_instance(arg, expectedType), "arg type mismatch");
-    return arg;
-  }
-
- public:
-  JavaArgumentPusher(Symbol* signature, JavaCallArguments*  jca, arrayOop args, bool is_static) : SignatureIterator(signature) {
-    this->_return_type = T_ILLEGAL;
-    _jca = jca;
-    _index = 0;
-    _args = args;
-    if (!is_static) {
-      _jca->push_oop(next_arg(T_OBJECT));
-    }
-    iterate();
-    assert(_index == args->length(), "arg count mismatch with signature");
-  }
-
-  inline void do_bool()   { if (!is_return_type()) _jca->push_int(next_arg(T_BOOLEAN)->bool_field(java_lang_boxing_object::value_offset_in_bytes(T_BOOLEAN))); }
-  inline void do_char()   { if (!is_return_type()) _jca->push_int(next_arg(T_CHAR)->char_field(java_lang_boxing_object::value_offset_in_bytes(T_CHAR))); }
-  inline void do_short()  { if (!is_return_type()) _jca->push_int(next_arg(T_SHORT)->short_field(java_lang_boxing_object::value_offset_in_bytes(T_SHORT))); }
-  inline void do_byte()   { if (!is_return_type()) _jca->push_int(next_arg(T_BYTE)->byte_field(java_lang_boxing_object::value_offset_in_bytes(T_BYTE))); }
-  inline void do_int()    { if (!is_return_type()) _jca->push_int(next_arg(T_INT)->int_field(java_lang_boxing_object::value_offset_in_bytes(T_INT))); }
-
-  inline void do_long()   { if (!is_return_type()) _jca->push_long(next_arg(T_LONG)->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG))); }
-  inline void do_float()  { if (!is_return_type()) _jca->push_float(next_arg(T_FLOAT)->float_field(java_lang_boxing_object::value_offset_in_bytes(T_FLOAT))); }
-  inline void do_double() { if (!is_return_type()) _jca->push_double(next_arg(T_DOUBLE)->double_field(java_lang_boxing_object::value_offset_in_bytes(T_DOUBLE))); }
-
-  inline void do_object() { _jca->push_oop(next_arg(T_OBJECT)); }
-  inline void do_object(int begin, int end) { if (!is_return_type()) _jca->push_oop(next_arg(T_OBJECT)); }
-  inline void do_array(int begin, int end)  { if (!is_return_type()) _jca->push_oop(next_arg(T_OBJECT)); }
-  inline void do_void()                     { }
-};
-
 // public Object executeCompiledMethodVarargs(HotSpotCompiledMethod method, Object... args);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_executeCompiledMethodVarargs(JNIEnv *env, jobject, jobject method, jobject args) {
   TRACE_graal_3("CompilerToVM::executeCompiledMethod");
@@ -1021,7 +979,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   Symbol* signature = mh->signature();
   JavaCallArguments jca;
 
-  JavaArgumentPusher jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
+  JavaArgumentUnboxer jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
   JavaValue result(jap.get_ret_type());
 
   nmethod* nm = (nmethod*) HotSpotCompiledMethod::nmethod(method);

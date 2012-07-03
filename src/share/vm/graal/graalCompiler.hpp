@@ -21,6 +21,9 @@
  * questions.
  */
 
+#ifndef SHARE_VM_GRAAL_GRAAL_COMPILER_HPP
+#define SHARE_VM_GRAAL_GRAAL_COMPILER_HPP
+
 #include "compiler/abstractCompiler.hpp"
 
 #define LEAF_GRAPH_ARRAY_SIZE (8192)
@@ -110,5 +113,4 @@ public:
 #define TRACE_graal_4 if (!(TraceGraal >= 4 && (tty->print("         TraceGraal-4: "), true))) ; else tty->print_cr
 #define TRACE_graal_5 if (!(TraceGraal >= 5 && (tty->print("            TraceGraal-5: "), true))) ; else tty->print_cr
 
-
-
+#endif // SHARE_VM_GRAAL_GRAAL_COMPILER_HPP
