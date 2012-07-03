@@ -37,7 +37,7 @@ public class BigBangTest {
     public void formattedOutputTest() {
         BootImageGenerator generator = new BootImageGenerator();
         generator.addEntryMethod(TestPrograms.class, "formattedOutputTest");
-        Assert.assertArrayEquals(generator.getBigBang().printState(), new int[]{15, 979, 346, 98});
+        Assert.assertArrayEquals(generator.getBigBang().printState(), new int[]{19, 1668, 611, 179});
     }
 
 
@@ -60,7 +60,7 @@ public class BigBangTest {
     public void arrayListTest() {
         BootImageGenerator generator = new BootImageGenerator();
         generator.addEntryMethod(TestPrograms.class, "arrayListTest");
-        Assert.assertArrayEquals(generator.getBigBang().printState(), new int[]{2, 20, 3, 2});
+        Assert.assertArrayEquals(generator.getBigBang().printState(), new int[]{2, 28, 5, 3});
     }
 
     @Test
