@@ -50,10 +50,10 @@ The configuration files (i.e. in the 'mx' sub-directory) of a suite are:
 
   commands.py
       Suite specific extensions to the commands available to mx.
-      This is only processed for the primary suite.
 
   includes
-      Other suites to be loaded. This is recursive.
+      Other suites to be loaded. This is recursive. Each
+      line in an includes file is a path to a suite directory.
 
   env
       A set of environment variable definitions. These override any
@@ -223,11 +223,17 @@ class Project(Dependency):
             if d == 1:
                 result.add(n)
 
-
         if len(result) == len(self.deps) and frozenset(self.deps) == result:
             return self.deps
         return result;
 
+    def max_depth(self):
+        """
+        Get the maximum canonical distance between this project and its most distant dependency.
+        """
+        distances = dict()
+        self._compute_max_dep_distances(self.name, distances, 0)
+        return max(distances.values())        
 
     def source_dirs(self):
         """
@@ -288,8 +294,8 @@ class Suite:
         self.primary = primary
         mxDir = join(dir, 'mx')
         self._load_env(mxDir)
-        if primary:
-            self._load_commands(mxDir)
+        self._load_commands(mxDir)
+        self._load_includes(mxDir)
 
     def _load_projects(self, mxDir):
         libsMap = dict()
@@ -360,8 +366,9 @@ class Suite:
         if exists(commands):
             # temporarily extend the Python path
             sys.path.insert(0, mxDir)
-
             mod = __import__('commands')
+            
+            sys.modules[join(mxDir, 'commands')] = sys.modules.pop('commands')
 
             # revert the Python path
             del sys.path[0]
@@ -379,7 +386,9 @@ class Suite:
         if exists(includes):
             with open(includes) as f:
                 for line in f:
-                    self.includes.append(expandvars_in_property(line.strip()))
+                    include = expandvars_in_property(line.strip())
+                    self.includes.append(include)
+                    _loadSuite(include, False)
 
     def _load_env(self, mxDir):
         e = join(mxDir, 'env')
@@ -393,9 +402,8 @@ class Suite:
 
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
-        self._load_includes(mxDir)
         self._load_projects(mxDir)
-        if self.mx_post_parse_cmd_line is not None:
+        if hasattr(self, 'mx_post_parse_cmd_line'):
             self.mx_post_parse_cmd_line(opts)
         for p in self.projects:
             existing = _projects.get(p.name)
@@ -1240,27 +1248,10 @@ def build(args, parser=None):
         try:
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                errFilt = None
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name]
                 if not args.warnAPI:
-                    class Filter:
-                        """
-                        Class to errFilt the 'is Sun proprietary API and may be removed in a future release'
-                        warning when compiling the VM classes.
-
-                        """
-                        def __init__(self):
-                            self.c = 0
-
-                        def eat(self, line):
-                            if 'proprietary API' in line:
-                                self.c = 2
-                            elif self.c != 0:
-                                self.c -= 1
-                            else:
-                                log(line.rstrip())
-                    errFilt=Filter().eat
-
-                run([java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir, '@' + argfile.name], err=errFilt)
+                    javacCmd.append('-XDignore.symbol.file')
+                run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
                 jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
@@ -1498,7 +1489,6 @@ def projectgraph(args, suite=None):
         for dep in p.canonical_deps():
             print '"' + p.name + '"->"' + dep + '"'
     print '}'
-
 
 def _source_locator_memento(deps):
     slm = XMLDoc()
@@ -1950,16 +1940,18 @@ def ideinit(args, suite=None):
     eclipseinit(args, suite)
     netbeansinit(args, suite)
 
-def javadoc(args):
+def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
     """generate javadoc for some/all Java projects"""
 
-    parser = ArgumentParser(prog='mx javadoc')
+    parser = ArgumentParser(prog='mx javadoc') if parser is None else parser
+    parser.add_argument('-d', '--base', action='store', help='base directory for output')
     parser.add_argument('--unified', action='store_true', help='put javadoc in a single directory instead of one per project')
     parser.add_argument('--force', action='store_true', help='(re)generate javadoc even if package-list file exists')
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
+    parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--argfile', action='store', help='name of file containing extra javadoc options')
+    parser.add_argument('--arg', action='append', dest='extra_args', help='extra Javadoc arguments (e.g. --arg @-use)', metavar='@<arg>', default=[])
     parser.add_argument('-m', '--memory', action='store', help='-Xmx value to pass to underlying JVM')
-    parser.add_argument('--wiki', action='store_true', help='generate Confluence Wiki format for package-info.java files')
     parser.add_argument('--packages', action='store', help='comma separated packages to process (omit to process all packages)')
 
     args = parser.parse_args(args)
@@ -1969,32 +1961,18 @@ def javadoc(args):
     if args.projects is not None:
         candidates = [project(name) for name in args.projects.split(',')]
 
-    # optionally restrict packages within a project (most useful for wiki)
+    # optionally restrict packages within a project
     packages = []
     if args.packages is not None:
         packages = [name for name in args.packages.split(',')]
 
-    # the WikiDoclet cannot see the -classpath argument passed to javadoc so we pass the
-    # full list of projects as an explicit argument, thereby enabling it to map classes
-    # to projects, which is needed to generate Wiki links to the source code.
-    # There is no virtue in running the doclet on dependent projects as there are
-    # no generated links between Wiki pages
-    docletArgs = []
-    if args.wiki:
-        docDir = 'wikidoc'
-        toolsDir = project('com.oracle.max.tools').output_dir()
-        baseDir = project('com.oracle.max.base').output_dir()
-        dp = os.pathsep.join([toolsDir, baseDir])
-        project_list = ','.join(p.name for p in sorted_deps())
-        docletArgs = ['-docletpath', dp, '-doclet', 'com.oracle.max.tools.javadoc.wiki.WikiDoclet', '-projects', project_list]
-    else:
-        docDir = 'javadoc'
+    def outDir(p):
+        if args.base is None:
+            return join(p.dir, docDir)
+        return join(args.base, p.name, docDir)
 
     def check_package_list(p):
-        if args.wiki:
-            return True
-        else:
-            return not exists(join(p.dir, docDir, 'package-list'))
+        return not exists(join(outDir(p), 'package-list'))
 
     def assess_candidate(p, projects):
         if p in projects:
@@ -2007,7 +1985,7 @@ def javadoc(args):
     projects = []
     for p in candidates:
         if not p.native:
-            if not args.wiki:
+            if includeDeps:
                 deps = p.all_deps([], includeLibs=False, includeSelf=False)
                 for d in deps:
                     assess_candidate(d, projects)
@@ -2019,12 +1997,12 @@ def javadoc(args):
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
                 if len([name for name in files if name.endswith('.java')]) != 0:
-                    pkg = root[len(sourceDir) + 1:].replace('/','.')
-                    if (len(packages) == 0) | (pkg in packages):
+                    pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                    if len(packages) == 0 or pkg in packages:
                         pkgs.add(pkg)
         return pkgs
 
-    extraArgs = []
+    extraArgs = [a.lstrip('@') for a in args.extra_args]
     if args.argfile is not None:
         extraArgs += ['@' + args.argfile]
     memory = '2g'
@@ -2034,20 +2012,44 @@ def javadoc(args):
 
     if not args.unified:
         for p in projects:
+            # The project must be built to ensure javadoc can find class files for all referenced classes
+            build(['--no-native', '--projects', p.name])
+            
             pkgs = find_packages(p.source_dirs(), set())
             deps = p.all_deps([], includeLibs=False, includeSelf=False)
             links = ['-link', 'http://docs.oracle.com/javase/' + str(p.javaCompliance.value) + '/docs/api/']
-            out = join(p.dir, docDir)
+            out = outDir(p)
             for d in deps:
-                depOut = join(d.dir, docDir)
+                depOut = outDir(d)
                 links.append('-link')
                 links.append(os.path.relpath(depOut, out))
             cp = classpath(p.name, includeSelf=True)
             sp = os.pathsep.join(p.source_dirs())
+            overviewFile = join(p.dir, 'overview.html')
+            overview = []
+            if exists(overviewFile):
+                overview = ['-overview', overviewFile]
+            nowarnAPI = []
+            if not args.warnAPI:
+                nowarnAPI.append('-XDignore.symbol.file')
             log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
-            run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + docletArgs + links + extraArgs + list(pkgs))
+            run([java().javadoc, memory,
+                 '-windowtitle', p.name + ' javadoc',
+                 '-XDignore.symbol.file',
+                 '-classpath', cp,
+                 '-quiet',
+                 '-d', out,
+                 '-sourcepath', sp] +
+                 links +
+                 extraArgs +
+                 overview +
+                 nowarnAPI +
+                 list(pkgs))
             log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
     else:
+        # The projects must be built to ensure javadoc can find class files for all referenced classes
+        build(['--no-native'])
+        
         pkgs = set()
         sp = []
         names = []
@@ -2058,10 +2060,23 @@ def javadoc(args):
 
         links = ['-link', 'http://docs.oracle.com/javase/' + str(_java.javaCompliance.value) + '/docs/api/']
         out = join(_mainSuite.dir, docDir)
+        if args.base is not None:
+            out = join(args.base, docDir)
         cp = classpath()
         sp = os.pathsep.join(sp)
+        nowarnAPI = []
+        if not args.warnAPI:
+            nowarnAPI.append('-XDignore.symbol.file')
         log('Generating {2} for {0} in {1}'.format(', '.join(names), out, docDir))
-        run([java().javadoc, memory, '-classpath', cp, '-quiet', '-d', out, '-sourcepath', sp] + docletArgs + links + extraArgs + list(pkgs))
+        run([java().javadoc, memory,
+             '-classpath', cp,
+             '-quiet',
+             '-d', out,
+             '-sourcepath', sp] +
+             links +
+             extraArgs +
+             nowarnAPI +
+             list(pkgs))
         log('Generated {2} for {0} in {1}'.format(', '.join(names), out, docDir))
 
 def findclass(args):
@@ -2132,11 +2147,27 @@ commands = {
 
 _argParser = ArgParser()
 
+def _findPrimarySuite():
+    # try current working directory first
+    mxDir = join(os.getcwd(), 'mx')
+    if exists(mxDir) and isdir(mxDir):
+        return dirname(mxDir)
+
+    # now search path of my executable
+    me = sys.argv[0]
+    parent = dirname(me)
+    while parent:
+        mxDir = join(parent, 'mx')
+        if exists(mxDir) and isdir(mxDir):
+            return parent
+        parent = dirname(parent)
+    return None
+
 def main():
-    cwdMxDir = join(os.getcwd(), 'mx')
-    if exists(cwdMxDir) and isdir(cwdMxDir):
+    primarySuiteDir = _findPrimarySuite()
+    if primarySuiteDir:
         global _mainSuite
-        _mainSuite = _loadSuite(os.getcwd(), True)
+        _mainSuite = _loadSuite(primarySuiteDir, True)
 
     opts, commandAndArgs = _argParser._parse_cmd_line()
 
