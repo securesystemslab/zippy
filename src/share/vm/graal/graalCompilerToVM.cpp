@@ -790,6 +790,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);
   set_int(env, config, "hubOffset", oopDesc::klass_offset_in_bytes());
+  set_int(env, config, "markOffset", oopDesc::mark_offset_in_bytes());
   set_int(env, config, "superCheckOffsetOffset", in_bytes(Klass::super_check_offset_offset()));
   set_int(env, config, "secondarySuperCacheOffset", in_bytes(Klass::secondary_super_cache_offset()));
   set_int(env, config, "secondarySupersOffset", in_bytes(Klass::secondary_supers_offset()));
@@ -874,12 +875,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
       break;
     }
 
-  jintArray arrayOffsets = env->NewIntArray(basicTypeCount);
-  for (int i=0; i<basicTypeCount; i++) {
-    jint offset = arrayOopDesc::base_offset_in_bytes(basicTypes[i]);
-    env->SetIntArrayRegion(arrayOffsets, i, 1, &offset);
-  }
-  set_int_array(env, config, "arrayOffsets", arrayOffsets);
   set_int(env, config, "arrayClassElementOffset", in_bytes(objArrayKlass::element_klass_offset()));
   return config;
 }

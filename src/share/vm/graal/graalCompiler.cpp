@@ -273,7 +273,7 @@ Handle GraalCompiler::createHotSpotResolvedJavaType(KlassHandle klass, Handle na
   HotSpotResolvedJavaType::set_accessFlags(obj, klass->access_flags().as_int());
   HotSpotResolvedJavaType::set_isInterface(obj, klass->is_interface());
   HotSpotResolvedJavaType::set_superCheckOffset(obj, klass->super_check_offset());
-  HotSpotResolvedJavaType::set_prototypeHeader(obj, (jlong) klass->prototype_header());
+  HotSpotResolvedJavaType::set_initialMarkWord(obj, (jlong) klass->prototype_header());
   HotSpotResolvedJavaType::set_isInstanceClass(obj, klass->oop_is_instance());
 
   if (klass->oop_is_javaArray()) {
