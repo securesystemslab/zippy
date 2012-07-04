@@ -31,11 +31,15 @@ public class InputBytecode {
 
     private int bci;
     private String name;
+    private String operands;
+    private String comment;
     private InputMethod inlined;
 
-    public InputBytecode(int bci, String name) {
+    public InputBytecode(int bci, String name, String operands, String comment) {
         this.bci = bci;
         this.name = name;
+        this.operands = operands;
+        this.comment = comment;
     }
 
     public InputMethod getInlined() {
@@ -52,5 +56,13 @@ public class InputBytecode {
 
     public String getName() {
         return name;
+    }
+
+    public String getOperands() {
+        return operands;
+    }
+
+    public String getComment() {
+        return comment;
     }
 }
