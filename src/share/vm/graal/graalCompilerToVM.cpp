@@ -929,25 +929,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(result());
 }
 
-// public String disassembleJava(HotSpotResolvedJavaMethod method);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_disassembleJava(JNIEnv *env, jobject, jobject hotspot_method) {
-  TRACE_graal_3("CompilerToVM::disassembleJava");
-
-  // Important: The bytecode printing functions are all NOT PRODUCT code, so this method returns an empty string for a product VM build.
-
-  VM_ENTRY_MARK;
-  ResourceMark rm;
-  HandleMark hm;
-
-  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  // Note: cannot use resource-allocated stringStream because print_code_on has its own ResourceMark.
-  bufferedStream(st);
-  method->print_codes_on(&st);
-
-  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
-  return JNIHandles::make_local(result());
-}
-
 // public StackTraceElement JavaMethod_toStackTraceElement(HotSpotResolvedJavaMethod method, int bci);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_JavaMethod_1toStackTraceElement(JNIEnv *env, jobject, jobject hotspot_method, int bci) {
   TRACE_graal_3("CompilerToVM::JavaMethod_toStackTraceElement");
@@ -1135,7 +1116,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
   {CC"installMethod",                     CC"("TARGET_METHOD"Z"HS_CODE_INFO")"HS_COMP_METHOD,   FN_PTR(installMethod)},
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
-  {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
   {CC"JavaMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(JavaMethod_1toStackTraceElement)},
   {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",      CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
