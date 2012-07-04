@@ -52,6 +52,13 @@ public class ArrayTypeElement extends Element {
         if (type == null) {
             System.out.println("FATAL error: Array access without type!");
             System.out.println(load.array());
+            if (load.array() instanceof ValueProxyNode) {
+                ValueProxyNode valueProxyNode = (ValueProxyNode) load.array();
+                System.out.println("value proxy node stamp " + valueProxyNode.stamp());
+                System.out.println("value proxy node stamp type " + valueProxyNode.objectStamp().type());
+                System.out.println("value proxy source: " + valueProxyNode.value());
+                System.out.println("value proxy source stamp: " + valueProxyNode.value().stamp());
+            }
             System.out.println(((StructuredGraph) load.graph()).method());
             System.exit(-1);
         }
