@@ -1303,8 +1303,13 @@ void JavaThread::initialize() {
   _in_deopt_handler = 0;
   _doing_unsafe_access = false;
   _stack_guard_state = stack_guard_unused;
+#ifdef GRAAL
   _graal_deopt_info = NULL;
   _graal_alternate_call_target = NULL;
+#endif
+#ifdef HIGH_LEVEL_INTERPRETER
+  _high_level_interpreter_in_vm = false;
+#endif
   _exception_oop = NULL;
   _exception_pc  = 0;
   _exception_handler_pc = 0;
@@ -2622,7 +2627,9 @@ void JavaThread::oops_do(OopClosure* f, CodeBlobClosure* cf) {
   f->do_oop((oop*) &_threadObj);
   f->do_oop((oop*) &_vm_result);
   f->do_oop((oop*) &_vm_result_2);
+#ifdef GRAAL
   f->do_oop((oop*) &_graal_deopt_info);
+#endif
   f->do_oop((oop*) &_exception_oop);
   f->do_oop((oop*) &_pending_async_exception);
 

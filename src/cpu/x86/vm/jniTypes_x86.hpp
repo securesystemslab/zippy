@@ -127,6 +127,12 @@ public:
   static inline oop     get_obj   (intptr_t *from) { return *(oop *)    from; }
   static inline jfloat  get_float (intptr_t *from) { return *(jfloat *) from; }
   static inline jdouble get_double(intptr_t *from) { return *(jdouble *)(from + _JNI_SLOT_OFFSET); }
+
+  static inline jint    get_int   (intptr_t *from, int& pos) { return get_int(from + pos++); }
+  static inline jlong   get_long  (intptr_t *from, int& pos) { return get_long(from + pos); pos += 2; }
+  static inline oop     get_obj   (intptr_t *from, int& pos) { return get_obj(from + pos++); }
+  static inline jfloat  get_float (intptr_t *from, int& pos) { return get_float(from + pos++); }
+  static inline jdouble get_double(intptr_t *from, int& pos) { return get_double(from + pos); pos += 2; }
 #undef _JNI_SLOT_OFFSET
 };
 

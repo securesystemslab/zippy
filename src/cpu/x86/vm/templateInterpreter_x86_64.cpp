@@ -1340,7 +1340,7 @@ address InterpreterGenerator::generate_normal_entry(bool synchronized) {
                                    methodOopDesc::invocation_counter_offset() +
                                    InvocationCounter::counter_offset());
   const Address access_flags(rbx, methodOopDesc::access_flags_offset());
-
+  
   // get parameter size (always needed)
   __ load_unsigned_short(rcx, size_of_parameters);
 
