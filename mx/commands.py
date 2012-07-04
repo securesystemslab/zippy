@@ -739,7 +739,7 @@ def gate(args):
 
     parser = ArgumentParser(prog='mx gate');
     parser.add_argument('-j', '--omit-java-clean', action='store_false', dest='cleanJava', help='omit cleaning Java native code')
-    parser.add_argument('-n', '--omit-native-build', action='store_false', dest='buildNative', help='omit cleaning and building native code')
+    parser.add_argument('-n', '--omit-native-clean', action='store_false', dest='cleanNative', help='omit cleaning and building native code')
     parser.add_argument('-g', '--only-build-graalvm', action='store_false', dest='buildNonGraal', help='only build the Graal VM')
     parser.add_argument('--jacocout', help='specify the output directory for jacoco report')
 
@@ -755,7 +755,7 @@ def gate(args):
 
         t = Task('Clean')
         cleanArgs = []
-        if not args.buildNative:
+        if not args.cleanNative:
             cleanArgs.append('--no-native')
         if not args.cleanJava:
             cleanArgs.append('--no-java')
@@ -768,10 +768,9 @@ def gate(args):
         for vmbuild in ['fastdebug', 'product']:
             _vmbuild = vmbuild
 
-            if args.buildNative:
-                t = Task('BuildHotSpotGraal:' + vmbuild)
-                buildvms(['--vms', 'graal', '--builds', vmbuild])
-                tasks.append(t.stop())
+            t = Task('BuildHotSpotGraal:' + vmbuild)
+            buildvms(['--vms', 'graal', '--builds', vmbuild])
+            tasks.append(t.stop())
 
             t = Task('BootstrapWithSystemAssertions:' + vmbuild)
             vm(['-esa', '-version'])
@@ -823,7 +822,7 @@ def gate(args):
         tasks.append(t.stop())
 
         # Prevent Graal modifications from breaking the standard builds
-        if args.buildNative and args.buildNonGraal:
+        if args.buildNonGraal:
             t = Task('BuildHotSpotVarieties')
             buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
             tasks.append(t.stop())
