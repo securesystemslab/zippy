@@ -21,6 +21,9 @@
  * questions.
  */
 
+#ifndef SHARE_VM_GRAAL_GRAAL_VM_TO_COMPILER_HPP
+#define SHARE_VM_GRAAL_GRAAL_VM_TO_COMPILER_HPP
+
 #include "memory/allocation.hpp"
 #include "oops/oop.hpp"
 #include "runtime/handles.hpp"
@@ -122,3 +125,4 @@ inline void check_not_null(void* value, const char* message, bool dump_core = fa
   }
 }
 
+#endif // SHARE_VM_GRAAL_GRAAL_VM_TO_COMPILER_HPP

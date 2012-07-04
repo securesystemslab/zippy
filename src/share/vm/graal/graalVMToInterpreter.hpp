@@ -21,17 +21,34 @@
  * questions.
  */
 
-#ifndef SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
-#define SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
+#include "memory/allocation.hpp"
+#include "oops/oop.hpp"
+#include "runtime/handles.hpp"
+#include "runtime/thread.hpp"
+#include "classfile/javaClasses.hpp"
+#include "runtime/jniHandles.hpp"
+#include "runtime/javaCalls.hpp"
 
-class GraalRuntime : public AllStatic {
+#ifdef HIGH_LEVEL_INTERPRETER
+#ifndef SHARE_VM_GRAAL_GRAAL_VM_TO_INTERPRETER_HPP
+#define SHARE_VM_GRAAL_GRAAL_VM_TO_INTERPRETER_HPP
+
+class VMToInterpreter : public AllStatic {
 
 private:
-  jobject _runtimeObject;
+  static jobject _interpreterPermObject;
+  static jobject _interpreterPermKlass;
+
+  static Handle interpreter_instance();
+  static KlassHandle interpreter_klass();
+  static void unbox_primitive(JavaValue* boxed, JavaValue* result);
 
 public:
-  static jobject instance() { return _runtimeObject; }
-
+  static bool allocate_interpreter(const char* interpreter_class_name, const char* interpreter_arguments, TRAPS);
+ 
+  // invokes the interpreter method execute(ResolvedJavaMethod method, Object... arguments)
+  static void execute(JavaValue* result, methodHandle* m, JavaCallArguments* args, BasicType expected_result_type, TRAPS);
 };
 
-#endif // SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
+#endif // SHARE_VM_GRAAL_GRAAL_VM_TO_INTERPRETER_HPP
+#endif // HIGH_LEVEL_INTERPRETER

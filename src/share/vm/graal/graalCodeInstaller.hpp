@@ -21,6 +21,9 @@
  * questions.
  */
 
+#ifndef SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP
+#define SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP
+
 /*
  * This class handles the conversion from a InstalledCode to a CodeBlob or an nmethod.
  */
@@ -112,3 +115,4 @@ private:
 
 };
 
+#endif // SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP

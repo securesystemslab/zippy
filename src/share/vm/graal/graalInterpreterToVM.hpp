@@ -21,12 +21,16 @@
  * questions.
  */
 
-#include "precompiled.hpp"
+#ifdef HIGH_LEVEL_INTERPRETER
+#ifndef SHARE_VM_GRAAL_GRAAL_INTERPRETER_TO_VM_HPP
+#define SHARE_VM_GRAAL_GRAAL_INTERPRETER_TO_VM_HPP
 
-#include "graal/graalVMToCompiler.hpp"
+#include "prims/jni.h"
 
-// JVM_InitializeGraalRuntime
-JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
-  VMToCompiler::compilerInstance();
-  return VMToCompiler::compilerPermObject();
-JVM_END
+extern JNINativeMethod InterpreterToVM_methods[];
+int InterpreterToVM_methods_count();
+
+// nothing here - no need to define the jni method implementations in a header file
+
+#endif // SHARE_VM_GRAAL_GRAAL_INTERPRETER_TO_VM_HPP
+#endif // HIGH_LEVEL_INTERPRETER
