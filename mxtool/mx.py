@@ -261,6 +261,46 @@ class Project(Dependency):
         if not self.native:
             cp.append(self.output_dir())
 
+    def find_classes_with_matching_source_line(self, pkgRoot, function, includeInnerClasses=False):
+        """
+        Scan the sources of this project for Java source files containing a line for which
+        'function' returns true. The fully qualified class name of each existing class
+        corresponding to a matched source file is returned in a list.
+        """
+        classes = []
+        pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
+        for srcDir in self.source_dirs():
+            outputDir = self.output_dir()
+            for root, _, files in os.walk(srcDir):
+                for name in files:
+                    if name.endswith('.java') and name != 'package-info.java':
+                        matchFound = False
+                        with open(join(root, name)) as f:
+                            pkg = None
+                            for line in f:
+                                if line.startswith("package "):
+                                    match = pkgDecl.match(line)
+                                    if match:
+                                        pkg = match.group(1)
+                                if function(line.strip()):
+                                    matchFound = True
+                                if pkg and matchFound:
+                                    break
+                                        
+                        if matchFound:
+                            basename = name[:-len('.java')]
+                            assert pkg is not None
+                            if pkgRoot is None or pkg.startswith(pkgRoot):
+                                pkgOutputDir = join(outputDir, pkg.replace('.', os.path.sep))
+                                for e in os.listdir(pkgOutputDir):
+                                    if includeInnerClasses:
+                                        if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
+                                            classes.append(pkg + '.' + e[:-len('.class')])
+                                    elif e == basename + '.class':
+                                        classes.append(pkg + '.' + basename)
+        return classes
+    
+
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls):
         Dependency.__init__(self, suite, name)
