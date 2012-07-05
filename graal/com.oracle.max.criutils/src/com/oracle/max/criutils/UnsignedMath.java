@@ -22,6 +22,8 @@
  */
 package com.oracle.max.criutils;
 
+//JaCoCo Exclude
+
 /**
  * Utilities for unsigned comparisons.
  * All methods have correct, but slow, standard Java implementations so that

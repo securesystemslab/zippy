@@ -21,6 +21,9 @@
  * questions.
  */
 
+#ifndef SHARE_VM_GRAAL_GRAAL_VM_IDS_HPP
+#define SHARE_VM_GRAAL_GRAAL_VM_IDS_HPP
+
 #include "memory/allocation.hpp"
 #include "utilities/growableArray.hpp"
 #include "oops/oop.hpp"
@@ -80,3 +83,4 @@ inline jlong VmIds::getBoxedLong(oop obj) {
   return obj->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
 }
 
+#endif // SHARE_VM_GRAAL_GRAAL_VM_IDS_HPP

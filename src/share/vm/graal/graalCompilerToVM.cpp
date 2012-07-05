@@ -790,6 +790,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "vmPageSize", os::vm_page_size());
   set_int(env, config, "stackShadowPages", StackShadowPages);
   set_int(env, config, "hubOffset", oopDesc::klass_offset_in_bytes());
+  set_int(env, config, "markOffset", oopDesc::mark_offset_in_bytes());
   set_int(env, config, "superCheckOffsetOffset", in_bytes(Klass::super_check_offset_offset()));
   set_int(env, config, "secondarySuperCacheOffset", in_bytes(Klass::secondary_super_cache_offset()));
   set_int(env, config, "secondarySupersOffset", in_bytes(Klass::secondary_supers_offset()));
@@ -802,7 +803,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "instanceHeaderPrototypeOffset", in_bytes(Klass::prototype_header_offset()));
   set_int(env, config, "threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
-  set_int(env, config, "threadMultiNewArrayStorage", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
+  set_int(env, config, "threadMultiNewArrayStorageOffset", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
   set_int(env, config, "classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   
   set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
@@ -874,12 +875,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
       break;
     }
 
-  jintArray arrayOffsets = env->NewIntArray(basicTypeCount);
-  for (int i=0; i<basicTypeCount; i++) {
-    jint offset = arrayOopDesc::base_offset_in_bytes(basicTypes[i]);
-    env->SetIntArrayRegion(arrayOffsets, i, 1, &offset);
-  }
-  set_int_array(env, config, "arrayOffsets", arrayOffsets);
   set_int(env, config, "arrayClassElementOffset", in_bytes(objArrayKlass::element_klass_offset()));
   return config;
 }
@@ -934,25 +929,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return JNIHandles::make_local(result());
 }
 
-// public String disassembleJava(HotSpotResolvedJavaMethod method);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_disassembleJava(JNIEnv *env, jobject, jobject hotspot_method) {
-  TRACE_graal_3("CompilerToVM::disassembleJava");
-
-  // Important: The bytecode printing functions are all NOT PRODUCT code, so this method returns an empty string for a product VM build.
-
-  VM_ENTRY_MARK;
-  ResourceMark rm;
-  HandleMark hm;
-
-  methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  // Note: cannot use resource-allocated stringStream because print_code_on has its own ResourceMark.
-  bufferedStream(st);
-  method->print_codes_on(&st);
-
-  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
-  return JNIHandles::make_local(result());
-}
-
 // public StackTraceElement JavaMethod_toStackTraceElement(HotSpotResolvedJavaMethod method, int bci);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_JavaMethod_1toStackTraceElement(JNIEnv *env, jobject, jobject hotspot_method, int bci) {
   TRACE_graal_3("CompilerToVM::JavaMethod_toStackTraceElement");
@@ -965,48 +941,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   oop element = java_lang_StackTraceElement::create(method, bci, CHECK_NULL);
   return JNIHandles::make_local(element);
 }
-
-class JavaArgumentPusher : public SignatureIterator {
- protected:
-  JavaCallArguments*  _jca;
-  arrayOop _args;
-  int _index;
-
-  oop next_arg(BasicType expectedType) {
-    assert(_index < _args->length(), "out of bounds");
-    oop arg = ((oop*) _args->base(T_OBJECT))[_index++];
-    assert(expectedType == T_OBJECT || java_lang_boxing_object::is_instance(arg, expectedType), "arg type mismatch");
-    return arg;
-  }
-
- public:
-  JavaArgumentPusher(Symbol* signature, JavaCallArguments*  jca, arrayOop args, bool is_static) : SignatureIterator(signature) {
-    this->_return_type = T_ILLEGAL;
-    _jca = jca;
-    _index = 0;
-    _args = args;
-    if (!is_static) {
-      _jca->push_oop(next_arg(T_OBJECT));
-    }
-    iterate();
-    assert(_index == args->length(), "arg count mismatch with signature");
-  }
-
-  inline void do_bool()   { if (!is_return_type()) _jca->push_int(next_arg(T_BOOLEAN)->bool_field(java_lang_boxing_object::value_offset_in_bytes(T_BOOLEAN))); }
-  inline void do_char()   { if (!is_return_type()) _jca->push_int(next_arg(T_CHAR)->char_field(java_lang_boxing_object::value_offset_in_bytes(T_CHAR))); }
-  inline void do_short()  { if (!is_return_type()) _jca->push_int(next_arg(T_SHORT)->short_field(java_lang_boxing_object::value_offset_in_bytes(T_SHORT))); }
-  inline void do_byte()   { if (!is_return_type()) _jca->push_int(next_arg(T_BYTE)->byte_field(java_lang_boxing_object::value_offset_in_bytes(T_BYTE))); }
-  inline void do_int()    { if (!is_return_type()) _jca->push_int(next_arg(T_INT)->int_field(java_lang_boxing_object::value_offset_in_bytes(T_INT))); }
-
-  inline void do_long()   { if (!is_return_type()) _jca->push_long(next_arg(T_LONG)->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG))); }
-  inline void do_float()  { if (!is_return_type()) _jca->push_float(next_arg(T_FLOAT)->float_field(java_lang_boxing_object::value_offset_in_bytes(T_FLOAT))); }
-  inline void do_double() { if (!is_return_type()) _jca->push_double(next_arg(T_DOUBLE)->double_field(java_lang_boxing_object::value_offset_in_bytes(T_DOUBLE))); }
-
-  inline void do_object() { _jca->push_oop(next_arg(T_OBJECT)); }
-  inline void do_object(int begin, int end) { if (!is_return_type()) _jca->push_oop(next_arg(T_OBJECT)); }
-  inline void do_array(int begin, int end)  { if (!is_return_type()) _jca->push_oop(next_arg(T_OBJECT)); }
-  inline void do_void()                     { }
-};
 
 // public Object executeCompiledMethodVarargs(HotSpotCompiledMethod method, Object... args);
 JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_executeCompiledMethodVarargs(JNIEnv *env, jobject, jobject method, jobject args) {
@@ -1021,7 +955,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   Symbol* signature = mh->signature();
   JavaCallArguments jca;
 
-  JavaArgumentPusher jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
+  JavaArgumentUnboxer jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
   JavaValue result(jap.get_ret_type());
 
   nmethod* nm = (nmethod*) HotSpotCompiledMethod::nmethod(method);
@@ -1182,7 +1116,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
   {CC"installMethod",                     CC"("TARGET_METHOD"Z"HS_CODE_INFO")"HS_COMP_METHOD,   FN_PTR(installMethod)},
   {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
-  {CC"disassembleJava",                   CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(disassembleJava)},
   {CC"JavaMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(JavaMethod_1toStackTraceElement)},
   {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",      CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},

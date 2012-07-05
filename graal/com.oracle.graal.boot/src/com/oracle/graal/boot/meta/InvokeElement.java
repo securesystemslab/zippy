@@ -68,6 +68,7 @@ public class InvokeElement extends Element {
             ResolvedJavaMethod method = methodCallTarget.targetMethod();
             concreteTargets.add(method);
             MethodElement processedMethod = bb.getProcessedMethod(method);
+            processedMethod.addUsage(bb, this.methodCallTarget.invoke().node());
             processedMethod.postParseGraph(bb);
         }
     }
@@ -94,6 +95,7 @@ public class InvokeElement extends Element {
                                 bb.getProcessedMethod(method).getParameter(i).postUnionTypes(bb, null, newSeenTypesTemp);
                             }
                         }
+                        processedMethod.addUsage(bb, this.methodCallTarget.invoke().node());
                     }
 
                     // Register new type for receiver.

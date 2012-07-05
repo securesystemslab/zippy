@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,32 +20,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.java;
 
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+#ifdef HIGH_LEVEL_INTERPRETER
+#ifndef SHARE_VM_GRAAL_GRAAL_INTERPRETER_TO_VM_HPP
+#define SHARE_VM_GRAAL_GRAAL_INTERPRETER_TO_VM_HPP
 
-/**
- * The {@code NewTypeArrayNode} class definition.
- */
-public final class NewTypeArrayNode extends NewArrayNode implements LIRLowerable {
+#include "prims/jni.h"
 
-    private final ResolvedJavaType elementType;
+extern JNINativeMethod InterpreterToVM_methods[];
+int InterpreterToVM_methods_count();
 
-    public NewTypeArrayNode(ValueNode length, ResolvedJavaType elementType) {
-        super(StampFactory.exactNonNull(elementType.arrayOf()), length);
-        this.elementType = elementType;
-    }
+// nothing here - no need to define the jni method implementations in a header file
 
-    @Override
-    public ResolvedJavaType elementType() {
-        return elementType;
-    }
-
-    @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.visitNewTypeArray(this);
-    }
-}
+#endif // SHARE_VM_GRAAL_GRAAL_INTERPRETER_TO_VM_HPP
+#endif // HIGH_LEVEL_INTERPRETER

@@ -21,6 +21,9 @@
  * questions.
  */
 
+#ifndef SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
+#define SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
+
 class GraalRuntime : public AllStatic {
 
 private:
@@ -30,3 +33,5 @@ public:
   static jobject instance() { return _runtimeObject; }
 
 };
+
+#endif // SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP

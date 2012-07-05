@@ -866,11 +866,16 @@ class JavaThread: public Thread {
 
  private:
 
+#ifdef GRAAL
   // graal needs some place to put the dimensions
-  jint graal_multinewarray_storage[256];
+  jint _graal_multinewarray_storage[256];
 
   volatile oop _graal_deopt_info;
   address _graal_alternate_call_target;
+#endif
+#ifdef HIGH_LEVEL_INTERPRETER
+  bool _high_level_interpreter_in_vm;
+#endif
 
   StackGuardState        _stack_guard_state;
 
@@ -1234,10 +1239,16 @@ class JavaThread: public Thread {
   MemRegion deferred_card_mark() const           { return _deferred_card_mark; }
   void set_deferred_card_mark(MemRegion mr)      { _deferred_card_mark = mr;   }
 
+#ifdef GRAAL
   oop      graal_deopt_info() const              { return _graal_deopt_info; }
   void set_graal_deopt_info(oop o)               { _graal_deopt_info = o; }
-
+  
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
+#endif
+#ifdef HIGH_LEVEL_INTERPRETER
+  bool high_level_interpreter_in_vm()            { return _high_level_interpreter_in_vm; }
+  void set_high_level_interpreter_in_vm(bool value) { _high_level_interpreter_in_vm = value; }
+#endif
 
   // Exception handling for compiled methods
   oop      exception_oop() const                 { return _exception_oop; }
@@ -1318,15 +1329,20 @@ class JavaThread: public Thread {
   static ByteSize thread_state_offset()          { return byte_offset_of(JavaThread, _thread_state        ); }
   static ByteSize saved_exception_pc_offset()    { return byte_offset_of(JavaThread, _saved_exception_pc  ); }
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
+#ifdef GRAAL
   static ByteSize graal_deopt_info_offset()      { return byte_offset_of(JavaThread, _graal_deopt_info    ); }
   static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
+  static ByteSize graal_multinewarray_storage_offset() { return byte_offset_of(JavaThread, _graal_multinewarray_storage); }
+#endif
+#ifdef HIGH_LEVEL_INTERPRETER
+  static ByteSize high_level_interpreter_in_vm_offset() { return byte_offset_of(JavaThread, _high_level_interpreter_in_vm); }
+#endif
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }
   static ByteSize exception_handler_pc_offset()  { return byte_offset_of(JavaThread, _exception_handler_pc); }
   static ByteSize is_method_handle_return_offset() { return byte_offset_of(JavaThread, _is_method_handle_return); }
   static ByteSize stack_guard_state_offset()     { return byte_offset_of(JavaThread, _stack_guard_state   ); }
   static ByteSize suspend_flags_offset()         { return byte_offset_of(JavaThread, _suspend_flags       ); }
-  static ByteSize graal_multinewarray_storage_offset() { return byte_offset_of(JavaThread, graal_multinewarray_storage); }
 
   static ByteSize do_not_unlock_if_synchronized_offset() { return byte_offset_of(JavaThread, _do_not_unlock_if_synchronized); }
   static ByteSize should_post_on_exceptions_flag_offset() {

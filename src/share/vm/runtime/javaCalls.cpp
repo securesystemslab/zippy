@@ -39,6 +39,9 @@
 #include "runtime/mutexLocker.hpp"
 #include "runtime/signature.hpp"
 #include "runtime/stubRoutines.hpp"
+#ifdef HIGH_LEVEL_INTERPRETER
+# include "graal/graalVMToInterpreter.hpp"
+#endif
 #ifdef TARGET_OS_FAMILY_linux
 # include "thread_linux.inline.hpp"
 #endif
@@ -437,7 +440,14 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, nmethod* nm, Jav
     ShouldNotReachHere();
 #endif
   }
-
+  
+#ifdef HIGH_LEVEL_INTERPRETER
+  if (thread->high_level_interpreter_in_vm() && !method->is_native() && Interpreter::contains(entry_point)) {
+    assert(nm == NULL || !nm->is_alive(), "otherwise nm should be invoked");
+    VMToInterpreter::execute(result, m, args, result->get_type(), thread);
+    oop_result_flag = false; // result already holds the correct value
+  } else
+#endif
   // do call
   { JavaCallWrapper link(method, receiver, result, CHECK);
     { HandleMark hm(thread);  // HandleMark used by HandleMarkCleaner
@@ -472,7 +482,6 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, nmethod* nm, Jav
     thread->set_vm_result(NULL);
   }
 }
-
 
 //--------------------------------------------------------------------------------------
 // Implementation of JavaCallArguments
