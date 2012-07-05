@@ -237,7 +237,7 @@ void VMToInterpreter::execute(JavaValue* result, methodHandle* m, JavaCallArgume
   if (is_java_primitive(expected_result_type)) {
     unbox_primitive(&boxed_result, result);
   } else if (expected_result_type == T_OBJECT || expected_result_type == T_ARRAY) {
-    result->set_jobject(result->get_jobject());
+    result->set_jobject(boxed_result.get_jobject());
   }
 }
 
