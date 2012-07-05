@@ -445,6 +445,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, nmethod* nm, Jav
   if (thread->high_level_interpreter_in_vm() && !method->is_native() && Interpreter::contains(entry_point)) {
     assert(nm == NULL || !nm->is_alive(), "otherwise nm should be invoked");
     VMToInterpreter::execute(result, m, args, result->get_type(), thread);
+    oop_result_flag = false; // result already holds the correct value
   } else
 #endif
   // do call
