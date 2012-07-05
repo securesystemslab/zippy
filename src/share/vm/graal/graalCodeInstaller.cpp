@@ -250,7 +250,7 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
-  Handle assumptions_handle = InstalledCode::assumptions(HotSpotTargetMethod::targetMethod(target_method));
+  Handle assumptions_handle = InstalledCode::assumptions(HotSpotCompilationResult::comp(target_method));
   if (!assumptions_handle.is_null()) {
     objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
     int length = assumptions->length();
@@ -288,7 +288,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_c
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(JNIHandles::resolve(target_method_obj))); 
+  methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(JNIHandles::resolve(target_method_obj))); 
 
   nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, install_code);
@@ -318,14 +318,14 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
 }
 
 void CodeInstaller::initialize_fields(oop target_method) {
-  _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
-  _hotspot_method = HotSpotTargetMethod::method(target_method);
+  _citarget_method = HotSpotCompilationResult::comp(target_method);
+  _hotspot_method = HotSpotCompilationResult::method(target_method);
   if (_hotspot_method != NULL) {
     _parameter_count = getMethodFromHotSpotMethod(_hotspot_method)->size_of_parameters();
   }
-  _name = HotSpotTargetMethod::name(target_method);
-  _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
-  _exception_handlers = (arrayOop) HotSpotTargetMethod::exceptionHandlers(target_method);
+  _name = HotSpotCompilationResult::name(target_method);
+  _sites = (arrayOop) HotSpotCompilationResult::sites(target_method);
+  _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(target_method);
 
   _code = (arrayOop) InstalledCode::targetCode(_citarget_method);
   _code_size = InstalledCode::targetCodeSize(_citarget_method);

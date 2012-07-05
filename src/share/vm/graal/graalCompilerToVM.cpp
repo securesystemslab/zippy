@@ -879,12 +879,12 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return config;
 }
 
-// public HotSpotCompiledMethod installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code, jobject info) {
+// public HotSpotCompiledMethod installMethod(HotSpotCompilationResult comp, boolean installCode);
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject comp, jboolean install_code, jobject info) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
-  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
+  Handle targetMethodHandle = JNIHandles::resolve(comp);
   nmethod* nm = NULL;
   Arena arena;
   ciEnv env(&arena);
@@ -903,7 +903,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     Handle obj = instanceKlass::cast(HotSpotCompiledMethod::klass())->allocate_permanent_instance(CHECK_NULL);
     assert(obj() != NULL, "must succeed in allocating instance");
     HotSpotCompiledMethod::set_nmethod(obj, (jlong) nm);
-    HotSpotCompiledMethod::set_method(obj, HotSpotTargetMethod::method(targetMethod));
+    HotSpotCompiledMethod::set_method(obj, HotSpotCompilationResult::method(comp));
     nm->set_graal_compiled_method(obj());
     return JNIHandles::make_local(obj());
   } else {
@@ -1070,15 +1070,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define RESOLVED_FIELD  "Lcom/oracle/graal/api/meta/ResolvedJavaField;"
 #define CONSTANT_POOL   "Lcom/oracle/graal/api/meta/ConstantPool;"
 #define EXCEPTION_HANDLERS "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
-#define TARGET_METHOD   "Lcom/oracle/graal/hotspot/HotSpotTargetMethod;"
+#define HS_COMP_RESULT  "Lcom/oracle/graal/hotspot/HotSpotCompilationResult;"
 #define CONFIG          "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD       "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_COMP_METHOD  "Lcom/oracle/graal/hotspot/meta/HotSpotCompiledMethod;"
 #define HS_CODE_INFO    "Lcom/oracle/graal/hotspot/meta/HotSpotCodeInfo;"
 #define METHOD_DATA     "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
-#define CI_CONSTANT     "Lcom/oracle/graal/api/meta/Constant;"
-#define CI_KIND         "Lcom/oracle/graal/api/meta/Kind;"
-#define CI_RUNTIME_CALL "Lcom/oracle/graal/api/code/RuntimeCall;"
+#define CONSTANT        "Lcom/oracle/graal/api/meta/Constant;"
+#define KIND            "Lcom/oracle/graal/api/meta/Kind;"
+#define RUNTIME_CALL    "Lcom/oracle/graal/api/code/RuntimeCall;"
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"
 #define CLASS           "Ljava/lang/Class;"
@@ -1095,12 +1095,12 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"JavaMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_1invocationCount)},
   {CC"JavaMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                             FN_PTR(JavaMethod_1hasCompiledCode)},
   {CC"JavaMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_1getCompiledCodeSize)},
-  {CC"Signature_lookupType",            CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(Signature_1lookupType)},
-  {CC"ConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(ConstantPool_1lookupConstant)},
-  {CC"ConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(ConstantPool_1lookupMethod)},
-  {CC"ConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(ConstantPool_1lookupType)},
-  {CC"ConstantPool_loadReferencedType", CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(ConstantPool_1loadReferencedType)},
-  {CC"ConstantPool_lookupField",        CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(ConstantPool_1lookupField)},
+  {CC"Signature_lookupType",                CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(Signature_1lookupType)},
+  {CC"ConstantPool_lookupConstant",         CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(ConstantPool_1lookupConstant)},
+  {CC"ConstantPool_lookupMethod",           CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(ConstantPool_1lookupMethod)},
+  {CC"ConstantPool_lookupType",             CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(ConstantPool_1lookupType)},
+  {CC"ConstantPool_loadReferencedType",     CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(ConstantPool_1loadReferencedType)},
+  {CC"ConstantPool_lookupField",            CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(ConstantPool_1lookupField)},
   {CC"JavaType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,            FN_PTR(JavaType_3resolveMethodImpl)},
   {CC"JavaType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                          FN_PTR(JavaType_2isSubtypeOf)},
   {CC"JavaType_leastCommonAncestor",        CC"("RESOLVED_TYPE RESOLVED_TYPE")"TYPE,              FN_PTR(JavaType_2leastCommonAncestor)},
@@ -1110,18 +1110,18 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"JavaType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_1arrayOf)},
   {CC"JavaType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,                 FN_PTR(JavaType_1fields)},
   {CC"JavaType_isInitialized",              CC"("RESOLVED_TYPE")Z",                               FN_PTR(JavaType_1isInitialized)},
-  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                                  FN_PTR(getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                             FN_PTR(getMaxCallTargetOffset)},
-  {CC"getType",                           CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
-  {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
-  {CC"installMethod",                     CC"("TARGET_METHOD"Z"HS_CODE_INFO")"HS_COMP_METHOD,   FN_PTR(installMethod)},
-  {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
+  {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",              CC"("RUNTIME_CALL")J",                                FN_PTR(getMaxCallTargetOffset)},
+  {CC"getType",                             CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
+  {CC"getConfiguration",                    CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
+  {CC"installMethod",                       CC"("HS_COMP_RESULT"Z"HS_CODE_INFO")"HS_COMP_METHOD,  FN_PTR(installMethod)},
+  {CC"disassembleNative",                   CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"JavaMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(JavaMethod_1toStackTraceElement)},
-  {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
-  {CC"executeCompiledMethodVarargs",      CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
+  {CC"executeCompiledMethod",               CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
+  {CC"executeCompiledMethodVarargs",        CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
   {CC"JavaMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_vtableEntryOffset)},
-  {CC"getDeoptedLeafGraphIds",            CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"decodePC",                          CC"(J)"STRING,                                        FN_PTR(decodePC)},
+  {CC"getDeoptedLeafGraphIds",              CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
+  {CC"decodePC",                            CC"(J)"STRING,                                        FN_PTR(decodePC)},
 };
 
 int CompilerToVM_methods_count() {

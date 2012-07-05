@@ -186,13 +186,13 @@ class SymbolPropertyTable;
   template(Short_klass,                  java_lang_Short,                Pre) \
   template(Integer_klass,                java_lang_Integer,              Pre) \
   template(Long_klass,                   java_lang_Long,                 Pre) \
-                                                                                                                     \
-  /* Support for Graal */                                                                                            \
+                                                                                                                      \
+  /* Support for Graal */                                                                                             \
   template(GraalBitMap_klass,                     java_util_BitSet,                                             Opt) \
-  /* graal.hotspot */                                                                                                \
+  /* graal.hotspot */                                                                                                 \
   template(HotSpotKlassOop_klass,                 com_oracle_graal_hotspot_HotSpotKlassOop,                     Opt) \
   template(HotSpotProxy_klass,                    com_oracle_graal_hotspot_HotSpotProxy,                        Opt) \
-  template(HotSpotTargetMethod_klass,             com_oracle_graal_hotspot_HotSpotTargetMethod,                 Opt) \
+  template(HotSpotCompilationResult_klass,        com_oracle_graal_hotspot_HotSpotCompilationResult,            Opt) \
   template(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
   template(HotSpotCompiledMethod_klass,           com_oracle_graal_hotspot_meta_HotSpotCompiledMethod,          Opt) \
   template(HotSpotJavaType_klass,                 com_oracle_graal_hotspot_meta_HotSpotJavaType,                Opt) \
@@ -200,7 +200,7 @@ class SymbolPropertyTable;
   template(HotSpotResolvedJavaField_klass,        com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,       Opt) \
   template(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Opt) \
   template(HotSpotResolvedJavaType_klass,         com_oracle_graal_hotspot_meta_HotSpotResolvedJavaType,        Opt) \
-  /* graal.api.code */                                                                                               \
+  /* graal.api.code */                                                                                                \
   template(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
   template(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
   template(Assumptions_ConcreteSubtype_klass,     com_oracle_graal_api_code_Assumptions_ConcreteSubtype,        Opt) \
@@ -221,7 +221,7 @@ class SymbolPropertyTable;
   template(RuntimeCall_klass,                     com_oracle_graal_api_code_RuntimeCall,                        Opt) \
   template(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Opt) \
   template(VirtualObject_klass,                   com_oracle_graal_api_code_VirtualObject,                      Opt) \
-  /* graal.api.meta */                                                                                               \
+  /* graal.api.meta */                                                                                                \
   template(Constant_klass,                        com_oracle_graal_api_meta_Constant,                           Opt) \
   template(ExceptionHandler_klass,                com_oracle_graal_api_meta_ExceptionHandler,                   Opt) \
   template(Kind_klass,                            com_oracle_graal_api_meta_Kind,                               Opt) \
