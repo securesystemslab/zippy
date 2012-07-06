@@ -121,7 +121,11 @@ public class InputMethod extends Properties.Entity {
                 String tmpName = s.substring(spaceIndex + 1, s.length());
 
                 int number = -1;
-                number = Integer.parseInt(numberString);
+                try {
+                    number = Integer.parseInt(numberString);
+                } catch (NumberFormatException e) {
+                    // nothing to do...
+                }
 
                 // assert correct order of bytecodes
                 assert number > oldNumber;
