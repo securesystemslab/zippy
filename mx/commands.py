@@ -973,6 +973,11 @@ def site(args):
     """creates a website containing javadoc and the project dependency graph"""
 
     return mx.site(['--name', 'Graal',
+                    '--jd', '@-tag', '--jd', '@test:X',
+                    '--jd', '@-tag', '--jd', '@run:X',
+                    '--jd', '@-tag', '--jd', '@bug:X',
+                    '--jd', '@-tag', '--jd', '@summary:X',
+                    '--jd', '@-tag', '--jd', '@vmoption:X',
                     '--overview', join(_graal_home, 'graal', 'overview.html'),
                     '--title', 'Graal OpenJDK Project Documentation',
                     '--dot-output-base', 'modules'] + args)
