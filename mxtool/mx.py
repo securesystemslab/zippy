@@ -1155,6 +1155,7 @@ def build(args, parser=None):
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
     parser.add_argument('--jdt', help='Eclipse installation or path to ecj.jar for using the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
+    parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -1285,6 +1286,7 @@ def build(args, parser=None):
         argfile.write('\n'.join(javafilelist))
         argfile.close()
 
+        toBeDeleted = [argfileName]
         try:
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
@@ -1305,11 +1307,22 @@ def build(args, parser=None):
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
-                    jdtArgs += ['-properties', jdtProperties]
+                    # convert all warnings to errors
+                    if args.jdt_warning_as_error:
+                        jdtPropertiesTmp = jdtProperties + '.tmp'
+                        with open(jdtProperties) as fp:
+                            content = fp.read().replace('=warning', '=error')
+                        with open(jdtPropertiesTmp, 'w') as fp:
+                            fp.write(content)
+                        toBeDeleted.append(jdtPropertiesTmp)
+                        jdtArgs += ['-properties', jdtPropertiesTmp]
+                    else:
+                        jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
                 run(jdtArgs)
         finally:
-            os.remove(argfileName)
+            for n in toBeDeleted:
+                os.remove(n)
 
     if suppliedParser:
         return args
