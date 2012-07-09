@@ -22,28 +22,43 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.sun.hotspot.igv.settings;
+package com.sun.hotspot.igv.connection;
 
-import java.util.prefs.Preferences;
+import com.sun.hotspot.igv.data.serialization.BinaryParser;
+import com.sun.hotspot.igv.data.services.GroupCallback;
+import java.io.IOException;
+import java.nio.channels.SocketChannel;
+import org.openide.util.Exceptions;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class Settings {
+public class BinaryClient implements Runnable {
 
-    public final static String NODE_TEXT = "nodeText";
-    public final static String NODE_TEXT_DEFAULT = "[idx] [name]";
-    public final static String NODE_WIDTH = "nodeWidth";
-    public final static String NODE_WIDTH_DEFAULT = "100";
-    public final static String PORT = "port";
-    public final static String PORT_BINARY = "portBinary";
-    public final static String PORT_DEFAULT = "4444";
-    public final static String PORT_BINARY_DEFAULT = "4445";
-    public final static String DIRECTORY = "directory";
-    public final static String DIRECTORY_DEFAULT = System.getProperty("user.dir");
+    private SocketChannel socket;
+    private GroupCallback callback;
 
-    public static Preferences get() {
-        return Preferences.userNodeForPackage(Settings.class);
+    public BinaryClient(SocketChannel socket, GroupCallback callback) {
+        this.callback = callback;
+        this.socket = socket;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+            final SocketChannel channel = socket;
+            channel.configureBlocking(true);
+            new BinaryParser(callback, channel).parse();
+        } catch (IOException ex) {
+            Exceptions.printStackTrace(ex);
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException ex) {
+                Exceptions.printStackTrace(ex);
+            }
+        }
     }
 }

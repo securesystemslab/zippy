@@ -23,6 +23,7 @@
  */
 package com.sun.hotspot.igv.coordinator;
 
+import com.sun.hotspot.igv.connection.BinaryServer;
 import com.sun.hotspot.igv.connection.Server;
 import com.sun.hotspot.igv.coordinator.actions.*;
 import com.sun.hotspot.igv.data.GraphDocument;
@@ -61,6 +62,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private GraphDocument document;
     private FolderNode root;
     private Server server;
+    private BinaryServer binaryServer;
 
     private OutlineTopComponent() {
         initComponents();
@@ -116,6 +118,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
         };
         
         server = new Server(callback);
+        binaryServer = new BinaryServer(callback);
     }
 
     public void clear() {
