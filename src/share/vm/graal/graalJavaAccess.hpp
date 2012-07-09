@@ -95,9 +95,6 @@ void graal_compute_offsets();
     long_field(HotSpotCodeInfo, start)                                                  \
     oop_field(HotSpotCodeInfo, code, "[B")                                              \
   end_class                                                                             \
-  start_class(HotSpotProxy)                                                             \
-    static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \
-  end_class                                                                             \
   start_class(HotSpotCompilationResult)                                                      \
     oop_field(HotSpotCompilationResult, comp, "Lcom/oracle/graal/api/code/CompilationResult;") \
     oop_field(HotSpotCompilationResult, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;") \
