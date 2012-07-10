@@ -6,6 +6,7 @@ package com.sun.hotspot.igv.data.serialization;
 
 import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.services.GroupCallback;
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
 
 /**
@@ -24,12 +27,13 @@ public class BinaryParser {
     private static final int BEGIN_GRAPH = 0x01;
     private static final int CLOSE_GROUP = 0x02;
 
-    private static final int POOL_NULL = -1;
     private static final int POOL_NEW = 0x00;
     private static final int POOL_STRING = 0x01;
     private static final int POOL_ENUM = 0x02;
     private static final int POOL_CLASS = 0x03;
     private static final int POOL_METHOD = 0x04;
+    private static final int POOL_NULL = 0x05;
+    private static final int POOL_NODE_CLASS = 0x06;
     
     private static final int KLASS = 0x00;
     private static final int ENUM_KLASS = 0x01;
@@ -51,6 +55,7 @@ public class BinaryParser {
     private final ByteBuffer buffer;
     private final ReadableByteChannel channel;
     private Deque<Folder> folderStack;
+    private boolean close;
     
     private static class Klass {
         public String name;
@@ -67,6 +72,19 @@ public class BinaryParser {
         }
     }
     
+    private static class NodeClass {
+        public final String className;
+        public final String nameTemplate;
+        public final List<String> inputs;
+        public final List<String> sux;
+        private NodeClass(String className, String nameTemplate, List<String> inputs, List<String> sux) {
+            this.className = className;
+            this.nameTemplate = nameTemplate;
+            this.inputs = inputs;
+            this.sux = sux;
+        }
+    }
+    
     private static class EnumValue {
         public EnumKlass enumKlass;
         public int ordinal;
@@ -79,7 +97,7 @@ public class BinaryParser {
     public BinaryParser(GroupCallback callback, ReadableByteChannel channel) {
         this.callback = callback;
         constantPool = new ArrayList<>();
-        buffer = ByteBuffer.allocateDirect(64 * 1024);
+        buffer = ByteBuffer.allocateDirect(256 * 1024);
         buffer.flip();
         this.channel = channel;
         folderStack = new LinkedList<>();
@@ -87,7 +105,9 @@ public class BinaryParser {
     
     private void fill() throws IOException {
         buffer.compact();
-        channel.read(buffer);
+        if (channel.read(buffer) < 0) {
+            throw new EOFException();
+        }
         buffer.flip();
     }
     
@@ -217,13 +237,15 @@ public class BinaryParser {
     private boolean assertObjectType(Class<?> klass, int type) {
         switch(type) {
             case POOL_CLASS:
-                return klass.isAssignableFrom(Klass.class);
+                return klass.isAssignableFrom(EnumKlass.class);
             case POOL_ENUM:
                 return klass.isAssignableFrom(EnumValue.class);
             case POOL_METHOD:
                 return klass.isAssignableFrom(byte[].class);
             case POOL_STRING:
                 return klass.isAssignableFrom(String.class);
+            case POOL_NODE_CLASS:
+                return klass.isAssignableFrom(NodeClass.class);
             case POOL_NULL:
                 return true;
             default:
@@ -250,13 +272,28 @@ public class BinaryParser {
                 } else if (klasstype == KLASS) {
                     obj = new Klass(name);
                 } else {
-                    throw new IOException("unknown klass type");
+                    throw new IOException("unknown klass type : " + klasstype);
                 }
                 break;
             case POOL_ENUM:
                 EnumKlass enumClass = readPoolObject(EnumKlass.class);
                 int ordinal = readInt();
                 obj = new EnumValue(enumClass, ordinal);
+                break;
+            case POOL_NODE_CLASS:
+                String className = readString();
+                String nameTemplate = readString();
+                int inputCount = readShort();
+                List<String> inputs = new ArrayList<>(inputCount);
+                for (int i = 0; i < inputCount; i++) {
+                    inputs.add(readPoolObject(String.class));
+                }
+                int suxCount = readShort();
+                List<String> sux = new ArrayList<>(suxCount);
+                for (int i = 0; i < suxCount; i++) {
+                    sux.add(readPoolObject(String.class));
+                }
+                obj = new NodeClass(className, nameTemplate, inputs, sux);
                 break;
             case POOL_METHOD:
                 obj = readBytes();
@@ -310,8 +347,12 @@ public class BinaryParser {
 
     public void parse() throws IOException {
         folderStack.push(new GraphDocument());
-        while(true) {
-            parseRoot();
+        try {
+            while(true) {
+                parseRoot();
+            }
+        } catch (EOFException e) {
+            
         }
     }
 
@@ -377,7 +418,6 @@ public class BinaryParser {
         String title = readPoolObject(String.class);
         InputGraph graph = new InputGraph(title);
         parseNodes(graph);
-        parseEdges(graph);
         parseBlocks(graph);
         graph.ensureNodesInBlocks();
         return graph;
@@ -385,63 +425,122 @@ public class BinaryParser {
     
     private void parseBlocks(InputGraph graph) throws IOException {
         int blockCount = readInt();
+        List<Edge> edges = new LinkedList<>();
         for (int i = 0; i < blockCount; i++) {
             int id = readInt();
             String name = id >= 0 ? Integer.toString(id) : NO_BLOCK;
             InputBlock block = graph.addBlock(name);
             int nodeCount = readInt();
             for (int j = 0; j < nodeCount; j++) {
-                block.addNode(readInt());
+                int nodeId = readInt();
+                block.addNode(nodeId);
+                graph.getNode(nodeId).getProperties().setProperty("block", name);
+            }
+            int edgeCount = readInt();
+            for (int j = 0; j < edgeCount; j++) {
+                int to = readInt();
+                edges.add(new Edge(id, to));
             }
         }
-        int edgeCount = readInt();
-        for (int i = 0; i < edgeCount; i++) {
-            int from = readInt();
-            int to = readInt();
-            String fromName = from >= 0 ? Integer.toString(from) : NO_BLOCK;
-            String toName = to >= 0 ? Integer.toString(to) : NO_BLOCK;
+        for (Edge e : edges) {
+            String fromName = e.from >= 0 ? Integer.toString(e.from) : NO_BLOCK;
+            String toName = e.to >= 0 ? Integer.toString(e.to) : NO_BLOCK;
             graph.addBlockEdge(graph.getBlock(fromName), graph.getBlock(toName));
-        }
-    }
-    
-    private void parseEdges(InputGraph graph) throws IOException {
-        int count = readInt();
-        for (int i = 0; i < count; i++) {
-            char fromIndex = readShort();
-            int from = readInt();
-            char toIndex = readShort();
-            int to = readInt();
-            String label = readPoolObject(String.class);
-            graph.addEdge(new InputEdge(fromIndex, toIndex, from, to, label));
         }
     }
 
     private void parseNodes(InputGraph graph) throws IOException {
         int count = readInt();
-        
+        List<Edge> edges = new LinkedList<>();
         for (int i = 0; i < count; i++) {
             int id = readInt();
             InputNode node = new InputNode(id);
             final Properties properties = node.getProperties();
-            String name = readPoolObject(String.class);
-            String simpleName = readPoolObject(String.class);
-            int block = readInt();
-            int preds = readByte();
-            properties.setProperty("name", name);
-            properties.setProperty("class", simpleName);
-            properties.setProperty("predecessorCount", Integer.toString(preds));
-            if (block > 0) {
-                properties.setProperty("block", Integer.toString(block));
-            } else {
-                properties.setProperty("block", NO_BLOCK);
-            }
-            int propCount = readInt();
+            NodeClass nodeClass = readPoolObject(NodeClass.class);
+            int propCount = readShort();
             for (int j = 0; j < propCount; j++) {
                 String key = readPoolObject(String.class);
                 Object value = readPropertyObject();
-                properties.setProperty(key, value.toString());
+                properties.setProperty(key, value != null ? value.toString() : "null");
             }
+            int edgesStart = edges.size();
+            int suxCount = readShort();
+            for (int j = 0; j < suxCount; j++) {
+                int sux = readInt();
+                int index = readShort();
+                edges.add(new Edge(id, sux, (char) j, nodeClass.sux.get(index), false));
+            }
+            int inputCount = readShort();
+            for (int j = 0; j < inputCount; j++) {
+                int in = readInt();
+                int index = readShort();
+                edges.add(new Edge(in, id, (char) j, nodeClass.inputs.get(index), true));
+            }
+            properties.setProperty("name", createName(edges.subList(edgesStart, edges.size()), properties, nodeClass.nameTemplate));
+            properties.setProperty("class", nodeClass.className);
             graph.addNode(node);
+        }
+        for (Edge e : edges) {
+            char fromIndex = e.input ? 0 : e.num;
+            char toIndex = e.input ? e.num : 0;
+            graph.addEdge(new InputEdge(fromIndex, toIndex, e.from, e.to, e.label));
+        }
+    }
+    
+    private String createName(List<Edge> edges, Properties properties, String template) {
+        Pattern p = Pattern.compile("\\{(p|i)#(.+)\\}");
+        Matcher m = p.matcher(template);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String name = m.group(2);
+            String type = m.group(1);
+            String result;
+            switch (type) {
+                case "i":
+                    StringBuilder inputString = new StringBuilder();
+                    for(Edge edge : edges) {
+                        if (name.equals(edge.label)) {
+                            if (inputString.length() > 0) {
+                                inputString.append(", ");
+                            }
+                            inputString.append(edge.from);
+                        }
+                    }
+                    result = inputString.toString();
+                    break;
+                case "p":
+                    result = properties.get(name);
+                    if (result == null) {
+                        result = "?";
+                    }
+                    break;
+                default:
+                    result = "#?#";
+                    break;
+            }
+            result = result.replace("\\", "\\\\");
+            result = result.replace("$", "\\$");
+            m.appendReplacement(sb, result);
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+    
+    private static class Edge {
+        final int from;
+        final int to;
+        final char num;
+        final String label;
+        final boolean input;
+        public Edge(int from, int to) {
+            this(from, to, (char) 0, null, false);
+        }
+        public Edge(int from, int to, char num, String label, boolean input) {
+            this.from = from;
+            this.to = to;
+            this.label = label;
+            this.num = num;
+            this.input = input;
         }
     }
 }
