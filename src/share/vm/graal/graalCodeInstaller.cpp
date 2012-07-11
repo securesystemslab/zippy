@@ -787,9 +787,6 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
         TRACE_graal_3("relocating (HotSpotJavaType) at %016x/%016x", instruction, operand);
       } else {
         jobject value = JNIHandles::make_local(obj());
-        if (obj() == HotSpotProxy::DUMMY_CONSTANT_OBJ()) {
-          value = (jobject) Universe::non_oop_word();
-        }
         *((jobject*) operand) = value;
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);
@@ -836,11 +833,19 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         break;
       }
-      case MARK_INVOKE_INVALID:
-      case MARK_INVOKEINTERFACE:
-      case MARK_INVOKESTATIC:
-      case MARK_INVOKESPECIAL:
       case MARK_INVOKEVIRTUAL:
+      case MARK_INVOKEINTERFACE: {
+        // Convert the initial value of the klassOop slot in an inline cache
+        // from NULL to Universe::non_oop_word().
+        NativeMovConstReg* n_copy = nativeMovConstReg_at(instruction);
+        assert(n_copy->data() == 0, "inline cache klassOop initial value should be NULL");
+        n_copy->set_data((intptr_t)Universe::non_oop_word());
+        // Add relocation record for the klassOop embedded in the inline cache
+        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+      }
+      case MARK_INVOKE_INVALID:
+      case MARK_INVOKESPECIAL:
+      case MARK_INVOKESTATIC:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = instruction;
         break;

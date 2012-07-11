@@ -26,6 +26,8 @@ package com.sun.hotspot.igv.data;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -109,35 +111,38 @@ public class InputMethod extends Properties.Entity {
     }
 
     public void setBytecodes(String text) {
-
+        Pattern instruction = Pattern.compile("\\s*(\\d+)\\s*:?\\s*(\\w+)\\s*(.*)(?://(.*))?");
         String[] strings = text.split("\n");
-        int oldNumber = -1;
+        int oldBci = -1;
         for (String s : strings) {
-
-            if (s.length() > 0 && Character.isDigit(s.charAt(0))) {
-                s = s.trim();
-                int spaceIndex = s.indexOf(' ');
-                String numberString = s.substring(0, spaceIndex);
-                String tmpName = s.substring(spaceIndex + 1, s.length());
-
-                int number = -1;
-                try {
-                    number = Integer.parseInt(numberString);
-                } catch (NumberFormatException e) {
-                    // nothing to do...
-                }
-
-                // assert correct order of bytecodes
-                assert number > oldNumber;
-
-                InputBytecode bc = new InputBytecode(number, tmpName);
-                bytecodes.add(bc);
-
-                for (InputMethod m : inlined) {
-                    if (m.getBci() == number) {
-                        bc.setInlined(m);
-                        break;
+            s = s.trim();
+            if (s.length() != 0) {
+                final Matcher matcher = instruction.matcher(s);
+                if (matcher.matches()) {
+                    String bciString = matcher.group(1);
+                    String opcode = matcher.group(2);
+                    String operands = matcher.group(3).trim();
+                    String comment = matcher.group(4);
+                    if (comment != null) {
+                        comment = comment.trim();
                     }
+
+                    int bci = Integer.parseInt(bciString);
+
+                    // assert correct order of bytecodes
+                    assert bci > oldBci;
+
+                    InputBytecode bc = new InputBytecode(bci, opcode, operands, comment);
+                    bytecodes.add(bc);
+
+                    for (InputMethod m : inlined) {
+                        if (m.getBci() == bci) {
+                            bc.setInlined(m);
+                            break;
+                        }
+                    }
+                } else {
+                    System.out.println("no match: " + s);
                 }
             }
         }

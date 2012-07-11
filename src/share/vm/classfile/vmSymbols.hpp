@@ -274,7 +274,6 @@
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
   template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
-  template(com_oracle_graal_hotspot_HotSpotProxy,                    "com/oracle/graal/hotspot/HotSpotProxy")                         \
   template(com_oracle_graal_hotspot_HotSpotCompilationResult,        "com/oracle/graal/hotspot/HotSpotCompilationResult")             \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \

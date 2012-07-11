@@ -191,7 +191,6 @@ class SymbolPropertyTable;
   template(GraalBitMap_klass,                     java_util_BitSet,                                             Opt) \
   /* graal.hotspot */                                                                                                 \
   template(HotSpotKlassOop_klass,                 com_oracle_graal_hotspot_HotSpotKlassOop,                     Opt) \
-  template(HotSpotProxy_klass,                    com_oracle_graal_hotspot_HotSpotProxy,                        Opt) \
   template(HotSpotCompilationResult_klass,        com_oracle_graal_hotspot_HotSpotCompilationResult,            Opt) \
   template(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
   template(HotSpotCompiledMethod_klass,           com_oracle_graal_hotspot_meta_HotSpotCompiledMethod,          Opt) \
