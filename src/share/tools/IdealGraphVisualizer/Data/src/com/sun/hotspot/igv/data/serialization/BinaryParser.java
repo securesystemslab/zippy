@@ -5,15 +5,13 @@
 package com.sun.hotspot.igv.data.serialization;
 
 import com.sun.hotspot.igv.data.*;
+import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.services.GroupCallback;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
@@ -34,6 +32,8 @@ public class BinaryParser {
     private static final int POOL_METHOD = 0x04;
     private static final int POOL_NULL = 0x05;
     private static final int POOL_NODE_CLASS = 0x06;
+    private static final int POOL_FIELD = 0x07;
+    private static final int POOL_SIGNATURE = 0x08;
     
     private static final int KLASS = 0x00;
     private static final int ENUM_KLASS = 0x01;
@@ -51,21 +51,131 @@ public class BinaryParser {
     
     private GroupCallback callback;
     private List<Object> constantPool;
-    private int maxConstant;
     private final ByteBuffer buffer;
     private final ReadableByteChannel channel;
     private Deque<Folder> folderStack;
-    private boolean close;
     
-    private static class Klass {
-        public String name;
-        public Klass(String name) {
+    private enum Length {
+        S,
+        M,
+        L
+    }
+    
+    private interface LengthToString {
+        String toString(Length l);
+    }
+    
+    private static abstract class Member implements LengthToString {
+        public final Klass holder;
+        public final int accessFlags;
+        public final String name;
+        public Member(Klass holder, String name, int accessFlags) {
+            this.holder = holder;
+            this.accessFlags = accessFlags;
             this.name = name;
         }
     }
     
+    private static class Method extends Member {
+        public final Signature signature;
+        public final byte[] code;
+        public Method(String name, Signature signature, byte[] code, Klass holder, int accessFlags) {
+            super(holder, name, accessFlags);
+            this.signature = signature;
+            this.code = code;
+        }
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(holder).append('.').append(name).append('(');
+            for (int i = 0; i < signature.argTypes.length; i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append(signature.argTypes[i]);
+            }
+            sb.append(')');
+            return sb.toString();
+        }
+        @Override
+        public String toString(Length l) {
+            switch(l) {
+                case M:
+                    return holder.toString(Length.L) + "." + name;
+                case S:
+                    return holder.toString(Length.S) + "." + name;
+                default:
+                case L:
+                    return toString();
+            }
+        }
+    }
+    
+    private static class Signature {
+        public final String returnType;
+        public final String[] argTypes;
+        public Signature(String returnType, String[] argTypes) {
+            this.returnType = returnType;
+            this.argTypes = argTypes;
+        }
+    }
+    
+    private static class Field extends Member {
+        public final String type;
+        public Field(String type, Klass holder, String name, int accessFlags) {
+            super(holder, name, accessFlags);
+            this.type = type;
+        }
+        @Override
+        public String toString() {
+            return holder + "." + name;
+        }
+        @Override
+        public String toString(Length l) {
+            switch(l) {
+                case M:
+                    return holder.toString(Length.L) + "." + name;
+                case S:
+                    return holder.toString(Length.S) + "." + name;
+                default:
+                case L:
+                    return toString();
+            }
+        }
+    }
+    
+    private static class Klass implements LengthToString {
+        public final String name;
+        public final String simpleName;
+        public Klass(String name) {
+            this.name = name;
+            String simple;
+            try {
+                simple = name.substring(name.lastIndexOf('.') + 1);
+            } catch (IndexOutOfBoundsException ioobe) {
+                simple = name;
+            }
+            this.simpleName = simple;
+        }
+        @Override
+        public String toString() {
+            return name;
+        }
+        @Override
+        public String toString(Length l) {
+            switch(l) {
+                case S:
+                    return simpleName;
+                default:
+                case L:
+                case M:
+                    return toString();
+            }
+        }
+    }
+    
     private static class EnumKlass extends Klass {
-        public String[] values;
+        public final String[] values;
         public EnumKlass(String name, String[] values) {
             super(name);
             this.values = values;
@@ -83,14 +193,33 @@ public class BinaryParser {
             this.inputs = inputs;
             this.sux = sux;
         }
+        @Override
+        public String toString() {
+            return className;
+        }
     }
     
-    private static class EnumValue {
+    private static class EnumValue implements LengthToString {
         public EnumKlass enumKlass;
         public int ordinal;
         public EnumValue(EnumKlass enumKlass, int ordinal) {
             this.enumKlass = enumKlass;
             this.ordinal = ordinal;
+        }
+        @Override
+        public String toString() {
+            return enumKlass.simpleName + "." + enumKlass.values[ordinal];
+        }
+        @Override
+        public String toString(Length l) {
+            switch(l) {
+                case S:
+                    return enumKlass.values[ordinal];
+                default:
+                case M:
+                case L:
+                    return toString();
+            }
         }
     }
 
@@ -226,6 +355,7 @@ public class BinaryParser {
         if (type == POOL_NEW) {
             return (T) addPoolEntry(klass);
         }
+        assert assertObjectType(klass, type);
         int index = readInt();
         if (index < 0 || index >= constantPool.size()) {
             throw new IOException("Invalid constant pool index : " + index);
@@ -241,11 +371,15 @@ public class BinaryParser {
             case POOL_ENUM:
                 return klass.isAssignableFrom(EnumValue.class);
             case POOL_METHOD:
-                return klass.isAssignableFrom(byte[].class);
+                return klass.isAssignableFrom(Method.class);
             case POOL_STRING:
                 return klass.isAssignableFrom(String.class);
             case POOL_NODE_CLASS:
                 return klass.isAssignableFrom(NodeClass.class);
+            case POOL_FIELD:
+                return klass.isAssignableFrom(Field.class);
+            case POOL_SIGNATURE:
+                return klass.isAssignableFrom(Signature.class);
             case POOL_NULL:
                 return true;
             default:
@@ -259,7 +393,7 @@ public class BinaryParser {
         assert assertObjectType(klass, type) : "Wrong object type : " + klass + " != " + type;
         Object obj;
         switch(type) {
-            case POOL_CLASS:
+            case POOL_CLASS: {
                 String name = readString();
                 int klasstype = readByte();
                 if (klasstype == ENUM_KLASS) {
@@ -275,12 +409,14 @@ public class BinaryParser {
                     throw new IOException("unknown klass type : " + klasstype);
                 }
                 break;
-            case POOL_ENUM:
+            }
+            case POOL_ENUM: {
                 EnumKlass enumClass = readPoolObject(EnumKlass.class);
                 int ordinal = readInt();
                 obj = new EnumValue(enumClass, ordinal);
                 break;
-            case POOL_NODE_CLASS:
+            }
+            case POOL_NODE_CLASS: {
                 String className = readString();
                 String nameTemplate = readString();
                 int inputCount = readShort();
@@ -295,12 +431,38 @@ public class BinaryParser {
                 }
                 obj = new NodeClass(className, nameTemplate, inputs, sux);
                 break;
-            case POOL_METHOD:
-                obj = readBytes();
+            }
+            case POOL_METHOD: {
+                Klass holder = readPoolObject(Klass.class);
+                String name = readPoolObject(String.class);
+                Signature sign = readPoolObject(Signature.class);
+                int flags = readInt();
+                byte[] code = readBytes();
+                obj = new Method(name, sign, code, holder, flags);
                 break;
-            case POOL_STRING:
+            }
+            case POOL_FIELD: {
+                Klass holder = readPoolObject(Klass.class);
+                String name = readPoolObject(String.class);
+                String fType = readPoolObject(String.class);
+                int flags = readInt();
+                obj = new Field(fType, holder, name, flags);
+                break;
+            }
+            case POOL_SIGNATURE: {
+                int argc = readShort();
+                String[] args = new String[argc];
+                for (int i = 0; i < argc; i++) {
+                    args[i] = readPoolObject(String.class);
+                }
+                String returnType = readPoolObject(String.class);
+                obj = new Signature(returnType, args);
+                break;
+            }
+            case POOL_STRING: {
                 obj = readString();
                 break;
+            }
             default:
                 throw new IOException("unknown pool type");
         }
@@ -402,15 +564,15 @@ public class BinaryParser {
     private Group parseGroup(Folder parent) throws IOException {
         String name = readPoolObject(String.class);
         String shortName = readPoolObject(String.class);
-        byte[] bytecodes = readPoolObject(byte[].class);
+        Method method = readPoolObject(Method.class);
         int bci = readInt();
         Group group = new Group(parent);
         group.getProperties().setProperty("name", name);
-        final InputMethod method = new InputMethod(group, name, shortName, bci);
-        if (bytecodes != null) {
-            method.setBytecodes("TODO");
+        if (method != null) {
+            InputMethod inMethod = new InputMethod(group, method.name, shortName, bci);
+            inMethod.setBytecodes("TODO");
+            group.setMethod(inMethod);
         }
-        group.setMethod(method);
         return group;
     }
     
@@ -451,17 +613,23 @@ public class BinaryParser {
 
     private void parseNodes(InputGraph graph) throws IOException {
         int count = readInt();
+        Map<String, Object> props = new HashMap<>();
         List<Edge> edges = new LinkedList<>();
         for (int i = 0; i < count; i++) {
             int id = readInt();
             InputNode node = new InputNode(id);
             final Properties properties = node.getProperties();
             NodeClass nodeClass = readPoolObject(NodeClass.class);
+            int preds = readByte();
+            if (preds > 0) {
+                properties.setProperty("hasPredecessor", "true");
+            }
             int propCount = readShort();
             for (int j = 0; j < propCount; j++) {
                 String key = readPoolObject(String.class);
                 Object value = readPropertyObject();
                 properties.setProperty(key, value != null ? value.toString() : "null");
+                props.put(key, value);
             }
             int edgesStart = edges.size();
             int suxCount = readShort();
@@ -474,21 +642,30 @@ public class BinaryParser {
             for (int j = 0; j < inputCount; j++) {
                 int in = readInt();
                 int index = readShort();
-                edges.add(new Edge(in, id, (char) j, nodeClass.inputs.get(index), true));
+                edges.add(new Edge(in, id, (char) (preds + j), nodeClass.inputs.get(index), true));
             }
-            properties.setProperty("name", createName(edges.subList(edgesStart, edges.size()), properties, nodeClass.nameTemplate));
+            properties.setProperty("name", createName(edges.subList(edgesStart, edges.size()), props, nodeClass.nameTemplate));
             properties.setProperty("class", nodeClass.className);
+            switch (nodeClass.className) {
+                case "BeginNode":
+                    properties.setProperty("shortName", "B");
+                    break;
+                case "EndNode":
+                    properties.setProperty("shortName", "E");
+                    break;
+            }
             graph.addNode(node);
+            props.clear();
         }
         for (Edge e : edges) {
-            char fromIndex = e.input ? 0 : e.num;
+            char fromIndex = e.input ? 1 : e.num;
             char toIndex = e.input ? e.num : 0;
             graph.addEdge(new InputEdge(fromIndex, toIndex, e.from, e.to, e.label));
         }
     }
     
-    private String createName(List<Edge> edges, Properties properties, String template) {
-        Pattern p = Pattern.compile("\\{(p|i)#(.+)\\}");
+    private String createName(List<Edge> edges, Map<String, Object> properties, String template) {
+        Pattern p = Pattern.compile("\\{(p|i)#([a-zA-Z0-9$_]+)(/(l|m|s))?\\}");
         Matcher m = p.matcher(template);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
@@ -509,9 +686,26 @@ public class BinaryParser {
                     result = inputString.toString();
                     break;
                 case "p":
-                    result = properties.get(name);
-                    if (result == null) {
+                    Object prop = properties.get(name);
+                    String length = m.group(4);
+                    if (prop == null) {
                         result = "?";
+                    } else if (length != null && prop instanceof LengthToString) {
+                        LengthToString lengthProp = (LengthToString) prop;
+                        switch(length) {
+                            default:
+                            case "l":
+                                result = lengthProp.toString(Length.L);
+                                break;
+                            case "m":
+                                result = lengthProp.toString(Length.M);
+                                break;
+                            case "s":
+                                result = lengthProp.toString(Length.S);
+                                break;
+                        }
+                    } else {
+                        result = prop.toString();
                     }
                     break;
                 default:
