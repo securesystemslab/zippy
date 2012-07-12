@@ -1,6 +1,26 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 package com.sun.hotspot.igv.data.serialization;
 
@@ -16,11 +36,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
 
-/**
- *
- * @author gd
- */
-public class BinaryParser {
+public class BinaryParser implements GraphParser {
     private static final int BEGIN_GROUP = 0x00;
     private static final int BEGIN_GRAPH = 0x01;
     private static final int CLOSE_GROUP = 0x02;
@@ -49,11 +65,12 @@ public class BinaryParser {
     
     private static final String NO_BLOCK = "noBlock";
     
-    private GroupCallback callback;
-    private List<Object> constantPool;
+    private final GroupCallback callback;
+    private final List<Object> constantPool;
     private final ByteBuffer buffer;
     private final ReadableByteChannel channel;
-    private Deque<Folder> folderStack;
+    private final Deque<Folder> folderStack;
+    private final ParseMonitor monitor;
     
     private enum Length {
         S,
@@ -223,13 +240,14 @@ public class BinaryParser {
         }
     }
 
-    public BinaryParser(GroupCallback callback, ReadableByteChannel channel) {
+    public BinaryParser(ReadableByteChannel channel, ParseMonitor monitor, GroupCallback callback) {
         this.callback = callback;
         constantPool = new ArrayList<>();
         buffer = ByteBuffer.allocateDirect(256 * 1024);
         buffer.flip();
         this.channel = channel;
         folderStack = new LinkedList<>();
+        this.monitor = monitor;
     }
     
     private void fill() throws IOException {
@@ -507,8 +525,12 @@ public class BinaryParser {
         }
     }
 
-    public void parse() throws IOException {
-        folderStack.push(new GraphDocument());
+    public GraphDocument parse() throws IOException {
+        GraphDocument doc = new GraphDocument();
+        folderStack.push(doc);
+        if (monitor != null) {
+            monitor.setState("Starting parsing");
+        }
         try {
             while(true) {
                 parseRoot();
@@ -516,6 +538,10 @@ public class BinaryParser {
         } catch (EOFException e) {
             
         }
+        if (monitor != null) {
+            monitor.setState("Finished parsing");
+        }
+        return doc;
     }
 
     private void parseRoot() throws IOException {
@@ -564,6 +590,9 @@ public class BinaryParser {
     private Group parseGroup(Folder parent) throws IOException {
         String name = readPoolObject(String.class);
         String shortName = readPoolObject(String.class);
+        if (monitor != null) {
+            monitor.setState(shortName);
+        }
         Method method = readPoolObject(Method.class);
         int bci = readInt();
         Group group = new Group(parent);
@@ -577,6 +606,9 @@ public class BinaryParser {
     }
     
     private InputGraph parseGraph() throws IOException {
+        if (monitor != null) {
+            monitor.updateProgress();
+        }
         String title = readPoolObject(String.class);
         InputGraph graph = new InputGraph(title);
         parseNodes(graph);

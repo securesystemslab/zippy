@@ -37,13 +37,6 @@ import org.xml.sax.SAXException;
  */
 public class XMLParser implements ContentHandler {
 
-    public static interface ParseMonitor {
-
-        public void setProgress(double d);
-
-        public void setState(String state);
-    }
-
     public static class MissingAttributeException extends SAXException {
 
         private String name;
@@ -197,9 +190,7 @@ public class XMLParser implements ContentHandler {
 
     @Override
     public void setDocumentLocator(Locator locator) {
-        if (monitor != null) {
-            monitor.setState("Starting parsing");
-        }
+        
     }
 
     @Override

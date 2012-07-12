@@ -15,7 +15,10 @@
             <xsd:element name="properties" type="propertiesType" minOccurs="0" maxOccurs="1" />
             <xsd:element name="assembly" type="assemblyType" minOccurs="0" maxOccurs="1" />
             <xsd:element name="method" type="methodType" minOccurs="0" maxOccurs="1" />
-            <xsd:element name="graph" type="graphType" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:choice minOccurs="0" maxOccurs="unbounded" >
+                <xsd:element name="graph" type="graphType" />
+                <xsd:element name="group" type="groupType" />
+            </xsd:choice>
         </xsd:sequence>
         <xsd:attribute name="difference" use="optional" />
     </xsd:complexType>

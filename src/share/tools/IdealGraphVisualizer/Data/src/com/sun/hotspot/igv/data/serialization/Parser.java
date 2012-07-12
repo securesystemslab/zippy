@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,12 @@ package com.sun.hotspot.igv.data.serialization;
 import com.sun.hotspot.igv.data.*;
 import com.sun.hotspot.igv.data.serialization.XMLParser.ElementHandler;
 import com.sun.hotspot.igv.data.serialization.XMLParser.HandoverElementHandler;
-import com.sun.hotspot.igv.data.serialization.XMLParser.ParseMonitor;
 import com.sun.hotspot.igv.data.serialization.XMLParser.TopElementHandler;
 import com.sun.hotspot.igv.data.services.GroupCallback;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,13 +43,14 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
-public class Parser {
+public class Parser implements GraphParser {
 
     public static final String INDENT = "  ";
     public static final String TOP_ELEMENT = "graphDocument";
@@ -99,6 +101,8 @@ public class Parser {
     private ArrayList<Pair<String, String>> blockConnections = new ArrayList<>();
     private int maxId = 0;
     private GraphDocument graphDocument;
+    private final ParseMonitor monitor;
+    private final ReadableByteChannel channel;
 
     private int lookupID(String i) {
         try {
@@ -216,6 +220,10 @@ public class Parser {
                         curGraph.addEdge(e);
                     }
                 }
+            }
+            ParseMonitor monitor = getMonitor();
+            if (monitor != null) {
+                monitor.updateProgress();
             }
             return curGraph;
         }
@@ -460,13 +468,15 @@ public class Parser {
         }
     };
 
-    public Parser() {
-        this(null);
+    public Parser(ReadableByteChannel channel) {
+        this(channel, null, null);
     }
 
-    public Parser(GroupCallback groupCallback) {
+    public Parser(ReadableByteChannel channel, ParseMonitor monitor, GroupCallback groupCallback) {
 
         this.groupCallback = groupCallback;
+        this.monitor = monitor;
+        this.channel = channel;
 
         // Initialize dependencies
         xmlDocument.addChild(topHandler);
@@ -510,16 +520,23 @@ public class Parser {
     }
 
     // Returns a new GraphDocument object deserialized from an XML input source.
-    public GraphDocument parse(InputSource source, XMLParser.ParseMonitor monitor) throws SAXException {
-        XMLReader reader = createReader();
-
-        reader.setContentHandler(new XMLParser(xmlDocument, monitor));
-        try {
-            reader.parse(source);
-        } catch (IOException ex) {
-            throw new SAXException(ex);
+    @Override
+    public GraphDocument parse() throws IOException {
+        if (monitor != null) {
+            monitor.setState("Starting parsing");
         }
-
+        try {
+            XMLReader reader = createReader();
+            reader.setContentHandler(new XMLParser(xmlDocument, monitor));
+            reader.parse(new InputSource(Channels.newInputStream(channel)));
+        } catch (SAXException ex) {
+            if (!(ex instanceof SAXParseException) || !"XML document structures must start and end within the same entity.".equals(ex.getMessage())) {
+                throw new IOException(ex);
+            }
+        }
+        if (monitor != null) {
+            monitor.setState("Finished parsing");
+        }
         return graphDocument;
     }
 

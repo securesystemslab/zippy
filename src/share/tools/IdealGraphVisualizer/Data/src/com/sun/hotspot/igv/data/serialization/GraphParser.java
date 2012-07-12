@@ -22,45 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.sun.hotspot.igv.connection;
+package com.sun.hotspot.igv.data.serialization;
 
-import com.sun.hotspot.igv.data.serialization.BinaryParser;
-import com.sun.hotspot.igv.data.serialization.Parser;
-import com.sun.hotspot.igv.data.services.GroupCallback;
+import com.sun.hotspot.igv.data.GraphDocument;
 import java.io.IOException;
-import java.nio.channels.SocketChannel;
-import org.openide.util.Exceptions;
 
-public class Client implements Runnable {
-    private final boolean binary;
-    private final SocketChannel socket;
-    private final GroupCallback callback;
-
-    public Client(SocketChannel socket, GroupCallback callback, boolean  binary) {
-        this.callback = callback;
-        this.socket = socket;
-        this.binary = binary;
-    }
-
-    @Override
-    public void run() {
-
-        try {
-            final SocketChannel channel = socket;
-            channel.configureBlocking(true);
-            if (binary) {
-                new BinaryParser(channel, null, callback).parse();
-            } else {
-                new Parser(channel, null, callback).parse();
-            }
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException ex) {
-                Exceptions.printStackTrace(ex);
-            }
-        }
-    }
+public interface GraphParser {
+    public GraphDocument parse() throws IOException;
 }
