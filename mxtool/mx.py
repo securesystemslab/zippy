@@ -57,7 +57,8 @@ The configuration files (i.e. in the 'mx' sub-directory) of a suite are:
 
   env
       A set of environment variable definitions. These override any
-      existing environment variables.
+      existing environment variables. Common properties set here
+      include JAVA_HOME and IGNORED_PROJECTS.
 
 The includes and env files are typically not put under version control
 as they usually contain local file-system paths.
@@ -194,7 +195,11 @@ class Project(Dependency):
                 if includeLibs and not dep in deps:
                     deps.append(dep)
             else:
-                dep = project(name)
+                dep = _projects.get(name, None)
+                if dep is None:
+                    if name in _opts.ignored_projects:
+                        abort('project named ' + name + ' required by ' + self.name + ' is ignored')
+                    abort('dependency named ' + name + ' required by ' + self.name + ' is not found')
                 if not dep in deps:
                     dep.all_deps(deps, includeLibs)
         if not self in deps and includeSelf:
@@ -449,7 +454,8 @@ class Suite:
             existing = _projects.get(p.name)
             if existing is not None:
                 abort('cannot override project  ' + p.name + ' in ' + p.dir + " with project of the same name in  " + existing.dir)
-            _projects[p.name] = p
+            if not p.name in _opts.ignored_projects:
+                _projects[p.name] = p
         for l in self.libs:
             existing = _libs.get(l.name)
             if existing is not None:
@@ -566,6 +572,8 @@ def project(name, fatalIfMissing=True):
     """
     p = _projects.get(name)
     if p is None and fatalIfMissing:
+        if name in _opts.ignored_projects:
+            abort('project named ' + name + ' is ignored')
         abort('project named ' + name + ' not found')
     return p
 
@@ -671,6 +679,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
+        self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='Timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -702,6 +711,8 @@ class ArgParser(ArgumentParser):
 
         os.environ['JAVA_HOME'] = opts.java_home
         os.environ['HOME'] = opts.user_home
+
+        opts.ignored_projects = opts.ignored_projects + os.environ.get('IGNORED_PROJECTS', '').split(',')
 
         commandAndArgs = opts.__dict__.pop('commandAndArgs')
         return opts, commandAndArgs
