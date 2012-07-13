@@ -26,15 +26,18 @@ package com.sun.hotspot.igv.coordinator.actions;
 
 import com.sun.hotspot.igv.coordinator.OutlineTopComponent;
 import com.sun.hotspot.igv.data.GraphDocument;
+import com.sun.hotspot.igv.data.serialization.BinaryParser;
+import com.sun.hotspot.igv.data.serialization.GraphParser;
+import com.sun.hotspot.igv.data.serialization.ParseMonitor;
 import com.sun.hotspot.igv.data.serialization.Parser;
-import com.sun.hotspot.igv.data.serialization.XMLParser;
 import com.sun.hotspot.igv.settings.Settings;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.KeyStroke;
@@ -42,32 +45,30 @@ import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 import org.netbeans.api.progress.ProgressHandle;
 import org.netbeans.api.progress.ProgressHandleFactory;
-import org.openide.DialogDisplayer;
-import org.openide.NotifyDescriptor;
+import org.openide.util.Exceptions;
 import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
 import org.openide.util.actions.CallableSystemAction;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 /**
  *
  * @author Thomas Wuerthinger
  */
 public final class ImportAction extends CallableSystemAction {
+    private static final int WORKUNITS = 10000;
 
     public static FileFilter getFileFilter() {
         return new FileFilter() {
 
             @Override
             public boolean accept(File f) {
-                return f.getName().toLowerCase().endsWith(".xml") || f.isDirectory();
+                return f.getName().toLowerCase().endsWith(".xml") || f.getName().toLowerCase().endsWith(".bgv") || f.isDirectory();
             }
 
             @Override
             public String getDescription() {
-                return "XML files (*.xml)";
+                return "Graph files (*.xml, *.bgv)";
             }
         };
     }
@@ -88,71 +89,59 @@ public final class ImportAction extends CallableSystemAction {
             }
 
             Settings.get().put(Settings.DIRECTORY, dir.getAbsolutePath());
-
             try {
-                final FileInputStream inputStream = new FileInputStream(file);
-                final InputSource is = new InputSource(inputStream);
-
+                final FileChannel channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
                 final ProgressHandle handle = ProgressHandleFactory.createHandle("Opening file " + file.getName());
-                final int basis = 1000;
-                handle.start(basis);
-                final int start = inputStream.available();
-
-                final XMLParser.ParseMonitor parseMonitor = new XMLParser.ParseMonitor() {
-
+                handle.start(WORKUNITS);
+                final long start = channel.size();
+                ParseMonitor monitor = new ParseMonitor() {
                     @Override
-                    public void setProgress(double d) {
+                    public void updateProgress() {
                         try {
-                            int curAvailable = inputStream.available();
-                            int prog = (int) (basis * (double) (start - curAvailable) / (double) start);
+                            int prog = (int) (WORKUNITS * (double) channel.position() / (double) start);
                             handle.progress(prog);
                         } catch (IOException ex) {
                         }
                     }
-
                     @Override
                     public void setState(String state) {
-                        setProgress(0.0);
+                        updateProgress();
                         handle.progress(state);
                     }
                 };
-                final Parser parser = new Parser();
+                final GraphParser parser;
+                if (file.getName().endsWith(".xml")) {
+                    parser = new Parser(channel, monitor, null);
+                } else if (file.getName().endsWith(".bgv")) {
+                    parser = new BinaryParser(channel, monitor, null);
+                } else {
+                    parser = null;
+                }
                 final OutlineTopComponent component = OutlineTopComponent.findInstance();
-
-                component.requestActive();
-
                 RequestProcessor.getDefault().post(new Runnable() {
-
                     @Override
                     public void run() {
                         try {
-                            final GraphDocument document = parser.parse(is, parseMonitor);
-                            parseMonitor.setState("Finishing");
-                            SwingUtilities.invokeLater(new Runnable(){
-
-                                @Override
-                                public void run() {
-                                    component.getDocument().addGraphDocument(document);
-                                }
-                            });
-                        } catch (SAXException ex) {
-                            String s = "Exception during parsing the XML file, could not load document!";
-                            if (ex instanceof XMLParser.MissingAttributeException) {
-                                XMLParser.MissingAttributeException e = (XMLParser.MissingAttributeException) ex;
-                                s += "\nMissing attribute \"" + e.getAttributeName() + "\"";
+                            final GraphDocument document = parser.parse();
+                            if (document != null) {
+                                SwingUtilities.invokeLater(new Runnable(){
+                                    @Override
+                                    public void run() {
+                                        component.requestActive();
+                                        component.getDocument().addGraphDocument(document);
+                                    }
+                                });
                             }
-                            ex.printStackTrace();
-                            NotifyDescriptor d = new NotifyDescriptor.Message(s, NotifyDescriptor.ERROR_MESSAGE);
-                            DialogDisplayer.getDefault().notify(d);
+                        } catch (IOException ex) {
+                            Exceptions.printStackTrace(ex);
                         }
                         handle.finish();
                     }
                 });
-
             } catch (FileNotFoundException ex) {
-                ex.printStackTrace();
+                Exceptions.printStackTrace(ex);
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Exceptions.printStackTrace(ex);
             }
         }
     }

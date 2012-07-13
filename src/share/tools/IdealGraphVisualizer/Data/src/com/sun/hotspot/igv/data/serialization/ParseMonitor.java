@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2007, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,43 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.sun.hotspot.igv.connection;
+package com.sun.hotspot.igv.data.serialization;
 
-import com.sun.hotspot.igv.data.serialization.BinaryParser;
-import com.sun.hotspot.igv.data.services.GroupCallback;
-import java.io.IOException;
-import java.nio.channels.SocketChannel;
-import org.openide.util.Exceptions;
+public interface ParseMonitor {
 
-/**
- *
- * @author Thomas Wuerthinger
- */
-public class BinaryClient implements Runnable {
+    public void updateProgress();
 
-    private SocketChannel socket;
-    private GroupCallback callback;
-
-    public BinaryClient(SocketChannel socket, GroupCallback callback) {
-        this.callback = callback;
-        this.socket = socket;
-    }
-
-    @Override
-    public void run() {
-
-        try {
-            final SocketChannel channel = socket;
-            channel.configureBlocking(true);
-            new BinaryParser(callback, channel).parse();
-        } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException ex) {
-                Exceptions.printStackTrace(ex);
-            }
-        }
-    }
+    public void setState(String state);
+    
 }

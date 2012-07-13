@@ -26,11 +26,12 @@
 package com.sun.hotspot.igv.data.serialization;
 
 import com.sun.hotspot.igv.data.*;
-import java.io.CharArrayWriter;
-import java.io.StringReader;
+import java.io.*;
+import java.nio.channels.Channels;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import org.junit.*;
+import org.openide.util.Exceptions;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -67,16 +68,17 @@ public class ParserTest {
     }
 
     private void test(GraphDocument document, String xmlString) {
-        
-        StringReader sr = new StringReader(xmlString);
-        InputSource is = new InputSource(sr);
-
         try {
-            Parser parser = new Parser();
-            final GraphDocument parsedDocument = parser.parse(is, null);
-            Util.assertGraphDocumentEquals(document, parsedDocument);
-        } catch (SAXException ex) {
-            fail(ex.toString());
+            InputStream in = new ByteArrayInputStream(xmlString.getBytes("UTF-8"));
+            try {
+                Parser parser = new Parser(Channels.newChannel(in));
+                final GraphDocument parsedDocument = parser.parse();
+                Util.assertGraphDocumentEquals(document, parsedDocument);
+            } catch (SAXException ex) {
+                fail(ex.toString());
+            }
+        } catch (UnsupportedEncodingException ex) {
+            Exceptions.printStackTrace(ex);
         }
     }
 
