@@ -2420,7 +2420,13 @@ def main():
     command_args = commandAndArgs[1:]
 
     if not commands.has_key(command):
-        abort('mx: unknown command \'{0}\'\n{1}use "mx help" for more options'.format(command, _format_commands()))
+        hits = [c for c in commands.iterkeys() if c.startswith(command)]
+        if len(hits) == 1:
+            command = hits[0]
+        elif len(hits) == 0:
+            abort('mx: unknown command \'{0}\'\n{1}use "mx help" for more options'.format(command, _format_commands()))
+        else:
+            abort('mx: command \'{0}\' is ambiguous\n    {1}'.format(command, ' '.join(hits)))
 
     c, _ = commands[command][:2]
     def term_handler(signum, frame):
