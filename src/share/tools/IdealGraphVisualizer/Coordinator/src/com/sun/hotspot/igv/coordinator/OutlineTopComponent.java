@@ -112,7 +112,9 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
             @Override
             public void started(Group g) {
-                getDocument().addElement(g);
+                synchronized(OutlineTopComponent.this) {
+                    getDocument().addElement(g);
+                }
             }
         };
         
