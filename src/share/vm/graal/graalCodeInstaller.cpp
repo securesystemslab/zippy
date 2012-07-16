@@ -695,10 +695,10 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
     TRACE_graal_3("method call");
     switch (_next_call_type) {
+      case MARK_INLINE_INVOKEVIRTUAL: {
+        break;
+      }
       case MARK_INVOKEVIRTUAL:
-        if (is_call_reg) {
-          break;
-        }
       case MARK_INVOKEINTERFACE: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
 
@@ -843,6 +843,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         // Add relocation record for the klassOop embedded in the inline cache
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
       }
+      case MARK_INLINE_INVOKEVIRTUAL:
       case MARK_INVOKE_INVALID:
       case MARK_INVOKESPECIAL:
       case MARK_INVOKESTATIC:
