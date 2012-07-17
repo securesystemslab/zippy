@@ -1697,6 +1697,8 @@ methodHandle SharedRuntime::reresolve_call_site(JavaThread *thread, TRAPS) {
 IRT_LEAF(void, SharedRuntime::fixup_callers_callsite(methodOopDesc* method, address caller_pc))
   methodOop moop(method);
 
+  assert(moop->is_oop(false) && moop->is_method(), "method oop from call site is invalid");
+
   address entry_point = moop->from_compiled_entry();
 
   // It's possible that deoptimization can occur at a call site which hasn't
