@@ -56,7 +56,7 @@ private:
 
   ciEnv*        _env;
 
-  oop           _citarget_method;
+  oop           _comp_result;
   oop           _hotspot_method;
   oop           _name;
   arrayOop      _sites;

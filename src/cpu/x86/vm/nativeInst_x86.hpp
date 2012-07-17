@@ -186,21 +186,17 @@ class NativeCallReg: public NativeInstruction {
  public:
   enum Intel_specific_constants {
     instruction_code            = 0xFF,
-    instruction_size            =    2,
     instruction_offset          =    0,
-    return_address_offset       =    2
+    return_address_offset_norex =    2,
+    return_address_offset_rex   =    3
   };
 
-  address instruction_address() const       { return addr_at(instruction_offset); }
-  address next_instruction_address() const  { return addr_at(return_address_offset); }
-
-
-  static bool is_call_reg_at(address instr) {
-    return ((*instr) & 0xFF) == NativeCallReg::instruction_code;
-  }
-
-  static bool is_call_reg_before(address return_address) {
-    return is_call_reg_at(return_address - NativeCallReg::return_address_offset);
+  int next_instruction_offset() const  {
+    if (ubyte_at(0) == NativeCallReg::instruction_code) {
+      return return_address_offset_norex;
+    } else {
+      return return_address_offset_rex;
+    }
   }
 };
 
@@ -555,7 +551,9 @@ class NativeTstRegMem: public NativeInstruction {
 
 inline bool NativeInstruction::is_illegal()      { return (short)int_at(0) == (short)NativeIllegalInstruction::instruction_code; }
 inline bool NativeInstruction::is_call()         { return ubyte_at(0) == NativeCall::instruction_code; }
-inline bool NativeInstruction::is_call_reg()     { return ubyte_at(0) == NativeCallReg::instruction_code; }
+inline bool NativeInstruction::is_call_reg()     { return ubyte_at(0) == NativeCallReg::instruction_code ||
+                                                          (ubyte_at(1) == NativeCallReg::instruction_code &&
+                                                           (ubyte_at(0) == Assembler::REX || ubyte_at(0) == Assembler::REX_B)); }
 inline bool NativeInstruction::is_return()       { return ubyte_at(0) == NativeReturn::instruction_code ||
                                                           ubyte_at(0) == NativeReturnX::instruction_code; }
 inline bool NativeInstruction::is_jump()         { return ubyte_at(0) == NativeJump::instruction_code ||

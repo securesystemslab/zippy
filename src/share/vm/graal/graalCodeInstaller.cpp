@@ -273,22 +273,22 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code) {
+CodeInstaller::CodeInstaller(Handle& comp_result, nmethod*& nm, bool install_code) {
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  jobject target_method_obj = JNIHandles::make_local(target_method());
-  initialize_assumptions(JNIHandles::resolve(target_method_obj));
+  jobject comp_result_obj = JNIHandles::make_local(comp_result());
+  initialize_assumptions(JNIHandles::resolve(comp_result_obj));
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(JNIHandles::resolve(target_method_obj));
+    initialize_fields(JNIHandles::resolve(comp_result_obj));
     initialize_buffer(buffer);
     process_exception_handlers();
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(JNIHandles::resolve(target_method_obj))); 
+  methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(JNIHandles::resolve(comp_result_obj))); 
 
   nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, install_code);
@@ -317,22 +317,23 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(oop target_method) {
-  _citarget_method = HotSpotCompilationResult::comp(target_method);
-  _hotspot_method = HotSpotCompilationResult::method(target_method);
+void CodeInstaller::initialize_fields(oop comp_result) {
+  _comp_result = HotSpotCompilationResult::comp(comp_result);
+  _hotspot_method = HotSpotCompilationResult::method(comp_result);
   if (_hotspot_method != NULL) {
-    _parameter_count = getMethodFromHotSpotMethod(_hotspot_method)->size_of_parameters();
+    methodOop method = getMethodFromHotSpotMethod(_hotspot_method);
+    _parameter_count = method->size_of_parameters();
+    TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
   }
-  _name = HotSpotCompilationResult::name(target_method);
-  _sites = (arrayOop) HotSpotCompilationResult::sites(target_method);
-  _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(target_method);
+  _name = HotSpotCompilationResult::name(comp_result);
+  _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
+  _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(comp_result);
 
-  _code = (arrayOop) InstalledCode::targetCode(_citarget_method);
-  _code_size = InstalledCode::targetCodeSize(_citarget_method);
+  _code = (arrayOop) InstalledCode::targetCode(_comp_result);
+  _code_size = InstalledCode::targetCodeSize(_comp_result);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = InstalledCode::frameSize(_citarget_method) + HeapWordSize;
-  _custom_stack_area_offset = InstalledCode::customStackAreaOffset(_citarget_method);
-
+  _total_frame_size = InstalledCode::frameSize(_comp_result) + HeapWordSize;
+  _custom_stack_area_offset = InstalledCode::customStackAreaOffset(_comp_result);
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * (BytesPerLong*2);
@@ -627,11 +628,12 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     assert((call[0] == 0x40 || call[0] == 0x41) && call[1] == 0xFF, "expected call with rex/rexb prefix byte");
     next_pc_offset += 3; /* prefix byte + opcode byte + modrm byte */
   } else if (inst->is_call_reg()) {
-    // the inlined vtable stub contains a "call register" instruction, which isn't recognized here
+    // the inlined vtable stub contains a "call register" instruction
     assert(hotspot_method != NULL, "only valid for virtual calls");
     is_call_reg = true;
-    next_pc_offset = pc_offset + NativeCallReg::instruction_size;
+    next_pc_offset = pc_offset + ((NativeCallReg *) inst)->next_instruction_offset();
   } else {
+    tty->print_cr("at pc_offset %d", pc_offset);
     runtime_call->print();
     fatal("unsupported type of instruction for call site");
   }

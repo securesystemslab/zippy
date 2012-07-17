@@ -876,15 +876,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 }
 
 // public HotSpotCompiledMethod installMethod(HotSpotCompilationResult comp, boolean installCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject comp, jboolean install_code, jobject info) {
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject compResult, jboolean install_code, jobject info) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
-  Handle targetMethodHandle = JNIHandles::resolve(comp);
+  Handle compResultHandle = JNIHandles::resolve(compResult);
   nmethod* nm = NULL;
   Arena arena;
   ciEnv env(&arena);
-  CodeInstaller installer(targetMethodHandle, nm, install_code != 0);
+  CodeInstaller installer(compResultHandle, nm, install_code != 0);
 
   if (info != NULL) {
     arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
@@ -899,7 +899,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     Handle obj = instanceKlass::cast(HotSpotCompiledMethod::klass())->allocate_permanent_instance(CHECK_NULL);
     assert(obj() != NULL, "must succeed in allocating instance");
     HotSpotCompiledMethod::set_nmethod(obj, (jlong) nm);
-    HotSpotCompiledMethod::set_method(obj, HotSpotCompilationResult::method(comp));
+    HotSpotCompiledMethod::set_method(obj, HotSpotCompilationResult::method(compResult));
     nm->set_graal_compiled_method(obj());
     return JNIHandles::make_local(obj());
   } else {
