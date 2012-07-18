@@ -87,6 +87,13 @@ Built-in library properties (* = required):
         If "true" then this library will be omitted from a class path
         if it doesn't exist on the file system and no URLs are specified.
 
+    sourcePath
+        The file system path for a jar file containing the library sources.
+
+    sourceUrls
+        A comma separated list of URLs from which the library source jar can
+        be downloaded and saved in the location specified by 'sourcePath'.
+
 Project specification format:
 
     project@<name>@<prop>=<value>
@@ -307,21 +314,33 @@ class Project(Dependency):
     
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls):
+    def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
         self.mustExist = mustExist
+        self.sourcePath = sourcePath
+        self.sourceUrls = sourceUrls
 
     def get_path(self, resolve):
         path = self.path
         if not isabs(path):
             path = join(self.suite.dir, path)
         if resolve and self.mustExist and not exists(path):
-            assert not len(self.urls) == 0, 'cannot find required library  ' + self.name + " " + path;
+            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path;
             print('Downloading ' + self.name + ' from ' + str(self.urls))
             download(path, self.urls)
+        return path
 
+    def get_source_path(self, resolve):
+        path = self.sourcePath
+        if path is None:
+            return None
+        if not isabs(path):
+            path = join(self.suite.dir, path)
+        if resolve and len(self.sourceUrls) != 0 and not exists(path):
+            print('Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls))
+            download(path, self.sourceUrls)
         return path
 
     def append_to_classpath(self, cp, resolve):
@@ -402,7 +421,9 @@ class Suite:
             path = attrs.pop('path')
             mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
-            l = Library(self, name, path, mustExist, urls)
+            sourcePath = attrs.pop('sourcePath', None)
+            sourceUrls = pop_list(attrs, 'sourceUrls')
+            l = Library(self, name, path, mustExist, urls, sourcePath, sourceUrls)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -1206,6 +1227,8 @@ def build(args, parser=None):
         else:
             if not args.java:
                 continue
+            if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+                continue
 
         # skip building this Java project if its Java compliance level is "higher" than the configured JDK
         if javaCompliance < p.javaCompliance:
@@ -1692,6 +1715,9 @@ def eclipseinit(args, suite=None):
         # Every Java program depends on the JRE
         out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'})
 
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
+
         for dep in p.all_deps([], True):
             if dep == p:
                 continue;
@@ -1705,13 +1731,18 @@ def eclipseinit(args, suite=None):
                     path = dep.path
                     if dep.mustExist:
                         dep.get_path(resolve=True)
-                        if isabs(path):
-                            out.element('classpathentry', {'exported' : 'true', 'kind' : 'lib', 'path' : path})
-                        else:
+                        if not isabs(path):
                             # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
                             # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
                             # safest to simply use absolute paths.
-                            out.element('classpathentry', {'exported' : 'true', 'kind' : 'lib', 'path' : join(suite.dir, path)})
+                            path = join(suite.dir, path)
+
+                        attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
+
+                        sourcePath = dep.get_source_path(resolve=True)
+                        if sourcePath is not None:
+                            attributes['sourcepath'] = sourcePath
+                        out.element('classpathentry', attributes)
             else:
                 out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
 
@@ -1766,11 +1797,19 @@ def eclipseinit(args, suite=None):
             out.element('name', data='net.sf.eclipsecs.core.CheckstyleBuilder')
             out.element('arguments', data='')
             out.close('buildCommand')
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            for buildCommand in ['org.eclipse.pde.ManifestBuilder', 'org.eclipse.pde.SchemaBuilder']:
+                out.open('buildCommand')
+                out.element('name', data=buildCommand)
+                out.element('arguments', data='')
+                out.close('buildCommand')
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
         if exists(csConfig):
             out.element('nature', data='net.sf.eclipsecs.core.CheckstyleNature')
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            out.element('nature', data='org.eclipse.pde.PluginNature')
         out.close('natures')
         out.close('projectDescription')
         update_file(join(p.dir, '.project'), out.xml(indent='\t', newl='\n'))
@@ -1803,6 +1842,9 @@ def netbeansinit(args, suite=None):
     updated = False
     for p in projects():
         if p.native:
+            continue
+
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
             continue
 
         if not exists(join(p.dir, 'nbproject')):
