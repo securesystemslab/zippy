@@ -57,7 +57,8 @@ The configuration files (i.e. in the 'mx' sub-directory) of a suite are:
 
   env
       A set of environment variable definitions. These override any
-      existing environment variables.
+      existing environment variables. Common properties set here
+      include JAVA_HOME and IGNORED_PROJECTS.
 
 The includes and env files are typically not put under version control
 as they usually contain local file-system paths.
@@ -85,6 +86,13 @@ Built-in library properties (* = required):
     optional
         If "true" then this library will be omitted from a class path
         if it doesn't exist on the file system and no URLs are specified.
+
+    sourcePath
+        The file system path for a jar file containing the library sources.
+
+    sourceUrls
+        A comma separated list of URLs from which the library source jar can
+        be downloaded and saved in the location specified by 'sourcePath'.
 
 Project specification format:
 
@@ -194,7 +202,11 @@ class Project(Dependency):
                 if includeLibs and not dep in deps:
                     deps.append(dep)
             else:
-                dep = project(name)
+                dep = _projects.get(name, None)
+                if dep is None:
+                    if name in _opts.ignored_projects:
+                        abort('project named ' + name + ' required by ' + self.name + ' is ignored')
+                    abort('dependency named ' + name + ' required by ' + self.name + ' is not found')
                 if not dep in deps:
                     dep.all_deps(deps, includeLibs)
         if not self in deps and includeSelf:
@@ -302,21 +314,33 @@ class Project(Dependency):
     
 
 class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls):
+    def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
         Dependency.__init__(self, suite, name)
         self.path = path.replace('/', os.sep)
         self.urls = urls
         self.mustExist = mustExist
+        self.sourcePath = sourcePath
+        self.sourceUrls = sourceUrls
 
     def get_path(self, resolve):
         path = self.path
         if not isabs(path):
             path = join(self.suite.dir, path)
         if resolve and self.mustExist and not exists(path):
-            assert not len(self.urls) == 0, 'cannot find required library  ' + self.name + " " + path;
+            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path;
             print('Downloading ' + self.name + ' from ' + str(self.urls))
             download(path, self.urls)
+        return path
 
+    def get_source_path(self, resolve):
+        path = self.sourcePath
+        if path is None:
+            return None
+        if not isabs(path):
+            path = join(self.suite.dir, path)
+        if resolve and len(self.sourceUrls) != 0 and not exists(path):
+            print('Downloading sources for ' + self.name + ' from ' + str(self.sourceUrls))
+            download(path, self.sourceUrls)
         return path
 
     def append_to_classpath(self, cp, resolve):
@@ -397,7 +421,9 @@ class Suite:
             path = attrs.pop('path')
             mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
-            l = Library(self, name, path, mustExist, urls)
+            sourcePath = attrs.pop('sourcePath', None)
+            sourceUrls = pop_list(attrs, 'sourceUrls')
+            l = Library(self, name, path, mustExist, urls, sourcePath, sourceUrls)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -449,7 +475,8 @@ class Suite:
             existing = _projects.get(p.name)
             if existing is not None:
                 abort('cannot override project  ' + p.name + ' in ' + p.dir + " with project of the same name in  " + existing.dir)
-            _projects[p.name] = p
+            if not p.name in _opts.ignored_projects:
+                _projects[p.name] = p
         for l in self.libs:
             existing = _libs.get(l.name)
             if existing is not None:
@@ -566,6 +593,8 @@ def project(name, fatalIfMissing=True):
     """
     p = _projects.get(name)
     if p is None and fatalIfMissing:
+        if name in _opts.ignored_projects:
+            abort('project named ' + name + ' is ignored')
         abort('project named ' + name + ' not found')
     return p
 
@@ -671,6 +700,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
         self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
+        self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
             self.add_argument('--timeout', help='Timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
@@ -702,6 +732,8 @@ class ArgParser(ArgumentParser):
 
         os.environ['JAVA_HOME'] = opts.java_home
         os.environ['HOME'] = opts.user_home
+
+        opts.ignored_projects = opts.ignored_projects + os.environ.get('IGNORED_PROJECTS', '').split(',')
 
         commandAndArgs = opts.__dict__.pop('commandAndArgs')
         return opts, commandAndArgs
@@ -1155,6 +1187,7 @@ def build(args, parser=None):
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
     parser.add_argument('--jdt', help='Eclipse installation or path to ecj.jar for using the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
+    parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -1193,6 +1226,8 @@ def build(args, parser=None):
             continue
         else:
             if not args.java:
+                continue
+            if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
                 continue
 
         # skip building this Java project if its Java compliance level is "higher" than the configured JDK
@@ -1285,6 +1320,7 @@ def build(args, parser=None):
         argfile.write('\n'.join(javafilelist))
         argfile.close()
 
+        toBeDeleted = [argfileName]
         try:
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
@@ -1305,11 +1341,22 @@ def build(args, parser=None):
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
-                    jdtArgs += ['-properties', jdtProperties]
+                    # convert all warnings to errors
+                    if args.jdt_warning_as_error:
+                        jdtPropertiesTmp = jdtProperties + '.tmp'
+                        with open(jdtProperties) as fp:
+                            content = fp.read().replace('=warning', '=error')
+                        with open(jdtPropertiesTmp, 'w') as fp:
+                            fp.write(content)
+                        toBeDeleted.append(jdtPropertiesTmp)
+                        jdtArgs += ['-properties', jdtPropertiesTmp]
+                    else:
+                        jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
                 run(jdtArgs)
         finally:
-            os.remove(argfileName)
+            for n in toBeDeleted:
+                os.remove(n)
 
     if suppliedParser:
         return args
@@ -1668,6 +1715,9 @@ def eclipseinit(args, suite=None):
         # Every Java program depends on the JRE
         out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'})
 
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
+
         for dep in p.all_deps([], True):
             if dep == p:
                 continue;
@@ -1681,13 +1731,18 @@ def eclipseinit(args, suite=None):
                     path = dep.path
                     if dep.mustExist:
                         dep.get_path(resolve=True)
-                        if isabs(path):
-                            out.element('classpathentry', {'exported' : 'true', 'kind' : 'lib', 'path' : path})
-                        else:
+                        if not isabs(path):
                             # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
                             # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
                             # safest to simply use absolute paths.
-                            out.element('classpathentry', {'exported' : 'true', 'kind' : 'lib', 'path' : join(suite.dir, path)})
+                            path = join(suite.dir, path)
+
+                        attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
+
+                        sourcePath = dep.get_source_path(resolve=True)
+                        if sourcePath is not None:
+                            attributes['sourcepath'] = sourcePath
+                        out.element('classpathentry', attributes)
             else:
                 out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
 
@@ -1742,11 +1797,19 @@ def eclipseinit(args, suite=None):
             out.element('name', data='net.sf.eclipsecs.core.CheckstyleBuilder')
             out.element('arguments', data='')
             out.close('buildCommand')
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            for buildCommand in ['org.eclipse.pde.ManifestBuilder', 'org.eclipse.pde.SchemaBuilder']:
+                out.open('buildCommand')
+                out.element('name', data=buildCommand)
+                out.element('arguments', data='')
+                out.close('buildCommand')
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
         if exists(csConfig):
             out.element('nature', data='net.sf.eclipsecs.core.CheckstyleNature')
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            out.element('nature', data='org.eclipse.pde.PluginNature')
         out.close('natures')
         out.close('projectDescription')
         update_file(join(p.dir, '.project'), out.xml(indent='\t', newl='\n'))
@@ -1779,6 +1842,9 @@ def netbeansinit(args, suite=None):
     updated = False
     for p in projects():
         if p.native:
+            continue
+
+        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
             continue
 
         if not exists(join(p.dir, 'nbproject')):
@@ -1993,6 +2059,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
     parser.add_argument('--arg', action='append', dest='extra_args', help='extra Javadoc arguments (e.g. --arg @-use)', metavar='@<arg>', default=[])
     parser.add_argument('-m', '--memory', action='store', help='-Xmx value to pass to underlying JVM')
     parser.add_argument('--packages', action='store', help='comma separated packages to process (omit to process all packages)')
+    parser.add_argument('--exclude-packages', action='store', help='comma separated packages to exclude')
 
     args = parser.parse_args(args)
 
@@ -2005,6 +2072,10 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
     packages = []
     if args.packages is not None:
         packages = [name for name in args.packages.split(',')]
+
+    exclude_packages = []
+    if args.exclude_packages is not None:
+        exclude_packages = [name for name in args.exclude_packages.split(',')]
 
     def outDir(p):
         if args.base is None:
@@ -2039,7 +2110,8 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                 if len([name for name in files if name.endswith('.java')]) != 0:
                     pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
                     if len(packages) == 0 or pkg in packages:
-                        pkgs.add(pkg)
+                        if len(exclude_packages) == 0 or not pkg in exclude_packages:
+                            pkgs.add(pkg)
         return pkgs
 
     extraArgs = [a.lstrip('@') for a in args.extra_args]
@@ -2066,26 +2138,33 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
             cp = classpath(p.name, includeSelf=True)
             sp = os.pathsep.join(p.source_dirs())
             overviewFile = join(p.dir, 'overview.html')
-            overview = []
-            if exists(overviewFile):
-                overview = ['-overview', overviewFile]
+            delOverviewFile = False
+            if not exists(overviewFile):
+                with open(overviewFile, 'w') as fp:
+                    print >> fp, '<html><body>Documentation for the <code>' + p.name + '</code> project.</body></html>'
+                delOverviewFile = True
             nowarnAPI = []
             if not args.warnAPI:
                 nowarnAPI.append('-XDignore.symbol.file')
-            log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
-            run([java().javadoc, memory,
-                 '-windowtitle', p.name + ' javadoc',
-                 '-XDignore.symbol.file',
-                 '-classpath', cp,
-                 '-quiet',
-                 '-d', out,
-                 '-sourcepath', sp] +
-                 links +
-                 extraArgs +
-                 overview +
-                 nowarnAPI +
-                 list(pkgs))
-            log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
+            try:
+                log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
+                run([java().javadoc, memory,
+                     '-windowtitle', p.name + ' javadoc',
+                     '-XDignore.symbol.file',
+                     '-classpath', cp,
+                     '-quiet',
+                     '-d', out,
+                     '-overview', overviewFile,
+                     '-sourcepath', sp] +
+                     links +
+                     extraArgs +
+                     nowarnAPI +
+                     list(pkgs))
+                log('Generated {2} for {0} in {1}'.format(p.name, out, docDir))
+            finally:
+                if delOverviewFile:
+                    os.remove(overviewFile)
+                
     else:
         # The projects must be built to ensure javadoc can find class files for all referenced classes
         build(['--no-native'])
@@ -2118,6 +2197,166 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
              nowarnAPI +
              list(pkgs))
         log('Generated {2} for {0} in {1}'.format(', '.join(names), out, docDir))
+
+def site(args):
+    """creates a website containing javadoc and the project dependency graph"""
+
+    parser = ArgumentParser(prog='site')
+    parser.add_argument('-d', '--base', action='store', help='directory for generated site', required=True, metavar='<dir>')
+    parser.add_argument('--name', action='store', help='name of overall documentation', required=True, metavar='<name>')
+    parser.add_argument('--overview', action='store', help='path to the overview content for overall documentation', required=True, metavar='<path>')
+    parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
+    parser.add_argument('--jd', action='append', help='extra Javadoc arguments (e.g. --jd @-use)', metavar='@<arg>', default=[])
+    parser.add_argument('--exclude-packages', action='store', help='comma separated packages to exclude', metavar='<pkgs>')
+    parser.add_argument('--dot-output-base', action='store', help='base file name (relative to <dir>/all) for project dependency graph .svg and .jpg files generated by dot (omit to disable dot generation)', metavar='<path>')
+    parser.add_argument('--title', action='store', help='value used for -windowtitle and -doctitle javadoc args for overall documentation (default: "<name>")', metavar='<title>')
+    args = parser.parse_args(args)
+
+    args.base = os.path.abspath(args.base)
+    tmpbase = tempfile.mkdtemp(prefix=basename(args.base) + '.', dir=dirname(args.base))
+    unified = join(tmpbase, 'all')
+
+    exclude_packages_arg = []
+    if args.exclude_packages is not None:
+        exclude_packages_arg = ['--exclude-packages', args.exclude_packages]
+
+    projects = sorted_deps()
+    projects_arg = []
+    if args.projects is not None:
+        projects_arg = ['--projects', args.projects]
+        projects = [project(name) for name in args.projects.split(',')]
+
+    extra_javadoc_args = []
+    for a in args.jd:
+        extra_javadoc_args.append('--arg')
+        extra_javadoc_args.append('@' + a)
+
+    try:
+        # Create javadoc for each project
+        javadoc(['--base', tmpbase] + exclude_packages_arg + projects_arg + extra_javadoc_args)
+
+        # Create unified javadoc for all projects
+        title = args.title if args.title is not None else args.name
+        javadoc(['--base', tmpbase,
+                 '--unified',
+                 '--arg', '@-windowtitle', '--arg', '@' + title,
+                 '--arg', '@-doctitle', '--arg', '@' + title,
+                 '--arg', '@-overview', '--arg', '@' + args.overview] + exclude_packages_arg + projects_arg + extra_javadoc_args)
+        os.rename(join(tmpbase, 'javadoc'), unified)
+
+        # Generate dependency graph with Graphviz
+        if args.dot_output_base is not None:
+            dot = join(tmpbase, 'all', str(args.dot_output_base) + '.dot')
+            svg = join(tmpbase, 'all', str(args.dot_output_base) + '.svg')
+            jpg = join(tmpbase, 'all', str(args.dot_output_base) + '.jpg')
+            html = join(tmpbase, 'all', str(args.dot_output_base) + '.html')
+            with open(dot, 'w') as fp:
+                dim = len(projects)
+                print >> fp, 'digraph projects {'
+                print >> fp, 'rankdir=BT;'
+                print >> fp, 'size = "' + str(dim) + ',' + str(dim) + '";'
+                print >> fp, 'node [shape=rect, fontcolor="blue"];'
+                #print >> fp, 'edge [color="green"];'
+                for p in projects:
+                    print >> fp, '"' + p.name + '" [URL = "../' + p.name + '/javadoc/index.html", target = "_top"]'
+                    for dep in p.canonical_deps():
+                        if dep in [proj.name for proj in projects]:
+                            print >> fp, '"' + p.name + '" -> "' + dep + '"'
+                depths = dict()
+                for p in projects:
+                    d = p.max_depth()
+                    depths.setdefault(d, list()).append(p.name)
+                print >> fp, '}'
+
+            run(['dot', '-Tsvg', '-o' + svg, '-Tjpg', '-o' + jpg, dot])
+
+        # Post-process generated SVG to remove title elements which most browsers
+        # render as redundant (and annoying) tooltips.
+        with open(svg, 'r') as fp:
+            content = fp.read()
+        content = re.sub('<title>.*</title>', '', content)
+        content = re.sub('xlink:title="[^"]*"', '', content)
+        with open(svg, 'w') as fp:
+            fp.write(content)
+
+        # Create HTML that embeds the svg file in an <object> frame
+        with open(html, 'w') as fp:
+            print >> fp, '<html><body><object data="modules.svg" type="image/svg+xml"></object></body></html>'
+
+        # Post-process generated overview-summary.html files
+        def fix_overview_summary(path, topLink):
+            """
+            Processes an "overview-summary.html" generated by javadoc to put the complete
+            summary text above the Packages table.
+            """
+        
+            # This uses scraping and so will break if the relevant content produced by javadoc changes in any way!
+            with open(path) as fp:
+                content = fp.read()
+        
+            class Chunk:
+                def __init__(self, content, ldelim, rdelim):
+                    lindex = content.find(ldelim)
+                    rindex = content.find(rdelim)
+                    self.ldelim = ldelim
+                    self.rdelim = rdelim
+                    if lindex != -1 and rindex != -1 and rindex > lindex:
+                        self.text = content[lindex + len(ldelim):rindex]
+                    else:
+                        self.text = None
+        
+                def replace(self, content, repl):
+                    lindex = content.find(self.ldelim)
+                    rindex = content.find(self.rdelim)
+                    old = content[lindex:rindex + len(self.rdelim)]
+                    return content.replace(old, repl)
+        
+            chunk1 = Chunk(content, """<div class="header">
+<div class="subTitle">
+<div class="block">""", """</div>
+</div>
+<p>See: <a href="#overview_description">Description</a></p>
+</div>""")
+        
+            chunk2 = Chunk(content, """<div class="footer"><a name="overview_description">
+<!--   -->
+</a>
+<div class="subTitle">
+<div class="block">""", """</div>
+</div>
+</div>
+<!-- ======= START OF BOTTOM NAVBAR ====== -->""")
+        
+            assert chunk1.text, 'Could not find header section in ' + path
+            assert chunk2.text, 'Could not find footer section in ' + path
+        
+            content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + topLink + chunk2.text +'</div></div></div>')
+            content = chunk2.replace(content, '')
+        
+            with open(path, 'w') as fp:
+                fp.write(content)
+        
+        top = join(tmpbase, 'all', 'overview-summary.html')
+        for root, _, files in os.walk(tmpbase):
+            for f in files:
+                if f == 'overview-summary.html':
+                    path = join(root, f)
+                    topLink = ''
+                    if top != path:
+                        link = os.path.relpath(join(tmpbase, 'all', 'index.html'), dirname(path))
+                        topLink = '<p><a href="' + link + '", target="_top"><b>[return to the overall ' + args.name + ' documentation]</b></a></p>'
+                    fix_overview_summary(path, topLink)
+
+
+        if exists(args.base):
+            shutil.rmtree(args.base)
+        shutil.move(tmpbase, args.base)
+
+        print 'Created website - root is ' + join(args.base, 'all', 'index.html')
+
+    finally:
+        if exists(tmpbase):
+            shutil.rmtree(tmpbase)
 
 def findclass(args):
     """find all classes matching a given substring"""
@@ -2181,6 +2420,7 @@ commands = {
     'projectgraph': [projectgraph, ''],
     'javap': [javap, ''],
     'javadoc': [javadoc, '[options]'],
+    'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],
     'projects': [show_projects, ''],
 }
@@ -2226,7 +2466,13 @@ def main():
     command_args = commandAndArgs[1:]
 
     if not commands.has_key(command):
-        abort('mx: unknown command \'{0}\'\n{1}use "mx help" for more options'.format(command, _format_commands()))
+        hits = [c for c in commands.iterkeys() if c.startswith(command)]
+        if len(hits) == 1:
+            command = hits[0]
+        elif len(hits) == 0:
+            abort('mx: unknown command \'{0}\'\n{1}use "mx help" for more options'.format(command, _format_commands()))
+        else:
+            abort('mx: command \'{0}\' is ambiguous\n    {1}'.format(command, ' '.join(hits)))
 
     c, _ = commands[command][:2]
     def term_handler(signum, frame):

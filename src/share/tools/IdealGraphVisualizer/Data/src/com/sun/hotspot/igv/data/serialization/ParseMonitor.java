@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,27 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.meta;
+package com.sun.hotspot.igv.data.serialization;
 
-/**
- * Represents some code installed in the code cache of the runtime.
- * This encapsulated details are only for informational purposes.
- * At any time, the runtime may invalidate the underlying code (e.g. due to deopt etc).
- */
-public interface CodeInfo {
+public interface ParseMonitor {
 
-    /**
-     * Gets the start address of this installed code.
-     */
-    long start();
+    public void updateProgress();
 
-    /**
-     * Gets a copy of this installed code.
-     */
-    byte[] code();
-
-    /**
-     * Gets the method (if any) from which this installed code was compiled.
-     */
-    ResolvedJavaMethod method();
+    public void setState(String state);
+    
 }

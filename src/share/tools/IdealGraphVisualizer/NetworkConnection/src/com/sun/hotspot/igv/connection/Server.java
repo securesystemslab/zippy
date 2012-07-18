@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2007, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,9 @@ package com.sun.hotspot.igv.connection;
 import com.sun.hotspot.igv.data.services.GroupCallback;
 import com.sun.hotspot.igv.settings.Settings;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 import org.openide.DialogDisplayer;
@@ -40,14 +41,14 @@ import org.openide.util.RequestProcessor;
  * @author Thomas Wuerthinger
  */
 public class Server implements PreferenceChangeListener {
-
-    private ServerSocket serverSocket;
-    private GroupCallback callback;
+    private final boolean binary;
+    private ServerSocketChannel serverSocket;
+    private final GroupCallback callback;
     private int port;
     private Runnable serverRunnable;
 
-    public Server(GroupCallback callback) {
-
+    public Server(GroupCallback callback, boolean binary) {
+        this.binary = binary;
         this.callback = callback;
         initializeNetwork();
         Settings.get().addPreferenceChangeListener(this);
@@ -56,7 +57,7 @@ public class Server implements PreferenceChangeListener {
     @Override
     public void preferenceChange(PreferenceChangeEvent e) {
 
-        int curPort = Integer.parseInt(Settings.get().get(Settings.PORT, Settings.PORT_DEFAULT));
+        int curPort = Integer.parseInt(Settings.get().get(binary ? Settings.PORT_BINARY : Settings.PORT, binary ? Settings.PORT_BINARY_DEFAULT : Settings.PORT_DEFAULT));
         if (curPort != port) {
             initializeNetwork();
         }
@@ -64,12 +65,13 @@ public class Server implements PreferenceChangeListener {
 
     private void initializeNetwork() {
 
-        int curPort = Integer.parseInt(Settings.get().get(Settings.PORT, Settings.PORT_DEFAULT));
+        int curPort = Integer.parseInt(Settings.get().get(binary ? Settings.PORT_BINARY : Settings.PORT, binary ? Settings.PORT_BINARY_DEFAULT : Settings.PORT_DEFAULT));
         this.port = curPort;
         try {
-            serverSocket = new java.net.ServerSocket(curPort);
+            serverSocket = ServerSocketChannel.open();
+            serverSocket.bind(new InetSocketAddress(curPort));
         } catch (IOException ex) {
-            NotifyDescriptor message = new NotifyDescriptor.Message("Could not create server. Listening for incoming data is disabled.", NotifyDescriptor.ERROR_MESSAGE);
+            NotifyDescriptor message = new NotifyDescriptor.Message("Could not create server. Listening for incoming binary data is disabled.", NotifyDescriptor.ERROR_MESSAGE);
             DialogDisplayer.getDefault().notifyLater(message);
             return;
         }
@@ -80,15 +82,15 @@ public class Server implements PreferenceChangeListener {
             public void run() {
                 while (true) {
                     try {
-                        Socket clientSocket = serverSocket.accept();
+                        SocketChannel clientSocket = serverSocket.accept();
                         if (serverRunnable != this) {
                             clientSocket.close();
                             return;
                         }
-                        RequestProcessor.getDefault().post(new Client(clientSocket, callback), 0, Thread.MAX_PRIORITY);
+                        RequestProcessor.getDefault().post(new Client(clientSocket, callback, binary), 0, Thread.MAX_PRIORITY);
                     } catch (IOException ex) {
                         serverSocket = null;
-                        NotifyDescriptor message = new NotifyDescriptor.Message("Error during listening for incoming connections. Listening for incoming data is disabled.", NotifyDescriptor.ERROR_MESSAGE);
+                        NotifyDescriptor message = new NotifyDescriptor.Message("Error during listening for incoming connections. Listening for incoming binary data is disabled.", NotifyDescriptor.ERROR_MESSAGE);
                         DialogDisplayer.getDefault().notifyLater(message);
                         return;
                     }

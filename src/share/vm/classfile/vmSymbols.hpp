@@ -267,15 +267,14 @@
   NOT_LP64(  do_alias(intptr_signature,               int_signature)  )                           \
   LP64_ONLY( do_alias(intptr_signature,               long_signature) )                           \
   template(selectAlternative_signature, "(ZLjava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodHandle;)Ljava/lang/invoke/MethodHandle;") \
-                                                                                                                                      \
-  /* Support for Graal */                                                                                                             \
-  template(java_util_BitSet,	                                       "java/util/BitSet")                                              \
-  /* graal.hotspot */                                                                                                                 \
+                                                                                                                                       \
+  /* Support for Graal */                                                                                                              \
+  template(java_util_BitSet,	                                       "java/util/BitSet")                                               \
+  /* graal.hotspot */                                                                                                                  \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
   template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
-  template(com_oracle_graal_hotspot_HotSpotProxy,                    "com/oracle/graal/hotspot/HotSpotProxy")                         \
-  template(com_oracle_graal_hotspot_HotSpotTargetMethod,             "com/oracle/graal/hotspot/HotSpotTargetMethod")                  \
+  template(com_oracle_graal_hotspot_HotSpotCompilationResult,        "com/oracle/graal/hotspot/HotSpotCompilationResult")             \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotCompiledMethod,      "com/oracle/graal/hotspot/meta/HotSpotCompiledMethod")           \
@@ -284,7 +283,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaType,    "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaType")         \
-  /* graal.api.meta */                                                                                                                \
+  /* graal.api.meta */                                                                                                                 \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
   template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler")                    \
@@ -293,7 +292,7 @@
   template(com_oracle_graal_api_meta_Kind,                           "com/oracle/graal/api/meta/Kind")                                \
   template(com_oracle_graal_api_meta_ResolvedJavaField,              "com/oracle/graal/api/meta/ResolvedJavaField")                   \
   template(com_oracle_graal_api_meta_Value,                          "com/oracle/graal/api/meta/Value")                               \
-  /* graal.api.code */                                                                                                                \
+  /* graal.api.code */                                                                                                                 \
   template(com_oracle_graal_api_code_Assumptions,                    "com/oracle/graal/api/code/Assumptions")                         \
   template(com_oracle_graal_api_code_Assumptions_MethodContents,     "com/oracle/graal/api/code/Assumptions$MethodContents")          \
   template(com_oracle_graal_api_code_Assumptions_ConcreteSubtype,    "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")         \

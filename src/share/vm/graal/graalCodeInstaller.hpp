@@ -43,6 +43,7 @@ private:
     MARK_INVOKESTATIC               = 0x2002,
     MARK_INVOKESPECIAL              = 0x2003,
     MARK_INVOKEVIRTUAL              = 0x2004,
+    MARK_INLINE_INVOKEVIRTUAL       = 0x2005,
     MARK_IMPLICIT_NULL              = 0x3000,
     MARK_POLL_NEAR                  = 0x3001,
     MARK_POLL_RETURN_NEAR           = 0x3002,
@@ -55,7 +56,7 @@ private:
 
   ciEnv*        _env;
 
-  oop           _citarget_method;
+  oop           _comp_result;
   oop           _hotspot_method;
   oop           _name;
   arrayOop      _sites;

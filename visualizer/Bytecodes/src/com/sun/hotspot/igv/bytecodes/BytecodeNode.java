@@ -49,7 +49,7 @@ public class BytecodeNode extends AbstractNode {
     public BytecodeNode(InputBytecode bytecode, InputGraph graph, String bciValue) {
 
         super(Children.LEAF);
-        this.setDisplayName(bytecode.getBci() + " " + bytecode.getName());
+        String displayName = bytecode.getBci() + " " + bytecode.getName() + " " + bytecode.getOperands();
 
         bciValue = bytecode.getBci() + " " + bciValue;
         bciValue = bciValue.trim();
@@ -62,8 +62,14 @@ public class BytecodeNode extends AbstractNode {
             for (InputNode n : nodeList) {
                 nodes.add(n);
             }
-            this.setDisplayName(this.getDisplayName() + " (" + nodes.size() + " nodes)");
+            displayName += " (" + nodes.size() + " nodes)";
         }
+        
+        if (bytecode.getComment() != null) {
+            displayName += " // " + bytecode.getComment();
+        }
+        
+        this.setDisplayName(displayName);
     }
 
     @Override

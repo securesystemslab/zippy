@@ -804,7 +804,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_int(env, config, "threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
   set_int(env, config, "threadMultiNewArrayStorageOffset", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
+  set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
+  set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());
   set_int(env, config, "classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
+  set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
+  set_int(env, config, "klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
+  set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
+  set_int(env, config, "graalMirrorKlassOffset", in_bytes(Klass::graal_mirror_offset()));
+  set_int(env, config, "nmethodEntryOffset", nmethod::verified_entry_point_offset());
+  set_int(env, config, "methodCompiledEntryOffset", in_bytes(methodOopDesc::from_compiled_offset()));
   
   set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
   set_int(env, config, "methodDataOopTrapHistoryOffset", in_bytes(methodDataOopDesc::trap_history_offset()));
@@ -824,14 +832,10 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 
   set_long(env, config, "debugStub", VmIds::addStub((address)warning));
   set_long(env, config, "instanceofStub", VmIds::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
-  set_long(env, config, "verifyOopStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_verify_oop_id)));
   set_long(env, config, "newInstanceStub", VmIds::addStub(Runtime1::entry_for(newInstanceStub)));
   set_long(env, config, "newTypeArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_type_array_id)));
   set_long(env, config, "newObjectArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_object_array_id)));
   set_long(env, config, "newMultiArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_multi_array_id)));
-  set_long(env, config, "loadKlassStub", VmIds::addStub(Runtime1::entry_for(Runtime1::load_klass_patching_id)));
-  set_long(env, config, "accessFieldStub", VmIds::addStub(Runtime1::entry_for(Runtime1::access_field_patching_id)));
-  set_long(env, config, "resolveStaticCallStub", VmIds::addStub(SharedRuntime::get_resolve_static_call_stub()));
   set_long(env, config, "inlineCacheMissStub", VmIds::addStub(SharedRuntime::get_ic_miss_stub()));
   set_long(env, config, "handleExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::handle_exception_nofpu_id)));
   set_long(env, config, "handleDeoptStub", VmIds::addStub(SharedRuntime::deopt_blob()->unpack()));
@@ -839,16 +843,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   set_long(env, config, "monitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::monitorexit_id)));
   set_long(env, config, "fastMonitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorenter_id)));
   set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorexit_id)));
-  set_long(env, config, "safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
-  set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
-  set_int(env, config, "klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
-  set_int(env, config, "graalMirrorKlassOffset", in_bytes(Klass::graal_mirror_offset()));
-  set_int(env, config, "klassOopOffset", java_lang_Class::klass_offset_in_bytes());
-  set_int(env, config, "methodCompiledEntryOffset", in_bytes(methodOopDesc::from_compiled_offset()));
+  set_long(env, config, "verifyOopStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_verify_oop_id)));
 
-  set_boolean(env, config, "isPollingPageFar", Assembler::is_polling_page_far());
-
-  set_int(env, config, "nmethodEntryOffset", nmethod::verified_entry_point_offset());
 
   BarrierSet* bs = Universe::heap()->barrier_set();
   switch (bs->kind()) {
@@ -879,16 +875,16 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   return config;
 }
 
-// public HotSpotCompiledMethod installMethod(HotSpotTargetMethod targetMethod, boolean installCode);
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject targetMethod, jboolean install_code, jobject info) {
+// public HotSpotCompiledMethod installMethod(HotSpotCompilationResult comp, boolean installCode);
+JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_installMethod(JNIEnv *jniEnv, jobject, jobject compResult, jboolean install_code, jobject info) {
   VM_ENTRY_MARK;
   ResourceMark rm;
   HandleMark hm;
-  Handle targetMethodHandle = JNIHandles::resolve(targetMethod);
+  Handle compResultHandle = JNIHandles::resolve(compResult);
   nmethod* nm = NULL;
   Arena arena;
   ciEnv env(&arena);
-  CodeInstaller installer(targetMethodHandle, nm, install_code != 0);
+  CodeInstaller installer(compResultHandle, nm, install_code != 0);
 
   if (info != NULL) {
     arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
@@ -903,7 +899,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     Handle obj = instanceKlass::cast(HotSpotCompiledMethod::klass())->allocate_permanent_instance(CHECK_NULL);
     assert(obj() != NULL, "must succeed in allocating instance");
     HotSpotCompiledMethod::set_nmethod(obj, (jlong) nm);
-    HotSpotCompiledMethod::set_method(obj, HotSpotTargetMethod::method(targetMethod));
+    HotSpotCompiledMethod::set_method(obj, HotSpotCompilationResult::method(compResult));
     nm->set_graal_compiled_method(obj());
     return JNIHandles::make_local(obj());
   } else {
@@ -1070,15 +1066,15 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
 #define RESOLVED_FIELD  "Lcom/oracle/graal/api/meta/ResolvedJavaField;"
 #define CONSTANT_POOL   "Lcom/oracle/graal/api/meta/ConstantPool;"
 #define EXCEPTION_HANDLERS "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
-#define TARGET_METHOD   "Lcom/oracle/graal/hotspot/HotSpotTargetMethod;"
+#define HS_COMP_RESULT  "Lcom/oracle/graal/hotspot/HotSpotCompilationResult;"
 #define CONFIG          "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD       "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_COMP_METHOD  "Lcom/oracle/graal/hotspot/meta/HotSpotCompiledMethod;"
 #define HS_CODE_INFO    "Lcom/oracle/graal/hotspot/meta/HotSpotCodeInfo;"
 #define METHOD_DATA     "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
-#define CI_CONSTANT     "Lcom/oracle/graal/api/meta/Constant;"
-#define CI_KIND         "Lcom/oracle/graal/api/meta/Kind;"
-#define CI_RUNTIME_CALL "Lcom/oracle/graal/api/code/RuntimeCall;"
+#define CONSTANT        "Lcom/oracle/graal/api/meta/Constant;"
+#define KIND            "Lcom/oracle/graal/api/meta/Kind;"
+#define RUNTIME_CALL    "Lcom/oracle/graal/api/code/RuntimeCall;"
 #define STRING          "Ljava/lang/String;"
 #define OBJECT          "Ljava/lang/Object;"
 #define CLASS           "Ljava/lang/Class;"
@@ -1095,12 +1091,12 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"JavaMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_1invocationCount)},
   {CC"JavaMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                             FN_PTR(JavaMethod_1hasCompiledCode)},
   {CC"JavaMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_1getCompiledCodeSize)},
-  {CC"Signature_lookupType",            CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(Signature_1lookupType)},
-  {CC"ConstantPool_lookupConstant",     CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(ConstantPool_1lookupConstant)},
-  {CC"ConstantPool_lookupMethod",       CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(ConstantPool_1lookupMethod)},
-  {CC"ConstantPool_lookupType",         CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(ConstantPool_1lookupType)},
-  {CC"ConstantPool_loadReferencedType", CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(ConstantPool_1loadReferencedType)},
-  {CC"ConstantPool_lookupField",        CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(ConstantPool_1lookupField)},
+  {CC"Signature_lookupType",                CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(Signature_1lookupType)},
+  {CC"ConstantPool_lookupConstant",         CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(ConstantPool_1lookupConstant)},
+  {CC"ConstantPool_lookupMethod",           CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(ConstantPool_1lookupMethod)},
+  {CC"ConstantPool_lookupType",             CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(ConstantPool_1lookupType)},
+  {CC"ConstantPool_loadReferencedType",     CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(ConstantPool_1loadReferencedType)},
+  {CC"ConstantPool_lookupField",            CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(ConstantPool_1lookupField)},
   {CC"JavaType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,            FN_PTR(JavaType_3resolveMethodImpl)},
   {CC"JavaType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                          FN_PTR(JavaType_2isSubtypeOf)},
   {CC"JavaType_leastCommonAncestor",        CC"("RESOLVED_TYPE RESOLVED_TYPE")"TYPE,              FN_PTR(JavaType_2leastCommonAncestor)},
@@ -1110,18 +1106,18 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"JavaType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_1arrayOf)},
   {CC"JavaType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,                 FN_PTR(JavaType_1fields)},
   {CC"JavaType_isInitialized",              CC"("RESOLVED_TYPE")Z",                               FN_PTR(JavaType_1isInitialized)},
-  {CC"getPrimitiveArrayType",             CC"("CI_KIND")"TYPE,                                  FN_PTR(getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",            CC"("CI_RUNTIME_CALL")J",                             FN_PTR(getMaxCallTargetOffset)},
-  {CC"getType",                           CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
-  {CC"getConfiguration",                  CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
-  {CC"installMethod",                     CC"("TARGET_METHOD"Z"HS_CODE_INFO")"HS_COMP_METHOD,   FN_PTR(installMethod)},
-  {CC"disassembleNative",                 CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
+  {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",              CC"("RUNTIME_CALL")J",                                FN_PTR(getMaxCallTargetOffset)},
+  {CC"getType",                             CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
+  {CC"getConfiguration",                    CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
+  {CC"installMethod",                       CC"("HS_COMP_RESULT"Z"HS_CODE_INFO")"HS_COMP_METHOD,  FN_PTR(installMethod)},
+  {CC"disassembleNative",                   CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"JavaMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(JavaMethod_1toStackTraceElement)},
-  {CC"executeCompiledMethod",             CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
-  {CC"executeCompiledMethodVarargs",      CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
+  {CC"executeCompiledMethod",               CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
+  {CC"executeCompiledMethodVarargs",        CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
   {CC"JavaMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_vtableEntryOffset)},
-  {CC"getDeoptedLeafGraphIds",            CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"decodePC",                          CC"(J)"STRING,                                        FN_PTR(decodePC)},
+  {CC"getDeoptedLeafGraphIds",              CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
+  {CC"decodePC",                            CC"(J)"STRING,                                        FN_PTR(decodePC)},
 };
 
 int CompilerToVM_methods_count() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2007, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,42 +24,34 @@
  */
 package com.sun.hotspot.igv.connection;
 
+import com.sun.hotspot.igv.data.serialization.BinaryParser;
 import com.sun.hotspot.igv.data.serialization.Parser;
 import com.sun.hotspot.igv.data.services.GroupCallback;
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import org.openide.util.Exceptions;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
-/**
- *
- * @author Thomas Wuerthinger
- */
 public class Client implements Runnable {
+    private final boolean binary;
+    private final SocketChannel socket;
+    private final GroupCallback callback;
 
-    private Socket socket;
-    private GroupCallback callback;
-
-    public Client(Socket socket, GroupCallback callback) {
+    public Client(SocketChannel socket, GroupCallback callback, boolean  binary) {
         this.callback = callback;
         this.socket = socket;
+        this.binary = binary;
     }
 
     @Override
     public void run() {
 
         try {
-            InputStream inputStream = new BufferedInputStream(socket.getInputStream());
-            InputSource is = new InputSource(inputStream);
-
-            try {
-                Parser parser = new Parser(callback);
-                parser.parse(is, null);
-            } catch (SAXException ex) {
-                ex.printStackTrace();
+            final SocketChannel channel = socket;
+            channel.configureBlocking(true);
+            if (binary) {
+                new BinaryParser(channel, null, callback).parse();
+            } else {
+                new Parser(channel, null, callback).parse();
             }
         } catch (IOException ex) {
             Exceptions.printStackTrace(ex);

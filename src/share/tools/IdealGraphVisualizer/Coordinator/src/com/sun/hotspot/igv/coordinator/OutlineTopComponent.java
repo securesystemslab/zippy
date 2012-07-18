@@ -61,6 +61,7 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
     private GraphDocument document;
     private FolderNode root;
     private Server server;
+    private Server binaryServer;
 
     private OutlineTopComponent() {
         initComponents();
@@ -111,11 +112,14 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
 
             @Override
             public void started(Group g) {
-                getDocument().addElement(g);
+                synchronized(OutlineTopComponent.this) {
+                    getDocument().addElement(g);
+                }
             }
         };
         
-        server = new Server(callback);
+        server = new Server(callback, false);
+        binaryServer = new Server(callback, true);
     }
 
     public void clear() {

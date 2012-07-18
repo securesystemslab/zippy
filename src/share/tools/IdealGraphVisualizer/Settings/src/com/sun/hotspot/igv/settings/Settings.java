@@ -37,7 +37,9 @@ public class Settings {
     public final static String NODE_WIDTH = "nodeWidth";
     public final static String NODE_WIDTH_DEFAULT = "100";
     public final static String PORT = "port";
+    public final static String PORT_BINARY = "portBinary";
     public final static String PORT_DEFAULT = "4444";
+    public final static String PORT_BINARY_DEFAULT = "4445";
     public final static String DIRECTORY = "directory";
     public final static String DIRECTORY_DEFAULT = System.getProperty("user.dir");
 

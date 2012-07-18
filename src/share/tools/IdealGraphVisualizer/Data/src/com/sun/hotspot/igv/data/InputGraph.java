@@ -243,10 +243,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
 
     public void addEdge(InputEdge c) {
-        // Be tolerant with duplicated edges.
-        if (!edges.contains(c)) {
-            edges.add(c);
-        }
+        edges.add(c);
     }
 
     public Group getGroup() {

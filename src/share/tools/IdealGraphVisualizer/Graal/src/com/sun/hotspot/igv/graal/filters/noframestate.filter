@@ -1,1 +1,2 @@
 remove("class", "FrameState");
+remove("class", "Virtual.*");

@@ -535,8 +535,9 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
     if (TraceExceptions) {
       ttyLocker ttyl;
       ResourceMark rm;
-      tty->print_cr("Exception <%s> (0x%x) thrown in compiled method <%s> at PC " PTR_FORMAT " for thread 0x%x",
-                    exception->print_value_string(), (address)exception(), nm->method()->print_value_string(), pc, thread);
+      int offset = pc - nm->code_begin();
+      tty->print_cr("Exception <%s> (0x%x) thrown in compiled method <%s> at PC " PTR_FORMAT " [" PTR_FORMAT "+%d] for thread 0x%x",
+                    exception->print_value_string(), (address)exception(), nm->method()->print_value_string(), pc, nm->code_begin(), offset, thread);
     }
     // for AbortVMOnException flag
     NOT_PRODUCT(Exceptions::debug_check_abort(exception));

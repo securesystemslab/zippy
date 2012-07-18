@@ -95,15 +95,12 @@ void graal_compute_offsets();
     long_field(HotSpotCodeInfo, start)                                                  \
     oop_field(HotSpotCodeInfo, code, "[B")                                              \
   end_class                                                                             \
-  start_class(HotSpotProxy)                                                             \
-    static_oop_field(HotSpotProxy, DUMMY_CONSTANT_OBJ, "Ljava/lang/Long;")              \
-  end_class                                                                             \
-  start_class(HotSpotTargetMethod)                                                      \
-    oop_field(HotSpotTargetMethod, targetMethod, "Lcom/oracle/graal/api/code/CompilationResult;") \
-    oop_field(HotSpotTargetMethod, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;") \
-    oop_field(HotSpotTargetMethod, name, "Ljava/lang/String;")                          \
-    oop_field(HotSpotTargetMethod, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;") \
-    oop_field(HotSpotTargetMethod, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;") \
+  start_class(HotSpotCompilationResult)                                                      \
+    oop_field(HotSpotCompilationResult, comp, "Lcom/oracle/graal/api/code/CompilationResult;") \
+    oop_field(HotSpotCompilationResult, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;") \
+    oop_field(HotSpotCompilationResult, name, "Ljava/lang/String;")                          \
+    oop_field(HotSpotCompilationResult, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;") \
+    oop_field(HotSpotCompilationResult, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;") \
   end_class                                                                             \
   start_class(ExceptionHandler)                                                  \
     int_field(ExceptionHandler, startBCI)                                        \

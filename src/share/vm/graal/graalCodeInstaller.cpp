@@ -250,7 +250,7 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
-  Handle assumptions_handle = InstalledCode::assumptions(HotSpotTargetMethod::targetMethod(target_method));
+  Handle assumptions_handle = InstalledCode::assumptions(HotSpotCompilationResult::comp(target_method));
   if (!assumptions_handle.is_null()) {
     objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
     int length = assumptions->length();
@@ -273,22 +273,22 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code) {
+CodeInstaller::CodeInstaller(Handle& comp_result, nmethod*& nm, bool install_code) {
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  jobject target_method_obj = JNIHandles::make_local(target_method());
-  initialize_assumptions(JNIHandles::resolve(target_method_obj));
+  jobject comp_result_obj = JNIHandles::make_local(comp_result());
+  initialize_assumptions(JNIHandles::resolve(comp_result_obj));
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(JNIHandles::resolve(target_method_obj));
+    initialize_fields(JNIHandles::resolve(comp_result_obj));
     initialize_buffer(buffer);
     process_exception_handlers();
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  methodHandle method = getMethodFromHotSpotMethod(HotSpotTargetMethod::method(JNIHandles::resolve(target_method_obj))); 
+  methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(JNIHandles::resolve(comp_result_obj))); 
 
   nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, install_code);
@@ -317,22 +317,23 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(oop target_method) {
-  _citarget_method = HotSpotTargetMethod::targetMethod(target_method);
-  _hotspot_method = HotSpotTargetMethod::method(target_method);
+void CodeInstaller::initialize_fields(oop comp_result) {
+  _comp_result = HotSpotCompilationResult::comp(comp_result);
+  _hotspot_method = HotSpotCompilationResult::method(comp_result);
   if (_hotspot_method != NULL) {
-    _parameter_count = getMethodFromHotSpotMethod(_hotspot_method)->size_of_parameters();
+    methodOop method = getMethodFromHotSpotMethod(_hotspot_method);
+    _parameter_count = method->size_of_parameters();
+    TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
   }
-  _name = HotSpotTargetMethod::name(target_method);
-  _sites = (arrayOop) HotSpotTargetMethod::sites(target_method);
-  _exception_handlers = (arrayOop) HotSpotTargetMethod::exceptionHandlers(target_method);
+  _name = HotSpotCompilationResult::name(comp_result);
+  _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
+  _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(comp_result);
 
-  _code = (arrayOop) InstalledCode::targetCode(_citarget_method);
-  _code_size = InstalledCode::targetCodeSize(_citarget_method);
+  _code = (arrayOop) InstalledCode::targetCode(_comp_result);
+  _code_size = InstalledCode::targetCodeSize(_comp_result);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = InstalledCode::frameSize(_citarget_method) + HeapWordSize;
-  _custom_stack_area_offset = InstalledCode::customStackAreaOffset(_citarget_method);
-
+  _total_frame_size = InstalledCode::frameSize(_comp_result) + HeapWordSize;
+  _custom_stack_area_offset = InstalledCode::customStackAreaOffset(_comp_result);
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * (BytesPerLong*2);
@@ -627,11 +628,12 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     assert((call[0] == 0x40 || call[0] == 0x41) && call[1] == 0xFF, "expected call with rex/rexb prefix byte");
     next_pc_offset += 3; /* prefix byte + opcode byte + modrm byte */
   } else if (inst->is_call_reg()) {
-    // the inlined vtable stub contains a "call register" instruction, which isn't recognized here
+    // the inlined vtable stub contains a "call register" instruction
     assert(hotspot_method != NULL, "only valid for virtual calls");
     is_call_reg = true;
-    next_pc_offset = pc_offset + NativeCallReg::instruction_size;
+    next_pc_offset = pc_offset + ((NativeCallReg *) inst)->next_instruction_offset();
   } else {
+    tty->print_cr("at pc_offset %d", pc_offset);
     runtime_call->print();
     fatal("unsupported type of instruction for call site");
   }
@@ -695,10 +697,10 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
     TRACE_graal_3("method call");
     switch (_next_call_type) {
+      case MARK_INLINE_INVOKEVIRTUAL: {
+        break;
+      }
       case MARK_INVOKEVIRTUAL:
-        if (is_call_reg) {
-          break;
-        }
       case MARK_INVOKEINTERFACE: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
 
@@ -787,9 +789,6 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
         TRACE_graal_3("relocating (HotSpotJavaType) at %016x/%016x", instruction, operand);
       } else {
         jobject value = JNIHandles::make_local(obj());
-        if (obj() == HotSpotProxy::DUMMY_CONSTANT_OBJ()) {
-          value = (jobject) Universe::non_oop_word();
-        }
         *((jobject*) operand) = value;
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);
@@ -836,11 +835,20 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         break;
       }
-      case MARK_INVOKE_INVALID:
-      case MARK_INVOKEINTERFACE:
-      case MARK_INVOKESTATIC:
-      case MARK_INVOKESPECIAL:
       case MARK_INVOKEVIRTUAL:
+      case MARK_INVOKEINTERFACE: {
+        // Convert the initial value of the klassOop slot in an inline cache
+        // from NULL to Universe::non_oop_word().
+        NativeMovConstReg* n_copy = nativeMovConstReg_at(instruction);
+        assert(n_copy->data() == 0, "inline cache klassOop initial value should be NULL");
+        n_copy->set_data((intptr_t)Universe::non_oop_word());
+        // Add relocation record for the klassOop embedded in the inline cache
+        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+      }
+      case MARK_INLINE_INVOKEVIRTUAL:
+      case MARK_INVOKE_INVALID:
+      case MARK_INVOKESPECIAL:
+      case MARK_INVOKESTATIC:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = instruction;
         break;
