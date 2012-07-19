@@ -391,11 +391,11 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
                 ret = True
         if line == ENDTOKEN:
             if not findInOutput:
-                stdin.write('echo ERR%errorlevel%' + newLine)
+                stdin.write('echo ERRXXX%errorlevel%' + newLine)
             else:
                 break
-        if line.startswith('ERR'):
-            if line == 'ERR0':
+        if line.startswith('ERRXXX'):
+            if line == 'ERRXXX0':
                 ret = True
             break;
     stdin.write('exit' + newLine)
