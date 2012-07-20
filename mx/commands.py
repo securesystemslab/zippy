@@ -221,18 +221,6 @@ def dacapo(args):
     if len(failed) != 0:
         mx.abort('DaCapo failures: ' + str(failed))
 
-def intro(args):
-    """run a simple program and visualize its compilation in the Graal Visualizer"""
-    # Start the visualizer in a separate thread
-    t = Thread(target=gv, args=([[]]))
-    t.start()
-
-    # Give visualizer time to start
-    mx.log('Waiting 5 seconds for visualizer to start')
-    time.sleep(5)
-
-    vm(['-G:Dump=', '-G:MethodFilter=greet', '-Xcomp', '-XX:CompileOnly=HelloWorld::greet', '-cp', mx.classpath('com.oracle.graal.examples')] + args + ['examples.HelloWorld'])
-
 def scaladacapo(args):
     """run one or all Scala DaCapo benchmarks
 
@@ -991,7 +979,6 @@ def mx_init():
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
-        'intro': [intro, ''],
         'jdkhome': [jdkhome, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
