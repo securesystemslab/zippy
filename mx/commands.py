@@ -308,7 +308,9 @@ def _jdk(build='product', create=False):
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
     jdk = join(_graal_home, 'jdk' + mx.java().version, build)
-    jdkContents = ['bin', 'db', 'include', 'jre', 'lib']
+    jdkContents = ['bin', 'include', 'jre', 'lib']
+    if (exists(join(jdk, 'db'))):
+        jdkContents.append('db')
     if mx.get_os() != 'windows':
         jdkContents.append('man')
     if create:
