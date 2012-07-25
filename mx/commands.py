@@ -49,6 +49,8 @@ _vmbuild = 'product'
 
 _jacoco = 'off'
 
+_native_dbg = None
+
 _make_eclipse_launch = False
 
 _copyrightTemplate = """/*
@@ -588,7 +590,8 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
-    return mx.run([exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+    dbg = _native_dbg.split() if _native_dbg is not None else []
+    return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=False):
     """
@@ -1006,6 +1009,9 @@ def mx_init():
         mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug build of the VM')
         mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug build of the VM')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
+        mx.add_argument('--native-dbg', action='store', dest='native_dbg', help='Start the vm inside a debugger', metavar='<debugger>')
+        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb -- args')
+        
 
         commands.update({
             'export': [export, '[-options] [zipfile]'],
@@ -1034,3 +1040,5 @@ def mx_post_parse_cmd_line(opts):
         _make_eclipse_launch = getattr(opts, 'make_eclipse_launch', False)
     global _jacoco
     _jacoco = opts.jacoco
+    global _native_dbg
+    _native_dbg = opts.native_dbg
