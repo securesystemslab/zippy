@@ -586,7 +586,8 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
                         'includes' : 'com.oracle.*',
-                        'excludes' : ':'.join(excludes)
+                        'excludes' : ':'.join(excludes),
+                        'destfile' : 'jacoco.exec'
         }
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
@@ -710,7 +711,7 @@ def gate(args):
     global _vmbuild
     global _vm
     global _jacoco
-
+    
     tasks = []
     total = Task('Gate')
     try:
@@ -727,33 +728,33 @@ def gate(args):
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
+        
+        if exists('jacoco.exec'):
+            os.unlink('jacoco.exec')
+        
+        if args.jacocout is not None:
+            _jacoco = 'append'
+        else:
+            _jacoco = 'off'
+        
         for vmbuild in ['fastdebug', 'product']:
             _vmbuild = vmbuild
 
             t = Task('BuildHotSpotGraal:' + vmbuild)
             buildvms(['--vms', 'graal', '--builds', vmbuild])
             tasks.append(t.stop())
-
+            
             t = Task('BootstrapWithSystemAssertions:' + vmbuild)
             vm(['-esa', '-version'])
             tasks.append(t.stop())
-
-            if vmbuild == 'product' and args.jacocout is not None:
-                _jacoco = 'on'
 
             t = Task('UnitTests:' + vmbuild)
             unittest([])
             tasks.append(t.stop())
 
-            if vmbuild == 'product' and args.jacocout is not None:
-                _jacoco = 'append'
-
             t = Task('JavaTesterTests:' + vmbuild)
             jtt(['@-XX:CompileCommand=exclude,*::run*'] if vmbuild == 'product'  else [])
             tasks.append(t.stop())
-
-            if vmbuild == 'product' and args.jacocout is not None:
-                _jacoco = 'off'
 
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
@@ -763,6 +764,8 @@ def gate(args):
 
         if args.jacocout is not None:
             jacocoreport([args.jacocout])
+            
+        _jacoco = 'off'
 
         t = Task('BootstrapWithDeoptALot')
         vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops', '-version'], vmbuild='fastdebug')
