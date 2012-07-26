@@ -878,6 +878,9 @@ def bench(args):
         specjvms = [a[12:] for a in args if a.startswith('specjvm2008:')]
         for specjvm in specjvms:
             benchmarks += [sanitycheck.getSPECjvm2008([specjvm], True, 120, 120)]
+            
+    if ('specjbb2005' in args or 'all' in args):
+        benchmarks += [sanitycheck.getSPECjbb2005()]
 
     for test in benchmarks:
         for (group, res) in test.bench(vm).items():

@@ -96,6 +96,19 @@ dacapoScalaGateBuildLevels = {
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
+def getSPECjbb2005(benchArgs = []):
+    
+    specjbb2005 = mx.get_env('SPECJBB2005')
+    if specjbb2005 is None or not exists(join(specjbb2005, 'jbb.jar')):
+        mx.abort('Please set the SPECJBB2005 environment variable to a SPECjbb2005 directory')
+    
+    score = re.compile(r"^Valid run, Score is  (?P<score>[0-9]+)$")
+    error = re.compile(r"VALIDATION ERROR")
+    success = re.compile(r"^Valid run, Score is  [0-9]+$")
+    matcher = Matcher(score, {'const:group' : "const:SPECjbb2005", 'const:name' : 'const:score', 'const:score' : 'score'})
+    classpath = ['jbb.jar', 'check.jar']
+    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
+    
 def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, iterationTime=None):
     
     specjvm2008 = mx.get_env('SPECJVM2008')
