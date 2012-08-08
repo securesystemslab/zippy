@@ -577,15 +577,16 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         # Exclude all compiler tests and snippets
-        excludes = ['com.oracle.graal.compiler.tests.*']
+        excludes = ['com.oracle.graal.compiler.tests.*', 'com.oracle.graal.jtt.*']
         for p in mx.projects():
             excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution'], includeInnerClasses=True)
             excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True)
             
+        includes = ['com.oracle.graal.*', 'com.oracle.max.*']
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
-                        'includes' : 'com.oracle.*',
+                        'includes' : ':'.join(includes),
                         'excludes' : ':'.join(excludes),
                         'destfile' : 'jacoco.exec'
         }
