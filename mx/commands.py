@@ -518,6 +518,9 @@ def build(args, vm=None):
             env['ALT_BOOTDIR'] = jdk
             env.setdefault('INSTALL', 'y')
 
+            # This removes the need to unzip the *.diz files before debugging in gdb
+            env.setdefault('ZIP_DEBUGINFO_FILES', '0')
+
             # Clear these 2 variables as having them set can cause very confusing build problems
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
