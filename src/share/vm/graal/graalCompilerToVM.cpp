@@ -100,20 +100,19 @@ JNIEXPORT jobjectArray JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVM
   VM_ENTRY_MARK
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
-  typeArrayHandle handlers = method->exception_table();
-  int handler_count = handlers.is_null() ? 0 : handlers->length() / 4;
+  int handler_count = method->exception_table_length();
+  ExceptionTableElement* handlers = handler_count == 0 ? NULL : method->exception_table_start();
 
   instanceKlass::cast(ExceptionHandler::klass())->initialize(CHECK_NULL);
   objArrayHandle array = oopFactory::new_objArray(SystemDictionary::ExceptionHandler_klass(), handler_count, CHECK_NULL);
 
   for (int i = 0; i < handler_count; i++) {
-    // exception handlers are stored as four integers: start bci, end bci, handler bci, catch class constant pool index
-    int base = i * 4;
+    ExceptionTableElement* handler = handlers + i;
     Handle entry = instanceKlass::cast(ExceptionHandler::klass())->allocate_instance(CHECK_NULL);
-    ExceptionHandler::set_startBCI(entry, handlers->int_at(base + 0));
-    ExceptionHandler::set_endBCI(entry, handlers->int_at(base + 1));
-    ExceptionHandler::set_handlerBCI(entry, handlers->int_at(base + 2));
-    int catch_class_index = handlers->int_at(base + 3);
+    ExceptionHandler::set_startBCI(entry, handler->start_pc);
+    ExceptionHandler::set_endBCI(entry, handler->end_pc);
+    ExceptionHandler::set_handlerBCI(entry, handler->handler_pc);
+    int catch_class_index = handler->catch_type_index;
     ExceptionHandler::set_catchTypeCPI(entry, catch_class_index);
 
     if (catch_class_index == 0) {

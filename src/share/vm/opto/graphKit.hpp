@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -145,6 +145,7 @@ class GraphKit : public Phase {
   void clean_stack(int from_sp); // clear garbage beyond from_sp to top
 
   void inc_sp(int i)                  { set_sp(sp() + i); }
+  void dec_sp(int i)                  { set_sp(sp() - i); }
   void set_bci(int bci)               { _bci = bci; }
 
   // Make sure jvms has current bci & sp.
@@ -285,7 +286,7 @@ class GraphKit : public Phase {
   // How many stack inputs does the current BC consume?
   // And, how does the stack change after the bytecode?
   // Returns false if unknown.
-  bool compute_stack_effects(int& inputs, int& depth);
+  bool compute_stack_effects(int& inputs, int& depth, bool for_parse = false);
 
   // Add a fixed offset to a pointer
   Node* basic_plus_adr(Node* base, Node* ptr, intptr_t offset) {
@@ -370,9 +371,9 @@ class GraphKit : public Phase {
   // Replace all occurrences of one node by another.
   void replace_in_map(Node* old, Node* neww);
 
-  void push(Node* n)    { map_not_null(); _map->set_stack(_map->_jvms,_sp++,n); }
-  Node* pop()           { map_not_null(); return _map->stack(_map->_jvms,--_sp); }
-  Node* peek(int off=0) { map_not_null(); return _map->stack(_map->_jvms, _sp - off - 1); }
+  void  push(Node* n)     { map_not_null();        _map->set_stack(_map->_jvms,   _sp++, n); }
+  Node* pop()             { map_not_null(); return _map->stack(    _map->_jvms, --_sp); }
+  Node* peek(int off = 0) { map_not_null(); return _map->stack(    _map->_jvms,   _sp - off - 1); }
 
   void push_pair(Node* ldval) {
     push(ldval);
@@ -780,6 +781,14 @@ class GraphKit : public Phase {
                      Node* *return_size_val = NULL);
   Node* new_array(Node* klass_node, Node* count_val, int nargs,
                   Node* *return_size_val = NULL);
+
+  // java.lang.String helpers
+  Node* load_String_offset(Node* ctrl, Node* str);
+  Node* load_String_length(Node* ctrl, Node* str);
+  Node* load_String_value(Node* ctrl, Node* str);
+  void store_String_offset(Node* ctrl, Node* str, Node* value);
+  void store_String_length(Node* ctrl, Node* str, Node* value);
+  void store_String_value(Node* ctrl, Node* str, Node* value);
 
   // Handy for making control flow
   IfNode* create_and_map_if(Node* ctrl, Node* tst, float prob, float cnt) {

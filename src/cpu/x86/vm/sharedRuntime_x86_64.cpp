@@ -591,6 +591,19 @@ static void gen_c2i_adapter(MacroAssembler *masm,
   __ jmp(rcx);
 }
 
+static void range_check(MacroAssembler* masm, Register pc_reg, Register temp_reg,
+                        address code_start, address code_end,
+                        Label& L_ok) {
+  Label L_fail;
+  __ lea(temp_reg, ExternalAddress(code_start));
+  __ cmpptr(pc_reg, temp_reg);
+  __ jcc(Assembler::belowEqual, L_fail);
+  __ lea(temp_reg, ExternalAddress(code_end));
+  __ cmpptr(pc_reg, temp_reg);
+  __ jcc(Assembler::below, L_ok);
+  __ bind(L_fail);
+}
+
 static void gen_i2c_adapter(MacroAssembler *masm,
                             int total_args_passed,
                             int comp_args_on_stack,
@@ -606,8 +619,52 @@ static void gen_i2c_adapter(MacroAssembler *masm,
   // save code can segv when fxsave instructions find improperly
   // aligned stack pointer.
 
+  // Adapters can be frameless because they do not require the caller
+  // to perform additional cleanup work, such as correcting the stack pointer.
+  // An i2c adapter is frameless because the *caller* frame, which is interpreted,
+  // routinely repairs its own stack pointer (from interpreter_frame_last_sp),
+  // even if a callee has modified the stack pointer.
+  // A c2i adapter is frameless because the *callee* frame, which is interpreted,
+  // routinely repairs its caller's stack pointer (from sender_sp, which is set
+  // up via the senderSP register).
+  // In other words, if *either* the caller or callee is interpreted, we can
+  // get the stack pointer repaired after a call.
+  // This is why c2i and i2c adapters cannot be indefinitely composed.
+  // In particular, if a c2i adapter were to somehow call an i2c adapter,
+  // both caller and callee would be compiled methods, and neither would
+  // clean up the stack pointer changes performed by the two adapters.
+  // If this happens, control eventually transfers back to the compiled
+  // caller, but with an uncorrected stack, causing delayed havoc.
+
   // Pick up the return address
   __ movptr(rax, Address(rsp, 0));
+
+  if (VerifyAdapterCalls &&
+      (Interpreter::code() != NULL || StubRoutines::code1() != NULL)) {
+    // So, let's test for cascading c2i/i2c adapters right now.
+    //  assert(Interpreter::contains($return_addr) ||
+    //         StubRoutines::contains($return_addr),
+    //         "i2c adapter must return to an interpreter frame");
+    __ block_comment("verify_i2c { ");
+    Label L_ok;
+    if (Interpreter::code() != NULL)
+      range_check(masm, rax, r11,
+                  Interpreter::code()->code_start(), Interpreter::code()->code_end(),
+                  L_ok);
+    if (StubRoutines::code1() != NULL)
+      range_check(masm, rax, r11,
+                  StubRoutines::code1()->code_begin(), StubRoutines::code1()->code_end(),
+                  L_ok);
+    if (StubRoutines::code2() != NULL)
+      range_check(masm, rax, r11,
+                  StubRoutines::code2()->code_begin(), StubRoutines::code2()->code_end(),
+                  L_ok);
+    const char* msg = "i2c adapter must return to an interpreter frame";
+    __ block_comment(msg);
+    __ stop(msg);
+    __ bind(L_ok);
+    __ block_comment("} verify_i2ce ");
+  }
 
   // Must preserve original SP for loading incoming arguments because
   // we need to align the outgoing SP for compiled code.
@@ -1192,14 +1249,13 @@ static void save_or_restore_arguments(MacroAssembler* masm,
                                       BasicType* in_sig_bt) {
   // if map is non-NULL then the code should store the values,
   // otherwise it should load them.
-  int handle_index = 0;
+  int slot = arg_save_area;
   // Save down double word first
   for ( int i = 0; i < total_in_args; i++) {
     if (in_regs[i].first()->is_XMMRegister() && in_sig_bt[i] == T_DOUBLE) {
-      int slot = handle_index * VMRegImpl::slots_per_word + arg_save_area;
       int offset = slot * VMRegImpl::stack_slot_size;
-      handle_index += 2;
-      assert(handle_index <= stack_slots, "overflow");
+      slot += VMRegImpl::slots_per_word;
+      assert(slot <= stack_slots, "overflow");
       if (map != NULL) {
         __ movdbl(Address(rsp, offset), in_regs[i].first()->as_XMMRegister());
       } else {
@@ -1208,10 +1264,7 @@ static void save_or_restore_arguments(MacroAssembler* masm,
     }
     if (in_regs[i].first()->is_Register() &&
         (in_sig_bt[i] == T_LONG || in_sig_bt[i] == T_ARRAY)) {
-      int slot = handle_index * VMRegImpl::slots_per_word + arg_save_area;
       int offset = slot * VMRegImpl::stack_slot_size;
-      handle_index += 2;
-      assert(handle_index <= stack_slots, "overflow");
       if (map != NULL) {
         __ movq(Address(rsp, offset), in_regs[i].first()->as_Register());
         if (in_sig_bt[i] == T_ARRAY) {
@@ -1220,14 +1273,15 @@ static void save_or_restore_arguments(MacroAssembler* masm,
       } else {
         __ movq(in_regs[i].first()->as_Register(), Address(rsp, offset));
       }
+      slot += VMRegImpl::slots_per_word;
     }
   }
   // Save or restore single word registers
   for ( int i = 0; i < total_in_args; i++) {
     if (in_regs[i].first()->is_Register()) {
-      int slot = handle_index++ * VMRegImpl::slots_per_word + arg_save_area;
       int offset = slot * VMRegImpl::stack_slot_size;
-      assert(handle_index <= stack_slots, "overflow");
+      slot++;
+      assert(slot <= stack_slots, "overflow");
 
       // Value is in an input register pass we must flush it to the stack
       const Register reg = in_regs[i].first()->as_Register();
@@ -1252,9 +1306,9 @@ static void save_or_restore_arguments(MacroAssembler* masm,
       }
     } else if (in_regs[i].first()->is_XMMRegister()) {
       if (in_sig_bt[i] == T_FLOAT) {
-        int slot = handle_index++ * VMRegImpl::slots_per_word + arg_save_area;
         int offset = slot * VMRegImpl::stack_slot_size;
-        assert(handle_index <= stack_slots, "overflow");
+        slot++;
+        assert(slot <= stack_slots, "overflow");
         if (map != NULL) {
           __ movflt(Address(rsp, offset), in_regs[i].first()->as_XMMRegister());
         } else {
@@ -1379,20 +1433,325 @@ static void unpack_array_argument(MacroAssembler* masm, VMRegPair reg, BasicType
   __ bind(done);
 }
 
+
+// Different signatures may require very different orders for the move
+// to avoid clobbering other arguments.  There's no simple way to
+// order them safely.  Compute a safe order for issuing stores and
+// break any cycles in those stores.  This code is fairly general but
+// it's not necessary on the other platforms so we keep it in the
+// platform dependent code instead of moving it into a shared file.
+// (See bugs 7013347 & 7145024.)
+// Note that this code is specific to LP64.
+class ComputeMoveOrder: public StackObj {
+  class MoveOperation: public ResourceObj {
+    friend class ComputeMoveOrder;
+   private:
+    VMRegPair        _src;
+    VMRegPair        _dst;
+    int              _src_index;
+    int              _dst_index;
+    bool             _processed;
+    MoveOperation*  _next;
+    MoveOperation*  _prev;
+
+    static int get_id(VMRegPair r) {
+      return r.first()->value();
+    }
+
+   public:
+    MoveOperation(int src_index, VMRegPair src, int dst_index, VMRegPair dst):
+      _src(src)
+    , _src_index(src_index)
+    , _dst(dst)
+    , _dst_index(dst_index)
+    , _next(NULL)
+    , _prev(NULL)
+    , _processed(false) {
+    }
+
+    VMRegPair src() const              { return _src; }
+    int src_id() const                 { return get_id(src()); }
+    int src_index() const              { return _src_index; }
+    VMRegPair dst() const              { return _dst; }
+    void set_dst(int i, VMRegPair dst) { _dst_index = i, _dst = dst; }
+    int dst_index() const              { return _dst_index; }
+    int dst_id() const                 { return get_id(dst()); }
+    MoveOperation* next() const       { return _next; }
+    MoveOperation* prev() const       { return _prev; }
+    void set_processed()               { _processed = true; }
+    bool is_processed() const          { return _processed; }
+
+    // insert
+    void break_cycle(VMRegPair temp_register) {
+      // create a new store following the last store
+      // to move from the temp_register to the original
+      MoveOperation* new_store = new MoveOperation(-1, temp_register, dst_index(), dst());
+
+      // break the cycle of links and insert new_store at the end
+      // break the reverse link.
+      MoveOperation* p = prev();
+      assert(p->next() == this, "must be");
+      _prev = NULL;
+      p->_next = new_store;
+      new_store->_prev = p;
+
+      // change the original store to save it's value in the temp.
+      set_dst(-1, temp_register);
+    }
+
+    void link(GrowableArray<MoveOperation*>& killer) {
+      // link this store in front the store that it depends on
+      MoveOperation* n = killer.at_grow(src_id(), NULL);
+      if (n != NULL) {
+        assert(_next == NULL && n->_prev == NULL, "shouldn't have been set yet");
+        _next = n;
+        n->_prev = this;
+      }
+    }
+  };
+
+ private:
+  GrowableArray<MoveOperation*> edges;
+
+ public:
+  ComputeMoveOrder(int total_in_args, VMRegPair* in_regs, int total_c_args, VMRegPair* out_regs,
+                    BasicType* in_sig_bt, GrowableArray<int>& arg_order, VMRegPair tmp_vmreg) {
+    // Move operations where the dest is the stack can all be
+    // scheduled first since they can't interfere with the other moves.
+    for (int i = total_in_args - 1, c_arg = total_c_args - 1; i >= 0; i--, c_arg--) {
+      if (in_sig_bt[i] == T_ARRAY) {
+        c_arg--;
+        if (out_regs[c_arg].first()->is_stack() &&
+            out_regs[c_arg + 1].first()->is_stack()) {
+          arg_order.push(i);
+          arg_order.push(c_arg);
+        } else {
+          if (out_regs[c_arg].first()->is_stack() ||
+              in_regs[i].first() == out_regs[c_arg].first()) {
+            add_edge(i, in_regs[i].first(), c_arg, out_regs[c_arg + 1]);
+          } else {
+            add_edge(i, in_regs[i].first(), c_arg, out_regs[c_arg]);
+          }
+        }
+      } else if (in_sig_bt[i] == T_VOID) {
+        arg_order.push(i);
+        arg_order.push(c_arg);
+      } else {
+        if (out_regs[c_arg].first()->is_stack() ||
+            in_regs[i].first() == out_regs[c_arg].first()) {
+          arg_order.push(i);
+          arg_order.push(c_arg);
+        } else {
+          add_edge(i, in_regs[i].first(), c_arg, out_regs[c_arg]);
+        }
+      }
+    }
+    // Break any cycles in the register moves and emit the in the
+    // proper order.
+    GrowableArray<MoveOperation*>* stores = get_store_order(tmp_vmreg);
+    for (int i = 0; i < stores->length(); i++) {
+      arg_order.push(stores->at(i)->src_index());
+      arg_order.push(stores->at(i)->dst_index());
+    }
+ }
+
+  // Collected all the move operations
+  void add_edge(int src_index, VMRegPair src, int dst_index, VMRegPair dst) {
+    if (src.first() == dst.first()) return;
+    edges.append(new MoveOperation(src_index, src, dst_index, dst));
+  }
+
+  // Walk the edges breaking cycles between moves.  The result list
+  // can be walked in order to produce the proper set of loads
+  GrowableArray<MoveOperation*>* get_store_order(VMRegPair temp_register) {
+    // Record which moves kill which values
+    GrowableArray<MoveOperation*> killer;
+    for (int i = 0; i < edges.length(); i++) {
+      MoveOperation* s = edges.at(i);
+      assert(killer.at_grow(s->dst_id(), NULL) == NULL, "only one killer");
+      killer.at_put_grow(s->dst_id(), s, NULL);
+    }
+    assert(killer.at_grow(MoveOperation::get_id(temp_register), NULL) == NULL,
+           "make sure temp isn't in the registers that are killed");
+
+    // create links between loads and stores
+    for (int i = 0; i < edges.length(); i++) {
+      edges.at(i)->link(killer);
+    }
+
+    // at this point, all the move operations are chained together
+    // in a doubly linked list.  Processing it backwards finds
+    // the beginning of the chain, forwards finds the end.  If there's
+    // a cycle it can be broken at any point,  so pick an edge and walk
+    // backward until the list ends or we end where we started.
+    GrowableArray<MoveOperation*>* stores = new GrowableArray<MoveOperation*>();
+    for (int e = 0; e < edges.length(); e++) {
+      MoveOperation* s = edges.at(e);
+      if (!s->is_processed()) {
+        MoveOperation* start = s;
+        // search for the beginning of the chain or cycle
+        while (start->prev() != NULL && start->prev() != s) {
+          start = start->prev();
+        }
+        if (start->prev() == s) {
+          start->break_cycle(temp_register);
+        }
+        // walk the chain forward inserting to store list
+        while (start != NULL) {
+          stores->append(start);
+          start->set_processed();
+          start = start->next();
+        }
+      }
+    }
+    return stores;
+  }
+};
+
+static void verify_oop_args(MacroAssembler* masm,
+                            int total_args_passed,
+                            const BasicType* sig_bt,
+                            const VMRegPair* regs) {
+  Register temp_reg = rbx;  // not part of any compiled calling seq
+  if (VerifyOops) {
+    for (int i = 0; i < total_args_passed; i++) {
+      if (sig_bt[i] == T_OBJECT ||
+          sig_bt[i] == T_ARRAY) {
+        VMReg r = regs[i].first();
+        assert(r->is_valid(), "bad oop arg");
+        if (r->is_stack()) {
+          __ movptr(temp_reg, Address(rsp, r->reg2stack() * VMRegImpl::stack_slot_size + wordSize));
+          __ verify_oop(temp_reg);
+        } else {
+          __ verify_oop(r->as_Register());
+        }
+      }
+    }
+  }
+}
+
+static void gen_special_dispatch(MacroAssembler* masm,
+                                 int total_args_passed,
+                                 int comp_args_on_stack,
+                                 vmIntrinsics::ID special_dispatch,
+                                 const BasicType* sig_bt,
+                                 const VMRegPair* regs) {
+  verify_oop_args(masm, total_args_passed, sig_bt, regs);
+
+  // Now write the args into the outgoing interpreter space
+  bool     has_receiver   = false;
+  Register receiver_reg   = noreg;
+  int      member_arg_pos = -1;
+  Register member_reg     = noreg;
+  int      ref_kind       = MethodHandles::signature_polymorphic_intrinsic_ref_kind(special_dispatch);
+  if (ref_kind != 0) {
+    member_arg_pos = total_args_passed - 1;  // trailing MemberName argument
+    member_reg = rbx;  // known to be free at this point
+    has_receiver = MethodHandles::ref_kind_has_receiver(ref_kind);
+  } else if (special_dispatch == vmIntrinsics::_invokeBasic) {
+    has_receiver = true;
+  } else {
+    guarantee(false, err_msg("special_dispatch=%d", special_dispatch));
+  }
+
+  if (member_reg != noreg) {
+    // Load the member_arg into register, if necessary.
+    assert(member_arg_pos >= 0 && member_arg_pos < total_args_passed, "oob");
+    assert(sig_bt[member_arg_pos] == T_OBJECT, "dispatch argument must be an object");
+    VMReg r = regs[member_arg_pos].first();
+    assert(r->is_valid(), "bad member arg");
+    if (r->is_stack()) {
+      __ movptr(member_reg, Address(rsp, r->reg2stack() * VMRegImpl::stack_slot_size + wordSize));
+    } else {
+      // no data motion is needed
+      member_reg = r->as_Register();
+    }
+  }
+
+  if (has_receiver) {
+    // Make sure the receiver is loaded into a register.
+    assert(total_args_passed > 0, "oob");
+    assert(sig_bt[0] == T_OBJECT, "receiver argument must be an object");
+    VMReg r = regs[0].first();
+    assert(r->is_valid(), "bad receiver arg");
+    if (r->is_stack()) {
+      // Porting note:  This assumes that compiled calling conventions always
+      // pass the receiver oop in a register.  If this is not true on some
+      // platform, pick a temp and load the receiver from stack.
+      assert(false, "receiver always in a register");
+      receiver_reg = j_rarg0;  // known to be free at this point
+      __ movptr(receiver_reg, Address(rsp, r->reg2stack() * VMRegImpl::stack_slot_size + wordSize));
+    } else {
+      // no data motion is needed
+      receiver_reg = r->as_Register();
+    }
+  }
+
+  // Figure out which address we are really jumping to:
+  MethodHandles::generate_method_handle_dispatch(masm, special_dispatch,
+                                                 receiver_reg, member_reg, /*for_compiler_entry:*/ true);
+}
+
 // ---------------------------------------------------------------------------
 // Generate a native wrapper for a given method.  The method takes arguments
 // in the Java compiled code convention, marshals them to the native
 // convention (handlizes oops, etc), transitions to native, makes the call,
 // returns to java state (possibly blocking), unhandlizes any result and
 // returns.
-nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
+//
+// Critical native functions are a shorthand for the use of
+// GetPrimtiveArrayCritical and disallow the use of any other JNI
+// functions.  The wrapper is expected to unpack the arguments before
+// passing them to the callee and perform checks before and after the
+// native call to ensure that they GC_locker
+// lock_critical/unlock_critical semantics are followed.  Some other
+// parts of JNI setup are skipped like the tear down of the JNI handle
+// block and the check for pending exceptions it's impossible for them
+// to be thrown.
+//
+// They are roughly structured like this:
+//    if (GC_locker::needs_gc())
+//      SharedRuntime::block_for_jni_critical();
+//    tranistion to thread_in_native
+//    unpack arrray arguments and call native entry point
+//    check for safepoint in progress
+//    check if any thread suspend flags are set
+//      call into JVM and possible unlock the JNI critical
+//      if a GC was suppressed while in the critical native.
+//    transition back to thread_in_Java
+//    return to caller
+//
+nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
                                                 methodHandle method,
                                                 int compile_id,
                                                 int total_in_args,
                                                 int comp_args_on_stack,
-                                                BasicType *in_sig_bt,
-                                                VMRegPair *in_regs,
+                                                BasicType* in_sig_bt,
+                                                VMRegPair* in_regs,
                                                 BasicType ret_type) {
+  if (method->is_method_handle_intrinsic()) {
+    vmIntrinsics::ID iid = method->intrinsic_id();
+    intptr_t start = (intptr_t)__ pc();
+    int vep_offset = ((intptr_t)__ pc()) - start;
+    gen_special_dispatch(masm,
+                         total_in_args,
+                         comp_args_on_stack,
+                         method->intrinsic_id(),
+                         in_sig_bt,
+                         in_regs);
+    int frame_complete = ((intptr_t)__ pc()) - start;  // not complete, period
+    __ flush();
+    int stack_slots = SharedRuntime::out_preserve_stack_slots();  // no out slots at all, actually
+    return nmethod::new_native_nmethod(method,
+                                       compile_id,
+                                       masm->code(),
+                                       vep_offset,
+                                       frame_complete,
+                                       stack_slots / VMRegImpl::slots_per_word,
+                                       in_ByteSize(-1),
+                                       in_ByteSize(-1),
+                                       (OopMapSet*)NULL);
+  }
   bool is_critical_native = true;
   address native_func = method->critical_native_function();
   if (native_func == NULL) {
@@ -1499,12 +1858,12 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
       if (in_regs[i].first()->is_Register()) {
         const Register reg = in_regs[i].first()->as_Register();
         switch (in_sig_bt[i]) {
-          case T_ARRAY:
           case T_BOOLEAN:
           case T_BYTE:
           case T_SHORT:
           case T_CHAR:
           case T_INT:  single_slots++; break;
+          case T_ARRAY:  // specific to LP64 (7145024)
           case T_LONG: double_slots++; break;
           default:  ShouldNotReachHere();
         }
@@ -1701,36 +2060,43 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
 
 #endif /* ASSERT */
 
-  if (is_critical_native) {
-    // The mapping of Java and C arguments passed in registers are
-    // rotated by one, which helps when passing arguments to regular
-    // Java method but for critical natives that creates a cycle which
-    // can cause arguments to be killed before they are used.  Break
-    // the cycle by moving the first argument into a temporary
-    // register.
-    for (int i = 0; i < total_c_args; i++) {
-      if (in_regs[i].first()->is_Register() &&
-          in_regs[i].first()->as_Register() == rdi) {
-        __ mov(rbx, rdi);
-        in_regs[i].set1(rbx->as_VMReg());
-      }
-    }
-  }
-
   // This may iterate in two different directions depending on the
   // kind of native it is.  The reason is that for regular JNI natives
   // the incoming and outgoing registers are offset upwards and for
   // critical natives they are offset down.
-  int c_arg = total_c_args - 1;
-  int stride = -1;
-  int init = total_in_args - 1;
-  if (is_critical_native) {
-    // stride forwards
-    c_arg = 0;
-    stride = 1;
-    init = 0;
+  GrowableArray<int> arg_order(2 * total_in_args);
+  VMRegPair tmp_vmreg;
+  tmp_vmreg.set1(rbx->as_VMReg());
+
+  if (!is_critical_native) {
+    for (int i = total_in_args - 1, c_arg = total_c_args - 1; i >= 0; i--, c_arg--) {
+      arg_order.push(i);
+      arg_order.push(c_arg);
+    }
+  } else {
+    // Compute a valid move order, using tmp_vmreg to break any cycles
+    ComputeMoveOrder cmo(total_in_args, in_regs, total_c_args, out_regs, in_sig_bt, arg_order, tmp_vmreg);
   }
-  for (int i = init, count = 0; count < total_in_args; i += stride, c_arg += stride, count++ ) {
+
+  int temploc = -1;
+  for (int ai = 0; ai < arg_order.length(); ai += 2) {
+    int i = arg_order.at(ai);
+    int c_arg = arg_order.at(ai + 1);
+    __ block_comment(err_msg("move %d -> %d", i, c_arg));
+    if (c_arg == -1) {
+      assert(is_critical_native, "should only be required for critical natives");
+      // This arg needs to be moved to a temporary
+      __ mov(tmp_vmreg.first()->as_Register(), in_regs[i].first()->as_Register());
+      in_regs[i] = tmp_vmreg;
+      temploc = i;
+      continue;
+    } else if (i == -1) {
+      assert(is_critical_native, "should only be required for critical natives");
+      // Read from the temporary location
+      assert(temploc != -1, "must be valid");
+      i = temploc;
+      temploc = -1;
+    }
 #ifdef ASSERT
     if (in_regs[i].first()->is_Register()) {
       assert(!reg_destroyed[in_regs[i].first()->as_Register()->encoding()], "destroyed reg!");
@@ -1790,7 +2156,7 @@ nmethod *SharedRuntime::generate_native_wrapper(MacroAssembler *masm,
 
   // point c_arg at the first arg that is already loaded in case we
   // need to spill before we call out
-  c_arg++;
+  int c_arg = total_c_args - total_in_args;
 
   // Pre-load a static method's oop into r14.  Used both by locking code and
   // the normal JNI call code.
@@ -3667,8 +4033,12 @@ void OptoRuntime::generate_exception_blob() {
   //
   // address OptoRuntime::handle_exception_C(JavaThread* thread)
 
-  __ set_last_Java_frame(noreg, noreg, NULL);
+  // At a method handle call, the stack may not be properly aligned
+  // when returning with an exception.
+  address the_pc = __ pc();
+  __ set_last_Java_frame(noreg, noreg, the_pc);
   __ mov(c_rarg0, r15_thread);
+  __ andptr(rsp, -(StackAlignmentInBytes));    // Align stack
   __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, OptoRuntime::handle_exception_C)));
 
   // Set an oopmap for the call site.  This oopmap will only be used if we
@@ -3679,9 +4049,9 @@ void OptoRuntime::generate_exception_blob() {
 
   OopMapSet* oop_maps = new OopMapSet();
 
-  oop_maps->add_gc_map( __ pc()-start, new OopMap(SimpleRuntimeFrame::framesize, 0));
+  oop_maps->add_gc_map(the_pc - start, new OopMap(SimpleRuntimeFrame::framesize, 0));
 
-  __ reset_last_Java_frame(false, false);
+  __ reset_last_Java_frame(false, true);
 
   // Restore callee-saved registers
 

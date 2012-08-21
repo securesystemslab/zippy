@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,7 @@ public:
            "With no argument this will show a list of available commands. "
            "'help all' will show help for all commands.";
   }
-  static const char* impact() { return "Low: "; }
+  static const char* impact() { return "Low"; }
   static int num_arguments();
   virtual void execute(TRAPS);
 };
@@ -60,7 +60,7 @@ public:
   static const char* description() {
     return "Print JVM version information.";
   }
-  static const char* impact() { return "Low: "; }
+  static const char* impact() { return "Low"; }
   static int num_arguments() { return 0; }
   virtual void execute(TRAPS);
 };
@@ -72,7 +72,7 @@ public:
   static const char* description() {
     return "Print the command line used to start this VM instance.";
   }
-  static const char* impact() { return "Low: "; }
+  static const char* impact() { return "Low"; }
   static int num_arguments() { return 0; }
   virtual void execute(TRAPS) {
     Arguments::print_on(_output);
@@ -88,7 +88,7 @@ public:
       return "Print system properties.";
     }
     static const char* impact() {
-      return "Low: ";
+      return "Low";
     }
     static int num_arguments() { return 0; }
     virtual void execute(TRAPS);
@@ -105,7 +105,7 @@ public:
     return "Print VM flag options and their current values.";
   }
   static const char* impact() {
-    return "Low: ";
+    return "Low";
   }
   static int num_arguments();
   virtual void execute(TRAPS);
@@ -121,7 +121,7 @@ public:
     return "Print VM uptime.";
   }
   static const char* impact() {
-    return "Low: ";
+    return "Low";
   }
   static int num_arguments();
   virtual void execute(TRAPS);
@@ -211,6 +211,84 @@ public:
     return "Medium: Depends on the number of threads.";
   }
   static int num_arguments();
+  virtual void execute(TRAPS);
+};
+
+// Enhanced JMX Agent support
+
+class JMXStartRemoteDCmd : public DCmdWithParser {
+
+  // Explicitly list all properties that could be
+  // passed to Agent.startRemoteManagementAgent()
+  // com.sun.management is omitted
+
+  DCmdArgument<char *> _config_file;
+  DCmdArgument<char *> _jmxremote_port;
+  DCmdArgument<char *> _jmxremote_rmi_port;
+  DCmdArgument<char *> _jmxremote_ssl;
+  DCmdArgument<char *> _jmxremote_registry_ssl;
+  DCmdArgument<char *> _jmxremote_authenticate;
+  DCmdArgument<char *> _jmxremote_password_file;
+  DCmdArgument<char *> _jmxremote_access_file;
+  DCmdArgument<char *> _jmxremote_login_config;
+  DCmdArgument<char *> _jmxremote_ssl_enabled_cipher_suites;
+  DCmdArgument<char *> _jmxremote_ssl_enabled_protocols;
+  DCmdArgument<char *> _jmxremote_ssl_need_client_auth;
+  DCmdArgument<char *> _jmxremote_ssl_config_file;
+
+public:
+  JMXStartRemoteDCmd(outputStream *output, bool heap_allocated);
+
+  static const char *name() {
+    return "ManagementAgent.start";
+  }
+
+  static const char *description() {
+    return "Start remote management agent.";
+  }
+
+  static int num_arguments();
+
+  virtual void execute(TRAPS);
+
+};
+
+class JMXStartLocalDCmd : public DCmd {
+
+  // Explicitly request start of local agent,
+  // it will not be started by start dcmd
+
+
+public:
+  JMXStartLocalDCmd(outputStream *output, bool heap_allocated);
+
+  static const char *name() {
+    return "ManagementAgent.start_local";
+  }
+
+  static const char *description() {
+    return "Start local management agent.";
+  }
+
+  virtual void execute(TRAPS);
+
+};
+
+class JMXStopRemoteDCmd : public DCmd {
+public:
+  JMXStopRemoteDCmd(outputStream *output, bool heap_allocated) :
+  DCmd(output, heap_allocated) {
+    // Do Nothing
+  }
+
+  static const char *name() {
+    return "ManagementAgent.stop";
+  }
+
+  static const char *description() {
+    return "Stop remote management agent.";
+  }
+
   virtual void execute(TRAPS);
 };
 

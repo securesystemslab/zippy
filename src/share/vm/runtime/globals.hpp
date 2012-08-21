@@ -190,7 +190,6 @@ define_pd_global(uint64_t,MaxRAM,                    1ULL*G);
 
 #endif // no compilers
 
-
 // string type aliases used only in this file
 typedef const char* ccstr;
 typedef const char* ccstrlist;   // represents string arguments which accumulate
@@ -222,7 +221,7 @@ struct Flag {
   // number of flags
   static size_t numFlags;
 
-  static Flag* find_flag(char* name, size_t length);
+  static Flag* find_flag(char* name, size_t length, bool allow_locked = false);
 
   bool is_bool() const        { return strcmp(type, "bool") == 0; }
   bool get_bool() const       { return *((bool*) addr); }
@@ -258,6 +257,9 @@ struct Flag {
   bool is_unlocked_ext() const;
   bool is_writeable_ext() const;
   bool is_external_ext() const;
+
+  void get_locked_message(char*, int) const;
+  void get_locked_message_ext(char*, int) const;
 
   void print_on(outputStream* st, bool withComments = false );
   void print_as_flag(outputStream* st);
@@ -628,9 +630,6 @@ class CommandLineFlags {
   develop(bool, InlineClassNatives, true,                                   \
           "inline Class.isInstance, etc")                                   \
                                                                             \
-  develop(bool, InlineAtomicLong, true,                                     \
-          "inline sun.misc.AtomicLong")                                     \
-                                                                            \
   product(ccstr, HighLevelInterpreterClass, NULL,                           \
           "fully qualified class name of the high-level interpreter")       \
                                                                             \
@@ -905,6 +904,9 @@ class CommandLineFlags {
   develop(bool, UseFakeTimers, false,                                       \
           "Tells whether the VM should use system time or a fake timer")    \
                                                                             \
+  product(ccstr, NativeMemoryTracking, "off",                               \
+          "Native memory tracking options")                                 \
+                                                                            \
   diagnostic(bool, LogCompilation, false,                                   \
           "Log compilation activity in detail to hotspot.log or LogFile")   \
                                                                             \
@@ -936,6 +938,9 @@ class CommandLineFlags {
                                                                             \
   diagnostic(bool, PrintAdapterHandlers, false,                             \
           "Print code generated for i2c/c2i adapters")                      \
+                                                                            \
+  diagnostic(bool, VerifyAdapterCalls, trueInDebug,                         \
+          "Verify that i2c/c2i adapters are called properly")               \
                                                                             \
   develop(bool, VerifyAdapterSharing, false,                                \
           "Verify that the code for shared adapters is the equivalent")     \
@@ -2671,6 +2676,9 @@ class CommandLineFlags {
   product(bool, UseHeavyMonitors, false,                                    \
           "use heavyweight instead of lightweight Java monitors")           \
                                                                             \
+  product(bool, PrintStringTableStatistics, false,                          \
+          "print statistics about the StringTable and SymbolTable")         \
+                                                                            \
   notproduct(bool, PrintSymbolTableSizeHistogram, false,                    \
           "print histogram of the symbol table")                            \
                                                                             \
@@ -3297,9 +3305,6 @@ class CommandLineFlags {
   diagnostic(intx, VerifyGCLevel,     0,                                    \
           "Generation level at which to start +VerifyBefore/AfterGC")       \
                                                                             \
-  develop(uintx, ExitAfterGCNum,   0,                                       \
-          "If non-zero, exit after this GC.")                               \
-                                                                            \
   product(intx, MaxTenuringThreshold,    15,                                \
           "Maximum value for tenuring threshold")                           \
                                                                             \
@@ -3718,7 +3723,7 @@ class CommandLineFlags {
                                                                             \
   /* Properties for Java libraries  */                                      \
                                                                             \
-  product(intx, MaxDirectMemorySize, -1,                                    \
+  product(uintx, MaxDirectMemorySize, 0,                                    \
           "Maximum total size of NIO direct-buffer allocations")            \
                                                                             \
   /* temporary developer defined flags  */                                  \
@@ -3819,7 +3824,7 @@ class CommandLineFlags {
   product(uintx, SharedReadOnlySize,   10*M,                                \
           "Size of read-only space in permanent generation (in bytes)")     \
                                                                             \
-  product(uintx, SharedMiscDataSize,    NOT_LP64(4*M) LP64_ONLY(5*M),       \
+  product(uintx, SharedMiscDataSize, NOT_LP64(4*M) LP64_ONLY(5*M) NOT_PRODUCT(+1*M),       \
           "Size of the shared data area adjacent to the heap (in bytes)")   \
                                                                             \
   product(uintx, SharedMiscCodeSize,    4*M,                                \
@@ -3845,12 +3850,6 @@ class CommandLineFlags {
   product(bool, AnonymousClasses, false,                                    \
           "support sun.misc.Unsafe.defineAnonymousClass (deprecated)")      \
                                                                             \
-  experimental(bool, EnableMethodHandles, false,                            \
-          "support method handles (deprecated)")                            \
-                                                                            \
-  diagnostic(intx, MethodHandlePushLimit, 3,                                \
-          "number of additional stack slots a method handle may push")      \
-                                                                            \
   diagnostic(bool, PrintMethodHandleStubs, false,                           \
           "Print generated stub code for method handles")                   \
                                                                             \
@@ -3860,18 +3859,11 @@ class CommandLineFlags {
   diagnostic(bool, VerifyMethodHandles, trueInDebug,                        \
           "perform extra checks when constructing method handles")          \
                                                                             \
-  diagnostic(bool, OptimizeMethodHandles, true,                             \
-          "when constructing method handles, try to improve them")          \
-                                                                            \
-  develop(bool, StressMethodHandleWalk, false,                              \
-          "Process all method handles with MethodHandleWalk")               \
+  diagnostic(bool, ShowHiddenFrames, false,                                 \
+          "show method handle implementation frames (usually hidden)")      \
                                                                             \
   experimental(bool, TrustFinalNonStaticFields, false,                      \
           "trust final non-static declarations for constant folding")       \
-                                                                            \
-  experimental(bool, AllowInvokeGeneric, false,                             \
-          "accept MethodHandle.invoke and MethodHandle.invokeGeneric "      \
-          "as equivalent methods")                                          \
                                                                             \
   develop(bool, TraceInvokeDynamic, false,                                  \
           "trace internal invoke dynamic operations")                       \
@@ -3911,7 +3903,13 @@ class CommandLineFlags {
   product(bool, UseVMInterruptibleIO, false,                                \
           "(Unstable, Solaris-specific) Thread interrupt before or with "   \
           "EINTR for I/O operations results in OS_INTRPT. The default value"\
-          " of this flag is true for JDK 6 and earlier")
+          " of this flag is true for JDK 6 and earlier")                    \
+                                                                            \
+  diagnostic(bool, WhiteBoxAPI, false,                                      \
+          "Enable internal testing APIs")                                   \
+                                                                            \
+  product(bool, PrintGCCause, true,                                         \
+          "Include GC cause in GC logging")
 
 /*
  *  Macros for factoring of globals

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1998, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -22,18 +22,22 @@
 #  
 #
 
-# Compiler-specific flags for sparcworks.
+# If a SPEC is not set already, then use these defaults.
+ifeq ($(SPEC),)
+  # Compiler-specific flags for sparcworks.
+  CC	= cc
+  CXX	= CC
 
-# tell make which C and C++ compilers to use
-CC	= cc
-CXX	= CC
+  # Note that this 'as' is an older version of the Sun Studio 'fbe', and will
+  #   use the older style options. The 'fbe' options will match 'cc' and 'CC'.
+  AS	= /usr/ccs/bin/as
 
-# Note that this 'as' is an older version of the Sun Studio 'fbe', and will
-#   use the older style options. The 'fbe' options will match 'cc' and 'CC'.
-AS	= /usr/ccs/bin/as
+  NM    = /usr/ccs/bin/nm
+  NAWK  = /bin/nawk
 
-NM	= /usr/ccs/bin/nm
-NAWK    = /bin/nawk
+  MCS	= /usr/ccs/bin/mcs
+  STRIP	= /usr/ccs/bin/strip
+endif
 
 REORDER_FLAG = -xF
 
@@ -484,12 +488,12 @@ endif
 # The -g0 setting allows the C++ frontend to inline, which is a big win.
 # The -xs setting disables 'lazy debug info' which puts everything in
 # the .so instead of requiring the '.o' files.
-ifneq ($(OBJCOPY),)
+ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
   OPT_CFLAGS += -g0 -xs
 endif
 DEBUG_CFLAGS = -g
 FASTDEBUG_CFLAGS = -g0
-ifneq ($(OBJCOPY),)
+ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
   DEBUG_CFLAGS += -xs
   FASTDEBUG_CFLAGS += -xs
 endif
@@ -556,9 +560,6 @@ LINK_INTO = LIBJVM
 else
 #LINK_INTO = LIBJVM
 endif
-
-MCS	= /usr/ccs/bin/mcs
-STRIP	= /usr/ccs/bin/strip
 
 # Solaris platforms collect lots of redundant file-ident lines,
 # to the point of wasting a significant percentage of file space.
