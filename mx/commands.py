@@ -954,9 +954,9 @@ def hcfdis(args):
 
     Run a tool over the input files to convert all embedded HexCodeFiles
     to a disassembled format."""
-    path = join(_graal_home, 'lib', 'hcfdis.jar')
+    path = join(_graal_home, 'lib', 'hcfdis-1.jar')
     if not exists(path):
-        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis.jar'])
+        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-1.jar'])
     mx.run_java(['-jar', path] + args)
 
 def jacocoreport(args):
