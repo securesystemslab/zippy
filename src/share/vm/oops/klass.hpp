@@ -554,9 +554,6 @@ class Klass : public Klass_vtbl {
   // computes the subtype relationship
   virtual bool compute_is_subtype_of(klassOop k);
  public:
-  // subclass accessor (here for convenience; undefined for non-klass objects)
-  virtual bool is_leaf_class() const { fatal("not a class"); return false; }
- public:
   // ALL FUNCTIONS BELOW THIS POINT ARE DISPATCHED FROM AN OOP
   // These functions describe behavior for the oop not the KLASS.
 

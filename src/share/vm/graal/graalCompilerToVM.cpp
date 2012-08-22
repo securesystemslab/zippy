@@ -640,7 +640,7 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
   VM_ENTRY_MARK;
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass)));
   Klass *up_cast = klass_handle->up_cast_abstract();
-  if (up_cast->is_leaf_class()) {
+  if (!up_cast->is_interface() && up_cast->subklass() == NULL) {
     return JNIHandles::make_local(GraalCompiler::get_JavaType(up_cast, THREAD)());
   }
   return NULL;
