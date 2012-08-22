@@ -31,7 +31,7 @@
 // This class provides the interface between a barrier implementation and
 // the rest of the system.
 
-class BarrierSet: public CHeapObj {
+class BarrierSet: public CHeapObj<mtGC> {
   friend class VMStructs;
 public:
   enum Name {
@@ -181,6 +181,8 @@ public:
   // within the heap, this function tells whether they are met.
   virtual bool is_aligned(HeapWord* addr) = 0;
 
+  // Print a description of the memory for the barrier set
+  virtual void print_on(outputStream* st) const = 0;
 };
 
 #endif // SHARE_VM_MEMORY_BARRIERSET_HPP

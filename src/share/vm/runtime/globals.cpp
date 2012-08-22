@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -81,6 +81,12 @@ bool Flag::is_unlocked() const {
   }
 }
 
+// Get custom message for this locked flag, or return NULL if
+// none is available.
+void Flag::get_locked_message(char* buf, int buflen) const {
+  get_locked_message_ext(buf, buflen);
+}
+
 bool Flag::is_writeable() const {
   return strcmp(kind, "{manageable}") == 0 ||
          strcmp(kind, "{product rw}") == 0 ||
@@ -142,6 +148,8 @@ void Flag::print_as_flag(outputStream* st) {
     st->print("-XX:%s=" UINTX_FORMAT, name, get_uintx());
   } else if (is_uint64_t()) {
     st->print("-XX:%s=" UINT64_FORMAT, name, get_uint64_t());
+  } else if (is_double()) {
+    st->print("-XX:%s=%f", name, get_double());
   } else if (is_ccstr()) {
     st->print("-XX:%s=", name);
     const char* cp = get_ccstr();
@@ -260,17 +268,22 @@ inline bool str_equal(const char* s, char* q, size_t len) {
   return strncmp(s, q, len) == 0;
 }
 
-Flag* Flag::find_flag(char* name, size_t length) {
-  for (Flag* current = &flagTable[0]; current->name; current++) {
+// Search the flag table for a named flag
+Flag* Flag::find_flag(char* name, size_t length, bool allow_locked) {
+  for (Flag* current = &flagTable[0]; current->name != NULL; current++) {
     if (str_equal(current->name, name, length)) {
+      // Found a matching entry.  Report locked flags only if allowed.
       if (!(current->is_unlocked() || current->is_unlocker())) {
-        // disable use of diagnostic or experimental flags until they
-        // are explicitly unlocked
-        return NULL;
+        if (!allow_locked) {
+          // disable use of locked flags, e.g. diagnostic, experimental,
+          // commercial... until they are explicitly unlocked
+          return NULL;
+        }
       }
       return current;
     }
   }
+  // Flag name is not in the flag table
   return NULL;
 }
 
@@ -452,13 +465,13 @@ bool CommandLineFlags::ccstrAtPut(char* name, size_t len, ccstr* value, FlagValu
   ccstr old_value = result->get_ccstr();
   char* new_value = NULL;
   if (*value != NULL) {
-    new_value = NEW_C_HEAP_ARRAY(char, strlen(*value)+1);
+    new_value = NEW_C_HEAP_ARRAY(char, strlen(*value)+1, mtInternal);
     strcpy(new_value, *value);
   }
   result->set_ccstr(new_value);
   if (result->origin == DEFAULT && old_value != NULL) {
     // Prior value is NOT heap allocated, but was a literal constant.
-    char* old_value_to_free = NEW_C_HEAP_ARRAY(char, strlen(old_value)+1);
+    char* old_value_to_free = NEW_C_HEAP_ARRAY(char, strlen(old_value)+1, mtInternal);
     strcpy(old_value_to_free, old_value);
     old_value = old_value_to_free;
   }
@@ -472,12 +485,12 @@ void CommandLineFlagsEx::ccstrAtPut(CommandLineFlagWithType flag, ccstr value, F
   Flag* faddr = address_of_flag(flag);
   guarantee(faddr != NULL && faddr->is_ccstr(), "wrong flag type");
   ccstr old_value = faddr->get_ccstr();
-  char* new_value = NEW_C_HEAP_ARRAY(char, strlen(value)+1);
+  char* new_value = NEW_C_HEAP_ARRAY(char, strlen(value)+1, mtInternal);
   strcpy(new_value, value);
   faddr->set_ccstr(new_value);
   if (faddr->origin != DEFAULT && old_value != NULL) {
     // Prior value is heap allocated so free it.
-    FREE_C_HEAP_ARRAY(char, old_value);
+    FREE_C_HEAP_ARRAY(char, old_value, mtInternal);
   }
   faddr->origin = origin;
 }
@@ -498,7 +511,7 @@ void CommandLineFlags::printSetFlags(outputStream* out) {
   while (flagTable[length].name != NULL) length++;
 
   // Sort
-  Flag** array = NEW_C_HEAP_ARRAY(Flag*, length);
+  Flag** array = NEW_C_HEAP_ARRAY(Flag*, length, mtInternal);
   for (int index = 0; index < length; index++) {
     array[index] = &flagTable[index];
   }
@@ -512,7 +525,7 @@ void CommandLineFlags::printSetFlags(outputStream* out) {
     }
   }
   out->cr();
-  FREE_C_HEAP_ARRAY(Flag*, array);
+  FREE_C_HEAP_ARRAY(Flag*, array, mtInternal);
 }
 
 #ifndef PRODUCT
@@ -534,7 +547,7 @@ void CommandLineFlags::printFlags(outputStream* out, bool withComments) {
   while (flagTable[length].name != NULL) length++;
 
   // Sort
-  Flag** array = NEW_C_HEAP_ARRAY(Flag*, length);
+  Flag** array = NEW_C_HEAP_ARRAY(Flag*, length, mtInternal);
   for (int index = 0; index < length; index++) {
     array[index] = &flagTable[index];
   }
@@ -547,5 +560,5 @@ void CommandLineFlags::printFlags(outputStream* out, bool withComments) {
       array[i]->print_on(out, withComments);
     }
   }
-  FREE_C_HEAP_ARRAY(Flag*, array);
+  FREE_C_HEAP_ARRAY(Flag*, array, mtInternal);
 }

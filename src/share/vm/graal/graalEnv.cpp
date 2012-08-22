@@ -38,7 +38,6 @@
 #include "oops/methodDataOop.hpp"
 #include "oops/objArrayKlass.hpp"
 #include "prims/jvmtiExport.hpp"
-#include "prims/methodHandleWalk.hpp"
 #include "runtime/init.hpp"
 #include "runtime/reflection.hpp"
 #include "runtime/sharedRuntime.hpp"

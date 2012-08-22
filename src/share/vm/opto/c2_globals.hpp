@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,6 +80,13 @@
                                                                             \
   product(intx, MaxLoopPad, (OptoLoopAlignment-1),                          \
           "Align a loop if padding size in bytes is less or equal to this value") \
+                                                                            \
+  product(intx, MaxVectorSize, 32,                                          \
+          "Max vector size in bytes, "                                      \
+          "actual size could be less depending on elements type")           \
+                                                                            \
+  product(bool, AlignVector, false,                                         \
+          "Perform vector store/load alignment in loop")                    \
                                                                             \
   product(intx, NumberOfLoopInstrToAlign, 4,                                \
           "Number of first instructions in a loop to align")                \
@@ -292,8 +299,11 @@
   develop(bool, SuperWordRTDepCheck, false,                                 \
           "Enable runtime dependency checks.")                              \
                                                                             \
-  product(bool, TraceSuperWord, false,                                      \
+  notproduct(bool, TraceSuperWord, false,                                   \
           "Trace superword transforms")                                     \
+                                                                            \
+  notproduct(bool, TraceNewVectors, false,                                  \
+          "Trace creation of Vector nodes")                                 \
                                                                             \
   product_pd(bool, OptoBundling,                                            \
           "Generate nops to fill i-cache lines")                            \
@@ -464,6 +474,9 @@
                                                                             \
   notproduct(bool, PrintOptimizePtrCompare, false,                          \
           "Print information about optimized pointers compare")             \
+                                                                            \
+  notproduct(bool, VerifyConnectionGraph , true,                            \
+          "Verify Connection Graph construction in Escape Analysis")        \
                                                                             \
   product(bool, UseOptoBiasInlining, true,                                  \
           "Generate biased locking code in C2 ideal graph")                 \

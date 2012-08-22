@@ -39,7 +39,6 @@ class klassKlass: public Klass {
  public:
   // Testing
   bool oop_is_klass()  const { return true; }
-  bool is_leaf_class() const { return true; }
 
   // Sizing
   int oop_size(oop obj) const;

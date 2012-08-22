@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,26 +52,36 @@
 
 class java_lang_String : AllStatic {
  private:
-  enum {
-    hc_value_offset  = 0,
-    hc_offset_offset = 1
-    //hc_count_offset = 2  -- not a word-scaled offset
-    //hc_hash_offset  = 3  -- not a word-scaled offset
-  };
-
   static int value_offset;
   static int offset_offset;
   static int count_offset;
   static int hash_offset;
 
+  static bool initialized;
+
   static Handle basic_create(int length, bool tenured, TRAPS);
   static Handle basic_create_from_unicode(jchar* unicode, int length, bool tenured, TRAPS);
 
-  static void set_value( oop string, typeArrayOop buffer) { string->obj_field_put(value_offset,  (oop)buffer); }
-  static void set_offset(oop string, int offset)          { string->int_field_put(offset_offset, offset); }
-  static void set_count( oop string, int count)           { string->int_field_put(count_offset,  count);  }
+  static void set_value( oop string, typeArrayOop buffer) {
+    assert(initialized, "Must be initialized");
+    string->obj_field_put(value_offset,  (oop)buffer);
+  }
+  static void set_offset(oop string, int offset) {
+    assert(initialized, "Must be initialized");
+    if (offset_offset > 0) {
+      string->int_field_put(offset_offset, offset);
+    }
+  }
+  static void set_count( oop string, int count) {
+    assert(initialized, "Must be initialized");
+    if (count_offset > 0) {
+      string->int_field_put(count_offset,  count);
+    }
+  }
 
  public:
+  static void compute_offsets();
+
   // Instance creation
   static Handle create_from_unicode(jchar* unicode, int len, TRAPS);
   static Handle create_tenured_from_unicode(jchar* unicode, int len, TRAPS);
@@ -82,23 +92,61 @@ class java_lang_String : AllStatic {
   static Handle create_from_platform_dependent_str(const char* str, TRAPS);
   static Handle char_converter(Handle java_string, jchar from_char, jchar to_char, TRAPS);
 
-  static int value_offset_in_bytes()  { return value_offset;  }
-  static int count_offset_in_bytes()  { return count_offset;  }
-  static int offset_offset_in_bytes() { return offset_offset; }
-  static int hash_offset_in_bytes()   { return hash_offset;   }
+  static bool has_offset_field()  {
+    assert(initialized, "Must be initialized");
+    return (offset_offset > 0);
+  }
+
+  static bool has_count_field()  {
+    assert(initialized, "Must be initialized");
+    return (count_offset > 0);
+  }
+
+  static bool has_hash_field()  {
+    assert(initialized, "Must be initialized");
+    return (hash_offset > 0);
+  }
+
+  static int value_offset_in_bytes()  {
+    assert(initialized && (value_offset > 0), "Must be initialized");
+    return value_offset;
+  }
+  static int count_offset_in_bytes()  {
+    assert(initialized && (count_offset > 0), "Must be initialized");
+    return count_offset;
+  }
+  static int offset_offset_in_bytes() {
+    assert(initialized && (offset_offset > 0), "Must be initialized");
+    return offset_offset;
+  }
+  static int hash_offset_in_bytes()   {
+    assert(initialized && (hash_offset > 0), "Must be initialized");
+    return hash_offset;
+  }
 
   // Accessors
   static typeArrayOop value(oop java_string) {
+    assert(initialized && (value_offset > 0), "Must be initialized");
     assert(is_instance(java_string), "must be java_string");
     return (typeArrayOop) java_string->obj_field(value_offset);
   }
   static int offset(oop java_string) {
+    assert(initialized, "Must be initialized");
     assert(is_instance(java_string), "must be java_string");
-    return java_string->int_field(offset_offset);
+    if (offset_offset > 0) {
+      return java_string->int_field(offset_offset);
+    } else {
+      return 0;
+    }
   }
   static int length(oop java_string) {
+    assert(initialized, "Must be initialized");
     assert(is_instance(java_string), "must be java_string");
-    return java_string->int_field(count_offset);
+    if (count_offset > 0) {
+      return java_string->int_field(count_offset);
+    } else {
+      return ((typeArrayOop)java_string->obj_field(value_offset))->length();
+    }
   }
   static int utf8_length(oop java_string);
 
@@ -110,20 +158,16 @@ class java_lang_String : AllStatic {
   static jchar* as_unicode_string(oop java_string, int& length);
 
   // Compute the hash value for a java.lang.String object which would
-  // contain the characters passed in. This hash value is used for at
-  // least two purposes.
+  // contain the characters passed in.
   //
-  // (a) As the hash value used by the StringTable for bucket selection
-  //     and comparison (stored in the HashtableEntry structures).  This
-  //     is used in the String.intern() method.
+  // As the hash value used by the String object itself, in
+  // String.hashCode().  This value is normally calculated in Java code
+  // in the String.hashCode method(), but is precomputed for String
+  // objects in the shared archive file.
+  // hash P(31) from Kernighan & Ritchie
   //
-  // (b) As the hash value used by the String object itself, in
-  //     String.hashCode().  This value is normally calculate in Java code
-  //     in the String.hashCode method(), but is precomputed for String
-  //     objects in the shared archive file.
-  //
-  //     For this reason, THIS ALGORITHM MUST MATCH String.hashCode().
-  static unsigned int hash_string(jchar* s, int len) {
+  // For this reason, THIS ALGORITHM MUST MATCH String.toHash().
+  template <typename T> static unsigned int to_hash(T* s, int len) {
     unsigned int h = 0;
     while (len-- > 0) {
       h = 31*h + (unsigned int) *s;
@@ -131,6 +175,10 @@ class java_lang_String : AllStatic {
     }
     return h;
   }
+  static unsigned int to_hash(oop java_string);
+
+  // This is the string hash code used by the StringTable, which may be
+  // the same as String.toHash or an alternate hash code.
   static unsigned int hash_string(oop java_string);
 
   static bool equals(oop java_string, jchar* chars, int len);
@@ -836,19 +884,14 @@ class java_lang_ref_SoftReference: public java_lang_ref_Reference {
 
 // Interface to java.lang.invoke.MethodHandle objects
 
-#define METHODHANDLE_INJECTED_FIELDS(macro)                               \
-  macro(java_lang_invoke_MethodHandle, vmentry,  intptr_signature, false) \
-  macro(java_lang_invoke_MethodHandle, vmtarget, object_signature, true)
-
 class MethodHandleEntry;
 
 class java_lang_invoke_MethodHandle: AllStatic {
   friend class JavaClasses;
 
  private:
-  static int _vmentry_offset;            // assembly code trampoline for MH
-  static int _vmtarget_offset;           // class-specific target reference
-  static int _type_offset;              // the MethodType of this MH
+  static int _type_offset;               // the MethodType of this MH
+  static int _form_offset;               // the LambdaForm of this MH
 
   static void compute_offsets();
 
@@ -857,13 +900,8 @@ class java_lang_invoke_MethodHandle: AllStatic {
   static oop            type(oop mh);
   static void       set_type(oop mh, oop mtype);
 
-  static oop            vmtarget(oop mh);
-  static void       set_vmtarget(oop mh, oop target);
-
-  static MethodHandleEntry* vmentry(oop mh);
-  static void       set_vmentry(oop mh, MethodHandleEntry* data);
-
-  static int            vmslots(oop mh);
+  static oop            form(oop mh);
+  static void       set_form(oop mh, oop lform);
 
   // Testers
   static bool is_subclass(klassOop klass) {
@@ -875,149 +913,45 @@ class java_lang_invoke_MethodHandle: AllStatic {
 
   // Accessors for code generation:
   static int type_offset_in_bytes()             { return _type_offset; }
-  static int vmtarget_offset_in_bytes()         { return _vmtarget_offset; }
+  static int form_offset_in_bytes()             { return _form_offset; }
+};
+
+// Interface to java.lang.invoke.LambdaForm objects
+// (These are a private interface for managing adapter code generation.)
+
+class java_lang_invoke_LambdaForm: AllStatic {
+  friend class JavaClasses;
+
+ private:
+  static int _vmentry_offset;  // type is MemberName
+
+  static void compute_offsets();
+
+ public:
+  // Accessors
+  static oop            vmentry(oop lform);
+  static void       set_vmentry(oop lform, oop invoker);
+
+  // Testers
+  static bool is_subclass(klassOop klass) {
+    return SystemDictionary::LambdaForm_klass() != NULL &&
+      Klass::cast(klass)->is_subclass_of(SystemDictionary::LambdaForm_klass());
+  }
+  static bool is_instance(oop obj) {
+    return obj != NULL && is_subclass(obj->klass());
+  }
+
+  // Accessors for code generation:
   static int vmentry_offset_in_bytes()          { return _vmentry_offset; }
 };
-
-#define DIRECTMETHODHANDLE_INJECTED_FIELDS(macro)                          \
-  macro(java_lang_invoke_DirectMethodHandle, vmindex, int_signature, true)
-
-class java_lang_invoke_DirectMethodHandle: public java_lang_invoke_MethodHandle {
-  friend class JavaClasses;
-
- private:
-  static int _vmindex_offset;           // negative or vtable idx or itable idx
-  static void compute_offsets();
-
- public:
-  // Accessors
-  static int            vmindex(oop mh);
-  static void       set_vmindex(oop mh, int index);
-
-  // Testers
-  static bool is_subclass(klassOop klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::DirectMethodHandle_klass());
-  }
-  static bool is_instance(oop obj) {
-    return obj != NULL && is_subclass(obj->klass());
-  }
-
-  // Accessors for code generation:
-  static int vmindex_offset_in_bytes()          { return _vmindex_offset; }
-};
-
-class java_lang_invoke_BoundMethodHandle: public java_lang_invoke_MethodHandle {
-  friend class JavaClasses;
-
- private:
-  static int _argument_offset;          // argument value bound into this MH
-  static int _vmargslot_offset;         // relevant argument slot (<= vmslots)
-  static void compute_offsets();
-
-public:
-  static oop            argument(oop mh);
-  static void       set_argument(oop mh, oop ref);
-
-  static jint           vmargslot(oop mh);
-  static void       set_vmargslot(oop mh, jint slot);
-
-  // Testers
-  static bool is_subclass(klassOop klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::BoundMethodHandle_klass());
-  }
-  static bool is_instance(oop obj) {
-    return obj != NULL && is_subclass(obj->klass());
-  }
-
-  static int argument_offset_in_bytes()         { return _argument_offset; }
-  static int vmargslot_offset_in_bytes()        { return _vmargslot_offset; }
-};
-
-class java_lang_invoke_AdapterMethodHandle: public java_lang_invoke_BoundMethodHandle {
-  friend class JavaClasses;
-
- private:
-  static int _conversion_offset;        // type of conversion to apply
-  static void compute_offsets();
-
- public:
-  static int            conversion(oop mh);
-  static void       set_conversion(oop mh, int conv);
-
-  // Testers
-  static bool is_subclass(klassOop klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::AdapterMethodHandle_klass());
-  }
-  static bool is_instance(oop obj) {
-    return obj != NULL && is_subclass(obj->klass());
-  }
-
-  // Relevant integer codes (keep these in synch. with MethodHandleNatives.Constants):
-  enum {
-    OP_RETYPE_ONLY   = 0x0, // no argument changes; straight retype
-    OP_RETYPE_RAW    = 0x1, // straight retype, trusted (void->int, Object->T)
-    OP_CHECK_CAST    = 0x2, // ref-to-ref conversion; requires a Class argument
-    OP_PRIM_TO_PRIM  = 0x3, // converts from one primitive to another
-    OP_REF_TO_PRIM   = 0x4, // unboxes a wrapper to produce a primitive
-    OP_PRIM_TO_REF   = 0x5, // boxes a primitive into a wrapper
-    OP_SWAP_ARGS     = 0x6, // swap arguments (vminfo is 2nd arg)
-    OP_ROT_ARGS      = 0x7, // rotate arguments (vminfo is displaced arg)
-    OP_DUP_ARGS      = 0x8, // duplicates one or more arguments (at TOS)
-    OP_DROP_ARGS     = 0x9, // remove one or more argument slots
-    OP_COLLECT_ARGS  = 0xA, // combine arguments using an auxiliary function
-    OP_SPREAD_ARGS   = 0xB, // expand in place a varargs array (of known size)
-    OP_FOLD_ARGS     = 0xC, // combine but do not remove arguments; prepend result
-    //OP_UNUSED_13   = 0xD, // unused code, perhaps for reified argument lists
-    CONV_OP_LIMIT    = 0xE, // limit of CONV_OP enumeration
-
-    CONV_OP_MASK     = 0xF00, // this nybble contains the conversion op field
-    CONV_TYPE_MASK   = 0x0F,  // fits T_ADDRESS and below
-    CONV_VMINFO_MASK = 0x0FF, // LSB is reserved for JVM use
-    CONV_VMINFO_SHIFT     =  0, // position of bits in CONV_VMINFO_MASK
-    CONV_OP_SHIFT         =  8, // position of bits in CONV_OP_MASK
-    CONV_DEST_TYPE_SHIFT  = 12, // byte 2 has the adapter BasicType (if needed)
-    CONV_SRC_TYPE_SHIFT   = 16, // byte 2 has the source BasicType (if needed)
-    CONV_STACK_MOVE_SHIFT = 20, // high 12 bits give signed SP change
-    CONV_STACK_MOVE_MASK  = (1 << (32 - CONV_STACK_MOVE_SHIFT)) - 1
-  };
-
-  static int conversion_offset_in_bytes()       { return _conversion_offset; }
-};
-
-
-// A simple class that maintains an invocation count
-class java_lang_invoke_CountingMethodHandle: public java_lang_invoke_MethodHandle {
-  friend class JavaClasses;
-
- private:
-  static int _vmcount_offset;
-  static void compute_offsets();
-
- public:
-  // Accessors
-  static int            vmcount(oop mh);
-  static void       set_vmcount(oop mh, int count);
-
-  // Testers
-  static bool is_subclass(klassOop klass) {
-    return SystemDictionary::CountingMethodHandle_klass() != NULL &&
-      Klass::cast(klass)->is_subclass_of(SystemDictionary::CountingMethodHandle_klass());
-  }
-  static bool is_instance(oop obj) {
-    return obj != NULL && is_subclass(obj->klass());
-  }
-
-  // Accessors for code generation:
-  static int vmcount_offset_in_bytes()          { return _vmcount_offset; }
-};
-
 
 
 // Interface to java.lang.invoke.MemberName objects
 // (These are a private interface for Java code to query the class hierarchy.)
 
-#define MEMBERNAME_INJECTED_FIELDS(macro)                              \
-  macro(java_lang_invoke_MemberName, vmtarget, object_signature, true)
+#define MEMBERNAME_INJECTED_FIELDS(macro)                               \
+  macro(java_lang_invoke_MemberName, vmindex,  intptr_signature, false) \
+  macro(java_lang_invoke_MemberName, vmtarget, object_signature, false)
 
 class java_lang_invoke_MemberName: AllStatic {
   friend class JavaClasses;
@@ -1029,7 +963,7 @@ class java_lang_invoke_MemberName: AllStatic {
   //    private Object     type;        // may be null if not yet materialized
   //    private int        flags;       // modifier bits; see reflect.Modifier
   //    private Object     vmtarget;    // VM-specific target value
-  //    private int        vmindex;     // method index within class or interface
+  //    private intptr_t   vmindex;     // member index within class or interface
   static int _clazz_offset;
   static int _name_offset;
   static int _type_offset;
@@ -1053,15 +987,11 @@ class java_lang_invoke_MemberName: AllStatic {
   static int            flags(oop mname);
   static void       set_flags(oop mname, int flags);
 
-  static int            modifiers(oop mname) { return (u2) flags(mname); }
-  static void       set_modifiers(oop mname, int mods)
-                                { set_flags(mname, (flags(mname) &~ (u2)-1) | (u2)mods); }
-
   static oop            vmtarget(oop mname);
   static void       set_vmtarget(oop mname, oop target);
 
-  static int            vmindex(oop mname);
-  static void       set_vmindex(oop mname, int index);
+  static intptr_t       vmindex(oop mname);
+  static void       set_vmindex(oop mname, intptr_t index);
 
   // Testers
   static bool is_subclass(klassOop klass) {
@@ -1077,9 +1007,11 @@ class java_lang_invoke_MemberName: AllStatic {
     MN_IS_CONSTRUCTOR      = 0x00020000, // constructor
     MN_IS_FIELD            = 0x00040000, // field
     MN_IS_TYPE             = 0x00080000, // nested type
-    MN_SEARCH_SUPERCLASSES = 0x00100000, // for MHN.getMembers
-    MN_SEARCH_INTERFACES   = 0x00200000, // for MHN.getMembers
-    VM_INDEX_UNINITIALIZED = -99
+    MN_REFERENCE_KIND_SHIFT = 24, // refKind
+    MN_REFERENCE_KIND_MASK = 0x0F000000 >> MN_REFERENCE_KIND_SHIFT,
+    // The SEARCH_* bits are not for MN.flags but for the matchFlags argument of MHN.getMembers:
+    MN_SEARCH_SUPERCLASSES = 0x00100000, // walk super classes
+    MN_SEARCH_INTERFACES   = 0x00200000  // walk implemented interfaces
   };
 
   // Accessors for code generation:
@@ -1100,7 +1032,6 @@ class java_lang_invoke_MethodType: AllStatic {
  private:
   static int _rtype_offset;
   static int _ptypes_offset;
-  static int _form_offset;
 
   static void compute_offsets();
 
@@ -1108,10 +1039,12 @@ class java_lang_invoke_MethodType: AllStatic {
   // Accessors
   static oop            rtype(oop mt);
   static objArrayOop    ptypes(oop mt);
-  static oop            form(oop mt);
 
   static oop            ptype(oop mt, int index);
   static int            ptype_count(oop mt);
+
+  static int            ptype_slot_count(oop mt);  // extra counts for long/double
+  static int            rtype_slot_count(oop mt);  // extra counts for long/double
 
   static Symbol*        as_signature(oop mt, bool intern_if_not_found, TRAPS);
   static void           print_signature(oop mt, outputStream* st);
@@ -1125,40 +1058,6 @@ class java_lang_invoke_MethodType: AllStatic {
   // Accessors for code generation:
   static int rtype_offset_in_bytes()            { return _rtype_offset; }
   static int ptypes_offset_in_bytes()           { return _ptypes_offset; }
-  static int form_offset_in_bytes()             { return _form_offset; }
-};
-
-#define METHODTYPEFORM_INJECTED_FIELDS(macro)                              \
-  macro(java_lang_invoke_MethodTypeForm, vmslots,  int_signature,    true) \
-  macro(java_lang_invoke_MethodTypeForm, vmlayout, object_signature, true)
-
-class java_lang_invoke_MethodTypeForm: AllStatic {
-  friend class JavaClasses;
-
- private:
-  static int _vmslots_offset;           // number of argument slots needed
-  static int _vmlayout_offset;          // object describing internal calling sequence
-  static int _erasedType_offset;        // erasedType = canonical MethodType
-  static int _genericInvoker_offset;    // genericInvoker = adapter for invokeGeneric
-
-  static void compute_offsets();
-
- public:
-  // Accessors
-  static int            vmslots(oop mtform);
-  static void       set_vmslots(oop mtform, int vmslots);
-
-  static oop            erasedType(oop mtform);
-  static oop            genericInvoker(oop mtform);
-
-  static oop            vmlayout(oop mtform);
-  static oop       init_vmlayout(oop mtform, oop cookie);
-
-  // Accessors for code generation:
-  static int vmslots_offset_in_bytes()          { return _vmslots_offset; }
-  static int vmlayout_offset_in_bytes()         { return _vmlayout_offset; }
-  static int erasedType_offset_in_bytes()       { return _erasedType_offset; }
-  static int genericInvoker_offset_in_bytes()   { return _genericInvoker_offset; }
 };
 
 
@@ -1228,6 +1127,7 @@ class java_lang_ClassLoader : AllStatic {
 
  public:
   static oop parent(oop loader);
+  static bool isAncestor(oop loader, oop cl);
 
   // Support for parallelCapable field
   static bool parallelCapable(oop the_class_mirror);
@@ -1236,6 +1136,14 @@ class java_lang_ClassLoader : AllStatic {
 
   // Fix for 4474172
   static oop  non_reflection_class_loader(oop loader);
+
+  // Testers
+  static bool is_subclass(klassOop klass) {
+    return Klass::cast(klass)->is_subclass_of(SystemDictionary::ClassLoader_klass());
+  }
+  static bool is_instance(oop obj) {
+    return obj != NULL && is_subclass(obj->klass());
+  }
 
   // Debugging
   friend class JavaClasses;
@@ -1336,15 +1244,6 @@ class java_nio_Buffer: AllStatic {
   static void compute_offsets();
 };
 
-class sun_misc_AtomicLongCSImpl: AllStatic {
- private:
-  static int _value_offset;
-
- public:
-  static int  value_offset();
-  static void compute_offsets();
-};
-
 class java_util_concurrent_locks_AbstractOwnableSynchronizer : AllStatic {
  private:
   static int  _owner_offset;
@@ -1387,10 +1286,7 @@ class InjectedField {
 
 #define ALL_INJECTED_FIELDS(macro)          \
   CLASS_INJECTED_FIELDS(macro)              \
-  METHODHANDLE_INJECTED_FIELDS(macro)       \
-  DIRECTMETHODHANDLE_INJECTED_FIELDS(macro) \
-  MEMBERNAME_INJECTED_FIELDS(macro)         \
-  METHODTYPEFORM_INJECTED_FIELDS(macro)
+  MEMBERNAME_INJECTED_FIELDS(macro)
 
 // Interface to hard-coded offset checking
 
