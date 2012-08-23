@@ -1443,9 +1443,7 @@ def checkstyle(args):
     """run Checkstyle on the Java sources
 
    Run Checkstyle over the Java sources. Any errors or warnings
-   produced by Checkstyle result in a non-zero exit code.
-
-If no projects are given, then all Java projects are checked."""
+   produced by Checkstyle result in a non-zero exit code."""
 
     for p in sorted_deps():
         if p.native:
@@ -1601,7 +1599,13 @@ Given a command name, print help for that command."""
 
     name = args[0]
     if not commands.has_key(name):
-        _argParser.error('unknown command: ' + name)
+        hits = [c for c in commands.iterkeys() if c.startswith(name)]
+        if len(hits) == 1:
+            name = hits[0]
+        elif len(hits) == 0:
+            abort('mx: unknown command \'{0}\'\n{1}use "mx help" for more options'.format(name, _format_commands()))
+        else:
+            abort('mx: command \'{0}\' is ambiguous\n    {1}'.format(name, ' '.join(hits)))
 
     value = commands[name]
     (func, usage) = value[:2]
