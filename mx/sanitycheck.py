@@ -115,10 +115,10 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
         mx.abort('Please set the SPECJVM2008 environment variable to a SPECjvm2008 directory')
     
-    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\._]+)( result)?: (?P<score>[0-9]+(,|\.)[0-9]+)( SPECjvm2008 Base)? ops/m$")
+    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\._]+)( result)?: (?P<score>[0-9]+((,|\.)[0-9]+)?)( SPECjvm2008 Base)? ops/m$")
     error = re.compile(r"^Errors in benchmark: ")
     # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
-    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+(,|\.)[0-9]+( SPECjvm2008 (Base|Peak))? ops/m$")
+    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+((,|\.)[0-9]+)?( SPECjvm2008 (Base|Peak))? ops/m$")
     matcher = Matcher(score, {'const:group' : "const:SPECjvm2008", 'const:name' : 'benchmark', 'const:score' : 'score'}, startNewLine=True)
     
     opts = []
