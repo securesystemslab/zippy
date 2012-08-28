@@ -92,11 +92,11 @@ public class MethodElement extends Element {
         }
 
         if (Modifier.isNative(resolvedJavaMethod.accessFlags())) {
-            System.out.println("NATIVE METHOD " + resolvedJavaMethod);
+            BigBang.out.println("NATIVE METHOD " + resolvedJavaMethod);
             return;
         }
 
-        System.out.println("parsing graph " + resolvedJavaMethod + ", locals=" + resolvedJavaMethod.maxLocals());
+        BigBang.out.println("parsing graph " + resolvedJavaMethod + ", locals=" + resolvedJavaMethod.maxLocals());
         GraphBuilderConfiguration config = new GraphBuilderConfiguration(ResolvePolicy.Eager, null);
         GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(bb.getMetaAccess(), config, OptimisticOptimizations.NONE);
         graphBuilderPhase.apply(newGraph);
@@ -113,7 +113,7 @@ public class MethodElement extends Element {
         for (NewInstanceNode newInstance : newGraph.getNodes(NewInstanceNode.class)) {
             Set<ResolvedJavaType> types = new HashSet<>();
             types.add(newInstance.instanceClass());
-            System.out.println("propagate new instance " + newInstance + ", " + newInstance.instanceClass());
+            BigBang.out.println("propagate new instance " + newInstance + ", " + newInstance.instanceClass());
             for (Node use : newInstance.usages()) {
                 Element element = bb.getSinkElement(use, newInstance);
                 assert element != null;

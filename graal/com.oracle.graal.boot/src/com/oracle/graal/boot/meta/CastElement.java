@@ -48,7 +48,7 @@ public class CastElement extends Element {
             if (type.isSubtypeOf(checkCastNode.targetClass())) {
                 newSet.add(type);
             } else {
-                System.out.println("filtering " + type + " vs " + checkCastNode.targetClass());
+                BigBang.out.println("filtering " + type + " vs " + checkCastNode.targetClass());
             }
         }
         super.unionTypes(bb, sourceNode, newSet);

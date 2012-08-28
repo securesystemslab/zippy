@@ -74,7 +74,7 @@ public class Element {
             if (declaredType != null) {
                 for (ResolvedJavaType seenType : newSeenTypes) {
                     if (!seenType.isSubtypeOf(declaredType)) {
-                        System.out.println("Wrong type found " + seenType + " where declared type of element " + this + " is " + declaredType);
+                        BigBang.out.println("Wrong type found " + seenType + " where declared type of element " + this + " is " + declaredType);
                         System.exit(-1);
                     }
                 }
@@ -121,7 +121,7 @@ public class Element {
 
     public synchronized void printSeenTypes() {
         for (ResolvedJavaType type : seenTypes) {
-            System.out.print(type.name() + " ");
+            BigBang.out.print(type.name() + " ");
         }
     }
 }

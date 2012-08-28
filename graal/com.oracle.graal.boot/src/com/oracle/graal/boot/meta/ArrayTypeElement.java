@@ -50,16 +50,16 @@ public class ArrayTypeElement extends Element {
         LoadIndexedNode load = (LoadIndexedNode) use;
         ResolvedJavaType type = load.array().objectStamp().type();
         if (type == null) {
-            System.out.println("FATAL error: Array access without type!");
-            System.out.println(load.array());
+            BigBang.out.println("FATAL error: Array access without type!");
+            BigBang.out.println(load.array());
             if (load.array() instanceof ValueProxyNode) {
                 ValueProxyNode valueProxyNode = (ValueProxyNode) load.array();
-                System.out.println("value proxy node stamp " + valueProxyNode.stamp());
-                System.out.println("value proxy node stamp type " + valueProxyNode.objectStamp().type());
-                System.out.println("value proxy source: " + valueProxyNode.value());
-                System.out.println("value proxy source stamp: " + valueProxyNode.value().stamp());
+                BigBang.out.println("value proxy node stamp " + valueProxyNode.stamp());
+                BigBang.out.println("value proxy node stamp type " + valueProxyNode.objectStamp().type());
+                BigBang.out.println("value proxy source: " + valueProxyNode.value());
+                BigBang.out.println("value proxy source stamp: " + valueProxyNode.value().stamp());
             }
-            System.out.println(((StructuredGraph) load.graph()).method());
+            BigBang.out.println(((StructuredGraph) load.graph()).method());
             System.exit(-1);
         }
         ResolvedJavaType componentType = type.componentType();
