@@ -79,7 +79,7 @@ _copyrightTemplate = """/*
 """
 
 def clean(args):
-    """cleans the GraalVM source tree"""
+    """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
@@ -396,7 +396,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
     return ret
 
 def jdkhome(args, vm=None):
-    """prints the JDK directory selected for the 'vm' command"""
+    """print the JDK directory selected for the 'vm' command"""
 
     build = _vmbuild if _vmSourcesAvailable else 'product'
     print join(_graal_home, 'jdk' + mx.java().version, build)
@@ -608,7 +608,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _run_tests(args, harnessName, harness):
+def _run_tests(args, harness):
     pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
     neg = [a[1:] for a in args if a[0] == '-']
     vmArgs = [a[1:] for a in args if a[0] == '@']
@@ -620,39 +620,34 @@ def _run_tests(args, harnessName, harness):
         return False
 
     for p in mx.projects():
-        if getattr(p, 'testHarness', None) == harnessName:
-            classes = _find_classes_with_annotations(p, None, ['@Test'])
+        classes = _find_classes_with_annotations(p, None, ['@Test'])
 
-            if len(pos) != 0:
-                classes = [c for c in classes if containsAny(c, pos)]
-            if len(neg) != 0:
-                classes = [c for c in classes if not containsAny(c, neg)]
+        if len(pos) != 0:
+            classes = [c for c in classes if containsAny(c, pos)]
+        if len(neg) != 0:
+            classes = [c for c in classes if not containsAny(c, neg)]
 
-            if len(classes) != 0:
-                mx.log('running tests in ' + p.name)
-                harness(p, vmArgs, classes)
+        if len(classes) != 0:
+            mx.log('running tests in ' + p.name)
+            harness(p, vmArgs, classes)
 
 def unittest(args):
-    """run the Graal Compiler Unit Tests in the GraalVM
+    """run the JUnit tests
 
     If filters are supplied, only tests whose fully qualified name
     include a filter as a substring are run. Negative filters are
     those with a '-' prefix. VM args should have a @ prefix."""
 
     def harness(p, vmArgs, classes):
-        vm(['-XX:-BootstrapGraal', '-esa'] + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
-    _run_tests(args, 'unittest', harness)
-
-def jtt(args):
-    """run the Java Tester Tests in the GraalVM
-
-    If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
-
-    def harness(p, vmArgs, classes):
-        vm(['-XX:-BootstrapGraal', '-XX:CompileOnly=com/oracle/graal/jtt', '-XX:CompileCommand=compileonly,java/lang/Object::<init>', '-XX:CompileCommand=quiet', '-Xcomp', '-esa'] + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
-    _run_tests(args, 'jtt', harness)
+        prefixArgs = ['-XX:-BootstrapGraal', '-esa']
+        if p.name.endswith('.jtt'):
+            prefixArgs = prefixArgs + [
+                '-XX:CompileOnly=com/oracle/graal/jtt',
+                '-XX:CompileCommand=compileonly,java/lang/Object::<init>',
+                '-XX:CompileCommand=quiet',
+                '-Xcomp']
+        vm(prefixArgs + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
+    _run_tests(args, harness)
 
 def buildvms(args):
     """build one or more VMs in various configurations"""
@@ -753,11 +748,7 @@ def gate(args):
             tasks.append(t.stop())
 
             t = Task('UnitTests:' + vmbuild)
-            unittest([])
-            tasks.append(t.stop())
-
-            t = Task('JavaTesterTests:' + vmbuild)
-            jtt(['@-XX:CompileCommand=exclude,*::run*'] if vmbuild == 'product'  else [])
+            unittest(['@-XX:CompileCommand=exclude,*::run*'] if vmbuild == 'product'  else [])
             tasks.append(t.stop())
 
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
@@ -935,7 +926,7 @@ def specjvm2008(args):
     sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench(vm, opts=vmArgs)
 
 def hsdis(args, copyToDir=None):
-    """downloads the hsdis library
+    """download the hsdis library
 
     This is needed to support HotSpot's assembly dumping features.
     By default it downloads the Intel syntax version, use the 'att' argument to install AT&T syntax."""
@@ -950,7 +941,7 @@ def hsdis(args, copyToDir=None):
         shutil.copy(path, copyToDir)
 
 def hcfdis(args):
-    """disassembles HexCodeFiles embedded in text files
+    """disassemble HexCodeFiles embedded in text files
 
     Run a tool over the input files to convert all embedded HexCodeFiles
     to a disassembled format."""
@@ -960,7 +951,7 @@ def hcfdis(args):
     mx.run_java(['-jar', path] + args)
 
 def jacocoreport(args):
-    """creates a JaCoCo coverage report
+    """create a JaCoCo coverage report
 
     Creates the report from the 'jacoco.exec' file in the current directory.
     Default output directory is 'coverage', but an alternative can be provided as an argument."""
@@ -973,7 +964,7 @@ def jacocoreport(args):
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
 def site(args):
-    """creates a website containing javadoc and the project dependency graph"""
+    """create a website containing javadoc and the project dependency graph"""
 
     return mx.site(['--name', 'Graal',
                     '--jd', '@-tag', '--jd', '@test:X',
@@ -1003,7 +994,6 @@ def mx_init():
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
         'unittest' : [unittest, '[filters...]'],
-        'jtt' : [jtt, '[filters...]'],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
