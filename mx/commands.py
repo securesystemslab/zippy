@@ -582,7 +582,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         # Exclude all compiler tests and snippets
         excludes = ['com.oracle.graal.compiler.tests.*', 'com.oracle.graal.jtt.*']
         for p in mx.projects():
-            excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution'], includeInnerClasses=True)
+            excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True)
             excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True)
             
         includes = ['com.oracle.graal.*', 'com.oracle.max.*']

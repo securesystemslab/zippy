@@ -24,6 +24,8 @@ package com.oracle.graal.boot;
 
 import java.util.*;
 
+//JaCoCo Exclude
+
 public class TestPrograms {
     public static void helloWorldTest() {
         System.out.println("Hello world!");
