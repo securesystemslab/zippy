@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,6 +40,7 @@
 //  - symbolTableEntrys are allocated in blocks to reduce the space overhead.
 
 class BoolObjectClosure;
+class outputStream;
 
 
 // Class to hold a newly created or referenced Symbol* temporarily in scope.
@@ -56,12 +57,15 @@ class TempNewSymbol : public StackObj {
 
   // Operator= increments reference count.
   void operator=(const TempNewSymbol &s) {
+    //clear();  //FIXME
     _temp = s._temp;
     if (_temp !=NULL) _temp->increment_refcount();
   }
 
   // Decrement reference counter so it can go away if it's unique
-  ~TempNewSymbol() { if (_temp != NULL) _temp->decrement_refcount(); }
+  void clear() { if (_temp != NULL)  _temp->decrement_refcount();  _temp = NULL; }
+
+  ~TempNewSymbol() { clear(); }
 
   // Operators so they can be used like Symbols
   Symbol* operator -> () const                   { return _temp; }
@@ -70,7 +74,7 @@ class TempNewSymbol : public StackObj {
   operator Symbol*()                             { return _temp; }
 };
 
-class SymbolTable : public Hashtable<Symbol*> {
+class SymbolTable : public Hashtable<Symbol*, mtSymbol> {
   friend class VMStructs;
   friend class ClassFileParser;
 
@@ -78,27 +82,30 @@ private:
   // The symbol table
   static SymbolTable* _the_table;
 
+  // Set if one bucket is out of balance due to hash algorithm deficiency
+  static bool _needs_rehashing;
+
   // For statistics
   static int symbols_removed;
   static int symbols_counted;
 
-  Symbol* allocate_symbol(const u1* name, int len, TRAPS);   // Assumes no characters larger than 0x7F
-  bool allocate_symbols(int names_count, const u1** names, int* lengths, Symbol** syms, TRAPS);
+  Symbol* allocate_symbol(const u1* name, int len, bool c_heap, TRAPS); // Assumes no characters larger than 0x7F
 
   // Adding elements
-  Symbol* basic_add(int index, u1* name, int len,
-                      unsigned int hashValue, TRAPS);
-  bool basic_add(constantPoolHandle cp, int names_count,
+  Symbol* basic_add(int index, u1* name, int len, unsigned int hashValue,
+                    bool c_heap, TRAPS);
+
+  bool basic_add(Handle class_loader, constantPoolHandle cp, int names_count,
                  const char** names, int* lengths, int* cp_indices,
                  unsigned int* hashValues, TRAPS);
 
-  static void new_symbols(constantPoolHandle cp, int names_count,
+  static void new_symbols(Handle class_loader, constantPoolHandle cp,
+                          int names_count,
                           const char** name, int* lengths,
                           int* cp_indices, unsigned int* hashValues,
                           TRAPS) {
-    add(cp, names_count, name, lengths, cp_indices, hashValues, THREAD);
+    add(class_loader, cp, names_count, name, lengths, cp_indices, hashValues, THREAD);
   }
-
 
   // Table size
   enum {
@@ -108,16 +115,22 @@ private:
   Symbol* lookup(int index, const char* name, int len, unsigned int hash);
 
   SymbolTable()
-    : Hashtable<Symbol*>(symbol_table_size, sizeof (HashtableEntry<Symbol*>)) {}
+    : Hashtable<Symbol*, mtSymbol>(symbol_table_size, sizeof (HashtableEntry<Symbol*, mtSymbol>)) {}
 
-  SymbolTable(HashtableBucket* t, int number_of_entries)
-    : Hashtable<Symbol*>(symbol_table_size, sizeof (HashtableEntry<Symbol*>), t,
+  SymbolTable(HashtableBucket<mtSymbol>* t, int number_of_entries)
+    : Hashtable<Symbol*, mtSymbol>(symbol_table_size, sizeof (HashtableEntry<Symbol*, mtSymbol>), t,
                 number_of_entries) {}
 
+  // Arena for permanent symbols (null class loader) that are never unloaded
+  static Arena*  _arena;
+  static Arena* arena() { return _arena; }  // called for statistics
 
+  static void initialize_symbols(int arena_alloc_size = 0);
 public:
   enum {
-    symbol_alloc_batch_size = 8
+    symbol_alloc_batch_size = 8,
+    // Pick initial size based on java -version size measurements
+    symbol_alloc_arena_size = 360*K
   };
 
   // The symbol table
@@ -126,15 +139,21 @@ public:
   static void create_table() {
     assert(_the_table == NULL, "One symbol table allowed.");
     _the_table = new SymbolTable();
+    initialize_symbols(symbol_alloc_arena_size);
   }
 
-  static void create_table(HashtableBucket* t, int length,
+  static void create_table(HashtableBucket<mtSymbol>* t, int length,
                            int number_of_entries) {
     assert(_the_table == NULL, "One symbol table allowed.");
-    assert(length == symbol_table_size * sizeof(HashtableBucket),
+    assert(length == symbol_table_size * sizeof(HashtableBucket<mtSymbol>),
            "bad shared symbol size.");
     _the_table = new SymbolTable(t, number_of_entries);
+    // if CDS give symbol table a default arena size since most symbols
+    // are already allocated in the shared misc section.
+    initialize_symbols();
   }
+
+  static unsigned int hash_symbol(const char* s, int len);
 
   static Symbol* lookup(const char* name, int len, TRAPS);
   // lookup only, won't add. Also calculate hash.
@@ -151,7 +170,7 @@ public:
   static Symbol* lookup_unicode(const jchar* name, int len, TRAPS);
   static Symbol* lookup_only_unicode(const jchar* name, int len, unsigned int& hash);
 
-  static void add(constantPoolHandle cp, int names_count,
+  static void add(Handle class_loader, constantPoolHandle cp, int names_count,
                   const char** names, int* lengths, int* cp_indices,
                   unsigned int* hashValues, TRAPS);
 
@@ -174,6 +193,9 @@ public:
     return lookup(sym, begin, end, THREAD);
   }
 
+  // Create a symbol in the arena for symbols that are not deleted
+  static Symbol* new_permanent_symbol(const char* name, TRAPS);
+
   // Symbol lookup
   static Symbol* lookup(int index, const char* name, int len, TRAPS);
 
@@ -195,25 +217,33 @@ public:
 
   // Debugging
   static void verify();
+  static void dump(outputStream* st);
 
   // Sharing
   static void copy_buckets(char** top, char*end) {
-    the_table()->Hashtable<Symbol*>::copy_buckets(top, end);
+    the_table()->Hashtable<Symbol*, mtSymbol>::copy_buckets(top, end);
   }
   static void copy_table(char** top, char*end) {
-    the_table()->Hashtable<Symbol*>::copy_table(top, end);
+    the_table()->Hashtable<Symbol*, mtSymbol>::copy_table(top, end);
   }
   static void reverse(void* boundary = NULL) {
-    the_table()->Hashtable<Symbol*>::reverse(boundary);
+    the_table()->Hashtable<Symbol*, mtSymbol>::reverse(boundary);
   }
+
+  // Rehash the symbol table if it gets out of balance
+  static void rehash_table();
+  static bool needs_rehashing()         { return _needs_rehashing; }
 };
 
-class StringTable : public Hashtable<oop> {
+class StringTable : public Hashtable<oop, mtSymbol> {
   friend class VMStructs;
 
 private:
   // The string table
   static StringTable* _the_table;
+
+  // Set if one bucket is out of balance due to hash algorithm deficiency
+  static bool _needs_rehashing;
 
   static oop intern(Handle string_or_null, jchar* chars, int length, TRAPS);
   oop basic_add(int index, Handle string_or_null, jchar* name, int len,
@@ -221,13 +251,12 @@ private:
 
   oop lookup(int index, jchar* chars, int length, unsigned int hashValue);
 
-  StringTable() : Hashtable<oop>((int)StringTableSize,
-                                 sizeof (HashtableEntry<oop>)) {}
+  StringTable() : Hashtable<oop, mtSymbol>((int)StringTableSize,
+                              sizeof (HashtableEntry<oop, mtSymbol>)) {}
 
-  StringTable(HashtableBucket* t, int number_of_entries)
-    : Hashtable<oop>((int)StringTableSize, sizeof (HashtableEntry<oop>), t,
+  StringTable(HashtableBucket<mtSymbol>* t, int number_of_entries)
+    : Hashtable<oop, mtSymbol>((int)StringTableSize, sizeof (HashtableEntry<oop, mtSymbol>), t,
                      number_of_entries) {}
-
 public:
   // The string table
   static StringTable* the_table() { return _the_table; }
@@ -237,10 +266,10 @@ public:
     _the_table = new StringTable();
   }
 
-  static void create_table(HashtableBucket* t, int length,
+  static void create_table(HashtableBucket<mtSymbol>* t, int length,
                            int number_of_entries) {
     assert(_the_table == NULL, "One string table allowed.");
-    assert((size_t)length == StringTableSize * sizeof(HashtableBucket),
+    assert((size_t)length == StringTableSize * sizeof(HashtableBucket<mtSymbol>),
            "bad shared string size.");
     _the_table = new StringTable(t, number_of_entries);
   }
@@ -252,6 +281,14 @@ public:
   // Invoke "f->do_oop" on the locations of all oops in the table.
   static void oops_do(OopClosure* f);
 
+  // Hashing algorithm, used as the hash value used by the
+  //     StringTable for bucket selection and comparison (stored in the
+  //     HashtableEntry structures).  This is used in the String.intern() method.
+  static unsigned int hash_string(const jchar* s, int len);
+
+  // Internal test.
+  static void test_alt_hash() PRODUCT_RETURN;
+
   // Probing
   static oop lookup(Symbol* symbol);
 
@@ -262,17 +299,21 @@ public:
 
   // Debugging
   static void verify();
+  static void dump(outputStream* st);
 
   // Sharing
   static void copy_buckets(char** top, char*end) {
-    the_table()->Hashtable<oop>::copy_buckets(top, end);
+    the_table()->Hashtable<oop, mtSymbol>::copy_buckets(top, end);
   }
   static void copy_table(char** top, char*end) {
-    the_table()->Hashtable<oop>::copy_table(top, end);
+    the_table()->Hashtable<oop, mtSymbol>::copy_table(top, end);
   }
   static void reverse() {
-    the_table()->Hashtable<oop>::reverse();
+    the_table()->Hashtable<oop, mtSymbol>::reverse();
   }
-};
 
+  // Rehash the symbol table if it gets out of balance
+  static void rehash_table();
+  static bool needs_rehashing() { return _needs_rehashing; }
+};
 #endif // SHARE_VM_CLASSFILE_SYMBOLTABLE_HPP

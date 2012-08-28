@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -324,6 +324,12 @@ class JvmtiExport : public AllStatic {
       record_vm_internal_object_allocation(object);
     }
   }
+  inline static void post_array_size_exhausted() {
+    if (should_post_resource_exhausted()) {
+      post_resource_exhausted(JVMTI_RESOURCE_EXHAUSTED_OOM_ERROR,
+                              "Requested array size exceeds VM limit");
+    }
+  }
 
   static void cleanup_thread             (JavaThread* thread) KERNEL_RETURN;
 
@@ -344,7 +350,7 @@ class JvmtiExport : public AllStatic {
 
 // Support class used by JvmtiDynamicCodeEventCollector and others. It
 // describes a single code blob by name and address range.
-class JvmtiCodeBlobDesc : public CHeapObj {
+class JvmtiCodeBlobDesc : public CHeapObj<mtInternal> {
  private:
   char _name[64];
   address _code_begin;

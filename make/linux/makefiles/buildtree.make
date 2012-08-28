@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -55,6 +55,7 @@
 # The makefiles are split this way so that "make foo" will run faster by not
 # having to read the dependency files for the vm.
 
+-include $(SPEC)
 include $(GAMMADIR)/make/scm.make
 include $(GAMMADIR)/make/altsrc.make
 
@@ -65,7 +66,7 @@ QUIETLY$(MAKE_VERBOSE)	= @
 # For now, until the compiler is less wobbly:
 TESTFLAGS	= -Xbatch -showversion
 
-ifeq ($(ZERO_BUILD), true)
+ifeq ($(findstring true, $(JVM_VARIANT_ZERO) $(JVM_VARIANT_ZEROSHARK)), true)
   PLATFORM_FILE = $(shell dirname $(shell dirname $(shell pwd)))/platform_zero
 else
   ifdef USE_SUNCC
@@ -235,15 +236,23 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,commonsrc,os/posix/vm)"; \
 	[ -n "$(CFLAGS_BROWSE)" ] && \
 	    echo && echo "CFLAGS_BROWSE = $(CFLAGS_BROWSE)"; \
+	[ -n "$(ENABLE_FULL_DEBUG_SYMBOLS)" ] && \
+	    echo && echo "ENABLE_FULL_DEBUG_SYMBOLS = $(ENABLE_FULL_DEBUG_SYMBOLS)"; \
 	[ -n "$(OBJCOPY)" ] && \
 	    echo && echo "OBJCOPY = $(OBJCOPY)"; \
 	[ -n "$(STRIP_POLICY)" ] && \
 	    echo && echo "STRIP_POLICY = $(STRIP_POLICY)"; \
+	[ -n "$(ZIP_DEBUGINFO_FILES)" ] && \
+	    echo && echo "ZIP_DEBUGINFO_FILES = $(ZIP_DEBUGINFO_FILES)"; \
+	[ -n "$(ZIPEXE)" ] && \
+	    echo && echo "ZIPEXE = $(ZIPEXE)"; \
 	[ -n "$(HOTSPOT_EXTRA_SYSDEFS)" ] && \
 	    echo && \
 	    echo "HOTSPOT_EXTRA_SYSDEFS\$$(HOTSPOT_EXTRA_SYSDEFS) = $(HOTSPOT_EXTRA_SYSDEFS)" && \
 	    echo "SYSDEFS += \$$(HOTSPOT_EXTRA_SYSDEFS)"; \
 	echo; \
+	[ -n "$(SPEC)" ] && \
+	    echo "include $(SPEC)"; \
 	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(VARIANT).make"; \
 	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(COMPILER).make"; \
 	) > $@
