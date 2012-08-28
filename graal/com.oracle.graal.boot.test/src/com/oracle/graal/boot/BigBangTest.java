@@ -26,14 +26,14 @@ import org.junit.*;
 
 public class BigBangTest {
 
-    @Test
+    //@Test
     public void helloWorldTest() {
         BootImageGenerator generator = new BootImageGenerator();
         generator.addEntryMethod(TestPrograms.class, "helloWorldTest");
         Assert.assertArrayEquals(generator.getBigBang().printState(), new int[]{3, 148, 66, 24});
     }
 
-    @Test
+    //@Test
     public void formattedOutputTest() {
         BootImageGenerator generator = new BootImageGenerator();
         generator.addEntryMethod(TestPrograms.class, "formattedOutputTest");
@@ -63,7 +63,7 @@ public class BigBangTest {
         Assert.assertArrayEquals(generator.getBigBang().printState(), new int[]{2, 28, 5, 3});
     }
 
-    @Test
+    //@Test
     public void arrayListTestWithCalls() {
         BootImageGenerator generator = new BootImageGenerator();
         generator.addEntryMethod(TestPrograms.class, "arrayListTestWithCalls");

@@ -122,7 +122,6 @@ project@com.oracle.graal.snippets.test@sourceDirs=src
 project@com.oracle.graal.snippets.test@dependencies=com.oracle.graal.snippets,com.oracle.graal.tests
 project@com.oracle.graal.snippets.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.snippets.test@javaCompliance=1.7
-project@com.oracle.graal.snippets.test@testHarness=unittest
 
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
@@ -185,7 +184,6 @@ project@com.oracle.graal.tests@sourceDirs=src
 project@com.oracle.graal.tests@dependencies=JUNIT,com.oracle.graal.printer,com.oracle.graal.api
 project@com.oracle.graal.tests@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.tests@javaCompliance=1.7
-project@com.oracle.graal.tests@testHarness=unittest
 
 # graal.jtt
 project@com.oracle.graal.jtt@subDir=graal
@@ -193,7 +191,6 @@ project@com.oracle.graal.jtt@sourceDirs=src
 project@com.oracle.graal.jtt@dependencies=JUNIT
 project@com.oracle.graal.jtt@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.jtt@javaCompliance=1.7
-project@com.oracle.graal.jtt@testHarness=jtt
 
 # graal.examples
 project@com.oracle.graal.examples@subDir=graal

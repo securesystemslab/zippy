@@ -47,11 +47,11 @@ public class InvokeElement extends Element {
     @Override
     protected synchronized void unionTypes(BigBang bb, Node sourceNode, Set<ResolvedJavaType> newSeenTypes) {
 
-        System.out.println("union invoke element " + this + " new types = " + newSeenTypes + " sourceNode= " + sourceNode);
+        BigBang.out.println("union invoke element " + this + " new types = " + newSeenTypes + " sourceNode= " + sourceNode);
         int index = 0;
         for (Node arg : methodCallTarget.arguments()) {
             if (arg == sourceNode) {
-                System.out.println("source node " + sourceNode + " is at index " + index + " stamp=" + ((ValueNode) sourceNode).stamp());
+                BigBang.out.println("source node " + sourceNode + " is at index " + index + " stamp=" + ((ValueNode) sourceNode).stamp());
                 unionTypes(bb, sourceNode, newSeenTypes, index);
             }
             ++index;
@@ -79,9 +79,9 @@ public class InvokeElement extends Element {
                 if (seenTypes.add(type)) {
                     // There is a new receiver type!
                     ResolvedJavaMethod method = type.resolveMethodImpl(methodCallTarget.targetMethod());
-                    System.out.println("resolved method " + method + " for type " + type + " and method " + methodCallTarget.targetMethod());
+                    BigBang.out.println("resolved method " + method + " for type " + type + " and method " + methodCallTarget.targetMethod());
                     if (method == null) {
-                        System.out.println("!!! type = " + type + " / " + methodCallTarget.targetMethod());
+                        BigBang.out.println("!!! type = " + type + " / " + methodCallTarget.targetMethod());
                     }
                     if (!concreteTargets.contains(method)) {
                         concreteTargets.add(method);

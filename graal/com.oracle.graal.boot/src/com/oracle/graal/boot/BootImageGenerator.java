@@ -43,7 +43,7 @@ public class BootImageGenerator {
         } catch (NoSuchMethodException | SecurityException e) {
             throw new RuntimeException("Could not find method " + name + " with parameter types " + parameterTypes + " in class " + convertedClass.getCanonicalName());
         }
-        System.out.printf("Adding method %s.%s to the boot image\n", method.getDeclaringClass().getName(), method.getName());
+        BigBang.out.printf("Adding method %s.%s to the boot image\n", method.getDeclaringClass().getName(), method.getName());
         addEntryMethod(metaAccess.getResolvedJavaMethod(method));
     }
 

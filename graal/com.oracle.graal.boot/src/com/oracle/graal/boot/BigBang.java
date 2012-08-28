@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.boot;
 
+import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -34,6 +35,20 @@ import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
 
 public class BigBang {
+
+    public static final PrintStream out;
+    static {
+        if (Boolean.getBoolean("BigBang.verbose")) {
+            out = System.out;
+        } else {
+            OutputStream sink = new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                }
+            };
+            out = new PrintStream(sink);
+        }
+    }
 
     private static final int THREADS = 4;
 
@@ -105,7 +120,7 @@ public class BigBang {
                 if (node instanceof FrameState || node instanceof MonitorEnterNode || node instanceof MonitorExitNode || node instanceof LoadFieldNode || node instanceof IsNullNode || node instanceof InstanceOfNode) {
                     // OK.
                 } else {
-                    System.out.println("Unknown sink - black hole? " + node);
+                    BigBang.out.println("Unknown sink - black hole? " + node);
                 }
             }
 
@@ -149,7 +164,7 @@ public class BigBang {
             if (localNode.kind() == Kind.Object) {
                 ResolvedJavaMethod method = ((StructuredGraph) localNode.graph()).method();
                 resultElement = getProcessedMethod(method).getParameter(localNode.index());
-                System.out.println("resultElement = " + resultElement + " index= " + localNode.index() + ", node=" + node);
+                BigBang.out.println("resultElement = " + resultElement + " index= " + localNode.index() + ", node=" + node);
             }
         }
 
@@ -159,7 +174,7 @@ public class BigBang {
     }
 
     public synchronized void postOperation(UniverseExpansionOp operation) {
-        System.out.println("posting operation " + operation);
+        BigBang.out.println("posting operation " + operation);
         executor.execute(operation);
         postedOperationCount++;
     }
@@ -210,7 +225,7 @@ public class BigBang {
             assert field.isStatic();
             if (field.getUsageCount() > 0 && field.getJavaField().kind() == Kind.Object) {
                 Object value = field.getJavaField().getValue(null).asObject();
-                System.out.printf("Root field %s: %s\n", field, value);
+                BigBang.out.printf("Root field %s: %s\n", field, value);
                 scanField(scannedObjects, field, value);
             }
         }
@@ -256,7 +271,7 @@ public class BigBang {
         for (MethodElement methodElement : methodMap.values()) {
             if (methodElement.hasGraph()) {
                 if (Modifier.isNative(methodElement.getResolvedJavaMethod().accessFlags())) {
-                    System.out.println("Included native method: " + methodElement.getResolvedJavaMethod());
+                    BigBang.out.println("Included native method: " + methodElement.getResolvedJavaMethod());
                     nativeMethodCount++;
                 }
             }
@@ -266,7 +281,7 @@ public class BigBang {
         for (MethodElement methodElement : methodMap.values()) {
             if (methodElement.hasGraph()) {
                 if (!Modifier.isNative(methodElement.getResolvedJavaMethod().accessFlags())) {
-                    System.out.println("Included method: " + methodElement.getResolvedJavaMethod());
+                    BigBang.out.println("Included method: " + methodElement.getResolvedJavaMethod());
                     methodCount++;
                 }
             }
@@ -276,16 +291,16 @@ public class BigBang {
         int fieldCount = 0;
         for (FieldElement fieldElement : fieldMap.values()) {
             if (fieldElement.getUsageCount() > 0) {
-                System.out.print("Included field: " + fieldElement.getJavaField() + " / ");
+                BigBang.out.print("Included field: " + fieldElement.getJavaField() + " / ");
                 fieldElement.printSeenTypes();
-                System.out.println();
+                BigBang.out.println();
                 fieldCount++;
                 includedTypes.add(fieldElement.getJavaField().holder());
             }
         }
 
         for (ResolvedJavaType type : includedTypes) {
-            System.out.println("Included type: " + type);
+            BigBang.out.println("Included type: " + type);
         }
 
         System.out.println("Number of included native methods: " + nativeMethodCount);
