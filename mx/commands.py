@@ -357,6 +357,12 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
     ENDTOKEN = 'RUNINDEBUGSHELL_ENDSEQUENCE'
 
     winSDK = mx.get_env('WIN_SDK', 'C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\')
+    
+    if not exists(winSDK):
+        mx.abort("Could not find Windows SDK : '" + winSDK + "' does not exist")
+        
+    if not exists(join(winSDK, 'Bin', 'SetEnv.cmd')):
+        mx.abort("Invalid Windows SDK path (" + winSDK + ") : could not find Bin/SetEnv.cmd (you can use the WIN_SDK environment variable to specify an other path)")
 
     p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + winSDK + '/Bin/SetEnv.cmd" & echo ' + STARTTOKEN + '"', \
             shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
