@@ -525,6 +525,7 @@ public class BinaryParser implements GraphParser {
         }
     }
 
+    @Override
     public GraphDocument parse() throws IOException {
         GraphDocument doc = new GraphDocument();
         folderStack.push(doc);
@@ -659,6 +660,9 @@ public class BinaryParser implements GraphParser {
             int propCount = readShort();
             for (int j = 0; j < propCount; j++) {
                 String key = readPoolObject(String.class);
+                if (key.equals("hasPredecessor") || key.equals("name") || key.equals("class")) {
+                    key = "!data." + key;
+                }
                 Object value = readPropertyObject();
                 properties.setProperty(key, value != null ? value.toString() : "null");
                 props.put(key, value);
