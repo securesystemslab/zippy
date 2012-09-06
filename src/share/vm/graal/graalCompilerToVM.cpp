@@ -291,6 +291,8 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     result = VMToCompiler::createPrimitiveJavaType((int) T_DOUBLE, THREAD);
   } else if (nameSymbol == vmSymbols::float_signature()) {
     result = VMToCompiler::createPrimitiveJavaType((int) T_FLOAT, THREAD);
+  } else if (nameSymbol == vmSymbols::void_signature()) {
+    result = VMToCompiler::createPrimitiveJavaType((int) T_VOID, THREAD);
   } else {
     klassOop resolved_type = NULL;
     // if the name isn't in the symbol table then the class isn't loaded anyway...
