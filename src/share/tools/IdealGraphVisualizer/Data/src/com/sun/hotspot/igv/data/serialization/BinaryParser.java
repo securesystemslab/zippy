@@ -657,10 +657,11 @@ public class BinaryParser implements GraphParser {
             if (preds > 0) {
                 properties.setProperty("hasPredecessor", "true");
             }
+            properties.setProperty("idx", Integer.toString(id));
             int propCount = readShort();
             for (int j = 0; j < propCount; j++) {
                 String key = readPoolObject(String.class);
-                if (key.equals("hasPredecessor") || key.equals("name") || key.equals("class")) {
+                if (key.equals("hasPredecessor") || key.equals("name") || key.equals("class") || key.equals("id") || key.equals("idx")) {
                     key = "!data." + key;
                 }
                 Object value = readPropertyObject();
