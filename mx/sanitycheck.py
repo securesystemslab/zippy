@@ -71,10 +71,10 @@ dacapoGateBuildLevels = {
     'luindex':    ['product', 'fastdebug', 'debug'],
     'lusearch':   ['product'],
     'pmd':        ['product', 'fastdebug', 'debug'],
-    'sunflow':    ['product', 'fastdebug', 'debug'],
+    'sunflow':    [           'fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    'tradesoap':  ['product', 'fastdebug'],
+    'tradesoap':  ['product'],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 

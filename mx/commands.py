@@ -742,21 +742,22 @@ def gate(args):
         else:
             _jacoco = 'off'
         
+
+        t = Task('BuildHotSpotGraal: fastdebug,product')
+        buildvms(['--vms', 'graal', '--builds', 'fastdebug,product'])
+        tasks.append(t.stop())
+
+        _vmbuild = 'fastdebug'
+        t = Task('BootstrapWithSystemAssertions:fastdebug')
+        vm(['-esa', '-version'])
+        tasks.append(t.stop())
+
+        _vmbuild = 'product'
+        t = Task('UnitTests:product')
+        unittest(['@-XX:CompileCommand=exclude,*::run*'])
+        tasks.append(t.stop())
+
         for vmbuild in ['fastdebug', 'product']:
-            _vmbuild = vmbuild
-
-            t = Task('BuildHotSpotGraal:' + vmbuild)
-            buildvms(['--vms', 'graal', '--builds', vmbuild])
-            tasks.append(t.stop())
-            
-            t = Task('BootstrapWithSystemAssertions:' + vmbuild)
-            vm(['-esa', '-version'])
-            tasks.append(t.stop())
-
-            t = Task('UnitTests:' + vmbuild)
-            unittest(['@-XX:CompileCommand=exclude,*::run*'] if vmbuild == 'product'  else [])
-            tasks.append(t.stop())
-
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
                 t = Task(str(test) + ':' + vmbuild)
                 if not test.test('graal'):
@@ -767,10 +768,6 @@ def gate(args):
             jacocoreport([args.jacocout])
             
         _jacoco = 'off'
-
-        t = Task('BootstrapWithDeoptALot')
-        vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops', '-version'], vmbuild='fastdebug')
-        tasks.append(t.stop())
 
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
