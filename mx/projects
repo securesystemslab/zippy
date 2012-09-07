@@ -192,12 +192,6 @@ project@com.oracle.graal.jtt@dependencies=JUNIT
 project@com.oracle.graal.jtt@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.jtt@javaCompliance=1.7
 
-# graal.examples
-project@com.oracle.graal.examples@subDir=graal
-project@com.oracle.graal.examples@sourceDirs=src
-project@com.oracle.graal.examples@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.examples@javaCompliance=1.7
-
 # max.asm
 project@com.oracle.max.asm@subDir=graal
 project@com.oracle.max.asm@sourceDirs=src
