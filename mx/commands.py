@@ -814,6 +814,26 @@ def gate(args):
         mx.log('  ' + str(t.duration) + '\t' + t.title)
     mx.log('  =======')
     mx.log('  ' + str(total.duration))
+    
+def deoptalot(args):
+    """Bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
+
+    If the first argument is a number, the process will be repeated
+    this number of times. All other arguments are passed to the VM."""
+    count = 1
+    if len(args) > 0 and args[0].isdigit():
+        count = int(args[0])
+        del args[0]
+    
+    for n in range(count):
+        if not vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops'] + args + ['-version'], vmbuild='fastdebug') == 0:
+            mx.abort("Failed")
+            
+def longtests(args):
+    
+    deoptalot(['15', '-Xmx48m'])
+    
+    dacapo(['100', 'eclipse', '-esa'])
 
 def gv(args):
     """run the Graal Visualizer"""
@@ -1001,7 +1021,9 @@ def mx_init():
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
         'vmg': [vmg, '[-options] class [args...]'],
-        'vmfg': [vmfg, '[-options] class [args...]']
+        'vmfg': [vmfg, '[-options] class [args...]'],
+        'deoptalot' : [deoptalot, '[n]'],
+        'longtests' : [longtests, '']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
