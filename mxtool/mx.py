@@ -321,6 +321,9 @@ class Library(Dependency):
         self.mustExist = mustExist
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
+        for url in urls:
+            if url.endswith('/') != self.path.endswith(os.sep):
+                abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
 
     def get_path(self, resolve):
         path = self.path
@@ -1103,18 +1106,19 @@ def download(path, urls, verbose=False):
     # Try it with the Java tool first since it can show a progress counter
     myDir = dirname(__file__)
 
-    javaSource = join(myDir, 'URLConnectionDownload.java')
-    javaClass = join(myDir, 'URLConnectionDownload.class')
-    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-        subprocess.check_call([java().javac, '-d', myDir, javaSource])
-    if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls) == 0:
-        return
+    if not path.endswith(os.sep):
+        javaSource = join(myDir, 'URLConnectionDownload.java')
+        javaClass = join(myDir, 'URLConnectionDownload.class')
+        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+            subprocess.check_call([java().javac, '-d', myDir, javaSource])
+        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls) == 0:
+            return
 
     def url_open(url):
         userAgent = 'Mozilla/5.0 (compatible)'
         headers = { 'User-Agent' : userAgent }
         req = urllib2.Request(url, headers=headers)
-        return urllib2.urlopen(req);
+        return urllib2.urlopen(req)
 
     for url in urls:
         try:
@@ -1136,8 +1140,18 @@ def download(path, urls, verbose=False):
             else:
                 with contextlib.closing(url_open(url)) as f:
                     data = f.read()
-                with open(path, 'wb') as f:
-                    f.write(data)
+                if path.endswith(os.sep):
+                    # Scrape directory listing for relative URLs
+                    hrefs = re.findall(r' href="([^"]*)"', data)
+                    if len(hrefs) != 0:
+                        for href in hrefs:
+                            if not '/' in href:
+                                download(join(path, href), [url + href], verbose)
+                    else:
+                        log('no locals hrefs scraped from ' + url)
+                else:
+                    with open(path, 'wb') as f:
+                        f.write(data)
             return
         except IOError as e:
             log('Error reading from ' + url + ': ' + str(e))
