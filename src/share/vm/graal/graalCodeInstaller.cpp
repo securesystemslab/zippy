@@ -189,12 +189,9 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     }
 
     ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), klass)));
+    objects->append(sv);
 
     arrayOop values = (arrayOop) VirtualObject::values(value);
-    for (jint i = 0; i < values->length(); i++) {
-      ((oop*) values->base(T_OBJECT))[i];
-    }
-
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
       ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second);
@@ -215,7 +212,6 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       }
       sv->field_values()->append(value);
     }
-    objects->append(sv);
     return sv;
   } else {
     value->klass()->print();
