@@ -52,7 +52,6 @@ void graal_compute_offsets();
     oop_field(HotSpotResolvedJavaType, javaMirror, "Ljava/lang/Class;")                     \
     oop_field(HotSpotResolvedJavaType, simpleName, "Ljava/lang/String;")                    \
     int_field(HotSpotResolvedJavaType, accessFlags)                                         \
-    long_field(HotSpotResolvedJavaType, initialMarkWord)                                    \
     boolean_field(HotSpotResolvedJavaType, hasFinalizer)                                    \
     boolean_field(HotSpotResolvedJavaType, hasFinalizableSubclass)                          \
     int_field(HotSpotResolvedJavaType, superCheckOffset)                                    \
