@@ -707,11 +707,8 @@ jobject get_object(JNIEnv* env, jobject obj, const char* name, const char* sig) 
 BasicType basicTypes[] = { T_BOOLEAN, T_BYTE, T_SHORT, T_CHAR, T_INT, T_FLOAT, T_LONG, T_DOUBLE, T_OBJECT };
 int basicTypeCount = sizeof(basicTypes) / sizeof(BasicType);
 
-// public HotSpotVMConfig getConfiguration();
-JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_getConfiguration(JNIEnv *env, jobject) {
-  jclass klass = env->FindClass("com/oracle/graal/hotspot/HotSpotVMConfig");
-  assert(klass != NULL, "HotSpot vm config class not found");
-  jobject config = env->AllocObject(klass);
+// public void initializeConfiguration(HotSpotVMConfig config);
+JNIEXPORT void JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_initializeConfiguration(JNIEnv *env, jobject, jobject config) {
 #ifdef _WIN64
   set_boolean(env, config, "windowsOs", true);
 #else
@@ -808,7 +805,6 @@ JNIEXPORT jobject JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_
     }
 
   set_int(env, config, "arrayClassElementOffset", in_bytes(objArrayKlass::element_klass_offset()));
-  return config;
 }
 
 // public HotSpotCompiledMethod installMethod(HotSpotCompilationResult comp, boolean installCode);
@@ -1045,7 +1041,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
   {CC"getMaxCallTargetOffset",              CC"("RUNTIME_CALL")J",                                FN_PTR(getMaxCallTargetOffset)},
   {CC"getType",                             CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
-  {CC"getConfiguration",                    CC"()"CONFIG,                                         FN_PTR(getConfiguration)},
+  {CC"initializeConfiguration",             CC"("CONFIG")V",                                      FN_PTR(initializeConfiguration)},
   {CC"installMethod",                       CC"("HS_COMP_RESULT"Z"HS_CODE_INFO")"HS_COMP_METHOD,  FN_PTR(installMethod)},
   {CC"disassembleNative",                   CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
   {CC"JavaMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(JavaMethod_1toStackTraceElement)},
