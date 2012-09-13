@@ -658,6 +658,7 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_boolean(env, config, "verifyOops", VerifyOops);
   set_boolean(env, config, "useFastLocking", UseFastLocking);
   set_boolean(env, config, "useFastNewObjectArray", UseFastNewObjectArray);
+  set_boolean(env, config, "useBiasedLocking", UseBiasedLocking);
   set_boolean(env, config, "useFastNewTypeArray", UseFastNewTypeArray);
   set_boolean(env, config, "useTLAB", UseTLAB);
   set_int(env, config, "codeEntryAlignment", CodeEntryAlignment);
@@ -675,6 +676,11 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_int(env, config, "threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int(env, config, "threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
   set_int(env, config, "threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
+  set_int(env, config, "unlockedMask", (int) markOopDesc::unlocked_value);
+  set_int(env, config, "biasedLockMaskInPlace", (int) markOopDesc::biased_lock_mask_in_place);
+  set_int(env, config, "ageMaskInPlace", (int) markOopDesc::age_mask_in_place);
+  set_int(env, config, "epochMaskInPlace", (int) markOopDesc::epoch_mask_in_place);
+  set_int(env, config, "biasedLockPattern", (int) markOopDesc::biased_lock_pattern);
   set_int(env, config, "threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int(env, config, "threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
   set_int(env, config, "threadMultiNewArrayStorageOffset", in_bytes(JavaThread::graal_multinewarray_storage_offset()));
@@ -687,6 +693,8 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_int(env, config, "graalMirrorKlassOffset", in_bytes(Klass::graal_mirror_offset()));
   set_int(env, config, "nmethodEntryOffset", nmethod::verified_entry_point_offset());
   set_int(env, config, "methodCompiledEntryOffset", in_bytes(methodOopDesc::from_compiled_offset()));
+  set_int(env, config, "basicLockSize", sizeof(BasicLock));
+  set_int(env, config, "basicLockDisplacedHeaderOffset", BasicLock::displaced_header_offset_in_bytes());
   
   set_int(env, config, "methodDataOopDataOffset", in_bytes(methodDataOopDesc::data_offset()));
   set_int(env, config, "methodDataOopTrapHistoryOffset", in_bytes(methodDataOopDesc::trap_history_offset()));
