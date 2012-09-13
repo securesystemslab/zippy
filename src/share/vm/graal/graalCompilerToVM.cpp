@@ -947,6 +947,7 @@ JNIEXPORT jint JNICALL Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_Jav
 
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   assert(!instanceKlass::cast(method->method_holder())->is_interface(), "vtableEntryOffset cannot be called for interface methods");
+  assert(instanceKlass::cast(method->method_holder())->is_linked(), "vtableEntryOffset cannot be called is holder is not linked");
 
   // get entry offset in words
   int vtable_entry_offset = instanceKlass::vtable_start_offset() + method->vtable_index() * vtableEntry::size();
