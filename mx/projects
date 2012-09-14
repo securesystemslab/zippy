@@ -11,7 +11,7 @@ library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
-library@DACAPO@urls=http://dfn.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
+library@DACAPO@urls=http://softlayer.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
 
 library@JACOCOAGENT@path=lib/jacocoagent.jar
 library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
