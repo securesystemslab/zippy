@@ -207,7 +207,14 @@ class Runtime1: public AllStatic {
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
-  static void graal_log_object(JavaThread* thread, oop msg, jboolean newline, jboolean string);
+
+  // Note: Must be kept in sync with constants in com.oracle.graal.snippets.Log
+  enum {
+    LOG_OBJECT_NEWLINE = 0x01,
+    LOG_OBJECT_STRING  = 0x02,
+    LOG_OBJECT_ADDRESS = 0x04
+  };
+  static void graal_log_object(JavaThread* thread, oop msg, jint flags);
 #endif
 
   static void deoptimize(JavaThread* thread);

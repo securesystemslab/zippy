@@ -750,9 +750,17 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
 #endif
 JRT_END
 
-JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jboolean newline, jboolean string))
+JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jint flags))
+  bool string = flags & LOG_OBJECT_STRING;
+  bool address = flags & LOG_OBJECT_ADDRESS;
+  bool newline = flags & LOG_OBJECT_NEWLINE;
   if (!string) {
-    tty->print("%p", obj);
+    if (!address && obj->is_oop_or_null(true)) {
+      char buf[400];
+      tty->print("%s@%p", obj->klass()->klass_part()->name()->as_C_string(buf, 400), obj);
+    } else {
+      tty->print("%p", obj);
+    }
   } else {
     assert(obj != NULL && java_lang_String::is_instance(obj), "must be");
 
