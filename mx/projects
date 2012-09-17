@@ -151,10 +151,17 @@ project@com.oracle.graal.compiler.virtual@dependencies=com.oracle.graal.compiler
 project@com.oracle.graal.compiler.virtual@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.virtual@javaCompliance=1.7
 
+# graal.compiler.loop
+project@com.oracle.graal.compiler.loop@subDir=graal
+project@com.oracle.graal.compiler.loop@sourceDirs=src
+project@com.oracle.graal.compiler.loop@dependencies=com.oracle.graal.compiler.phases
+project@com.oracle.graal.compiler.loop@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.loop@javaCompliance=1.7
+
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.compiler.virtual,com.oracle.graal.alloc,com.oracle.graal.lir.amd64
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.compiler.virtual,com.oracle.graal.compiler.loop,com.oracle.graal.alloc,com.oracle.graal.lir.amd64
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.7
 
