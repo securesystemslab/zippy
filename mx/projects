@@ -137,10 +137,24 @@ project@com.oracle.graal.interpreter@dependencies=com.oracle.graal.hotspot
 project@com.oracle.graal.interpreter@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.interpreter@javaCompliance=1.7
 
+# graal.compiler.phases
+project@com.oracle.graal.compiler.phases@subDir=graal
+project@com.oracle.graal.compiler.phases@sourceDirs=src
+project@com.oracle.graal.compiler.phases@dependencies=com.oracle.graal.nodes
+project@com.oracle.graal.compiler.phases@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.phases@javaCompliance=1.7
+
+# graal.compiler.virtual
+project@com.oracle.graal.compiler.virtual@subDir=graal
+project@com.oracle.graal.compiler.virtual@sourceDirs=src
+project@com.oracle.graal.compiler.virtual@dependencies=com.oracle.graal.compiler.phases
+project@com.oracle.graal.compiler.virtual@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.virtual@javaCompliance=1.7
+
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.lir.amd64,com.oracle.graal.alloc
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.compiler.phases,com.oracle.graal.compiler.virtual,com.oracle.graal.lir.amd64,com.oracle.graal.alloc
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.7
 
