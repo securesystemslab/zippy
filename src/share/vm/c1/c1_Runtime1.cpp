@@ -687,9 +687,11 @@ JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDes
   NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
 #ifdef ASSERT
   if (TraceGraal >= 3) {
+    char type[1024];
+    obj->klass()->klass_part()->name()->as_C_string(type, 1024);
     markOop mark = obj->mark();
-    markOop dmw = mark->has_displaced_mark_helper() ? mark->displaced_mark_helper() : (markOop) (int*) 0xFFFFFFFF;
-    tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT ", mark=" INTPTR_FORMAT ", dmw=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, mark, dmw , lock);
+    tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT ", type=%s, mark=" INTPTR_FORMAT ", lock=" INTPTR_FORMAT, obj, type, mark, lock);
+    tty->flush();
   }
   if (PrintBiasedLockingStatistics) {
     Atomic::inc(BiasedLocking::slow_path_entry_count_addr());
@@ -744,8 +746,11 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
     ObjectSynchronizer::fast_exit(obj, lock, THREAD);
   }
 #ifdef ASSERT
-  if (TraceGraal >= 3) {
-    tty->print_cr("exited locking slow case with obj=" INTPTR_FORMAT ", mark=" INTPTR_FORMAT " and lock= " INTPTR_FORMAT, obj, obj->mark(), lock);
+  if (TraceGraal >= 3 || true) {
+    char type[1024];
+    obj->klass()->klass_part()->name()->as_C_string(type, 1024);
+    tty->print_cr("exited locking slow case with obj=" INTPTR_FORMAT ", type=%s, mark=" INTPTR_FORMAT ", lock=" INTPTR_FORMAT, obj, type, obj->mark(), lock);
+    tty->flush();
   }
 #endif
 JRT_END
