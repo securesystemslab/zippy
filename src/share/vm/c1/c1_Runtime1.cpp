@@ -746,7 +746,7 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
     ObjectSynchronizer::fast_exit(obj, lock, THREAD);
   }
 #ifdef ASSERT
-  if (TraceGraal >= 3 || true) {
+  if (TraceGraal >= 3) {
     char type[1024];
     obj->klass()->klass_part()->name()->as_C_string(type, 1024);
     tty->print_cr("exited locking slow case with obj=" INTPTR_FORMAT ", type=%s, mark=" INTPTR_FORMAT ", lock=" INTPTR_FORMAT, obj, type, obj->mark(), lock);
