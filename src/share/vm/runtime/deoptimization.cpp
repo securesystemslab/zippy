@@ -1261,7 +1261,12 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
   thread->inc_in_deopt_handler();
 
   // We need to update the map if we have biased locking.
+#ifdef GRAAL
+  // (lstadler) Graal might need to get an exception from the stack, which in turn requires the register map to be valid
+  RegisterMap reg_map(thread, true);
+#else
   RegisterMap reg_map(thread, UseBiasedLocking);
+#endif
   frame stub_frame = thread->last_frame();
   frame fr = stub_frame.sender(&reg_map);
   // Make sure the calling nmethod is not getting deoptimized and removed

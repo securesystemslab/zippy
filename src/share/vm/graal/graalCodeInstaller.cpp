@@ -510,10 +510,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
   DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
-  bool throw_exception = false;
-  if (BytecodeFrame::rethrowException(frame)) {
-    throw_exception = true;
-  }
+  bool throw_exception = BytecodeFrame::rethrowException(frame);
 
   _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
