@@ -174,6 +174,22 @@ C2V_VMENTRY(jobject, getJavaMethod, (JNIEnv *, jobject, jobject reflection_metho
   return JNIHandles::make_local(THREAD, ret());
 }
 
+C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_handle))
+  oop reflection_field = JNIHandles::resolve(reflection_field_handle);
+  oop reflection_holder = java_lang_reflect_Field::clazz(reflection_field);
+  int slot = java_lang_reflect_Field::slot(reflection_field);
+  instanceKlass* holder = instanceKlass::cast(java_lang_Class::as_klassOop(reflection_holder));
+
+  int offset = holder->field_offset(slot);
+  int flags = holder->field_access_flags(slot);
+  Symbol* field_name = holder->field_name(slot);
+  Handle field_holder = GraalCompiler::get_JavaTypeFromClass(reflection_holder, CHECK_NULL);
+  Handle field_type = GraalCompiler::get_JavaTypeFromClass(java_lang_reflect_Field::type(reflection_field), CHECK_NULL);
+
+  Handle ret = GraalCompiler::get_JavaField(offset, flags, field_name, field_holder, field_type, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, ret());
+}
+
 C2V_VMENTRY(jobject, JavaMethod_uniqueConcreteMethod, (JNIEnv *, jobject, jobject hotspot_method))
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   KlassHandle holder = method->method_holder();
@@ -443,7 +459,7 @@ C2V_VMENTRY(jobject, ConstantPool_lookupField, (JNIEnv *env, jobject, jobject co
   }
   
   Handle type = GraalCompiler::get_JavaTypeFromSignature(cp, sig_index, cp->pool_holder(), CHECK_NULL);
-  Handle field_handle = GraalCompiler::get_JavaField(offset, flags.as_int(), name, holder, type, code, THREAD);
+  Handle field_handle = GraalCompiler::get_JavaField(offset, flags.as_int(), name, holder, type, THREAD);
 
   return JNIHandles::make_local(THREAD, field_handle());
 C2V_END
@@ -608,16 +624,9 @@ C2V_VMENTRY(jobject, getType, (JNIEnv *env, jobject, jobject javaClass))
   if (javaClassOop == NULL) {
     fatal("argument to CompilerToVM.getType must not be NULL");
     return NULL;
-  } else if (java_lang_Class::is_primitive(javaClassOop)) {
-    BasicType basicType = java_lang_Class::primitive_type(javaClassOop);
-    return JNIHandles::make_local(THREAD, VMToCompiler::createPrimitiveJavaType((int) basicType, THREAD));
-  } else {
-    KlassHandle klass = java_lang_Class::as_klassOop(javaClassOop);
-    Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
-
-    Handle type = GraalCompiler::createHotSpotResolvedJavaType(klass, name, CHECK_NULL);
-    return JNIHandles::make_local(THREAD, type());
   }
+  Handle type = GraalCompiler::get_JavaTypeFromClass(javaClassOop, CHECK_NULL);
+  return JNIHandles::make_local(THREAD, type());
 C2V_END
 
 
@@ -918,6 +927,7 @@ C2V_END
 #define SIGNATURE       "Lcom/oracle/graal/api/meta/Signature;"
 #define FIELD           "Lcom/oracle/graal/api/meta/JavaField;"
 #define RESOLVED_FIELD  "Lcom/oracle/graal/api/meta/ResolvedJavaField;"
+#define REFLECT_FIELD   "Ljava/lang/reflect/Field;"
 #define CONSTANT_POOL   "Lcom/oracle/graal/api/meta/ConstantPool;"
 #define EXCEPTION_HANDLERS "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define HS_COMP_RESULT  "Lcom/oracle/graal/hotspot/HotSpotCompilationResult;"
@@ -969,7 +979,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
   {CC"getMaxCallTargetOffset",              CC"("RUNTIME_CALL")J",                                FN_PTR(getMaxCallTargetOffset)},
   {CC"getType",                             CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
-  {CC"getJavaMethod",                       CC"("REFLECT_METHOD")"METHOD,                         FN_PTR(getJavaMethod)},
+  {CC"getJavaMethod",                       CC"("REFLECT_METHOD")"METHOD         ,                FN_PTR(getJavaMethod)},
+  {CC"getJavaField",                        CC"("REFLECT_FIELD")"RESOLVED_FIELD,                  FN_PTR(getJavaField)},
   {CC"initializeConfiguration",             CC"("CONFIG")V",                                      FN_PTR(initializeConfiguration)},
   {CC"installMethod",                       CC"("HS_COMP_RESULT"Z"HS_CODE_INFO")"HS_COMP_METHOD,  FN_PTR(installMethod)},
   {CC"disassembleNative",                   CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},

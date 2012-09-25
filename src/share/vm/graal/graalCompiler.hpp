@@ -73,8 +73,9 @@ public:
   static Handle get_JavaTypeFromSignature(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
   static Handle get_JavaType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
   static Handle get_JavaType(Symbol* klass_name, TRAPS);
+  static Handle get_JavaTypeFromClass(Handle javaClassHandle, TRAPS);
   static Handle get_JavaType(KlassHandle klass, TRAPS);
-  static Handle get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, Bytecodes::Code byteCode, TRAPS);
+  static Handle get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS);
 
   static Handle createHotSpotResolvedJavaType(KlassHandle klass, Handle name, TRAPS);
   static Handle createHotSpotResolvedJavaMethod(methodHandle method, TRAPS);
