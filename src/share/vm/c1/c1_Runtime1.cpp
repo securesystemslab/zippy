@@ -805,6 +805,27 @@ JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jint fla
   }
 JRT_END
 
+JRT_ENTRY(void, Runtime1::graal_log_printf(JavaThread* thread, oop format, jlong val))
+  char buf[1025];
+  assert(format != NULL && java_lang_String::is_instance(format), "must be");
+
+  typeArrayOop value  = java_lang_String::value(format);
+  int          offset = java_lang_String::offset(format);
+  int          length = java_lang_String::length(format);
+
+  assert(value != NULL, "fmtString must be a literal");
+  assert(length >= 0 && length <= 1024, "format must be between 0 and 1024 characters");
+  length = MIN2(length, 1024);
+
+  int index = 0;
+  while (index < length) {
+    buf[index] = value->char_at(index + offset);
+    index++;
+  }
+  buf[index++] = 0;
+  tty->print(buf, val);
+JRT_END
+
 JRT_ENTRY(void, Runtime1::graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
   union {
       jlong l;

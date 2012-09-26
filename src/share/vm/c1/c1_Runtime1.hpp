@@ -82,6 +82,7 @@ class StubAssembler;
   stub(graal_create_out_of_bounds_exception) \
   stub(graal_generic_callback)       \
   stub(graal_log_object)             \
+  stub(graal_log_printf)             \
   stub(graal_log_primitive)          \
   last_entry(number_of_ids)
 #else
@@ -206,6 +207,7 @@ class Runtime1: public AllStatic {
   static void graal_generic_callback(JavaThread* thread, oop _callback, oop _argument);
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void graal_log_printf(JavaThread* thread, oop format, jlong value);
   static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
 
   // Note: Must be kept in sync with constants in com.oracle.graal.snippets.Log

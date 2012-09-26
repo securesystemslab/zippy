@@ -578,6 +578,9 @@ address CodeInstaller::runtime_call_target_address(oop runtime_call) {
   } else if (runtime_call == RuntimeCall::LogPrimitive()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_log_primitive_id);
     TRACE_graal_3("RuntimeCall::LogPrimitive()");
+  } else if (runtime_call == RuntimeCall::LogPrintf()) {
+    target_addr = Runtime1::entry_for(Runtime1::graal_log_printf_id);
+    TRACE_graal_3("RuntimeCall::LogPrintf()");
   } else if (runtime_call == RuntimeCall::LogObject()) {
     target_addr = Runtime1::entry_for(Runtime1::graal_log_object_id);
     TRACE_graal_3("RuntimeCall::LogObject()");

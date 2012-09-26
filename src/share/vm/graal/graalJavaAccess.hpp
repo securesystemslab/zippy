@@ -203,6 +203,7 @@ void graal_compute_offsets();
     static_oop_field(RuntimeCall, ArithmeticSin, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
     static_oop_field(RuntimeCall, Deoptimize, "Lcom/oracle/graal/api/code/RuntimeCall;");      \
     static_oop_field(RuntimeCall, GenericCallback, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
+    static_oop_field(RuntimeCall, LogPrintf, "Lcom/oracle/graal/api/code/RuntimeCall;");       \
     static_oop_field(RuntimeCall, LogPrimitive, "Lcom/oracle/graal/api/code/RuntimeCall;");    \
     static_oop_field(RuntimeCall, LogObject, "Lcom/oracle/graal/api/code/RuntimeCall;");       \
   end_class                                                                             \
