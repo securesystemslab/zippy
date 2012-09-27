@@ -761,68 +761,40 @@ JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jint fla
   bool newline = flags & LOG_OBJECT_NEWLINE;
   if (!string) {
     if (!address && obj->is_oop_or_null(true)) {
-      char buf[400];
-      tty->print("%s@%p", obj->klass()->klass_part()->name()->as_C_string(buf, 400), obj);
+      char buf[O_BUFLEN];
+      tty->print("%s@%p", obj->klass()->klass_part()->name()->as_C_string(buf, O_BUFLEN), obj);
     } else {
       tty->print("%p", obj);
     }
   } else {
+    ResourceMark rm;
     assert(obj != NULL && java_lang_String::is_instance(obj), "must be");
-
-    typeArrayOop value  = java_lang_String::value(obj);
-    int          offset = java_lang_String::offset(obj);
-    int          length = java_lang_String::length(obj);
-
-    if (length != 0) {
-      int printLength = MIN2(length, 1024);
-      if (value == NULL) {
-        // This can happen if, e.g., printing a String
-        // object before its initializer has been called
-        tty->print("null");
-      } else if (printLength < 256 - 1) {
-        // Use an intermediate buffer to try and prevent interlacing of multi-threaded output
-        char buf[256];
-        for (int index = 0; index < printLength; index++) {
-          buf[index] = value->char_at(index + offset);
-        }
-        buf[printLength] = 0;
-        tty->print("%s", buf);
-        if (printLength < length) {
-          tty->print("... (%d more)", length - printLength);
-        }
-      } else {
-        for (int index = 0; index < printLength; index++) {
-          tty->print("%c", value->char_at(index + offset));
-        }
-        if (printLength < length) {
-          tty->print("... (%d more)", length - printLength);
-        }
-      }
-    }
+    char *buf = java_lang_String::as_utf8_string(obj);
+    tty->print(buf);
   }
   if (newline) {
     tty->cr();
   }
 JRT_END
 
-JRT_ENTRY(void, Runtime1::graal_log_printf(JavaThread* thread, oop format, jlong val))
-  char buf[1025];
-  assert(format != NULL && java_lang_String::is_instance(format), "must be");
-
-  typeArrayOop value  = java_lang_String::value(format);
-  int          offset = java_lang_String::offset(format);
-  int          length = java_lang_String::length(format);
-
-  assert(value != NULL, "fmtString must be a literal");
-  assert(length >= 0 && length <= 1024, "format must be between 0 and 1024 characters");
-  length = MIN2(length, 1024);
-
-  int index = 0;
-  while (index < length) {
-    buf[index] = value->char_at(index + offset);
-    index++;
+JRT_ENTRY(void, Runtime1::graal_vm_error(JavaThread* thread, oop where, oop format, jlong value))
+  ResourceMark rm;
+  assert(where == NULL || java_lang_String::is_instance(where), "must be");
+  const char *error_msg = where == NULL ? "<internal Graal error>" : java_lang_String::as_utf8_string(where);
+  char *detail_msg = NULL;
+  if (format != NULL) {
+    const char* buf = java_lang_String::as_utf8_string(format);
+    int detail_msg_length = strlen(buf) * 2;
+    detail_msg = (char *) NEW_RESOURCE_ARRAY(u_char, detail_msg_length);
+    jio_snprintf(detail_msg, detail_msg_length, buf, value);
   }
-  buf[index++] = 0;
+  report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
+JRT_END
+
+JRT_ENTRY(void, Runtime1::graal_log_printf(JavaThread* thread, oop format, jlong val))
+  ResourceMark rm;
+  assert(format != NULL && java_lang_String::is_instance(format), "must be");
+  char *buf = java_lang_String::as_utf8_string(format);
   tty->print(buf, val);
 JRT_END
 

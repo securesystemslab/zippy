@@ -76,7 +76,8 @@ class StubAssembler;
   stub(graal_arithmetic_drem)        \
   stub(graal_monitorenter)           \
   stub(graal_monitorexit)            \
-  stub(graal_verify_oop)         \
+  stub(graal_verify_oop)             \
+  stub(graal_vm_error)               \
   stub(graal_set_deopt_info)         \
   stub(graal_create_null_pointer_exception) \
   stub(graal_create_out_of_bounds_exception) \
@@ -207,6 +208,7 @@ class Runtime1: public AllStatic {
   static void graal_generic_callback(JavaThread* thread, oop _callback, oop _argument);
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void graal_vm_error(JavaThread* thread, oop where, oop format, jlong value);
   static void graal_log_printf(JavaThread* thread, oop format, jlong value);
   static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
 

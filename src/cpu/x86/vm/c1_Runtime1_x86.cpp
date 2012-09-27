@@ -1917,6 +1917,18 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
+    case graal_vm_error_id: {
+      __ enter();
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 0);
+      int call_offset = __ call_RT(noreg, noreg, (address)graal_vm_error, j_rarg0, j_rarg1, j_rarg2);
+      oop_maps->add_gc_map(call_offset, oop_map);
+      restore_live_registers(sasm);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+
     case graal_log_printf_id: {
       __ enter();
       oop_maps = new OopMapSet();
