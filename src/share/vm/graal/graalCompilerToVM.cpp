@@ -735,6 +735,7 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_long(env, config, "fastMonitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorenter_id)));
   set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorexit_id)));
   set_long(env, config, "verifyOopStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_verify_oop_id)));
+  set_long(env, config, "vmErrorStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_vm_error_id)));
 
 
   BarrierSet* bs = Universe::heap()->barrier_set();
