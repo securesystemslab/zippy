@@ -220,16 +220,9 @@ project@com.oracle.max.asm@dependencies=com.oracle.max.criutils
 project@com.oracle.max.asm@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.asm@javaCompliance=1.7
 
-# max.cri
-project@com.oracle.max.cri@subDir=graal
-project@com.oracle.max.cri@sourceDirs=src
-project@com.oracle.max.cri@dependencies=com.oracle.graal.api.code
-project@com.oracle.max.cri@checkstyle=com.oracle.graal.graph
-project@com.oracle.max.cri@javaCompliance=1.7
-
 # max.criutils
 project@com.oracle.max.criutils@subDir=graal
 project@com.oracle.max.criutils@sourceDirs=src
-project@com.oracle.max.criutils@dependencies=com.oracle.max.cri
+project@com.oracle.max.criutils@dependencies=com.oracle.graal.api.code
 project@com.oracle.max.criutils@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.criutils@javaCompliance=1.7

@@ -2162,7 +2162,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.graal.compiler.virtual",
         "com.oracle.graal.nodes",
         "com.oracle.graal.printer",
-        "com.oracle.max.cri",
         "com.oracle.graal.debug",
         "com.oracle.graal.graph",
         "com.oracle.graal.lir",
