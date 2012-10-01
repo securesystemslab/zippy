@@ -1976,25 +1976,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
-    case graal_slow_subtype_check_id: {
-      Label success;
-      Label miss;
-
-      // TODO this should really be within the XirSnippets
-      __ check_klass_subtype_fast_path(j_rarg0, j_rarg1, j_rarg2, &success, &miss, NULL);
-      __ check_klass_subtype_slow_path(j_rarg0, j_rarg1, j_rarg2, j_rarg3, NULL, &miss);
-
-      // fallthrough on success:
-      __ bind(success);
-      __ movptr(rax, 1);
-      __ ret(0);
-
-      __ bind(miss);
-      __ movptr(rax, NULL_WORD);
-      __ ret(0);
-      break;
-    }
-
     case graal_verify_oop_id: {
       // We use enter & leave so that a better stack trace is produced in the hs_err file
       __ enter();
