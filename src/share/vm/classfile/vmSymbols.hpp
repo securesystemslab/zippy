@@ -288,7 +288,8 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaType,    "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaType")         \
-  /* graal.api.meta */                                                                                                                 \
+  AMD64_ONLY(template(com_oracle_graal_hotspot_target_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/target/amd64/AMD64HotSpotGraalRuntime"))\
+  /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
   template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler")                    \
@@ -297,7 +298,7 @@
   template(com_oracle_graal_api_meta_Kind,                           "com/oracle/graal/api/meta/Kind")                                \
   template(com_oracle_graal_api_meta_ResolvedJavaField,              "com/oracle/graal/api/meta/ResolvedJavaField")                   \
   template(com_oracle_graal_api_meta_Value,                          "com/oracle/graal/api/meta/Value")                               \
-  /* graal.api.code */                                                                                                                 \
+  /* graal.api.code */                                                                                                                \
   template(com_oracle_graal_api_code_Assumptions,                    "com/oracle/graal/api/code/Assumptions")                         \
   template(com_oracle_graal_api_code_Assumptions_MethodContents,     "com/oracle/graal/api/code/Assumptions$MethodContents")          \
   template(com_oracle_graal_api_code_Assumptions_ConcreteSubtype,    "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")         \
