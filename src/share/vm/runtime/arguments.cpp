@@ -2147,6 +2147,11 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     // this declaration is checked for correctness by 'mx build' - only
     // modify its entries, not its name or shape
     const char* graal_projects[] = {
+#ifdef AMD64
+        "com.oracle.max.asm.amd64",
+        "com.oracle.graal.lir.amd64",
+        "com.oracle.graal.hotspot.amd64",
+#endif
         "com.oracle.graal.api",
         "com.oracle.graal.api.meta",
         "com.oracle.graal.api.code",
@@ -2154,7 +2159,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.max.criutils",
         "com.oracle.graal.hotspot",
         "com.oracle.max.asm",
-        "com.oracle.max.asm.amd64",
         "com.oracle.graal.alloc",
         "com.oracle.graal.snippets",
         "com.oracle.graal.compiler",
@@ -2166,7 +2170,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.graal.debug",
         "com.oracle.graal.graph",
         "com.oracle.graal.lir",
-        "com.oracle.graal.lir.amd64",
         "com.oracle.graal.bytecode",
         "com.oracle.graal.java"
     };

@@ -41,7 +41,7 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
 Handle VMToCompiler::compilerInstance() {
   if (JNIHandles::resolve(_compilerPermObject) == NULL) {
 #ifdef AMD64
-    Symbol* compilerImplKlassName = vmSymbols::com_oracle_graal_hotspot_target_amd64_AMD64HotSpotGraalRuntime();
+    Symbol* compilerImplKlassName = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
 #endif
     KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(compilerImplKlassName, SystemDictionary::java_system_loader(), NULL, Thread::current());
     check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotGraalRuntime");

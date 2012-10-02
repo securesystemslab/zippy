@@ -274,6 +274,12 @@ def scaladacapo(args):
     if len(failed) != 0:
         mx.abort('Scala DaCapo failures: ' + str(failed))
 
+def _arch():
+    machine = os.uname()[4]
+    if machine in ['amd64', 'x86_64']:
+        return 'amd64'
+    mx.abort('unsupported or unknown machine type: ' + machine)
+
 def _vmLibDirInJdk(jdk):
     """
     Get the directory within a JDK where the server and client
@@ -283,14 +289,14 @@ def _vmLibDirInJdk(jdk):
         return join(jdk, 'jre', 'lib')
     if platform.system() == 'Windows':
         return join(jdk, 'jre', 'bin')
-    return join(jdk, 'jre', 'lib', 'amd64')
+    return join(jdk, 'jre', 'lib', _arch())
 
 def _vmCfgInJdk(jdk):
     """
     Get the jvm.cfg file.
     """
     if platform.system() == 'Windows':
-        return join(jdk, 'jre', 'lib', 'amd64', 'jvm.cfg')
+        return join(jdk, 'jre', 'lib', _arch(), 'jvm.cfg')
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdk(build='product', create=False):
@@ -464,14 +470,14 @@ def build(args, vm=None):
             assert start != -1, 'Could not find "' + decl + '" in ' + fp.name
             end = source.find('};', start)
             assert end != -1, 'Could not find "' + decl + '" ... "};" in ' + fp.name
-            actual = frozenset([a.strip().strip('"') for a in source[start + len(decl):end].split(',')])
-            expected = frozenset([p.name for p in mx.project('com.oracle.graal.hotspot').all_deps([], False)])
+            actual = frozenset(re.findall(r'"([^"]+)"', source[start + len(decl):end]))
+            expected = frozenset([p.name for p in mx.project('com.oracle.graal.hotspot.' + _arch()).all_deps([], False)])
             missing = expected - actual
             extra = actual - expected
             if len(missing) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing projects to declaration:\n    ' + '\n    '.join(missing))
+                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing project(s) to declaration:\n    ' + '\n    '.join(missing))
             if len(extra) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove projects from declaration:\n    ' + '\n    '.join(extra))
+                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove project(s) from declaration:\n    ' + '\n    '.join(extra))
 
         # Check if a build really needs to be done
         timestampFile = join(vmDir, '.build-timestamp')
@@ -956,7 +962,7 @@ def hsdis(args, copyToDir=None):
     flavor = 'intel'
     if 'att' in args:
         flavor = 'att'
-    lib = mx.lib_suffix('hsdis-amd64')
+    lib = mx.lib_suffix('hsdis-' + _arch())
     path = join(_graal_home, 'lib', lib)
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
