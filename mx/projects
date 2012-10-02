@@ -98,7 +98,7 @@ project@com.oracle.graal.lir@javaCompliance=1.7
 # graal.lir.amd64
 project@com.oracle.graal.lir.amd64@subDir=graal
 project@com.oracle.graal.lir.amd64@sourceDirs=src
-project@com.oracle.graal.lir.amd64@dependencies=com.oracle.graal.lir
+project@com.oracle.graal.lir.amd64@dependencies=com.oracle.graal.lir,com.oracle.max.asm.amd64
 project@com.oracle.graal.lir.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir.amd64@javaCompliance=1.7
 
@@ -219,6 +219,13 @@ project@com.oracle.max.asm@sourceDirs=src
 project@com.oracle.max.asm@dependencies=com.oracle.max.criutils
 project@com.oracle.max.asm@checkstyle=com.oracle.graal.graph
 project@com.oracle.max.asm@javaCompliance=1.7
+
+# max.asm.amd64
+project@com.oracle.max.asm.amd64@subDir=graal
+project@com.oracle.max.asm.amd64@sourceDirs=src
+project@com.oracle.max.asm.amd64@dependencies=com.oracle.max.asm
+project@com.oracle.max.asm.amd64@checkstyle=com.oracle.graal.graph
+project@com.oracle.max.asm.amd64@javaCompliance=1.7
 
 # max.criutils
 project@com.oracle.max.criutils@subDir=graal

@@ -2154,6 +2154,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.max.criutils",
         "com.oracle.graal.hotspot",
         "com.oracle.max.asm",
+        "com.oracle.max.asm.amd64",
         "com.oracle.graal.alloc",
         "com.oracle.graal.snippets",
         "com.oracle.graal.compiler",
