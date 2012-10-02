@@ -16,6 +16,7 @@
 \.settings/
 \.metadata/
 ~$
+.gdb_history
 \.csv$
 \.swp$
 \.class$
