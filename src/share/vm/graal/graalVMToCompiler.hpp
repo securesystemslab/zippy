@@ -35,7 +35,7 @@
 class VMToCompiler : public AllStatic {
 
 private:
-  static jobject _compilerPermObject;
+  static jobject _graalRuntimePermObject;
   static jobject _vmToCompilerPermObject;
   static jobject _vmToCompilerPermKlass;
 
@@ -43,10 +43,11 @@ private:
   static Handle instance();
 
 public:
-  static Handle compilerInstance();
+  static Handle graalRuntime();
 
-  static jobject compilerPermObject() {
-    return _compilerPermObject;
+  static jobject graalRuntimePermObject() {
+    graalRuntime();
+    return _graalRuntimePermObject;
   }
 
   // public static boolean HotSpotOptions.setOption(String option);

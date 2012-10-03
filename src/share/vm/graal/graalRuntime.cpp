@@ -27,6 +27,5 @@
 
 // JVM_InitializeGraalRuntime
 JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
-  VMToCompiler::compilerInstance();
-  return VMToCompiler::compilerPermObject();
+  return VMToCompiler::graalRuntimePermObject();
 JVM_END

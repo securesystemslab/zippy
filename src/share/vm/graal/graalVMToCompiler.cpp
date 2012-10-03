@@ -25,7 +25,7 @@
 #include "graal/graalVMToCompiler.hpp"
 
 // this is a *global* handle
-jobject VMToCompiler::_compilerPermObject = NULL;
+jobject VMToCompiler::_graalRuntimePermObject = NULL;
 jobject VMToCompiler::_vmToCompilerPermObject = NULL;
 jobject VMToCompiler::_vmToCompilerPermKlass = NULL;
 
@@ -46,19 +46,19 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
   return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmToCompilerPermKlass));
 }
 
-Handle VMToCompiler::compilerInstance() {
-  if (JNIHandles::resolve(_compilerPermObject) == NULL) {
+Handle VMToCompiler::graalRuntime() {
+  if (JNIHandles::resolve(_graalRuntimePermObject) == NULL) {
 #ifdef AMD64
     Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
 #endif
     KlassHandle klass = loadClass(name);
 
     JavaValue result(T_OBJECT);
-    JavaCalls::call_static(&result, klass, vmSymbols::initialize_name(), vmSymbols::getInstance_signature(), Thread::current());
+    JavaCalls::call_static(&result, klass, vmSymbols::makeInstance_name(), vmSymbols::getInstance_signature(), Thread::current());
     check_pending_exception("Couldn't initialize HotSpotGraalRuntime");
-    _compilerPermObject = JNIHandles::make_global((oop) result.get_jobject());
+    _graalRuntimePermObject = JNIHandles::make_global((oop) result.get_jobject());
   }
-  return Handle(JNIHandles::resolve_non_null(_compilerPermObject));
+  return Handle(JNIHandles::resolve_non_null(_graalRuntimePermObject));
 }
 
 Handle VMToCompiler::instance() {
@@ -67,7 +67,7 @@ Handle VMToCompiler::instance() {
 
     JavaValue result(T_OBJECT);
     JavaCallArguments args;
-    args.set_receiver(compilerInstance());
+    args.set_receiver(graalRuntime());
     JavaCalls::call_virtual(&result, compilerKlass, vmSymbols::getVMToCompiler_name(), vmSymbols::getVMToCompiler_signature(), &args, Thread::current());
     check_pending_exception("Couldn't get VMToCompiler");
     _vmToCompilerPermObject = JNIHandles::make_global((oop) result.get_jobject());
@@ -111,7 +111,7 @@ jboolean VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jbool
 }
 
 void VMToCompiler::shutdownCompiler() {
-  if (_compilerPermObject != NULL) {
+  if (_graalRuntimePermObject != NULL) {
     HandleMark hm;
     JavaThread* THREAD = JavaThread::current();
     JavaValue result(T_VOID);
@@ -120,11 +120,11 @@ void VMToCompiler::shutdownCompiler() {
     JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::shutdownCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
     check_pending_exception("Error while calling shutdownCompiler");
 
-    JNIHandles::destroy_global(_compilerPermObject);
+    JNIHandles::destroy_global(_graalRuntimePermObject);
     JNIHandles::destroy_global(_vmToCompilerPermObject);
     JNIHandles::destroy_global(_vmToCompilerPermKlass);
 
-    _compilerPermObject = NULL;
+    _graalRuntimePermObject = NULL;
     _vmToCompilerPermObject = NULL;
     _vmToCompilerPermKlass = NULL;
   }

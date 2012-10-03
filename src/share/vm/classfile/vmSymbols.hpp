@@ -351,6 +351,7 @@
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
   template(getInstance_name,                      "getInstance")                                                                      \
+  template(makeInstance_name,                     "makeInstance")                                                                     \
   template(initialize_name,                       "initialize")                                                                       \
   template(getInstance_signature,                 "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
   template(forObject_name,                        "forObject")                                                                        \
