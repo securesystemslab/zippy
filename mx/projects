@@ -65,7 +65,7 @@ project@com.oracle.graal.hotspot@javaCompliance=1.7
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
 project@com.oracle.graal.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.hotspot
+project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.amd64
 project@com.oracle.graal.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64@javaCompliance=1.7
 
@@ -168,9 +168,16 @@ project@com.oracle.graal.compiler.loop@javaCompliance=1.7
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.compiler.virtual,com.oracle.graal.compiler.loop,com.oracle.graal.alloc,com.oracle.graal.lir.amd64
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.compiler.virtual,com.oracle.graal.compiler.loop,com.oracle.graal.alloc
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.7
+
+# graal.compiler.amd64
+project@com.oracle.graal.compiler.amd64@subDir=graal
+project@com.oracle.graal.compiler.amd64@sourceDirs=src
+project@com.oracle.graal.compiler.amd64@dependencies=com.oracle.graal.compiler,com.oracle.graal.lir.amd64
+project@com.oracle.graal.compiler.amd64@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.amd64@javaCompliance=1.7
 
 # graal.boot
 project@com.oracle.graal.boot@subDir=graal

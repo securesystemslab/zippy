@@ -2150,6 +2150,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
 #ifdef AMD64
         "com.oracle.max.asm.amd64",
         "com.oracle.graal.lir.amd64",
+        "com.oracle.graal.compiler.amd64",
         "com.oracle.graal.hotspot.amd64",
 #endif
         "com.oracle.graal.api",
