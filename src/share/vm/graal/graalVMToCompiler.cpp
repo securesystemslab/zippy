@@ -29,10 +29,18 @@ jobject VMToCompiler::_compilerPermObject = NULL;
 jobject VMToCompiler::_vmToCompilerPermObject = NULL;
 jobject VMToCompiler::_vmToCompilerPermKlass = NULL;
 
+static klassOop loadClass(Symbol* name) {
+  klassOop klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), NULL, Thread::current());
+  if (klass == NULL) {
+    tty->print_cr("Could not load class %s", name->as_C_string());
+    vm_abort(false);
+  }
+  return klass;
+}
+
 KlassHandle VMToCompiler::vmToCompilerKlass() {
   if (JNIHandles::resolve(_vmToCompilerPermKlass) == NULL) {
-    klassOop result = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(result, "Couldn't find class com.oracle.graal.hotspot.bridge.VMToCompiler");
+    klassOop result = loadClass(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler());
     _vmToCompilerPermKlass = JNIHandles::make_global(result);
   }
   return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmToCompilerPermKlass));
@@ -41,13 +49,12 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
 Handle VMToCompiler::compilerInstance() {
   if (JNIHandles::resolve(_compilerPermObject) == NULL) {
 #ifdef AMD64
-    Symbol* compilerImplKlassName = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
+    Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
 #endif
-    KlassHandle compilerImplKlass = SystemDictionary::resolve_or_null(compilerImplKlassName, SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(compilerImplKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotGraalRuntime");
+    KlassHandle klass = loadClass(name);
 
     JavaValue result(T_OBJECT);
-    JavaCalls::call_static(&result, compilerImplKlass, vmSymbols::initialize_name(), vmSymbols::getInstance_signature(), Thread::current());
+    JavaCalls::call_static(&result, klass, vmSymbols::initialize_name(), vmSymbols::getInstance_signature(), Thread::current());
     check_pending_exception("Couldn't initialize HotSpotGraalRuntime");
     _compilerPermObject = JNIHandles::make_global((oop) result.get_jobject());
   }
@@ -56,8 +63,7 @@ Handle VMToCompiler::compilerInstance() {
 
 Handle VMToCompiler::instance() {
   if (JNIHandles::resolve(_vmToCompilerPermObject) == NULL) {
-    KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_HotSpotGraalRuntime(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-    check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.Compiler");
+    KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotGraalRuntime());
 
     JavaValue result(T_OBJECT);
     JavaCallArguments args;
@@ -71,8 +77,7 @@ Handle VMToCompiler::instance() {
 
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
-  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
+  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
 
   Thread* THREAD = Thread::current();
   JavaValue result(T_BOOLEAN);
@@ -82,8 +87,7 @@ jboolean VMToCompiler::setOption(Handle option) {
 }
 
 void VMToCompiler::setDefaultOptions() {
-  KlassHandle compilerKlass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions(), SystemDictionary::java_system_loader(), NULL, Thread::current());
-  check_not_null(compilerKlass(), "Couldn't find class com.sun.hotspot.graal.HotSpotOptions");
+  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
 
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
@@ -255,7 +259,7 @@ oop VMToCompiler::createConstantDouble(jdouble value, TRAPS) {
 oop VMToCompiler::createConstantObject(Handle object, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
-  KlassHandle klass = SystemDictionary::resolve_or_null(vmSymbols::com_oracle_graal_api_meta_Constant(), SystemDictionary::java_system_loader(), NULL, Thread::current());
+  KlassHandle klass = loadClass(vmSymbols::com_oracle_graal_api_meta_Constant());
   JavaCalls::call_static(&result, klass(), vmSymbols::forObject_name(), vmSymbols::createConstantObject_signature(), object, THREAD);
   check_pending_exception("Error while calling Constant.forObject");
   return (oop) result.get_jobject();

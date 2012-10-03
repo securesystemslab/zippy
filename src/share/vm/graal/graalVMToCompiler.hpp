@@ -118,11 +118,4 @@ inline void check_pending_exception(const char* message, bool dump_core = false)
   }
 }
 
-inline void check_not_null(void* value, const char* message, bool dump_core = false) {
-  if (value == NULL) {
-    tty->print_cr("%s", message);
-    vm_abort(dump_core);
-  }
-}
-
 #endif // SHARE_VM_GRAAL_GRAAL_VM_TO_COMPILER_HPP
