@@ -133,7 +133,7 @@ project@com.oracle.graal.snippets.test@javaCompliance=1.7
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src,test
-project@com.oracle.graal.nodes@dependencies=com.oracle.max.criutils,com.oracle.graal.graph
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.api.code,com.oracle.graal.graph
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
 
@@ -230,7 +230,7 @@ project@com.oracle.graal.jtt@javaCompliance=1.7
 # graal.asm
 project@com.oracle.graal.asm@subDir=graal
 project@com.oracle.graal.asm@sourceDirs=src
-project@com.oracle.graal.asm@dependencies=com.oracle.max.criutils
+project@com.oracle.graal.asm@dependencies=com.oracle.graal.api.code
 project@com.oracle.graal.asm@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm@javaCompliance=1.7
 
@@ -240,10 +240,3 @@ project@com.oracle.graal.asm.amd64@sourceDirs=src
 project@com.oracle.graal.asm.amd64@dependencies=com.oracle.graal.asm
 project@com.oracle.graal.asm.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.amd64@javaCompliance=1.7
-
-# max.criutils
-project@com.oracle.max.criutils@subDir=graal
-project@com.oracle.max.criutils@sourceDirs=src
-project@com.oracle.max.criutils@dependencies=com.oracle.graal.api.code
-project@com.oracle.max.criutils@checkstyle=com.oracle.graal.graph
-project@com.oracle.max.criutils@javaCompliance=1.7
