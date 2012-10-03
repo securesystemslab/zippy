@@ -2148,7 +2148,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     // modify its entries, not its name or shape
     const char* graal_projects[] = {
 #ifdef AMD64
-        "com.oracle.max.asm.amd64",
+        "com.oracle.graal.asm.amd64",
         "com.oracle.graal.lir.amd64",
         "com.oracle.graal.compiler.amd64",
         "com.oracle.graal.hotspot.amd64",
@@ -2159,7 +2159,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.graal.api.interpreter",
         "com.oracle.max.criutils",
         "com.oracle.graal.hotspot",
-        "com.oracle.max.asm",
+        "com.oracle.graal.asm",
         "com.oracle.graal.alloc",
         "com.oracle.graal.snippets",
         "com.oracle.graal.compiler",
