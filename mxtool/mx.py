@@ -2392,6 +2392,43 @@ def _fix_package_summary(path):
         # no package description given
         pass
 
+def packageinfo(args):
+    """show Java packages defined by each project"""
+
+    parser = ArgumentParser(prog='packageinfo')
+    parser.add_argument('-l', action='store_true', help='show packages one per line')
+    parser.add_argument('filters', nargs=REMAINDER, metavar='filters...', help='substrings filtering the projects processed')
+
+    args = parser.parse_args(args)
+    filters = args.filters
+
+    projects = sorted_deps()
+
+    projToPkgs = dict()
+    pkgToProjs = dict()
+    for p in projects:
+        if len(filters) == 0 or len([f for f in filters if f in p.name]) != 0:
+            pkgs = set()
+            projToPkgs[p.name] = pkgs
+            for sourceDir in p.source_dirs():
+                for root, _, files in os.walk(sourceDir):
+                    if len([name for name in files if name.endswith('.java')]) != 0:
+                        pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                        pkgs.add(pkg)
+                        pkgToProjs.setdefault(pkg, set()).add(p.name)
+
+    for key,value in projToPkgs.iteritems():
+        if args.l:
+            print key, 'defines packages:'
+            for v in value:
+                print '   ', v
+        else:
+            print key, 'defines packages:', ', '.join(value)
+
+    for key,value in pkgToProjs.iteritems():
+        if len(value) > 1:
+            print 'package', key, 'is defined by multiple projects:', ', '.join(value)
+
 def site(args):
     """creates a website containing javadoc and the project dependency graph"""
 
@@ -2599,6 +2636,7 @@ commands = {
     'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],
     'projects': [show_projects, ''],
+    'packageinfo': [packageinfo, '[options]'],
 }
 
 _argParser = ArgParser()
