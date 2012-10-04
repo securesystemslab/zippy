@@ -202,14 +202,14 @@ project@com.oracle.graal.bytecode@javaCompliance=1.7
 # graal.java
 project@com.oracle.graal.java@subDir=graal
 project@com.oracle.graal.java@sourceDirs=src
-project@com.oracle.graal.java@dependencies=com.oracle.graal.compiler,com.oracle.graal.bytecode
+project@com.oracle.graal.java@dependencies=com.oracle.graal.compiler.phases,com.oracle.graal.bytecode
 project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.7
 
 # graal.printer
 project@com.oracle.graal.printer@subDir=graal
 project@com.oracle.graal.printer@sourceDirs=src
-project@com.oracle.graal.printer@dependencies=com.oracle.graal.java
+project@com.oracle.graal.printer@dependencies=com.oracle.graal.java,com.oracle.graal.compiler
 project@com.oracle.graal.printer@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.printer@javaCompliance=1.7
 
