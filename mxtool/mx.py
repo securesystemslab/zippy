@@ -1215,7 +1215,7 @@ def build(args, parser=None):
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
 
     args = parser.parse_args(args)
-
+    
     jdtJar = None
     if args.jdt is not None:
         if args.jdt.endswith('.jar'):
@@ -2430,6 +2430,26 @@ def site(args):
         javadoc(['--base', tmpbase] + exclude_packages_arg + projects_arg + extra_javadoc_args)
 
         # Create unified javadoc for all projects
+        with open(args.overview) as fp:
+            content = fp.read()
+            idx = content.rfind('</body>')
+            if idx != -1:
+                args.overview = join(tmpbase, 'overview_with_projects.html')
+                with open(args.overview, 'w') as fp2:
+                    print >> fp2, content[0:idx]
+                    print >> fp2, """<div class="contentContainer">
+<table class="overviewSummary" border="0" cellpadding="3" cellspacing="0" summary="Projects table">
+<caption><span>Projects</span><span class="tabEnd">&nbsp;</span></caption>
+<tr><th class="colFirst" scope="col">Project</th><th class="colLast" scope="col">&nbsp;</th></tr>
+<tbody>"""
+                    color = 'row'
+                    for p in projects:
+                        print >> fp2, '<tr class="{1}Color"><td class="colFirst"><a href="../{0}/javadoc/index.html", target = "_top">{0}</a></td><td class="colLast">&nbsp;</td></tr>'.format(p.name, color)
+                        color = 'row' if color == 'alt' else 'alt'
+                        
+                    print >> fp2, '</tbody></table></div>'
+                    print >> fp2, content[idx:]
+        
         title = args.title if args.title is not None else args.name
         javadoc(['--base', tmpbase,
                  '--unified',
@@ -2440,6 +2460,18 @@ def site(args):
 
         # Generate dependency graph with Graphviz
         if args.dot_output_base is not None:
+            dotErr = None
+            try:
+                if not 'version' in subprocess.check_output(['dot', '-V'], stderr=subprocess.STDOUT):
+                    dotErr = 'dot -V does not print a string containing "version"'
+            except subprocess.CalledProcessError as e:
+                dotErr = 'error calling "dot -V": {}'.format(e) 
+            except OSError as e:
+                dotErr = 'error calling "dot -V": {}'.format(e)
+                 
+            if dotErr != None:
+                abort('cannot generate dependency graph: ' + dotErr)
+
             dot = join(tmpbase, 'all', str(args.dot_output_base) + '.dot')
             svg = join(tmpbase, 'all', str(args.dot_output_base) + '.svg')
             jpg = join(tmpbase, 'all', str(args.dot_output_base) + '.jpg')
@@ -2461,21 +2493,21 @@ def site(args):
                     d = p.max_depth()
                     depths.setdefault(d, list()).append(p.name)
                 print >> fp, '}'
-
+    
             run(['dot', '-Tsvg', '-o' + svg, '-Tjpg', '-o' + jpg, dot])
 
-        # Post-process generated SVG to remove title elements which most browsers
-        # render as redundant (and annoying) tooltips.
-        with open(svg, 'r') as fp:
-            content = fp.read()
-        content = re.sub('<title>.*</title>', '', content)
-        content = re.sub('xlink:title="[^"]*"', '', content)
-        with open(svg, 'w') as fp:
-            fp.write(content)
-
-        # Create HTML that embeds the svg file in an <object> frame
-        with open(html, 'w') as fp:
-            print >> fp, '<html><body><object data="modules.svg" type="image/svg+xml"></object></body></html>'
+            # Post-process generated SVG to remove title elements which most browsers
+            # render as redundant (and annoying) tooltips.
+            with open(svg, 'r') as fp:
+                content = fp.read()
+            content = re.sub('<title>.*</title>', '', content)
+            content = re.sub('xlink:title="[^"]*"', '', content)
+            with open(svg, 'w') as fp:
+                fp.write(content)
+        
+            # Create HTML that embeds the svg file in an <object> frame
+            with open(html, 'w') as fp:
+                print >> fp, '<html><body><object data="{}.svg" type="image/svg+xml"></object></body></html>'.format(args.dot_output_base)
 
         top = join(tmpbase, 'all', 'overview-summary.html')
         for root, _, files in os.walk(tmpbase):

@@ -1003,7 +1003,7 @@ def site(args):
                     '--jd', '@-tag', '--jd', '@vmoption:X',
                     '--overview', join(_graal_home, 'graal', 'overview.html'),
                     '--title', 'Graal OpenJDK Project Documentation',
-                    '--dot-output-base', 'modules'] + args)
+                    '--dot-output-base', 'projects'] + args)
 
 def mx_init():
     _vmbuild = 'product'
