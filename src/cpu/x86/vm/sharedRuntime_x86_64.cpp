@@ -1970,13 +1970,19 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   int vep_offset = ((intptr_t)__ pc()) - start;
 
 #ifdef GRAAL
-  if (InlineObjectHash && method->intrinsic_id() == vmIntrinsics::_hashCode) {
+  if (InlineObjectHash && (method->intrinsic_id() == vmIntrinsics::_hashCode || method->intrinsic_id() == vmIntrinsics::_identityHashCode)) {
     // Object.hashCode can pull the hashCode from the header word
     // instead of doing a full VM transition once it's been computed.
     // Since hashCode is usually polymorphic at call sites we can't do
     // this optimization at the call site without a lot of work.
     Label slowCase;
+    Label nullCase;
     Register result = rax;
+
+    if (method->intrinsic_id() == vmIntrinsics::_identityHashCode) {
+      __ cmpptr(receiver, 0);
+      __ jcc(Assembler::equal, nullCase);
+    }
 
     __ movptr(result, Address(receiver, oopDesc::mark_offset_in_bytes()));
 
@@ -1996,6 +2002,12 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
     // test if hashCode exists
     __ jcc  (Assembler::zero, slowCase);
     __ ret(0);
+
+    if (method->intrinsic_id() == vmIntrinsics::_identityHashCode) {
+      __ bind(nullCase);
+      __ movl(result, 0);
+      __ ret(0);
+    }
 
     __ bind (slowCase);
   }
