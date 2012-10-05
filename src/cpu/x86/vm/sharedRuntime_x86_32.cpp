@@ -1717,7 +1717,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   int vep_offset = ((intptr_t)__ pc()) - start;
 
-#ifdef COMPILER1
+#ifdef COMPILER1 || GRAAL
   if (InlineObjectHash && method->intrinsic_id() == vmIntrinsics::_hashCode) {
     // Object.hashCode can pull the hashCode from the header word
     // instead of doing a full VM transition once it's been computed.
