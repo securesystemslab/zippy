@@ -275,8 +275,8 @@ def scaladacapo(args):
         mx.abort('Scala DaCapo failures: ' + str(failed))
 
 def _arch():
-    machine = os.uname()[4]
-    if machine in ['amd64', 'x86_64']:
+    machine = platform.uname()[4]
+    if machine in ['amd64', 'AMD64', 'x86_64']:
         return 'amd64'
     mx.abort('unsupported or unknown machine type: ' + machine)
 
