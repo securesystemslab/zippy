@@ -1965,17 +1965,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
-    case graal_generic_callback_id: {
-    __ enter();
-    oop_maps = new OopMapSet();
-    OopMap* oop_map = save_live_registers(sasm, 0);
-    int call_offset = __ call_RT(rax, noreg, (address)graal_generic_callback, j_rarg0, j_rarg1);
-    oop_maps->add_gc_map(call_offset, oop_map);
-    __ leave();
-    __ ret(0);
-      break;
-    }
-
     case graal_verify_oop_id: {
       // We use enter & leave so that a better stack trace is produced in the hs_err file
       __ enter();

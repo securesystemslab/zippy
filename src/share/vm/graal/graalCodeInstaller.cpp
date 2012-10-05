@@ -529,87 +529,22 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   _debug_recorder->end_safepoint(pc_offset);
 }
 
-address CodeInstaller::runtime_call_target_address(oop runtime_call) {
-  address target_addr = 0x0;
-  if (runtime_call == RuntimeCall::Debug()) {
-    TRACE_graal_3("RuntimeCall::Debug()");
-  } else if (runtime_call == RuntimeCall::UnwindException()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id);
-    TRACE_graal_3("RuntimeCall::UnwindException()");
-  } else if (runtime_call == RuntimeCall::SetDeoptInfo()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_set_deopt_info_id);
-    TRACE_graal_3("RuntimeCall::SetDeoptInfo()");
-  } else if (runtime_call == RuntimeCall::CreateNullPointerException()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id);
-    TRACE_graal_3("RuntimeCall::CreateNullPointerException()");
-  } else if (runtime_call == RuntimeCall::CreateOutOfBoundsException()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id);
-    TRACE_graal_3("RuntimeCall::CreateOutOfBoundsException()");
-  } else if (runtime_call == RuntimeCall::JavaTimeMillis()) {
-    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeMillis);
-    TRACE_graal_3("RuntimeCall::JavaTimeMillis()");
-  } else if (runtime_call == RuntimeCall::JavaTimeNanos()) {
-    target_addr = CAST_FROM_FN_PTR(address, os::javaTimeNanos);
-    TRACE_graal_3("RuntimeCall::JavaTimeNanos()");
-  } else if (runtime_call == RuntimeCall::ArithmeticFrem()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id);
-    TRACE_graal_3("RuntimeCall::ArithmeticFrem()");
-  } else if (runtime_call == RuntimeCall::ArithmeticDrem()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id);
-    TRACE_graal_3("RuntimeCall::ArithmeticDrem()");
-  } else if (runtime_call == RuntimeCall::ArithmeticSin()) {
-    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dsin);
-    TRACE_graal_3("RuntimeCall::ArithmeticSin()");
-  } else if (runtime_call == RuntimeCall::ArithmeticCos()) {
-    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dcos);
-    TRACE_graal_3("RuntimeCall::ArithmeticCos()");
-  } else if (runtime_call == RuntimeCall::ArithmeticTan()) {
-    target_addr = CAST_FROM_FN_PTR(address, SharedRuntime::dtan);
-    TRACE_graal_3("RuntimeCall::ArithmeticTan()");
-  } else if (runtime_call == RuntimeCall::RegisterFinalizer()) {
-    target_addr = Runtime1::entry_for(Runtime1::register_finalizer_id);
-    TRACE_graal_3("RuntimeCall::RegisterFinalizer()");
-  } else if (runtime_call == RuntimeCall::Deoptimize()) {
-    target_addr = SharedRuntime::deopt_blob()->uncommon_trap();
-    TRACE_graal_3("RuntimeCall::Deoptimize()");
-  } else if (runtime_call == RuntimeCall::GenericCallback()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_generic_callback_id);
-    TRACE_graal_3("RuntimeCall::GenericCallback()");
-  } else if (runtime_call == RuntimeCall::LogPrimitive()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_log_primitive_id);
-    TRACE_graal_3("RuntimeCall::LogPrimitive()");
-  } else if (runtime_call == RuntimeCall::LogPrintf()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_log_printf_id);
-    TRACE_graal_3("RuntimeCall::LogPrintf()");
-  } else if (runtime_call == RuntimeCall::LogObject()) {
-    target_addr = Runtime1::entry_for(Runtime1::graal_log_object_id);
-    TRACE_graal_3("RuntimeCall::LogObject()");
-  } else {
-    runtime_call->print();
-    fatal("runtime_call not implemented");
-  }
-  return target_addr;
-}
-
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop target = InstalledCode_Call::target(site);
   instanceKlass* target_klass = instanceKlass::cast(target->klass());
 
-  oop runtime_call = NULL; // RuntimeCall
   oop hotspot_method = NULL; // JavaMethod
   oop global_stub = NULL;
 
   if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
     global_stub = target;
-  } else if (target->is_a(RuntimeCall::klass())) {
-    runtime_call = target;
   } else {
     hotspot_method = target;
   }
 
   oop debug_info = InstalledCode_Call::debugInfo(site);
 
-  assert((runtime_call ? 1 : 0) + (hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
+  assert((hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = 0x0;
@@ -630,7 +565,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     next_pc_offset = pc_offset + ((NativeCallReg *) inst)->next_instruction_offset();
   } else {
     tty->print_cr("at pc_offset %d", pc_offset);
-    runtime_call->print();
     fatal("unsupported type of instruction for call site");
   }
 
@@ -650,34 +584,24 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     record_scope(next_pc_offset, frame, new GrowableArray<ScopeValue*>());
   }
 
-  if (runtime_call != NULL) {
-    if (runtime_call != RuntimeCall::Debug()) {
-      address target_addr = runtime_call_target_address(runtime_call);
-
-      if (inst->is_call()) {
-        // NOTE: for call without a mov, the offset must fit a 32-bit immediate
-        //       see also CompilerToVM.getMaxCallTargetOffset()
-        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-        call->set_destination(target_addr);
-        _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-      } else if (inst->is_mov_literal64()) {
-        NativeMovConstReg* mov = nativeMovConstReg_at(_instructions->start() + pc_offset);
-        mov->set_data((intptr_t) target_addr);
-        _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
-      } else {
-        runtime_call->print();
-        fatal("unknown type of instruction for runtime call");
-      }
-    }
-  } else if (global_stub != NULL) {
+  if (global_stub != NULL) {
     assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
 
     if (inst->is_call()) {
-      nativeCall_at((address)inst)->set_destination(VmIds::getStub(global_stub));
+      // NOTE: for call without a mov, the offset must fit a 32-bit immediate
+      //       see also CompilerToVM.getMaxCallTargetOffset()
+      NativeCall* call = nativeCall_at((address) (inst));
+      call->set_destination(VmIds::getStub(global_stub));
+      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
+    } else if (inst->is_mov_literal64()) {
+      NativeMovConstReg* mov = nativeMovConstReg_at((address) (inst));
+      mov->set_data((intptr_t) VmIds::getStub(global_stub));
+      _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
     } else {
-      nativeJump_at((address)inst)->set_jump_destination(VmIds::getStub(global_stub));
+      NativeJump* jump = nativeJump_at((address) (inst));
+      jump->set_jump_destination(VmIds::getStub(global_stub));
+      _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     }
-    _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     TRACE_graal_3("relocating (stub)  at %016x", inst);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");

@@ -608,9 +608,8 @@ C2V_VMENTRY(jobject, getPrimitiveArrayType, (JNIEnv *env, jobject, jobject kind)
   return JNIHandles::make_local(THREAD, result());
 C2V_END
 
-C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jobject rtcall))
-  oop call = JNIHandles::resolve(rtcall);
-  address target_addr = CodeInstaller::runtime_call_target_address(call);
+C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong stub))
+  address target_addr = (address) stub;
   if (target_addr != 0x0) {
     int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
     int64_t off_high = (int64_t)target_addr - ((int64_t)CodeCache::high_bound() + sizeof(int));
@@ -734,6 +733,22 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorexit_id)));
   set_long(env, config, "verifyOopStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_verify_oop_id)));
   set_long(env, config, "vmErrorStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_vm_error_id)));
+  set_long(env, config, "deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));
+  set_long(env, config, "unwindExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id)));
+  set_long(env, config, "registerFinalizerStub", VmIds::addStub(Runtime1::entry_for(Runtime1::register_finalizer_id)));
+  set_long(env, config, "setDeoptInfoStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_set_deopt_info_id)));
+  set_long(env, config, "createNullPointerExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id)));
+  set_long(env, config, "createOutOfBoundsExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id)));
+  set_long(env, config, "javaTimeMillisStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeMillis)));
+  set_long(env, config, "javaTimeNanosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeNanos)));
+  set_long(env, config, "arithmeticFremStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id)));
+  set_long(env, config, "arithmeticDremStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id)));
+  set_long(env, config, "arithmeticSinStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dsin)));
+  set_long(env, config, "arithmeticCosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dcos)));
+  set_long(env, config, "arithmeticTanStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dtan)));
+  set_long(env, config, "logPrimitiveStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_primitive_id)));
+  set_long(env, config, "logObjectStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_printf_id)));
+  set_long(env, config, "logPrintfStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_object_id)));
 
 
   BarrierSet* bs = Universe::heap()->barrier_set();
@@ -976,7 +991,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"JavaType_isInitialized",              CC"("RESOLVED_TYPE")Z",                               FN_PTR(JavaType_isInitialized)},
 
   {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",              CC"("RUNTIME_CALL")J",                                FN_PTR(getMaxCallTargetOffset)},
+  {CC"getMaxCallTargetOffset",              CC"(J)J",                                             FN_PTR(getMaxCallTargetOffset)},
   {CC"getType",                             CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
   {CC"getJavaMethod",                       CC"("REFLECT_METHOD")"METHOD         ,                FN_PTR(getJavaMethod)},
   {CC"getJavaField",                        CC"("REFLECT_FIELD")"RESOLVED_FIELD,                  FN_PTR(getJavaField)},

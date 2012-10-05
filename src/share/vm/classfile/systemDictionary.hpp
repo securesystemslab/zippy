@@ -210,7 +210,6 @@ class SymbolPropertyTable;
   template(code_MonitorValue_klass,               com_oracle_graal_api_code_MonitorValue,                       Opt) \
   template(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   template(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
-  template(RuntimeCall_klass,                     com_oracle_graal_api_code_RuntimeCall,                        Opt) \
   template(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Opt) \
   template(VirtualObject_klass,                   com_oracle_graal_api_code_VirtualObject,                      Opt) \
   /* graal.api.meta */                                                                                                \

@@ -303,7 +303,6 @@
   template(com_oracle_graal_api_code_Assumptions_MethodContents,     "com/oracle/graal/api/code/Assumptions$MethodContents")          \
   template(com_oracle_graal_api_code_Assumptions_ConcreteSubtype,    "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")         \
   template(com_oracle_graal_api_code_Assumptions_ConcreteMethod,     "com/oracle/graal/api/code/Assumptions$ConcreteMethod")          \
-  template(com_oracle_graal_api_code_GenericCallback,                "com/oracle/graal/api/code/GenericCallback")                     \
   template(com_oracle_graal_api_code_InstalledCode,                  "com/oracle/graal/api/code/CompilationResult")                   \
   template(com_oracle_graal_api_code_InstalledCode_Call,             "com/oracle/graal/api/code/CompilationResult$Call")              \
   template(com_oracle_graal_api_code_InstalledCode_DataPatch,        "com/oracle/graal/api/code/CompilationResult$DataPatch")         \
@@ -317,7 +316,6 @@
   template(com_oracle_graal_api_code_MonitorValue,                   "com/oracle/graal/api/code/MonitorValue")                        \
   template(com_oracle_graal_api_code_Register,                       "com/oracle/graal/api/code/Register")                            \
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
-  template(com_oracle_graal_api_code_RuntimeCall,                    "com/oracle/graal/api/code/RuntimeCall")                         \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \
   template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject")                       \
   template(startCompiler_name,                    "startCompiler")                                                                    \

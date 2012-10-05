@@ -187,26 +187,6 @@ void graal_compute_offsets();
     static_oop_field(Kind, Int, "Lcom/oracle/graal/api/meta/Kind;");                    \
     static_oop_field(Kind, Long, "Lcom/oracle/graal/api/meta/Kind;");                   \
   end_class                                                                             \
-  start_class(RuntimeCall)                                                            \
-    static_oop_field(RuntimeCall, UnwindException, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
-    static_oop_field(RuntimeCall, RegisterFinalizer, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
-    static_oop_field(RuntimeCall, SetDeoptInfo, "Lcom/oracle/graal/api/code/RuntimeCall;");    \
-    static_oop_field(RuntimeCall, CreateNullPointerException, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
-    static_oop_field(RuntimeCall, CreateOutOfBoundsException, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
-    static_oop_field(RuntimeCall, JavaTimeMillis, "Lcom/oracle/graal/api/code/RuntimeCall;");  \
-    static_oop_field(RuntimeCall, JavaTimeNanos, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
-    static_oop_field(RuntimeCall, Debug, "Lcom/oracle/graal/api/code/RuntimeCall;");           \
-    static_oop_field(RuntimeCall, ArithmeticFrem, "Lcom/oracle/graal/api/code/RuntimeCall;");  \
-    static_oop_field(RuntimeCall, ArithmeticDrem, "Lcom/oracle/graal/api/code/RuntimeCall;");  \
-    static_oop_field(RuntimeCall, ArithmeticCos, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
-    static_oop_field(RuntimeCall, ArithmeticTan, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
-    static_oop_field(RuntimeCall, ArithmeticSin, "Lcom/oracle/graal/api/code/RuntimeCall;");   \
-    static_oop_field(RuntimeCall, Deoptimize, "Lcom/oracle/graal/api/code/RuntimeCall;");      \
-    static_oop_field(RuntimeCall, GenericCallback, "Lcom/oracle/graal/api/code/RuntimeCall;"); \
-    static_oop_field(RuntimeCall, LogPrintf, "Lcom/oracle/graal/api/code/RuntimeCall;");       \
-    static_oop_field(RuntimeCall, LogPrimitive, "Lcom/oracle/graal/api/code/RuntimeCall;");    \
-    static_oop_field(RuntimeCall, LogObject, "Lcom/oracle/graal/api/code/RuntimeCall;");       \
-  end_class                                                                             \
   start_class(JavaMethod)                                                                 \
   end_class                                                                             \
   start_class(Value)                                                                  \
