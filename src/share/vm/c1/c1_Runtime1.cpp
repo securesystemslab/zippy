@@ -755,9 +755,9 @@ JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, Bas
 JRT_END
 
 JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jint flags))
-  bool string = flags & LOG_OBJECT_STRING;
-  bool address = flags & LOG_OBJECT_ADDRESS;
-  bool newline = flags & LOG_OBJECT_NEWLINE;
+  bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
+  bool address = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
+  bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
   if (!string) {
     if (!address && obj->is_oop_or_null(true)) {
       char buf[O_BUFLEN];
@@ -783,7 +783,7 @@ JRT_ENTRY(void, Runtime1::graal_vm_error(JavaThread* thread, oop where, oop form
   char *detail_msg = NULL;
   if (format != NULL) {
     const char* buf = java_lang_String::as_utf8_string(format);
-    int detail_msg_length = strlen(buf) * 2;
+    size_t detail_msg_length = strlen(buf) * 2;
     detail_msg = (char *) NEW_RESOURCE_ARRAY(u_char, detail_msg_length);
     jio_snprintf(detail_msg, detail_msg_length, buf, value);
   }

@@ -454,7 +454,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
     reexecute = Interpreter::bytecode_should_reexecute(code);
     if (frame != NULL) {
-      reexecute = (BytecodeFrame::duringCall(frame) == 0);
+      reexecute = (BytecodeFrame::duringCall(frame) == JNI_FALSE);
     }
   }
 
@@ -510,7 +510,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
   DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
-  bool throw_exception = BytecodeFrame::rethrowException(frame);
+  bool throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
 
   _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
