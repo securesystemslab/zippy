@@ -1746,7 +1746,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
     __ ret(0);
     __ bind (slowCase);
   }
-#endif // COMPILER1
+#endif // COMPILER1 || GRAAL
 
   // The instruction at the verified entry point must be 5 bytes or longer
   // because it can be patched on the fly by make_non_entrant. The stack bang
