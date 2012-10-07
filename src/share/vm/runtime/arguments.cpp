@@ -2164,6 +2164,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.graal.compiler",
         "com.oracle.graal.loop",
         "com.oracle.graal.phases",
+        "com.oracle.graal.phases.common",
         "com.oracle.graal.virtual",
         "com.oracle.graal.nodes",
         "com.oracle.graal.printer",

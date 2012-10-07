@@ -151,17 +151,24 @@ project@com.oracle.graal.phases@dependencies=com.oracle.graal.nodes
 project@com.oracle.graal.phases@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.phases@javaCompliance=1.7
 
+# graal.phases.common
+project@com.oracle.graal.phases.common@subDir=graal
+project@com.oracle.graal.phases.common@sourceDirs=src
+project@com.oracle.graal.phases.common@dependencies=com.oracle.graal.phases
+project@com.oracle.graal.phases.common@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.phases.common@javaCompliance=1.7
+
 # graal.virtual
 project@com.oracle.graal.virtual@subDir=graal
 project@com.oracle.graal.virtual@sourceDirs=src
-project@com.oracle.graal.virtual@dependencies=com.oracle.graal.phases
+project@com.oracle.graal.virtual@dependencies=com.oracle.graal.phases.common
 project@com.oracle.graal.virtual@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.virtual@javaCompliance=1.7
 
 # graal.loop
 project@com.oracle.graal.loop@subDir=graal
 project@com.oracle.graal.loop@sourceDirs=src
-project@com.oracle.graal.loop@dependencies=com.oracle.graal.phases
+project@com.oracle.graal.loop@dependencies=com.oracle.graal.phases.common
 project@com.oracle.graal.loop@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.loop@javaCompliance=1.7
 
@@ -202,7 +209,7 @@ project@com.oracle.graal.bytecode@javaCompliance=1.7
 # graal.java
 project@com.oracle.graal.java@subDir=graal
 project@com.oracle.graal.java@sourceDirs=src
-project@com.oracle.graal.java@dependencies=com.oracle.graal.phases,com.oracle.graal.bytecode
+project@com.oracle.graal.java@dependencies=com.oracle.graal.phases.common,com.oracle.graal.bytecode
 project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.7
 
