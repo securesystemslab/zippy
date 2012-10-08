@@ -1497,6 +1497,11 @@ def canonicalizeprojects(args):
                     out.write(line + '\n')
                 else:
                     p = project(m.group(1))
+                    
+                    for pkg in p.defined_java_packages():
+                        if not pkg.startswith(p.name):
+                            abort('package in {0} does not have prefix matching project name: {1}'.format(p, pkg))
+                    
                     ignoredDeps = set([name for name in p.deps if project(name, False) is not None])
                     for pkg in p.imported_java_packages():
                         for name in p.deps:
