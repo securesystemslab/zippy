@@ -312,6 +312,55 @@ class Project(Dependency):
                                         classes.append(pkg + '.' + basename)
         return classes
     
+    def _init_packages_and_imports(self):
+        if not hasattr(self, '_defined_java_packages'):
+            packages = set()
+            depPackages = set()
+            for d in self.all_deps([], includeLibs=False, includeSelf=False):
+                depPackages.update(d.defined_java_packages())
+            imports = set()
+            importRe = re.compile(r'import\s+(?:static\s+)?([^;]+);')
+            for sourceDir in self.source_dirs():
+                for root, _, files in os.walk(sourceDir):
+                    javaSources = [name for name in files if name.endswith('.java')]
+                    if len(javaSources) != 0:
+                        pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                        if not pkg in depPackages:
+                            packages.add(pkg)
+                        else:
+                            # A project imports a package already defined by one of it dependencies
+                            imports.add(pkg)
+                        
+                        for n in javaSources:
+                            with open(join(root, n)) as fp:
+                                content = fp.read()
+                                imports.update(importRe.findall(content))
+            self._defined_java_packages = frozenset(packages)
+            
+            importedPackages = set()
+            for imp in imports:
+                name = imp
+                while not name in depPackages and len(name) > 0:
+                    lastDot = name.rfind('.')
+                    if lastDot == -1:
+                        name = None
+                        break
+                    name = name[0:lastDot]
+                if name is not None:
+                    importedPackages.add(name)
+            self._imported_java_packages = frozenset(importedPackages)
+    
+    def defined_java_packages(self):
+        """Get the immutable set of Java packages defined by the Java sources of this project"""
+        self._init_packages_and_imports()
+        return self._defined_java_packages
+    
+    def imported_java_packages(self):
+        """Get the immutable set of Java packages defined by other Java projects that are
+           imported by the Java sources of this project."""
+        self._init_packages_and_imports()
+        return self._imported_java_packages
+
 
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
@@ -1440,6 +1489,7 @@ def canonicalizeprojects(args):
         with open(projectsFile) as f:
             out = StringIO.StringIO()
             pattern = re.compile('project@([^@]+)@dependencies=.*')
+            lineNo = 1
             for line in f:
                 line = line.strip()
                 m = pattern.match(line)
@@ -1447,7 +1497,31 @@ def canonicalizeprojects(args):
                     out.write(line + '\n')
                 else:
                     p = project(m.group(1))
+                    ignoredDeps = set([name for name in p.deps if project(name, False) is not None])
+                    for pkg in p.imported_java_packages():
+                        for name in p.deps:
+                            dep = project(name, False)
+                            if dep is None:
+                                ignoredDeps.discard(name)
+                            else:
+                                if pkg in dep.defined_java_packages():
+                                    ignoredDeps.discard(name)
+                    if len(ignoredDeps) != 0:
+                        candidates = set();
+                        # Compute dependencies based on projects required by p
+                        for d in sorted_deps():
+                            if not d.defined_java_packages().isdisjoint(p.imported_java_packages()):
+                                candidates.add(d)
+                        # Remove non-canonical candidates
+                        for c in list(candidates):
+                            candidates.difference_update(c.all_deps([], False, False))
+                        candidates = [d.name for d in candidates]
+                        
+                        abort('{0}:{1}: {2} does not use any packages defined in these projects: {3}\nComputed project dependencies: {4}'.format(
+                            projectsFile, lineNo, p, ', '.join(ignoredDeps), ','.join(candidates)))
+                    
                     out.write('project@' + m.group(1) + '@dependencies=' + ','.join(p.canonical_deps()) + '\n')
+                lineNo = lineNo + 1
             content = out.getvalue()
         if update_file(projectsFile, content):
             changedFiles += 1
@@ -2392,43 +2466,6 @@ def _fix_package_summary(path):
         # no package description given
         pass
 
-def packageinfo(args):
-    """show Java packages defined by each project"""
-
-    parser = ArgumentParser(prog='packageinfo')
-    parser.add_argument('-l', action='store_true', help='show packages one per line')
-    parser.add_argument('filters', nargs=REMAINDER, metavar='filters...', help='substrings filtering the projects processed')
-
-    args = parser.parse_args(args)
-    filters = args.filters
-
-    projects = sorted_deps()
-
-    projToPkgs = dict()
-    pkgToProjs = dict()
-    for p in projects:
-        if len(filters) == 0 or len([f for f in filters if f in p.name]) != 0:
-            pkgs = set()
-            projToPkgs[p.name] = pkgs
-            for sourceDir in p.source_dirs():
-                for root, _, files in os.walk(sourceDir):
-                    if len([name for name in files if name.endswith('.java')]) != 0:
-                        pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
-                        pkgs.add(pkg)
-                        pkgToProjs.setdefault(pkg, set()).add(p.name)
-
-    for key,value in projToPkgs.iteritems():
-        if args.l:
-            print key, 'defines packages:'
-            for v in value:
-                print '   ', v
-        else:
-            print key, 'defines packages:', ', '.join(value)
-
-    for key,value in pkgToProjs.iteritems():
-        if len(value) > 1:
-            print 'package', key, 'is defined by multiple projects:', ', '.join(value)
-
 def site(args):
     """creates a website containing javadoc and the project dependency graph"""
 
@@ -2636,7 +2673,6 @@ commands = {
     'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],
     'projects': [show_projects, ''],
-    'packageinfo': [packageinfo, '[options]'],
 }
 
 _argParser = ArgParser()
