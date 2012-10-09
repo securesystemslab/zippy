@@ -44,7 +44,7 @@ public class BootImageGenerator {
             throw new RuntimeException("Could not find method " + name + " with parameter types " + parameterTypes + " in class " + convertedClass.getCanonicalName());
         }
         BigBang.out.printf("Adding method %s.%s to the boot image\n", method.getDeclaringClass().getName(), method.getName());
-        addEntryMethod(metaAccess.getResolvedJavaMethod(method));
+        addEntryMethod(metaAccess.lookupJavaMethod(method));
     }
 
 

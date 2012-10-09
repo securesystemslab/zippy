@@ -34,12 +34,12 @@ public class FieldElement extends Element {
     protected ResolvedJavaField javaField;
 
     public FieldElement(ResolvedJavaField javaField) {
-        super(javaField.type().resolve(javaField.holder()));
+        super(javaField.getType().resolve(javaField.getDeclaringClass()));
         this.javaField = javaField;
     }
 
     public boolean isStatic() {
-        return Modifier.isStatic(javaField.accessFlags());
+        return Modifier.isStatic(javaField.getModifiers());
     }
 
     public ResolvedJavaField getJavaField() {
@@ -54,7 +54,7 @@ public class FieldElement extends Element {
     public synchronized void registerNewValue(BigBang bb, Object value) {
         if (value != null) {
             Class<?> clazz = value.getClass();
-            ResolvedJavaType resolvedType = bb.getMetaAccess().getResolvedJavaType(clazz);
+            ResolvedJavaType resolvedType = bb.getMetaAccess().lookupJavaType(clazz);
             if (seenTypes.add(resolvedType)) {
                 Set<ResolvedJavaType> newSeenTypes = new HashSet<>();
                 newSeenTypes.add(resolvedType);

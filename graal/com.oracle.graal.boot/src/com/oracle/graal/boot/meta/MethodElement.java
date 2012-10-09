@@ -43,10 +43,10 @@ public class MethodElement extends Element {
     private ResolvedJavaMethod resolvedJavaMethod;
 
     public MethodElement(ResolvedJavaMethod javaMethod) {
-        super(javaMethod.signature().returnType(javaMethod.holder()).resolve(javaMethod.holder()));
+        super(javaMethod.getSignature().getReturnType(javaMethod.getDeclaringClass()).resolve(javaMethod.getDeclaringClass()));
         assert javaMethod != null;
         this.resolvedJavaMethod = javaMethod;
-        int parameterCount = resolvedJavaMethod.signature().argumentCount(!Modifier.isStatic(resolvedJavaMethod.accessFlags()));
+        int parameterCount = resolvedJavaMethod.getSignature().getParameterCount(!Modifier.isStatic(resolvedJavaMethod.getModifiers()));
         parameters = new ParameterElement[parameterCount];
         for (int i = 0; i < parameters.length; ++i) {
             parameters[i] = new ParameterElement(resolvedJavaMethod, i);
@@ -91,12 +91,12 @@ public class MethodElement extends Element {
             this.graph = newGraph;
         }
 
-        if (Modifier.isNative(resolvedJavaMethod.accessFlags())) {
+        if (Modifier.isNative(resolvedJavaMethod.getModifiers())) {
             BigBang.out.println("NATIVE METHOD " + resolvedJavaMethod);
             return;
         }
 
-        BigBang.out.println("parsing graph " + resolvedJavaMethod + ", locals=" + resolvedJavaMethod.maxLocals());
+        BigBang.out.println("parsing graph " + resolvedJavaMethod + ", locals=" + resolvedJavaMethod.getMaxLocals());
         GraphBuilderConfiguration config = new GraphBuilderConfiguration(ResolvePolicy.Eager, null);
         GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(bb.getMetaAccess(), config, OptimisticOptimizations.NONE);
         graphBuilderPhase.apply(newGraph);

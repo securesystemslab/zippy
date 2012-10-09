@@ -121,7 +121,7 @@ public class Element {
 
     public synchronized void printSeenTypes() {
         for (ResolvedJavaType type : seenTypes) {
-            BigBang.out.print(type.name() + " ");
+            BigBang.out.print(type.getName() + " ");
         }
     }
 }

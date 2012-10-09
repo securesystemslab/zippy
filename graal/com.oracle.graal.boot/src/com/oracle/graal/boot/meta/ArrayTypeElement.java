@@ -36,7 +36,7 @@ public class ArrayTypeElement extends Element {
     private ResolvedJavaType javaType;
 
     public ArrayTypeElement(ResolvedJavaType javaType) {
-        super(javaType.componentType());
+        super(javaType.getComponentType());
         this.javaType = javaType;
     }
 
@@ -62,7 +62,7 @@ public class ArrayTypeElement extends Element {
             BigBang.out.println(((StructuredGraph) load.graph()).method());
             System.exit(-1);
         }
-        ResolvedJavaType componentType = type.componentType();
+        ResolvedJavaType componentType = type.getComponentType();
         Set<ResolvedJavaType> newSet = new HashSet<>();
         for (ResolvedJavaType myType : set) {
             if (myType.isSubtypeOf(componentType)) {

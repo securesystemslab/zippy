@@ -39,13 +39,13 @@ public class ParameterElement extends Element {
     }
 
     private static ResolvedJavaType calculateDeclaredType(ResolvedJavaMethod m, int i) {
-        if (Modifier.isStatic(m.accessFlags())) {
-            return m.signature().argumentTypeAt(i, m.holder()).resolve(m.holder());
+        if (Modifier.isStatic(m.getModifiers())) {
+            return m.getSignature().getParameterType(i, m.getDeclaringClass()).resolve(m.getDeclaringClass());
         } else {
             if (i == 0) {
-                return m.holder();
+                return m.getDeclaringClass();
             }
-            return m.signature().argumentTypeAt(i - 1, m.holder()).resolve(m.holder());
+            return m.getSignature().getParameterType(i - 1, m.getDeclaringClass()).resolve(m.getDeclaringClass());
         }
     }
 

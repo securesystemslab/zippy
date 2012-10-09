@@ -39,7 +39,7 @@ public class InvokeElement extends Element {
 
     @SuppressWarnings("unchecked")
     public InvokeElement(MethodCallTargetNode methodCallTarget) {
-        super(methodCallTarget.isStatic() ? null : methodCallTarget.targetMethod().holder());
+        super(methodCallTarget.isStatic() ? null : methodCallTarget.targetMethod().getDeclaringClass());
         this.methodCallTarget = methodCallTarget;
         parameterTypes = new Set[methodCallTarget.arguments().size()];
     }
@@ -78,7 +78,7 @@ public class InvokeElement extends Element {
             for (ResolvedJavaType type : newSeenTypes) {
                 if (seenTypes.add(type)) {
                     // There is a new receiver type!
-                    ResolvedJavaMethod method = type.resolveMethodImpl(methodCallTarget.targetMethod());
+                    ResolvedJavaMethod method = type.resolveMethod(methodCallTarget.targetMethod());
                     BigBang.out.println("resolved method " + method + " for type " + type + " and method " + methodCallTarget.targetMethod());
                     if (method == null) {
                         BigBang.out.println("!!! type = " + type + " / " + methodCallTarget.targetMethod());

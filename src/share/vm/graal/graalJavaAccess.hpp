@@ -191,7 +191,7 @@ void graal_compute_offsets();
   end_class                                                                             \
   start_class(Value)                                                                  \
     oop_field(Value, kind, "Lcom/oracle/graal/api/meta/Kind;")                          \
-    static_oop_field(Value, IllegalValue, "Lcom/oracle/graal/api/meta/Value;");         \
+    static_oop_field(Value, ILLEGAL, "Lcom/oracle/graal/api/meta/Value;");         \
   end_class                                                                             \
   start_class(RegisterValue)                                                          \
     oop_field(RegisterValue, reg, "Lcom/oracle/graal/api/code/Register;")               \

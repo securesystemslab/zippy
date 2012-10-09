@@ -110,7 +110,7 @@ public class BigBang {
             } else if (node instanceof StoreIndexedNode) {
                 StoreIndexedNode storeIndexedNode = (StoreIndexedNode) node;
                 if (storeIndexedNode.elementKind() == Kind.Object) {
-                    resultElement = getProcessedArrayType(metaAccessProvider.getResolvedJavaType(Object[].class));
+                    resultElement = getProcessedArrayType(metaAccessProvider.lookupJavaType(Object[].class));
                 }
             } else if (node instanceof ReturnNode) {
                 ReturnNode returnNode = (ReturnNode) node;
@@ -157,7 +157,7 @@ public class BigBang {
         } else if (node instanceof LoadIndexedNode) {
             LoadIndexedNode loadIndexedNode = (LoadIndexedNode) node;
             if (loadIndexedNode.kind() == Kind.Object) {
-                resultElement = getProcessedArrayType(metaAccessProvider.getResolvedJavaType(Object[].class));
+                resultElement = getProcessedArrayType(metaAccessProvider.lookupJavaType(Object[].class));
             }
         } else if (node instanceof LocalNode) {
             LocalNode localNode = (LocalNode) node;
@@ -223,8 +223,8 @@ public class BigBang {
         Map<Object, Boolean> scannedObjects = new IdentityHashMap<>();
         for (FieldElement field : originalRoots) {
             assert field.isStatic();
-            if (field.getUsageCount() > 0 && field.getJavaField().kind() == Kind.Object) {
-                Object value = field.getJavaField().getValue(null).asObject();
+            if (field.getUsageCount() > 0 && field.getJavaField().getKind() == Kind.Object) {
+                Object value = field.getJavaField().readValue(null).asObject();
                 BigBang.out.printf("Root field %s: %s\n", field, value);
                 scanField(scannedObjects, field, value);
             }
@@ -245,20 +245,20 @@ public class BigBang {
         }
 
         scannedObjects.put(value, Boolean.TRUE);
-        ResolvedJavaType type = getMetaAccess().getResolvedJavaType(value.getClass());
+        ResolvedJavaType type = getMetaAccess().lookupJavaType(value.getClass());
         scan(scannedObjects, value, type);
     }
 
     private void scan(Map<Object, Boolean> scannedObjects, Object value, ResolvedJavaType type) {
-        if (type.superType() != null) {
-            scan(scannedObjects, value, type.superType());
+        if (type.getSuperclass() != null) {
+            scan(scannedObjects, value, type.getSuperclass());
         }
 
-        ResolvedJavaField[] declaredFields = type.declaredFields();
+        ResolvedJavaField[] declaredFields = type.getDeclaredFields();
         for (ResolvedJavaField field : declaredFields) {
-            if (field.kind() == Kind.Object) {
+            if (field.getKind() == Kind.Object) {
                 FieldElement fieldElement = getProcessedField(field);
-                Object fieldValue = field.getValue(Constant.forObject(value)).asObject();
+                Object fieldValue = field.readValue(Constant.forObject(value)).asObject();
                 scanField(scannedObjects, fieldElement, fieldValue);
             }
         }
@@ -270,7 +270,7 @@ public class BigBang {
         int nativeMethodCount = 0;
         for (MethodElement methodElement : methodMap.values()) {
             if (methodElement.hasGraph()) {
-                if (Modifier.isNative(methodElement.getResolvedJavaMethod().accessFlags())) {
+                if (Modifier.isNative(methodElement.getResolvedJavaMethod().getModifiers())) {
                     BigBang.out.println("Included native method: " + methodElement.getResolvedJavaMethod());
                     nativeMethodCount++;
                 }
@@ -280,7 +280,7 @@ public class BigBang {
         int methodCount = 0;
         for (MethodElement methodElement : methodMap.values()) {
             if (methodElement.hasGraph()) {
-                if (!Modifier.isNative(methodElement.getResolvedJavaMethod().accessFlags())) {
+                if (!Modifier.isNative(methodElement.getResolvedJavaMethod().getModifiers())) {
                     BigBang.out.println("Included method: " + methodElement.getResolvedJavaMethod());
                     methodCount++;
                 }
@@ -295,7 +295,7 @@ public class BigBang {
                 fieldElement.printSeenTypes();
                 BigBang.out.println();
                 fieldCount++;
-                includedTypes.add(fieldElement.getJavaField().holder());
+                includedTypes.add(fieldElement.getJavaField().getDeclaringClass());
             }
         }
 
