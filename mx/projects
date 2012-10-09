@@ -22,16 +22,16 @@ library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20110908.085753-2.jar
 
-# graal.api
-project@com.oracle.graal.api@subDir=graal
-project@com.oracle.graal.api@sourceDirs=src
-project@com.oracle.graal.api@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.api@javaCompliance=1.7
+# graal.api.runtime
+project@com.oracle.graal.api.runtime@subDir=graal
+project@com.oracle.graal.api.runtime@sourceDirs=src
+project@com.oracle.graal.api.runtime@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.runtime@javaCompliance=1.7
 
 # graal.api.test
 project@com.oracle.graal.api.test@subDir=graal
 project@com.oracle.graal.api.test@sourceDirs=src
-project@com.oracle.graal.api.test@dependencies=JUNIT,com.oracle.graal.api
+project@com.oracle.graal.api.test@dependencies=JUNIT,com.oracle.graal.api.runtime
 project@com.oracle.graal.api.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api.test@javaCompliance=1.7
 
@@ -58,7 +58,7 @@ project@com.oracle.graal.api.interpreter@javaCompliance=1.7
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.oracle.graal.api.interpreter,com.oracle.graal.api,com.oracle.graal.printer
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.oracle.graal.api.interpreter,com.oracle.graal.api.runtime,com.oracle.graal.printer
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
@@ -140,7 +140,7 @@ project@com.oracle.graal.nodes@javaCompliance=1.7
 # graal.interpreter
 project@com.oracle.graal.interpreter@subDir=graal
 project@com.oracle.graal.interpreter@sourceDirs=src
-project@com.oracle.graal.interpreter@dependencies=com.oracle.graal.api.interpreter,com.oracle.graal.bytecode,com.oracle.graal.api
+project@com.oracle.graal.interpreter@dependencies=com.oracle.graal.api.interpreter,com.oracle.graal.bytecode,com.oracle.graal.api.runtime
 project@com.oracle.graal.interpreter@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.interpreter@javaCompliance=1.7
 
@@ -189,7 +189,7 @@ project@com.oracle.graal.compiler.amd64@javaCompliance=1.7
 # graal.boot
 project@com.oracle.graal.boot@subDir=graal
 project@com.oracle.graal.boot@sourceDirs=src
-project@com.oracle.graal.boot@dependencies=com.oracle.graal.java,com.oracle.graal.api,com.oracle.graal.phases.common
+project@com.oracle.graal.boot@dependencies=com.oracle.graal.java,com.oracle.graal.api.runtime,com.oracle.graal.phases.common
 project@com.oracle.graal.boot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.boot@javaCompliance=1.7
 
@@ -223,7 +223,7 @@ project@com.oracle.graal.printer@javaCompliance=1.7
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=JUNIT,com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.api
+project@com.oracle.graal.compiler.test@dependencies=JUNIT,com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.api.runtime
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 
