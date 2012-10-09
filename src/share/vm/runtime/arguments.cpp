@@ -2153,7 +2153,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
         "com.oracle.graal.compiler.amd64",
         "com.oracle.graal.hotspot.amd64",
 #endif
-        "com.oracle.graal.api",
+        "com.oracle.graal.api.runtime",
         "com.oracle.graal.api.meta",
         "com.oracle.graal.api.code",
         "com.oracle.graal.api.interpreter",
