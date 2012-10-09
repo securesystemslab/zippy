@@ -186,20 +186,6 @@ project@com.oracle.graal.compiler.amd64@dependencies=com.oracle.graal.compiler,c
 project@com.oracle.graal.compiler.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.amd64@javaCompliance=1.7
 
-# graal.boot
-project@com.oracle.graal.boot@subDir=graal
-project@com.oracle.graal.boot@sourceDirs=src
-project@com.oracle.graal.boot@dependencies=com.oracle.graal.java,com.oracle.graal.api.runtime,com.oracle.graal.phases.common
-project@com.oracle.graal.boot@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.boot@javaCompliance=1.7
-
-# graal.boot.test
-project@com.oracle.graal.boot.test@subDir=graal
-project@com.oracle.graal.boot.test@sourceDirs=src
-project@com.oracle.graal.boot.test@dependencies=JUNIT,com.oracle.graal.boot
-project@com.oracle.graal.boot.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.boot.test@javaCompliance=1.7
-
 # graal.bytecode
 project@com.oracle.graal.bytecode@subDir=graal
 project@com.oracle.graal.bytecode@sourceDirs=src
