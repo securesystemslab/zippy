@@ -132,7 +132,7 @@ project@com.oracle.graal.snippets.test@javaCompliance=1.7
 
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
-project@com.oracle.graal.nodes@sourceDirs=src,test
+project@com.oracle.graal.nodes@sourceDirs=src
 project@com.oracle.graal.nodes@dependencies=com.oracle.graal.api.code,com.oracle.graal.graph,com.oracle.graal.debug
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
