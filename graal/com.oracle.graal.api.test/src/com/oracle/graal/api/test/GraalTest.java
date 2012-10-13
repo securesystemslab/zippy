@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,18 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.meta;
+package com.oracle.graal.api.test;
+
+import static org.junit.Assert.*;
+
+import org.junit.*;
+
+import com.oracle.graal.api.runtime.*;
 
 
-/**
- * Represents the three possibilities that an exception was seen at a specific BCI.
- */
-public enum ExceptionSeen {
-    TRUE,
-    FALSE,
-    NOT_SUPPORTED;
+public class GraalTest {
 
-    public static ExceptionSeen get(boolean value) {
-        return value ? TRUE : FALSE;
+    @Test
+    public void testRuntimeAvailable() {
+        assertNotNull(Graal.getRuntime());
+        System.out.println(Graal.getRuntime().getClass());
+    }
+
+    @Test
+    public void testRuntimeNamed() {
+        assertNotNull(Graal.getRuntime().getName());
+        System.out.println(Graal.getRuntime().getName());
     }
 }

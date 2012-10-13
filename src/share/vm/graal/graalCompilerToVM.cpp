@@ -562,6 +562,13 @@ C2V_VMENTRY(jboolean, JavaType_isInitialized,(JNIEnv *, jobject, jobject hotspot
   return instanceKlass::cast(klass)->is_initialized();
 C2V_END
 
+// public bool JavaType_isInitialized(HotSpotResolvedType klass);
+C2V_VMENTRY(void, JavaType_initialize, (JNIEnv *, jobject, jobject hotspot_klass))
+  klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(hotspot_klass));
+  assert(klass != NULL, "method must not be called for primitive types");
+  instanceKlass::cast(klass)->initialize(JavaThread::current());
+C2V_END
+
 C2V_VMENTRY(jobject, JavaType_arrayOf, (JNIEnv *, jobject, jobject klass))
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass)));
   KlassHandle arr = klass_handle->array_klass(THREAD);
@@ -989,6 +996,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"JavaType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_arrayOf)},
   {CC"JavaType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,                 FN_PTR(JavaType_fields)},
   {CC"JavaType_isInitialized",              CC"("RESOLVED_TYPE")Z",                               FN_PTR(JavaType_isInitialized)},
+  {CC"JavaType_initialize",                 CC"("RESOLVED_TYPE")V",                               FN_PTR(JavaType_initialize)},
 
   {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
   {CC"getMaxCallTargetOffset",              CC"(J)J",                                             FN_PTR(getMaxCallTargetOffset)},

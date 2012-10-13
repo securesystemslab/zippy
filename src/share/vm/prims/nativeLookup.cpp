@@ -140,7 +140,7 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_sun_misc_Perf_registerNatives",                        NULL, FN_PTR(JVM_RegisterPerfMethods)         },
   { CC"Java_sun_hotspot_WhiteBox_registerNatives",                 NULL, FN_PTR(JVM_RegisterWhiteBoxMethods)     },
 #ifdef GRAAL
-  { CC"Java_com_oracle_graal_api_Graal_initializeRuntime",         NULL, FN_PTR(JVM_InitializeGraalRuntime)      }
+  { CC"Java_com_oracle_graal_api_runtime_Graal_initializeRuntime", NULL, FN_PTR(JVM_InitializeGraalRuntime)      },
 #endif
 };
 

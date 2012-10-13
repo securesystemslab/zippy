@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,23 +20,47 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.boot.meta;
+package com.oracle.graal.hotspot.meta;
 
-import com.oracle.graal.nodes.*;
+import com.oracle.graal.api.meta.*;
 
 
-public class PhiElement extends Element {
+/**
+ * A implementation of {@link JavaField} for an unresolved field.
+ */
+public class HotSpotUnresolvedField implements JavaField {
 
-    private PhiNode phi;
+    private final String name;
+    private final JavaType holder;
+    private final JavaType type;
 
-    public PhiElement(PhiNode phi) {
-        super(null);
-        this.phi = phi;
-        usages.add(phi);
+    public HotSpotUnresolvedField(JavaType holder, String name, JavaType type) {
+        this.name = name;
+        this.type = type;
+        this.holder = holder;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public JavaType getType() {
+        return type;
+    }
+
+    public Kind getKind() {
+        return type.getKind();
+    }
+
+    public JavaType getDeclaringClass() {
+        return holder;
+    }
+
+    /**
+     * Converts this compiler interface field to a string.
+     */
     @Override
     public String toString() {
-        return "phi " + phi;
+        return MetaUtil.format("%H.%n [unresolved]", this);
     }
 }

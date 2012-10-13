@@ -20,46 +20,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.boot.meta;
+package com.oracle.graal.hotspot.nodes;
 
-import java.lang.reflect.*;
-import java.util.*;
-
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.boot.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
+/**
+ * A special purpose store node that differs from {@link UnsafeStoreNode} in that
+ * it is not a {@link StateSplit} and takes a computed address instead of an object.
+ */
+public class DirectReadNode extends FixedWithNextNode implements LIRLowerable {
+    @Input private ValueNode address;
+    private final Kind readKind;
 
-public class FieldElement extends Element {
-
-    protected ResolvedJavaField javaField;
-
-    public FieldElement(ResolvedJavaField javaField) {
-        super(javaField.type().resolve(javaField.holder()));
-        this.javaField = javaField;
-    }
-
-    public boolean isStatic() {
-        return Modifier.isStatic(javaField.accessFlags());
-    }
-
-    public ResolvedJavaField getJavaField() {
-        return javaField;
+    public DirectReadNode(ValueNode address, Kind readKind) {
+        super(StampFactory.forKind(readKind));
+        this.address = address;
+        this.readKind = readKind;
     }
 
     @Override
-    public String toString() {
-        return "Field[" + javaField + "]";
+    public void generate(LIRGeneratorTool gen) {
+        gen.setResult(this, gen.emitLoad(new Address(readKind, gen.operand(address)), false));
     }
 
-    public synchronized void registerNewValue(BigBang bb, Object value) {
-        if (value != null) {
-            Class<?> clazz = value.getClass();
-            ResolvedJavaType resolvedType = bb.getMetaAccess().getResolvedJavaType(clazz);
-            if (seenTypes.add(resolvedType)) {
-                Set<ResolvedJavaType> newSeenTypes = new HashSet<>();
-                newSeenTypes.add(resolvedType);
-                super.propagateTypes(bb, newSeenTypes);
-            }
-        }
-    }
+    @NodeIntrinsic
+    public static native <T> T read(long address, @ConstantNodeParameter Kind kind);
 }

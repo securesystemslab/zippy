@@ -104,7 +104,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
 // TODO: finish this - graal doesn't provide any scope values at the moment
 static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
   second = NULL;
-  if (value == Value::IllegalValue()) {
+  if (value == Value::ILLEGAL()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
@@ -499,8 +499,8 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     }
     if (second != NULL) {
       i++;
-      assert(i < values->length(), "double-slot value not followed by Value.IllegalValue");
-      assert(((oop*) values->base(T_OBJECT))[i] == Value::IllegalValue(), "double-slot value not followed by Value.IllegalValue");
+      assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
+      assert(((oop*) values->base(T_OBJECT))[i] == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
     }
   }
 
