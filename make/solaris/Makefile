@@ -158,12 +158,14 @@ SUBDIRS_C2        = $(addprefix $(OSNAME)_$(BUILDARCH)_compiler2/,$(TARGETS))
 SUBDIRS_TIERED    = $(addprefix $(OSNAME)_$(BUILDARCH)_tiered/,$(TARGETS))
 SUBDIRS_CORE      = $(addprefix $(OSNAME)_$(BUILDARCH)_core/,$(TARGETS))
 SUBDIRS_KERNEL    = $(addprefix $(OSNAME)_$(BUILDARCH)_kernel/,$(TARGETS))
+SUBDIRS_GRAAL     = $(addprefix $(OSNAME)_$(BUILDARCH)_graal/,$(TARGETS))
 
 TARGETS_C2        = $(TARGETS)
 TARGETS_C1        = $(addsuffix 1,$(TARGETS))
 TARGETS_TIERED    = $(addsuffix tiered,$(TARGETS))
 TARGETS_CORE      = $(addsuffix core,$(TARGETS))
 TARGETS_KERNEL    = $(addsuffix kernel,$(TARGETS))
+TARGETS_GRAAL     = $(addsuffix graal,$(TARGETS))
 
 BUILDTREE_MAKE    = $(GAMMADIR)/make/$(OSNAME)/makefiles/buildtree.make
 BUILDTREE_VARS    = GAMMADIR=$(GAMMADIR) OS_FAMILY=$(OSNAME) ARCH=$(SRCARCH) BUILDARCH=$(BUILDARCH) LIBARCH=$(LIBARCH)
@@ -180,6 +182,7 @@ all:
 	@echo "  $(TARGETS_C2)"
 	@echo "  $(TARGETS_C1)"
 	@echo "  $(TARGETS_CORE)"
+	@echo "  $(TARGETS_GRAAL)"
 
 checks: check_os_version check_j2se_version
 
@@ -233,6 +236,10 @@ $(SUBDIRS_KERNEL): $(BUILDTREE_MAKE)
 	$(QUIETLY) $(MAKE) -f $(GAMMADIR)/make/$(OSNAME)/Makefile checks
 	$(BUILDTREE) VARIANT=kernel
 
+$(SUBDIRS_GRAAL): $(BUILDTREE_MAKE)
+	$(QUIETLY) $(MAKE) -f $(GAMMADIR)/make/$(OSNAME)/Makefile checks
+	$(BUILDTREE) VARIANT=graal
+
 # Define INSTALL=y at command line to automatically copy JVM into JAVA_HOME
 
 $(TARGETS_C2):  $(SUBDIRS_C2)
@@ -270,11 +277,18 @@ ifdef INSTALL
 	cd $(OSNAME)_$(BUILDARCH)_kernel/$(patsubst %kernel,%,$@) && $(MAKE) $(MFLAGS) install
 endif
 
+$(TARGETS_GRAAL):  $(SUBDIRS_GRAAL)
+	cd $(OSNAME)_$(BUILDARCH)_graal/$(patsubst %graal,%,$@) && $(MAKE) $(MFLAGS)
+ifdef INSTALL
+	cd $(OSNAME)_$(BUILDARCH)_graal/$(patsubst %graal,%,$@) && $(MAKE) $(MFLAGS) install
+endif
+
 # Just build the tree, and nothing else:
 tree:      $(SUBDIRS_C2)
 tree1:     $(SUBDIRS_C1)
 treecore:  $(SUBDIRS_CORE)
 treekernel:  $(SUBDIRS_KERNEL)
+treegraal: $(SUBDIRS_GRAAL)
 
 # Doc target.  This is the same for all build options.
 #     Hence create a docs directory beside ...$(ARCH)_[...]
@@ -294,17 +308,17 @@ core: jvmgcore productcore
 clean_docs:
 	rm -rf $(SUBDIR_DOCS)
 
-clean_compiler1 clean_compiler2 clean_core clean_kernel:
+clean_compiler1 clean_compiler2 clean_core clean_kernel clean_graal:
 	rm -rf $(OSNAME)_$(BUILDARCH)_$(subst clean_,,$@)
 
-clean:  clean_compiler2 clean_compiler1 clean_core clean_docs clean_kernel
+clean:  clean_compiler2 clean_compiler1 clean_core clean_docs clean_kernel clean_graal
 
 include $(GAMMADIR)/make/cscope.make
 
 #-------------------------------------------------------------------------------
 
 .PHONY: $(TARGETS_C2) $(TARGETS_C1) $(TARGETS_CORE)
-.PHONY: tree tree1 treecore
-.PHONY: all compiler1 compiler2 core
-.PHONY: clean clean_compiler1 clean_compiler2 clean_core docs clean_docs
+.PHONY: tree tree1 treecore treegraal
+.PHONY: all compiler1 compiler2 core graal
+.PHONY: clean clean_compiler1 clean_compiler2 clean_core docs clean_docs clean_graal
 .PHONY: checks check_os_version check_j2se_version

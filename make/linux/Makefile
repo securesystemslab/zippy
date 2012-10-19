@@ -371,10 +371,10 @@ shark: jvmgshark productshark
 clean_docs:
 	rm -rf $(SUBDIR_DOCS)
 
-clean_compiler1 clean_compiler2 clean_core clean_zero clean_shark:
+clean_compiler1 clean_compiler2 clean_core clean_zero clean_shark clean_graal:
 	rm -rf $(OSNAME)_$(BUILDARCH)_$(subst clean_,,$@)
 
-clean:  clean_compiler2 clean_compiler1 clean_core clean_zero clean_shark clean_docs
+clean:  clean_compiler2 clean_compiler1 clean_core clean_zero clean_shark clean_docs clean_graal
 
 include $(GAMMADIR)/make/cscope.make
 
