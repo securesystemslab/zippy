@@ -276,7 +276,7 @@ def scaladacapo(args):
 
 def _arch():
     machine = platform.uname()[4]
-    if machine in ['amd64', 'AMD64', 'x86_64']:
+    if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
         return 'amd64'
     mx.abort('unsupported or unknown machine type: ' + machine)
 
