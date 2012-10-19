@@ -23,6 +23,9 @@
 
 #include "precompiled.hpp"
 #include "runtime/fieldDescriptor.hpp"
+#include "memory/oopFactory.hpp"
+#include "oops/generateOopMap.hpp"
+#include "runtime/javaCalls.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "ci/ciMethodData.hpp"
 #include "compiler/compileBroker.hpp"
@@ -33,8 +36,7 @@
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
 #include "graal/graalVmIds.hpp"
-#include "memory/oopFactory.hpp"
-#include "oops/generateOopMap.hpp"
+
 
 methodOop getMethodFromHotSpotMethod(jobject hotspot_method) {
   return getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));

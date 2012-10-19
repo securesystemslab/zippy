@@ -23,6 +23,8 @@
 
 #include "precompiled.hpp"
 #include "prims/jni.h"
+#include "runtime/javaCalls.hpp"
+#include "memory/oopFactory.hpp"
 #include "graal/graalInterpreterToVM.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
