@@ -22,6 +22,8 @@
  */
 
 #include "precompiled.hpp"
+#include "memory/oopFactory.hpp"
+#include "runtime/javaCalls.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalVMToCompiler.hpp"

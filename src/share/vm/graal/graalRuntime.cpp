@@ -22,7 +22,8 @@
  */
 
 #include "precompiled.hpp"
-
+#include "runtime/interfaceSupport.hpp"
+#include "prims/jvm.h"
 #include "graal/graalVMToCompiler.hpp"
 
 // JVM_InitializeGraalRuntime
