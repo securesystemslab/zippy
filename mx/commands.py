@@ -278,7 +278,15 @@ def _arch():
     machine = platform.uname()[4]
     if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
         return 'amd64'
-    mx.abort('unsupported or unknown machine type: ' + machine)
+    if machine == 'i386' and mx.get_os() == 'darwin':
+        try:
+            # Support for Snow Leopard and earlier version of MacOSX
+            if subprocess.check_output(['sysctl', '-n', 'hw.cpu64bit_capable']).strip() == '1':
+                return 'amd64'
+        except OSError:
+            # sysctl is not available
+            pass
+    mx.abort('unknown or unsupported architecture: os=' + mx.get_os() + ', machine=' + machine)
 
 def _vmLibDirInJdk(jdk):
     """
