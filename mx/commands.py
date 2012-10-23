@@ -348,6 +348,8 @@ def _jdk(build='product', create=False):
                     lines.append(line)
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
+            if mx.get_os() != 'windows':
+                os.chmod(_vmLibDirInJdk(jdk), 0755)
             shutil.copytree(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), defaultVM + '0'))
 
             with open(jvmCfg, 'w') as f:
@@ -461,6 +463,8 @@ def build(args, vm=None):
 
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
+            if mx.get_os() != 'windows':
+                os.chmod(_vmLibDirInJdk(jdk), 0755)
             mx.log('Creating VM directory in JDK7: ' + vmDir)
             os.makedirs(vmDir)
 
