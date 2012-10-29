@@ -1874,6 +1874,8 @@ void Compile::ScheduleAndBundle() {
   if (!do_scheduling())
     return;
 
+  assert(MaxVectorSize <= 8, "scheduling code works only with pairs");
+
   NOT_PRODUCT( TracePhase t2("isched", &_t_instrSched, TimeCompiler); )
 
   // Create a data structure for all the scheduling information
