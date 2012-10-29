@@ -52,19 +52,19 @@ methodDataOop getMethodDataFromHotSpotMethodData(jobject hotspot_method_data) {
 
 // Entry to native method implementation that transitions current thread to '_thread_in_vm'.
 #define C2V_VMENTRY(result_type, name, signature) \
-  JNIEXPORT result_type JNICALL name signature { \
+  JNIEXPORT result_type JNICALL c2v_ ## name signature { \
   TRACE_graal_3("CompilerToVM::" #name); \
   VM_ENTRY_MARK; \
 
 // Entry to native method implementation that calls a JNI function
 // and hence cannot transition current thread to '_thread_in_vm'.
 #define C2V_ENTRY(result_type, name, signature) \
-  JNIEXPORT result_type JNICALL name signature { \
+  JNIEXPORT result_type JNICALL c2v_ ## name signature { \
   TRACE_graal_3("CompilerToVM::" #name); \
 
 #define C2V_END }
 
-C2V_ENTRY(jbyteArray, JavaMethod_code, (JNIEnv *env, jobject, jobject hotspot_method))
+C2V_ENTRY(jbyteArray, getBytecode, (JNIEnv *env, jobject, jobject hotspot_method))
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   
   // copy all bytecodes
@@ -99,13 +99,13 @@ C2V_ENTRY(jbyteArray, JavaMethod_code, (JNIEnv *env, jobject, jobject hotspot_me
   return result;
 C2V_END
 
-C2V_VMENTRY(jstring, JavaMethod_signature, (JNIEnv *env, jobject, jobject hotspot_method))
+C2V_VMENTRY(jstring, getSignature, (JNIEnv *env, jobject, jobject hotspot_method))
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   assert(method != NULL && method->signature() != NULL, "signature required");
   return VmIds::toString<jstring>(method->signature(), THREAD);
 C2V_END
 
-C2V_VMENTRY(jobjectArray, JavaMethod_exceptionHandlers, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jobjectArray, getExceptionHandlers, (JNIEnv *, jobject, jobject hotspot_method))
   ResourceMark rm;
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   int handler_count = method->exception_table_length();
@@ -142,7 +142,7 @@ C2V_VMENTRY(jobjectArray, JavaMethod_exceptionHandlers, (JNIEnv *, jobject, jobj
   return (jobjectArray) JNIHandles::make_local(array());
 C2V_END
 
-C2V_VMENTRY(jint, JavaMethod_hasBalancedMonitors, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jint, hasBalancedMonitors, (JNIEnv *, jobject, jobject hotspot_method))
 
   // Analyze the method to see if monitors are used properly.
   methodHandle method(THREAD, getMethodFromHotSpotMethod(hotspot_method));
@@ -192,7 +192,7 @@ C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_
   return JNIHandles::make_local(THREAD, ret());
 }
 
-C2V_VMENTRY(jobject, JavaMethod_uniqueConcreteMethod, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jobject, getUniqueConcreteMethod, (JNIEnv *, jobject, jobject hotspot_method))
   methodHandle method = getMethodFromHotSpotMethod(hotspot_method);
   KlassHandle holder = method->method_holder();
   if (holder->is_interface()) {
@@ -219,11 +219,11 @@ C2V_VMENTRY(jobject, JavaMethod_uniqueConcreteMethod, (JNIEnv *, jobject, jobjec
   }
 C2V_END
 
-C2V_ENTRY(jint, JavaMethod_invocationCount, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_ENTRY(jint, getInvocationCount, (JNIEnv *, jobject, jobject hotspot_method))
   return getMethodFromHotSpotMethod(hotspot_method)->invocation_count();
 C2V_END
 
-C2V_VMENTRY(jobject, JavaMethod_methodData,(JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jobject, getMethodData,(JNIEnv *, jobject, jobject hotspot_method))
 
   methodDataHandle method_data = getMethodFromHotSpotMethod(hotspot_method)->method_data();
   if(method_data.is_null()) {
@@ -260,16 +260,12 @@ int scale_count(methodDataOop method_data, int count) {
   return count;
 }
 
-C2V_ENTRY(jboolean, JavaMethod_hasCompiledCode, (JNIEnv *, jobject, jobject hotspot_method))
-  return getMethodFromHotSpotMethod(hotspot_method)->has_compiled_code();
-C2V_END
-
-C2V_ENTRY(jint, JavaMethod_getCompiledCodeSize, (JNIEnv *env, jobject, jobject hotspot_method))
+C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jobject hotspot_method))
   nmethod* code = getMethodFromHotSpotMethod(hotspot_method)->code();
   return code == NULL ? 0 : code->insts_size();
 C2V_END
 
-C2V_VMENTRY(jobject, Signature_lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
+C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
   ResourceMark rm;
 
   Symbol* nameSymbol = VmIds::toSymbol(jname);
@@ -334,7 +330,7 @@ C2V_VMENTRY(jobject, Signature_lookupType, (JNIEnv *env, jobject, jstring jname,
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, ConstantPool_lookupConstant, (JNIEnv *env, jobject, jobject type, jint index))
+C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, jint index))
 
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type)))->constants();
 
@@ -376,7 +372,7 @@ C2V_VMENTRY(jobject, ConstantPool_lookupConstant, (JNIEnv *env, jobject, jobject
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, ConstantPool_lookupMethod, (JNIEnv *env, jobject, jobject type, jint index, jbyte byteCode))
+C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte byteCode))
   index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type)))->constants();
   instanceKlassHandle pool_holder(cp->pool_holder());
@@ -396,18 +392,18 @@ C2V_VMENTRY(jobject, ConstantPool_lookupMethod, (JNIEnv *env, jobject, jobject t
   }
 C2V_END
 
-C2V_VMENTRY(jobject, ConstantPool_lookupType, (JNIEnv *env, jobject, jobject type, jint index))
+C2V_VMENTRY(jobject, lookupTypeInPool, (JNIEnv *env, jobject, jobject type, jint index))
 
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type)))->constants();
   Handle result = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
   return JNIHandles::make_local(THREAD, result());
 C2V_END
 
-C2V_VMENTRY(void, ConstantPool_loadReferencedType, (JNIEnv *env, jobject, jobject type, jint index, jbyte op))
+C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte op))
   constantPoolOop cp = instanceKlass::cast(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type)))->constants();
-  int byteCode = (op & 0xFF);
-  if (byteCode != Bytecodes::_checkcast && byteCode != Bytecodes::_instanceof && byteCode != Bytecodes::_new && byteCode != Bytecodes::_anewarray
-      && byteCode != Bytecodes::_multianewarray && byteCode != Bytecodes::_ldc && byteCode != Bytecodes::_ldc_w && byteCode != Bytecodes::_ldc2_w)
+  int opcode = (op & 0xFF);
+  if (opcode != Bytecodes::_checkcast && opcode != Bytecodes::_instanceof && opcode != Bytecodes::_new && opcode != Bytecodes::_anewarray
+      && opcode != Bytecodes::_multianewarray && opcode != Bytecodes::_ldc && opcode != Bytecodes::_ldc_w && opcode != Bytecodes::_ldc2_w)
   {
     index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index_u2(index));
   }
@@ -425,7 +421,7 @@ C2V_VMENTRY(void, ConstantPool_loadReferencedType, (JNIEnv *env, jobject, jobjec
   }
 C2V_END
 
-C2V_VMENTRY(jobject, ConstantPool_lookupField, (JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode))
+C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte byteCode))
   ResourceMark rm;
 
   index = GraalCompiler::to_cp_index_u2(index);
@@ -466,7 +462,7 @@ C2V_VMENTRY(jobject, ConstantPool_lookupField, (JNIEnv *env, jobject, jobject co
   return JNIHandles::make_local(THREAD, field_handle());
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_resolveMethodImpl, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
+C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, jstring name, jstring signature))
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(resolved_type));
@@ -484,7 +480,7 @@ C2V_VMENTRY(jobject, JavaType_resolveMethodImpl, (JNIEnv *, jobject, jobject res
   return JNIHandles::make_local(THREAD, ret());
 C2V_END
 
-C2V_VMENTRY(jboolean, JavaType_isSubtypeOf, (JNIEnv *, jobject, jobject klass, jobject jother))
+C2V_VMENTRY(jboolean, isSubtypeOf, (JNIEnv *, jobject, jobject klass, jobject jother))
   oop other = JNIHandles::resolve(jother);
   assert(other->is_a(HotSpotResolvedJavaType::klass()), "resolved hotspot type expected");
   assert(JNIHandles::resolve(klass) != NULL, "");
@@ -500,7 +496,7 @@ C2V_VMENTRY(jboolean, JavaType_isSubtypeOf, (JNIEnv *, jobject, jobject klass, j
   }
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_leastCommonAncestor, (JNIEnv *, jobject, jobject this_type, jobject other_type))
+C2V_VMENTRY(jobject, getLeastCommonAncestor, (JNIEnv *, jobject, jobject this_type, jobject other_type))
 
   Klass* this_klass  = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(this_type))->klass_part();
   Klass* other_klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(other_type))->klass_part();
@@ -509,7 +505,7 @@ C2V_VMENTRY(jobject, JavaType_leastCommonAncestor, (JNIEnv *, jobject, jobject t
   return JNIHandles::make_local(GraalCompiler::get_JavaType(lca, THREAD)());
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_componentType, (JNIEnv *, jobject, jobject klass))
+C2V_VMENTRY(jobject, getComponentType, (JNIEnv *, jobject, jobject klass))
   KlassHandle array_klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass));
   if(array_klass->oop_is_typeArray()) {
     BasicType t = typeArrayKlass::cast(array_klass())->element_type();
@@ -522,7 +518,7 @@ C2V_VMENTRY(jobject, JavaType_componentType, (JNIEnv *, jobject, jobject klass))
   return JNIHandles::make_local(GraalCompiler::get_JavaType(element_type, THREAD)());
 C2V_END
 
-C2V_VMENTRY(jlong, JavaType_prototypeMarkWord, (JNIEnv *, jobject, jobject klass))
+C2V_VMENTRY(jlong, getPrototypeMarkWord, (JNIEnv *, jobject, jobject klass))
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass)));
   if (klass_handle->oop_is_array()) {
     return (int32_t)(intptr_t) markOopDesc::prototype();
@@ -531,7 +527,7 @@ C2V_VMENTRY(jlong, JavaType_prototypeMarkWord, (JNIEnv *, jobject, jobject klass
   }
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_superType, (JNIEnv *, jobject, jobject klass))
+C2V_VMENTRY(jobject, getSuperType, (JNIEnv *, jobject, jobject klass))
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass)));
   klassOop k;
 
@@ -549,7 +545,7 @@ C2V_VMENTRY(jobject, JavaType_superType, (JNIEnv *, jobject, jobject klass))
   }
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_uniqueConcreteSubtype, (JNIEnv *, jobject, jobject klass))
+C2V_VMENTRY(jobject, getUniqueConcreteSubtype, (JNIEnv *, jobject, jobject klass))
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass)));
   Klass *up_cast = klass_handle->up_cast_abstract();
   if (!up_cast->is_interface() && up_cast->subklass() == NULL) {
@@ -558,20 +554,19 @@ C2V_VMENTRY(jobject, JavaType_uniqueConcreteSubtype, (JNIEnv *, jobject, jobject
   return NULL;
 C2V_END
 
-C2V_VMENTRY(jboolean, JavaType_isInitialized,(JNIEnv *, jobject, jobject hotspot_klass))
+C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klass))
   klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return instanceKlass::cast(klass)->is_initialized();
 C2V_END
 
-// public bool JavaType_isInitialized(HotSpotResolvedType klass);
-C2V_VMENTRY(void, JavaType_initialize, (JNIEnv *, jobject, jobject hotspot_klass))
+C2V_VMENTRY(void, initializeType, (JNIEnv *, jobject, jobject hotspot_klass))
   klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   instanceKlass::cast(klass)->initialize(JavaThread::current());
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_arrayOf, (JNIEnv *, jobject, jobject klass))
+C2V_VMENTRY(jobject, getArrayOf, (JNIEnv *, jobject, jobject klass))
   KlassHandle klass_handle(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass)));
   KlassHandle arr = klass_handle->array_klass(THREAD);
   Handle name = VmIds::toString<Handle>(arr->name(), CHECK_NULL);
@@ -579,7 +574,7 @@ C2V_VMENTRY(jobject, JavaType_arrayOf, (JNIEnv *, jobject, jobject klass))
   return JNIHandles::make_local(THREAD, GraalCompiler::createHotSpotResolvedJavaType(arr, name, THREAD)());
 C2V_END
 
-C2V_VMENTRY(jobject, JavaType_fields, (JNIEnv *, jobject, jobject klass))
+C2V_VMENTRY(jobject, getFields, (JNIEnv *, jobject, jobject klass))
   ResourceMark rm;
 
   instanceKlassHandle k = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(klass));
@@ -833,7 +828,7 @@ C2V_VMENTRY(jobject, disassembleNative, (JNIEnv *jniEnv, jobject, jbyteArray cod
   return JNIHandles::make_local(result());
 C2V_END
 
-C2V_VMENTRY(jobject, JavaMethod_toStackTraceElement, (JNIEnv *env, jobject, jobject hotspot_method, int bci))
+C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jobject hotspot_method, int bci))
   ResourceMark rm;
   HandleMark hm;
 
@@ -893,7 +888,7 @@ C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jobject metho
   return JNIHandles::make_local((oop) result.get_jobject());
 C2V_END
 
-C2V_VMENTRY(jint, JavaMethod_vtableEntryOffset, (JNIEnv *, jobject, jobject hotspot_method))
+C2V_VMENTRY(jint, getVtableEntryOffset, (JNIEnv *, jobject, jobject hotspot_method))
 
   methodOop method = getMethodFromHotSpotMethod(hotspot_method);
   assert(!instanceKlass::cast(method->method_holder())->is_interface(), "vtableEntryOffset cannot be called for interface methods");
@@ -939,7 +934,7 @@ C2V_END
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
-#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(f))
+#define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
 #define PROXY           "J"
 #define TYPE            "Lcom/oracle/graal/api/meta/JavaType;"
@@ -968,50 +963,45 @@ C2V_END
 #define STACK_TRACE_ELEMENT "Ljava/lang/StackTraceElement;"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"JavaMethod_code",                     CC"("RESOLVED_METHOD")[B",                            FN_PTR(JavaMethod_code)},
-  {CC"JavaMethod_signature",                CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(JavaMethod_signature)},
-  {CC"JavaMethod_exceptionHandlers",        CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,            FN_PTR(JavaMethod_exceptionHandlers)},
-  {CC"JavaMethod_hasBalancedMonitors",      CC"("RESOLVED_METHOD")Z",                             FN_PTR(JavaMethod_hasBalancedMonitors)},
-  {CC"JavaMethod_uniqueConcreteMethod",     CC"("RESOLVED_METHOD")"METHOD,                        FN_PTR(JavaMethod_uniqueConcreteMethod)},
-  {CC"JavaMethod_toStackTraceElement",      CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(JavaMethod_toStackTraceElement)},
-  {CC"JavaMethod_methodData",               CC"("RESOLVED_METHOD")"METHOD_DATA,                   FN_PTR(JavaMethod_methodData)},
-  {CC"JavaMethod_invocationCount",          CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_invocationCount)},
-  {CC"JavaMethod_hasCompiledCode",          CC"("RESOLVED_METHOD")Z",                             FN_PTR(JavaMethod_hasCompiledCode)},
-  {CC"JavaMethod_getCompiledCodeSize",      CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_getCompiledCodeSize)},
-  {CC"JavaMethod_vtableEntryOffset",        CC"("RESOLVED_METHOD")I",                             FN_PTR(JavaMethod_vtableEntryOffset)},
-
-  {CC"Signature_lookupType",                CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(Signature_lookupType)},
-
-  {CC"ConstantPool_lookupConstant",         CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(ConstantPool_lookupConstant)},
-  {CC"ConstantPool_lookupMethod",           CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(ConstantPool_lookupMethod)},
-  {CC"ConstantPool_lookupType",             CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(ConstantPool_lookupType)},
-  {CC"ConstantPool_loadReferencedType",     CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(ConstantPool_loadReferencedType)},
-  {CC"ConstantPool_lookupField",            CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(ConstantPool_lookupField)},
-
-  {CC"JavaType_resolveMethodImpl",          CC"("RESOLVED_TYPE STRING STRING")"METHOD,            FN_PTR(JavaType_resolveMethodImpl)},
-  {CC"JavaType_isSubtypeOf",                CC"("RESOLVED_TYPE TYPE")Z",                          FN_PTR(JavaType_isSubtypeOf)},
-  {CC"JavaType_leastCommonAncestor",        CC"("RESOLVED_TYPE RESOLVED_TYPE")"TYPE,              FN_PTR(JavaType_leastCommonAncestor)},
-  {CC"JavaType_componentType",              CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_componentType)},
-  {CC"JavaType_uniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_uniqueConcreteSubtype)},
-  {CC"JavaType_superType",                  CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_superType)},
-  {CC"JavaType_prototypeMarkWord",          CC"("RESOLVED_TYPE")J",                               FN_PTR(JavaType_prototypeMarkWord)},
-  {CC"JavaType_arrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(JavaType_arrayOf)},
-  {CC"JavaType_fields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,                 FN_PTR(JavaType_fields)},
-  {CC"JavaType_isInitialized",              CC"("RESOLVED_TYPE")Z",                               FN_PTR(JavaType_isInitialized)},
-  {CC"JavaType_initialize",                 CC"("RESOLVED_TYPE")V",                               FN_PTR(JavaType_initialize)},
-
-  {CC"getPrimitiveArrayType",               CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
-  {CC"getMaxCallTargetOffset",              CC"(J)J",                                             FN_PTR(getMaxCallTargetOffset)},
-  {CC"getType",                             CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
-  {CC"getJavaMethod",                       CC"("REFLECT_METHOD")"METHOD         ,                FN_PTR(getJavaMethod)},
-  {CC"getJavaField",                        CC"("REFLECT_FIELD")"RESOLVED_FIELD,                  FN_PTR(getJavaField)},
-  {CC"initializeConfiguration",             CC"("CONFIG")V",                                      FN_PTR(initializeConfiguration)},
-  {CC"installMethod",                       CC"("HS_COMP_RESULT"Z"HS_CODE_INFO")"HS_COMP_METHOD,  FN_PTR(installMethod)},
-  {CC"disassembleNative",                   CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
-  {CC"executeCompiledMethod",               CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
-  {CC"executeCompiledMethodVarargs",        CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
-  {CC"getDeoptedLeafGraphIds",              CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"decodePC",                            CC"(J)"STRING,                                        FN_PTR(decodePC)},
+  {CC"getBytecode",                   CC"("RESOLVED_METHOD")[B",                            FN_PTR(getBytecode)},
+  {CC"getSignature",                  CC"("RESOLVED_METHOD")"STRING,                        FN_PTR(getSignature)},
+  {CC"getExceptionHandlers",          CC"("RESOLVED_METHOD")"EXCEPTION_HANDLERS,            FN_PTR(getExceptionHandlers)},
+  {CC"hasBalancedMonitors",           CC"("RESOLVED_METHOD")Z",                             FN_PTR(hasBalancedMonitors)},
+  {CC"getUniqueConcreteMethod",       CC"("RESOLVED_METHOD")"METHOD,                        FN_PTR(getUniqueConcreteMethod)},
+  {CC"getStackTraceElement",          CC"("RESOLVED_METHOD"I)"STACK_TRACE_ELEMENT,          FN_PTR(getStackTraceElement)},
+  {CC"getMethodData",                 CC"("RESOLVED_METHOD")"METHOD_DATA,                   FN_PTR(getMethodData)},
+  {CC"getInvocationCount",            CC"("RESOLVED_METHOD")I",                             FN_PTR(getInvocationCount)},
+  {CC"getCompiledCodeSize",           CC"("RESOLVED_METHOD")I",                             FN_PTR(getCompiledCodeSize)},
+  {CC"getVtableEntryOffset",          CC"("RESOLVED_METHOD")I",                             FN_PTR(getVtableEntryOffset)},
+  {CC"lookupType",                    CC"("STRING RESOLVED_TYPE"Z)"TYPE,                    FN_PTR(lookupType)},
+  {CC"lookupConstantInPool",          CC"("RESOLVED_TYPE"I)"OBJECT,                         FN_PTR(lookupConstantInPool)},
+  {CC"lookupMethodInPool",            CC"("RESOLVED_TYPE"IB)"METHOD,                        FN_PTR(lookupMethodInPool)},
+  {CC"lookupTypeInPool",              CC"("RESOLVED_TYPE"I)"TYPE,                           FN_PTR(lookupTypeInPool)},
+  {CC"lookupReferencedTypeInPool",    CC"("RESOLVED_TYPE"IB)V",                             FN_PTR(lookupReferencedTypeInPool)},
+  {CC"lookupFieldInPool",             CC"("RESOLVED_TYPE"IB)"FIELD,                         FN_PTR(lookupFieldInPool)},
+  {CC"resolveMethod",                 CC"("RESOLVED_TYPE STRING STRING")"METHOD,            FN_PTR(resolveMethod)},
+  {CC"isSubtypeOf",                   CC"("RESOLVED_TYPE TYPE")Z",                          FN_PTR(isSubtypeOf)},
+  {CC"getLeastCommonAncestor",        CC"("RESOLVED_TYPE RESOLVED_TYPE")"TYPE,              FN_PTR(getLeastCommonAncestor)},
+  {CC"getComponentType",              CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(getComponentType)},
+  {CC"getUniqueConcreteSubtype",      CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(getUniqueConcreteSubtype)},
+  {CC"getSuperType",                  CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(getSuperType)},
+  {CC"getPrototypeMarkWord",          CC"("RESOLVED_TYPE")J",                               FN_PTR(getPrototypeMarkWord)},
+  {CC"getArrayOf",                    CC"("RESOLVED_TYPE")"TYPE,                            FN_PTR(getArrayOf)},
+  {CC"getFields",                     CC"("RESOLVED_TYPE")["RESOLVED_FIELD,                 FN_PTR(getFields)},
+  {CC"isTypeInitialized",             CC"("RESOLVED_TYPE")Z",                               FN_PTR(isTypeInitialized)},
+  {CC"initializeType",                CC"("RESOLVED_TYPE")V",                               FN_PTR(initializeType)},
+  {CC"getPrimitiveArrayType",         CC"("KIND")"TYPE,                                     FN_PTR(getPrimitiveArrayType)},
+  {CC"getMaxCallTargetOffset",        CC"(J)J",                                             FN_PTR(getMaxCallTargetOffset)},
+  {CC"getType",                       CC"("CLASS")"TYPE,                                    FN_PTR(getType)},
+  {CC"getJavaMethod",                 CC"("REFLECT_METHOD")"METHOD         ,                FN_PTR(getJavaMethod)},
+  {CC"getJavaField",                  CC"("REFLECT_FIELD")"RESOLVED_FIELD,                  FN_PTR(getJavaField)},
+  {CC"initializeConfiguration",       CC"("CONFIG")V",                                      FN_PTR(initializeConfiguration)},
+  {CC"installMethod",                 CC"("HS_COMP_RESULT"Z"HS_CODE_INFO")"HS_COMP_METHOD,  FN_PTR(installMethod)},
+  {CC"disassembleNative",             CC"([BJ)"STRING,                                      FN_PTR(disassembleNative)},
+  {CC"executeCompiledMethod",         CC"("HS_COMP_METHOD OBJECT OBJECT OBJECT")"OBJECT,    FN_PTR(executeCompiledMethod)},
+  {CC"executeCompiledMethodVarargs",  CC"("HS_COMP_METHOD "["OBJECT")"OBJECT,               FN_PTR(executeCompiledMethodVarargs)},
+  {CC"getDeoptedLeafGraphIds",        CC"()[J",                                             FN_PTR(getDeoptedLeafGraphIds)},
+  {CC"decodePC",                      CC"(J)"STRING,                                        FN_PTR(decodePC)},
 };
 
 int CompilerToVM_methods_count() {
