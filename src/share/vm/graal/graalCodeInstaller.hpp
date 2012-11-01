@@ -29,7 +29,7 @@
  */
 class CodeInstaller {
 private:
-  // these need to correspond to HotSpotXirGenerator.java
+  // these need to correspond to Marks.java
   enum MarkId {
     MARK_VERIFIED_ENTRY             = 0x0001,
     MARK_UNVERIFIED_ENTRY           = 0x0002,
