@@ -739,6 +739,7 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_long(env, config, "vmErrorStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_vm_error_id)));
   set_long(env, config, "deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));
   set_long(env, config, "unwindExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id)));
+  set_long(env, config, "osrMigrationEndStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_OSR_migration_end_id)));
   set_long(env, config, "registerFinalizerStub", VmIds::addStub(Runtime1::entry_for(Runtime1::register_finalizer_id)));
   set_long(env, config, "setDeoptInfoStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_set_deopt_info_id)));
   set_long(env, config, "createNullPointerExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id)));

@@ -1889,6 +1889,17 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
       break;
     }
 
+    case graal_OSR_migration_end_id: {
+    __ enter();
+    save_live_registers(sasm, 0);
+    __ movptr(c_rarg0, j_rarg0);
+    __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, SharedRuntime::OSR_migration_end)));
+    restore_live_registers(sasm);
+    __ leave();
+    __ ret(0);
+      break;
+    }
+
     case graal_set_deopt_info_id: {
     __ movptr(Address(r15_thread, JavaThread::graal_deopt_info_offset()), rscratch1);
     __ ret(0);

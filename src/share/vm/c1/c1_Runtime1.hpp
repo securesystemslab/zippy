@@ -71,6 +71,7 @@ class StubAssembler;
   stub(fpu2long_stub)                \
   stub(counter_overflow)             \
   stub(graal_unwind_exception_call)  \
+  stub(graal_OSR_migration_end)      \
   stub(graal_arithmetic_frem)        \
   stub(graal_arithmetic_drem)        \
   stub(graal_monitorenter)           \

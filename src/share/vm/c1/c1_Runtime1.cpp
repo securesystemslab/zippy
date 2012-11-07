@@ -208,6 +208,7 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
 #ifdef GRAAL
     case graal_verify_oop_id:
     case graal_unwind_exception_call_id:
+    case graal_OSR_migration_end_id:
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:

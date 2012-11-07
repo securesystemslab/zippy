@@ -247,7 +247,7 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   _env->set_oop_recorder(_oop_recorder);
   _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
-  Handle assumptions_handle = InstalledCode::assumptions(HotSpotCompilationResult::comp(target_method));
+  Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompilationResult::comp(target_method));
   if (!assumptions_handle.is_null()) {
     objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
     int length = assumptions->length();
@@ -275,6 +275,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, nmethod*& nm, bool install_cod
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
+  jint entry_bci = HotSpotCompilationResult::entryBCI(comp_result);
   initialize_assumptions(JNIHandles::resolve(comp_result_obj));
 
   {
@@ -287,7 +288,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, nmethod*& nm, bool install_cod
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
   methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(JNIHandles::resolve(comp_result_obj))); 
 
-  nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+  nm = GraalEnv::register_method(method, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, install_code);
 
   method->clear_queued_for_compilation();
@@ -326,11 +327,11 @@ void CodeInstaller::initialize_fields(oop comp_result) {
   _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
   _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(comp_result);
 
-  _code = (arrayOop) InstalledCode::targetCode(_comp_result);
-  _code_size = InstalledCode::targetCodeSize(_comp_result);
+  _code = (arrayOop) CompilationResult::targetCode(_comp_result);
+  _code_size = CompilationResult::targetCodeSize(_comp_result);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = InstalledCode::frameSize(_comp_result) + HeapWordSize;
-  _custom_stack_area_offset = InstalledCode::customStackAreaOffset(_comp_result);
+  _total_frame_size = CompilationResult::frameSize(_comp_result) + HeapWordSize;
+  _custom_stack_area_offset = CompilationResult::customStackAreaOffset(_comp_result);
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * (BytesPerLong*2);
@@ -363,18 +364,18 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   oop* sites = (oop*) _sites->base(T_OBJECT);
   for (int i = 0; i < _sites->length(); i++) {
     oop site = sites[i];
-    jint pc_offset = InstalledCode_Site::pcOffset(site);
+    jint pc_offset = CompilationResult_Site::pcOffset(site);
 
-    if (site->is_a(InstalledCode_Call::klass())) {
+    if (site->is_a(CompilationResult_Call::klass())) {
       TRACE_graal_4("call at %i", pc_offset);
       site_Call(buffer, pc_offset, site);
-    } else if (site->is_a(InstalledCode_Safepoint::klass())) {
+    } else if (site->is_a(CompilationResult_Safepoint::klass())) {
       TRACE_graal_4("safepoint at %i", pc_offset);
       site_Safepoint(buffer, pc_offset, site);
-    } else if (site->is_a(InstalledCode_DataPatch::klass())) {
+    } else if (site->is_a(CompilationResult_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
       site_DataPatch(buffer, pc_offset, site);
-    } else if (site->is_a(InstalledCode_Mark::klass())) {
+    } else if (site->is_a(CompilationResult_Mark::klass())) {
       TRACE_graal_4("mark at %i", pc_offset);
       site_Mark(buffer, pc_offset, site);
     } else {
@@ -426,8 +427,8 @@ void CodeInstaller::process_exception_handlers() {
     oop* exception_handlers = (oop*) _exception_handlers->base(T_OBJECT);
     for (int i = 0; i < _exception_handlers->length(); i++) {
       oop exc = exception_handlers[i];
-      jint pc_offset = InstalledCode_Site::pcOffset(exc);
-      jint handler_offset = InstalledCode_ExceptionHandler::handlerPos(exc);
+      jint pc_offset = CompilationResult_Site::pcOffset(exc);
+      jint handler_offset = CompilationResult_ExceptionHandler::handlerPos(exc);
 
       // Subtable header
       _exception_handler_table.add_entry(HandlerTableEntry(1, pc_offset, 0));
@@ -517,7 +518,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop debug_info = InstalledCode_Safepoint::debugInfo(site);
+  oop debug_info = CompilationResult_Safepoint::debugInfo(site);
   assert(debug_info != NULL, "debug info expected");
 
   // address instruction = _instructions->start() + pc_offset;
@@ -531,7 +532,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 }
 
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop target = InstalledCode_Call::target(site);
+  oop target = CompilationResult_Call::target(site);
   instanceKlass* target_klass = instanceKlass::cast(target->klass());
 
   oop hotspot_method = NULL; // JavaMethod
@@ -543,7 +544,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     hotspot_method = target;
   }
 
-  oop debug_info = InstalledCode_Call::debugInfo(site);
+  oop debug_info = CompilationResult_Call::debugInfo(site);
 
   assert((hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
 
@@ -659,8 +660,8 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 }
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop constant = InstalledCode_DataPatch::constant(site);
-  int alignment = InstalledCode_DataPatch::alignment(site);
+  oop constant = CompilationResult_DataPatch::constant(site);
+  int alignment = CompilationResult_DataPatch::alignment(site);
   oop kind = Constant::kind(constant);
 
   address instruction = _instructions->start() + pc_offset;
@@ -723,8 +724,8 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
 }
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop id_obj = InstalledCode_Mark::id(site);
-  arrayOop references = (arrayOop) InstalledCode_Mark::references(site);
+  oop id_obj = CompilationResult_Mark::id(site);
+  arrayOop references = (arrayOop) CompilationResult_Mark::references(site);
 
   if (id_obj != NULL) {
     assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");
@@ -751,7 +752,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_STATIC_CALL_STUB: {
         assert(references->length() == 1, "static call stub needs one reference");
         oop ref = ((oop*) references->base(T_OBJECT))[0];
-        address call_pc = _instructions->start() + InstalledCode_Site::pcOffset(ref);
+        address call_pc = _instructions->start() + CompilationResult_Site::pcOffset(ref);
         _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
         _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         break;
@@ -805,14 +806,14 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         assert(references->length() == 2, "MARK_KLASS_PATCHING/MARK_ACCESS_FIELD_PATCHING needs 2 references");
         oop ref1 = ((oop*) references->base(T_OBJECT))[0];
         oop ref2 = ((oop*) references->base(T_OBJECT))[1];
-        int i_byte_count = InstalledCode_Site::pcOffset(ref2) - InstalledCode_Site::pcOffset(ref1);
+        int i_byte_count = CompilationResult_Site::pcOffset(ref2) - CompilationResult_Site::pcOffset(ref1);
         assert(i_byte_count == (unsigned char)i_byte_count, "invalid offset");
         *byte_count = i_byte_count;
         *being_initialized_entry_offset = *byte_count + *byte_skip;
 
         // we need to correct the offset of a field access - it's created with MAX_INT to ensure the correct size, and hotspot expects 0
         if (id == MARK_ACCESS_FIELD_PATCHING) {
-          NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + InstalledCode_Site::pcOffset(ref1));
+          NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + CompilationResult_Site::pcOffset(ref1));
           assert(inst->offset() == max_jint, "unexpected offset value");
           inst->set_offset(0);
         }

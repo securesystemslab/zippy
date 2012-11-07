@@ -208,7 +208,7 @@ void NonTieredCompPolicy::reset_counter_for_invocation_event(methodHandle m) {
 }
 
 void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
-  GRAAL_ONLY(assert(false, "unexpected"));
+//  GRAAL_ONLY(assert(false, "unexpected"));
   // Delay next back-branch event but pump up invocation counter to triger
   // whole method compilation.
   InvocationCounter* i = m->invocation_counter();

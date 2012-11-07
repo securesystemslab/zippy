@@ -200,13 +200,13 @@ class SymbolPropertyTable;
   template(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
   template(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
   template(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
-  template(InstalledCode_klass,                   com_oracle_graal_api_code_InstalledCode,                      Opt) \
-  template(InstalledCode_Call_klass,              com_oracle_graal_api_code_InstalledCode_Call,                 Opt) \
-  template(InstalledCode_DataPatch_klass,         com_oracle_graal_api_code_InstalledCode_DataPatch,            Opt) \
-  template(InstalledCode_ExceptionHandler_klass,  com_oracle_graal_api_code_InstalledCode_ExceptionHandler,     Opt) \
-  template(InstalledCode_Mark_klass,              com_oracle_graal_api_code_InstalledCode_Mark,                 Opt) \
-  template(InstalledCode_Safepoint_klass,         com_oracle_graal_api_code_InstalledCode_Safepoint,            Opt) \
-  template(InstalledCode_Site_klass,              com_oracle_graal_api_code_InstalledCode_Site,                 Opt) \
+  template(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Opt) \
+  template(CompilationResult_Call_klass,          com_oracle_graal_api_code_CompilationResult_Call,             Opt) \
+  template(CompilationResult_DataPatch_klass,     com_oracle_graal_api_code_CompilationResult_DataPatch,        Opt) \
+  template(CompilationResult_ExceptionHandler_klass, com_oracle_graal_api_code_CompilationResult_ExceptionHandler, Opt) \
+  template(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Opt) \
+  template(CompilationResult_Safepoint_klass,     com_oracle_graal_api_code_CompilationResult_Safepoint,        Opt) \
+  template(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
   template(code_MonitorValue_klass,               com_oracle_graal_api_code_MonitorValue,                       Opt) \
   template(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   template(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \

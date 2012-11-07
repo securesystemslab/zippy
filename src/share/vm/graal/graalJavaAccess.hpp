@@ -29,7 +29,7 @@ void graal_compute_offsets();
 #include "classfile/systemDictionary.hpp"
 #include "oops/instanceMirrorKlass.hpp"
 
-/* This macro defines the structure of the InstalledCode - classes.
+/* This macro defines the structure of the CompilationResult - classes.
  * It will generate classes with accessors similar to javaClasses.hpp, but with specializations for oops, Handles and jni handles.
  *
  * The public interface of these classes will look like this:
@@ -72,147 +72,148 @@ void graal_compute_offsets();
     int_field(HotSpotResolvedJavaMethod, maxLocals)                                         \
     int_field(HotSpotResolvedJavaMethod, maxStackSize)                                      \
     boolean_field(HotSpotResolvedJavaMethod, canBeInlined)                                  \
-  end_class                                                                             \
-  start_class(HotSpotMethodData)                                                        \
-    oop_field(HotSpotMethodData, hotspotMirror, "Ljava/lang/Object;")                   \
-    int_field(HotSpotMethodData, normalDataSize)                                        \
-    int_field(HotSpotMethodData, extraDataSize)                                         \
-  end_class                                                                             \
+  end_class                                                                                 \
+  start_class(HotSpotMethodData)                                                            \
+    oop_field(HotSpotMethodData, hotspotMirror, "Ljava/lang/Object;")                       \
+    int_field(HotSpotMethodData, normalDataSize)                                            \
+    int_field(HotSpotMethodData, extraDataSize)                                             \
+  end_class                                                                                 \
   start_class(HotSpotJavaType)                                                              \
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                  \
-  end_class                                                                             \
-  start_class(HotSpotResolvedJavaField)                                                             \
-    oop_field(HotSpotResolvedJavaField, constant, "Lcom/oracle/graal/api/meta/Constant;")             \
-    int_field(HotSpotResolvedJavaField, offset)                                                     \
-    int_field(HotSpotResolvedJavaField, accessFlags)                                                \
-  end_class                                                                             \
-  start_class(HotSpotCompiledMethod)                                                    \
-    long_field(HotSpotCompiledMethod, nmethod)                                          \
-    oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")\
-  end_class                                                                             \
-  start_class(HotSpotCodeInfo)                                                          \
-    long_field(HotSpotCodeInfo, start)                                                  \
-    oop_field(HotSpotCodeInfo, code, "[B")                                              \
-  end_class                                                                             \
-  start_class(HotSpotCompilationResult)                                                      \
+  end_class                                                                                 \
+  start_class(HotSpotResolvedJavaField)                                                     \
+    oop_field(HotSpotResolvedJavaField, constant, "Lcom/oracle/graal/api/meta/Constant;")   \
+    int_field(HotSpotResolvedJavaField, offset)                                             \
+    int_field(HotSpotResolvedJavaField, accessFlags)                                        \
+  end_class                                                                                 \
+  start_class(HotSpotCompiledMethod)                                                        \
+    long_field(HotSpotCompiledMethod, nmethod)                                              \
+    oop_field(HotSpotCompiledMethod, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
+  end_class                                                                                 \
+  start_class(HotSpotCodeInfo)                                                              \
+    long_field(HotSpotCodeInfo, start)                                                      \
+    oop_field(HotSpotCodeInfo, code, "[B")                                                  \
+  end_class                                                                                 \
+  start_class(HotSpotCompilationResult)                                                     \
     oop_field(HotSpotCompilationResult, comp, "Lcom/oracle/graal/api/code/CompilationResult;") \
     oop_field(HotSpotCompilationResult, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;") \
-    oop_field(HotSpotCompilationResult, name, "Ljava/lang/String;")                          \
+    int_field(HotSpotCompilationResult, entryBCI)                                           \
+    oop_field(HotSpotCompilationResult, name, "Ljava/lang/String;")                         \
     oop_field(HotSpotCompilationResult, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;") \
     oop_field(HotSpotCompilationResult, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;") \
-  end_class                                                                             \
-  start_class(ExceptionHandler)                                                  \
-    int_field(ExceptionHandler, startBCI)                                        \
-    int_field(ExceptionHandler, endBCI)                                          \
-    int_field(ExceptionHandler, handlerBCI)                                      \
-    int_field(ExceptionHandler, catchTypeCPI)                                 \
-    oop_field(ExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")    \
-  end_class                                                                             \
-  start_class(InstalledCode)                                                           \
-    int_field(InstalledCode, frameSize)                                                \
-    int_field(InstalledCode, customStackAreaOffset)                                    \
-    oop_field(InstalledCode, targetCode, "[B")                                         \
-    oop_field(InstalledCode, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")     \
-    int_field(InstalledCode, targetCodeSize)                                           \
-  end_class                                                                             \
-  start_class(Assumptions)                                                            \
-    oop_field(Assumptions, list, "[Lcom/oracle/graal/api/code/Assumptions$Assumption;") \
-  end_class                                                                             \
-  start_class(Assumptions_MethodContents)                                             \
+  end_class                                                                                 \
+  start_class(ExceptionHandler)                                                             \
+    int_field(ExceptionHandler, startBCI)                                                   \
+    int_field(ExceptionHandler, endBCI)                                                     \
+    int_field(ExceptionHandler, handlerBCI)                                                 \
+    int_field(ExceptionHandler, catchTypeCPI)                                               \
+    oop_field(ExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")          \
+  end_class                                                                                 \
+  start_class(CompilationResult)                                                            \
+    int_field(CompilationResult, frameSize)                                                 \
+    int_field(CompilationResult, customStackAreaOffset)                                     \
+    oop_field(CompilationResult, targetCode, "[B")                                          \
+    oop_field(CompilationResult, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")    \
+    int_field(CompilationResult, targetCodeSize)                                            \
+  end_class                                                                                 \
+  start_class(Assumptions)                                                                  \
+    oop_field(Assumptions, list, "[Lcom/oracle/graal/api/code/Assumptions$Assumption;")     \
+  end_class                                                                                 \
+  start_class(Assumptions_MethodContents)                                                   \
     oop_field(Assumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
-  end_class                                                                             \
-  start_class(Assumptions_ConcreteSubtype)                                            \
+  end_class                                                                                 \
+  start_class(Assumptions_ConcreteSubtype)                                                  \
     oop_field(Assumptions_ConcreteSubtype, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
     oop_field(Assumptions_ConcreteSubtype, subtype, "Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
-  end_class                                                                             \
-  start_class(Assumptions_ConcreteMethod)                                             \
+  end_class                                                                                 \
+  start_class(Assumptions_ConcreteMethod)                                                   \
     oop_field(Assumptions_ConcreteMethod, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
     oop_field(Assumptions_ConcreteMethod, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
     oop_field(Assumptions_ConcreteMethod, impl, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
-  end_class                                                                             \
-  start_class(InstalledCode_Site)                                                      \
-    int_field(InstalledCode_Site, pcOffset)                                            \
-  end_class                                                                             \
-  start_class(InstalledCode_Call)                                                      \
-    oop_field(InstalledCode_Call, target, "Ljava/lang/Object;")                        \
-    oop_field(InstalledCode_Call, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")    \
-  end_class                                                                             \
-  start_class(InstalledCode_DataPatch)                                                 \
-    oop_field(InstalledCode_DataPatch, constant, "Lcom/oracle/graal/api/meta/Constant;") \
-    int_field(InstalledCode_DataPatch, alignment)                                      \
-  end_class                                                                             \
-  start_class(InstalledCode_Safepoint)                                                 \
-    oop_field(InstalledCode_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;") \
-  end_class                                                                             \
-  start_class(InstalledCode_ExceptionHandler)                                          \
-    int_field(InstalledCode_ExceptionHandler, handlerPos)                              \
-  end_class                                                                             \
-  start_class(InstalledCode_Mark)                                                      \
-    oop_field(InstalledCode_Mark, id, "Ljava/lang/Object;")                            \
-    oop_field(InstalledCode_Mark, references, "[Lcom/oracle/graal/api/code/CompilationResult$Mark;") \
-  end_class                                                                             \
-  start_class(DebugInfo)                                                              \
-    oop_field(DebugInfo, bytecodePosition, "Lcom/oracle/graal/api/code/BytecodePosition;")                \
-    oop_field(DebugInfo, registerRefMap, "Ljava/util/BitSet;")          \
-    oop_field(DebugInfo, frameRefMap, "Ljava/util/BitSet;")             \
-  end_class                                                                             \
-  start_class(GraalBitMap)                                                              \
-    oop_field(GraalBitMap, words, "[J")                                                 \
-  end_class                                                                             \
-  start_class(BytecodeFrame)                                                                  \
-    oop_field(BytecodeFrame, values, "[Lcom/oracle/graal/api/meta/Value;")                      \
-    int_field(BytecodeFrame, numLocals)                                                       \
-    int_field(BytecodeFrame, numStack)                                                        \
-    int_field(BytecodeFrame, numLocks)                                                        \
-    long_field(BytecodeFrame, leafGraphId)                                                    \
-    boolean_field(BytecodeFrame, rethrowException)                                            \
-    boolean_field(BytecodeFrame, duringCall)                                                  \
-  end_class                                                                             \
-  start_class(BytecodePosition)                                                                \
-    oop_field(BytecodePosition, caller, "Lcom/oracle/graal/api/code/BytecodePosition;")                   \
-    oop_field(BytecodePosition, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")            \
-    int_field(BytecodePosition, bci)                                                           \
-  end_class                                                                             \
-  start_class(Constant)                                                               \
-    oop_field(Constant, kind, "Lcom/oracle/graal/api/meta/Kind;")                       \
-    oop_field(Constant, object, "Ljava/lang/Object;")                                 \
-    long_field(Constant, primitive)                                                   \
-  end_class                                                                             \
-  start_class(Kind)                                                                   \
-    char_field(Kind, typeChar)                                                        \
-    static_oop_field(Kind, Boolean, "Lcom/oracle/graal/api/meta/Kind;");                \
-    static_oop_field(Kind, Byte, "Lcom/oracle/graal/api/meta/Kind;");                   \
-    static_oop_field(Kind, Char, "Lcom/oracle/graal/api/meta/Kind;");                   \
-    static_oop_field(Kind, Short, "Lcom/oracle/graal/api/meta/Kind;");                  \
-    static_oop_field(Kind, Int, "Lcom/oracle/graal/api/meta/Kind;");                    \
-    static_oop_field(Kind, Long, "Lcom/oracle/graal/api/meta/Kind;");                   \
-  end_class                                                                             \
-  start_class(JavaMethod)                                                                 \
-  end_class                                                                             \
-  start_class(Value)                                                                  \
-    oop_field(Value, kind, "Lcom/oracle/graal/api/meta/Kind;")                          \
-    static_oop_field(Value, ILLEGAL, "Lcom/oracle/graal/api/meta/Value;");         \
-  end_class                                                                             \
-  start_class(RegisterValue)                                                          \
-    oop_field(RegisterValue, reg, "Lcom/oracle/graal/api/code/Register;")               \
-  end_class                                                                             \
-  start_class(code_Register)                                                               \
-    int_field(code_Register, number)                                                       \
-  end_class                                                                             \
-  start_class(StackSlot)                                                              \
-    int_field(StackSlot, offset)                                                      \
-    boolean_field(StackSlot, addFrameSize)                                            \
-  end_class                                                                             \
-  start_class(VirtualObject)                                                          \
-    int_field(VirtualObject, id)                                                      \
+  end_class                                                                                 \
+  start_class(CompilationResult_Site)                                                       \
+    int_field(CompilationResult_Site, pcOffset)                                             \
+  end_class                                                                                 \
+  start_class(CompilationResult_Call)                                                       \
+    oop_field(CompilationResult_Call, target, "Ljava/lang/Object;")                         \
+    oop_field(CompilationResult_Call, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")   \
+  end_class                                                                                 \
+  start_class(CompilationResult_DataPatch)                                                  \
+    oop_field(CompilationResult_DataPatch, constant, "Lcom/oracle/graal/api/meta/Constant;") \
+    int_field(CompilationResult_DataPatch, alignment)                                       \
+  end_class                                                                                 \
+  start_class(CompilationResult_Safepoint)                                                  \
+    oop_field(CompilationResult_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;") \
+  end_class                                                                                 \
+  start_class(CompilationResult_ExceptionHandler)                                           \
+    int_field(CompilationResult_ExceptionHandler, handlerPos)                               \
+  end_class                                                                                 \
+  start_class(CompilationResult_Mark)                                                       \
+    oop_field(CompilationResult_Mark, id, "Ljava/lang/Object;")                             \
+    oop_field(CompilationResult_Mark, references, "[Lcom/oracle/graal/api/code/CompilationResult$Mark;") \
+  end_class                                                                                 \
+  start_class(DebugInfo)                                                                    \
+    oop_field(DebugInfo, bytecodePosition, "Lcom/oracle/graal/api/code/BytecodePosition;")  \
+    oop_field(DebugInfo, registerRefMap, "Ljava/util/BitSet;")                              \
+    oop_field(DebugInfo, frameRefMap, "Ljava/util/BitSet;")                                 \
+  end_class                                                                                 \
+  start_class(GraalBitMap)                                                                  \
+    oop_field(GraalBitMap, words, "[J")                                                     \
+  end_class                                                                                 \
+  start_class(BytecodeFrame)                                                                \
+    oop_field(BytecodeFrame, values, "[Lcom/oracle/graal/api/meta/Value;")                  \
+    int_field(BytecodeFrame, numLocals)                                                     \
+    int_field(BytecodeFrame, numStack)                                                      \
+    int_field(BytecodeFrame, numLocks)                                                      \
+    long_field(BytecodeFrame, leafGraphId)                                                  \
+    boolean_field(BytecodeFrame, rethrowException)                                          \
+    boolean_field(BytecodeFrame, duringCall)                                                \
+  end_class                                                                                 \
+  start_class(BytecodePosition)                                                             \
+    oop_field(BytecodePosition, caller, "Lcom/oracle/graal/api/code/BytecodePosition;")     \
+    oop_field(BytecodePosition, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")   \
+    int_field(BytecodePosition, bci)                                                        \
+  end_class                                                                                 \
+  start_class(Constant)                                                                     \
+    oop_field(Constant, kind, "Lcom/oracle/graal/api/meta/Kind;")                           \
+    oop_field(Constant, object, "Ljava/lang/Object;")                                       \
+    long_field(Constant, primitive)                                                         \
+  end_class                                                                                 \
+  start_class(Kind)                                                                         \
+    char_field(Kind, typeChar)                                                              \
+    static_oop_field(Kind, Boolean, "Lcom/oracle/graal/api/meta/Kind;");                    \
+    static_oop_field(Kind, Byte, "Lcom/oracle/graal/api/meta/Kind;");                       \
+    static_oop_field(Kind, Char, "Lcom/oracle/graal/api/meta/Kind;");                       \
+    static_oop_field(Kind, Short, "Lcom/oracle/graal/api/meta/Kind;");                      \
+    static_oop_field(Kind, Int, "Lcom/oracle/graal/api/meta/Kind;");                        \
+    static_oop_field(Kind, Long, "Lcom/oracle/graal/api/meta/Kind;");                       \
+  end_class                                                                                 \
+  start_class(JavaMethod)                                                                   \
+  end_class                                                                                 \
+  start_class(Value)                                                                        \
+    oop_field(Value, kind, "Lcom/oracle/graal/api/meta/Kind;")                              \
+    static_oop_field(Value, ILLEGAL, "Lcom/oracle/graal/api/meta/Value;");                  \
+  end_class                                                                                 \
+  start_class(RegisterValue)                                                                \
+    oop_field(RegisterValue, reg, "Lcom/oracle/graal/api/code/Register;")                   \
+  end_class                                                                                 \
+  start_class(code_Register)                                                                \
+    int_field(code_Register, number)                                                        \
+  end_class                                                                                 \
+  start_class(StackSlot)                                                                    \
+    int_field(StackSlot, offset)                                                            \
+    boolean_field(StackSlot, addFrameSize)                                                  \
+  end_class                                                                                 \
+  start_class(VirtualObject)                                                                \
+    int_field(VirtualObject, id)                                                            \
     oop_field(VirtualObject, type, "Lcom/oracle/graal/api/meta/JavaType;")                  \
-    oop_field(VirtualObject, values, "[Lcom/oracle/graal/api/meta/Value;")              \
-  end_class                                                                             \
-  start_class(code_MonitorValue)                                                           \
-    oop_field(code_MonitorValue, owner, "Lcom/oracle/graal/api/meta/Value;")                 \
-    oop_field(code_MonitorValue, lockData, "Lcom/oracle/graal/api/meta/Value;")              \
-    boolean_field(code_MonitorValue, eliminated)                                           \
-  end_class                                                                             \
+    oop_field(VirtualObject, values, "[Lcom/oracle/graal/api/meta/Value;")                  \
+  end_class                                                                                 \
+  start_class(code_MonitorValue)                                                            \
+    oop_field(code_MonitorValue, owner, "Lcom/oracle/graal/api/meta/Value;")                \
+    oop_field(code_MonitorValue, lockData, "Lcom/oracle/graal/api/meta/Value;")             \
+    boolean_field(code_MonitorValue, eliminated)                                            \
+  end_class                                                                                 \
   /* end*/
 
 #define START_CLASS(name)                       \

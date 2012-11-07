@@ -303,13 +303,13 @@
   template(com_oracle_graal_api_code_Assumptions_MethodContents,     "com/oracle/graal/api/code/Assumptions$MethodContents")          \
   template(com_oracle_graal_api_code_Assumptions_ConcreteSubtype,    "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")         \
   template(com_oracle_graal_api_code_Assumptions_ConcreteMethod,     "com/oracle/graal/api/code/Assumptions$ConcreteMethod")          \
-  template(com_oracle_graal_api_code_InstalledCode,                  "com/oracle/graal/api/code/CompilationResult")                   \
-  template(com_oracle_graal_api_code_InstalledCode_Call,             "com/oracle/graal/api/code/CompilationResult$Call")              \
-  template(com_oracle_graal_api_code_InstalledCode_DataPatch,        "com/oracle/graal/api/code/CompilationResult$DataPatch")         \
-  template(com_oracle_graal_api_code_InstalledCode_ExceptionHandler, "com/oracle/graal/api/code/CompilationResult$ExceptionHandler")  \
-  template(com_oracle_graal_api_code_InstalledCode_Mark,             "com/oracle/graal/api/code/CompilationResult$Mark")              \
-  template(com_oracle_graal_api_code_InstalledCode_Safepoint,        "com/oracle/graal/api/code/CompilationResult$Safepoint")         \
-  template(com_oracle_graal_api_code_InstalledCode_Site,             "com/oracle/graal/api/code/CompilationResult$Site")              \
+  template(com_oracle_graal_api_code_CompilationResult,              "com/oracle/graal/api/code/CompilationResult")                   \
+  template(com_oracle_graal_api_code_CompilationResult_Call,         "com/oracle/graal/api/code/CompilationResult$Call")              \
+  template(com_oracle_graal_api_code_CompilationResult_DataPatch,    "com/oracle/graal/api/code/CompilationResult$DataPatch")         \
+  template(com_oracle_graal_api_code_CompilationResult_ExceptionHandler, "com/oracle/graal/api/code/CompilationResult$ExceptionHandler") \
+  template(com_oracle_graal_api_code_CompilationResult_Mark,         "com/oracle/graal/api/code/CompilationResult$Mark")              \
+  template(com_oracle_graal_api_code_CompilationResult_Safepoint,    "com/oracle/graal/api/code/CompilationResult$Safepoint")         \
+  template(com_oracle_graal_api_code_CompilationResult_Site,         "com/oracle/graal/api/code/CompilationResult$Site")              \
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
   template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo")                           \
