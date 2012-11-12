@@ -752,8 +752,8 @@ if (JavaThread::current()->thread_state() != _thread_in_native) {
   set_long(env, config, "arithmeticCosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dcos)));
   set_long(env, config, "arithmeticTanStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dtan)));
   set_long(env, config, "logPrimitiveStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_primitive_id)));
-  set_long(env, config, "logObjectStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_printf_id)));
-  set_long(env, config, "logPrintfStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_object_id)));
+  set_long(env, config, "logObjectStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_object_id)));
+  set_long(env, config, "logPrintfStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_printf_id)));
 
 
   BarrierSet* bs = Universe::heap()->barrier_set();
