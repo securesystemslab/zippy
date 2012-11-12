@@ -76,6 +76,8 @@ endif
 
 include $(GAMMADIR)/make/altsrc.make
 
+-include $(HS_ALT_MAKE)/Makefile.make
+
 ifneq ($(ALT_OUTPUTDIR),)
   ALT_OUT=ALT_OUTPUTDIR=$(ALT_OUTPUTDIR)
 else
@@ -88,16 +90,23 @@ C2_VM_TARGETS=product  fastdebug  optimized  jvmg
 KERNEL_VM_TARGETS=productkernel fastdebugkernel optimizedkernel jvmgkernel
 ZERO_VM_TARGETS=productzero fastdebugzero optimizedzero jvmgzero
 SHARK_VM_TARGETS=productshark fastdebugshark optimizedshark jvmgshark
+MINIMAL1_VM_TARGETS=productminimal1 fastdebugminimal1 jvmgminimal1
 GRAAL_VM_TARGETS=productgraal fastdebuggraal optimizedgraal jvmggraal
 
-COMMON_VM_PRODUCT_TARGETS=product product1 productkernel docs export_product
-COMMON_VM_FASTDEBUG_TARGETS=fastdebug fastdebug1 fastdebugkernel docs export_fastdebug
-COMMON_VM_DEBUG_TARGETS=jvmg jvmg1 jvmgkernel docs export_debug
+COMMON_VM_PRODUCT_TARGETS=product product1 docs export_product
+COMMON_VM_FASTDEBUG_TARGETS=fastdebug fastdebug1 docs export_fastdebug
+COMMON_VM_DEBUG_TARGETS=jvmg jvmg1 docs export_debug
 
 # JDK directory list
 JDK_DIRS=bin include jre lib demo
 
 all:           all_product all_fastdebug
+
+ifeq ($(JVM_VARIANT_MINIMAL1),true)
+all_product:	productminimal1
+all_fastdebug:	fastdebugminimal1
+all_debug:	jvmgminimal1
+endif
 
 ifdef BUILD_CLIENT_ONLY
 all_product:   product1 docs export_product
@@ -115,7 +124,7 @@ all_debug:     $(COMMON_VM_DEBUG_TARGETS)
 endif
 endif
 
-all_optimized: optimized optimized1 optimizedkernel docs export_optimized
+all_optimized: optimized optimized1 docs export_optimized
 
 allzero:           all_productzero all_fastdebugzero
 all_productzero:   productzero docs export_product
@@ -173,6 +182,11 @@ $(SHARK_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
 	$(MAKE) BUILD_FLAVOR=$(@:%shark=%) VM_TARGET=$@ \
 	  generic_buildshark $(ALT_OUT)
+
+$(MINIMAL1_VM_TARGETS):
+	$(CD) $(GAMMADIR)/make; \
+	$(MAKE) BUILD_FLAVOR=$(@:%minimal1=%) VM_TARGET=$@ \
+	  generic_buildminimal1 $(ALT_OUT)
 
 $(GRAAL_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
@@ -246,6 +260,27 @@ generic_buildshark:
 		$(MAKE) -f $(ABS_OS_MAKEFILE) \
 			$(MAKE_ARGS) $(VM_TARGET) 
 
+generic_buildminimal1:
+ifeq ($(JVM_VARIANT_MINIMAL1),true)
+	$(MKDIR) -p $(OUTPUTDIR)
+  ifeq ($(ARCH_DATA_MODEL), 32)
+    ifeq ($(OSNAME),windows)
+	$(ECHO) "No ($(VM_TARGET)) for $(OSNAME) ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)" ;
+    else
+      ifeq ($(OSNAME),solaris)
+	$(ECHO) "No ($(VM_TARGET)) for $(OSNAME) ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)" ;
+      else
+	$(CD) $(OUTPUTDIR); \
+	$(MAKE) -f $(ABS_OS_MAKEFILE) $(MAKE_ARGS) $(VM_TARGET) ;
+      endif
+    endif
+  else
+	    @$(ECHO) "No ($(VM_TARGET)) for $(OSNAME) ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
+  endif
+else
+	@$(ECHO) "Error: trying to build a minimal target but JVM_VARIANT_MINIMAL1 is not true."
+endif
+
 generic_buildgraal:
 	$(MKDIR) -p $(OUTPUTDIR)
 	$(CD) $(OUTPUTDIR); \
@@ -301,6 +336,8 @@ C2_DIR=$(C2_BASE_DIR)/$(VM_SUBDIR)
 KERNEL_DIR=$(KERNEL_BASE_DIR)/$(VM_SUBDIR)
 ZERO_DIR=$(ZERO_BASE_DIR)/$(VM_SUBDIR)
 SHARK_DIR=$(SHARK_BASE_DIR)/$(VM_SUBDIR)
+MINIMAL1_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_minimal1
+MINIMAL1_DIR=$(MINIMAL1_BASE_DIR)/$(VM_SUBDIR)
 GRAAL_DIR=$(GRAAL_BASE_DIR)/$(VM_SUBDIR)
 
 ifeq ($(JVM_VARIANT_SERVER), true)
@@ -322,6 +359,10 @@ endif
 ifeq ($(JVM_VARIANT_ZERO), true)
     MISC_DIR=$(ZERO_DIR)
     GEN_DIR=$(ZERO_BASE_DIR)/generated
+endif
+ifeq ($(JVM_VARIANT_MINIMAL1), true)
+    MISC_DIR=$(MINIMAL1_DIR)
+    GEN_DIR=$(MINIMAL1_BASE_DIR)/generated
 endif
 
 # Bin files (windows)
@@ -372,6 +413,16 @@ $(EXPORT_KERNEL_DIR)/%.map:  $(KERNEL_DIR)/%.map
 	$(install-file)
 endif
 
+# Minimal JVM files always come from minimal area
+$(EXPORT_MINIMAL_DIR)/%.diz:  $(MINIMAL1_DIR)/%.diz
+	$(install-file)
+$(EXPORT_MINIMAL_DIR)/%.dll:  $(MINIMAL1_DIR)/%.dll
+	$(install-file)
+$(EXPORT_MINIMAL_DIR)/%.pdb:  $(MINIMAL1_DIR)/%.pdb
+	$(install-file)
+$(EXPORT_MINIMAL_DIR)/%.map:  $(MINIMAL1_DIR)/%.map
+	$(install-file)
+
 # Shared Library
 ifneq ($(OSNAME),windows)
     ifeq ($(JVM_VARIANT_SERVER), true)
@@ -417,13 +468,49 @@ ifneq ($(OSNAME),windows)
     ifeq ($(JVM_VARIANT_ZEROSHARK), true)
         $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(SHARK_DIR)/%.$(LIBRARY_SUFFIX)
 		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo):	$(SHARK_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.diz:		$(SHARK_DIR)/%.diz
+		$(install-file)
         $(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(SHARK_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.debuginfo:		$(SHARK_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.diz:			$(SHARK_DIR)/%.diz
 		$(install-file)
     endif
     ifeq ($(JVM_VARIANT_ZERO), true)
         $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(ZERO_DIR)/%.$(LIBRARY_SUFFIX)
 		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo:		$(ZERO_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.diz:		$(ZERO_DIR)/%.diz
+		$(install-file)
         $(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(ZERO_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.debuginfo:		$(ZERO_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.diz:			$(ZERO_DIR)/%.diz
+		$(install-file)
+    endif
+    ifeq ($(JVM_VARIANT_MINIMAL1), true)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX):	$(MINIMAL1_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_MINIMAL_DIR)/%.$(LIBRARY_SUFFIX):	$(MINIMAL1_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_MINIMAL_DIR)/64/%.$(LIBRARY_SUFFIX):	$(MINIMAL1_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo:		$(MINIMAL1_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_MINIMAL_DIR)/%.debuginfo:		$(MINIMAL1_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_MINIMAL_DIR)/64/%.debuginfo:		$(MINIMAL1_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.diz:		$(MINIMAL1_DIR)/%.diz
+		$(install-file)
+        $(EXPORT_MINIMAL_DIR)/%.diz:			$(MINIMAL1_DIR)/%.diz
+		$(install-file)
+        $(EXPORT_MINIMAL_DIR)/64/%.diz:			$(MINIMAL1_DIR)/%.diz
 		$(install-file)
     endif
 endif
@@ -466,7 +553,7 @@ $(EXPORT_DOCS_DIR)/platform/jvmti/%: $(DOCS_DIR)/%
 	$(install-file)
 
 # Xusage file
-$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt: $(XUSAGE)
+$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt $(EXPORT_MINIMAL_DIR)/Xusage.txt: $(XUSAGE)
 	$(prep-target)
 	$(RM) $@.temp
 	$(SED) 's/\(separated by \)[;:]/\1$(PATH_SEP)/g' $< > $@.temp
@@ -482,6 +569,7 @@ clean_build:
 	$(RM) -r $(KERNEL_DIR)
 	$(RM) -r $(ZERO_DIR)
 	$(RM) -r $(SHARK_DIR)
+	$(RM) -r $(MINIMAL1_DIR)
 	$(RM) -r $(GRAAL_DIR)
 clean_export:
 	$(RM) -r $(EXPORT_PATH)
@@ -590,10 +678,11 @@ target_help:
 	@$(ECHO) "create_jdk:       Create JDK image, export all files into it"
 	@$(ECHO) "update_jdk:       Update JDK image with fresh exported files"
 	@$(ECHO) " "
-	@$(ECHO) "Others targets are:"
+	@$(ECHO) "Other targets are:"
 	@$(ECHO) "   $(C1_VM_TARGETS)"
 	@$(ECHO) "   $(C2_VM_TARGETS)"
 	@$(ECHO) "   $(KERNEL_VM_TARGETS)"
+	@$(ECHO) "   $(MINIMAL1_VM_TARGETS)"
 
 # Variable help (only common ones used by this workspace)
 variable_help: variable_help_intro variable_list variable_help_end
@@ -688,9 +777,10 @@ endif
 include $(GAMMADIR)/make/jprt.gmk
 
 .PHONY: all world clobber clean help $(C1_VM_TARGETS) $(C2_VM_TARGETS) \
-        $(KERNEL_VM_TARGETS) \
-	generic_build1 generic_build2 generic_buildkernel generic_export \
+        $(KERNEL_VM_TARGETS) $(MINIMAL1_VM_TARGETS) \
+	generic_build1 generic_build2 generic_buildkernel generic_buildminimal1 generic_export \
 	export_product export_fastdebug export_debug export_optimized \
 	export_jdk_product export_jdk_fastdebug export_jdk_debug \
 	create_jdk copy_jdk update_jdk test_jdk \
-	copy_product_jdk copy_fastdebug_jdk copy_debug_jdk 
+	copy_product_jdk copy_fastdebug_jdk copy_debug_jdk  \
+	$(HS_ALT_MAKE)/Makefile.make

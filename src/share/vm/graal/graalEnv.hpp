@@ -91,7 +91,7 @@ private:
                                       instanceKlassHandle& loading_klass);
 
   // Helper methods
-  static bool       check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klassOop);
+  static bool       check_klass_accessibility(KlassHandle accessing_klass, KlassHandle resolved_klass);
   static methodHandle  lookup_method(instanceKlassHandle&  accessor,
                            instanceKlassHandle&  holder,
                            Symbol*         name,
@@ -123,9 +123,9 @@ public:
                        Dependencies*             dependencies,
                        CompileTask*              task,
                        int                       compile_id,
-                       bool                      has_debug_info = true,
-                       bool                      has_unsafe_access = false,
-                       bool                      install_code = true);
+                       bool                      has_debug_info,
+                       bool                      has_unsafe_access,
+                       bool                      bind_to_method);
 
   static ciKlass*  find_system_klass(ciSymbol* klass_name);
   // Note:  To find a class from its name string, use ciSymbol::make,

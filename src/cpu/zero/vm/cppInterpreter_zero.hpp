@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2007, 2008, 2010, 2011 Red Hat, Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -32,11 +32,10 @@
 
  public:
   // Method entries
-  static int normal_entry(methodOop method, intptr_t UNUSED, TRAPS);
-  static int native_entry(methodOop method, intptr_t UNUSED, TRAPS);
-  static int accessor_entry(methodOop method, intptr_t UNUSED, TRAPS);
-  static int empty_entry(methodOop method, intptr_t UNUSED, TRAPS);
-  static int method_handle_entry(methodOop method, intptr_t UNUSED, TRAPS);
+  static int normal_entry(Method* method, intptr_t UNUSED, TRAPS);
+  static int native_entry(Method* method, intptr_t UNUSED, TRAPS);
+  static int accessor_entry(Method* method, intptr_t UNUSED, TRAPS);
+  static int empty_entry(Method* method, intptr_t UNUSED, TRAPS);
 
  public:
   // Main loop of normal_entry
@@ -44,7 +43,6 @@
 
  private:
   // Helpers for method_handle_entry
-  static void process_method_handle(oop method_handle, TRAPS);
   static void insert_vmslots(int insert_before, int num_slots, TRAPS);
   static void remove_vmslots(int first_slot, int num_slots, TRAPS);
   static BasicType result_type_of_handle(oop method_handle);
@@ -53,6 +51,6 @@
 
  private:
   // Fast result type determination
-  static BasicType result_type_of(methodOop method);
+  static BasicType result_type_of(Method* method);
 
 #endif // CPU_ZERO_VM_CPPINTERPRETER_ZERO_HPP

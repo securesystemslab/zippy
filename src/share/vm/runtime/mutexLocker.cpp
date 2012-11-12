@@ -140,6 +140,7 @@ Monitor* JfrQuery_lock                = NULL;
 Monitor* JfrMsg_lock                  = NULL;
 Mutex*   JfrBuffer_lock               = NULL;
 Mutex*   JfrStream_lock               = NULL;
+Monitor* PeriodicTask_lock            = NULL;
 
 #ifdef GRAAL
 Mutex*   GraalDeoptLeafGraphIds_lock  = NULL;
@@ -229,7 +230,7 @@ void mutex_init() {
   def(ExpandHeap_lock              , Mutex  , leaf,        true ); // Used during compilation by VM thread
   def(JNIHandleBlockFreeList_lock  , Mutex  , leaf,        true ); // handles are used by VM thread
   def(SignatureHandlerLibrary_lock , Mutex  , leaf,        false);
-  def(SymbolTable_lock             , Mutex  , leaf,        true );
+  def(SymbolTable_lock             , Mutex  , leaf+2,      true );
   def(StringTable_lock             , Mutex  , leaf,        true );
   def(ProfilePrint_lock            , Mutex  , leaf,        false); // serial profile printing
   def(ExceptionCache_lock          , Mutex  , leaf,        false); // serial profile printing
@@ -289,7 +290,7 @@ void mutex_init() {
   def(JfrMsg_lock                  , Monitor, nonleaf+2,   true);
   def(JfrBuffer_lock               , Mutex,   nonleaf+3,   true);
   def(JfrStream_lock               , Mutex,   nonleaf+4,   true);
-
+  def(PeriodicTask_lock            , Monitor, nonleaf+5,   true);
 #ifdef GRAAL
   def(GraalDeoptLeafGraphIds_lock  , Mutex,   special,   true);
 #endif // GRAAL

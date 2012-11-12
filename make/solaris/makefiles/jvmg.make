@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1999, 2008, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,9 @@ CFLAGS += $(DEBUG_CFLAGS/BYFILE) -D_NMT_NOINLINE_
 # Linker mapfiles
 MAPFILE = $(GAMMADIR)/make/solaris/makefiles/mapfile-vers \
           $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-debug
+#ifdef GRAAL
+MAPFILE += $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-graal
+#endif
 
 # This mapfile is only needed when compiling with dtrace support,
 # and mustn't be otherwise.

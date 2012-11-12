@@ -36,6 +36,8 @@ inline frame::frame() {
   _deopt_state = unknown;
 }
 
+inline address  frame::sender_pc()           const { ShouldNotCallThis();  }
+
 inline frame::frame(ZeroFrame* zf, intptr_t* sp) {
   _zeroframe = zf;
   _sp = sp;
@@ -93,11 +95,11 @@ inline intptr_t* frame::interpreter_frame_bcx_addr() const {
   return (intptr_t*) &(get_interpreterState()->_bcp);
 }
 
-inline constantPoolCacheOop* frame::interpreter_frame_cache_addr() const {
+inline ConstantPoolCache** frame::interpreter_frame_cache_addr() const {
   return &(get_interpreterState()->_constants);
 }
 
-inline methodOop* frame::interpreter_frame_method_addr() const {
+inline Method** frame::interpreter_frame_method_addr() const {
   return &(get_interpreterState()->_method);
 }
 

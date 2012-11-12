@@ -55,6 +55,7 @@
 #include "runtime/threadCritical.hpp"
 #include "runtime/timer.hpp"
 #include "services/attachListener.hpp"
+#include "services/memTracker.hpp"
 #include "services/runtimeService.hpp"
 #include "thread_solaris.inline.hpp"
 #include "utilities/decoder.hpp"
@@ -69,12 +70,6 @@
 #ifdef TARGET_ARCH_sparc
 # include "assembler_sparc.inline.hpp"
 # include "nativeInst_sparc.hpp"
-#endif
-#ifdef COMPILER1
-#include "c1/c1_Runtime1.hpp"
-#endif
-#ifdef COMPILER2
-#include "opto/runtime.hpp"
 #endif
 
 // put OS-includes here
@@ -1488,11 +1483,11 @@ void _handle_uncaught_cxx_exception() {
 
 
 // First crack at OS-specific initialization, from inside the new thread.
-void os::initialize_thread() {
+void os::initialize_thread(Thread* thr) {
   int r = thr_main() ;
   guarantee (r == 0 || r == 1, "CR6501650 or CR6493689") ;
   if (r) {
-    JavaThread* jt = (JavaThread *)Thread::current();
+    JavaThread* jt = (JavaThread *)thr;
     assert(jt != NULL,"Sanity check");
     size_t stack_size;
     address base = jt->stack_base();
@@ -3078,11 +3073,12 @@ char* os::pd_attempt_reserve_memory_at(size_t bytes, char* requested_addr) {
   // Since snv_84, Solaris attempts to honor the address hint - see 5003415.
   // Give it a try, if the kernel honors the hint we can return immediately.
   char* addr = Solaris::anon_mmap(requested_addr, bytes, 0, false);
+
   volatile int err = errno;
   if (addr == requested_addr) {
     return addr;
   } else if (addr != NULL) {
-    unmap_memory(addr, bytes);
+    pd_unmap_memory(addr, bytes);
   }
 
   if (PrintMiscellaneous && Verbose) {
@@ -5587,7 +5583,7 @@ extern "C" ret name params {                                    \
 // for n in $(eval whereis callcount | awk '{print $2}'); do print $n; done
 
 #define CHECK_POINTER_OK(p) \
-  (Universe::perm_gen() == NULL || !Universe::is_reserved_heap((oop)(p)))
+  (!Universe::is_fully_initialized() || !Universe::is_reserved_heap((oop)(p)))
 #define CHECK_MU \
   if (!CHECK_POINTER_OK(mu)) fatal("Mutex must be in C heap only.");
 #define CHECK_CV \
@@ -5875,15 +5871,6 @@ extern "C" {
     return ((intptr_t)&stack_top - stack_top - STACK_SLACK);
   }
 }
-
-// Just to get the Kernel build to link on solaris for testing.
-
-extern "C" {
-class ASGCT_CallTrace;
-void AsyncGetCallTrace(ASGCT_CallTrace *trace, jint depth, void* ucontext)
-  KERNEL_RETURN;
-}
-
 
 // ObjectMonitor park-unpark infrastructure ...
 //

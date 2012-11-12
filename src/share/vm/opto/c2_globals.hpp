@@ -85,7 +85,7 @@
           "Max vector size in bytes, "                                      \
           "actual size could be less depending on elements type")           \
                                                                             \
-  product(bool, AlignVector, false,                                         \
+  product(bool, AlignVector, true,                                          \
           "Perform vector store/load alignment in loop")                    \
                                                                             \
   product(intx, NumberOfLoopInstrToAlign, 4,                                \
@@ -439,6 +439,9 @@
   product(bool, DoEscapeAnalysis, true,                                     \
           "Perform escape analysis")                                        \
                                                                             \
+  develop(bool, ExitEscapeAnalysisOnTimeout, true,                          \
+          "Exit or throw assert in EA when it reaches time limit")          \
+                                                                            \
   notproduct(bool, PrintEscapeAnalysis, false,                              \
           "Print the results of escape analysis")                           \
                                                                             \
@@ -535,7 +538,7 @@
   notproduct(bool, TraceSpilling, false,                                    \
           "Trace spilling")                                                 \
                                                                             \
-  notproduct(bool, TraceTypeProfile, false,                                 \
+  diagnostic(bool, TraceTypeProfile, false,                                 \
           "Trace type profile")                                             \
                                                                             \
   develop(bool, PoisonOSREntry, true,                                       \

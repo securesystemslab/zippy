@@ -43,7 +43,7 @@ const static int NUM_XMM_REGS = sizeof(XMM_REGS) / sizeof(XMMRegister);
 const static int NUM_REGS = NUM_CPU_REGS + NUM_XMM_REGS;
 const static jlong NO_REF_MAP = 0x8000000000000000L;
 
-// convert graal register indices (as used in oop maps) to hotspot registers
+// convert Graal register indices (as used in oop maps) to HotSpot registers
 VMReg get_hotspot_reg(jint graal_reg) {
 
   assert(graal_reg >= 0 && graal_reg < NUM_REGS, "invalid register number");
@@ -69,7 +69,7 @@ static int bitmap_size(oop bit_map) {
   return arr->length() * MapWordBits;
 }
 
-// creates a hotspot oop map out of the byte arrays provided by DebugInfo
+// creates a HotSpot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop register_map = (oop) DebugInfo::registerRefMap(debug_info);
@@ -90,7 +90,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
 
   for (jint i = 0; i < bitmap_size(frame_map); i++) {
     bool is_oop = is_bit_set(frame_map, i);
-    // hotspot stack slots are 4 bytes
+    // HotSpot stack slots are 4 bytes
     VMReg reg = VMRegImpl::stack2reg(i * 2);
     if (is_oop) {
       map->set_oop(reg);
@@ -102,7 +102,6 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   return map;
 }
 
-// TODO: finish this - graal doesn't provide any scope values at the moment
 static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
   second = NULL;
   if (value == Value::ILLEGAL()) {
@@ -179,7 +178,8 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
   } else if (value->is_a(VirtualObject::klass())) {
     oop type = VirtualObject::type(value);
     int id = VirtualObject::id(value);
-    klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type));
+    oop javaMirror = HotSpotResolvedJavaType::javaMirror(type);
+    Klass* klass = java_lang_Class::as_Klass(javaMirror);
     bool isLongArray = klass == Universe::longArrayKlassObj();
 
     for (jint i = 0; i < objects->length(); i++) {
@@ -189,7 +189,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       }
     }
 
-    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), klass)));
+    ObjectValue* sv = new ObjectValue(id, new ConstantOopWriteValue(JNIHandles::make_local(Thread::current(), javaMirror)));
     objects->append(sv);
 
     arrayOop values = (arrayOop) VirtualObject::values(value);
@@ -270,26 +270,24 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, nmethod*& nm, bool install_code) {
+CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*& nm, bool bind_to_method) {
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
-  jint entry_bci = HotSpotCompilationResult::entryBCI(comp_result);
   initialize_assumptions(JNIHandles::resolve(comp_result_obj));
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(JNIHandles::resolve(comp_result_obj));
+    initialize_fields(JNIHandles::resolve(comp_result_obj), method);
     initialize_buffer(buffer);
     process_exception_handlers();
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(JNIHandles::resolve(comp_result_obj))); 
 
-  nm = GraalEnv::register_method(method, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, install_code);
+  nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, bind_to_method);
 
   method->clear_queued_for_compilation();
 }
@@ -301,8 +299,8 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
   
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
-  initialize_fields(target_method());
-  assert(_hotspot_method == NULL && _name != NULL, "installMethod needs NON-NULL name and NULL method");
+  initialize_fields(target_method(), NULL);
+  assert(_name != NULL, "installMethod needs NON-NULL name");
 
   // (very) conservative estimate: each site needs a relocation
   GraalCompiler::initialize_buffer_blob();
@@ -315,11 +313,9 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
   id = VmIds::addStub(blob->code_begin());
 }
 
-void CodeInstaller::initialize_fields(oop comp_result) {
+void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
   _comp_result = HotSpotCompilationResult::comp(comp_result);
-  _hotspot_method = HotSpotCompilationResult::method(comp_result);
-  if (_hotspot_method != NULL) {
-    methodOop method = getMethodFromHotSpotMethod(_hotspot_method);
+  if (!method.is_null()) {
     _parameter_count = method->size_of_parameters();
     TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
   }
@@ -387,17 +383,17 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
   Handle method_handle = Assumptions_MethodContents::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
-  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(method());
+  ciMethod* m = (ciMethod*) CURRENT_ENV->get_method(method());
 
   _dependencies->assert_evol_method(m);
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   Handle context_handle = Assumptions_ConcreteSubtype::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(context_handle)));
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(context_handle)));
 
   Handle type_handle = Assumptions_ConcreteSubtype::subtype(assumption());
-  ciKlass* type = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type_handle)));
+  ciKlass* type = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(type_handle)));
 
   _dependencies->assert_leaf_type(type);
   if (context != type) {
@@ -409,10 +405,10 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
 void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   Handle impl_handle = Assumptions_ConcreteMethod::impl(assumption());
   methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
-  ciMethod* m = (ciMethod*) CURRENT_ENV->get_object(impl());
+  ciMethod* m = (ciMethod*) CURRENT_ENV->get_method(impl());
   
   Handle context_handle = Assumptions_ConcreteMethod::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_object(java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(context_handle)));
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(context_handle)));
   _dependencies->assert_unique_concrete_method(context, m);
 }
 
@@ -447,7 +443,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   }
 
   oop hotspot_method = BytecodePosition::method(frame);
-  methodOop method = getMethodFromHotSpotMethod(hotspot_method);
+  Method* method = getMethodFromHotSpotMethod(hotspot_method);
   jint bci = BytecodePosition::bci(frame);
   bool reexecute;
   if (bci == -1 || bci == -2){
@@ -533,7 +529,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop target = CompilationResult_Call::target(site);
-  instanceKlass* target_klass = instanceKlass::cast(target->klass());
+  InstanceKlass* target_klass = InstanceKlass::cast(target->klass());
 
   oop hotspot_method = NULL; // JavaMethod
   oop global_stub = NULL;
@@ -570,10 +566,10 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     fatal("unsupported type of instruction for call site");
   }
 
-  if (target->is_a(SystemDictionary::HotSpotCompiledMethod_klass())) {
+  if (target->is_a(SystemDictionary::HotSpotInstalledCode_klass())) {
     assert(inst->is_jump(), "jump expected");
 
-    nmethod* nm = (nmethod*) HotSpotCompiledMethod::nmethod(target);
+    nmethod* nm = (nmethod*) HotSpotInstalledCode::nmethod(target);
     nativeJump_at((address)inst)->set_jump_destination(nm->verified_entry_point());
     _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
 
@@ -609,7 +605,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     assert(hotspot_method != NULL, "unexpected JavaMethod");
     assert(debug_info != NULL, "debug info expected");
 
-    methodOop method = NULL;
+    Method* method = NULL;
     // we need to check, this might also be an unresolved method
     if (hotspot_method->is_a(HotSpotResolvedJavaMethod::klass())) {
       method = getMethodFromHotSpotMethod(hotspot_method);
@@ -702,19 +698,10 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
       Handle obj = Constant::object(constant);
 
-      if (obj->is_a(HotSpotKlassOop::klass())) {
-        assert(!obj.is_null(), "");
-        oop type = HotSpotKlassOop::type(obj);
-        klassOop klass = java_lang_Class::as_klassOop(HotSpotResolvedJavaType::javaMirror(type));
-        *((jobject*) operand) = JNIHandles::make_local(klass);
-        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-        TRACE_graal_3("relocating (HotSpotJavaType) at %016x/%016x", instruction, operand);
-      } else {
-        jobject value = JNIHandles::make_local(obj());
-        *((jobject*) operand) = value;
-        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-        TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);
-      }
+      jobject value = JNIHandles::make_local(obj());
+      *((jobject*) operand) = value;
+      _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+      TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);
       break;
     }
     default:
@@ -754,18 +741,15 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         oop ref = ((oop*) references->base(T_OBJECT))[0];
         address call_pc = _instructions->start() + CompilationResult_Site::pcOffset(ref);
         _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
-        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
         break;
       }
       case MARK_INVOKEVIRTUAL:
       case MARK_INVOKEINTERFACE: {
-        // Convert the initial value of the klassOop slot in an inline cache
-        // from NULL to Universe::non_oop_word().
+        // Convert the initial value of the Klass* slot in an inline cache
+        // from 0L to Universe::non_oop_word().
         NativeMovConstReg* n_copy = nativeMovConstReg_at(instruction);
-        assert(n_copy->data() == 0, "inline cache klassOop initial value should be NULL");
+        assert(n_copy->data() == 0, "inline cache Klass* initial value should be 0L");
         n_copy->set_data((intptr_t)Universe::non_oop_word());
-        // Add relocation record for the klassOop embedded in the inline cache
-        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
       }
       case MARK_INLINE_INVOKEVIRTUAL:
       case MARK_INVOKE_INVALID:
@@ -811,7 +795,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         *byte_count = i_byte_count;
         *being_initialized_entry_offset = *byte_count + *byte_skip;
 
-        // we need to correct the offset of a field access - it's created with MAX_INT to ensure the correct size, and hotspot expects 0
+        // we need to correct the offset of a field access - it's created with MAX_INT to ensure the correct size, and HotSpot expects 0
         if (id == MARK_ACCESS_FIELD_PATCHING) {
           NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + CompilationResult_Site::pcOffset(ref1));
           assert(inst->offset() == max_jint, "unexpected offset value");

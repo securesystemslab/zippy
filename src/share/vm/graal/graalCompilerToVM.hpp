@@ -29,8 +29,22 @@
 extern JNINativeMethod CompilerToVM_methods[];
 int CompilerToVM_methods_count();
 
-methodOop getMethodFromHotSpotMethod(jobject hotspotMethod);
-methodOop getMethodFromHotSpotMethod(oop hotspotMethod);
+inline Method* asMethod(jlong metaspaceMethod) {
+  return (Method*) (address) metaspaceMethod;
+}
+
+inline MethodData* asMethodData(jlong metaspaceMethodData) {
+  return (MethodData*) (address) metaspaceMethodData;
+}
+
+inline Klass* asKlass(jlong metaspaceKlass) {
+  return (Klass*) (address) metaspaceKlass;
+}
+
+/**
+ * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
+ */
+Method* getMethodFromHotSpotMethod(oop hotspot_method);
 
 class JavaArgumentUnboxer : public SignatureIterator {
  protected:

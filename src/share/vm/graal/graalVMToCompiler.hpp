@@ -37,7 +37,7 @@ class VMToCompiler : public AllStatic {
 private:
   static jobject _graalRuntimePermObject;
   static jobject _vmToCompilerPermObject;
-  static jobject _vmToCompilerPermKlass;
+  static Klass* _vmToCompilerPermKlass;
 
   static KlassHandle vmToCompilerKlass();
   static Handle instance();
@@ -57,7 +57,7 @@ public:
   static void setDefaultOptions();
 
   // public abstract boolean compileMethod(long vmId, String name, int entry_bci, boolean blocking);
-  static jboolean compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking, int priority);
+  static jboolean compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
@@ -68,17 +68,20 @@ public:
   // public abstract void bootstrap();
   static void bootstrap();
 
-  // public abstract JavaMethod createResolvedJavaMethod(long vmId, String name);
-  static oop createResolvedJavaMethod(jlong vmId, Handle name, TRAPS);
-
-  // public abstract JavaMethod createJavaMethod(String name, String signature, JavaType holder);
-  static oop createJavaMethod(Handle name, Handle signature, Handle holder, TRAPS);
-
   // public abstract JavaField createJavaField(JavaType holder, String name, JavaType type, int flags, int offset);
-  static oop createJavaField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS);
+  static oop createJavaField(Handle holder, Handle name, Handle type, int index, int flags, jboolean internal, TRAPS);
 
-  // public abstract JavaType createJavaType(String name);
-  static oop createJavaType(Handle name, TRAPS);
+  // public abstract JavaMethod createUnresolvedJavaMethod(String name, String signature, JavaType holder);
+  static oop createUnresolvedJavaMethod(Handle name, Handle signature, Handle holder, TRAPS);
+
+  // public abstract JavaMethod createResolvedJavaMethod(JavaType holder, long metaspaceMethod);
+  static oop createResolvedJavaMethod(Handle holder, Method* method, TRAPS);
+
+  // public abstract JavaType createUnresolvedJavaType(String name);
+  static oop createUnresolvedJavaType(Handle name, TRAPS);
+
+  // public abstract ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, boolean hasFinalizableSubclass, int sizeOrSpecies);
+  static oop createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jboolean hasFinalizableSubclass, jint sizeOrSpecies, TRAPS);
 
   // public abstract JavaType createPrimitiveJavaType(int basicType);
   static oop createPrimitiveJavaType(int basicType, TRAPS);

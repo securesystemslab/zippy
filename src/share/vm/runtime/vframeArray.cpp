@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,7 @@
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "memory/universe.inline.hpp"
-#include "oops/methodDataOop.hpp"
+#include "oops/methodData.hpp"
 #include "oops/oop.inline.hpp"
 #include "prims/jvmtiThreadState.hpp"
 #include "runtime/handles.inline.hpp"
@@ -302,17 +302,13 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
   }
   iframe()->interpreter_frame_set_bcx((intptr_t)bcp); // cannot use bcp because frame is not initialized yet
   if (ProfileInterpreter) {
-    methodDataOop mdo = method()->method_data();
+    MethodData* mdo = method()->method_data();
     if (mdo != NULL) {
       int bci = iframe()->interpreter_frame_bci();
       if (use_next_mdp) ++bci;
       address mdp = mdo->bci_to_dp(bci);
       iframe()->interpreter_frame_set_mdp(mdp);
     }
-  }
-  
-  if (PrintDeoptimizationDetails) {
-    tty->print_cr("Expressions size: %d", expressions()->size());
   }
 
   // Unpack expression stack
@@ -327,25 +323,9 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
     switch(value->type()) {
       case T_INT:
         *addr = value->get_int();
-#ifndef PRODUCT
-        if (PrintDeoptimizationDetails) {
-          tty->print_cr("Reconstructed expression %d (INT): %d", i, (int)(*addr));
-        }
-#endif
         break;
       case T_OBJECT:
         *addr = value->get_int(T_OBJECT);
-#ifndef PRODUCT
-        if (PrintDeoptimizationDetails) {
-          tty->print("Reconstructed expression %d (OBJECT): ", i);
-          oop o = (oop)(*addr);
-          if (o == NULL) {
-            tty->print_cr("NULL");
-          } else {
-            tty->print_cr(err_msg("%s", o->blueprint()->name()->as_C_string()));
-          }
-        }
-#endif
         break;
       case T_CONFLICT:
         // A dead stack slot.  Initialize to null in case it is an oop.
@@ -364,25 +344,9 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
     switch(value->type()) {
       case T_INT:
         *addr = value->get_int();
-#ifndef PRODUCT
-        if (PrintDeoptimizationDetails) {
-          tty->print_cr("Reconstructed local %d (INT): %d", i, (int)(*addr));
-        }
-#endif
         break;
       case T_OBJECT:
         *addr = value->get_int(T_OBJECT);
-#ifndef PRODUCT
-        if (PrintDeoptimizationDetails) {
-          tty->print("Reconstructed local %d (OBJECT): ", i);
-          oop o = (oop)(*addr);
-          if (o == NULL) {
-            tty->print_cr("NULL");
-          } else {
-            tty->print_cr(err_msg("%s", o->blueprint()->name()->as_C_string()));
-          }
-        }
-#endif
         break;
       case T_CONFLICT:
         // A dead location. If it is an oop then we need a NULL to prevent GC from following it
@@ -424,13 +388,18 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
   }
 
 #ifndef PRODUCT
-  if (PrintDeoptimizationDetails) {
+  if (TraceDeoptimization && Verbose) {
     ttyLocker ttyl;
     tty->print_cr("[%d Interpreted Frame]", ++unpack_counter);
     iframe()->print_on(tty);
     RegisterMap map(thread);
     vframe* f = vframe::new_vframe(iframe(), &map, thread);
     f->print();
+
+    tty->print_cr("locals size     %d", locals()->size());
+    tty->print_cr("expression size %d", expressions()->size());
+
+    method()->print_value();
     tty->cr();
     // method()->print_codes();
   } else if (TraceDeoptimization) {

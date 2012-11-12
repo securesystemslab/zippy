@@ -57,7 +57,6 @@ private:
   ciEnv*        _env;
 
   oop           _comp_result;
-  oop           _hotspot_method;
   oop           _name;
   arrayOop      _sites;
   arrayOop      _exception_handlers;
@@ -86,7 +85,7 @@ private:
 public:
 
   // constructor used to create a method
-  CodeInstaller(Handle& target_method, nmethod*& nm, bool install_code);
+  CodeInstaller(Handle& comp_result, methodHandle method, nmethod*& nm, bool bind_to_method);
 
   // constructor used to create a stub
   CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id);
@@ -94,8 +93,8 @@ public:
   static address runtime_call_target_address(oop runtime_call);
 
 private:
-  // extract the fields of the InstalledCode
-  void initialize_fields(oop target_method);
+  // extract the fields of the CompilationResult
+  void initialize_fields(oop target_method, methodHandle method);
   void initialize_assumptions(oop target_method);
 
   // perform data and call relocation on the CodeBuffer
