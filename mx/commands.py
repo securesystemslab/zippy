@@ -542,7 +542,13 @@ def build(args, vm=None):
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env['ALT_BOOTDIR'] = jdk
             env.setdefault('INSTALL', 'y')
-
+            if mx.get_os() == 'solaris' :
+                # If using sparcWorks, setup flags to avoid make complaining about CC version
+                cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
+                if cCompilerVersion.startswith('CC: Sun C++') :
+                    compilerRev = cCompilerVersion.split(' ')[3]
+                    env.setdefault('ENFORCE_COMPILER_REV', compilerRev);
+                    env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev);
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
 
@@ -623,7 +629,6 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     if '-d64' not in args:
         args = ['-d64'] + args
-    print ['args = '] + args    
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     dbg = _native_dbg.split() if _native_dbg is not None else []
     return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
