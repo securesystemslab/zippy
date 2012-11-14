@@ -241,12 +241,17 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
   }
 }
 
-Handle GraalCompiler::get_JavaTypeFromClass(Handle javaClassHandle, TRAPS) {
-  if (java_lang_Class::is_primitive(javaClassHandle())) {
-    BasicType basicType = java_lang_Class::primitive_type(javaClassHandle());
+Handle GraalCompiler::get_JavaTypeFromClass(Handle java_class, TRAPS) {
+  oop graal_mirror = java_lang_Class::graal_mirror(java_class());
+  if (graal_mirror != NULL) {
+    return graal_mirror;
+  }
+
+  if (java_lang_Class::is_primitive(java_class())) {
+    BasicType basicType = java_lang_Class::primitive_type(java_class());
     return VMToCompiler::createPrimitiveJavaType((int) basicType, THREAD);
   } else {
-    KlassHandle klass = java_lang_Class::as_Klass(javaClassHandle());
+    KlassHandle klass = java_lang_Class::as_Klass(java_class());
     Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
     return GraalCompiler::createHotSpotResolvedJavaType(klass, name, CHECK_NULL);
   }

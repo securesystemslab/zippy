@@ -275,6 +275,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*&
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
+  jint entry_bci = HotSpotCompilationResult::entryBCI(comp_result);
   initialize_assumptions(JNIHandles::resolve(comp_result_obj));
 
   {
@@ -286,7 +287,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*&
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
 
-  nm = GraalEnv::register_method(method, -1, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+  nm = GraalEnv::register_method(method, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, bind_to_method);
 
   method->clear_queued_for_compilation();

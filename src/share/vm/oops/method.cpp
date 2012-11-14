@@ -779,13 +779,6 @@ void Method::set_not_osr_compilable(int comp_level, bool report) {
       set_not_c2_osr_compilable();
   }
   CompilationPolicy::policy()->disable_compilation(this);
-
-#ifdef GRAAL
-  oop graal_mirror = this->graal_mirror();
-  if (graal_mirror != NULL) {
-    HotSpotResolvedJavaMethod::set_canBeInlined(graal_mirror, false);
-  }
-#endif
 }
 
 // Revert to using the interpreter and clear out the nmethod

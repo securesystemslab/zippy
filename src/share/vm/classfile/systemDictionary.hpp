@@ -184,10 +184,9 @@ class SymbolPropertyTable;
   /* Support for Graal */                                                                                                \
   do_klass(GraalBitMap_klass,                     java_util_BitSet,                                             Opt) \
   /* graal.hotspot */                                                                                                \
-  do_klass(HotSpotKlassOop_klass,                 com_oracle_graal_hotspot_HotSpotKlassOop,                     Opt) \
   do_klass(HotSpotCompilationResult_klass,        com_oracle_graal_hotspot_HotSpotCompilationResult,            Opt) \
   do_klass(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
-  do_klass(HotSpotInstalledCode_klass,            com_oracle_graal_hotspot_meta_HotSpotInstalledCode,          Opt) \
+  do_klass(HotSpotInstalledCode_klass,            com_oracle_graal_hotspot_meta_HotSpotInstalledCode,           Opt) \
   do_klass(HotSpotJavaType_klass,                 com_oracle_graal_hotspot_meta_HotSpotJavaType,                Opt) \
   do_klass(HotSpotMethodData_klass,               com_oracle_graal_hotspot_meta_HotSpotMethodData,              Opt) \
   do_klass(HotSpotResolvedJavaField_klass,        com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,       Opt) \

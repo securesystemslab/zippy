@@ -2153,8 +2153,8 @@ void InstanceKlass::clean_implementors_list(BoolObjectClosure* is_alive) {
 }
 
 void InstanceKlass::clean_method_data(BoolObjectClosure* is_alive) {
-#ifdef COMPILER2
-  // Currently only used by C2.
+#if defined(COMPILER2) || defined(GRAAL)
+   // Currently only used by C2.
   for (int m = 0; m < methods()->length(); m++) {
     MethodData* mdo = methods()->at(m)->method_data();
     if (mdo != NULL) {

@@ -58,7 +58,6 @@ void graal_compute_offsets();
     long_field(HotSpotResolvedJavaMethod, metaspaceMethod)                                                                                                     \
     int_field(HotSpotResolvedJavaMethod, codeSize)                                                                                                             \
     int_field(HotSpotResolvedJavaMethod, exceptionHandlerCount)                                                                                                \
-    boolean_field(HotSpotResolvedJavaMethod, canBeInlined)                                                                                                     \
   end_class                                                                                                                                                    \
   start_class(HotSpotMethodData)                                                                                                                               \
     long_field(HotSpotMethodData, metaspaceMethodData)                                                                                                         \
@@ -85,6 +84,7 @@ void graal_compute_offsets();
     oop_field(HotSpotCompilationResult, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                 \
     oop_field(HotSpotCompilationResult, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;")                                                   \
     oop_field(HotSpotCompilationResult, name, "Ljava/lang/String;")                                                                                            \
+    int_field(HotSpotCompilationResult, entryBCI)                                                                                                              \
     oop_field(HotSpotCompilationResult, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;")                                                          \
     oop_field(HotSpotCompilationResult, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;")                                  \
   end_class                                                                                                                                                    \

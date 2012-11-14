@@ -133,7 +133,6 @@ class Method : public Metadata {
   InvocationCounter _backedge_counter;           // Incremented before each backedge taken - used to trigger frequencey-based optimizations
 
 #ifdef GRAAL
-  oop               _graal_mirror;               // com/oracle/graal/hotspot/HotSpotResolvedJavaMethod mirroring this method
   jlong             _graal_invocation_time;
   int               _graal_priority;
 #endif
@@ -380,10 +379,6 @@ class Method : public Metadata {
   int backedge_count();
 
 #ifdef GRAAL
-  // graal mirror
-  oop graal_mirror() const               { return _graal_mirror; }
-  void set_graal_mirror(oop m)           { oop_store((oop*) &_graal_mirror, m); }
-
   void set_graal_invocation_time(jlong time) { _graal_invocation_time = time; }
   jlong graal_invocation_time()          { return _graal_invocation_time; }
 
@@ -842,9 +837,6 @@ class Method : public Metadata {
   // Inlined elements
   address* native_function_addr() const          { assert(is_native(), "must be native"); return (address*) (this+1); }
   address* signature_handler_addr() const        { return native_function_addr() + 1; }
-#ifdef GRAAL
-  oop*  adr_graal_mirror() const                 { return (oop*)&_graal_mirror;    }
-#endif
 };
 
 
