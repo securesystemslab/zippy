@@ -106,9 +106,9 @@ const int jintAsStringSize = 12;
 // log2_intptr(sizeof(class JavaThread)) - log2_intptr(64);
 // see os::set_memory_serialize_page()
 #ifdef _LP64
-const int SerializePageShiftCount = GRAAL_ONLY(5) NOT_GRAAL(4);
+const int SerializePageShiftCount = 4;
 #else
-const int SerializePageShiftCount = GRAAL_ONLY(4) NOT_GRAAL(3);
+const int SerializePageShiftCount = 3;
 #endif
 
 // An opaque struct of heap-word width, so that HeapWord* can be a generic
