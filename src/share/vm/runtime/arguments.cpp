@@ -2057,19 +2057,24 @@ Arguments::ArgsRange Arguments::parse_memory_size(const char* s,
 
 // Parse JavaVMInitArgs structure
 #ifdef GRAAL
+static void prepend_to_graal_classpath(SysClassPath &cp, const char* path) {
+  cp.add_prefix(path);
+}
+
 static void prepend_to_graal_classpath(SysClassPath &cp, const char* graal_dir, const char* project) {
   const int BUFFER_SIZE = 1024;
   char path[BUFFER_SIZE];
 
   const char fileSep = *os::file_separator();
   sprintf(path, "%s%c%s%cbin", graal_dir, fileSep, project, fileSep);
+  
   DIR* dir = os::opendir(path);
   if (dir == NULL) {
     jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The Graal class directory %s could not be opened.\n", path);
     vm_exit(1);
   }
   os::closedir(dir);
-  cp.add_prefix(path);
+  prepend_to_graal_classpath(cp, path);
 }
 
 // Walk up the directory hierarchy starting from JAVA_HOME looking
@@ -2134,59 +2139,66 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     if (PrintVMOptions) {
       tty->print_cr("Running Graal VM... ");
     }
-    const int BUFFER_SIZE = 1024;
-    char graal_dir[BUFFER_SIZE];
-    if (!os::getenv("GRAAL", graal_dir, sizeof(graal_dir))) {
-      if (find_graal_dir(graal_dir) == false) {
-        jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The GRAAL environment variable needs to point to the directory containing the Graal projects.\n");
-        vm_exit(0);
-      }
-    }
-    if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
-    
-    // this declaration is checked for correctness by 'mx build' - only
-    // modify its entries, not its name or shape
-    const char* graal_projects[] = {
-#ifdef AMD64
-        "com.oracle.graal.amd64",
-        "com.oracle.graal.asm.amd64",
-        "com.oracle.graal.lir.amd64",
-        "com.oracle.graal.compiler.amd64",
-        "com.oracle.graal.hotspot.amd64",
-#endif
-        "com.oracle.graal.api.runtime",
-        "com.oracle.graal.api.meta",
-        "com.oracle.graal.api.code",
-        "com.oracle.graal.api.interpreter",
-        "com.oracle.graal.hotspot",
-        "com.oracle.graal.asm",
-        "com.oracle.graal.alloc",
-        "com.oracle.graal.snippets",
-        "com.oracle.graal.compiler",
-        "com.oracle.graal.loop",
-        "com.oracle.graal.phases",
-        "com.oracle.graal.phases.common",
-        "com.oracle.graal.virtual",
-        "com.oracle.graal.nodes",
-        "com.oracle.graal.printer",
-        "com.oracle.graal.debug",
-        "com.oracle.graal.graph",
-        "com.oracle.graal.lir",
-        "com.oracle.graal.bytecode",
-        "com.oracle.graal.java"
-    };
 
     SysClassPath scp_compiler("");
-    const int len = sizeof(graal_projects) / sizeof(char*);
-    for (int i = 0; i < len; i++) {
-      if (PrintVMOptions) {
-        tty->print_cr("Adding project directory %s to bootclasspath", graal_projects[i]);
-      }
-      prepend_to_graal_classpath(scp_compiler, graal_dir, graal_projects[i]);
-    }
-    scp_compiler.expand_endorsed();
 
+    if (GraalClassPath != NULL) {
+      prepend_to_graal_classpath(scp_compiler, GraalClassPath);
+    } else {
+      const int BUFFER_SIZE = 1024;
+      char graal_dir[BUFFER_SIZE];
+      if (!os::getenv("GRAAL", graal_dir, sizeof(graal_dir))) {
+        if (find_graal_dir(graal_dir) == false) {
+          jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The GRAAL environment variable needs to point to the directory containing the Graal projects.\n");
+          vm_exit(0);
+        }
+      }
+      if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
+    
+      // this declaration is checked for correctness by 'mx build' - only
+      // modify its entries, not its name or shape
+      const char* graal_projects[] = {
+  #ifdef AMD64
+          "com.oracle.graal.amd64",
+          "com.oracle.graal.asm.amd64",
+          "com.oracle.graal.lir.amd64",
+          "com.oracle.graal.compiler.amd64",
+          "com.oracle.graal.hotspot.amd64",
+  #endif
+          "com.oracle.graal.api.runtime",
+          "com.oracle.graal.api.meta",
+          "com.oracle.graal.api.code",
+          "com.oracle.graal.api.interpreter",
+          "com.oracle.graal.hotspot",
+          "com.oracle.graal.asm",
+          "com.oracle.graal.alloc",
+          "com.oracle.graal.snippets",
+          "com.oracle.graal.compiler",
+          "com.oracle.graal.loop",
+          "com.oracle.graal.phases",
+          "com.oracle.graal.phases.common",
+          "com.oracle.graal.virtual",
+          "com.oracle.graal.nodes",
+          "com.oracle.graal.printer",
+          "com.oracle.graal.debug",
+          "com.oracle.graal.graph",
+          "com.oracle.graal.lir",
+          "com.oracle.graal.bytecode",
+          "com.oracle.graal.java"
+      };
+            
+      const int len = sizeof(graal_projects) / sizeof(char*);
+      for (int i = 0; i < len; i++) {
+        if (PrintVMOptions) {
+          tty->print_cr("Adding project directory %s to bootclasspath", graal_projects[i]);
+        }
+        prepend_to_graal_classpath(scp_compiler, graal_dir, graal_projects[i]);
+      }
+    }
+
+    scp_compiler.expand_endorsed();
     Arguments::set_compilerclasspath(scp_compiler.combined_path());
+
 #endif
 
   if (AggressiveOpts) {

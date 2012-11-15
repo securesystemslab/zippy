@@ -73,8 +73,8 @@ class ICStub: public Stub {
   oop     cached_oop() const;   // cached_oop for stub
 
   // Debugging
-  void    verify()            PRODUCT_RETURN;
-  void    print()             PRODUCT_RETURN;
+  void    verify()                   PRODUCT_RETURN;
+  void    print_on(outputStream* st) PRODUCT_RETURN;
 
   // Creation
   friend ICStub* ICStub_from_destination_address(address destination_address);

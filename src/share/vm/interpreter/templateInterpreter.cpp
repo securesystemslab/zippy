@@ -27,6 +27,7 @@
 #include "interpreter/interpreterGenerator.hpp"
 #include "interpreter/interpreterRuntime.hpp"
 #include "interpreter/templateTable.hpp"
+#include "utilities/machineCodePrinter.hpp"
 
 #ifndef CC_INTERP
 
@@ -51,6 +52,9 @@ void TemplateInterpreter::initialize() {
                           "Interpreter");
     InterpreterGenerator g(_code);
     if (PrintInterpreter) print();
+    if (PrintMachineCodeToFile) {
+      MachineCodePrinter::print(_code);
+    }
   }
 
   // initialize dispatch table

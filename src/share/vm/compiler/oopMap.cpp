@@ -545,7 +545,7 @@ void print_register_type(OopMapValue::oop_types x, VMReg optional,
     st->print("Value" );
     break;
   case OopMapValue::narrowoop_value:
-    tty->print("NarrowOop" );
+    st->print("NarrowOop" );
     break;
   case OopMapValue::callee_saved_value:
     st->print("Callers_" );

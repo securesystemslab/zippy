@@ -463,7 +463,8 @@ address decode_env::decode_instructions(address start, address end) {
 void Disassembler::decode(CodeBlob* cb, outputStream* st) {
   if (!load_library())  return;
   decode_env env(cb, st);
-  env.output()->print_cr("Decoding CodeBlob " PTR_FORMAT, cb);
+  env.output()->print_cr("----------------------------------------------------------------------");
+  env.output()->print_cr("%s at  [" PTR_FORMAT ", " PTR_FORMAT "]  %d bytes", cb->name(), cb->code_begin(), cb->code_end(), ((jlong)(cb->code_end() - cb->code_begin())) * sizeof(unsigned char*));
   env.decode_instructions(cb->code_begin(), cb->code_end());
 }
 
@@ -477,8 +478,7 @@ void Disassembler::decode(address start, address end, outputStream* st) {
 void Disassembler::decode(nmethod* nm, outputStream* st) {
   if (!load_library())  return;
   decode_env env(nm, st);
-  env.output()->print_cr("Decoding compiled method " PTR_FORMAT ":", nm);
-  env.output()->print_cr("Code:");
+  env.output()->print_cr("----------------------------------------------------------------------");
 
 #ifdef SHARK
   SharkEntry* entry = (SharkEntry *) nm->code_begin();
@@ -488,6 +488,11 @@ void Disassembler::decode(nmethod* nm, outputStream* st) {
   unsigned char* p   = nm->code_begin();
   unsigned char* end = nm->code_end();
 #endif // SHARK
+
+  nm->method()->method_holder()->klass_part()->name()->print_symbol_on(env.output());
+  env.output()->print(".");
+  nm->method()->name()->print_symbol_on(env.output());
+  env.output()->print_cr("  [" PTR_FORMAT ", " PTR_FORMAT "]  %d bytes", p, end, ((jlong)(end - p)) * sizeof(unsigned char*));
 
   // If there has been profiling, print the buckets.
   if (FlatProfiler::bucket_start_for(p) != NULL) {

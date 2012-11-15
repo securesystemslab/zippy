@@ -2612,6 +2612,9 @@ class CommandLineFlags {
   diagnostic(bool, PrintInterpreter, false,                                 \
           "Prints the generated interpreter code")                          \
                                                                             \
+  product(bool, PrintMachineCodeToFile, false,                              \
+          "Prints the generated machine code to a file (int + comp)")       \
+                                                                            \
   product(bool, UseInterpreter, true,                                       \
           "Use interpreter for non-compiled methods")                       \
                                                                             \

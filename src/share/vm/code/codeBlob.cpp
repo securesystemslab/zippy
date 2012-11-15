@@ -39,6 +39,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/vframe.hpp"
 #include "services/memoryService.hpp"
+#include "utilities/machineCodePrinter.hpp"
 #ifdef TARGET_ARCH_x86
 # include "nativeInst_x86.hpp"
 #endif
@@ -339,6 +340,10 @@ RuntimeStub* RuntimeStub::new_runtime_stub(const char* stub_name,
   }
 
   trace_new_stub(stub, "RuntimeStub - ", stub_name);
+
+  if (PrintMachineCodeToFile) {
+    MachineCodePrinter::print(stub);
+  }
 
   return stub;
 }

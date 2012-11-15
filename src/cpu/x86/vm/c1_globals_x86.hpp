@@ -52,8 +52,8 @@ define_pd_global(bool, CICompileOSR,                 true );
 #ifdef GRAAL
 define_pd_global(bool, ProfileTraps,                 true );
 define_pd_global(bool, UseOnStackReplacement,        true);
-define_pd_global(intx, CompileThreshold,             2500 );
-define_pd_global(intx, InitialCodeCacheSize,         4*M  );
+define_pd_global(intx, CompileThreshold,             10000 );
+define_pd_global(intx, InitialCodeCacheSize,         16*M  );
 define_pd_global(intx, ReservedCodeCacheSize,        64*M );
 define_pd_global(bool, ProfileInterpreter,           true );
 define_pd_global(intx, CodeCacheExpansionSize,       64*K );

@@ -42,6 +42,7 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
+#include "utilities/machineCodePrinter.hpp"
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
@@ -514,6 +515,10 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
     if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
+
+    if (PrintMachineCodeToFile) {
+      MachineCodePrinter::print(nm);
+    }
   }
   // verify nmethod
   debug_only(if (nm) nm->verify();) // might block
@@ -614,6 +619,10 @@ nmethod* nmethod::new_nmethod(methodHandle method,
     if (nm != NULL)  nmethod_stats.note_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
+
+    if (PrintMachineCodeToFile) {
+      MachineCodePrinter::print(nm);
+    }
   }
 
   // verify nmethod

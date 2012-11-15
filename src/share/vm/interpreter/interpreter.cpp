@@ -60,8 +60,7 @@ void InterpreterCodelet::verify() {
 
 
 void InterpreterCodelet::print_on(outputStream* st) const {
-  if (PrintInterpreter) {
-    st->cr();
+  if (PrintInterpreter || PrintMachineCodeToFile) {
     st->print_cr("----------------------------------------------------------------------");
   }
 
@@ -70,8 +69,7 @@ void InterpreterCodelet::print_on(outputStream* st) const {
   st->print_cr("[" INTPTR_FORMAT ", " INTPTR_FORMAT "]  %d bytes",
                 code_begin(), code_end(), code_size());
 
-  if (PrintInterpreter) {
-    st->cr();
+  if (PrintInterpreter || PrintMachineCodeToFile) {
     Disassembler::decode(code_begin(), code_end(), st);
   }
 }

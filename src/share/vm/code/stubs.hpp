@@ -117,7 +117,7 @@ class StubInterface: public CHeapObj<mtCode> {
 
   // Debugging
   virtual void    verify(Stub* self)                       = 0; // verifies the stub
-  virtual void    print(Stub* self)                        = 0; // prints information about the stub
+  virtual void    print_on(Stub* self, outputStream* st)   = 0; // prints information about the stub
 };
 
 
@@ -145,7 +145,7 @@ class StubInterface: public CHeapObj<mtCode> {
                                                            \
     /* Debugging */                                        \
     virtual void    verify(Stub* self)                     { cast(self)->verify(); }               \
-    virtual void    print(Stub* self)                      { cast(self)->print(); }                \
+    virtual void    print_on(Stub* self, outputStream* st) { cast(self)->print_on(st); }           \
   };
 
 
@@ -177,7 +177,7 @@ class StubQueue: public CHeapObj<mtCode> {
   bool  stub_contains(Stub* s, address pc) const { return _stub_interface->code_begin(s) <= pc && pc < _stub_interface->code_end(s); }
   int   stub_code_size_to_size(int code_size) const { return _stub_interface->code_size_to_size(code_size); }
   void  stub_verify(Stub* s)                     { _stub_interface->verify(s); }
-  void  stub_print(Stub* s)                      { _stub_interface->print(s); }
+  void  stub_print(Stub* s, outputStream* st)    { _stub_interface->print_on(s, st); }
 
   static void register_queue(StubQueue*);
 
@@ -221,7 +221,8 @@ class StubQueue: public CHeapObj<mtCode> {
 
   // Debugging/printing
   void  verify();                                // verifies the stub queue
-  void  print();                                 // prints information about the stub queue
+  void  print()                                  { print_on(tty); }
+  void  print_on(outputStream* st);
 };
 
 #endif // SHARE_VM_CODE_STUBS_HPP

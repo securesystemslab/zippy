@@ -460,7 +460,15 @@ void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread
           }
         }
       }
+     
       if (!m->queued_for_compilation()) {
+        if (TraceCompilationPolicy) {
+          tty->print("method invocation trigger: ");
+          m->print_short_name(tty);
+          tty->print_cr(" ( interpreted " INTPTR_FORMAT ", size=%d, hotCount=%d, hotTime=" UINT64_FORMAT " ) ", (address)m(), m->code_size(), hot_count, hot_time);
+        }
+
+        assert(m->is_native() || m->method_data() != NULL, "do not compile code methods");
         CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier, m, hot_count, "count", thread);
       }
     }
