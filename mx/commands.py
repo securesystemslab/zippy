@@ -541,8 +541,10 @@ def build(args, vm=None):
                 return
         else:
             cpus = multiprocessing.cpu_count()
+            runCmd = [mx.gmake_cmd()]
             if build == 'debug':
                 build = 'jvmg'
+            runCmd.append(build + buildSuffix) 
             env = os.environ
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
@@ -554,8 +556,13 @@ def build(args, vm=None):
                 cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
                 if cCompilerVersion.startswith('CC: Sun C++') :
                     compilerRev = cCompilerVersion.split(' ')[3]
-                    env.setdefault('ENFORCE_COMPILER_REV', compilerRev);
-                    env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev);
+                    env.setdefault('ENFORCE_COMPILER_REV', compilerRev)
+                    env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev)
+                    if build == 'jvmg':
+                        # I want ALL the symbols when I'm debugging on Solaris
+                        # Some Makefile variable are overloaded by environment variable so we need to explicitely
+                        # pass them down in the command line. This one is an example of that.
+                        runCmd.append('STRIP_POLICY=no_strip')
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
 
@@ -563,7 +570,7 @@ def build(args, vm=None):
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
 
-            mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
+            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage)
 
         jvmCfg = _vmCfgInJdk(jdk)
         found = False
