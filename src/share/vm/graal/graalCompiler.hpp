@@ -50,7 +50,7 @@ public:
 
   // Native / OSR not supported
   virtual bool supports_native()                 { return true; }
-  virtual bool supports_osr   ()                 { return true; }
+  virtual bool supports_osr   ()                 { return false; }
 
   // Pretend to be C1
   bool is_c1   ()                                { return true; }
