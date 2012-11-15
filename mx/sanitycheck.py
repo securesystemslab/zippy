@@ -48,7 +48,8 @@ dacapoSanityWarmup = {
 
 dacapoScalaSanityWarmup = {
     'actors':     [0, 0, 2,  8, 10],
-    'apparat':    [0, 0, 1,  2,  3],
+# (lstadler) apparat was disabled due to a deadlock which I think is the benchmarks fault.
+#    'apparat':    [0, 0, 1,  2,  3],
     'factorie':   [0, 0, 2,  5,  5],
     'kiama':      [0, 0, 3, 13, 15],
     'scalac':     [0, 0, 5, 15, 20],
