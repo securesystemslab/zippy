@@ -162,7 +162,7 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'}, startNewLine=True)
     dacapoMatcher1 = Matcher(dacapoTime1, {'const:group' : "const:DaCapo-1stRun", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
+    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+UseSerialGC'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -192,7 +192,7 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:Scala-DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:MaxPermSize=256m', '-XX:+UseSerialGC'])
+    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+UseSerialGC'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
