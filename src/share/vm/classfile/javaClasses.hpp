@@ -154,6 +154,8 @@ class java_lang_String : AllStatic {
   static char*  as_utf8_string(oop java_string, int start, int len);
   static char*  as_platform_dependent_str(Handle java_string, TRAPS);
   static jchar* as_unicode_string(oop java_string, int& length);
+  // produce an ascii string with all other values quoted using \u####
+  static char*  as_quoted_ascii(oop java_string);
 
   // Compute the hash value for a java.lang.String object which would
   // contain the characters passed in.
@@ -922,7 +924,7 @@ class java_lang_invoke_MethodHandle: AllStatic {
 
   // Testers
   static bool is_subclass(Klass* klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::MethodHandle_klass());
+    return klass->is_subclass_of(SystemDictionary::MethodHandle_klass());
   }
   static bool is_instance(oop obj) {
     return obj != NULL && is_subclass(obj->klass());
@@ -952,7 +954,7 @@ class java_lang_invoke_LambdaForm: AllStatic {
   // Testers
   static bool is_subclass(Klass* klass) {
     return SystemDictionary::LambdaForm_klass() != NULL &&
-      Klass::cast(klass)->is_subclass_of(SystemDictionary::LambdaForm_klass());
+      klass->is_subclass_of(SystemDictionary::LambdaForm_klass());
   }
   static bool is_instance(oop obj) {
     return obj != NULL && is_subclass(obj->klass());
@@ -1014,7 +1016,7 @@ class java_lang_invoke_MemberName: AllStatic {
 
   // Testers
   static bool is_subclass(Klass* klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::MemberName_klass());
+    return klass->is_subclass_of(SystemDictionary::MemberName_klass());
   }
   static bool is_instance(oop obj) {
     return obj != NULL && is_subclass(obj->klass());
@@ -1100,7 +1102,7 @@ public:
 
   // Testers
   static bool is_subclass(Klass* klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::CallSite_klass());
+    return klass->is_subclass_of(SystemDictionary::CallSite_klass());
   }
   static bool is_instance(oop obj) {
     return obj != NULL && is_subclass(obj->klass());
@@ -1170,7 +1172,7 @@ class java_lang_ClassLoader : AllStatic {
 
   // Testers
   static bool is_subclass(Klass* klass) {
-    return Klass::cast(klass)->is_subclass_of(SystemDictionary::ClassLoader_klass());
+    return klass->is_subclass_of(SystemDictionary::ClassLoader_klass());
   }
   static bool is_instance(oop obj) {
     return obj != NULL && is_subclass(obj->klass());
