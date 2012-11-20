@@ -2029,6 +2029,11 @@ bool Arguments::check_vm_args_consistency() {
                     "CompressedOops are not supported in Graal at the moment\n");
         status = false;
   }
+  if (UseCompressedKlassPointers) {
+    jio_fprintf(defaultStream::error_stream(),
+                    "UseCompressedKlassPointers are not supported in Graal at the moment\n");
+        status = false;
+  }
   if (UseG1GC) {
     jio_fprintf(defaultStream::error_stream(),
                         "G1 is not supported in Graal at the moment\n");
