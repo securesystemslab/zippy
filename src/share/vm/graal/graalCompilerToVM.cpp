@@ -109,7 +109,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   }
 
   if (reconstituted_code == NULL) {
-    env->SetByteArrayRegion(result, 0, code_size, (const jbyte *) method->code_base());
+    env->SetByteArrayRegion(result, 0, code_size, (jbyte *) method->code_base());
   } else {
     env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
   }
