@@ -102,7 +102,28 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   return map;
 }
 
-static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second) {
+// Records any Metadata values embedded in a Constant (e.g., the value returned by HotSpotResolvedJavaType.klass()).
+static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder) {
+  char kind = Kind::typeChar(Constant::kind(constant));
+  char wordKind = 'j';
+  if (kind == wordKind) {
+    oop obj = Constant::object(constant);
+    jlong prim = Constant::primitive(constant);
+    if (obj != NULL) {
+      if (obj->is_a(HotSpotResolvedJavaType::klass())) {
+        Klass* klass = (Klass*) (address) HotSpotResolvedJavaType::metaspaceKlass(obj);
+        assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
+        int index = oop_recorder->find_index(klass);
+        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
+      } else {
+        assert(java_lang_String::is_instance(obj),
+            err_msg("unexpected annotation type (%s) for constant %ld (%p) of kind %c", obj->klass()->name()->as_C_string(), prim, prim, kind));
+      }
+    }
+  }
+}
+
+static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, ScopeValue* &second, OopRecorder* oop_recorder) {
   second = NULL;
   if (value == Value::ILLEGAL()) {
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
@@ -157,7 +178,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     }
     return value;
   } else if (value->is_a(Constant::klass())){
-    oop obj = Constant::object(value);
+    record_metadata_in_constant(value, oop_recorder);
     jlong prim = Constant::primitive(value);
     if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
       return new ConstantIntValue(*(jint*)&prim);
@@ -195,7 +216,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     arrayOop values = (arrayOop) VirtualObject::values(value);
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second);
+      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second, oop_recorder);
       
       if (isLongArray && cur_second == NULL) {
         // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
@@ -222,14 +243,14 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
   return NULL;
 }
 
-static MonitorValue* get_monitor_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects) {
+static MonitorValue* get_monitor_value(oop value, int total_frame_size, GrowableArray<ScopeValue*>* objects, OopRecorder* oop_recorder) {
   guarantee(value->is_a(code_MonitorValue::klass()), "Monitors must be of type MonitorValue");
 
   ScopeValue* second = NULL;
-  ScopeValue* owner_value = get_hotspot_value(code_MonitorValue::owner(value), total_frame_size, objects, second);
+  ScopeValue* owner_value = get_hotspot_value(code_MonitorValue::owner(value), total_frame_size, objects, second, oop_recorder);
   assert(second == NULL, "monitor cannot occupy two stack slots");
 
-  ScopeValue* lock_data_value = get_hotspot_value(code_MonitorValue::lockData(value), total_frame_size, objects, second);
+  ScopeValue* lock_data_value = get_hotspot_value(code_MonitorValue::lockData(value), total_frame_size, objects, second, oop_recorder);
   assert(second == lock_data_value, "monitor is LONG value that occupies two stack slots");
   assert(lock_data_value->is_location(), "invalid monitor location");
   Location lock_data_loc = ((LocationValue*)lock_data_value)->location();
@@ -482,19 +503,19 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     oop value = ((oop*) values->base(T_OBJECT))[i];
 
     if (i < local_count) {
-      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
+      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second, _oop_recorder);
       if (second != NULL) {
         locals->append(second);
       }
       locals->append(first);
     } else if (i < local_count + expression_count) {
-      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second);
+      ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second, _oop_recorder);
       if (second != NULL) {
         expressions->append(second);
       }
       expressions->append(first);
     } else {
-      monitors->append(get_monitor_value(value, _total_frame_size, objects));
+      monitors->append(get_monitor_value(value, _total_frame_size, objects, _oop_recorder));
     }
     if (second != NULL) {
       i++;
@@ -601,7 +622,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       jump->set_jump_destination(VmIds::getStub(global_stub));
       _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     }
-    TRACE_graal_3("relocating (stub)  at %016x", inst);
+    TRACE_graal_3("relocating (stub)  at %p", inst);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");
     assert(debug_info != NULL, "debug info expected");
@@ -659,6 +680,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop constant = CompilationResult_DataPatch::constant(site);
   int alignment = CompilationResult_DataPatch::alignment(site);
+  bool inlined = CompilationResult_DataPatch::inlined(site);
   oop kind = Constant::kind(constant);
 
   address instruction = _instructions->start() + pc_offset;
@@ -675,24 +697,30 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
     case 'f':
     case 'j':
     case 'd': {
-      address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
-      address next_instruction = Assembler::locate_next_instruction(instruction);
-      int size = _constants->size();
-      if (alignment > 0) {
-        guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-        size = align_size_up(size, alignment);
+      record_metadata_in_constant(constant, _oop_recorder);
+      if (inlined) {
+        address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
+        *((jlong*) operand) = Constant::primitive(constant);
+      } else {
+        address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
+        address next_instruction = Assembler::locate_next_instruction(instruction);
+        int size = _constants->size();
+        if (alignment > 0) {
+          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+          size = align_size_up(size, alignment);
+        }
+        // we don't care if this is a long/double/etc., the primitive field contains the right bits
+        address dest = _constants->start() + size;
+        _constants->set_end(dest + BytesPerLong);
+        *(jlong*) dest = Constant::primitive(constant);
+
+        long disp = dest - next_instruction;
+        assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
+        *((jint*) operand) = (jint) disp;
+
+        _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
+        TRACE_graal_3("relocating (%c) at %p/%p with destination at %p (%d)", typeChar, instruction, operand, dest, size);
       }
-      // we don't care if this is a long/double/etc., the primitive field contains the right bits
-      address dest = _constants->start() + size;
-      _constants->set_end(dest + BytesPerLong);
-      *(jlong*) dest = Constant::primitive(constant);
-
-      long disp = dest - next_instruction;
-      assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
-      *((jint*) operand) = (jint) disp;
-
-      _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
-      TRACE_graal_3("relocating (%c) at %016x/%016x with destination at %016x (%d)", typeChar, instruction, operand, dest, size);
       break;
     }
     case 'a': {
@@ -702,11 +730,11 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       jobject value = JNIHandles::make_local(obj());
       *((jobject*) operand) = value;
       _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-      TRACE_graal_3("relocating (oop constant) at %016x/%016x", instruction, operand);
+      TRACE_graal_3("relocating (oop constant) at %p/%p", instruction, operand);
       break;
     }
     default:
-      fatal("unexpected Kind in DataPatch");
+      fatal(err_msg("unexpected Kind (%d) in DataPatch", typeChar));
       break;
   }
 }

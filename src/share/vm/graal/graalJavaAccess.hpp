@@ -127,6 +127,7 @@ void graal_compute_offsets();
   start_class(CompilationResult_DataPatch)                                                                                                                     \
     oop_field(CompilationResult_DataPatch, constant, "Lcom/oracle/graal/api/meta/Constant;")                                                                   \
     int_field(CompilationResult_DataPatch, alignment)                                                                                                          \
+    boolean_field(CompilationResult_DataPatch, inlined)                                                                                                           \
   end_class                                                                                                                                                    \
   start_class(CompilationResult_Safepoint)                                                                                                                     \
     oop_field(CompilationResult_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")                                                                 \
