@@ -762,4 +762,19 @@ class nmethodLocker : public StackObj {
   }
 };
 
+#ifdef GRAAL
+class DebugScopedNMethod : public DebugScopedValue {
+private:
+  nmethod* _nm;
+public:
+  DebugScopedNMethod(const char* file, int line, nmethod* nm) : DebugScopedValue(file, line), _nm(nm) {}
+  void print_on(outputStream* st);
+};
+#define DS_NMETHOD(nm) DebugScopedNMethod __dsnm__(__FILE__, __LINE__, nm)
+#define DS_NMETHOD1(name, nm) DebugScopedNMethod name(__FILE__, __LINE__, nm)
+#else
+#define DS_NMETHOD(nm) do {} while (0)
+#define DS_NMETHOD1(name, nm) do {} while (0)
+#endif
+
 #endif // SHARE_VM_CODE_NMETHOD_HPP

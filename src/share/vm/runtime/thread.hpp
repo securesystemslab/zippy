@@ -903,6 +903,7 @@ class JavaThread: public Thread {
 #ifdef GRAAL
   volatile oop _graal_deopt_info;
   address _graal_alternate_call_target;
+  DebugScopedValue* _debug_scope;
 #endif
 #ifdef HIGH_LEVEL_INTERPRETER
   bool _high_level_interpreter_in_vm;
@@ -1283,6 +1284,9 @@ class JavaThread: public Thread {
   void set_graal_deopt_info(oop o)               { _graal_deopt_info = o; }
   
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
+
+  DebugScopedValue* debug_scope() const                { return _debug_scope; }
+  void set_debug_scope(DebugScopedValue* ds)           { _debug_scope = ds; }
 #endif
 #ifdef HIGH_LEVEL_INTERPRETER
   bool high_level_interpreter_in_vm()            { return _high_level_interpreter_in_vm; }

@@ -42,6 +42,7 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
+#include "utilities/debug.hpp"
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
@@ -2978,3 +2979,19 @@ void nmethod::print_statistics() {
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }
+
+#ifdef GRAAL
+void DebugScopedNMethod::print_on(outputStream* st) {
+  if (_nm != NULL) {
+    st->print("nmethod@%p", _nm);
+    Method* method = _nm->method();
+    if (method != NULL) {
+      char holder[O_BUFLEN];
+      char nameAndSig[O_BUFLEN];
+      method->method_holder()->name()->as_C_string(holder, O_BUFLEN);
+      method->name_and_sig_as_C_string(nameAndSig, O_BUFLEN);
+      st->print(" - %s::%s", holder, nameAndSig);
+    }
+  }
+}
+#endif

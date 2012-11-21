@@ -1444,6 +1444,7 @@ void JavaThread::initialize() {
 #ifdef GRAAL
   _graal_deopt_info = NULL;
   _graal_alternate_call_target = NULL;
+  _debug_scope = NULL;
 #endif
 #ifdef HIGH_LEVEL_INTERPRETER
   _high_level_interpreter_in_vm = false;

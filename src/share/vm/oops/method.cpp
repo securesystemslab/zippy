@@ -1942,3 +1942,16 @@ void Method::verify_on(outputStream* st) {
   guarantee(md == NULL ||
       md->is_methodData(), "should be method data");
 }
+
+#ifdef GRAAL
+void DebugScopedMethod::print_on(outputStream* st) {
+  if (_method != NULL) {
+    st->print("Method@%p", _method);
+    char holder[O_BUFLEN];
+    char nameAndSig[O_BUFLEN];
+    _method->method_holder()->name()->as_C_string(holder, O_BUFLEN);
+    _method->name_and_sig_as_C_string(nameAndSig, O_BUFLEN);
+    st->print(" - %s::%s", holder, nameAndSig);
+  }
+}
+#endif
