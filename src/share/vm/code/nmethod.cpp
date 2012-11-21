@@ -483,7 +483,7 @@ void nmethod::init_defaults() {
   _saved_nmethod_link      = NULL;
   _compiler                = NULL;
 #ifdef GRAAL
-  _graal_installed_code   = (oop) Universe::non_oop_word();
+  _graal_installed_code   = NULL;
 #endif
 #ifdef HAVE_DTRACE_H
   _trap_offset             = 0;
@@ -577,6 +577,9 @@ nmethod* nmethod::new_nmethod(methodHandle method,
   ImplicitExceptionTable* nul_chk_table,
   AbstractCompiler* compiler,
   int comp_level
+#ifdef GRAAL
+  , Handle installed_code
+#endif
 )
 {
   assert(debug_info->oop_recorder() == code_buffer->oop_recorder(), "shared OR");
@@ -598,7 +601,11 @@ nmethod* nmethod::new_nmethod(methodHandle method,
               handler_table,
               nul_chk_table,
               compiler,
-              comp_level);
+              comp_level
+#ifdef GRAAL
+              , installed_code
+#endif
+              );
     if (nm != NULL) {
       // To make dependency checking during class loading fast, record
       // the nmethod dependencies in the classes it is dependent on.
@@ -819,6 +826,9 @@ nmethod::nmethod(
   ImplicitExceptionTable* nul_chk_table,
   AbstractCompiler* compiler,
   int comp_level
+#ifdef GRAAL
+  , Handle installed_code
+#endif
   )
   : CodeBlob("nmethod", code_buffer, sizeof(nmethod),
              nmethod_size, offsets->value(CodeOffsets::Frame_Complete), frame_size, oop_maps),
@@ -843,22 +853,24 @@ nmethod::nmethod(
     _stub_offset             = content_offset()      + code_buffer->total_offset_of(code_buffer->stubs());
 
 #ifdef GRAAL
-      // graal produces no (!) stub section
-      if (offsets->value(CodeOffsets::Exceptions) != -1) {
-        _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
-      } else {
-        _exception_offset = -1;
-      }
-      if (offsets->value(CodeOffsets::Deopt) != -1) {
-        _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
-      } else {
-        _deoptimize_offset = -1;
-      }
-      if (offsets->value(CodeOffsets::DeoptMH) != -1) {
-        _deoptimize_mh_offset  = code_offset()          + offsets->value(CodeOffsets::DeoptMH);
-      } else {
-        _deoptimize_mh_offset  = -1;
-      }
+    _graal_installed_code = installed_code();
+
+    // graal produces no (!) stub section
+    if (offsets->value(CodeOffsets::Exceptions) != -1) {
+      _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
+    } else {
+      _exception_offset = -1;
+    }
+    if (offsets->value(CodeOffsets::Deopt) != -1) {
+      _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
+    } else {
+      _deoptimize_offset = -1;
+    }
+    if (offsets->value(CodeOffsets::DeoptMH) != -1) {
+      _deoptimize_mh_offset  = code_offset()          + offsets->value(CodeOffsets::DeoptMH);
+    } else {
+      _deoptimize_mh_offset  = -1;
+    }
 #else
     // Exception handler and deopt handler are in the stub section
     assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
@@ -1266,7 +1278,7 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
   }
 
 #ifdef GRAAL
-    if (graal_installed_code() != NULL) {
+    if (_graal_installed_code != NULL) {
       HotSpotInstalledCode::set_nmethod(_graal_installed_code, 0);
       _graal_installed_code = NULL;
     }
@@ -1354,7 +1366,7 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
     }
 
 #ifdef GRAAL
-    if (graal_installed_code() != NULL) {
+    if (_graal_installed_code != NULL) {
       HotSpotInstalledCode::set_nmethod(_graal_installed_code, 0);
       _graal_installed_code = NULL;
     }
@@ -1654,10 +1666,6 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
 
 #ifdef GRAAL
   // Follow Graal method
-  if (_graal_installed_code == Universe::non_oop_word()) {
-    // May have not yet finished initializing a non-default nmethod
-    return;
-  }
   if (_graal_installed_code != NULL && can_unload(is_alive, (oop*)&_graal_installed_code, unloading_occurred)) {
     return;
   }
@@ -1883,7 +1891,7 @@ void nmethod::oops_do(OopClosure* f, bool do_strong_roots_only) {
   }
 
 #ifdef GRAAL
-  if (graal_installed_code() != NULL) {
+  if (_graal_installed_code != NULL) {
     f->do_oop((oop*) &_graal_installed_code);
   }
 #endif

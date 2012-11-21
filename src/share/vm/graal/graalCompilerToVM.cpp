@@ -774,8 +774,8 @@ C2V_VMENTRY(jobject, installCode, (JNIEnv *jniEnv, jobject, jobject compResult, 
   methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(compResult));
   Arena arena;
   ciEnv env(&arena);
-  bool bind_to_method = installed_code == NULL;
-  CodeInstaller installer(compResultHandle, method, nm, bind_to_method);
+  Handle installed_code_handle = JNIHandles::resolve(installed_code);
+  CodeInstaller installer(compResultHandle, method, nm, installed_code_handle);
 
   if (info != NULL) {
     arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
@@ -784,22 +784,12 @@ C2V_VMENTRY(jobject, installCode, (JNIEnv *jniEnv, jobject, jobject compResult, 
     HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
   }
 
-  if (installed_code != NULL && nm != NULL) {
-    Handle obj = JNIHandles::resolve(installed_code);
-    assert(obj->is_a(HotSpotInstalledCode::klass()), "wrong type");
-    HotSpotInstalledCode::set_nmethod(obj, (jlong) nm);
-    HotSpotInstalledCode::set_method(obj, HotSpotCompilationResult::method(compResult));
-    nm->set_graal_installed_code(obj());
-    assert(nm->graal_installed_code() == obj(), "must be");
-    if (!nm->on_scavenge_root_list()) {
-      // Since the nmethod now contains a normal oop (i.e. installed_code) it must
-      // be on the list of nmethods scavenged for oops.
-      // Must hold the code cache lock when adding to the scavenger list
-      MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-      CodeCache::add_scavenge_root_nmethod(nm);
-      assert(nm->on_scavenge_root_list(), "must be");
-    }
-    return JNIHandles::make_local(obj());
+  if (!installed_code_handle.is_null()) {
+    assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
+    HotSpotInstalledCode::set_nmethod(installed_code_handle, (jlong) nm);
+    HotSpotInstalledCode::set_method(installed_code_handle, HotSpotCompilationResult::method(compResult));
+    assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
+    return installed_code;
   } else {
     return NULL;
   }

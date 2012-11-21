@@ -269,7 +269,11 @@ class nmethod : public CodeBlob {
           ExceptionHandlerTable* handler_table,
           ImplicitExceptionTable* nul_chk_table,
           AbstractCompiler* compiler,
-          int comp_level);
+          int comp_level
+#ifdef GRAAL
+          , Handle installed_code = NULL
+#endif
+          );
 
   // helper methods
   void* operator new(size_t size, int nmethod_size);
@@ -287,7 +291,7 @@ class nmethod : public CodeBlob {
   // Inform external interfaces that a compiled method has been unloaded
   void post_compiled_method_unload();
 
-  // Initailize fields to their default values
+  // Initialize fields to their default values
   void init_defaults();
 
  public:
@@ -305,7 +309,11 @@ class nmethod : public CodeBlob {
                               ExceptionHandlerTable* handler_table,
                               ImplicitExceptionTable* nul_chk_table,
                               AbstractCompiler* compiler,
-                              int comp_level);
+                              int comp_level
+#ifdef GRAAL
+                              , Handle installed_code = NULL
+#endif
+  );
 
   static nmethod* new_native_nmethod(methodHandle method,
                                      int compile_id,
@@ -570,7 +578,7 @@ public:
   void set_method(Method* method) { _method = method; }
 
 #ifdef GRAAL
-  oop graal_installed_code() { return _graal_installed_code == Universe::non_oop_word() ? NULL : _graal_installed_code ; }
+  oop graal_installed_code() { return _graal_installed_code ; }
   void set_graal_installed_code(oop installed_code) { _graal_installed_code = installed_code;  }
 #endif
 

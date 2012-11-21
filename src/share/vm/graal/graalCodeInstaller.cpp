@@ -291,7 +291,7 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*& nm, bool bind_to_method) {
+CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*& nm, Handle installed_code) {
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
@@ -309,7 +309,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*&
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
 
   nm = GraalEnv::register_method(method, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, bind_to_method);
+    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, installed_code);
 
   method->clear_queued_for_compilation();
 }

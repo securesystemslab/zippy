@@ -444,7 +444,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
                                 int compile_id,
                                 bool has_debug_info,
                                 bool has_unsafe_access,
-                                bool bind_to_method) {
+                                Handle installed_code) {
   EXCEPTION_CONTEXT;
   NMethodSweeper::possibly_sweep();
   nmethod* nm = NULL;
@@ -483,7 +483,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
                                debug_info, dependencies, code_buffer,
                                frame_words, oop_map_set,
                                handler_table, inc_table,
-                               compiler, comp_level);
+                               compiler, comp_level, installed_code);
 
     // Free codeBlobs
     //code_buffer->free_blob();
@@ -512,7 +512,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
       // (Put nm into the task handle *before* publishing to the Java heap.)
       if (task != NULL)  task->set_code(nm);
 
-      if (bind_to_method) {
+      if (installed_code.is_null()) {
         if (entry_bci == InvocationEntryBci) {
           if (TieredCompilation) {
             // If there is an old version we're done with it

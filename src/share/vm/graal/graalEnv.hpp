@@ -125,7 +125,7 @@ public:
                        int                       compile_id,
                        bool                      has_debug_info,
                        bool                      has_unsafe_access,
-                       bool                      bind_to_method);
+                       Handle                    installed_code);
 
   static ciKlass*  find_system_klass(ciSymbol* klass_name);
   // Note:  To find a class from its name string, use ciSymbol::make,
