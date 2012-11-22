@@ -766,6 +766,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
       case MARK_STATIC_CALL_STUB: {
+        _instructions->relocate(instruction, metadata_Relocation::spec_for_immediate());
         assert(references->length() == 1, "static call stub needs one reference");
         oop ref = ((oop*) references->base(T_OBJECT))[0];
         address call_pc = _instructions->start() + CompilationResult_Site::pcOffset(ref);
