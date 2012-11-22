@@ -1792,8 +1792,8 @@ BoolObjectClosure* CheckClass::_is_alive = NULL;
 // really alive.
 void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* is_alive) {
 #ifdef ASSERT
-    RelocIterator iter(this, low_boundary);
-    while (iter.next()) {
+  RelocIterator iter(this, low_boundary);
+  while (iter.next()) {
     // static_stub_Relocations may have dangling references to
     // Method*s so trim them out here.  Otherwise it looks like
     // compiled code is maintaining a link to dead metadata.
@@ -1802,11 +1802,13 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
       CompiledIC* cic = CompiledIC_at(iter.reloc());
       if (!cic->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
+        cic->set_to_clean();
       }
     } else if (iter.type() == relocInfo::static_call_type) {
       CompiledStaticCall* csc = compiledStaticCall_at(iter.reloc());
       if (!csc->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
+        csc->set_to_clean();
       }
     }
     if (static_call_addr != NULL) {
