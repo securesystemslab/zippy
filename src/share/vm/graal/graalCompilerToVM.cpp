@@ -99,7 +99,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
           assert(i < method->constants()->length(), "sanity check");
           Bytes::put_Java_u2((address) reconstituted_code + bci + 1, (u2)i);
         } else if (opcode == Bytecodes::_fast_aldc) {
-          int cpci = reconstituted_code[bci + 1];
+          int cpci = reconstituted_code[bci + 1] & 0xff;
           int i = method->constants()->object_to_cp_index(cpci);
           assert(i < method->constants()->length(), "sanity check");
           reconstituted_code[bci + 1] = (jbyte)i;
@@ -398,8 +398,7 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
     assert(obj->is_instance(), "must be an instance");
     result = VMToCompiler::createConstantObject(obj, CHECK_NULL);
   } else {
-    tty->print("unknown constant pool tag at cpi %d in %s: ", index, cp->pool_holder()->name()->as_C_string());
-    tag.print_on(tty);
+    tty->print("unknown constant pool tag (%s) at cpi %d in %s: ", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string());
     ShouldNotReachHere();
   }
 
