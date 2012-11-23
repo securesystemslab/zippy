@@ -519,7 +519,7 @@ void Disassembler::decode(nmethod* nm, outputStream* st) {
   unsigned char* end = nm->code_end();
 #endif // SHARK
 
-  nm->method()->method_holder()->klass_part()->name()->print_symbol_on(env.output());
+  nm->method()->method_holder()->name()->print_symbol_on(env.output());
   env.output()->print(".");
   nm->method()->name()->print_symbol_on(env.output());
   env.output()->print_cr("  [" PTR_FORMAT ", " PTR_FORMAT "]  %d bytes", p, end, ((jlong)(end - p)) * sizeof(unsigned char*));
