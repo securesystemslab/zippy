@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -54,6 +54,9 @@ CFLAGS$(HOTSPARC_GENERIC) += $(OPT_CFLAGS/BYFILE)
 
 # Linker mapfiles
 MAPFILE = $(GAMMADIR)/make/solaris/makefiles/mapfile-vers
+#ifdef GRAAL
+MAPFILE += $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-graal
+#endif
 
 # This mapfile is only needed when compiling with dtrace support, 
 # and mustn't be otherwise.

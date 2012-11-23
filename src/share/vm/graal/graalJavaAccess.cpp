@@ -28,19 +28,19 @@
 // This function is similar to javaClasses.cpp, it computes the field offset of a (static or instance) field.
 // It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.
 
-void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, const char* signature, bool static_field) {
+void compute_offset(int &dest_offset, Klass* klass, const char* name, const char* signature, bool static_field) {
   Symbol* name_symbol = SymbolTable::probe(name, (int)strlen(name));
   Symbol* signature_symbol = SymbolTable::probe(signature, (int)strlen(signature));
 #ifndef PRODUCT
   if (name_symbol == NULL) {
-    tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass_oop->klass_part()->name()->as_C_string());
+    tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass->name()->as_C_string());
   }
 #endif
   if (name_symbol == NULL || signature_symbol == NULL) {
-    guarantee(false, err_msg("symbol not found - class layout of %s changed?", klass_oop->klass_part()->name()->as_C_string()));
+    guarantee(false, err_msg("symbol not found - class layout of %s changed?", klass->name()->as_C_string()));
   }
 
-  instanceKlass* ik = instanceKlass::cast(klass_oop);
+  InstanceKlass* ik = InstanceKlass::cast(klass);
   fieldDescriptor fd;
   if (!ik->find_field(name_symbol, signature_symbol, &fd)) {
     ResourceMark rm;
@@ -53,7 +53,7 @@ void compute_offset(int &dest_offset, klassOop klass_oop, const char* name, cons
 
 // This piece of macro magic creates the contents of the graal_compute_offsets method that initializes the field indices of all the access classes.
 
-#define START_CLASS(name) { klassOop k = SystemDictionary::name##_klass(); assert(k != NULL, "Could not find class " #name "");
+#define START_CLASS(name) { Klass* k = SystemDictionary::name##_klass(); assert(k != NULL, "Could not find class " #name "");
 
 #define END_CLASS }
 

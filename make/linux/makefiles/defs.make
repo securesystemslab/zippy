@@ -29,8 +29,14 @@
 SLASH_JAVA ?= /java
 
 # Need PLATFORM (os-arch combo names) for jdk and hotspot, plus libarch name
-ARCH:=$(shell uname -m)
-PATH_SEP = :
+
+# ARCH can be set explicitly in spec.gmk
+ifndef ARCH
+  ARCH := $(shell uname -m)
+endif
+
+PATH_SEP ?= :
+
 ifeq ($(LP64), 1)
   ARCH_DATA_MODEL ?= 64
 else
@@ -72,8 +78,8 @@ ifeq ($(ARCH), sparc64)
   HS_ARCH            = sparc
 endif
 
-# x86_64
-ifeq ($(ARCH), x86_64) 
+# amd64/x86_64
+ifneq (,$(findstring $(ARCH), amd64 x86_64))
   ifeq ($(ARCH_DATA_MODEL), 64)
     ARCH_DATA_MODEL = 64
     MAKE_ARGS       += LP64=1
@@ -90,8 +96,8 @@ ifeq ($(ARCH), x86_64)
   endif
 endif
 
-# i686
-ifeq ($(ARCH), i686)
+# i686/i586 ie 32-bit x86
+ifneq (,$(findstring $(ARCH), i686 i586))
   ARCH_DATA_MODEL  = 32
   PLATFORM         = linux-i586
   VM_PLATFORM      = linux_i486
@@ -164,68 +170,70 @@ ifeq ($(JDK6_OR_EARLIER),0)
   # overridden in some situations, e.g., a BUILD_FLAVOR != product
   # build.
 
-  ifeq ($(BUILD_FLAVOR), product)
-    FULL_DEBUG_SYMBOLS ?= 1
-    ENABLE_FULL_DEBUG_SYMBOLS = $(FULL_DEBUG_SYMBOLS)
-  else
-    # debug variants always get Full Debug Symbols (if available)
-    ENABLE_FULL_DEBUG_SYMBOLS = 1
-  endif
-  _JUNK_ := $(shell \
-    echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")
-  # since objcopy is optional, we set ZIP_DEBUGINFO_FILES later
-
-  ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
-    # Default OBJCOPY comes from GNU Binutils on Linux:
-    DEF_OBJCOPY=/usr/bin/objcopy
-    ifdef CROSS_COMPILE_ARCH
-      # don't try to generate .debuginfo files when cross compiling
-      _JUNK_ := $(shell \
-        echo >&2 "INFO: cross compiling for ARCH $(CROSS_COMPILE_ARCH)," \
-          "skipping .debuginfo generation.")
-      OBJCOPY=
+  # Due to the multiple sub-make processes that occur this logic gets
+  # executed multiple times. We reduce the noise by at least checking that
+  # BUILD_FLAVOR has been set.
+  ifneq ($(BUILD_FLAVOR),)
+    ifeq ($(BUILD_FLAVOR), product)
+      FULL_DEBUG_SYMBOLS ?= 1
+      ENABLE_FULL_DEBUG_SYMBOLS = $(FULL_DEBUG_SYMBOLS)
     else
+      # debug variants always get Full Debug Symbols (if available)
+      ENABLE_FULL_DEBUG_SYMBOLS = 1
+    endif
+    _JUNK_ := $(shell \
+      echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")
+    # since objcopy is optional, we set ZIP_DEBUGINFO_FILES later
+
+    ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
+      # Default OBJCOPY comes from GNU Binutils on Linux
+      ifeq ($(CROSS_COMPILE_ARCH),)
+        DEF_OBJCOPY=/usr/bin/objcopy
+      else
+        # Assume objcopy is part of the cross-compilation toolset
+        ifneq ($(ALT_COMPILER_PATH),)
+          DEF_OBJCOPY=$(ALT_COMPILER_PATH)/objcopy
+        endif
+      endif
       OBJCOPY=$(shell test -x $(DEF_OBJCOPY) && echo $(DEF_OBJCOPY))
       ifneq ($(ALT_OBJCOPY),)
         _JUNK_ := $(shell echo >&2 "INFO: ALT_OBJCOPY=$(ALT_OBJCOPY)")
         OBJCOPY=$(shell test -x $(ALT_OBJCOPY) && echo $(ALT_OBJCOPY))
       endif
-    endif
-  else
-    OBJCOPY=
-  endif
 
-  ifeq ($(OBJCOPY),)
-    _JUNK_ := $(shell \
-      echo >&2 "INFO: no objcopy cmd found so cannot create .debuginfo files.")
-    ENABLE_FULL_DEBUG_SYMBOLS=0
-    _JUNK_ := $(shell \
-      echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")
-  else
-    _JUNK_ := $(shell \
-      echo >&2 "INFO: $(OBJCOPY) cmd found so will create .debuginfo files.")
+      ifeq ($(OBJCOPY),)
+        _JUNK_ := $(shell \
+          echo >&2 "INFO: no objcopy cmd found so cannot create .debuginfo files. You may need to set ALT_OBJCOPY.")
+        ENABLE_FULL_DEBUG_SYMBOLS=0
+        _JUNK_ := $(shell \
+          echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")
+      else
+        _JUNK_ := $(shell \
+          echo >&2 "INFO: $(OBJCOPY) cmd found so will create .debuginfo files.")
 
-    # Library stripping policies for .debuginfo configs:
-    #   all_strip - strips everything from the library
-    #   min_strip - strips most stuff from the library; leaves minimum symbols
-    #   no_strip  - does not strip the library at all
-    #
-    # Oracle security policy requires "all_strip". A waiver was granted on
-    # 2011.09.01 that permits using "min_strip" in the Java JDK and Java JRE.
-    #
-    # Currently, STRIP_POLICY is only used when Full Debug Symbols is enabled.
-    #
-    STRIP_POLICY ?= min_strip
+        # Library stripping policies for .debuginfo configs:
+        #   all_strip - strips everything from the library
+        #   min_strip - strips most stuff from the library; leaves minimum symbols
+        #   no_strip  - does not strip the library at all
+        #
+        # Oracle security policy requires "all_strip". A waiver was granted on
+        # 2011.09.01 that permits using "min_strip" in the Java JDK and Java JRE.
+        #
+        # Currently, STRIP_POLICY is only used when Full Debug Symbols is enabled.
+        #
+        STRIP_POLICY ?= min_strip
 
-    _JUNK_ := $(shell \
-      echo >&2 "INFO: STRIP_POLICY=$(STRIP_POLICY)")
+        _JUNK_ := $(shell \
+          echo >&2 "INFO: STRIP_POLICY=$(STRIP_POLICY)")
 
-    ZIP_DEBUGINFO_FILES ?= 1
+        ZIP_DEBUGINFO_FILES ?= 1
 
-    _JUNK_ := $(shell \
-      echo >&2 "INFO: ZIP_DEBUGINFO_FILES=$(ZIP_DEBUGINFO_FILES)")
-  endif
-endif
+        _JUNK_ := $(shell \
+          echo >&2 "INFO: ZIP_DEBUGINFO_FILES=$(ZIP_DEBUGINFO_FILES)")
+      endif
+    endif # ENABLE_FULL_DEBUG_SYMBOLS=1
+  endif # BUILD_FLAVOR
+endif # JDK_6_OR_EARLIER
 
 JDK_INCLUDE_SUBDIR=linux
 
@@ -248,6 +256,7 @@ ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
 endif
 EXPORT_SERVER_DIR = $(EXPORT_JRE_LIB_ARCH_DIR)/server
 EXPORT_CLIENT_DIR = $(EXPORT_JRE_LIB_ARCH_DIR)/client
+EXPORT_MINIMAL_DIR = $(EXPORT_JRE_LIB_ARCH_DIR)/minimal
 
 EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/wb.jar
 
@@ -271,6 +280,19 @@ ifeq ($(JVM_VARIANT_CLIENT),true)
       EXPORT_LIST += $(EXPORT_CLIENT_DIR)/libjvm.diz
     else
       EXPORT_LIST += $(EXPORT_CLIENT_DIR)/libjvm.debuginfo
+    endif
+  endif 
+endif
+
+ifeq ($(JVM_VARIANT_MINIMAL1),true)
+  EXPORT_LIST += $(EXPORT_MINIMAL_DIR)/Xusage.txt
+  EXPORT_LIST += $(EXPORT_MINIMAL_DIR)/libjvm.$(LIBRARY_SUFFIX)
+
+  ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
+    ifeq ($(ZIP_DEBUGINFO_FILES),1)
+	EXPORT_LIST += $(EXPORT_MINIMAL_DIR)/libjvm.diz
+    else
+	EXPORT_LIST += $(EXPORT_MINIMAL_DIR)/libjvm.debuginfo
     endif
   endif 
 endif

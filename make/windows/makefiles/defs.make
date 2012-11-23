@@ -131,33 +131,38 @@ endif
 # overridden in some situations, e.g., a BUILD_FLAVOR != product
 # build.
 
-ifeq ($(BUILD_FLAVOR), product)
-  FULL_DEBUG_SYMBOLS ?= 1
-  ENABLE_FULL_DEBUG_SYMBOLS = $(FULL_DEBUG_SYMBOLS)
-else
-  # debug variants always get Full Debug Symbols (if available)
-  ENABLE_FULL_DEBUG_SYMBOLS = 1
-endif
-_JUNK_ := $(shell \
-  echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")
-MAKE_ARGS += ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)
+# Due to the multiple sub-make processes that occur this logic gets
+# executed multiple times. We reduce the noise by at least checking that
+# BUILD_FLAVOR has been set.
+ifneq ($(BUILD_FLAVOR),)
+  ifeq ($(BUILD_FLAVOR), product)
+    FULL_DEBUG_SYMBOLS ?= 1
+    ENABLE_FULL_DEBUG_SYMBOLS = $(FULL_DEBUG_SYMBOLS)
+  else
+    # debug variants always get Full Debug Symbols (if available)
+    ENABLE_FULL_DEBUG_SYMBOLS = 1
+  endif
+  _JUNK_ := $(shell \
+    echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")
+  MAKE_ARGS += ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)
 
-ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
-  ZIP_DEBUGINFO_FILES ?= 1
-else
-  ZIP_DEBUGINFO_FILES=0
+  ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
+    ZIP_DEBUGINFO_FILES ?= 1
+  else
+    ZIP_DEBUGINFO_FILES=0
+  endif
+  MAKE_ARGS += ZIP_DEBUGINFO_FILES=$(ZIP_DEBUGINFO_FILES)
 endif
-MAKE_ARGS += ZIP_DEBUGINFO_FILES=$(ZIP_DEBUGINFO_FILES)
+
 MAKE_ARGS += RM="$(RM)"
 MAKE_ARGS += ZIPEXE=$(ZIPEXE)
 
 # On 32 bit windows we build server, client and kernel, on 64 bit just server.
 ifeq ($(JVM_VARIANTS),)
   ifeq ($(ARCH_DATA_MODEL), 32)
-    JVM_VARIANTS:=client,server,kernel
+    JVM_VARIANTS:=client,server
     JVM_VARIANT_CLIENT:=true
     JVM_VARIANT_SERVER:=true
-    JVM_VARIANT_KERNEL:=true
   else
     JVM_VARIANTS:=server
     JVM_VARIANT_SERVER:=true

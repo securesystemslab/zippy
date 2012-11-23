@@ -30,6 +30,35 @@
 
 #include <stdarg.h>
 
+#ifdef GRAAL
+// Scopes a value that may be of interest in a crash log.
+class DebugScopedValue {
+protected:
+  DebugScopedValue *_parent;
+  const char* _file;
+  int _line;
+public:
+  DebugScopedValue(const char* file, int line);
+  ~DebugScopedValue();
+  void print(outputStream* st);
+  virtual void print_on(outputStream* st) = 0;
+  DebugScopedValue* parent() { return _parent; }
+};
+
+class DebugScopedScalar : DebugScopedValue {
+private:
+  void* _value;
+public:
+  DebugScopedScalar(const char* file, int line, void* v) : DebugScopedValue(file, line), _value(v) {}
+  void print_on(outputStream* st);
+};
+#define DS_SCALAR(val) DebugScopedScalar __dss__(__FILE__, __LINE__, (void*) val)
+#define DS_SCALAR1(name, val) DebugScopedScalar name(__FILE__, __LINE__, (void*) val)
+#else
+#define DS_SCALAR(name) do {} while (0)
+#define DS_SCALAR1(name, val) do {} while (0)
+#endif
+
 // Simple class to format the ctor arguments into a fixed-sized buffer.
 class FormatBufferBase {
  protected:
@@ -192,6 +221,12 @@ do {                                                                         \
   BREAKPOINT;                                                                \
 } while (0)
 
+#define ShouldNotReachHere2(message)                                         \
+do {                                                                         \
+  report_should_not_reach_here2(__FILE__, __LINE__, message);                \
+  BREAKPOINT;                                                                \
+} while (0)
+
 #define Unimplemented()                                                      \
 do {                                                                         \
   report_unimplemented(__FILE__, __LINE__);                                  \
@@ -212,6 +247,7 @@ void report_vm_out_of_memory(const char* file, int line, size_t size,
                              const char* message);
 void report_should_not_call(const char* file, int line);
 void report_should_not_reach_here(const char* file, int line);
+void report_should_not_reach_here2(const char* file, int line, const char* message);
 void report_unimplemented(const char* file, int line);
 void report_untested(const char* file, int line, const char* message);
 

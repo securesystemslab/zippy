@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package sun.jvm.hotspot.oops;
 import java.io.*;
 
 import sun.jvm.hotspot.runtime.*;
+import sun.jvm.hotspot.utilities.*;
 
 // Super class for all fields in an object
 public class Field {
@@ -108,6 +109,8 @@ public class Field {
       field. */
   public Symbol getSignature() { return signature; }
   public Symbol getGenericSignature() { return genericSignature; }
+
+  public boolean hasInitialValue()           { return holder.getFieldInitialValueIndex(fieldIndex) != 0;    }
 
   //
   // Following acccessors are for named, non-VM fields only

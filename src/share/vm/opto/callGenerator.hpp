@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -143,6 +143,9 @@ class CallGenerator : public ResourceObj {
   // Registry for intrinsics:
   static CallGenerator* for_intrinsic(ciMethod* m);
   static void register_intrinsic(ciMethod* m, CallGenerator* cg);
+  static CallGenerator* for_predicted_intrinsic(CallGenerator* intrinsic,
+                                                CallGenerator* cg);
+  virtual Node* generate_predicate(JVMState* jvms) { return NULL; };
 
   static void print_inlining(ciMethod* callee, int inline_level, int bci, const char* msg) {
     if (PrintInlining)

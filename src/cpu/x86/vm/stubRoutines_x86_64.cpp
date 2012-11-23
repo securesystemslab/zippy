@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,3 +56,4 @@ address StubRoutines::x86::_float_sign_flip = NULL;
 address StubRoutines::x86::_double_sign_mask = NULL;
 address StubRoutines::x86::_double_sign_flip = NULL;
 address StubRoutines::x86::_mxcsr_std = NULL;
+address StubRoutines::x86::_key_shuffle_mask_addr = NULL;

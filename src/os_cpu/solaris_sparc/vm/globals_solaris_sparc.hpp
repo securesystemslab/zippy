@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,10 +33,12 @@
 define_pd_global(uintx, JVMInvokeMethodSlack,    12288);
 define_pd_global(intx, CompilerThreadStackSize,  0);
 
-// Only used on 64 bit platforms
-define_pd_global(uintx, HeapBaseMinAddress,      4*G);
-// Only used on 64 bit Windows platforms
-define_pd_global(bool, UseVectoredExceptions,    false);
+// Used on 64 bit platforms for UseCompressedOops base address or CDS
+#ifdef _LP64
+define_pd_global(uintx, HeapBaseMinAddress,      CONST64(4)*G);
+#else
+define_pd_global(uintx, HeapBaseMinAddress,      2*G);
+#endif
 
 
 

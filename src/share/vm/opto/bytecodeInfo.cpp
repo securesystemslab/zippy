@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "ci/ciReplay.hpp"
 #include "classfile/systemDictionary.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "compiler/compileBroker.hpp"
@@ -150,7 +151,7 @@ const char* InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_
   } else {
     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
     if (callee_method->has_compiled_code() &&
-        callee_method->instructions_size(CompLevel_full_optimization) > inline_small_code_size)
+        callee_method->instructions_size() > inline_small_code_size)
       return "already compiled into a medium method";
   }
   if (size > max_inline_size) {
@@ -192,7 +193,7 @@ const char* InlineTree::should_not_inline(ciMethod *callee_method, ciMethod* cal
     }
 
     if (callee_method->has_compiled_code() &&
-        callee_method->instructions_size(CompLevel_full_optimization) > InlineSmallCode) {
+        callee_method->instructions_size() > InlineSmallCode) {
       wci_result->set_profit(wci_result->profit() * 0.1);
       // %%% adjust wci_result->size()?
     }
@@ -219,7 +220,7 @@ const char* InlineTree::should_not_inline(ciMethod *callee_method, ciMethod* cal
   // Now perform checks which are heuristic
 
   if (callee_method->has_compiled_code() &&
-      callee_method->instructions_size(CompLevel_full_optimization) > InlineSmallCode) {
+      callee_method->instructions_size() > InlineSmallCode) {
     return "already compiled into a big method";
   }
 
@@ -237,6 +238,12 @@ const char* InlineTree::should_not_inline(ciMethod *callee_method, ciMethod* cal
   if (callee_method->should_not_inline()) {
     return "disallowed by CompilerOracle";
   }
+
+#ifndef PRODUCT
+  if (ciReplay::should_not_inline(callee_method)) {
+    return "disallowed by ciReplay";
+  }
+#endif
 
   if (UseStringCache) {
     // Do not inline StringCache::profile() method used only at the beginning.
@@ -442,9 +449,7 @@ WarmCallInfo* InlineTree::ok_to_inline(ciMethod* callee_method, JVMState* jvms, 
   WarmCallInfo wci = *(initial_wci);
   failure_msg = try_to_inline(callee_method, caller_method, caller_bci, profile, &wci);
   if (failure_msg != NULL && C->log() != NULL) {
-    C->log()->begin_elem("inline_fail reason='");
-    C->log()->text("%s", failure_msg);
-    C->log()->end_elem("'");
+    C->log()->inline_fail(failure_msg);
   }
 
 #ifndef PRODUCT

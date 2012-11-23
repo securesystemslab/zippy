@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,7 +33,7 @@ import sun.jvm.hotspot.utilities.*;
 
 // A MethodData provides interpreter profiling information
 
-public class MethodData extends Oop {
+public class MethodData extends Metadata {
   static int TypeProfileWidth = 2;
   static int BciProfileWidth = 2;
   static int CompileThreshold;
@@ -129,11 +129,11 @@ public class MethodData extends Oop {
   }
 
   private static synchronized void initialize(TypeDataBase db) throws WrongTypeException {
-    Type type      = db.lookupType("methodDataOopDesc");
+    Type type      = db.lookupType("MethodData");
     baseOffset     = type.getSize();
 
     size           = new CIntField(type.getCIntegerField("_size"), 0);
-    method         = new OopField(type.getOopField("_method"), 0);
+    method         = new MetadataField(type.getAddressField("_method"), 0);
 
     VM.Flag[] flags = VM.getVM().getCommandLineFlags();
     for (int f = 0; f < flags.length; f++) {
@@ -188,24 +188,20 @@ public class MethodData extends Oop {
     }
   }
 
-  MethodData(OopHandle handle, ObjectHeap heap) {
-    super(handle, heap);
+  public MethodData(Address addr) {
+    super(addr);
   }
 
   public boolean isMethodData()        { return true; }
 
   private static long baseOffset;
   private static CIntField size;
-  private static OopField  method;
+  private static MetadataField  method;
   private static CIntField dataSize;
   private static AddressField data;
 
   public static int sizeofMethodDataOopDesc;
   public static int cellSize;
-
-  public long getObjectSize() {
-    return alignObjectSize(size.getValue(this));
-  }
 
   public Method getMethod() {
     return (Method) method.getValue(this);
@@ -216,19 +212,17 @@ public class MethodData extends Oop {
     tty.print("MethodData for " + m.getName().asString() + m.getSignature().asString());
   }
 
-  public void iterateFields(OopVisitor visitor, boolean doVMFields) {
-    super.iterateFields(visitor, doVMFields);
-    if (doVMFields) {
-      visitor.doOop(method, true);
+  public void iterateFields(MetadataVisitor visitor) {
+    super.iterateFields(visitor);
+    visitor.doMetadata(method, true);
       visitor.doCInt(size, true);
     }
-  }
 
   int dataSize() {
     if (dataSize == null) {
       return 0;
     } else {
-      return (int)dataSize.getValue(this);
+      return (int)dataSize.getValue(getAddress());
     }
   }
 
@@ -298,13 +292,13 @@ public class MethodData extends Oop {
   }
 
   public byte[] orig() {
-    // fetch the orig methodDataOopDesc data between header and dataSize
-    return fetchDataAt(this.getHandle(), 0, sizeofMethodDataOopDesc);
+    // fetch the orig MethodData data between header and dataSize
+    return fetchDataAt(getAddress(), 0, sizeofMethodDataOopDesc);
   }
 
   public long[] data() {
     // Read the data as an array of intptr_t elements
-    OopHandle base = getHandle();
+    Address base = getAddress();
     long offset = data.getOffset();
     int elements = dataSize() / cellSize;
     long[] result = new long[elements];
@@ -337,5 +331,60 @@ public class MethodData extends Oop {
 
   public int currentMileage() {
     return 20000;
+  }
+
+  public void dumpReplayData(PrintStream out) {
+    Method method = getMethod();
+    Klass holder = method.getMethodHolder();
+    out.print("ciMethodData " +
+              holder.getName().asString() + " " +
+              OopUtilities.escapeString(method.getName().asString()) + " " +
+              method.getSignature().asString() + " " +
+              "2" + " " +
+              currentMileage());
+    byte[] orig = orig();
+    out.print(" orig " + orig.length);
+    for (int i = 0; i < orig.length; i++) {
+      out.print(" " + (orig[i] & 0xff));
+    }
+
+    long[] data = data();
+    out.print(" data " +  data.length);
+    for (int i = 0; i < data.length; i++) {
+      out.print(" 0x" + Long.toHexString(data[i]));
+    }
+    int count = 0;
+    for (int round = 0; round < 2; round++) {
+      if (round == 1) out.print(" oops " + count);
+      ProfileData pdata = firstData();
+      for ( ; isValid(pdata); pdata = nextData(pdata)) {
+        if (pdata instanceof ReceiverTypeData) {
+          ReceiverTypeData vdata = (ReceiverTypeData)pdata;
+          for (int i = 0; i < vdata.rowLimit(); i++) {
+            Klass k = vdata.receiver(i);
+            if (k != null) {
+              if (round == 0) count++;
+              else out.print(" " +
+                             (dpToDi(vdata.dp() +
+                              vdata.cellOffset(vdata.receiverCellIndex(i))) / cellSize) + " " +
+                             k.getName().asString());
+            }
+          }
+        } else if (pdata instanceof VirtualCallData) {
+          VirtualCallData vdata = (VirtualCallData)pdata;
+          for (int i = 0; i < vdata.rowLimit(); i++) {
+            Klass k = vdata.receiver(i);
+            if (k != null) {
+              if (round == 0) count++;
+              else out.print(" " +
+                             (dpToDi(vdata.dp() +
+                              vdata.cellOffset(vdata.receiverCellIndex(i))) / cellSize) + " " +
+                             k.getName().asString());
+            }
+          }
+        }
+      }
+    }
+    out.println();
   }
 }

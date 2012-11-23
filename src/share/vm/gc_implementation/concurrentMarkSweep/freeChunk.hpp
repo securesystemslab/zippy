@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -133,7 +133,7 @@ class FreeChunk VALUE_OBJ_CLASS_SPEC {
   }
 
   // Return the address past the end of this chunk
-  HeapWord* end() const { return ((HeapWord*) this) + size(); }
+  uintptr_t* end() const { return ((uintptr_t*) this) + size(); }
 
   // debugging
   void verify()             const PRODUCT_RETURN;

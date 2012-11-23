@@ -27,10 +27,10 @@
 // this is a *global* handle
 jobject VMToCompiler::_graalRuntimePermObject = NULL;
 jobject VMToCompiler::_vmToCompilerPermObject = NULL;
-jobject VMToCompiler::_vmToCompilerPermKlass = NULL;
+Klass* VMToCompiler::_vmToCompilerPermKlass = NULL;
 
-static klassOop loadClass(Symbol* name) {
-  klassOop klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), NULL, Thread::current());
+static Klass* loadClass(Symbol* name) {
+  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), NULL, Thread::current());
   if (klass == NULL) {
     tty->print_cr("Could not load class %s", name->as_C_string());
     vm_abort(false);
@@ -39,11 +39,11 @@ static klassOop loadClass(Symbol* name) {
 }
 
 KlassHandle VMToCompiler::vmToCompilerKlass() {
-  if (JNIHandles::resolve(_vmToCompilerPermKlass) == NULL) {
-    klassOop result = loadClass(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler());
-    _vmToCompilerPermKlass = JNIHandles::make_global(result);
+  if (_vmToCompilerPermKlass == NULL) {
+    Klass* result = loadClass(vmSymbols::com_oracle_graal_hotspot_bridge_VMToCompiler());
+    _vmToCompilerPermKlass = result;
   }
-  return KlassHandle((klassOop)JNIHandles::resolve_non_null(_vmToCompilerPermKlass));
+  return _vmToCompilerPermKlass;
 }
 
 Handle VMToCompiler::graalRuntime() {
@@ -95,13 +95,15 @@ void VMToCompiler::setDefaultOptions() {
   check_pending_exception("Error while calling setDefaultOptions");
 }
 
-jboolean VMToCompiler::compileMethod(Handle hotspot_method, int entry_bci, jboolean blocking, int priority) {
-  assert(!hotspot_method.is_null(), "just checking");
+jboolean VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority) {
+  assert(method != NULL, "just checking");
+  assert(!holder.is_null(), "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_BOOLEAN);
   JavaCallArguments args;
   args.push_oop(instance());
-  args.push_oop(hotspot_method);
+  args.push_long((jlong) (address) method);
+  args.push_oop(holder());
   args.push_int(entry_bci);
   args.push_int(blocking);
   args.push_int(priority);
@@ -122,7 +124,7 @@ void VMToCompiler::shutdownCompiler() {
 
     JNIHandles::destroy_global(_graalRuntimePermObject);
     JNIHandles::destroy_global(_vmToCompilerPermObject);
-    JNIHandles::destroy_global(_vmToCompilerPermKlass);
+    //JNIHandles::destroy_global(_vmToCompilerPermKlass);
 
     _graalRuntimePermObject = NULL;
     _vmToCompilerPermObject = NULL;
@@ -148,32 +150,7 @@ void VMToCompiler::bootstrap() {
   check_pending_exception("Error while calling boostrap");
 }
 
-oop VMToCompiler::createResolvedJavaMethod(jlong vmId, Handle name, TRAPS) {
-  assert(!name.is_null(), "just checking");
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_long(vmId);
-  args.push_oop(name);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createResolvedJavaMethod_name(), vmSymbols::createResolvedJavaMethod_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createResolvedJavaMethod");
-  return (oop) result.get_jobject();
-}
-
-oop VMToCompiler::createJavaMethod(Handle name, Handle signature, Handle holder, TRAPS) {
-  assert(!name.is_null(), "just checking");
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_oop(name);
-  args.push_oop(signature);
-  args.push_oop(holder);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createJavaMethod_name(), vmSymbols::createJavaMethod_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createJavaMethod");
-  return (oop) result.get_jobject();
-}
-
-oop VMToCompiler::createJavaField(Handle holder, Handle name, Handle type, int index, int flags, TRAPS) {
+oop VMToCompiler::createJavaField(Handle holder, Handle name, Handle type, int index, int flags, jboolean internal, TRAPS) {
   assert(!holder.is_null(), "just checking");
   assert(!name.is_null(), "just checking");
   assert(!type.is_null(), "just checking");
@@ -185,8 +162,36 @@ oop VMToCompiler::createJavaField(Handle holder, Handle name, Handle type, int i
   args.push_oop(type);
   args.push_int(index);
   args.push_int(flags);
+  args.push_int(internal);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createJavaField_name(), vmSymbols::createJavaField_signature(), &args, THREAD);
   check_pending_exception("Error while calling createJavaField");
+  assert(result.get_type() == T_OBJECT, "just checking");
+  return (oop) result.get_jobject();
+}
+
+oop VMToCompiler::createUnresolvedJavaMethod(Handle name, Handle signature, Handle holder, TRAPS) {
+  assert(!name.is_null(), "just checking");
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  args.push_oop(name);
+  args.push_oop(signature);
+  args.push_oop(holder);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createUnresolvedJavaMethod_name(), vmSymbols::createUnresolvedJavaMethod_signature(), &args, THREAD);
+  check_pending_exception("Error while calling createUnresolvedJavaMethod");
+  return (oop) result.get_jobject();
+}
+
+oop VMToCompiler::createResolvedJavaMethod(Handle holder, Method* method, TRAPS) {
+  assert(!holder.is_null(), "just checking");
+  assert(method != NULL, "just checking");
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  args.push_oop(holder);
+  args.push_long((jlong) (address) method);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createResolvedJavaMethod_name(), vmSymbols::createResolvedJavaMethod_signature(), &args, THREAD);
+  check_pending_exception("Error while calling createResolvedJavaMethod");
   assert(result.get_type() == T_OBJECT, "just checking");
   return (oop) result.get_jobject();
 }
@@ -201,14 +206,31 @@ oop VMToCompiler::createPrimitiveJavaType(int basic_type, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMToCompiler::createJavaType(Handle name, TRAPS) {
+oop VMToCompiler::createUnresolvedJavaType(Handle name, TRAPS) {
   assert(!name.is_null(), "just checking");
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_oop(name);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createJavaType_name(), vmSymbols::createJavaType_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createJavaType");
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createUnresolvedJavaType_name(), vmSymbols::createUnresolvedJavaType_signature(), &args, THREAD);
+  check_pending_exception("Error while calling createUnresolvedJavaType");
+  return (oop) result.get_jobject();
+}
+
+oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jboolean hasFinalizableSubclass, jint sizeOrSpecies, TRAPS) {
+  assert(!name.is_null(), "just checking");
+  assert(!simpleName.is_null(), "just checking");
+  JavaValue result(T_OBJECT);
+  JavaCallArguments args;
+  args.push_oop(instance());
+  args.push_long((jlong) (address) klass);
+  args.push_oop(name);
+  args.push_oop(simpleName);
+  args.push_oop(java_mirror);
+  args.push_int(hasFinalizableSubclass);
+  args.push_int(sizeOrSpecies);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createResolvedJavaType_name(), vmSymbols::createResolvedJavaType_signature(), &args, THREAD);
+  check_pending_exception("Error while calling createResolvedJavaType");
   return (oop) result.get_jobject();
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@
 #include "os_solaris.inline.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/perfMemory.hpp"
+#include "services/memTracker.hpp"
 #include "utilities/exceptions.hpp"
 
 // put OS-includes here
@@ -768,6 +769,10 @@ static char* mmap_create_shared(size_t size) {
   // clear the shared memory region
   (void)::memset((void*) mapAddress, 0, size);
 
+  // it does not go through os api, the operation has to record from here
+  MemTracker::record_virtual_memory_reserve((address)mapAddress, size, CURRENT_PC);
+  MemTracker::record_virtual_memory_type((address)mapAddress, mtInternal);
+
   return mapAddress;
 }
 
@@ -926,6 +931,10 @@ static void mmap_attach_shared(const char* user, int vmid, PerfMemory::PerfMemor
     THROW_MSG(vmSymbols::java_lang_OutOfMemoryError(),
               "Could not map PerfMemory");
   }
+
+  // it does not go through os api, the operation has to record from here
+  MemTracker::record_virtual_memory_reserve((address)mapAddress, size, CURRENT_PC);
+  MemTracker::record_virtual_memory_type((address)mapAddress, mtInternal);
 
   *addr = mapAddress;
   *sizep = size;

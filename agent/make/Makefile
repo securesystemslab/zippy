@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -41,10 +41,7 @@ endif
 PKGLIST = \
 sun.jvm.hotspot \
 sun.jvm.hotspot.asm \
-sun.jvm.hotspot.asm.amd64 \
-sun.jvm.hotspot.asm.ia64 \
 sun.jvm.hotspot.asm.sparc \
-sun.jvm.hotspot.asm.x86 \
 sun.jvm.hotspot.bugspot \
 sun.jvm.hotspot.bugspot.tree \
 sun.jvm.hotspot.c1 \
@@ -61,10 +58,8 @@ sun.jvm.hotspot.debugger.cdbg.basic \
 sun.jvm.hotspot.debugger.cdbg.basic.amd64 \
 sun.jvm.hotspot.debugger.cdbg.basic.x86 \
 sun.jvm.hotspot.debugger.dummy \
-sun.jvm.hotspot.debugger.ia64 \
 sun.jvm.hotspot.debugger.linux \
 sun.jvm.hotspot.debugger.linux.amd64 \
-sun.jvm.hotspot.debugger.linux.ia64 \
 sun.jvm.hotspot.debugger.linux.x86 \
 sun.jvm.hotspot.debugger.posix \
 sun.jvm.hotspot.debugger.posix.elf \
@@ -80,7 +75,6 @@ sun.jvm.hotspot.debugger.sparc \
 sun.jvm.hotspot.debugger.win32.coff \
 sun.jvm.hotspot.debugger.windbg \
 sun.jvm.hotspot.debugger.windbg.amd64 \
-sun.jvm.hotspot.debugger.windbg.ia64 \
 sun.jvm.hotspot.debugger.windbg.x86 \
 sun.jvm.hotspot.debugger.x86 \
 sun.jvm.hotspot.gc_implementation \
@@ -100,10 +94,8 @@ sun.jvm.hotspot.runtime.amd64 \
 sun.jvm.hotspot.runtime.bsd \
 sun.jvm.hotspot.runtime.bsd_amd64 \
 sun.jvm.hotspot.runtime.bsd_x86 \
-sun.jvm.hotspot.runtime.ia64 \
 sun.jvm.hotspot.runtime.linux \
 sun.jvm.hotspot.runtime.linux_amd64 \
-sun.jvm.hotspot.runtime.linux_ia64 \
 sun.jvm.hotspot.runtime.linux_sparc \
 sun.jvm.hotspot.runtime.linux_x86 \
 sun.jvm.hotspot.runtime.posix \
@@ -112,7 +104,6 @@ sun.jvm.hotspot.runtime.solaris_sparc \
 sun.jvm.hotspot.runtime.solaris_x86 \
 sun.jvm.hotspot.runtime.sparc \
 sun.jvm.hotspot.runtime.win32_amd64 \
-sun.jvm.hotspot.runtime.win32_ia64 \
 sun.jvm.hotspot.runtime.win32_x86 \
 sun.jvm.hotspot.runtime.x86 \
 sun.jvm.hotspot.tools \
@@ -138,10 +129,7 @@ com.sun.java.swing.ui
 FILELIST = \
 sun/jvm/hotspot/*.java \
 sun/jvm/hotspot/asm/*.java \
-sun/jvm/hotspot/asm/amd64/*.java \
-sun/jvm/hotspot/asm/ia64/*.java \
 sun/jvm/hotspot/asm/sparc/*.java \
-sun/jvm/hotspot/asm/x86/*.java \
 sun/jvm/hotspot/bugspot/*.java \
 sun/jvm/hotspot/bugspot/tree/*.java \
 sun/jvm/hotspot/c1/*.java \
@@ -158,7 +146,6 @@ sun/jvm/hotspot/debugger/cdbg/basic/*.java \
 sun/jvm/hotspot/debugger/cdbg/basic/amd64/*.java \
 sun/jvm/hotspot/debugger/cdbg/basic/x86/*.java \
 sun/jvm/hotspot/debugger/dummy/*.java \
-sun/jvm/hotspot/debugger/ia64/*.java \
 sun/jvm/hotspot/debugger/linux/*.java \
 sun/jvm/hotspot/debugger/linux/x86/*.java \
 sun/jvm/hotspot/debugger/posix/*.java \
@@ -174,7 +161,6 @@ sun/jvm/hotspot/debugger/remote/x86/*.java \
 sun/jvm/hotspot/debugger/sparc/*.java \
 sun/jvm/hotspot/debugger/win32/coff/*.java \
 sun/jvm/hotspot/debugger/windbg/*.java \
-sun/jvm/hotspot/debugger/windbg/ia64/*.java \
 sun/jvm/hotspot/debugger/windbg/x86/*.java \
 sun/jvm/hotspot/debugger/x86/*.java \
 sun/jvm/hotspot/gc_implementation/g1/*.java \
@@ -192,10 +178,8 @@ sun/jvm/hotspot/runtime/amd64/*.java \
 sun/jvm/hotspot/runtime/bsd/*.java \
 sun/jvm/hotspot/runtime/bsd_amd64/*.java \
 sun/jvm/hotspot/runtime/bsd_x86/*.java \
-sun/jvm/hotspot/runtime/ia64/*.java \
 sun/jvm/hotspot/runtime/linux/*.java \
 sun/jvm/hotspot/runtime/linux_amd64/*.java \
-sun/jvm/hotspot/runtime/linux_ia64/*.java \
 sun/jvm/hotspot/runtime/linux_sparc/*.java \
 sun/jvm/hotspot/runtime/linux_x86/*.java \
 sun/jvm/hotspot/runtime/posix/*.java \
@@ -204,7 +188,6 @@ sun/jvm/hotspot/runtime/solaris_sparc/*.java \
 sun/jvm/hotspot/runtime/solaris_x86/*.java \
 sun/jvm/hotspot/runtime/sparc/*.java \
 sun/jvm/hotspot/runtime/win32_amd64/*.java \
-sun/jvm/hotspot/runtime/win32_ia64/*.java \
 sun/jvm/hotspot/runtime/win32_x86/*.java \
 sun/jvm/hotspot/runtime/x86/*.java \
 sun/jvm/hotspot/tools/*.java \
@@ -264,6 +247,7 @@ SA_BUILD_VERSION_PROP = "sun.jvm.hotspot.runtime.VM.saBuildVersion=$(SA_BUILD_VE
 
 SA_PROPERTIES = $(OUTPUT_DIR)/sa.properties
 JAVAC = $(JDK_HOME)/bin/javac
+JAVA = $(JDK_HOME)/bin/java
 JAVADOC = $(JDK_HOME)/bin/javadoc
 RMIC = $(JDK_HOME)/bin/rmic
 
@@ -304,7 +288,7 @@ filelist: $(ALLFILES)
 
 .PHONY: natives
 natives:
-	cd ../src/os/`java -classpath $(OUTPUT_DIR) sun.jvm.hotspot.utilities.PlatformInfo`; $(MAKE) all
+	cd ../src/os/`$(JAVA) -classpath $(OUTPUT_DIR) sun.jvm.hotspot.utilities.PlatformInfo`; $(MAKE) all
 
 .PHONY: sa-jdi.jar
 sa-jdi.jar:
@@ -329,5 +313,5 @@ sa.jar:
 
 clean::
 	rm -rf filelist
-	cd ../src/os/`java -classpath $(OUTPUT_DIR) sun.jvm.hotspot.utilities.PlatformInfo`; $(MAKE) clean
+	cd ../src/os/`$(JAVA) -classpath $(OUTPUT_DIR) sun.jvm.hotspot.utilities.PlatformInfo`; $(MAKE) clean
 	rm -rf $(BUILD_DIR)/*

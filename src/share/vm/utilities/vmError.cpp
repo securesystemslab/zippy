@@ -453,7 +453,9 @@ void VMError::report(outputStream* st) {
      JDK_Version::current().to_string(buf, sizeof(buf));
      const char* runtime_name = JDK_Version::runtime_name() != NULL ?
                                   JDK_Version::runtime_name() : "";
-     st->print_cr("# JRE version: %s (%s)", runtime_name, buf);
+     const char* runtime_version = JDK_Version::runtime_version() != NULL ?
+                                  JDK_Version::runtime_version() : "";
+     st->print_cr("# JRE version: %s (%s) (build %s)", runtime_name, buf, runtime_version);
      st->print_cr("# Java VM: %s (%s %s %s %s)",
                    Abstract_VM_Version::vm_name(),
                    Abstract_VM_Version::vm_release(),
@@ -488,6 +490,30 @@ void VMError::report(outputStream* st) {
      if (should_report_bug(_id) && _verbose) {
        print_bug_submit_message(st, _thread);
      }
+
+#ifdef GRAAL
+  STEP(67, "(printing debug scope)" )
+
+     if (_verbose) {
+       if (_thread != NULL && _thread->is_Java_thread()) {
+         JavaThread* javaThread = (JavaThread*) _thread;
+         DebugScopedValue* ds = javaThread->debug_scope();
+         int level = 0;
+         while (ds != NULL) {
+           if (level == 0) {
+             st->cr();
+             st->print_cr("---------------  D E B U G  S C O P E ---------------");
+             st->cr();
+           }
+           st->print("%d: ", level);
+           ds->print(st);
+           st->cr();
+           ds = ds->parent();
+           level++;
+         }
+       }
+     }
+#endif
 
   STEP(70, "(printing thread)" )
 
@@ -1005,6 +1031,15 @@ void VMError::report_and_die() {
 
     // done with OnError
     OnError = NULL;
+  }
+
+  static bool skip_replay = false;
+  if (DumpReplayDataOnError && _thread && _thread->is_Compiler_thread() && !skip_replay) {
+    skip_replay = true;
+    ciEnv* env = ciEnv::current();
+    if (env != NULL) {
+      env->dump_replay_data();
+    }
   }
 
   static bool skip_bug_url = !should_report_bug(first_error->_id);
