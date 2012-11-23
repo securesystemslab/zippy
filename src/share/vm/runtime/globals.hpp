@@ -623,15 +623,6 @@ class CommandLineFlags {
   develop(bool, InlineClassNatives, true,                                   \
           "inline Class.isInstance, etc")                                   \
                                                                             \
-  product(ccstr, HighLevelInterpreterClass, NULL,                           \
-          "fully qualified class name of the high-level interpreter")       \
-                                                                            \
-  product(ccstr, HighLevelInterpreterArguments, NULL,                       \
-          "arguments that are passed to the high-level interpreter")        \
-                                                                            \
-  notproduct(bool, PrintHighLevelInterpreterVMTransitions, false,           \
-          "print transitions between VM and high-level interpreter")        \
-                                                                            \
   develop(bool, InlineThreadNatives, true,                                  \
           "inline Thread.currentThread, etc")                               \
                                                                             \

@@ -35,9 +35,6 @@
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
 #endif
-#ifdef HIGH_LEVEL_INTERPRETER
-#include "graal/graalVMToInterpreter.hpp"
-#endif
 #ifndef SERIALGC
 #include "gc_implementation/g1/g1SATBCardTableModRefBS.hpp"
 #endif // SERIALGC
@@ -1344,18 +1341,6 @@ static void jni_invoke_static(JNIEnv *env, JavaValue* result, jobject receiver, 
   args->iterate( Fingerprinter(method).fingerprint() );
   // Initialize result type (must be done after args->iterate())
   result->set_type(args->get_ret_type());
-
-#ifdef HIGH_LEVEL_INTERPRETER
-  // TODO (chaeubl): this is quite a hack. The launcher should take care about that instead.
-  bool invoked_main_method = false;
-  if (HighLevelInterpreterClass != NULL && first_time_InvokeMain && method->name() == vmSymbols::main_name() && method->result_type() == T_VOID) {
-    assert(THREAD->is_Java_thread(), "other threads must not call into java");
-    JavaThread* thread = (JavaThread*)THREAD;
-    first_time_InvokeMain = false;
-    invoked_main_method = true;
-    thread->set_high_level_interpreter_in_vm(true);
-  }
-#endif
 
   JavaCalls::call(result, method, &java_args, CHECK);
 
@@ -5170,16 +5155,6 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
       GraalCompiler* compiler = GraalCompiler::instance();
       ciObjectFactory::initialize(); 
       compiler->initialize();
-#endif
-
-#ifdef HIGH_LEVEL_INTERPRETER
-      if (HighLevelInterpreterClass != NULL) {
-        bool result = VMToInterpreter::allocate_interpreter(HighLevelInterpreterClass, HighLevelInterpreterArguments, thread);
-        if (!result) {
-          vm_abort(false);
-          return JNI_ERR;
-        }
-      }
 #endif
 
     // Tracks the time application was running before GC

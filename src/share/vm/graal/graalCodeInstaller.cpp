@@ -680,7 +680,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop constant = CompilationResult_DataPatch::constant(site);
   int alignment = CompilationResult_DataPatch::alignment(site);
-  bool inlined = CompilationResult_DataPatch::inlined(site);
+  bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
   oop kind = Constant::kind(constant);
 
   address instruction = _instructions->start() + pc_offset;
