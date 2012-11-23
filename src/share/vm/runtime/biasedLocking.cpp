@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,8 +38,8 @@ BiasedLockingCounters BiasedLocking::_counters;
 static GrowableArray<Handle>*  _preserved_oop_stack  = NULL;
 static GrowableArray<markOop>* _preserved_mark_stack = NULL;
 
-static void enable_biased_locking(klassOop k) {
-  Klass::cast(k)->set_prototype_header(markOopDesc::biased_locking_prototype());
+static void enable_biased_locking(Klass* k) {
+  k->set_prototype_header(markOopDesc::biased_locking_prototype());
 }
 
 class VM_EnableBiasedLocking: public VM_Operation {
@@ -149,19 +149,19 @@ static BiasedLocking::Condition revoke_bias(oop obj, bool allow_rebias, bool is_
     if (TraceBiasedLocking) {
       ResourceMark rm;
       tty->print_cr("  (Skipping revocation of object of type %s because it's no longer biased)",
-                    Klass::cast(obj->klass())->external_name());
+                    obj->klass()->external_name());
     }
     return BiasedLocking::NOT_BIASED;
   }
 
-  int age = mark->age();
+  uint age = mark->age();
   markOop   biased_prototype = markOopDesc::biased_locking_prototype()->set_age(age);
   markOop unbiased_prototype = markOopDesc::prototype()->set_age(age);
 
   if (TraceBiasedLocking && (Verbose || !is_bulk)) {
     ResourceMark rm;
     tty->print_cr("Revoking bias of object " INTPTR_FORMAT " , mark " INTPTR_FORMAT " , type %s , prototype header " INTPTR_FORMAT " , allow rebias %d , requesting thread " INTPTR_FORMAT,
-                  (intptr_t) obj, (intptr_t) mark, Klass::cast(obj->klass())->external_name(), (intptr_t) Klass::cast(obj->klass())->prototype_header(), (allow_rebias ? 1 : 0), (intptr_t) requesting_thread);
+                  (intptr_t) obj, (intptr_t) mark, obj->klass()->external_name(), (intptr_t) obj->klass()->prototype_header(), (allow_rebias ? 1 : 0), (intptr_t) requesting_thread);
   }
 
   JavaThread* biased_thread = mark->biased_locker();
@@ -276,7 +276,7 @@ static HeuristicsResult update_heuristics(oop o, bool allow_rebias) {
   // 2. Revoke the biases of all objects in the heap of this type
   //    and don't allow rebiasing of these objects. Disable
   //    allocation of objects of that type with the bias bit set.
-  Klass* k = o->blueprint();
+  Klass* k = o->klass();
   jlong cur_time = os::javaTimeMillis();
   jlong last_bulk_revocation_time = k->last_biased_lock_bulk_revocation_time();
   int revocation_count = k->biased_lock_revocation_count();
@@ -326,15 +326,15 @@ static BiasedLocking::Condition bulk_revoke_or_rebias_at_safepoint(oop o,
     tty->print_cr("* Beginning bulk revocation (kind == %s) because of object "
                   INTPTR_FORMAT " , mark " INTPTR_FORMAT " , type %s",
                   (bulk_rebias ? "rebias" : "revoke"),
-                  (intptr_t) o, (intptr_t) o->mark(), Klass::cast(o->klass())->external_name());
+                  (intptr_t) o, (intptr_t) o->mark(), o->klass()->external_name());
   }
 
   jlong cur_time = os::javaTimeMillis();
-  o->blueprint()->set_last_biased_lock_bulk_revocation_time(cur_time);
+  o->klass()->set_last_biased_lock_bulk_revocation_time(cur_time);
 
 
-  klassOop k_o = o->klass();
-  Klass* klass = Klass::cast(k_o);
+  Klass* k_o = o->klass();
+  Klass* klass = k_o;
 
   if (bulk_rebias) {
     // Use the epoch in the klass of the object to implicitly revoke
@@ -546,7 +546,7 @@ BiasedLocking::Condition BiasedLocking::revoke_and_rebias(Handle obj, bool attem
       return BIAS_REVOKED;
     }
   } else if (mark->has_bias_pattern()) {
-    Klass* k = Klass::cast(obj->klass());
+    Klass* k = obj->klass();
     markOop prototype_header = k->prototype_header();
     if (!prototype_header->has_bias_pattern()) {
       // This object has a stale bias from before the bulk revocation
@@ -590,7 +590,7 @@ BiasedLocking::Condition BiasedLocking::revoke_and_rebias(Handle obj, bool attem
   if (heuristics == HR_NOT_BIASED) {
     return NOT_BIASED;
   } else if (heuristics == HR_SINGLE_REVOKE) {
-    Klass *k = Klass::cast(obj->klass());
+    Klass *k = obj->klass();
     markOop prototype_header = k->prototype_header();
     if (mark->biased_locker() == THREAD &&
         prototype_header->bias_epoch() == mark->bias_epoch()) {

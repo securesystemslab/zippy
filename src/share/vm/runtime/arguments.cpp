@@ -24,6 +24,7 @@
 
 #include "precompiled.hpp"
 #include "classfile/javaAssertions.hpp"
+#include "classfile/symbolTable.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/cardTableRS.hpp"
@@ -258,6 +259,19 @@ static ObsoleteFlag obsolete_jvm_flags[] = {
                            JDK_Version::jdk_update(6,27), JDK_Version::jdk(8) },
   { "AllowTransitionalJSR292",       JDK_Version::jdk(7), JDK_Version::jdk(8) },
   { "UseCompressedStrings",          JDK_Version::jdk(7), JDK_Version::jdk(8) },
+  { "CMSPermGenPrecleaningEnabled", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "CMSTriggerPermRatio", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "CMSInitiatingPermOccupancyFraction", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "AdaptivePermSizeWeight", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "PermGenPadding", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "PermMarkSweepDeadRatio", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "PermSize", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "MaxPermSize", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "MinPermHeapExpansion", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "MaxPermHeapExpansion", JDK_Version::jdk(8),  JDK_Version::jdk(9) },
+  { "CMSRevisitStackSize",           JDK_Version::jdk(8), JDK_Version::jdk(9) },
+  { "PrintRevisitStats",             JDK_Version::jdk(8), JDK_Version::jdk(9) },
+  { "UseVectoredExceptions",         JDK_Version::jdk(8), JDK_Version::jdk(9) },
 #ifdef PRODUCT
   { "DesiredMethodLimit",
                            JDK_Version::jdk_update(7, 2), JDK_Version::jdk(8) },
@@ -797,6 +811,10 @@ void Arguments::print_on(outputStream* st) {
     st->print("jvm_args: "); print_jvm_args_on(st);
   }
   st->print_cr("java_command: %s", java_command() ? java_command() : "<unknown>");
+  if (_java_class_path != NULL) {
+    char* path = _java_class_path->value();
+    st->print_cr("java_class_path (initial): %s", strlen(path) == 0 ? "<not set>" : path );
+  }
   st->print_cr("Launcher Type: %s", _sun_java_launcher);
 }
 
@@ -879,7 +897,7 @@ bool Arguments::process_settings_file(const char* file_name, bool should_exist, 
   bool result         = true;
 
   int c = getc(stream);
-  while(c != EOF) {
+  while(c != EOF && pos < (int)(sizeof(token)-1)) {
     if (in_white_space) {
       if (in_comment) {
         if (c == '\n') in_comment = false;
@@ -1072,7 +1090,7 @@ void Arguments::set_tiered_flags() {
   }
 }
 
-#ifndef KERNEL
+#if INCLUDE_ALTERNATE_GCS
 static void disable_adaptive_size_policy(const char* collector_name) {
   if (UseAdaptiveSizePolicy) {
     if (FLAG_IS_CMDLINE(UseAdaptiveSizePolicy)) {
@@ -1104,9 +1122,6 @@ void Arguments::set_parnew_gc_flags() {
     }
   }
   if (UseParNewGC) {
-    // CDS doesn't work with ParNew yet
-    no_shared_spaces();
-
     // By default YoungPLABSize and OldPLABSize are set to 4096 and 1024 respectively,
     // these settings are default for Parallel Scavenger. For ParNew+Tenured configuration
     // we set them to 1024 and 1024.
@@ -1121,7 +1136,7 @@ void Arguments::set_parnew_gc_flags() {
     // AlwaysTenure flag should make ParNew promote all at first collection.
     // See CR 6362902.
     if (AlwaysTenure) {
-      FLAG_SET_CMDLINE(intx, MaxTenuringThreshold, 0);
+      FLAG_SET_CMDLINE(uintx, MaxTenuringThreshold, 0);
     }
     // When using compressed oops, we use local overflow stacks,
     // rather than using a global overflow list chained through
@@ -1150,7 +1165,7 @@ void Arguments::set_cms_and_parnew_gc_flags() {
     FLAG_SET_ERGO(bool, UseParNewGC, true);
   }
 
-  // Turn off AdaptiveSizePolicy for CMS until it is complete.
+  // Turn off AdaptiveSizePolicy by default for cms until it is complete.
   disable_adaptive_size_policy("UseConcMarkSweepGC");
 
   // In either case, adjust ParallelGCThreads and/or UseParNewGC
@@ -1240,7 +1255,7 @@ void Arguments::set_cms_and_parnew_gc_flags() {
   // promote all objects surviving "tenuring_default" scavenges.
   if (FLAG_IS_DEFAULT(MaxTenuringThreshold) &&
       FLAG_IS_DEFAULT(SurvivorRatio)) {
-    FLAG_SET_ERGO(intx, MaxTenuringThreshold, tenuring_default);
+    FLAG_SET_ERGO(uintx, MaxTenuringThreshold, tenuring_default);
   }
   // If we decided above (or user explicitly requested)
   // `promote all' (via MaxTenuringThreshold := 0),
@@ -1292,7 +1307,7 @@ void Arguments::set_cms_and_parnew_gc_flags() {
     tty->print_cr("ConcGCThreads: %u", ConcGCThreads);
   }
 }
-#endif // KERNEL
+#endif // INCLUDE_ALTERNATE_GCS
 
 void set_object_alignment() {
   // Object alignment.
@@ -1309,10 +1324,10 @@ void set_object_alignment() {
   // Oop encoding heap max
   OopEncodingHeapMax = (uint64_t(max_juint) + 1) << LogMinObjAlignmentInBytes;
 
-#ifndef KERNEL
+#if INCLUDE_ALTERNATE_GCS
   // Set CMS global values
   CompactibleFreeListSpace::set_cms_values();
-#endif // KERNEL
+#endif // INCLUDE_ALTERNATE_GCS
 }
 
 bool verify_object_alignment() {
@@ -1350,10 +1365,10 @@ bool verify_object_alignment() {
 
 inline uintx max_heap_for_compressed_oops() {
   // Avoid sign flip.
-  if (OopEncodingHeapMax < MaxPermSize + os::vm_page_size()) {
+  if (OopEncodingHeapMax < ClassMetaspaceSize + os::vm_page_size()) {
     return 0;
   }
-  LP64_ONLY(return OopEncodingHeapMax - MaxPermSize - os::vm_page_size());
+  LP64_ONLY(return OopEncodingHeapMax - ClassMetaspaceSize - os::vm_page_size());
   NOT_LP64(ShouldNotReachHere(); return 0);
 }
 
@@ -1372,11 +1387,6 @@ bool Arguments::should_auto_select_low_pause_collector() {
 }
 
 void Arguments::set_ergonomics_flags() {
-  // Parallel GC is not compatible with sharing. If one specifies
-  // that they want sharing explicitly, do not set ergonomics flags.
-  if (DumpSharedSpaces || RequireSharedSpaces) {
-    return;
-  }
 
   if (os::is_server_class_machine()) {
     // If no other collector is requested explicitly,
@@ -1386,13 +1396,19 @@ void Arguments::set_ergonomics_flags() {
         !UseConcMarkSweepGC &&
         !UseG1GC &&
         !UseParNewGC &&
-        !DumpSharedSpaces &&
         FLAG_IS_DEFAULT(UseParallelGC)) {
       if (should_auto_select_low_pause_collector()) {
         FLAG_SET_ERGO(bool, UseConcMarkSweepGC, true);
       } else {
         FLAG_SET_ERGO(bool, UseParallelGC, true);
       }
+    }
+    // Shared spaces work fine with other GCs but causes bytecode rewriting
+    // to be disabled, which hurts interpreter performance and decreases
+    // server performance.   On server class machines, keep the default
+    // off unless it is asked for.  Future work: either add bytecode rewriting
+    // at link time, or rewrite bytecodes in non-shared methods.
+    if (!DumpSharedSpaces && !RequireSharedSpaces) {
       no_shared_spaces();
     }
   }
@@ -1420,6 +1436,29 @@ void Arguments::set_ergonomics_flags() {
     if (UseCompressedOops && !FLAG_IS_DEFAULT(UseCompressedOops)) {
       warning("Max heap size too large for Compressed Oops");
       FLAG_SET_DEFAULT(UseCompressedOops, false);
+      FLAG_SET_DEFAULT(UseCompressedKlassPointers, false);
+    }
+  }
+  // UseCompressedOops must be on for UseCompressedKlassPointers to be on.
+  if (!UseCompressedOops) {
+    if (UseCompressedKlassPointers) {
+      warning("UseCompressedKlassPointers requires UseCompressedOops");
+    }
+    FLAG_SET_DEFAULT(UseCompressedKlassPointers, false);
+  } else {
+    // Turn on UseCompressedKlassPointers too
+    if (FLAG_IS_DEFAULT(UseCompressedKlassPointers)) {
+      FLAG_SET_ERGO(bool, UseCompressedKlassPointers, true);
+    }
+    // Set the ClassMetaspaceSize to something that will not need to be
+    // expanded, since it cannot be expanded.
+    if (UseCompressedKlassPointers && FLAG_IS_DEFAULT(ClassMetaspaceSize)) {
+      // 100,000 classes seems like a good size, so 100M assumes around 1K
+      // per klass.   The vtable and oopMap is embedded so we don't have a fixed
+      // size per klass.   Eventually, this will be parameterized because it
+      // would also be useful to determine the optimal size of the
+      // systemDictionary.
+      FLAG_SET_ERGO(uintx, ClassMetaspaceSize, 100*M);
     }
   }
   // Also checks that certain machines are slower with compressed oops
@@ -1462,9 +1501,6 @@ void Arguments::set_parallel_gc_flags() {
       if (FLAG_IS_DEFAULT(MarkSweepDeadRatio)) {
         FLAG_SET_DEFAULT(MarkSweepDeadRatio, 1);
       }
-      if (FLAG_IS_DEFAULT(PermMarkSweepDeadRatio)) {
-        FLAG_SET_DEFAULT(PermMarkSweepDeadRatio, 5);
-      }
     }
   }
   if (UseNUMA) {
@@ -1488,7 +1524,6 @@ void Arguments::set_g1_gc_flags() {
     FLAG_SET_DEFAULT(ParallelGCThreads,
                      Abstract_VM_Version::parallel_worker_threads());
   }
-  no_shared_spaces();
 
   if (FLAG_IS_DEFAULT(MarkStackSize)) {
     FLAG_SET_DEFAULT(MarkStackSize, 128 * TASKQUEUE_SIZE);
@@ -1824,10 +1859,14 @@ bool Arguments::check_vm_args_consistency() {
 
   status = status && verify_percentage(AdaptiveSizePolicyWeight,
                               "AdaptiveSizePolicyWeight");
-  status = status && verify_percentage(AdaptivePermSizeWeight, "AdaptivePermSizeWeight");
   status = status && verify_percentage(ThresholdTolerance, "ThresholdTolerance");
   status = status && verify_percentage(MinHeapFreeRatio, "MinHeapFreeRatio");
   status = status && verify_percentage(MaxHeapFreeRatio, "MaxHeapFreeRatio");
+
+  // Divide by bucket size to prevent a large size from causing rollover when
+  // calculating amount of memory needed to be allocated for the String table.
+  status = status && verify_interval(StringTableSize, defaultStringTableSize,
+    (max_uintx / StringTable::bucket_size()), "StringTable size");
 
   if (MinHeapFreeRatio > MaxHeapFreeRatio) {
     jio_fprintf(defaultStream::error_stream(),
@@ -1964,19 +2003,55 @@ bool Arguments::check_vm_args_consistency() {
 
   status = status && verify_object_alignment();
 
+  status = status && verify_min_value(ClassMetaspaceSize, 1*M,
+                                      "ClassMetaspaceSize");
+
+#ifdef SPARC
+  if (UseConcMarkSweepGC || UseG1GC) {
+    // Issue a stern warning if the user has explicitly set
+    // UseMemSetInBOT (it is known to cause issues), but allow
+    // use for experimentation and debugging.
+    if (VM_Version::is_sun4v() && UseMemSetInBOT) {
+      assert(!FLAG_IS_DEFAULT(UseMemSetInBOT), "Error");
+      warning("Experimental flag -XX:+UseMemSetInBOT is known to cause instability"
+          " on sun4v; please understand that you are using at your own risk!");
+    }
+  }
+#endif // SPARC
+
+  if (PrintNMTStatistics) {
+#if INCLUDE_NMT
+    if (MemTracker::tracking_level() == MemTracker::NMT_off) {
+#endif // INCLUDE_NMT
+      warning("PrintNMTStatistics is disabled, because native memory tracking is not enabled");
+      PrintNMTStatistics = false;
+#if INCLUDE_NMT
+    }
+#endif
+  }
 #ifdef GRAAL
   if (UseCompressedOops) {
     jio_fprintf(defaultStream::error_stream(),
                     "CompressedOops are not supported in Graal at the moment\n");
         status = false;
   }
+  if (UseCompressedKlassPointers) {
+    jio_fprintf(defaultStream::error_stream(),
+                    "UseCompressedKlassPointers are not supported in Graal at the moment\n");
+        status = false;
+  }
   if (UseG1GC) {
     jio_fprintf(defaultStream::error_stream(),
                         "G1 is not supported in Graal at the moment\n");
-            status = false;
+        status = false;
   }
-#endif
 
+  if (!ScavengeRootsInCode) {
+      warning("forcing ScavengeRootsInCode non-zero because Graal is enabled");
+      ScavengeRootsInCode = 1;
+  }
+
+#endif
   return status;
 }
 
@@ -2319,12 +2394,12 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
           size_t len2 = strlen(pos+1) + 1; // options start after ':'.  Final zero must be copied.
           options = (char*)memcpy(NEW_C_HEAP_ARRAY(char, len2, mtInternal), pos+1, len2);
         }
-#ifdef JVMTI_KERNEL
+#if !INCLUDE_JVMTI
         if ((strcmp(name, "hprof") == 0) || (strcmp(name, "jdwp") == 0)) {
-          warning("profiling and debugging agents are not supported with Kernel VM");
+          warning("profiling and debugging agents are not supported in this VM");
         } else
-#endif // JVMTI_KERNEL
-        add_init_library(name, options);
+#endif // !INCLUDE_JVMTI
+          add_init_library(name, options);
       }
     // -agentlib and -agentpath
     } else if (match_option(option, "-agentlib:", &tail) ||
@@ -2339,20 +2414,24 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
         if(pos != NULL) {
           options = strcpy(NEW_C_HEAP_ARRAY(char, strlen(pos + 1) + 1, mtInternal), pos + 1);
         }
-#ifdef JVMTI_KERNEL
+#if !INCLUDE_JVMTI
         if ((strcmp(name, "hprof") == 0) || (strcmp(name, "jdwp") == 0)) {
-          warning("profiling and debugging agents are not supported with Kernel VM");
+          warning("profiling and debugging agents are not supported in this VM");
         } else
-#endif // JVMTI_KERNEL
+#endif // !INCLUDE_JVMTI
         add_init_agent(name, options, is_absolute_path);
 
       }
     // -javaagent
     } else if (match_option(option, "-javaagent:", &tail)) {
+#if !INCLUDE_JVMTI
+      warning("Instrumentation agents are not supported in this VM");
+#else
       if(tail != NULL) {
         char *options = strcpy(NEW_C_HEAP_ARRAY(char, strlen(tail) + 1, mtInternal), tail);
         add_init_agent("instrument", options, false);
       }
+#endif // !INCLUDE_JVMTI
     // -Xnoclassgc
     } else if (match_option(option, "-Xnoclassgc", &tail)) {
       FLAG_SET_CMDLINE(bool, ClassUnloading, false);
@@ -2484,12 +2563,12 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
           // EVM option, ignore silently for compatibility
     // -Xprof
     } else if (match_option(option, "-Xprof", &tail)) {
-#ifndef FPROF_KERNEL
+#if INCLUDE_FPROF
       _has_profile = true;
-#else // FPROF_KERNEL
+#else // INCLUDE_FPROF
       // do we have to exit?
-      warning("Kernel VM does not support flat profiling.");
-#endif // FPROF_KERNEL
+      warning("Flat profiling is not supported in this VM.");
+#endif // INCLUDE_FPROF
     // -Xaprof
     } else if (match_option(option, "-Xaprof", &tail)) {
       _has_alloc_profile = true;
@@ -2534,15 +2613,12 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
 
     // -Xshare:dump
     } else if (match_option(option, "-Xshare:dump", &tail)) {
-#ifdef TIERED
-      FLAG_SET_CMDLINE(bool, DumpSharedSpaces, true);
-      set_mode_flags(_int);     // Prevent compilation, which creates objects
-#elif defined(COMPILER2)
-      vm_exit_during_initialization(
-          "Dumping a shared archive is not supported on the Server JVM.", NULL);
-#elif defined(KERNEL)
+#if defined(KERNEL)
       vm_exit_during_initialization(
           "Dumping a shared archive is not supported on the Kernel JVM.", NULL);
+#elif !INCLUDE_CDS
+      vm_exit_during_initialization(
+          "Dumping a shared archive is not supported in this VM.", NULL);
 #else
       FLAG_SET_CMDLINE(bool, DumpSharedSpaces, true);
       set_mode_flags(_int);     // Prevent compilation, which creates objects
@@ -2595,7 +2671,11 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
     // JNI hooks
     } else if (match_option(option, "-Xcheck", &tail)) {
       if (!strcmp(tail, ":jni")) {
+#if !INCLUDE_JNI_CHECK
+        warning("JNI CHECKING is not supported in this VM");
+#else
         CheckJNICalls = true;
+#endif // INCLUDE_JNI_CHECK
       } else if (is_bad_option(option, args->ignoreUnrecognized,
                                      "check")) {
         return JNI_EINVAL;
@@ -2640,15 +2720,6 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
       // process space.  The 64bit VM version of this function is a nop.
       initHeapSize = os::allocatable_physical_memory(initHeapSize);
 
-      // The perm gen is separate but contiguous with the
-      // object heap (and is reserved with it) so subtract it
-      // from the heap size.
-      if (initHeapSize > MaxPermSize) {
-        initHeapSize = initHeapSize - MaxPermSize;
-      } else {
-        warning("AggressiveHeap and MaxPermSize values may conflict");
-      }
-
       if (FLAG_IS_DEFAULT(MaxHeapSize)) {
          FLAG_SET_CMDLINE(uintx, MaxHeapSize, initHeapSize);
          FLAG_SET_CMDLINE(uintx, InitialHeapSize, initHeapSize);
@@ -2662,7 +2733,9 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
          FLAG_SET_CMDLINE(uintx, MaxNewSize, NewSize);
       }
 
+#ifndef _ALLBSD_SOURCE  // UseLargePages is not yet supported on BSD.
       FLAG_SET_DEFAULT(UseLargePages, true);
+#endif
 
       // Increase some data structure sizes for efficiency
       FLAG_SET_CMDLINE(uintx, BaseFootPrintEstimate, MaxHeapSize);
@@ -2869,6 +2942,11 @@ SOLARIS_ONLY(
         return JNI_EINVAL;
       }
       FLAG_SET_CMDLINE(uintx, MaxDirectMemorySize, max_direct_memory_size);
+    } else if (match_option(option, "-XX:+UseVMInterruptibleIO", &tail)) {
+      // NOTE! In JDK 9, the UseVMInterruptibleIO flag will completely go
+      //       away and will cause VM initialization failures!
+      warning("-XX:+UseVMInterruptibleIO is obsolete and will be removed in a future release.");
+      FLAG_SET_CMDLINE(bool, UseVMInterruptibleIO, true);
     } else if (match_option(option, "-XX:", &tail)) { // -XX:xxxx
       // Skip -XX:Flags= since that case has already been handled
       if (strncmp(tail, "Flags=", strlen("Flags=")) != 0) {
@@ -2895,10 +2973,6 @@ SOLARIS_ONLY(
 
   // Change the default value for flags  which have different default values
   // when working with older JDKs.
-  if (JDK_Version::current().compare_major(6) <= 0 &&
-      FLAG_IS_DEFAULT(UseVMInterruptibleIO)) {
-    FLAG_SET_DEFAULT(UseVMInterruptibleIO, true);
-  }
 #ifdef LINUX
  if (JDK_Version::current().compare_major(6) <= 0 &&
       FLAG_IS_DEFAULT(UseLinuxPosixThreadCPUClocks)) {
@@ -3064,39 +3138,25 @@ void Arguments::set_shared_spaces_flags() {
   const bool must_share = DumpSharedSpaces || RequireSharedSpaces;
   const bool might_share = must_share || UseSharedSpaces;
 
-  // The string table is part of the shared archive so the size must match.
-  if (!FLAG_IS_DEFAULT(StringTableSize)) {
-    // Disable sharing.
-    if (must_share) {
-      warning("disabling shared archive %s because of non-default "
-              "StringTableSize", DumpSharedSpaces ? "creation" : "use");
-    }
-    if (might_share) {
-      FLAG_SET_DEFAULT(DumpSharedSpaces, false);
-      FLAG_SET_DEFAULT(RequireSharedSpaces, false);
-      FLAG_SET_DEFAULT(UseSharedSpaces, false);
-    }
-    return;
-  }
-
-  // Check whether class data sharing settings conflict with GC, compressed oops
-  // or page size, and fix them up.  Explicit sharing options override other
-  // settings.
-  const bool cannot_share = UseConcMarkSweepGC || CMSIncrementalMode ||
-    UseG1GC || UseParNewGC || UseParallelGC || UseParallelOldGC ||
-    UseCompressedOops || UseLargePages && FLAG_IS_CMDLINE(UseLargePages);
+  // CompressedOops cannot be used with CDS.  The offsets of oopmaps and
+  // static fields are incorrect in the archive.  With some more clever
+  // initialization, this restriction can probably be lifted.
+  // ??? UseLargePages might be okay now
+  const bool cannot_share = UseCompressedOops ||
+                            (UseLargePages && FLAG_IS_CMDLINE(UseLargePages));
   if (cannot_share) {
     if (must_share) {
-        warning("selecting serial gc and disabling large pages %s"
+        warning("disabling large pages %s"
                 "because of %s", "" LP64_ONLY("and compressed oops "),
                 DumpSharedSpaces ? "-Xshare:dump" : "-Xshare:on");
-        force_serial_gc();
         FLAG_SET_CMDLINE(bool, UseLargePages, false);
         LP64_ONLY(FLAG_SET_CMDLINE(bool, UseCompressedOops, false));
+        LP64_ONLY(FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false));
     } else {
+      // Prefer compressed oops and large pages to class data sharing
       if (UseSharedSpaces && Verbose) {
-        warning("turning off use of shared archive because of "
-                "choice of garbage collector or large pages");
+        warning("turning off use of shared archive because of large pages%s",
+                 "" LP64_ONLY(" and/or compressed oops"));
       }
       no_shared_spaces();
     }
@@ -3104,6 +3164,18 @@ void Arguments::set_shared_spaces_flags() {
     // Disable large pages to allow shared spaces.  This is sub-optimal, since
     // there may not even be a shared archive to use.
     FLAG_SET_DEFAULT(UseLargePages, false);
+  }
+
+  // Add 2M to any size for SharedReadOnlySize to get around the JPRT setting
+  if (DumpSharedSpaces && !FLAG_IS_DEFAULT(SharedReadOnlySize)) {
+    SharedReadOnlySize = 14*M;
+  }
+
+  if (DumpSharedSpaces) {
+    if (RequireSharedSpaces) {
+      warning("cannot dump shared archive while using shared archive");
+    }
+    UseSharedSpaces = false;
   }
 }
 
@@ -3172,7 +3244,11 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
       vm_exit(0);
     }
     if (match_option(option, "-XX:NativeMemoryTracking", &tail)) {
+#if INCLUDE_NMT
       MemTracker::init_tracking_options(tail);
+#else
+      warning("Native Memory Tracking is not supported in this VM");
+#endif
     }
 
 
@@ -3235,6 +3311,25 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   UNSUPPORTED_OPTION(UseG1GC, "G1 GC");
 #endif
 
+#ifdef _ALLBSD_SOURCE  // UseLargePages is not yet supported on BSD.
+  UNSUPPORTED_OPTION(UseLargePages, "-XX:+UseLargePages");
+#endif
+
+#if !INCLUDE_ALTERNATE_GCS
+  if (UseParallelGC) {
+    warning("Parallel GC is not supported in this VM.  Using Serial GC.");
+  }
+  if (UseParallelOldGC) {
+    warning("Parallel Old GC is not supported in this VM.  Using Serial GC.");
+  }
+  if (UseConcMarkSweepGC) {
+    warning("Concurrent Mark Sweep GC is not supported in this VM.  Using Serial GC.");
+  }
+  if (UseParNewGC) {
+    warning("Par New GC is not supported in this VM.  Using Serial GC.");
+  }
+#endif // INCLUDE_ALTERNATE_GCS
+
 #ifndef PRODUCT
   if (TraceBytecodesAt != 0) {
     TraceBytecodes = true;
@@ -3263,12 +3358,6 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
     }
     ScavengeRootsInCode = 1;
   }
-  if (!JavaObjectsInPerm && ScavengeRootsInCode == 0) {
-    if (!FLAG_IS_DEFAULT(ScavengeRootsInCode)) {
-      warning("forcing ScavengeRootsInCode non-zero because JavaObjectsInPerm is false");
-    }
-    ScavengeRootsInCode = 1;
-  }
 
   if (PrintGCDetails) {
     // Turn on -verbose:gc options as well
@@ -3289,9 +3378,9 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
 #ifdef SERIALGC
   force_serial_gc();
 #endif // SERIALGC
-#ifdef KERNEL
+#if !INCLUDE_CDS
   no_shared_spaces();
-#endif // KERNEL
+#endif // INCLUDE_CDS
 
   // Set flags based on ergonomics.
   set_ergonomics_flags();
@@ -3313,9 +3402,10 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
     }
   }
 
-#ifndef KERNEL
   // Set heap size based on available physical memory
   set_heap_size();
+
+#if INCLUDE_ALTERNATE_GCS
   // Set per-collector flags
   if (UseParallelGC || UseParallelOldGC) {
     set_parallel_gc_flags();
@@ -3326,7 +3416,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   } else if (UseG1GC) {
     set_g1_gc_flags();
   }
-#endif // KERNEL
+#endif // INCLUDE_ALTERNATE_GCS
 
 #ifdef SERIALGC
   assert(verify_serial_gc_flags(), "SerialGC unset");
@@ -3360,6 +3450,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   FLAG_SET_DEFAULT(ProfileInterpreter, false);
   FLAG_SET_DEFAULT(UseBiasedLocking, false);
   LP64_ONLY(FLAG_SET_DEFAULT(UseCompressedOops, false));
+  LP64_ONLY(FLAG_SET_DEFAULT(UseCompressedKlassPointers, false));
 #endif // CC_INTERP
 
 #ifdef COMPILER2

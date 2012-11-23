@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,8 @@
 #include "gc_implementation/concurrentMarkSweep/freeChunk.hpp"
 #endif // SERIALGC
 #include "memory/freeBlockDictionary.hpp"
+#include "memory/metablock.hpp"
+#include "memory/metachunk.hpp"
 #ifdef TARGET_OS_FAMILY_linux
 # include "thread_linux.inline.hpp"
 #endif
@@ -61,6 +63,9 @@ template <class Chunk> void FreeBlockDictionary<Chunk>::verify_par_locked() cons
 #endif // ASSERT
 }
 #endif
+
+template class FreeBlockDictionary<Metablock>;
+template class FreeBlockDictionary<Metachunk>;
 
 #ifndef SERIALGC
 // Explicitly instantiate for FreeChunk

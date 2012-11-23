@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -272,9 +272,10 @@ public class Bytecodes {
   public static final int _fast_aldc            = 229;
   public static final int _fast_aldc_w          = 230;
   public static final int _return_register_finalizer = 231;
-  public static final int _shouldnotreachhere   = 232; // For debugging
+  public static final int _invokehandle         = 232;
+  public static final int _shouldnotreachhere   = 233; // For debugging
 
-  public static final int number_of_codes       = 233;
+  public static final int number_of_codes       = 234;
 
   // Flag bits derived from format strings, can_trap, can_rewrite, etc.:
   // semantic flags:
@@ -362,7 +363,7 @@ public class Bytecodes {
 
   // find a bytecode, behind a breakpoint if necessary:
   // FIXME: not yet implementable
-  //   static Code       non_breakpoint_code_at(address bcp, methodOop method = null);
+  //   static Code       non_breakpoint_code_at(address bcp, Method* method = null);
 
   // Bytecode attributes
   public static boolean   isDefined    (int code) { return 0 <= code && code < number_of_codes && flags(code, false) != 0; }
@@ -743,7 +744,7 @@ public class Bytecodes {
     def(_invokespecial       , "invokespecial"       , "bJJ"  , null    , BasicType.getTIllegal(), -1, true );
     def(_invokestatic        , "invokestatic"        , "bJJ"  , null    , BasicType.getTIllegal(),  0, true );
     def(_invokeinterface     , "invokeinterface"     , "bJJ__", null    , BasicType.getTIllegal(), -1, true );
-    def(_invokedynamic       , "invokedynamic"       , "bJJJJ", null    , BasicType.getTIllegal(), -1, true );
+    def(_invokedynamic       , "invokedynamic"       , "bJJJJ", null    , BasicType.getTIllegal(),  0, true );
     def(_new                 , "new"                 , "bkk"  , null    , BasicType.getTObject() ,  1, true );
     def(_newarray            , "newarray"            , "bc"   , null    , BasicType.getTObject() ,  0, true );
     def(_anewarray           , "anewarray"           , "bkk"  , null    , BasicType.getTObject() ,  0, true );
@@ -763,6 +764,7 @@ public class Bytecodes {
 
     //  JVM bytecodes
     //  bytecode               bytecode name           format   wide f.   result tp               stk traps  std code
+
     def(_fast_agetfield      , "fast_agetfield"      , "bJJ"  , null    , BasicType.getTObject() ,  0, true , _getfield       );
     def(_fast_bgetfield      , "fast_bgetfield"      , "bJJ"  , null    , BasicType.getTInt()    ,  0, true , _getfield       );
     def(_fast_cgetfield      , "fast_cgetfield"      , "bJJ"  , null    , BasicType.getTChar()   ,  0, true , _getfield       );
@@ -786,20 +788,22 @@ public class Bytecodes {
     def(_fast_aaccess_0      , "fast_aaccess_0"      , "b_JJ" , null    , BasicType.getTObject() ,  1, true , _aload_0        );
     def(_fast_faccess_0      , "fast_faccess_0"      , "b_JJ" , null    , BasicType.getTObject() ,  1, true , _aload_0        );
 
-    def(_fast_iload          , "fast_iload"          , "bi"   , null    , BasicType.getTInt()    ,  1, false, _iload);
-    def(_fast_iload2         , "fast_iload2"         , "bi_i" , null    , BasicType.getTInt()    ,  2, false, _iload);
-    def(_fast_icaload        , "fast_icaload"        , "bi_"  , null    , BasicType.getTInt()    ,  0, false, _iload);
+    def(_fast_iload          , "fast_iload"          , "bi"   , null    , BasicType.getTInt()    ,  1, false, _iload          );
+    def(_fast_iload2         , "fast_iload2"         , "bi_i" , null    , BasicType.getTInt()    ,  2, false, _iload          );
+    def(_fast_icaload        , "fast_icaload"        , "bi_"  , null    , BasicType.getTInt()    ,  0, false, _iload          );
 
     // Faster method invocation.
-    def(_fast_invokevfinal   , "fast_invokevfinal"   , "bJJ"  , null    , BasicType.getTIllegal(), -1, true, _invokevirtual);
+    def(_fast_invokevfinal   , "fast_invokevfinal"   , "bJJ"  , null    , BasicType.getTIllegal(), -1, true, _invokevirtual   );
 
     def(_fast_linearswitch   , "fast_linearswitch"   , ""     , null    , BasicType.getTVoid()   , -1, false, _lookupswitch   );
     def(_fast_binaryswitch   , "fast_binaryswitch"   , ""     , null    , BasicType.getTVoid()   , -1, false, _lookupswitch   );
+    def(_fast_aldc           , "fast_aldc"           , "bj"   , null    , BasicType.getTObject(),   1, true,  _ldc            );
+    def(_fast_aldc_w         , "fast_aldc_w"         , "bJJ"  , null    , BasicType.getTObject(),   1, true,  _ldc_w          );
 
     def(_return_register_finalizer, "return_register_finalizer", "b"    , null    , BasicType.getTVoid()   , 0, true, _return );
 
-    def(_fast_aldc           , "fast_aldc"           , "bj"   , null    , BasicType.getTObject(),   1, true,  _ldc   );
-    def(_fast_aldc_w         , "fast_aldc_w"         , "bJJ"  , null    , BasicType.getTObject(),   1, true,  _ldc_w );
+    // special handling of signature-polymorphic methods
+    def(_invokehandle        , "invokehandle"        , "bJJ"  , null    , BasicType.getTIllegal(), -1, true, _invokevirtual   );
 
     def(_shouldnotreachhere  , "_shouldnotreachhere" , "b"    , null    , BasicType.getTVoid()   ,  0, false);
 

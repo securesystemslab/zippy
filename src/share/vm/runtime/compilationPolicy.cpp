@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,8 +28,8 @@
 #include "code/scopeDesc.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "interpreter/interpreter.hpp"
-#include "oops/methodDataOop.hpp"
-#include "oops/methodOop.hpp"
+#include "oops/methodData.hpp"
+#include "oops/method.hpp"
 #include "oops/oop.inline.hpp"
 #include "prims/nativeLookup.hpp"
 #include "runtime/advancedThresholdPolicy.hpp"
@@ -104,6 +104,9 @@ void CompilationPolicy::completed_vm_startup() {
 // This is intended to force compiles for methods (usually for
 // debugging) that would otherwise be interpreted for some reason.
 bool CompilationPolicy::must_be_compiled(methodHandle m, int comp_level) {
+  // Don't allow Xcomp to cause compiles in replay mode
+  if (ReplayCompiles) return false;
+
   if (m->has_compiled_code()) return false;       // already compiled
   if (!can_be_compiled(m, comp_level)) return false;
 
@@ -230,7 +233,7 @@ void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
 //
 class CounterDecay : public AllStatic {
   static jlong _last_timestamp;
-  static void do_method(methodOop m) {
+  static void do_method(Method* m) {
     m->invocation_counter()->decay();
   }
 public:
@@ -253,9 +256,9 @@ void CounterDecay::decay() {
   double classes_per_tick = nclasses * (CounterDecayMinIntervalLength * 1e-3 /
                                         CounterHalfLifeTime);
   for (int i = 0; i < classes_per_tick; i++) {
-    klassOop k = SystemDictionary::try_get_next_class();
-    if (k != NULL && k->klass_part()->oop_is_instance()) {
-      instanceKlass::cast(k)->methods_do(do_method);
+    Klass* k = SystemDictionary::try_get_next_class();
+    if (k != NULL && k->oop_is_instance()) {
+      InstanceKlass::cast(k)->methods_do(do_method);
     }
   }
 }
@@ -285,12 +288,12 @@ void NonTieredCompPolicy::reprofile(ScopeDesc* trap_scope, bool is_osr) {
 
 // This method can be called by any component of the runtime to notify the policy
 // that it's recommended to delay the complation of this method.
-void NonTieredCompPolicy::delay_compilation(methodOop method) {
+void NonTieredCompPolicy::delay_compilation(Method* method) {
   method->invocation_counter()->decay();
   method->backedge_counter()->decay();
 }
 
-void NonTieredCompPolicy::disable_compilation(methodOop method) {
+void NonTieredCompPolicy::disable_compilation(Method* method) {
   method->invocation_counter()->set_state(InvocationCounter::wait_for_nothing);
   method->backedge_counter()->set_state(InvocationCounter::wait_for_nothing);
 }
@@ -299,8 +302,8 @@ CompileTask* NonTieredCompPolicy::select_task(CompileQueue* compile_queue) {
   return compile_queue->first();
 }
 
-bool NonTieredCompPolicy::is_mature(methodOop method) {
-  methodDataOop mdo = method->method_data();
+bool NonTieredCompPolicy::is_mature(Method* method) {
+  MethodData* mdo = method->method_data();
   assert(mdo != NULL, "Should be");
   uint current = mdo->mileage_of(method);
   uint initial = mdo->creation_mileage();
@@ -330,6 +333,16 @@ nmethod* NonTieredCompPolicy::event(methodHandle method, methodHandle inlinee, i
       return NULL;
     }
   }
+  if (CompileTheWorld || ReplayCompiles) {
+    // Don't trigger other compiles in testing mode
+    if (bci == InvocationEntryBci) {
+      reset_counter_for_invocation_event(method);
+    } else {
+      reset_counter_for_back_branch_event(method);
+    }
+    return NULL;
+  }
+
   if (bci == InvocationEntryBci) {
     // when code cache is full, compilation gets switched off, UseCompiler
     // is set to false
@@ -379,7 +392,7 @@ void NonTieredCompPolicy::trace_frequency_counter_overflow(methodHandle m, int b
     bc->print();
     if (ProfileInterpreter) {
       if (bci != InvocationEntryBci) {
-        methodDataOop mdo = m->method_data();
+        MethodData* mdo = m->method_data();
         if (mdo != NULL) {
           int count = mdo->bci_to_data(branch_bci)->as_JumpData()->taken();
           tty->print_cr("back branch count = %d", count);
@@ -402,28 +415,27 @@ void NonTieredCompPolicy::trace_osr_request(methodHandle method, nmethod* osr, i
 // SimpleCompPolicy - compile current method
 
 void SimpleCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread) {
-  int hot_count = m->invocation_count();
+  const int comp_level = CompLevel_highest_tier;
+  const int hot_count = m->invocation_count();
   reset_counter_for_invocation_event(m);
   const char* comment = "count";
 
   if (is_compilation_enabled() && can_be_compiled(m)) {
     nmethod* nm = m->code();
     if (nm == NULL ) {
-      const char* comment = "count";
-      CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier,
-                                    m, hot_count, comment, thread);
+      CompileBroker::compile_method(m, InvocationEntryBci, comp_level, m, hot_count, comment, thread);
     }
   }
 }
 
 void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThread* thread) {
-  int hot_count = m->backedge_count();
+  const int comp_level = CompLevel_highest_tier;
+  const int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
 
-  if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m)) {
-    CompileBroker::compile_method(m, bci, CompLevel_highest_tier,
-                                  m, hot_count, comment, thread);
-    NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, CompLevel_highest_tier, true));)
+  if (is_compilation_enabled() && !m->is_not_osr_compilable(comp_level) && can_be_compiled(m)) {
+    CompileBroker::compile_method(m, bci, comp_level, m, hot_count, comment, thread);
+    NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, comp_level, true));)
   }
 }
 
@@ -497,7 +509,8 @@ const char* StackWalkCompPolicy::_msg = NULL;
 
 // Consider m for compilation
 void StackWalkCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread) {
-  int hot_count = m->invocation_count();
+  const int comp_level = CompLevel_highest_tier;
+  const int hot_count = m->invocation_count();
   reset_counter_for_invocation_event(m);
   const char* comment = "count";
 
@@ -528,20 +541,20 @@ void StackWalkCompPolicy::method_invocation_event(methodHandle m, JavaThread* th
       if (TimeCompilationPolicy) accumulated_time()->stop();
       assert(top != NULL, "findTopInlinableFrame returned null");
       if (TraceCompilationPolicy) top->print();
-      CompileBroker::compile_method(top->top_method(), InvocationEntryBci, CompLevel_highest_tier,
+      CompileBroker::compile_method(top->top_method(), InvocationEntryBci, comp_level,
                                     m, hot_count, comment, thread);
     }
   }
 }
 
 void StackWalkCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThread* thread) {
-  int hot_count = m->backedge_count();
+  const int comp_level = CompLevel_highest_tier;
+  const int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
 
-  if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m)) {
-    CompileBroker::compile_method(m, bci, CompLevel_highest_tier, m, hot_count, comment, thread);
-
-    NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, CompLevel_highest_tier, true));)
+  if (is_compilation_enabled() && !m->is_not_osr_compilable(comp_level) && can_be_compiled(m)) {
+    CompileBroker::compile_method(m, bci, comp_level, m, hot_count, comment, thread);
+    NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, comp_level, true));)
   }
 }
 
@@ -698,7 +711,7 @@ const char* StackWalkCompPolicy::shouldNotInline(methodHandle m) {
   // negative filter: should send NOT be inlined?  returns NULL (--> inline) or rejection msg
   if (m->is_abstract()) return (_msg = "abstract method");
   // note: we allow ik->is_abstract()
-  if (!instanceKlass::cast(m->method_holder())->is_initialized()) return (_msg = "method holder not initialized");
+  if (!m->method_holder()->is_initialized()) return (_msg = "method holder not initialized");
   if (m->is_native()) return (_msg = "native method");
   nmethod* m_code = m->code();
   if (m_code != NULL && m_code->code_size() > InlineSmallCode)
@@ -710,7 +723,7 @@ const char* StackWalkCompPolicy::shouldNotInline(methodHandle m) {
     if ((m->code() == NULL) && m->was_never_executed()) return (_msg = "never executed");
     if (!m->was_executed_more_than(MIN2(MinInliningThreshold, CompileThreshold >> 1))) return (_msg = "executed < MinInliningThreshold times");
   }
-  if (methodOopDesc::has_unloaded_classes_in_signature(m, JavaThread::current())) return (_msg = "unloaded signature classes");
+  if (Method::has_unloaded_classes_in_signature(m, JavaThread::current())) return (_msg = "unloaded signature classes");
 
   return NULL;
 }

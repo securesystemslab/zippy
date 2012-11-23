@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, types
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
 from threading import Thread
@@ -541,8 +541,10 @@ def build(args, vm=None):
                 return
         else:
             cpus = multiprocessing.cpu_count()
+            runCmd = [mx.gmake_cmd()]
             if build == 'debug':
                 build = 'jvmg'
+            runCmd.append(build + buildSuffix) 
             env = os.environ
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
@@ -554,8 +556,13 @@ def build(args, vm=None):
                 cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
                 if cCompilerVersion.startswith('CC: Sun C++') :
                     compilerRev = cCompilerVersion.split(' ')[3]
-                    env.setdefault('ENFORCE_COMPILER_REV', compilerRev);
-                    env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev);
+                    env.setdefault('ENFORCE_COMPILER_REV', compilerRev)
+                    env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev)
+                    if build == 'jvmg':
+                        # I want ALL the symbols when I'm debugging on Solaris
+                        # Some Makefile variable are overloaded by environment variable so we need to explicitely
+                        # pass them down in the command line. This one is an example of that.
+                        runCmd.append('STRIP_POLICY=no_strip')
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
 
@@ -563,7 +570,7 @@ def build(args, vm=None):
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
 
-            mx.run([mx.gmake_cmd(), build + buildSuffix], cwd=join(_graal_home, 'make'), err=filterXusage)
+            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage)
 
         jvmCfg = _vmCfgInJdk(jdk)
         found = False
@@ -1004,10 +1011,49 @@ def hcfdis(args):
 
     Run a tool over the input files to convert all embedded HexCodeFiles
     to a disassembled format."""
+
+    parser = ArgumentParser(prog='mx hcfdis');
+    parser.add_argument('-m', '--map', help='address to symbol map applied to disassembler output')
+    parser.add_argument('files', nargs=REMAINDER, metavar='files...')
+
+    args = parser.parse_args(args)
+    
     path = join(_graal_home, 'lib', 'hcfdis-1.jar')
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-1.jar'])
-    mx.run_java(['-jar', path] + args)
+    mx.run_java(['-jar', path] + args.files)
+    
+    if args.map is not None:
+        addressRE = re.compile(r'0[xX]([A-Fa-f0-9]+)')
+        with open(args.map) as fp:
+            lines = fp.read().splitlines()
+        symbols = dict()
+        for l in lines:
+            addressAndSymbol = l.split(' ', 1)
+            if len(addressAndSymbol) == 2:
+                address, symbol = addressAndSymbol;
+                if address.startswith('0x'): 
+                    address = long(address, 16)
+                    symbols[address] = symbol
+        for f in args.files:
+            with open(f) as fp:
+                lines = fp.read().splitlines()
+            updated = False
+            for i in range(0, len(lines)):
+                l = lines[i]
+                for m in addressRE.finditer(l):
+                    sval = m.group(0)
+                    val = long(sval, 16)
+                    sym = symbols.get(val)
+                    if sym:
+                        l = l.replace(sval, sym)
+                        updated = True
+                        lines[i] = l
+            if updated:
+                mx.log('updating ' + f)
+                with open('new_' + f, "w") as fp:
+                    for l in lines:
+                        print >> fp, l
 
 def jacocoreport(args):
     """create a JaCoCo coverage report

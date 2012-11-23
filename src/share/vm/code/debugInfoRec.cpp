@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -308,11 +308,11 @@ void DebugInformationRecorder::describe_scope(int         pc_offset,
   stream()->write_int(sender_stream_offset);
 
   // serialize scope
-  jobject method_enc;
+  Metadata* method_enc;
   if (method != NULL) {
     method_enc = method->constant_encoding();
   } else if (methodH.not_null()) {
-    method_enc = JNIHandles::make_local(Thread::current(), methodH());
+    method_enc = methodH();
   } else {
     method_enc = NULL;
   }
@@ -388,26 +388,36 @@ void DebugInformationRecorder::end_scopes(int pc_offset, bool is_safepoint) {
   }
 }
 
+#ifdef ASSERT
+bool DebugInformationRecorder::recorders_frozen() {
+  return _oop_recorder->is_complete() || _oop_recorder->is_complete();
+}
+
+void DebugInformationRecorder::mark_recorders_frozen() {
+  _oop_recorder->freeze();
+}
+#endif // PRODUCT
+
 DebugToken* DebugInformationRecorder::create_scope_values(GrowableArray<ScopeValue*>* values) {
-  assert(!_oop_recorder->is_complete(), "not frozen yet");
+  assert(!recorders_frozen(), "not frozen yet");
   return (DebugToken*) (intptr_t) serialize_scope_values(values);
 }
 
 
 DebugToken* DebugInformationRecorder::create_monitor_values(GrowableArray<MonitorValue*>* monitors) {
-  assert(!_oop_recorder->is_complete(), "not frozen yet");
+  assert(!recorders_frozen(), "not frozen yet");
   return (DebugToken*) (intptr_t) serialize_monitor_values(monitors);
 }
 
 
 int DebugInformationRecorder::data_size() {
-  debug_only(_oop_recorder->oop_size());  // mark it "frozen" for asserts
+  debug_only(mark_recorders_frozen());  // mark it "frozen" for asserts
   return _stream->position();
 }
 
 
 int DebugInformationRecorder::pcs_size() {
-  debug_only(_oop_recorder->oop_size());  // mark it "frozen" for asserts
+  debug_only(mark_recorders_frozen());  // mark it "frozen" for asserts
   if (last_pc()->pc_offset() != PcDesc::upper_offset_limit)
     add_new_pc_offset(PcDesc::upper_offset_limit);
   return _pcs_length * sizeof(PcDesc);

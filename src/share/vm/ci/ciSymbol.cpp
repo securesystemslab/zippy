@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,6 +61,11 @@ const char* ciSymbol::as_utf8() {
   VM_QUICK_ENTRY_MARK;
   Symbol* s = get_symbol();
   return s->as_utf8();
+}
+
+// The text of the symbol as a null-terminated C string.
+const char* ciSymbol::as_quoted_ascii() {
+  GUARDED_VM_QUICK_ENTRY(return get_symbol()->as_quoted_ascii();)
 }
 
 // ------------------------------------------------------------------

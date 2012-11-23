@@ -199,7 +199,7 @@ ZERO_SPECIFIC_FILES      := zero
 GRAAL_SPECIFIC_FILES     := graal
 
 # Always exclude these.
-Src_Files_EXCLUDE := jsig.c jvmtiEnvRecommended.cpp jvmtiEnvStub.cpp
+Src_Files_EXCLUDE += jsig.c jvmtiEnvRecommended.cpp jvmtiEnvStub.cpp
 
 # Exclude per type.
 Src_Files_EXCLUDE/CORE      := $(COMPILER1_SPECIFIC_FILES) $(COMPILER2_SPECIFIC_FILES) $(ZERO_SPECIFIC_FILES) $(SHARK_SPECIFIC_FILES) ciTypeFlow.cpp
@@ -328,7 +328,7 @@ $(LIBJVM): $(LIBJVM.o) $(LIBJVM_MAPFILE) $(LD_SCRIPT)
 	    echo Linking vm...;                                         \
 	    $(LINK_LIB.CXX/PRE_HOOK)                                     \
 	    $(LINK_VM) $(LD_SCRIPT_FLAG)                                \
-		       $(LFLAGS_VM) -o $@ $(LIBJVM.o) $(LIBS_VM);       \
+		       $(LFLAGS_VM) -o $@ $(sort $(LIBJVM.o)) $(LIBS_VM);       \
 	    $(LINK_LIB.CXX/POST_HOOK)                                    \
 	    rm -f $@.1; ln -s $@ $@.1;                                  \
 	    [ -f $(LIBJVM_G) ] || { ln -s $@ $(LIBJVM_G); ln -s $@.1 $(LIBJVM_G).1; }; \
@@ -344,24 +344,23 @@ $(LIBJVM): $(LIBJVM.o) $(LIBJVM_MAPFILE) $(LD_SCRIPT)
 	      fi                                                        \
             fi 								\
 	}
-ifeq ($(CROSS_COMPILE_ARCH),)
-  ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
+
+ifeq ($(ENABLE_FULL_DEBUG_SYMBOLS),1)
 	$(QUIETLY) $(OBJCOPY) --only-keep-debug $@ $(LIBJVM_DEBUGINFO)
 	$(QUIETLY) $(OBJCOPY) --add-gnu-debuglink=$(LIBJVM_DEBUGINFO) $@
-    ifeq ($(STRIP_POLICY),all_strip)
+  ifeq ($(STRIP_POLICY),all_strip)
 	$(QUIETLY) $(STRIP) $@
-    else
-      ifeq ($(STRIP_POLICY),min_strip)
+  else
+    ifeq ($(STRIP_POLICY),min_strip)
 	$(QUIETLY) $(STRIP) -g $@
-      # implied else here is no stripping at all
-      endif
+    # implied else here is no stripping at all
     endif
+  endif
 	$(QUIETLY) [ -f $(LIBJVM_G_DEBUGINFO) ] || ln -s $(LIBJVM_DEBUGINFO) $(LIBJVM_G_DEBUGINFO)
-    ifeq ($(ZIP_DEBUGINFO_FILES),1)
+  ifeq ($(ZIP_DEBUGINFO_FILES),1)
 	$(ZIPEXE) -q -y $(LIBJVM_DIZ) $(LIBJVM_DEBUGINFO) $(LIBJVM_G_DEBUGINFO)
 	$(RM) $(LIBJVM_DEBUGINFO) $(LIBJVM_G_DEBUGINFO)
 	[ -f $(LIBJVM_G_DIZ) ] || { ln -s $(LIBJVM_DIZ) $(LIBJVM_G_DIZ); }
-    endif
   endif
 endif
 
@@ -395,7 +394,7 @@ include $(MAKEFILES_DIR)/wb.make
 
 #----------------------------------------------------------------------
 
-build: $(LIBJVM) $(LAUNCHER) $(LIBJSIG) $(LIBJVM_DB) $(BUILDLIBSAPROC) $(WB_JAR)
+build: $(LIBJVM) $(LAUNCHER) $(LIBJSIG) $(LIBJVM_DB) $(BUILDLIBSAPROC) dtraceCheck $(WB_JAR)
 
 install: install_jvm install_jsig install_saproc
 

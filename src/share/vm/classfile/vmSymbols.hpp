@@ -110,10 +110,12 @@
   template(sun_jkernel_DownloadManager,               "sun/jkernel/DownloadManager")              \
   template(getBootClassPathEntryForClass_name,        "getBootClassPathEntryForClass")            \
   template(sun_misc_PostVMInitHook,                   "sun/misc/PostVMInitHook")                  \
+  template(sun_misc_Launcher_ExtClassLoader,          "sun/misc/Launcher$ExtClassLoader")         \
                                                                                                   \
   /* Java runtime version access */                                                               \
   template(sun_misc_Version,                          "sun/misc/Version")                         \
   template(java_runtime_name_name,                    "java_runtime_name")                        \
+  template(java_runtime_version_name,                 "java_runtime_version")                     \
                                                                                                   \
   /* class file format tags */                                                                    \
   template(tag_source_file,                           "SourceFile")                               \
@@ -234,7 +236,7 @@
   template(parameter_annotations_name,                "parameterAnnotations")                     \
   template(annotation_default_name,                   "annotationDefault")                        \
   template(sun_reflect_ConstantPool,                  "sun/reflect/ConstantPool")                 \
-  template(constantPoolOop_name,                      "constantPoolOop")                          \
+  template(ConstantPool_name,                         "constantPoolOop")                          \
   template(sun_reflect_UnsafeStaticFieldAccessorImpl, "sun/reflect/UnsafeStaticFieldAccessorImpl")\
   template(base_name,                                 "base")                                     \
                                                                                                   \
@@ -257,6 +259,7 @@
   template(java_lang_invoke_DontInline_signature,     "Ljava/lang/invoke/DontInline;")            \
   template(java_lang_invoke_LambdaForm_Compiled_signature, "Ljava/lang/invoke/LambdaForm$Compiled;") \
   template(java_lang_invoke_LambdaForm_Hidden_signature, "Ljava/lang/invoke/LambdaForm$Hidden;")  \
+  template(java_lang_invoke_MagicLambdaImpl,          "java/lang/invoke/MagicLambdaImpl")         \
   /* internal up-calls made only by the JVM, via class sun.invoke.MethodHandleNatives: */         \
   template(findMethodHandleType_name,                 "findMethodHandleType")                     \
   template(findMethodHandleType_signature,       "(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;") \
@@ -282,7 +285,7 @@
   template(com_oracle_graal_hotspot_HotSpotCompilationResult,        "com/oracle/graal/hotspot/HotSpotCompilationResult")             \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \
-  template(com_oracle_graal_hotspot_meta_HotSpotCompiledMethod,      "com/oracle/graal/hotspot/meta/HotSpotCompiledMethod")           \
+  template(com_oracle_graal_hotspot_meta_HotSpotInstalledCode,       "com/oracle/graal/hotspot/meta/HotSpotInstalledCode")            \
   template(com_oracle_graal_hotspot_meta_HotSpotJavaType,            "com/oracle/graal/hotspot/meta/HotSpotJavaType")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotMethodData,          "com/oracle/graal/hotspot/meta/HotSpotMethodData")               \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
@@ -322,20 +325,22 @@
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
   template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;IZI)Z")                  \
+  template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;IZI)Z")                   \
   template(setOption_name,                        "setOption")                                                                        \
   template(setDefaultOptions_name,                "setDefaultOptions")                                                                \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
-  template(createResolvedJavaMethod_name,         "createResolvedJavaMethod")                                                         \
-  template(createResolvedJavaMethod_signature,    "(JLjava/lang/String;)Lcom/oracle/graal/api/meta/JavaMethod;")                      \
-  template(createJavaMethod_name,                 "createJavaMethod")                                                                 \
-  template(createJavaMethod_signature,            "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;)Lcom/oracle/graal/api/meta/JavaMethod;") \
+  template(createUnresolvedJavaMethod_name,       "createUnresolvedJavaMethod")                                                       \
+  template(createUnresolvedJavaMethod_signature,  "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;)Lcom/oracle/graal/api/meta/JavaMethod;") \
   template(createSignature_name,                  "createSignature")                                                                  \
   template(createSignature_signature,             "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/Signature;")                        \
   template(createJavaField_name,                  "createJavaField")                                                                  \
-  template(createJavaField_signature,             "(Lcom/oracle/graal/api/meta/JavaType;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;II)Lcom/oracle/graal/api/meta/JavaField;") \
-  template(createJavaType_name,                   "createJavaType")                                                                   \
-  template(createJavaType_signature,              "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/JavaType;")                         \
+  template(createJavaField_signature,             "(Lcom/oracle/graal/api/meta/JavaType;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;IIZ)Lcom/oracle/graal/api/meta/JavaField;") \
+  template(createResolvedJavaMethod_name,         "createResolvedJavaMethod")                                                         \
+  template(createResolvedJavaMethod_signature,    "(Lcom/oracle/graal/api/meta/JavaType;J)Lcom/oracle/graal/api/meta/ResolvedJavaMethod;") \
+  template(createUnresolvedJavaType_name,         "createUnresolvedJavaType")                                                         \
+  template(createUnresolvedJavaType_signature,    "(Ljava/lang/String;)Lcom/oracle/graal/api/meta/JavaType;")                         \
+  template(createResolvedJavaType_name,           "createResolvedJavaType")                                                           \
+  template(createResolvedJavaType_signature,      "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/Class;ZI)Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
   template(createPrimitiveJavaType_name,          "createPrimitiveJavaType")                                                          \
   template(createPrimitiveJavaType_signature,     "(I)Lcom/oracle/graal/api/meta/JavaType;")                                          \
   template(createConstant_name,                   "createConstant")                                                                   \
@@ -355,7 +360,7 @@
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \
   template(callback_signature,                    "(Ljava/lang/Object;)Ljava/lang/Object;")                                           \
-  template(MethodInvalidatedException,            "com/oracle/graal/api/code/InstalledCode$MethodInvalidatedException")               \
+  template(MethodInvalidatedException,            "com/oracle/graal/api/code/CompilationResult$MethodInvalidatedException")               \
   /* graal.api.interpreter */                                                                                                         \
   template(com_oracle_graal_api_interpreter_Interpreter,             "com/oracle/graal/api/interpreter/Interpreter")                  \
   template(interpreter_execute_name,              "execute")                                                                          \
@@ -449,6 +454,8 @@
   template(values_name,                               "values")                                   \
   template(receiver_name,                             "receiver")                                 \
   template(vmtarget_name,                             "vmtarget")                                 \
+  template(next_target_name,                          "next_target")                              \
+  template(vmloader_name,                             "vmloader")                                 \
   template(vmindex_name,                              "vmindex")                                  \
   template(vmcount_name,                              "vmcount")                                  \
   template(vmentry_name,                              "vmentry")                                  \
@@ -463,6 +470,9 @@
   template(array_klass_name,                          "array_klass")                              \
   template(oop_size_name,                             "oop_size")                                 \
   template(static_oop_field_count_name,               "static_oop_field_count")                   \
+  GRAAL_ONLY(template(graal_mirror_name,              "graal_mirror"))                            \
+  template(loader_data_name,                          "loader_data")                              \
+  template(dependencies_name,                         "dependencies")                             \
                                                                                                   \
   /* non-intrinsic name/signature pairs: */                                                       \
   template(register_method_name,                      "register")                                 \
@@ -810,6 +820,21 @@
   /* java/lang/ref/Reference */                                                                                         \
   do_intrinsic(_Reference_get,            java_lang_ref_Reference, get_name,    void_object_signature, F_R)             \
                                                                                                                         \
+  /* support for com.sum.crypto.provider.AESCrypt and some of its callers */                                            \
+  do_class(com_sun_crypto_provider_aescrypt,      "com/sun/crypto/provider/AESCrypt")                                   \
+  do_intrinsic(_aescrypt_encryptBlock, com_sun_crypto_provider_aescrypt, encryptBlock_name, byteArray_int_byteArray_int_signature, F_R)   \
+  do_intrinsic(_aescrypt_decryptBlock, com_sun_crypto_provider_aescrypt, decryptBlock_name, byteArray_int_byteArray_int_signature, F_R)   \
+   do_name(     encryptBlock_name,                                 "encryptBlock")                                      \
+   do_name(     decryptBlock_name,                                 "decryptBlock")                                      \
+   do_signature(byteArray_int_byteArray_int_signature,             "([BI[BI)V")                                         \
+                                                                                                                        \
+  do_class(com_sun_crypto_provider_cipherBlockChaining,            "com/sun/crypto/provider/CipherBlockChaining")       \
+   do_intrinsic(_cipherBlockChaining_encryptAESCrypt, com_sun_crypto_provider_cipherBlockChaining, encrypt_name, byteArray_int_int_byteArray_int_signature, F_R)   \
+   do_intrinsic(_cipherBlockChaining_decryptAESCrypt, com_sun_crypto_provider_cipherBlockChaining, decrypt_name, byteArray_int_int_byteArray_int_signature, F_R)   \
+   do_name(     encrypt_name,                                      "encrypt")                                           \
+   do_name(     decrypt_name,                                      "decrypt")                                           \
+   do_signature(byteArray_int_int_byteArray_int_signature,         "([BII[BI)V")                                        \
+                                                                                                                        \
   /* support for sun.misc.Unsafe */                                                                                     \
   do_class(sun_misc_Unsafe,               "sun/misc/Unsafe")                                                            \
                                                                                                                         \
@@ -960,6 +985,20 @@
    do_name(     putOrderedInt_name,                              "putOrderedInt")                                       \
    do_alias(    putOrderedInt_signature,                        /*(Ljava/lang/Object;JI)V*/ putInt_signature)           \
                                                                                                                         \
+  do_intrinsic(_getAndAddInt,             sun_misc_Unsafe,        getAndAddInt_name, getAndAddInt_signature, F_R)       \
+   do_name(     getAndAddInt_name,                                "getAndAddInt")                                       \
+   do_signature(getAndAddInt_signature,                           "(Ljava/lang/Object;JI)I" )                           \
+  do_intrinsic(_getAndAddLong,            sun_misc_Unsafe,        getAndAddLong_name, getAndAddLong_signature, F_R)     \
+   do_name(     getAndAddLong_name,                               "getAndAddLong")                                      \
+   do_signature(getAndAddLong_signature,                          "(Ljava/lang/Object;JJ)J" )                           \
+  do_intrinsic(_getAndSetInt,             sun_misc_Unsafe,        getAndSet_name, getAndSetInt_signature, F_R)          \
+   do_name(     getAndSet_name,                                   "getAndSet")                                          \
+   do_alias(    getAndSetInt_signature,                         /*"(Ljava/lang/Object;JI)I"*/ getAndAddInt_signature)   \
+  do_intrinsic(_getAndSetLong,            sun_misc_Unsafe,        getAndSet_name, getAndSetLong_signature, F_R)         \
+   do_alias(    getAndSetLong_signature,                        /*"(Ljava/lang/Object;JJ)J"*/ getAndAddLong_signature)  \
+  do_intrinsic(_getAndSetObject,          sun_misc_Unsafe,        getAndSet_name, getAndSetObject_signature,  F_R)      \
+   do_signature(getAndSetObject_signature,                        "(Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;" ) \
+                                                                                                                        \
   /* prefetch_signature is shared by all prefetch variants */                                                           \
   do_signature( prefetch_signature,        "(Ljava/lang/Object;J)V")                                                    \
                                                                                                                         \
@@ -1103,7 +1142,7 @@ class vmSymbols: AllStatic {
 
   // Sharing support
   static void symbols_do(SymbolClosure* f);
-  static void serialize(SerializeOopClosure* soc);
+  static void serialize(SerializeClosure* soc);
 
   static Symbol* type_signature(BasicType t) {
     assert((uint)t < T_VOID+1, "range check");
@@ -1201,7 +1240,7 @@ public:
     return id;
   }
 
-  static void verify_method(ID actual_id, methodOop m) PRODUCT_RETURN;
+  static void verify_method(ID actual_id, Method* m) PRODUCT_RETURN;
 
   // Find out the symbols behind an intrinsic:
   static vmSymbols::SID     class_for(ID id);
@@ -1210,9 +1249,6 @@ public:
   static Flags              flags_for(ID id);
 
   static const char* short_name_as_C_string(ID id, char* buf, int size);
-
-  // Access to intrinsic methods:
-  static methodOop method_for(ID id);
 
   // Wrapper object methods:
   static ID for_boxing(BasicType type);

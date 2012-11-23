@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -199,6 +199,11 @@ class StubRoutines: AllStatic {
   // zero heap space aligned to jlong (8 bytes)
   static address _zero_aligned_words;
 
+  static address _aescrypt_encryptBlock;
+  static address _aescrypt_decryptBlock;
+  static address _cipherBlockChaining_encryptAESCrypt;
+  static address _cipherBlockChaining_decryptAESCrypt;
+
   // These are versions of the java.lang.Math methods which perform
   // the same operations as the intrinsic version.  They are used for
   // constant folding in the compiler to ensure equivalence.  If the
@@ -240,7 +245,7 @@ class StubRoutines: AllStatic {
     address   link,
     intptr_t* result,
     BasicType result_type,
-    methodOopDesc* method,
+    Method* method,
     address   entry_point,
     intptr_t* parameters,
     int       size_of_parameters,
@@ -329,6 +334,11 @@ class StubRoutines: AllStatic {
   static address arrayof_jbyte_fill()  { return _arrayof_jbyte_fill; }
   static address arrayof_jshort_fill() { return _arrayof_jshort_fill; }
   static address arrayof_jint_fill()   { return _arrayof_jint_fill; }
+
+  static address aescrypt_encryptBlock()                { return _aescrypt_encryptBlock; }
+  static address aescrypt_decryptBlock()                { return _aescrypt_decryptBlock; }
+  static address cipherBlockChaining_encryptAESCrypt()  { return _cipherBlockChaining_encryptAESCrypt; }
+  static address cipherBlockChaining_decryptAESCrypt()  { return _cipherBlockChaining_decryptAESCrypt; }
 
   static address select_fill_function(BasicType t, bool aligned, const char* &name);
 

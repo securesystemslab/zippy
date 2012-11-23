@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -588,9 +588,9 @@ JvmtiEnvBase::vframeFor(JavaThread* java_thread, jint depth) {
 
 
 jclass
-JvmtiEnvBase::get_jni_class_non_null(klassOop k) {
+JvmtiEnvBase::get_jni_class_non_null(Klass* k) {
   assert(k != NULL, "k != NULL");
-  return (jclass)jni_reference(Klass::cast(k)->java_mirror());
+  return (jclass)jni_reference(k->java_mirror());
 }
 
 #ifndef JVMTI_KERNEL
@@ -600,7 +600,7 @@ JvmtiEnvBase::get_jni_class_non_null(klassOop k) {
 //
 
 bool
-JvmtiEnvBase::get_field_descriptor(klassOop k, jfieldID field, fieldDescriptor* fd) {
+JvmtiEnvBase::get_field_descriptor(Klass* k, jfieldID field, fieldDescriptor* fd) {
   if (!jfieldIDWorkaround::is_valid_jfieldID(k, field)) {
     return false;
   }
@@ -611,7 +611,7 @@ JvmtiEnvBase::get_field_descriptor(klassOop k, jfieldID field, fieldDescriptor* 
   } else {
     // Non-static field. The fieldID is really the offset of the field within the object.
     int offset = jfieldIDWorkaround::from_instance_jfieldID(k, field);
-    found = instanceKlass::cast(k)->find_field_from_offset(offset, false, fd);
+    found = InstanceKlass::cast(k)->find_field_from_offset(offset, false, fd);
   }
   return found;
 }
@@ -930,7 +930,7 @@ JvmtiEnvBase::get_frame_location(JavaThread *java_thread, jint depth,
 
   HandleMark hm(current_thread);
   javaVFrame *jvf = javaVFrame::cast(vf);
-  methodOop method = jvf->method();
+  Method* method = jvf->method();
   if (method->is_native()) {
     *location_ptr = -1;
   } else {
@@ -1365,7 +1365,7 @@ JvmtiEnvBase::check_top_frame(JavaThread* current_thread, JavaThread* java_threa
     // Method return type signature.
     char* ty_sign = 1 + strchr(signature->as_C_string(), ')');
 
-    if (!VM_GetOrSetLocal::is_assignable(ty_sign, Klass::cast(ob_kh()), current_thread)) {
+    if (!VM_GetOrSetLocal::is_assignable(ty_sign, ob_kh(), current_thread)) {
       return JVMTI_ERROR_TYPE_MISMATCH;
     }
     *ret_ob_h = ob_h;
