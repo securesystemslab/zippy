@@ -776,6 +776,11 @@ C2V_VMENTRY(jobject, installCode, (JNIEnv *jniEnv, jobject, jobject compResult, 
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
   CodeInstaller installer(compResultHandle, method, nm, installed_code_handle);
 
+  if (nm == NULL) {
+    // dependency (re)checking failed
+    return NULL;
+  }
+
   if (info != NULL) {
     arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
     memcpy(codeCopy->base(T_BYTE), nm->code_begin(), nm->code_size());
