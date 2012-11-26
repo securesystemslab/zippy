@@ -41,6 +41,13 @@ project@com.oracle.graal.api.meta@sourceDirs=src
 project@com.oracle.graal.api.meta@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api.meta@javaCompliance=1.7
 
+# graal.api.meta.test
+project@com.oracle.graal.api.meta.test@subDir=graal
+project@com.oracle.graal.api.meta.test@sourceDirs=src
+project@com.oracle.graal.api.meta.test@dependencies=JUNIT,com.oracle.graal.api.meta,com.oracle.graal.api.runtime
+project@com.oracle.graal.api.meta.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.meta.test@javaCompliance=1.7
+
 # graal.api.code
 project@com.oracle.graal.api.code@subDir=graal
 project@com.oracle.graal.api.code@sourceDirs=src
