@@ -625,14 +625,13 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     TRACE_graal_3("relocating (stub)  at %p", inst);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");
-    assert(debug_info != NULL, "debug info expected");
-
+#ifdef ASSERT
     Method* method = NULL;
     // we need to check, this might also be an unresolved method
     if (hotspot_method->is_a(HotSpotResolvedJavaMethod::klass())) {
       method = getMethodFromHotSpotMethod(hotspot_method);
     }
-
+#endif
     assert(debug_info != NULL, "debug info expected");
 
     TRACE_graal_3("method call");
