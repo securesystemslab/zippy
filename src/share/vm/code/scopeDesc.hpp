@@ -78,6 +78,9 @@ class ScopeDesc : public ResourceObj {
   GrowableArray<ScopeValue*>*   expressions();
   GrowableArray<MonitorValue*>* monitors();
   GrowableArray<ScopeValue*>*   objects();
+#ifdef GRAAL
+  GrowableArray<DeferredWriteValue*>* deferred_writes();
+#endif // GRAAL
 
   // Stack walking, returns NULL if this is the outer most scope.
   ScopeDesc* sender() const;
@@ -107,6 +110,9 @@ class ScopeDesc : public ResourceObj {
   int _locals_decode_offset;
   int _expressions_decode_offset;
   int _monitors_decode_offset;
+#ifdef GRAAL
+  int _deferred_writes_decode_offset;
+#endif // GRAAL
 
   // Object pool
   GrowableArray<ScopeValue*>* _objects;
@@ -119,6 +125,9 @@ class ScopeDesc : public ResourceObj {
   GrowableArray<ScopeValue*>* decode_scope_values(int decode_offset);
   GrowableArray<MonitorValue*>* decode_monitor_values(int decode_offset);
   GrowableArray<ScopeValue*>* decode_object_values(int decode_offset);
+#ifdef GRAAL
+  GrowableArray<DeferredWriteValue*>* decode_deferred_writes(int decode_offset);
+#endif // GRAAL
 
   DebugInfoReadStream* stream_at(int decode_offset) const;
 
