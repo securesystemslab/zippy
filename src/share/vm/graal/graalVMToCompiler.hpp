@@ -86,9 +86,6 @@ public:
   // public abstract JavaType createPrimitiveJavaType(int basicType);
   static oop createPrimitiveJavaType(int basicType, TRAPS);
 
-  // public abstract Signature createSignature(String signature);
-  static oop createSignature(Handle name, TRAPS);
-
   // public abstract Constant createConstant(Kind kind, long value);
   static oop createConstant(Handle kind, jlong value, TRAPS);
 
