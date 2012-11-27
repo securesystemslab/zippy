@@ -504,31 +504,6 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
   return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
 C2V_END
 
-C2V_VMENTRY(jboolean, isSubtypeOf, (JNIEnv *, jobject, jobject klass, jobject jother))
-  oop other = JNIHandles::resolve(jother);
-  assert(other->is_a(HotSpotResolvedJavaType::klass()), "resolved HotSpot type expected");
-  assert(JNIHandles::resolve(klass) != NULL, "");
-  Klass* thisKlass = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(klass));
-  Klass* otherKlass = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(other));
-  if (thisKlass->oop_is_instance()) {
-    return InstanceKlass::cast(thisKlass)->is_subtype_of(otherKlass);
-  } else if (thisKlass->oop_is_array()) {
-    return ArrayKlass::cast(thisKlass)->is_subtype_of(otherKlass);
-  } else {
-    fatal("unexpected class type");
-    return false;
-  }
-C2V_END
-
-C2V_VMENTRY(jobject, getLeastCommonAncestor, (JNIEnv *, jobject, jobject this_type, jobject other_type))
-
-  Klass* this_klass  = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(this_type));
-  Klass* other_klass = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(other_type));
-  Klass* lca         = this_klass->LCA(other_klass);
-
-  return JNIHandles::make_local(GraalCompiler::get_JavaType(lca, THREAD)());
-C2V_END
-
 C2V_VMENTRY(jlong, getPrototypeMarkWord, (JNIEnv *, jobject, jobject klass))
   KlassHandle klass_handle(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(klass)));
   if (klass_handle->oop_is_array()) {
@@ -536,15 +511,6 @@ C2V_VMENTRY(jlong, getPrototypeMarkWord, (JNIEnv *, jobject, jobject klass))
   } else {
     return (jlong) (intptr_t) klass_handle->prototype_header();
   }
-C2V_END
-
-C2V_VMENTRY(jobject, getUniqueConcreteSubtype, (JNIEnv *, jobject, jobject klass))
-  KlassHandle klass_handle(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(klass)));
-  Klass *up_cast = klass_handle->up_cast_abstract();
-  if (!up_cast->is_interface() && up_cast->subklass() == NULL) {
-    return JNIHandles::make_local(GraalCompiler::get_JavaType(up_cast, THREAD)());
-  }
-  return NULL;
 C2V_END
 
 C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klass))
@@ -646,6 +612,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int(env, config, "superCheckOffsetOffset", in_bytes(Klass::super_check_offset_offset()));
   set_int(env, config, "secondarySuperCacheOffset", in_bytes(Klass::secondary_super_cache_offset()));
   set_int(env, config, "secondarySupersOffset", in_bytes(Klass::secondary_supers_offset()));
+  set_int(env, config, "subklassOffset", in_bytes(Klass::subklass_offset()));
+  set_int(env, config, "nextSiblingOffset", in_bytes(Klass::next_sibling_offset()));
   set_int(env, config, "arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
   set_int(env, config, "klassStateOffset", in_bytes(InstanceKlass::init_state_offset()));
   set_int(env, config, "klassStateFullyInitialized", (int)InstanceKlass::fully_initialized);
@@ -962,9 +930,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupReferencedTypeInPool",    CC"("HS_RESOLVED_TYPE"IB)V",                                      FN_PTR(lookupReferencedTypeInPool)},
   {CC"lookupFieldInPool",             CC"("HS_RESOLVED_TYPE"IB)"FIELD,                                  FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
-  {CC"isSubtypeOf",                   CC"("HS_RESOLVED_TYPE TYPE")Z",                                   FN_PTR(isSubtypeOf)},
-  {CC"getLeastCommonAncestor",        CC"("HS_RESOLVED_TYPE HS_RESOLVED_TYPE")"TYPE,                    FN_PTR(getLeastCommonAncestor)},
-  {CC"getUniqueConcreteSubtype",      CC"("HS_RESOLVED_TYPE")"TYPE,                                     FN_PTR(getUniqueConcreteSubtype)},
   {CC"getPrototypeMarkWord",          CC"("HS_RESOLVED_TYPE")J",                                        FN_PTR(getPrototypeMarkWord)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"isTypeInitialized",             CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeInitialized)},
