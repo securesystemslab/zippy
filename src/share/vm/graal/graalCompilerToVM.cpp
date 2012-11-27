@@ -301,8 +301,9 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
 
   Symbol* nameSymbol = VmIds::toSymbol(jname);
   Handle name = JNIHandles::resolve(jname);
+  assert(nameSymbol != NULL, "name to symbol creation failed");
 
-  oop result;
+  oop result = NULL;
   if (nameSymbol == vmSymbols::int_signature()) {
     result = VMToCompiler::createPrimitiveJavaType((int) T_INT, THREAD);
   } else if (nameSymbol == vmSymbols::long_signature()) {
@@ -323,38 +324,28 @@ C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject a
     result = VMToCompiler::createPrimitiveJavaType((int) T_VOID, THREAD);
   } else {
     Klass* resolved_type = NULL;
-    // if the name isn't in the symbol table then the class isn't loaded anyway...
-    if (nameSymbol != NULL) {
-      Handle classloader;
-      Handle protectionDomain;
-      if (JNIHandles::resolve(accessingClass) != NULL) {
-        classloader = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(accessingClass))->class_loader();
-        protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(accessingClass))->protection_domain();
-      }
-      if (eagerResolve) {
-        resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
-      } else {
-        if (FieldType::is_obj(nameSymbol)) {
-          ResourceMark rm(THREAD);
-          // Ignore wrapping L and ;.
-          TempNewSymbol tmp_name = SymbolTable::new_symbol(nameSymbol->as_C_string() + 1,
-                                         nameSymbol->utf8_length() - 2, CHECK_NULL);
-          resolved_type = SystemDictionary::find_instance_or_array_klass(tmp_name, classloader, protectionDomain, THREAD);
-        } else {
-          resolved_type = SystemDictionary::find_instance_or_array_klass(nameSymbol, classloader, protectionDomain, THREAD);
-        }
-      }
-      if (HAS_PENDING_EXCEPTION) {
-        CLEAR_PENDING_EXCEPTION;
-        resolved_type = NULL;
-      }
+    Handle classloader;
+    Handle protectionDomain;
+    if (JNIHandles::resolve(accessingClass) != NULL) {
+      classloader = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(accessingClass))->class_loader();
+      protectionDomain = java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(accessingClass))->protection_domain();
     }
-    if (resolved_type != NULL) {
-      Handle type = GraalCompiler::createHotSpotResolvedJavaType(resolved_type, name, CHECK_NULL);
-      result = type();
+
+    if (eagerResolve) {
+      resolved_type = SystemDictionary::resolve_or_fail(nameSymbol, classloader, protectionDomain, true, THREAD);
     } else {
-      Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
-      result = type();
+      resolved_type = SystemDictionary::resolve_or_null(nameSymbol, classloader, protectionDomain, THREAD);
+    }
+
+    if (!HAS_PENDING_EXCEPTION) {
+      if (resolved_type == NULL) {
+        assert(!eagerResolve, "failed eager resolution should have caused an exception");
+        Handle type = VMToCompiler::createUnresolvedJavaType(name, THREAD);
+        result = type();
+      } else {
+        Handle type = GraalCompiler::createHotSpotResolvedJavaType(resolved_type, name, CHECK_NULL);
+        result = type();
+      }
     }
   }
 
@@ -775,6 +766,11 @@ C2V_VMENTRY(jobject, installCode, (JNIEnv *jniEnv, jobject, jobject compResult, 
   ciEnv env(&arena);
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
   CodeInstaller installer(compResultHandle, method, nm, installed_code_handle);
+
+  if (nm == NULL) {
+    // dependency (re)checking failed
+    return NULL;
+  }
 
   if (info != NULL) {
     arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
