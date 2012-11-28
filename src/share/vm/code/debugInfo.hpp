@@ -61,6 +61,11 @@ class ScopeValue: public ResourceObj {
   // Serialization of debugging information
   virtual void write_on(DebugInfoWriteStream* stream) = 0;
   static ScopeValue* read_from(DebugInfoReadStream* stream);
+
+#ifdef GRAAL
+  // Printing
+  virtual void print_on(outputStream* st) const = 0;
+#endif // GRAAL
 };
 
 
@@ -82,6 +87,64 @@ class LocationValue: public ScopeValue {
   // Printing
   void print_on(outputStream* st) const;
 };
+
+#ifdef GRAAL
+
+class DeferredLocationValue: public ScopeValue {
+private:
+  ScopeValue* _base;
+  ScopeValue* _index;
+  jint _scale;
+  jlong _disp;
+public:
+  DeferredLocationValue(ScopeValue* base, ScopeValue* index, jint scale, jlong disp)
+  : _base(base), _index(index), _scale(scale), _disp(disp) { }
+
+  ScopeValue* base() { return _base; }
+  ScopeValue* index() { return _index; }
+  jint scale() { return _scale; }
+  jlong disp() { return _disp; }
+
+  // Serialization of debugging information
+  DeferredLocationValue(DebugInfoReadStream* stream);
+  void write_on(DebugInfoWriteStream* stream);
+
+  // Printing
+  void print_on(outputStream* st) const;
+};
+
+
+class DeferredReadValue: public DeferredLocationValue {
+public:
+  DeferredReadValue(ScopeValue* base, ScopeValue* index, jint scale, jint disp)
+  : DeferredLocationValue(base, index, scale, disp) { }
+
+  // Serialization of debugging information
+  DeferredReadValue(DebugInfoReadStream* stream);
+  void write_on(DebugInfoWriteStream* stream);
+
+  // Printing
+  void print_on(outputStream* st) const;
+};
+
+class DeferredWriteValue: public DeferredLocationValue {
+private:
+  ScopeValue* _value;
+public:
+  DeferredWriteValue(ScopeValue* base, ScopeValue* index, jint scale, jint disp, ScopeValue* value)
+  : DeferredLocationValue(base, index, scale, disp), _value(value) { }
+
+  ScopeValue* value() { return _value; }
+
+  // Serialization of debugging information
+  DeferredWriteValue(DebugInfoReadStream* stream);
+  void write_on(DebugInfoWriteStream* stream);
+
+  // Printing
+  void print_on(outputStream* st) const;
+};
+
+#endif // GRAAL
 
 
 // An ObjectValue describes an object eliminated by escape analysis.

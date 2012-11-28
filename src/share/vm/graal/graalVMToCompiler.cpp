@@ -234,17 +234,6 @@ oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpl
   return (oop) result.get_jobject();
 }
 
-oop VMToCompiler::createSignature(Handle name, TRAPS) {
-  assert(!name.is_null(), "just checking");
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(instance());
-  args.push_oop(name);
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createSignature_name(), vmSymbols::createSignature_signature(), &args, THREAD);
-  check_pending_exception("Error while calling createSignature");
-  return (oop) result.get_jobject();
-}
-
 oop VMToCompiler::createConstant(Handle kind, jlong value, TRAPS) {
   JavaValue result(T_OBJECT);
   JavaCallArguments args;

@@ -195,6 +195,17 @@ C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jobject reflection_me
   return (jlong) (address) method();
 }
 
+C2V_VMENTRY(jlong, getMetaspaceConstructor, (JNIEnv *, jobject, jobject reflection_ctor_handle, jobject resultHolder))
+  oop reflection_ctor = JNIHandles::resolve(reflection_ctor_handle);
+  oop reflection_holder = java_lang_reflect_Constructor::clazz(reflection_ctor);
+  int slot = java_lang_reflect_Constructor::slot(reflection_ctor);
+  Klass* holder = java_lang_Class::as_Klass(reflection_holder);
+  methodHandle method = InstanceKlass::cast(holder)->method_with_idnum(slot);
+  Handle type = GraalCompiler::createHotSpotResolvedJavaType(method, CHECK_0);
+  objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
+  return (jlong) (address) method();
+}
+
 C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_handle))
   oop reflection_field = JNIHandles::resolve(reflection_field_handle);
   oop reflection_holder = java_lang_reflect_Field::clazz(reflection_field);
@@ -892,6 +903,7 @@ C2V_END
 #define RUNTIME_CALL          "Lcom/oracle/graal/api/code/RuntimeCall;"
 #define EXCEPTION_HANDLERS    "[Lcom/oracle/graal/api/meta/ExceptionHandler;"
 #define REFLECT_METHOD        "Ljava/lang/reflect/Method;"
+#define REFLECT_CONSTRUCTOR   "Ljava/lang/reflect/Constructor;"
 #define REFLECT_FIELD         "Ljava/lang/reflect/Field;"
 #define STRING                "Ljava/lang/String;"
 #define OBJECT                "Ljava/lang/Object;"
@@ -937,6 +949,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
   {CC"getResolvedType",               CC"("CLASS")"RESOLVED_TYPE,                                       FN_PTR(getResolvedType)},
   {CC"getMetaspaceMethod",            CC"("REFLECT_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,        FN_PTR(getMetaspaceMethod)},
+  {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode",                   CC"("HS_COMP_RESULT HS_INSTALLED_CODE HS_CODE_INFO")"HS_INSTALLED_CODE, FN_PTR(installCode)},
