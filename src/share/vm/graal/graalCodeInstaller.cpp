@@ -23,12 +23,12 @@
 
 #include "precompiled.hpp"
 #include "runtime/javaCalls.hpp"
+#include "graal/graalEnv.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalVmIds.hpp"
-#include "graal/graalEnv.hpp"
 #include "c1/c1_Runtime1.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "vmreg_x86.inline.hpp"
@@ -291,7 +291,7 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*& nm, Handle installed_code) {
+CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code) {
   _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
@@ -308,7 +308,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, nmethod*&
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
 
-  nm = GraalEnv::register_method(method, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+  result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, installed_code);
 
   method->clear_queued_for_compilation();

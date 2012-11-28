@@ -46,6 +46,13 @@ class GraalEnv : AllStatic {
 
 public:
 
+  // Must be kept in sync with the enum in the HotSpot implementation of CompilerToVM
+  enum CodeInstallResult {
+     ok,
+     dependencies_failed,
+     cache_full
+  };
+
   // Look up a klass by name from a particular class loader (the accessor's).
   // If require_local, result must be defined in that class loader, or NULL.
   // If !require_local, a result from remote class loader may be reported,
@@ -109,7 +116,9 @@ private:
 
 public:
   // Register the result of a compilation.
-  static nmethod* register_method(methodHandle&             target,
+  static GraalEnv::CodeInstallResult register_method(
+                       methodHandle&             target,
+                       nmethod*&                 nm,
                        int                       entry_bci,
                        CodeOffsets*              offsets,
                        int                       orig_pc_offset,

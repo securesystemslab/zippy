@@ -735,7 +735,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int(env, config, "arrayClassElementOffset", in_bytes(ObjArrayKlass::element_klass_offset()));
 C2V_END
 
-C2V_VMENTRY(jobject, installCode, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject info))
+C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject info))
   ResourceMark rm;
   HandleMark hm;
   Handle compResultHandle = JNIHandles::resolve(compResult);
@@ -744,29 +744,27 @@ C2V_VMENTRY(jobject, installCode, (JNIEnv *jniEnv, jobject, jobject compResult, 
   Arena arena;
   ciEnv env(&arena);
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
-  CodeInstaller installer(compResultHandle, method, nm, installed_code_handle);
+  GraalEnv::CodeInstallResult result;
+  CodeInstaller installer(compResultHandle, method, result, nm, installed_code_handle);
 
-  if (nm == NULL) {
-    // dependency (re)checking failed
-    return NULL;
-  }
-
-  if (info != NULL) {
-    arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
-    memcpy(codeCopy->base(T_BYTE), nm->code_begin(), nm->code_size());
-    HotSpotCodeInfo::set_code(info, codeCopy);
-    HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
-  }
-
-  if (!installed_code_handle.is_null()) {
-    assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
-    HotSpotInstalledCode::set_nmethod(installed_code_handle, (jlong) nm);
-    HotSpotInstalledCode::set_method(installed_code_handle, HotSpotCompilationResult::method(compResult));
-    assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
-    return installed_code;
+  if (result != GraalEnv::ok) {
+    assert(nm == NULL, "should be");
   } else {
-    return NULL;
+    if (info != NULL) {
+      arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
+      memcpy(codeCopy->base(T_BYTE), nm->code_begin(), nm->code_size());
+      HotSpotCodeInfo::set_code(info, codeCopy);
+      HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
+    }
+
+    if (!installed_code_handle.is_null()) {
+      assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
+      HotSpotInstalledCode::set_nmethod(installed_code_handle, (jlong) nm);
+      HotSpotInstalledCode::set_method(installed_code_handle, HotSpotCompilationResult::method(compResult));
+      assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
+    }
   }
+  return result;
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleNative, (JNIEnv *jniEnv, jobject, jbyteArray code, jlong start_address))
@@ -952,7 +950,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode",                   CC"("HS_COMP_RESULT HS_INSTALLED_CODE HS_CODE_INFO")"HS_INSTALLED_CODE, FN_PTR(installCode)},
+  {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE HS_CODE_INFO")I",           FN_PTR(installCode0)},
   {CC"disassembleNative",             CC"([BJ)"STRING,                                                  FN_PTR(disassembleNative)},
   {CC"executeCompiledMethod",         CC"("METASPACE_METHOD NMETHOD OBJECT OBJECT OBJECT")"OBJECT,      FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",  CC"("METASPACE_METHOD NMETHOD "["OBJECT")"OBJECT,                 FN_PTR(executeCompiledMethodVarargs)},

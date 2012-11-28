@@ -428,7 +428,9 @@ bool GraalEnv::check_for_system_dictionary_modification(Dependencies* dependenci
 
 // ------------------------------------------------------------------
 // ciEnv::register_method
-nmethod* GraalEnv::register_method(methodHandle& method,
+GraalEnv::CodeInstallResult GraalEnv::register_method(
+                                methodHandle& method,
+                                nmethod*& nm,
                                 int entry_bci,
                                 CodeOffsets* offsets,
                                 int orig_pc_offset,
@@ -447,7 +449,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
                                 Handle installed_code) {
   EXCEPTION_CONTEXT;
   NMethodSweeper::possibly_sweep();
-  nmethod* nm = NULL;
+  nm = NULL;
   int comp_level = CompLevel_simple;
   {
     // To prevent compile queue updates.
@@ -472,7 +474,7 @@ nmethod* GraalEnv::register_method(methodHandle& method,
       // If the code buffer is created on each compile attempt
       // as in C2, then it must be freed.
       //code_buffer->free_blob();
-      return NULL;
+      return GraalEnv::dependencies_failed;
     }
 
     nm =  nmethod::new_nmethod(method,
@@ -555,8 +557,9 @@ nmethod* GraalEnv::register_method(methodHandle& method,
   // JVMTI -- compiled method notification (must be done outside lock)
   if (nm != NULL) {
     nm->post_compiled_method_load_event();
+    return GraalEnv::ok;
   }
 
-  return nm;
+  return GraalEnv::cache_full;
 }
 
