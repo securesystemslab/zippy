@@ -632,7 +632,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
 
-    if (PrintMachineCodeToFile) {
+    if (nm != NULL && PrintMachineCodeToFile) {
       MachineCodePrinter::print(nm);
     }
   }
