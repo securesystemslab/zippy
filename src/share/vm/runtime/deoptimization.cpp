@@ -944,7 +944,7 @@ void Deoptimization::reassign_object_array_elements(frame* fr, RegisterMap* reg_
 
 #ifdef GRAAL
 // Restore fields of an eliminated instance object using the same field order
-// returned by HotSpotResolvedJavaType.getInstanceFields(true)
+// returned by HotSpotResolvedObjectType.getInstanceFields(true)
 static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap* reg_map, ObjectValue* sv, int svIndex, oop obj) {
   if (klass->superklass() != NULL) {
     svIndex = reassign_fields_by_klass(klass->superklass(), fr, reg_map, sv, svIndex, obj);

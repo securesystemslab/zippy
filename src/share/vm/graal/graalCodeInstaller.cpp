@@ -102,7 +102,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   return map;
 }
 
-// Records any Metadata values embedded in a Constant (e.g., the value returned by HotSpotResolvedJavaType.klass()).
+// Records any Metadata values embedded in a Constant (e.g., the value returned by HotSpotResolvedObjectType.klass()).
 static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder) {
   char kind = Kind::typeChar(Constant::kind(constant));
   char wordKind = 'j';
@@ -110,8 +110,8 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
     oop obj = Constant::object(constant);
     jlong prim = Constant::primitive(constant);
     if (obj != NULL) {
-      if (obj->is_a(HotSpotResolvedJavaType::klass())) {
-        Klass* klass = (Klass*) (address) HotSpotResolvedJavaType::metaspaceKlass(obj);
+      if (obj->is_a(HotSpotResolvedObjectType::klass())) {
+        Klass* klass = (Klass*) (address) HotSpotResolvedObjectType::metaspaceKlass(obj);
         assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
         int index = oop_recorder->find_index(klass);
         TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
@@ -199,7 +199,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
   } else if (value->is_a(VirtualObject::klass())) {
     oop type = VirtualObject::type(value);
     int id = VirtualObject::id(value);
-    oop javaMirror = HotSpotResolvedJavaType::javaMirror(type);
+    oop javaMirror = HotSpotResolvedObjectType::javaMirror(type);
     Klass* klass = java_lang_Class::as_Klass(javaMirror);
     bool isLongArray = klass == Universe::longArrayKlassObj();
 
@@ -412,10 +412,10 @@ void CodeInstaller::assumption_MethodContents(Handle assumption) {
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   Handle context_handle = Assumptions_ConcreteSubtype::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(context_handle)));
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(context_handle)));
 
   Handle type_handle = Assumptions_ConcreteSubtype::subtype(assumption());
-  ciKlass* type = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(type_handle)));
+  ciKlass* type = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type_handle)));
 
   _dependencies->assert_leaf_type(type);
   if (context != type) {
@@ -430,7 +430,7 @@ void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   ciMethod* m = (ciMethod*) CURRENT_ENV->get_method(impl());
   
   Handle context_handle = Assumptions_ConcreteMethod::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedJavaType::javaMirror(context_handle)));
+  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(context_handle)));
   _dependencies->assert_unique_concrete_method(context, m);
 }
 

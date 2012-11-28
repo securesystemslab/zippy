@@ -164,7 +164,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   ciEnv* current_env = JavaThread::current()->env();
   JavaThread::current()->set_env(NULL);
   JavaThread::current()->set_compiling(true);
-  Handle holder = GraalCompiler::createHotSpotResolvedJavaType(method, CHECK);
+  Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
   jboolean success = VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
   JavaThread::current()->set_compiling(false);
   JavaThread::current()->set_env(current_env);
@@ -253,13 +253,13 @@ Handle GraalCompiler::get_JavaTypeFromClass(Handle java_class, TRAPS) {
   } else {
     KlassHandle klass = java_lang_Class::as_Klass(java_class());
     Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
-    return GraalCompiler::createHotSpotResolvedJavaType(klass, name, CHECK_NULL);
+    return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
   }
 }
 
 Handle GraalCompiler::get_JavaType(KlassHandle klass, TRAPS) {
   Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
-  return createHotSpotResolvedJavaType(klass, name, CHECK_NULL);
+  return createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
 }
 
 Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
@@ -267,23 +267,23 @@ Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, H
   return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NULL);
 }
 
-Handle GraalCompiler::createHotSpotResolvedJavaType(methodHandle method, TRAPS) {
+Handle GraalCompiler::createHotSpotResolvedObjectType(methodHandle method, TRAPS) {
   KlassHandle klass = method->method_holder();
   oop java_class = klass->java_mirror();
   oop graal_mirror = java_lang_Class::graal_mirror(java_class);
   if (graal_mirror != NULL) {
-    assert(graal_mirror->is_a(HotSpotResolvedJavaType::klass()), "unexpected class...");
+    assert(graal_mirror->is_a(HotSpotResolvedObjectType::klass()), "unexpected class...");
     return graal_mirror;
   }
   Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
-  return GraalCompiler::createHotSpotResolvedJavaType(klass, name, CHECK_NULL);
+  return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
 }
 
-Handle GraalCompiler::createHotSpotResolvedJavaType(KlassHandle klass, Handle name, TRAPS) {
+Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle name, TRAPS) {
   oop java_class = klass->java_mirror();
   oop graal_mirror = java_lang_Class::graal_mirror(java_class);
   if (graal_mirror != NULL) {
-    assert(graal_mirror->is_a(HotSpotResolvedJavaType::klass()), "unexpected class...");
+    assert(graal_mirror->is_a(HotSpotResolvedObjectType::klass()), "unexpected class...");
     return graal_mirror;
   }
 
@@ -299,9 +299,9 @@ Handle GraalCompiler::createHotSpotResolvedJavaType(KlassHandle klass, Handle na
 
   int sizeOrSpecies;
   if (klass->is_interface()) {
-    sizeOrSpecies = (int) 0x80000000; // see HotSpotResolvedJavaType.INTERFACE_SPECIES_VALUE
+    sizeOrSpecies = (int) 0x80000000; // see HotSpotResolvedObjectType.INTERFACE_SPECIES_VALUE
   } else if (klass->oop_is_array()) {
-    sizeOrSpecies = (int) 0x7fffffff; // see HotSpotResolvedJavaType.ARRAY_SPECIES_VALUE
+    sizeOrSpecies = (int) 0x7fffffff; // see HotSpotResolvedObjectType.ARRAY_SPECIES_VALUE
   } else {
     sizeOrSpecies = InstanceKlass::cast(klass())->size_helper() * HeapWordSize;
     if (!InstanceKlass::cast(klass())->can_be_fastpath_allocated()) {

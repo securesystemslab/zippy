@@ -148,7 +148,7 @@ class Klass : public Metadata {
   // java/lang/Class instance mirroring this class
   oop       _java_mirror;
 #ifdef GRAAL
-  // com/oracle/graal/hotspot/HotSpotResolvedJavaType mirroring this class
+  // com/oracle/graal/hotspot/HotSpotResolvedObjectType mirroring this class
   oop       _graal_mirror;
 #endif
   // Superclass

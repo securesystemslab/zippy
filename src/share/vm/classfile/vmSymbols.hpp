@@ -290,7 +290,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotMethodData,          "com/oracle/graal/hotspot/meta/HotSpotMethodData")               \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
-  template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaType,    "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaType")         \
+  template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   AMD64_ONLY(template(com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/amd64/AMD64HotSpotGraalRuntime"))\
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
@@ -325,7 +325,7 @@
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
   template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;IZI)Z")                   \
+  template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;IZI)Z")                 \
   template(setOption_name,                        "setOption")                                                                        \
   template(setDefaultOptions_name,                "setDefaultOptions")                                                                \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
