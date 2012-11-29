@@ -59,43 +59,6 @@ class   KlassDepChange;
 class   CallSiteDepChange;
 class No_Safepoint_Verifier;
 
-#ifdef GRAAL
-
-// Dependency values that don't rely on the ciBaseObject types.
-class DepValue VALUE_OBJ_CLASS_SPEC {
-private:
-  OopRecorder* _oop_recorder;
-  int _index; // positive -> metadata, negative -> object
-
-public:
-  DepValue() : _oop_recorder(NULL), _index(max_jint) {}
-  DepValue(OopRecorder* oop_recorder, Metadata* metadata) : _oop_recorder(oop_recorder) {
-    int index = oop_recorder->find_index(metadata);
-    _index = index;
-  }
-  DepValue(OopRecorder* oop_recorder, jobject obj) : _oop_recorder(oop_recorder) {
-    int index = oop_recorder->find_index(obj);
-    _index = -(index + 1);
-  }
-
-  // Used to sort values in order of index with metadata values preceding object values
-  int sort_key() const { return -_index; }
-
-  bool operator == (const DepValue& dv) const   { return dv._oop_recorder == _oop_recorder && dv._index == _index; }
-
-  bool is_valid() const             { return _index != max_jint; }
-  int  index() const                { assert(is_valid(), "oops"); return _index < 0 ? -(_index + 1) : _index; }
-  bool is_metadata() const          { assert(is_valid(), "oops"); return _index >= 0; }
-  bool is_method() const            { assert(is_valid(), "oops"); return as_metadata()->is_method(); }
-  bool is_klass() const             { assert(is_valid(), "oops"); return as_metadata()->is_klass(); }
-  bool is_object() const            { return !is_metadata(); }
-
-  Metadata*  as_metadata() const    { assert(is_metadata(), "oops"); return _oop_recorder->metadata_at(index()); }
-  Klass*     as_klass() const       { assert(is_klass(), "oops"); return (Klass*) as_metadata(); }
-  Method*    as_method() const      { assert(is_method(), "oops"); return (Method*) as_metadata(); }
-};
-#endif
-
 class Dependencies: public ResourceObj {
  public:
   // Note: In the comments on dependency types, most uses of the terms
@@ -237,6 +200,51 @@ class Dependencies: public ResourceObj {
 
   static void check_valid_dependency_type(DepType dept);
 
+#ifdef GRAAL
+  // A Metadata* or object value recorded in an OopRecorder
+  class DepValue VALUE_OBJ_CLASS_SPEC {
+   private:
+    // Unique identifier of the value within the associated OopRecorder that
+    // encodes both the category of the value (0: invalid, positive: metadata, negative: object)
+    // and the index within a category specific array (metadata: index + 1, object: -(index + 1))
+    int _id;
+
+   public:
+    DepValue() : _id(0) {}
+    DepValue(OopRecorder* rec, Metadata* metadata, DepValue* candidate = NULL) {
+      assert(candidate == NULL || candidate->is_metadata(), "oops");
+      if (candidate != NULL && candidate->as_metadata(rec) == metadata) {
+        _id = candidate->_id;
+      } else {
+        _id = rec->find_index(metadata) + 1;
+      }
+    }
+    DepValue(OopRecorder* rec, jobject obj, DepValue* candidate = NULL) {
+      assert(candidate == NULL || candidate->is_object(), "oops");
+      if (candidate != NULL && candidate->as_object(rec) == obj) {
+        _id = candidate->_id;
+      } else {
+        _id = -(rec->find_index(obj) + 1);
+      }
+    }
+
+    // Used to sort values in ascending order of index() with metadata values preceding object values
+    int sort_key() const { return -_id; }
+
+    bool operator == (const DepValue& other) const   { return other._id == _id; }
+
+    bool is_valid() const             { return _id != 0; }
+    int  index() const                { assert(is_valid(), "oops"); return _id < 0 ? -(_id + 1) : _id - 1; }
+    bool is_metadata() const          { assert(is_valid(), "oops"); return _id > 0; }
+    bool is_object() const            { assert(is_valid(), "oops"); return _id < 0; }
+
+    Metadata*  as_metadata(OopRecorder* rec) const    { assert(is_metadata(), "oops"); return rec->metadata_at(index()); }
+    Klass*     as_klass(OopRecorder* rec) const       { assert(as_metadata(rec)->is_klass(), "oops"); return (Klass*) as_metadata(rec); }
+    Method*    as_method(OopRecorder* rec) const      { assert(as_metadata(rec)->is_method(), "oops"); return (Method*) as_metadata(rec); }
+    jobject    as_object(OopRecorder* rec) const      { assert(is_object(), "oops"); return rec->oop_at(index()); }
+  };
+#endif
+
  private:
   // State for writing a new set of dependencies:
   GrowableArray<int>*       _dep_seen;  // (seen[h->ident] & (1<<dept))
@@ -351,10 +359,10 @@ class Dependencies: public ResourceObj {
   void assert_common_2(DepType dept, DepValue x0, DepValue x1);
 
  public:
-  void assert_evol_method(DepValue m);
-  void assert_leaf_type(DepValue ctxk);
-  void assert_unique_concrete_method(DepValue ctxk, DepValue uniqm);
-  void assert_abstract_with_unique_concrete_subtype(DepValue ctxk, DepValue conck);
+  void assert_evol_method(Method* m);
+  void assert_leaf_type(Klass* ctxk);
+  void assert_unique_concrete_method(Klass* ctxk, Method* uniqm);
+  void assert_abstract_with_unique_concrete_subtype(Klass* ctxk, Klass* conck);
 #endif // GRAAL
 
   // Define whether a given method or type is concrete.

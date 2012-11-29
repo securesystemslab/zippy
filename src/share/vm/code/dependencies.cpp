@@ -139,12 +139,11 @@ Dependencies::Dependencies(Arena* arena, OopRecorder* oop_recorder) {
   assert(TYPE_LIMIT <= (1<<LG2_TYPE_LIMIT), "sanity");
 }
 
-void Dependencies::assert_evol_method(DepValue m) {
-  assert_common_1(evol_method, m);
+void Dependencies::assert_evol_method(Method* m) {
+  assert_common_1(evol_method, DepValue(_oop_recorder, m));
 }
 
-void Dependencies::assert_leaf_type(DepValue ctxk_dv) {
-  Klass* ctxk = ctxk_dv.as_klass();
+void Dependencies::assert_leaf_type(Klass* ctxk) {
   if (ctxk->oop_is_array()) {
     // As a special case, support this assertion on an array type,
     // which reduces to an assertion on its element type.
@@ -156,17 +155,19 @@ void Dependencies::assert_leaf_type(DepValue ctxk_dv) {
     //if (ctxk->is_final())  return;            // Ex:  String[][]
   }
   check_ctxk(ctxk);
-  assert_common_1(leaf_type, ctxk_dv);
+  assert_common_1(leaf_type, DepValue(_oop_recorder, ctxk));
 }
 
-void Dependencies::assert_abstract_with_unique_concrete_subtype(DepValue ctxk, DepValue conck) {
-  check_ctxk_abstract(ctxk.as_klass());
-  assert_common_2(abstract_with_unique_concrete_subtype, ctxk, conck);
+void Dependencies::assert_abstract_with_unique_concrete_subtype(Klass* ctxk, Klass* conck) {
+  check_ctxk_abstract(ctxk);
+  DepValue ctxk_dv(_oop_recorder, ctxk);
+  DepValue conck_dv(_oop_recorder, conck, &ctxk_dv);
+  assert_common_2(abstract_with_unique_concrete_subtype, ctxk_dv, conck_dv);
 }
 
-void Dependencies::assert_unique_concrete_method(DepValue ctxk, DepValue uniqm) {
-  check_ctxk(ctxk.as_klass());
-  assert_common_2(unique_concrete_method, ctxk, uniqm);
+void Dependencies::assert_unique_concrete_method(Klass* ctxk, Method* uniqm) {
+  check_ctxk(ctxk);
+  assert_common_2(unique_concrete_method, DepValue(_oop_recorder, ctxk), DepValue(_oop_recorder, uniqm));
 }
 #endif // GRAAL
 
@@ -285,8 +286,8 @@ void Dependencies::assert_common_3(DepType dept,
 #ifdef GRAAL
 bool Dependencies::maybe_merge_ctxk(GrowableArray<DepValue>* deps,
                                     int ctxk_i, DepValue ctxk2_dv) {
-  Klass* ctxk1 = deps->at(ctxk_i).as_klass();
-  Klass* ctxk2 = ctxk2_dv.as_klass();
+  Klass* ctxk1 = deps->at(ctxk_i).as_klass(_oop_recorder);
+  Klass* ctxk2 = ctxk2_dv.as_klass(_oop_recorder);
   if (ctxk2->is_subtype_of(ctxk1)) {
     return true;  // success, and no need to change
   } else if (ctxk1->is_subtype_of(ctxk2)) {
@@ -382,18 +383,18 @@ static int sort_dep_arg_3(ciBaseObject** p1, ciBaseObject** p2)
 
 #ifdef GRAAL
 // metadata deps are sorted before object deps
-static int sort_dep_value(DepValue* p1, DepValue* p2, int narg) {
+static int sort_dep_value(Dependencies::DepValue* p1, Dependencies::DepValue* p2, int narg) {
   for (int i = 0; i < narg; i++) {
     int diff = p1[i].sort_key() - p2[i].sort_key();
     if (diff != 0)  return diff;
   }
   return 0;
 }
-static int sort_dep_value_arg_1(DepValue* p1, DepValue* p2)
+static int sort_dep_value_arg_1(Dependencies::DepValue* p1, Dependencies::DepValue* p2)
 { return sort_dep_value(p1, p2, 1); }
-static int sort_dep_value_arg_2(DepValue* p1, DepValue* p2)
+static int sort_dep_value_arg_2(Dependencies::DepValue* p1, Dependencies::DepValue* p2)
 { return sort_dep_value(p1, p2, 2); }
-static int sort_dep_value_arg_3(DepValue* p1, DepValue* p2)
+static int sort_dep_value_arg_3(Dependencies::DepValue* p1, Dependencies::DepValue* p2)
 { return sort_dep_value(p1, p2, 3); }
 #endif // GRAAL
 
@@ -491,9 +492,9 @@ void Dependencies::encode_content_bytes() {
         jbyte code_byte = (jbyte)dept;
         int skipj = -1;
         if (ctxkj >= 0 && ctxkj+1 < stride) {
-          Klass*  ctxk = deps->at(i+ctxkj+0).as_klass();
-          DepValue x     = deps->at(i+ctxkj+1);  // following argument
-          if (ctxk == ctxk_encoded_as_null(dept, x.as_metadata())) {
+          Klass*  ctxk = deps->at(i+ctxkj+0).as_klass(_oop_recorder);
+          DepValue x = deps->at(i+ctxkj+1);  // following argument
+          if (ctxk == ctxk_encoded_as_null(dept, x.as_metadata(_oop_recorder))) {
             skipj = ctxkj;  // we win:  maybe one less oop to keep track of
             code_byte |= default_context_type_bit;
           }
