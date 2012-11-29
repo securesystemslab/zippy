@@ -161,13 +161,11 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
-  ciEnv* current_env = JavaThread::current()->env();
-  JavaThread::current()->set_env(NULL);
+  assert(JavaThread::current()->env() == NULL, "ciEnv should be null");
   JavaThread::current()->set_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
   jboolean success = VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
   JavaThread::current()->set_compiling(false);
-  JavaThread::current()->set_env(current_env);
   if (success != JNI_TRUE) {
     method->clear_queued_for_compilation();
     CompilationPolicy::policy()->delay_compilation(method());

@@ -28,7 +28,6 @@
 #include "oops/fieldStreams.hpp"
 #include "runtime/javaCalls.hpp"
 #include "c1/c1_Runtime1.hpp"
-#include "ci/ciMethodData.hpp"
 #include "compiler/compileBroker.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "graal/graalCompilerToVM.hpp"
@@ -741,8 +740,6 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
   Handle compResultHandle = JNIHandles::resolve(compResult);
   nmethod* nm = NULL;
   methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(compResult));
-  Arena arena;
-  ciEnv env(&arena);
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
   GraalEnv::CodeInstallResult result;
   CodeInstaller installer(compResultHandle, method, result, nm, installed_code_handle);

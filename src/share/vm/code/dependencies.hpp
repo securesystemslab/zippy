@@ -59,6 +59,43 @@ class   KlassDepChange;
 class   CallSiteDepChange;
 class No_Safepoint_Verifier;
 
+#ifdef GRAAL
+
+// Dependency values that don't rely on the ciBaseObject types.
+class DepValue VALUE_OBJ_CLASS_SPEC {
+private:
+  OopRecorder* _oop_recorder;
+  int _index; // positive -> metadata, negative -> object
+
+public:
+  DepValue() : _oop_recorder(NULL), _index(max_jint) {}
+  DepValue(OopRecorder* oop_recorder, Metadata* metadata) : _oop_recorder(oop_recorder) {
+    int index = oop_recorder->find_index(metadata);
+    _index = index;
+  }
+  DepValue(OopRecorder* oop_recorder, jobject obj) : _oop_recorder(oop_recorder) {
+    int index = oop_recorder->find_index(obj);
+    _index = -(index + 1);
+  }
+
+  // Used to sort values in order of index with metadata values preceding object values
+  int sort_key() const { return -_index; }
+
+  bool operator == (const DepValue& dv) const   { return dv._oop_recorder == _oop_recorder && dv._index == _index; }
+
+  bool is_valid() const             { return _index != max_jint; }
+  int  index() const                { assert(is_valid(), "oops"); return _index < 0 ? -(_index + 1) : _index; }
+  bool is_metadata() const          { assert(is_valid(), "oops"); return _index >= 0; }
+  bool is_method() const            { assert(is_valid(), "oops"); return as_metadata()->is_method(); }
+  bool is_klass() const             { assert(is_valid(), "oops"); return as_metadata()->is_klass(); }
+  bool is_object() const            { return !is_metadata(); }
+
+  Metadata*  as_metadata() const    { assert(is_metadata(), "oops"); return _oop_recorder->metadata_at(index()); }
+  Klass*     as_klass() const       { assert(is_klass(), "oops"); return (Klass*) as_metadata(); }
+  Method*    as_method() const      { assert(is_method(), "oops"); return (Method*) as_metadata(); }
+};
+#endif
+
 class Dependencies: public ResourceObj {
  public:
   // Note: In the comments on dependency types, most uses of the terms
@@ -204,6 +241,10 @@ class Dependencies: public ResourceObj {
   // State for writing a new set of dependencies:
   GrowableArray<int>*       _dep_seen;  // (seen[h->ident] & (1<<dept))
   GrowableArray<ciBaseObject*>*  _deps[TYPE_LIMIT];
+#ifdef GRAAL
+  bool _using_dep_values;
+  GrowableArray<DepValue>*  _dep_values[TYPE_LIMIT];
+#endif
 
   static const char* _dep_name[TYPE_LIMIT];
   static int         _dep_args[TYPE_LIMIT];
@@ -222,8 +263,25 @@ class Dependencies: public ResourceObj {
     return (seen & (1<<dept)) != 0;
   }
 
+#ifdef GRAAL
+  bool note_dep_seen(int dept, DepValue x) {
+    assert(dept < BitsPerInt, "oops");
+    // place metadata deps at even indexes, object deps at odd indexes
+    int x_id = x.is_metadata() ? x.index() * 2 : (x.index() * 2) + 1;
+    assert(_dep_seen != NULL, "deps must be writable");
+    int seen = _dep_seen->at_grow(x_id, 0);
+    _dep_seen->at_put(x_id, seen | (1<<dept));
+    // return true if we've already seen dept/x
+    return (seen & (1<<dept)) != 0;
+  }
+#endif
+
   bool maybe_merge_ctxk(GrowableArray<ciBaseObject*>* deps,
                         int ctxk_i, ciKlass* ctxk);
+#ifdef GRAAL
+  bool maybe_merge_ctxk(GrowableArray<DepValue>* deps,
+                        int ctxk_i, DepValue ctxk);
+#endif
 
   void sort_all_deps();
   size_t estimate_size_in_bytes();
@@ -245,6 +303,9 @@ class Dependencies: public ResourceObj {
   Dependencies(ciEnv* env) {
     initialize(env);
   }
+#ifdef GRAAL
+  Dependencies(Arena* arena, OopRecorder* oop_recorder);
+#endif // GRAAL
 
  private:
   // Check for a valid context type.
@@ -276,6 +337,25 @@ class Dependencies: public ResourceObj {
   void assert_exclusive_concrete_methods(ciKlass* ctxk, ciMethod* m1, ciMethod* m2);
   void assert_has_no_finalizable_subclasses(ciKlass* ctxk);
   void assert_call_site_target_value(ciCallSite* call_site, ciMethodHandle* method_handle);
+
+#ifdef GRAAL
+ private:
+  static void check_ctxk(Klass* ctxk) {
+    assert(ctxk->oop_is_instance(), "java types only");
+  }
+  static void check_ctxk_abstract(Klass* ctxk) {
+    check_ctxk(ctxk);
+    assert(ctxk->is_abstract(), "must be abstract");
+  }
+  void assert_common_1(DepType dept, DepValue x);
+  void assert_common_2(DepType dept, DepValue x0, DepValue x1);
+
+ public:
+  void assert_evol_method(DepValue m);
+  void assert_leaf_type(DepValue ctxk);
+  void assert_unique_concrete_method(DepValue ctxk, DepValue uniqm);
+  void assert_abstract_with_unique_concrete_subtype(DepValue ctxk, DepValue conck);
+#endif // GRAAL
 
   // Define whether a given method or type is concrete.
   // These methods define the term "concrete" as used in this module.

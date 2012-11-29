@@ -34,7 +34,6 @@
 
 class CompileTask;
 
-// ciEnv
 //
 // This class is the top level broker for requests from the compiler
 // to the VM.
@@ -136,12 +135,8 @@ public:
                        bool                      has_unsafe_access,
                        Handle                    installed_code);
 
-  static ciKlass*  find_system_klass(ciSymbol* klass_name);
-  // Note:  To find a class from its name string, use ciSymbol::make,
-  // but consider adding to vmSymbols.hpp instead.
-
-  // converts the ciKlass* representing the holder of a method into a
-  // ciInstanceKlass*.  This is needed since the holder of a method in
+  // converts the Klass* representing the holder of a method into a
+  // InstanceKlass*.  This is needed since the holder of a method in
   // the bytecodes could be an array type.  Basically this converts
   // array types into java/lang/Object and other types stay as they are.
   static instanceKlassHandle get_instance_klass_for_declared_method_holder(KlassHandle& klass);

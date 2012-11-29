@@ -264,9 +264,8 @@ static MonitorValue* get_monitor_value(oop value, int total_frame_size, Growable
 }
 
 void CodeInstaller::initialize_assumptions(oop target_method) {
-  _oop_recorder = new OopRecorder(_env->arena());
-  _env->set_oop_recorder(_oop_recorder);
-  _dependencies = new Dependencies(_env);
+  _oop_recorder = new OopRecorder(&_arena);
+  _dependencies = new Dependencies(&_arena, _oop_recorder);
   Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompilationResult::comp(target_method));
   if (!assumptions_handle.is_null()) {
     objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
@@ -291,7 +290,6 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code) {
-  _env = CURRENT_ENV;
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
@@ -316,10 +314,8 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
 // constructor used to create a stub
 CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id) {
   No_Safepoint_Verifier no_safepoint;
-  _env = CURRENT_ENV;
   
-  _oop_recorder = new OopRecorder(_env->arena());
-  _env->set_oop_recorder(_oop_recorder);
+  _oop_recorder = new OopRecorder(&_arena);
   initialize_fields(target_method(), NULL);
   assert(_name != NULL, "installMethod needs NON-NULL name");
 
@@ -365,10 +361,9 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   buffer.initialize_stubs_size(256);
   buffer.initialize_consts_size(_constants_size);
 
-  _debug_recorder = new DebugInformationRecorder(_env->oop_recorder());
+  _debug_recorder = new DebugInformationRecorder(_oop_recorder);
   _debug_recorder->set_oopmaps(new OopMapSet());
   
-  _env->set_debug_info(_debug_recorder);
   buffer.initialize_oop_recorder(_oop_recorder);
 
   _instructions = buffer.insts();
@@ -404,33 +399,35 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
   Handle method_handle = Assumptions_MethodContents::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
-  ciMethod* m = (ciMethod*) CURRENT_ENV->get_method(method());
-
-  _dependencies->assert_evol_method(m);
+  DepValue method_dv(_oop_recorder, method());
+  _dependencies->assert_evol_method(method_dv);
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   Handle context_handle = Assumptions_ConcreteSubtype::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(context_handle)));
+  Handle subtype_handle = Assumptions_ConcreteSubtype::subtype(assumption());
+  Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
+  Klass* subtype = asKlass(HotSpotResolvedObjectType::metaspaceKlass(subtype_handle));
 
-  Handle type_handle = Assumptions_ConcreteSubtype::subtype(assumption());
-  ciKlass* type = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type_handle)));
-
-  _dependencies->assert_leaf_type(type);
-  if (context != type) {
+  DepValue subtype_dv(_oop_recorder, subtype);
+  _dependencies->assert_leaf_type(subtype_dv);
+  if (context != subtype) {
     assert(context->is_abstract(), "");
-    _dependencies->assert_abstract_with_unique_concrete_subtype(context, type);
+    DepValue context_dv(_oop_recorder, context);
+    _dependencies->assert_abstract_with_unique_concrete_subtype(context_dv, subtype_dv);
   }
 }
 
 void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   Handle impl_handle = Assumptions_ConcreteMethod::impl(assumption());
-  methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
-  ciMethod* m = (ciMethod*) CURRENT_ENV->get_method(impl());
-  
   Handle context_handle = Assumptions_ConcreteMethod::context(assumption());
-  ciKlass* context = (ciKlass*) CURRENT_ENV->get_klass(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(context_handle)));
-  _dependencies->assert_unique_concrete_method(context, m);
+
+  methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
+  Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
+
+  DepValue context_dv(_oop_recorder, context);
+  DepValue impl_dv(_oop_recorder, impl());
+  _dependencies->assert_unique_concrete_method(context_dv, impl_dv);
 }
 
 void CodeInstaller::process_exception_handlers() {
