@@ -536,7 +536,7 @@ public final class GraphBuilderPhase extends Phase {
         ValueNode b = mirror ? x : y;
 
         CompareNode condition;
-        assert !a.kind().isFloatOrDouble();
+        assert a.kind() != Kind.Double && a.kind() != Kind.Float;
         if (cond == Condition.EQ || cond == Condition.NE) {
             if (a.kind() == Kind.Object) {
                 condition = new ObjectEqualsNode(a, b);
@@ -1396,7 +1396,7 @@ public final class GraphBuilderPhase extends Phase {
     }
 
     private void createReturn() {
-        if (method.isConstructor() && method.getDeclaringClass().isClass(Object.class)) {
+        if (method.isConstructor() && MetaUtil.isJavaLangObject(method.getDeclaringClass())) {
             callRegisterFinalizer();
         }
         Kind returnKind = method.getSignature().getReturnKind().getStackKind();
@@ -1442,7 +1442,7 @@ public final class GraphBuilderPhase extends Phase {
         if (initialized && graphBuilderConfig.getSkippedExceptionTypes() != null) {
             ResolvedJavaType resolvedCatchType = (ResolvedJavaType) catchType;
             for (ResolvedJavaType skippedType : graphBuilderConfig.getSkippedExceptionTypes()) {
-                initialized &= !resolvedCatchType.isAssignableTo(skippedType);
+                initialized &= !skippedType.isAssignableFrom(resolvedCatchType);
                 if (!initialized) {
                     break;
                 }
