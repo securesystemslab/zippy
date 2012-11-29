@@ -266,7 +266,6 @@ static MonitorValue* get_monitor_value(oop value, int total_frame_size, Growable
 void CodeInstaller::initialize_assumptions(oop target_method) {
   _oop_recorder = new OopRecorder(_env->arena());
   _env->set_oop_recorder(_oop_recorder);
-  _env->set_dependencies(_dependencies);
   _dependencies = new Dependencies(_env);
   Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompilationResult::comp(target_method));
   if (!assumptions_handle.is_null()) {
