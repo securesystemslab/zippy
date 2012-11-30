@@ -1449,7 +1449,8 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
   }
 
   if (TraceCreateZombies) {
-    tty->print_cr("nmethod <" INTPTR_FORMAT "> code made %s", this, (state == not_entrant) ? "not entrant" : "zombie");
+    ResourceMark m;
+    tty->print_cr("nmethod <" INTPTR_FORMAT "> %s code made %s", this, this->method()->name_and_sig_as_C_string(), (state == not_entrant) ? "not entrant" : "zombie");
   }
 
   // Make sweeper aware that there is a zombie method that needs to be removed
