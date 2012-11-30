@@ -399,8 +399,7 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
   Handle method_handle = Assumptions_MethodContents::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
-  DepValue method_dv(_oop_recorder, method());
-  _dependencies->assert_evol_method(method_dv);
+  _dependencies->assert_evol_method(method());
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
@@ -409,12 +408,10 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
   Klass* subtype = asKlass(HotSpotResolvedObjectType::metaspaceKlass(subtype_handle));
 
-  DepValue subtype_dv(_oop_recorder, subtype);
-  _dependencies->assert_leaf_type(subtype_dv);
+  _dependencies->assert_leaf_type(subtype);
   if (context != subtype) {
     assert(context->is_abstract(), "");
-    DepValue context_dv(_oop_recorder, context);
-    _dependencies->assert_abstract_with_unique_concrete_subtype(context_dv, subtype_dv);
+    _dependencies->assert_abstract_with_unique_concrete_subtype(context, subtype);
   }
 }
 
@@ -425,9 +422,7 @@ void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   methodHandle impl = getMethodFromHotSpotMethod(impl_handle());
   Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
 
-  DepValue context_dv(_oop_recorder, context);
-  DepValue impl_dv(_oop_recorder, impl());
-  _dependencies->assert_unique_concrete_method(context_dv, impl_dv);
+  _dependencies->assert_unique_concrete_method(context, impl());
 }
 
 void CodeInstaller::process_exception_handlers() {
