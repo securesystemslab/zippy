@@ -54,7 +54,7 @@ private:
     MARK_ACCESS_FIELD_PATCHING      = 0x4002
   };
 
-  ciEnv*        _env;
+  Arena         _arena;
 
   oop           _comp_result;
   oop           _name;

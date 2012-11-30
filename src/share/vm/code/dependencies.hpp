@@ -200,10 +200,59 @@ class Dependencies: public ResourceObj {
 
   static void check_valid_dependency_type(DepType dept);
 
+#ifdef GRAAL
+  // A Metadata* or object value recorded in an OopRecorder
+  class DepValue VALUE_OBJ_CLASS_SPEC {
+   private:
+    // Unique identifier of the value within the associated OopRecorder that
+    // encodes both the category of the value (0: invalid, positive: metadata, negative: object)
+    // and the index within a category specific array (metadata: index + 1, object: -(index + 1))
+    int _id;
+
+   public:
+    DepValue() : _id(0) {}
+    DepValue(OopRecorder* rec, Metadata* metadata, DepValue* candidate = NULL) {
+      assert(candidate == NULL || candidate->is_metadata(), "oops");
+      if (candidate != NULL && candidate->as_metadata(rec) == metadata) {
+        _id = candidate->_id;
+      } else {
+        _id = rec->find_index(metadata) + 1;
+      }
+    }
+    DepValue(OopRecorder* rec, jobject obj, DepValue* candidate = NULL) {
+      assert(candidate == NULL || candidate->is_object(), "oops");
+      if (candidate != NULL && candidate->as_object(rec) == obj) {
+        _id = candidate->_id;
+      } else {
+        _id = -(rec->find_index(obj) + 1);
+      }
+    }
+
+    // Used to sort values in ascending order of index() with metadata values preceding object values
+    int sort_key() const { return -_id; }
+
+    bool operator == (const DepValue& other) const   { return other._id == _id; }
+
+    bool is_valid() const             { return _id != 0; }
+    int  index() const                { assert(is_valid(), "oops"); return _id < 0 ? -(_id + 1) : _id - 1; }
+    bool is_metadata() const          { assert(is_valid(), "oops"); return _id > 0; }
+    bool is_object() const            { assert(is_valid(), "oops"); return _id < 0; }
+
+    Metadata*  as_metadata(OopRecorder* rec) const    { assert(is_metadata(), "oops"); return rec->metadata_at(index()); }
+    Klass*     as_klass(OopRecorder* rec) const       { assert(as_metadata(rec)->is_klass(), "oops"); return (Klass*) as_metadata(rec); }
+    Method*    as_method(OopRecorder* rec) const      { assert(as_metadata(rec)->is_method(), "oops"); return (Method*) as_metadata(rec); }
+    jobject    as_object(OopRecorder* rec) const      { assert(is_object(), "oops"); return rec->oop_at(index()); }
+  };
+#endif
+
  private:
   // State for writing a new set of dependencies:
   GrowableArray<int>*       _dep_seen;  // (seen[h->ident] & (1<<dept))
   GrowableArray<ciBaseObject*>*  _deps[TYPE_LIMIT];
+#ifdef GRAAL
+  bool _using_dep_values;
+  GrowableArray<DepValue>*  _dep_values[TYPE_LIMIT];
+#endif
 
   static const char* _dep_name[TYPE_LIMIT];
   static int         _dep_args[TYPE_LIMIT];
@@ -222,8 +271,25 @@ class Dependencies: public ResourceObj {
     return (seen & (1<<dept)) != 0;
   }
 
+#ifdef GRAAL
+  bool note_dep_seen(int dept, DepValue x) {
+    assert(dept < BitsPerInt, "oops");
+    // place metadata deps at even indexes, object deps at odd indexes
+    int x_id = x.is_metadata() ? x.index() * 2 : (x.index() * 2) + 1;
+    assert(_dep_seen != NULL, "deps must be writable");
+    int seen = _dep_seen->at_grow(x_id, 0);
+    _dep_seen->at_put(x_id, seen | (1<<dept));
+    // return true if we've already seen dept/x
+    return (seen & (1<<dept)) != 0;
+  }
+#endif
+
   bool maybe_merge_ctxk(GrowableArray<ciBaseObject*>* deps,
                         int ctxk_i, ciKlass* ctxk);
+#ifdef GRAAL
+  bool maybe_merge_ctxk(GrowableArray<DepValue>* deps,
+                        int ctxk_i, DepValue ctxk);
+#endif
 
   void sort_all_deps();
   size_t estimate_size_in_bytes();
@@ -245,6 +311,9 @@ class Dependencies: public ResourceObj {
   Dependencies(ciEnv* env) {
     initialize(env);
   }
+#ifdef GRAAL
+  Dependencies(Arena* arena, OopRecorder* oop_recorder);
+#endif // GRAAL
 
  private:
   // Check for a valid context type.
@@ -276,6 +345,25 @@ class Dependencies: public ResourceObj {
   void assert_exclusive_concrete_methods(ciKlass* ctxk, ciMethod* m1, ciMethod* m2);
   void assert_has_no_finalizable_subclasses(ciKlass* ctxk);
   void assert_call_site_target_value(ciCallSite* call_site, ciMethodHandle* method_handle);
+
+#ifdef GRAAL
+ private:
+  static void check_ctxk(Klass* ctxk) {
+    assert(ctxk->oop_is_instance(), "java types only");
+  }
+  static void check_ctxk_abstract(Klass* ctxk) {
+    check_ctxk(ctxk);
+    assert(ctxk->is_abstract(), "must be abstract");
+  }
+  void assert_common_1(DepType dept, DepValue x);
+  void assert_common_2(DepType dept, DepValue x0, DepValue x1);
+
+ public:
+  void assert_evol_method(Method* m);
+  void assert_leaf_type(Klass* ctxk);
+  void assert_unique_concrete_method(Klass* ctxk, Method* uniqm);
+  void assert_abstract_with_unique_concrete_subtype(Klass* ctxk, Klass* conck);
+#endif // GRAAL
 
   // Define whether a given method or type is concrete.
   // These methods define the term "concrete" as used in this module.
