@@ -392,6 +392,8 @@ bool GraalEnv::check_for_system_dictionary_modification(Dependencies* dependenci
   for (Dependencies::DepStream deps(dependencies); deps.next(); ) {
     Klass*  witness = deps.check_dependency();
     if (witness != NULL) {
+      // TODO (gd) remove when thing look stable
+      deps.print_dependency(witness, true);
       return false;
     }
   }
