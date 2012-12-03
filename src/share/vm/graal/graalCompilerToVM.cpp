@@ -27,7 +27,7 @@
 #include "oops/generateOopMap.hpp"
 #include "oops/fieldStreams.hpp"
 #include "runtime/javaCalls.hpp"
-#include "c1/c1_Runtime1.hpp"
+#include "graal/graalRuntime.hpp"
 #include "compiler/compileBroker.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "graal/graalCompilerToVM.hpp"
@@ -669,41 +669,36 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int(env, config, "bciProfileWidth", BciProfileWidth);
   set_int(env, config, "typeProfileWidth", TypeProfileWidth);
 
-  // We use the fast path stub so that we get TLAB refills whenever possible instead of
-  // unconditionally allocating directly from the heap (which the slow path does).
-  // The stub must also do initialization when the compiled check fails.
-  Runtime1::StubID newInstanceStub = Runtime1::fast_new_instance_init_check_id;
-
   set_long(env, config, "debugStub", VmIds::addStub((address)warning));
-  set_long(env, config, "instanceofStub", VmIds::addStub(Runtime1::entry_for(Runtime1::slow_subtype_check_id)));
-  set_long(env, config, "newInstanceStub", VmIds::addStub(Runtime1::entry_for(newInstanceStub)));
-  set_long(env, config, "newTypeArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_type_array_id)));
-  set_long(env, config, "newObjectArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_object_array_id)));
-  set_long(env, config, "newMultiArrayStub", VmIds::addStub(Runtime1::entry_for(Runtime1::new_multi_array_id)));
+  set_long(env, config, "instanceofStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_slow_subtype_check_id)));
+  set_long(env, config, "newInstanceStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_instance_id)));
+  set_long(env, config, "newTypeArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_type_array_id)));
+  set_long(env, config, "newObjectArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_object_array_id)));
+  set_long(env, config, "newMultiArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_multi_array_id)));
   set_long(env, config, "inlineCacheMissStub", VmIds::addStub(SharedRuntime::get_ic_miss_stub()));
-  set_long(env, config, "handleExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::handle_exception_nofpu_id)));
+  set_long(env, config, "handleExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_handle_exception_nofpu_id)));
   set_long(env, config, "handleDeoptStub", VmIds::addStub(SharedRuntime::deopt_blob()->unpack()));
-  set_long(env, config, "fastMonitorEnterStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorenter_id)));
-  set_long(env, config, "fastMonitorExitStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_monitorexit_id)));
-  set_long(env, config, "verifyOopStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_verify_oop_id)));
-  set_long(env, config, "vmErrorStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_vm_error_id)));
+  set_long(env, config, "monitorEnterStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorenter_id)));
+  set_long(env, config, "monitorExitStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorexit_id)));
+  set_long(env, config, "verifyOopStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_verify_oop_id)));
+  set_long(env, config, "vmErrorStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_vm_error_id)));
   set_long(env, config, "deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));
-  set_long(env, config, "unwindExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_unwind_exception_call_id)));
-  set_long(env, config, "osrMigrationEndStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_OSR_migration_end_id)));
-  set_long(env, config, "registerFinalizerStub", VmIds::addStub(Runtime1::entry_for(Runtime1::register_finalizer_id)));
-  set_long(env, config, "setDeoptInfoStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_set_deopt_info_id)));
-  set_long(env, config, "createNullPointerExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_create_null_pointer_exception_id)));
-  set_long(env, config, "createOutOfBoundsExceptionStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_create_out_of_bounds_exception_id)));
+  set_long(env, config, "unwindExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_unwind_exception_call_id)));
+  set_long(env, config, "osrMigrationEndStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_OSR_migration_end_id)));
+  set_long(env, config, "registerFinalizerStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_register_finalizer_id)));
+  set_long(env, config, "setDeoptInfoStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_set_deopt_info_id)));
+  set_long(env, config, "createNullPointerExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_create_null_pointer_exception_id)));
+  set_long(env, config, "createOutOfBoundsExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_create_out_of_bounds_exception_id)));
   set_long(env, config, "javaTimeMillisStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeMillis)));
   set_long(env, config, "javaTimeNanosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeNanos)));
-  set_long(env, config, "arithmeticFremStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_arithmetic_frem_id)));
-  set_long(env, config, "arithmeticDremStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_arithmetic_drem_id)));
+  set_long(env, config, "arithmeticFremStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_frem_id)));
+  set_long(env, config, "arithmeticDremStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_drem_id)));
   set_long(env, config, "arithmeticSinStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dsin)));
   set_long(env, config, "arithmeticCosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dcos)));
   set_long(env, config, "arithmeticTanStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dtan)));
-  set_long(env, config, "logPrimitiveStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_primitive_id)));
-  set_long(env, config, "logObjectStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_object_id)));
-  set_long(env, config, "logPrintfStub", VmIds::addStub(Runtime1::entry_for(Runtime1::graal_log_printf_id)));
+  set_long(env, config, "logPrimitiveStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_primitive_id)));
+  set_long(env, config, "logObjectStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_object_id)));
+  set_long(env, config, "logPrintfStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id)));
 
 
   BarrierSet* bs = Universe::heap()->barrier_set();

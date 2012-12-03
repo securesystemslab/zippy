@@ -48,12 +48,11 @@ public:
 
   virtual const char* name() { return "G"; }
 
-  // Native / OSR not supported
-  virtual bool supports_native()                 { return true; }
+  virtual bool supports_native()                 { return false; }
   virtual bool supports_osr   ()                 { return true; }
 
-  // Pretend to be C1
-  bool is_c1   ()                                { return true; }
+  bool is_graal()                                { return true; }
+  bool is_c1   ()                                { return false; }
   bool is_c2   ()                                { return false; }
 
   // Initialization

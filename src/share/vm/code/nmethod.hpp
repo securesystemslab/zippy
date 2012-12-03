@@ -352,6 +352,7 @@ class nmethod : public CodeBlob {
   bool is_osr_method() const                      { return _entry_bci != InvocationEntryBci; }
 
   bool is_compiled_by_c1() const;
+  bool is_compiled_by_graal() const;
   bool is_compiled_by_c2() const;
   bool is_compiled_by_shark() const;
 

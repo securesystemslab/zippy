@@ -229,7 +229,7 @@ class Arguments : AllStatic {
   static char** _jvm_args_array;
   static int    _num_jvm_args;
 #ifdef GRAAL
-  // an array containing all graal arguments specified in the command line
+  // an array containing all Graal arguments specified in the command line
   static char** _graal_args_array;
   static int    _num_graal_args;
 #endif

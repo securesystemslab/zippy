@@ -36,6 +36,9 @@
 #ifdef COMPILER1
 #include "c1/c1_globals.hpp"
 #endif
+#ifdef GRAAL
+#include "graal/graalGlobals.hpp"
+#endif
 #ifdef COMPILER2
 #include "opto/c2_globals.hpp"
 #endif
@@ -215,6 +218,18 @@ void Flag::print_as_flag(outputStream* st) {
   #define C1_NOTPRODUCT_FLAG_STRUCT(type, name, value, doc) { #type, XSTR(name), &name, doc, "{C1 notproduct}", DEFAULT },
 #endif
 
+#define GRAAL_PRODUCT_FLAG_STRUCT(type, name, value, doc) { #type, XSTR(name), &name, NOT_PRODUCT_ARG(doc) "{Graal product}", DEFAULT },
+#define GRAAL_PD_PRODUCT_FLAG_STRUCT(type, name, doc)     { #type, XSTR(name), &name, NOT_PRODUCT_ARG(doc) "{Graal pd product}", DEFAULT },
+#ifdef PRODUCT
+  #define GRAAL_DEVELOP_FLAG_STRUCT(type, name, value, doc) /* flag is constant */
+  #define GRAAL_PD_DEVELOP_FLAG_STRUCT(type, name, doc)     /* flag is constant */
+  #define GRAAL_NOTPRODUCT_FLAG_STRUCT(type, name, value, doc)
+#else
+  #define GRAAL_DEVELOP_FLAG_STRUCT(type, name, value, doc) { #type, XSTR(name), &name, doc, "{Graal}", DEFAULT },
+  #define GRAAL_PD_DEVELOP_FLAG_STRUCT(type, name, doc)     { #type, XSTR(name), &name, doc, "{Graal pd}", DEFAULT },
+  #define GRAAL_NOTPRODUCT_FLAG_STRUCT(type, name, value, doc) { #type, XSTR(name), &name, doc, "{Graal notproduct}", DEFAULT },
+#endif
+
 #define C2_PRODUCT_FLAG_STRUCT(type, name, value, doc) { #type, XSTR(name), &name, NOT_PRODUCT_ARG(doc) "{C2 product}", DEFAULT },
 #define C2_PD_PRODUCT_FLAG_STRUCT(type, name, doc)     { #type, XSTR(name), &name, NOT_PRODUCT_ARG(doc) "{C2 pd product}", DEFAULT },
 #define C2_DIAGNOSTIC_FLAG_STRUCT(type, name, value, doc) { #type, XSTR(name), &name, NOT_PRODUCT_ARG(doc) "{C2 diagnostic}", DEFAULT },
@@ -261,6 +276,9 @@ static Flag flagTable[] = {
 #endif // SERIALGC
 #ifdef COMPILER1
  C1_FLAGS(C1_DEVELOP_FLAG_STRUCT, C1_PD_DEVELOP_FLAG_STRUCT, C1_PRODUCT_FLAG_STRUCT, C1_PD_PRODUCT_FLAG_STRUCT, C1_NOTPRODUCT_FLAG_STRUCT)
+#endif
+#ifdef GRAAL
+ GRAAL_FLAGS(GRAAL_DEVELOP_FLAG_STRUCT, GRAAL_PD_DEVELOP_FLAG_STRUCT, GRAAL_PRODUCT_FLAG_STRUCT, GRAAL_PD_PRODUCT_FLAG_STRUCT, GRAAL_NOTPRODUCT_FLAG_STRUCT)
 #endif
 #ifdef COMPILER2
  C2_FLAGS(C2_DEVELOP_FLAG_STRUCT, C2_PD_DEVELOP_FLAG_STRUCT, C2_PRODUCT_FLAG_STRUCT, C2_PD_PRODUCT_FLAG_STRUCT, C2_DIAGNOSTIC_FLAG_STRUCT, C2_EXPERIMENTAL_FLAG_STRUCT, C2_NOTPRODUCT_FLAG_STRUCT)

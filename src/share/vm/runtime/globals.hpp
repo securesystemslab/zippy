@@ -120,6 +120,20 @@
 # include "c1_globals_bsd.hpp"
 #endif
 #endif
+#ifdef GRAAL
+#ifdef TARGET_ARCH_x86
+# include "graalGlobals_x86.hpp"
+#endif
+#ifdef TARGET_ARCH_sparc
+# include "graalGlobals_sparc.hpp"
+#endif
+#ifdef TARGET_ARCH_arm
+# include "graalGlobals_arm.hpp"
+#endif
+#ifdef TARGET_ARCH_ppc
+# include "graalGlobals_ppc.hpp"
+#endif
+#endif // GRAAL
 #ifdef COMPILER2
 #ifdef TARGET_ARCH_x86
 # include "c2_globals_x86.hpp"
@@ -149,7 +163,7 @@
 #endif
 #endif
 
-#if !defined(COMPILER1) && !defined(COMPILER2) && !defined(SHARK)
+#if !defined(COMPILER1) && !defined(COMPILER2) && !defined(SHARK) && !defined(GRAAL)
 define_pd_global(bool, BackgroundCompilation,        false);
 define_pd_global(bool, UseTLAB,                      false);
 define_pd_global(bool, CICompileOSR,                 false);

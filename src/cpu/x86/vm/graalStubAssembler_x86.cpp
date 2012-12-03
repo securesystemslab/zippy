@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,31 +22,33 @@
  *
  */
 
-#ifndef SHARE_VM_UTILITIES_TOP_HPP
-#define SHARE_VM_UTILITIES_TOP_HPP
+#include "precompiled.hpp"
+#include "graal/graalRuntime.hpp"
+#include "classfile/systemDictionary.hpp"
+#include "gc_interface/collectedHeap.hpp"
+#include "interpreter/interpreter.hpp"
+#include "oops/arrayOop.hpp"
+#include "oops/markOop.hpp"
+#include "runtime/basicLock.hpp"
+#include "runtime/biasedLocking.hpp"
+#include "runtime/os.hpp"
+#include "runtime/stubRoutines.hpp"
 
-#include "oops/oopsHierarchy.hpp"
-#include "runtime/globals.hpp"
-#include "utilities/debug.hpp"
-#include "utilities/exceptions.hpp"
-#include "utilities/globalDefinitions.hpp"
-#include "utilities/macros.hpp"
-#include "utilities/ostream.hpp"
-#include "utilities/sizes.hpp"
-#ifndef SERIALGC
-#include "gc_implementation/g1/g1_globals.hpp"
-#endif
-#ifdef COMPILER1
-#include "c1/c1_globals.hpp"
-#endif
-#ifdef GRAAL
-#include "graal/graalGlobals.hpp"
-#endif
-#ifdef COMPILER2
-#include "opto/c2_globals.hpp"
-#endif
+#ifndef PRODUCT
 
-// THIS FILE IS INTESIONALLY LEFT EMPTY
-// IT IS USED TO MINIMIZE THE NUMBER OF DEPENDENCIES IN includeDB
+void GraalStubAssembler::verify_stack_oop(int stack_offset) {
+  if (!VerifyOops) return;
+  verify_oop_addr(Address(rsp, stack_offset));
+}
 
-#endif // SHARE_VM_UTILITIES_TOP_HPP
+void GraalStubAssembler::verify_not_null_oop(Register r) {
+  if (!VerifyOops) return;
+  Label not_null;
+  testptr(r, r);
+  jcc(Assembler::notZero, not_null);
+  stop("non-null oop required");
+  bind(not_null);
+  verify_oop(r);
+}
+
+#endif // ifndef PRODUCT

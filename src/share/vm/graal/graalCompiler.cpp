@@ -30,7 +30,7 @@
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalVmIds.hpp"
 #include "graal/graalEnv.hpp"
-#include "c1/c1_Runtime1.hpp"
+#include "graal/graalRuntime.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/compilationPolicy.hpp"
 
@@ -57,7 +57,7 @@ void GraalCompiler::initialize() {
   _deopted_leaf_graph_count = 0;
 
   initialize_buffer_blob();
-  Runtime1::initialize(THREAD->get_buffer_blob());
+  GraalRuntime::initialize(THREAD->get_buffer_blob());
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
@@ -144,12 +144,7 @@ void GraalCompiler::initialize_buffer_blob() {
 
   JavaThread* THREAD = JavaThread::current();
   if (THREAD->get_buffer_blob() == NULL) {
-    // setup CodeBuffer.  Preallocate a BufferBlob of size
-    // NMethodSizeLimit plus some extra space for constants.
-    int code_buffer_size = Compilation::desired_max_code_buffer_size() +
-      Compilation::desired_max_constant_size();
-    BufferBlob* blob = BufferBlob::create("graal temporary CodeBuffer",
-                                          code_buffer_size);
+    BufferBlob* blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
     guarantee(blob != NULL, "must create code buffer");
     THREAD->set_buffer_blob(blob);
   }

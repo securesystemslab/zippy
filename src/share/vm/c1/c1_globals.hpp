@@ -56,14 +56,6 @@
 //
 #define C1_FLAGS(develop, develop_pd, product, product_pd, notproduct)      \
                                                                             \
-  product(bool, DebugGraal, true,                                           \
-          "Enable JVMTI for the compiler thread")                           \
-  product(bool, BootstrapGraal, true,                                       \
-          "Bootstrap graal before running Java main method")                \
-  product(ccstr, GraalClassPath, NULL,                                      \
-          "Use the defined graal class path instead of searching for the classes") \
-  product(intx, TraceGraal, 0,                                              \
-          "Trace level for graal")                                          \
   product(bool, TraceSignals, false,                                        \
           "Trace signals and implicit exception handling")                  \
   /* Printing */                                                            \

@@ -798,16 +798,16 @@ enum CompLevel {
 
 #if defined(COMPILER2) || defined(SHARK)
   CompLevel_highest_tier      = CompLevel_full_optimization,  // pure C2 and tiered
-#elif defined(COMPILER1)
-  CompLevel_highest_tier      = CompLevel_simple,             // pure C1
+#elif defined(COMPILER1) || defined(GRAAL)
+  CompLevel_highest_tier      = CompLevel_simple,             // pure C1 or Graal
 #else
   CompLevel_highest_tier      = CompLevel_none,
 #endif
 
 #if defined(TIERED)
   CompLevel_initial_compile   = CompLevel_full_profile        // tiered
-#elif defined(COMPILER1)
-  CompLevel_initial_compile   = CompLevel_simple              // pure C1
+#elif defined(COMPILER1) || defined(GRAAL)
+  CompLevel_initial_compile   = CompLevel_simple              // pure C1 or Graal
 #elif defined(COMPILER2) || defined(SHARK)
   CompLevel_initial_compile   = CompLevel_full_optimization   // pure C2
 #else

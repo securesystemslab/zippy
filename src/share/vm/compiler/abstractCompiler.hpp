@@ -50,26 +50,36 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   // Missing feature tests
   virtual bool supports_native()                 { return true; }
   virtual bool supports_osr   ()                 { return true; }
-#if defined(TIERED) || ( !defined(COMPILER1) && !defined(COMPILER2) && !defined(SHARK))
+#if defined(TIERED) || ( !defined(COMPILER1) && !defined(COMPILER2) && !defined(SHARK) && !defined(GRAAL))
   virtual bool is_c1   ()                        { return false; }
   virtual bool is_c2   ()                        { return false; }
   virtual bool is_shark()                        { return false; }
+  virtual bool is_graal()                        { return false; }
 #else
 #ifdef COMPILER1
   bool is_c1   ()                                { return true; }
   bool is_c2   ()                                { return false; }
   bool is_shark()                                { return false; }
+  bool is_graal()                                { return false; }
 #endif // COMPILER1
 #ifdef COMPILER2
   bool is_c1   ()                                { return false; }
   bool is_c2   ()                                { return true; }
   bool is_shark()                                { return false; }
+  bool is_graal()                                { return false; }
 #endif // COMPILER2
 #ifdef SHARK
   bool is_c1   ()                                { return false; }
   bool is_c2   ()                                { return false; }
   bool is_shark()                                { return true; }
+  bool is_graal()                                { return false; }
 #endif // SHARK
+#ifdef GRAAL
+  bool is_c1   ()                                { return false; }
+  bool is_c2   ()                                { return false; }
+  bool is_shark()                                { return false; }
+  bool is_graal()                                { return true; }
+#endif // GRAAL
 #endif // TIERED
 
   void mark_initialized()                        { _is_initialized = true; }

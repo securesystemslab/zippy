@@ -256,7 +256,7 @@ class Klass : public Metadata {
   void set_java_mirror(oop m) { klass_oop_store(&_java_mirror, m); }
 
 #ifdef GRAAL
-  // graal mirror
+  // Graal mirror
   oop graal_mirror() const               { return _graal_mirror; }
   void set_graal_mirror(oop m)           { oop_store((oop*) &_graal_mirror, m); }
 #endif

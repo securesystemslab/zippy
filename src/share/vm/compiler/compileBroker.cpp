@@ -51,6 +51,9 @@
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"
 #endif
+#ifdef GRAAL
+#include "graal/graalCompiler.hpp"
+#endif
 #ifdef COMPILER2
 #include "opto/c2compiler.hpp"
 #endif

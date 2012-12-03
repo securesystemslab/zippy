@@ -319,6 +319,7 @@ static DoNothingClosure do_nothing;
 static void add_derived_oop(oop* base, oop* derived) {
 #ifndef TIERED
   COMPILER1_PRESENT(ShouldNotReachHere();)
+  GRAAL_ONLY(ShouldNotReachHere();)
 #endif // TIERED
 #ifdef COMPILER2
   DerivedPointerTable::add(derived, base);
@@ -380,6 +381,7 @@ void OopMapSet::all_do(const frame *fr, const RegisterMap *reg_map,
     if (!oms.is_done()) {
 #ifndef TIERED
       COMPILER1_PRESENT(ShouldNotReachHere();)
+      GRAAL_ONLY(ShouldNotReachHere();)
 #endif // !TIERED
       // Protect the operation on the derived pointers.  This
       // protects the addition of derived pointers to the shared
@@ -502,7 +504,7 @@ void OopMapSet::update_register_map(const frame *fr, RegisterMap *reg_map) {
 
   // Check that runtime stubs save all callee-saved registers
 #ifdef COMPILER2
-  assert(cb->is_compiled_by_c1() || !cb->is_runtime_stub() ||
+  assert(cb->is_compiled_by_c1() || cb->is_compiled_by_graal() || !cb->is_runtime_stub() ||
          (nof_callee >= SAVED_ON_ENTRY_REG_COUNT || nof_callee >= C_SAVED_ON_ENTRY_REG_COUNT),
          "must save all");
 #endif // COMPILER2
@@ -521,6 +523,7 @@ void OopMapSet::update_register_map(const frame *fr, RegisterMap *reg_map) {
 bool OopMap::has_derived_pointer() const {
 #ifndef TIERED
   COMPILER1_PRESENT(return false);
+  GRAAL_ONLY(return false);
 #endif // !TIERED
 #ifdef COMPILER2
   OopMapStream oms((OopMap*)this,OopMapValue::derived_oop_value);

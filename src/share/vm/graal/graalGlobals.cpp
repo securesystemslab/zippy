@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,31 +22,7 @@
  *
  */
 
-#ifndef SHARE_VM_UTILITIES_TOP_HPP
-#define SHARE_VM_UTILITIES_TOP_HPP
-
-#include "oops/oopsHierarchy.hpp"
-#include "runtime/globals.hpp"
-#include "utilities/debug.hpp"
-#include "utilities/exceptions.hpp"
-#include "utilities/globalDefinitions.hpp"
-#include "utilities/macros.hpp"
-#include "utilities/ostream.hpp"
-#include "utilities/sizes.hpp"
-#ifndef SERIALGC
-#include "gc_implementation/g1/g1_globals.hpp"
-#endif
-#ifdef COMPILER1
-#include "c1/c1_globals.hpp"
-#endif
-#ifdef GRAAL
+#include "precompiled.hpp"
 #include "graal/graalGlobals.hpp"
-#endif
-#ifdef COMPILER2
-#include "opto/c2_globals.hpp"
-#endif
 
-// THIS FILE IS INTESIONALLY LEFT EMPTY
-// IT IS USED TO MINIMIZE THE NUMBER OF DEPENDENCIES IN includeDB
-
-#endif // SHARE_VM_UTILITIES_TOP_HPP
+GRAAL_FLAGS(MATERIALIZE_DEVELOPER_FLAG, MATERIALIZE_PD_DEVELOPER_FLAG, MATERIALIZE_PRODUCT_FLAG, MATERIALIZE_PD_PRODUCT_FLAG, MATERIALIZE_NOTPRODUCT_FLAG)

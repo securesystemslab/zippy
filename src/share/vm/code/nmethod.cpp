@@ -102,6 +102,11 @@ bool nmethod::is_compiled_by_c1() const {
   if (is_native_method()) return false;
   return compiler()->is_c1();
 }
+bool nmethod::is_compiled_by_graal() const {
+  if (compiler() == NULL || method() == NULL)  return false;  // can happen during debug printing
+  if (is_native_method()) return false;
+  return compiler()->is_graal();
+}
 bool nmethod::is_compiled_by_c2() const {
   if (compiler() == NULL || method() == NULL)  return false;  // can happen during debug printing
   if (is_native_method()) return false;
@@ -864,7 +869,7 @@ nmethod::nmethod(
 #ifdef GRAAL
     _graal_installed_code = installed_code();
 
-    // graal produces no (!) stub section
+    // Graal might not produce any stub sections
     if (offsets->value(CodeOffsets::Exceptions) != -1) {
       _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
     } else {
@@ -2552,6 +2557,8 @@ void nmethod::print() const {
     tty->print("(c2) ");
   } else if (is_compiled_by_shark()) {
     tty->print("(shark) ");
+  } else if (is_compiled_by_graal()) {
+    tty->print("(Graal) ");
   } else {
     tty->print("(nm) ");
   }

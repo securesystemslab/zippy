@@ -188,6 +188,7 @@ int NonTieredCompPolicy::compiler_count(CompLevel comp_level) {
 #endif
 
 #ifdef COMPILER1
+  GRAAL_ONLY(ShouldNotReachHere();)
   if (is_c1_compile(comp_level)) {
     return _compiler_count;
   } else {

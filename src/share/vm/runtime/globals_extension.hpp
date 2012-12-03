@@ -66,6 +66,18 @@
   #define C1_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
 #endif
 
+#define GRAAL_PRODUCT_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
+#define GRAAL_PD_PRODUCT_FLAG_MEMBER(type, name, doc)             FLAG_MEMBER(name),
+#ifdef PRODUCT
+  #define GRAAL_DEVELOP_FLAG_MEMBER(type, name, value, doc)       /* flag is constant */
+  #define GRAAL_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           /* flag is constant */
+  #define GRAAL_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)
+#else
+  #define GRAAL_DEVELOP_FLAG_MEMBER(type, name, value, doc)       FLAG_MEMBER(name),
+  #define GRAAL_PD_DEVELOP_FLAG_MEMBER(type, name, doc)           FLAG_MEMBER(name),
+  #define GRAAL_NOTPRODUCT_FLAG_MEMBER(type, name, value, doc)    FLAG_MEMBER(name),
+#endif
+
 #define C2_PRODUCT_FLAG_MEMBER(type, name, value, doc)         FLAG_MEMBER(name),
 #define C2_PD_PRODUCT_FLAG_MEMBER(type, name, doc)             FLAG_MEMBER(name),
 #define C2_DIAGNOSTIC_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
@@ -99,6 +111,9 @@ typedef enum {
 #endif // INCLUDE_ALTERNATE_GCS
 #ifdef COMPILER1
  C1_FLAGS(C1_DEVELOP_FLAG_MEMBER, C1_PD_DEVELOP_FLAG_MEMBER, C1_PRODUCT_FLAG_MEMBER, C1_PD_PRODUCT_FLAG_MEMBER, C1_NOTPRODUCT_FLAG_MEMBER)
+#endif
+#ifdef GRAAL
+ GRAAL_FLAGS(GRAAL_DEVELOP_FLAG_MEMBER, GRAAL_PD_DEVELOP_FLAG_MEMBER, GRAAL_PRODUCT_FLAG_MEMBER, GRAAL_PD_PRODUCT_FLAG_MEMBER, GRAAL_NOTPRODUCT_FLAG_MEMBER)
 #endif
 #ifdef COMPILER2
  C2_FLAGS(C2_DEVELOP_FLAG_MEMBER, C2_PD_DEVELOP_FLAG_MEMBER, C2_PRODUCT_FLAG_MEMBER, C2_PD_PRODUCT_FLAG_MEMBER, C2_DIAGNOSTIC_FLAG_MEMBER, C2_EXPERIMENTAL_FLAG_MEMBER, C2_NOTPRODUCT_FLAG_MEMBER)
@@ -138,6 +153,17 @@ typedef enum {
   #define C1_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       FLAG_MEMBER_WITH_TYPE(name,type),
   #define C1_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
   #define C1_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
+#endif
+#define GRAAL_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)         FLAG_MEMBER_WITH_TYPE(name,type),
+#define GRAAL_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, doc)             FLAG_MEMBER_WITH_TYPE(name,type),
+#ifdef PRODUCT
+  #define GRAAL_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       /* flag is constant */
+  #define GRAAL_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           /* flag is constant */
+  #define GRAAL_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)
+#else
+  #define GRAAL_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)       FLAG_MEMBER_WITH_TYPE(name,type),
+  #define GRAAL_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE(type, name, doc)           FLAG_MEMBER_WITH_TYPE(name,type),
+  #define GRAAL_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
 #endif
 #ifdef _LP64
 #define RUNTIME_LP64_PRODUCT_FLAG_MEMBER_WITH_TYPE(type, name, value, doc)    FLAG_MEMBER_WITH_TYPE(name,type),
@@ -204,6 +230,13 @@ typedef enum {
           C1_PRODUCT_FLAG_MEMBER_WITH_TYPE,
           C1_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE,
           C1_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE)
+#endif
+#ifdef GRAAL
+ GRAAL_FLAGS(GRAAL_DEVELOP_FLAG_MEMBER_WITH_TYPE,
+          GRAAL_PD_DEVELOP_FLAG_MEMBER_WITH_TYPE,
+          GRAAL_PRODUCT_FLAG_MEMBER_WITH_TYPE,
+          GRAAL_PD_PRODUCT_FLAG_MEMBER_WITH_TYPE,
+          GRAAL_NOTPRODUCT_FLAG_MEMBER_WITH_TYPE)
 #endif
 #ifdef COMPILER2
  C2_FLAGS(C2_DEVELOP_FLAG_MEMBER_WITH_TYPE,

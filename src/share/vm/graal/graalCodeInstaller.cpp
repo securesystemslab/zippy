@@ -29,7 +29,7 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalVmIds.hpp"
-#include "c1/c1_Runtime1.hpp"
+#include "graal/graalRuntime.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "vmreg_x86.inline.hpp"
 

@@ -42,7 +42,7 @@
 #include "runtime/reflection.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/dtrace.hpp"
-#include "c1/c1_Runtime1.hpp"
+#include "graal/graalRuntime.hpp"
 
 // ------------------------------------------------------------------
 // Note: the logic of this method should mirror the logic of

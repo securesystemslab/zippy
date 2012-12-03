@@ -892,7 +892,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #endif
 #ifdef GRAAL
         if (TraceSignals) {
-          tty->print_cr("graal implicit div0");
+          tty->print_cr("Graal implicit div0");
         }
         target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
 #else

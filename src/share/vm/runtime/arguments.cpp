@@ -1515,7 +1515,7 @@ void Arguments::set_parallel_gc_flags() {
 
 void Arguments::set_g1_gc_flags() {
   assert(UseG1GC, "Error");
-#ifdef COMPILER1
+#if defined(COMPILER1) || defined(GRAAL)
   FastTLABRefill = false;
 #endif
   FLAG_SET_DEFAULT(ParallelGCThreads,
@@ -2034,16 +2034,26 @@ bool Arguments::check_vm_args_consistency() {
     jio_fprintf(defaultStream::error_stream(),
                     "CompressedOops are not supported in Graal at the moment\n");
         status = false;
+  } else {
+    // This prevents the flag being set to true by set_ergonomics_flags()
+    FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
   }
+
   if (UseCompressedKlassPointers) {
     jio_fprintf(defaultStream::error_stream(),
                     "UseCompressedKlassPointers are not supported in Graal at the moment\n");
         status = false;
+  } else {
+    // This prevents the flag being set to true by set_ergonomics_flags()
+    FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
   }
   if (UseG1GC) {
     jio_fprintf(defaultStream::error_stream(),
                         "G1 is not supported in Graal at the moment\n");
         status = false;
+  } else {
+    // This prevents the flag being set to true by set_ergonomics_flags()
+    FLAG_SET_CMDLINE(bool, UseG1GC, false);
   }
 
   if (!ScavengeRootsInCode) {
@@ -2957,9 +2967,9 @@ SOLARIS_ONLY(
     }
 #ifdef GRAAL
     else if (match_option(option, "-G:", &tail)) { // -G:XXX
-      // Option for the graal compiler.
+      // Option for the Graal compiler.
       if (PrintVMOptions) {
-        tty->print_cr("graal option %s", tail);
+        tty->print_cr("Graal option %s", tail);
       }
       Arguments::add_graal_arg(tail);
 
@@ -3432,7 +3442,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   // which are subtlely different from each other but neither works with
   // biased locking.
   if (UseHeavyMonitors
-#ifdef COMPILER1
+#if defined(COMPILER1) || defined(GRAAL)
       || !UseFastLocking
 #endif // COMPILER1
     ) {
