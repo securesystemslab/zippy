@@ -5152,8 +5152,8 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     *(JNIEnv**)penv = thread->jni_environment();
 
 #ifdef GRAAL
-    GraalCompiler* compiler = GraalCompiler::instance();
-    compiler->initialize();
+    GraalCompiler* graal_compiler = GraalCompiler::instance();
+    graal_compiler->initialize();
 #endif
 
     // Tracks the time application was running before GC

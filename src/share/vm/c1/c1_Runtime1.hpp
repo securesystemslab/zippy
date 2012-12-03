@@ -36,57 +36,7 @@ class StubAssembler;
 // The Runtime1 holds all assembly stubs and VM
 // runtime routines needed by code code generated
 // by the Compiler1.
-#ifdef GRAAL
-#define RUNTIME1_STUBS(stub, last_entry) \
-  stub(dtrace_object_alloc)          \
-  stub(unwind_exception)             \
-  stub(forward_exception)            \
-  stub(throw_range_check_failed)       /* throws ArrayIndexOutOfBoundsException */ \
-  stub(throw_index_exception)          /* throws IndexOutOfBoundsException */ \
-  stub(throw_div0_exception)         \
-  stub(throw_null_pointer_exception) \
-  stub(register_finalizer)           \
-  stub(new_instance)                 \
-  stub(fast_new_instance)            \
-  stub(fast_new_instance_init_check) \
-  stub(new_type_array)               \
-  stub(new_object_array)             \
-  stub(new_multi_array)              \
-  stub(handle_exception_nofpu)         /* optimized version that does not preserve fpu registers */ \
-  stub(handle_exception)             \
-  stub(handle_exception_from_callee) \
-  stub(throw_array_store_exception)  \
-  stub(throw_class_cast_exception)   \
-  stub(throw_incompatible_class_change_error)   \
-  stub(slow_subtype_check)           \
-  stub(monitorenter)                 \
-  stub(monitorenter_nofpu)             /* optimized version that does not preserve fpu registers */ \
-  stub(monitorexit)                  \
-  stub(monitorexit_nofpu)              /* optimized version that does not preserve fpu registers */ \
-  stub(deoptimize)                   \
-  stub(access_field_patching)        \
-  stub(load_klass_patching)          \
-  stub(load_mirror_patching)         \
-  stub(g1_pre_barrier_slow)          \
-  stub(g1_post_barrier_slow)         \
-  stub(fpu2long_stub)                \
-  stub(counter_overflow)             \
-  stub(graal_unwind_exception_call)  \
-  stub(graal_OSR_migration_end)      \
-  stub(graal_arithmetic_frem)        \
-  stub(graal_arithmetic_drem)        \
-  stub(graal_monitorenter)           \
-  stub(graal_monitorexit)            \
-  stub(graal_verify_oop)             \
-  stub(graal_vm_error)               \
-  stub(graal_set_deopt_info)         \
-  stub(graal_create_null_pointer_exception) \
-  stub(graal_create_out_of_bounds_exception) \
-  stub(graal_log_object)             \
-  stub(graal_log_printf)             \
-  stub(graal_log_primitive)          \
-  last_entry(number_of_ids)
-#else
+
 #define RUNTIME1_STUBS(stub, last_entry) \
   stub(dtrace_object_alloc)          \
   stub(unwind_exception)             \
@@ -122,7 +72,6 @@ class StubAssembler;
   stub(fpu2long_stub)                \
   stub(counter_overflow)             \
   last_entry(number_of_ids)
-#endif
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
 #define DECLARE_LAST_STUB_ID(x)  x
@@ -201,25 +150,9 @@ class Runtime1: public AllStatic {
   static void throw_class_cast_exception(JavaThread* thread, oopDesc* object);
   static void throw_incompatible_class_change_error(JavaThread* thread);
   static void throw_array_store_exception(JavaThread* thread, oopDesc* object);
+
   static void monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock);
   static void monitorexit (JavaThread* thread, BasicObjectLock* lock);
-#ifdef GRAAL
-  static void graal_create_null_exception(JavaThread* thread);
-  static void graal_create_out_of_bounds_exception(JavaThread* thread, jint index);
-  static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void graal_vm_error(JavaThread* thread, oop where, oop format, jlong value);
-  static void graal_log_printf(JavaThread* thread, oop format, jlong value);
-  static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
-
-  // Note: Must be kept in sync with constants in com.oracle.graal.snippets.Log
-  enum {
-    LOG_OBJECT_NEWLINE = 0x01,
-    LOG_OBJECT_STRING  = 0x02,
-    LOG_OBJECT_ADDRESS = 0x04
-  };
-  static void graal_log_object(JavaThread* thread, oop msg, jint flags);
-#endif // GRAAL
 
   static void deoptimize(JavaThread* thread);
 

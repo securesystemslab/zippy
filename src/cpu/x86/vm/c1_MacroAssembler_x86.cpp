@@ -35,7 +35,7 @@
 #include "runtime/os.hpp"
 #include "runtime/stubRoutines.hpp"
 
-int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr, Register scratch, Label& slow_case, bool use_basic_object_lock) {
+int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr, Register scratch, Label& slow_case) {
   const int aligned_mask = BytesPerWord -1;
   const int hdr_offset = oopDesc::mark_offset_in_bytes();
   assert(hdr == rax, "hdr must be rax, for the cmpxchg instruction");
@@ -45,10 +45,8 @@ int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr
 
   verify_oop(obj);
 
-  if (use_basic_object_lock) {
-    // save object being locked into the BasicObjectLock
-    movptr(Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()), obj);
-  }
+  // save object being locked into the BasicObjectLock
+  movptr(Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()), obj);
 
   if (UseBiasedLocking) {
     assert(scratch != noreg, "should have scratch register at this point");
@@ -100,7 +98,7 @@ int C1_MacroAssembler::lock_object(Register hdr, Register obj, Register disp_hdr
 }
 
 
-void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_hdr, Label& slow_case, bool use_basic_object_lock) {
+void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_hdr, Label& slow_case) {
   const int aligned_mask = BytesPerWord -1;
   const int hdr_offset = oopDesc::mark_offset_in_bytes();
   assert(disp_hdr == rax, "disp_hdr must be rax, for the cmpxchg instruction");
@@ -108,10 +106,8 @@ void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_
   Label done;
 
   if (UseBiasedLocking) {
-    if (use_basic_object_lock) {
-      // load object
-      movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
-    }
+    // load object
+    movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
     biased_locking_exit(obj, hdr, done);
   }
 
@@ -122,10 +118,8 @@ void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_
   // if we had recursive locking, we are done
   jcc(Assembler::zero, done);
   if (!UseBiasedLocking) {
-    if (use_basic_object_lock) {
-      // load object
-      movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
-    }
+    // load object
+    movptr(obj, Address(disp_hdr, BasicObjectLock::obj_offset_in_bytes()));
   }
   verify_oop(obj);
   // test if object header is pointing to the displaced header, and if so, restore
@@ -290,13 +284,10 @@ void C1_MacroAssembler::initialize_object(Register obj, Register klass, Register
     }
   }
 
-#ifndef GRAAL
-  // TODO(thomaswue): Check how we can access the flag without a ciEnv object.
   if (CURRENT_ENV->dtrace_alloc_probes()) {
     assert(obj == rax, "must be");
     call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
   }
-#endif
 
   verify_oop(obj);
 }
@@ -326,14 +317,10 @@ void C1_MacroAssembler::allocate_array(Register obj, Register len, Register t1, 
   const Register len_zero = len;
   initialize_body(obj, arr_size, header_size * BytesPerWord, len_zero);
 
-
-#ifndef GRAAL
-  // TODO(thomaswue): Check how we can access the flag without a ciEnv object.
   if (CURRENT_ENV->dtrace_alloc_probes()) {
     assert(obj == rax, "must be");
     call(RuntimeAddress(Runtime1::entry_for(Runtime1::dtrace_object_alloc_id)));
   }
-#endif
 
   verify_oop(obj);
 }

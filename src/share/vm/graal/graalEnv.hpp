@@ -34,6 +34,19 @@
 
 class CompileTask;
 
+// Bring the Graal compiler thread into the VM state.
+#define GRAAL_VM_ENTRY_MARK                       \
+  JavaThread* thread = JavaThread::current(); \
+  ThreadInVMfromNative __tiv(thread);       \
+  ResetNoHandleMark rnhm;                   \
+  HandleMarkCleaner __hm(thread);           \
+  Thread* THREAD = thread;                  \
+  debug_only(VMNativeEntryWrapper __vew;)
+
+#define GRAAL_EXCEPTION_CONTEXT \
+  JavaThread* thread=JavaThread::current(); \
+  Thread* THREAD = thread;
+
 //
 // This class is the top level broker for requests from the compiler
 // to the VM.

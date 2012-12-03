@@ -70,14 +70,14 @@ void GraalCompiler::initialize() {
   ResourceMark rm;
   HandleMark hm;
   {
-    VM_ENTRY_MARK;
+    GRAAL_VM_ENTRY_MARK;
     check_pending_exception("Could not register natives");
   }
 
   graal_compute_offsets();
 
   {
-    VM_ENTRY_MARK;
+    GRAAL_VM_ENTRY_MARK;
     HandleMark hm;
     VMToCompiler::setDefaultOptions();
     for (int i = 0; i < Arguments::num_graal_args(); ++i) {
@@ -151,7 +151,7 @@ void GraalCompiler::initialize_buffer_blob() {
 }
 
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
-  EXCEPTION_CONTEXT
+  GRAAL_EXCEPTION_CONTEXT
   if (!_initialized) {
     method->clear_queued_for_compilation();
     method->invocation_counter()->reset();

@@ -84,13 +84,11 @@ ciObjectFactory::ciObjectFactory(Arena* arena,
   _arena = arena;
   _ci_metadata = new (arena) GrowableArray<ciMetadata*>(arena, expected_size, 0, NULL);
 
-#ifndef GRAAL
   // If the shared ci objects exist append them to this factory's objects
 
   if (_shared_ci_metadata != NULL) {
     _ci_metadata->appendAll(_shared_ci_metadata);
   }
-#endif
 
   _unloaded_methods = new (arena) GrowableArray<ciMethod*>(arena, 4, 0, NULL);
   _unloaded_klasses = new (arena) GrowableArray<ciKlass*>(arena, 8, 0, NULL);
@@ -207,7 +205,6 @@ void ciObjectFactory::init_shared_objects() {
 
 
 ciSymbol* ciObjectFactory::get_symbol(Symbol* key) {
-#ifndef GRAAL
   vmSymbols::SID sid = vmSymbols::find_sid(key);
   if (sid != vmSymbols::NO_SID) {
     // do not pollute the main cache with it
@@ -215,8 +212,6 @@ ciSymbol* ciObjectFactory::get_symbol(Symbol* key) {
   }
 
   assert(vmSymbols::find_sid(key) == vmSymbols::NO_SID, "");
-#endif
-
   ciSymbol* s = new (arena()) ciSymbol(key, vmSymbols::NO_SID);
   _symbols->push(s);
   return s;

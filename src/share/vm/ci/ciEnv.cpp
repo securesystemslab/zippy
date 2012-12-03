@@ -86,7 +86,7 @@ static bool firstEnv = true;
 // ciEnv::ciEnv
 ciEnv::ciEnv(CompileTask* task, int system_dictionary_modification_counter) {
   VM_ENTRY_MARK;
-  CompilerThread* compiler_thread = CompilerThread::current();
+
   // Set up ciEnv::current immediately, for the sake of ciObjectFactory, etc.
   thread->set_env(this);
   assert(ciEnv::current() == this, "sanity");
@@ -104,7 +104,7 @@ ciEnv::ciEnv(CompileTask* task, int system_dictionary_modification_counter) {
 
   _system_dictionary_modification_counter = system_dictionary_modification_counter;
   _num_inlined_bytecodes = 0;
-  assert(task == NULL || compiler_thread->task() == task, "sanity");
+  assert(task == NULL || thread->task() == task, "sanity");
   _task = task;
   _log = NULL;
 
@@ -141,11 +141,7 @@ ciEnv::ciEnv(Arena* arena) {
   ASSERT_IN_VM;
 
   // Set up ciEnv::current immediately, for the sake of ciObjectFactory, etc.
-#ifdef GRAAL
-  JavaThread* current_thread = JavaThread::current();
-#else
   CompilerThread* current_thread = CompilerThread::current();
-#endif
   assert(current_thread->env() == NULL, "must be");
   current_thread->set_env(this);
   assert(ciEnv::current() == this, "sanity");
@@ -158,10 +154,8 @@ ciEnv::ciEnv(Arena* arena) {
   _break_at_compile = false;
   _compiler_data = NULL;
 #ifndef PRODUCT
-#ifndef GRAAL
   assert(firstEnv, "must be first");
   firstEnv = false;
-#endif
 #endif /* !PRODUCT */
 
   _system_dictionary_modification_counter = 0;
@@ -194,16 +188,11 @@ ciEnv::ciEnv(Arena* arena) {
 }
 
 ciEnv::~ciEnv() {
-#ifdef GRAAL
-  _factory->remove_symbols();
-  JavaThread::current()->set_env(NULL);
-#else
   CompilerThread* current_thread = CompilerThread::current();
   _factory->remove_symbols();
   // Need safepoint to clear the env on the thread.  RedefineClasses might
   // be reading it.
   GUARDED_VM_ENTRY(current_thread->set_env(NULL);)
-#endif
 }
 
 // ------------------------------------------------------------------
@@ -780,8 +769,8 @@ ciMethod* ciEnv::get_method_by_index_impl(constantPoolHandle cpool,
       Method* m = lookup_method(accessor->get_instanceKlass(), lookup, name_sym, sig_sym, bc);
       if (m != NULL &&
           (bc == Bytecodes::_invokestatic
-           ?  InstanceKlass::cast(m->method_holder())->is_not_initialized()
-           : !InstanceKlass::cast(m->method_holder())->is_loaded())) {
+           ?  m->method_holder()->is_not_initialized()
+           : !m->method_holder()->is_loaded())) {
         m = NULL;
       }
 #ifdef ASSERT
@@ -927,7 +916,7 @@ void ciEnv::validate_compile_task_dependencies(ciMethod* target) {
 
 // ------------------------------------------------------------------
 // ciEnv::register_method
-nmethod* ciEnv::register_method(ciMethod* target,
+void ciEnv::register_method(ciMethod* target,
                             int entry_bci,
                             CodeOffsets* offsets,
                             int orig_pc_offset,
@@ -995,7 +984,7 @@ nmethod* ciEnv::register_method(ciMethod* target,
       // If the code buffer is created on each compile attempt
       // as in C2, then it must be freed.
       code_buffer->free_blob();
-      return NULL;
+      return;
     }
 
     assert(offsets->value(CodeOffsets::Deopt) != -1, "must have deopt entry");
@@ -1073,7 +1062,7 @@ nmethod* ciEnv::register_method(ciMethod* target,
                         method_name,
                         entry_bci);
         }
-        InstanceKlass::cast(method->method_holder())->add_osr_nmethod(nm);
+        method->method_holder()->add_osr_nmethod(nm);
 
       }
     }
@@ -1083,7 +1072,6 @@ nmethod* ciEnv::register_method(ciMethod* target,
     nm->post_compiled_method_load_event();
   }
 
-  return nm;
 }
 
 

@@ -51,13 +51,13 @@
   // disp_hdr: must point to the displaced header location, contents preserved
   // scratch : scratch register, contents destroyed
   // returns code offset at which to add null check debug information
-  int lock_object  (Register swap, Register obj, Register disp_hdr, Register scratch, Label& slow_case, bool use_basic_object_lock = true);
+  int lock_object  (Register swap, Register obj, Register disp_hdr, Register scratch, Label& slow_case);
 
   // unlocking
   // hdr     : contents destroyed
   // obj     : must point to the object to lock, contents preserved
   // disp_hdr: must be eax & must point to the displaced header location, contents destroyed
-  void unlock_object(Register swap, Register obj, Register lock, Label& slow_case, bool use_basic_object_lock = true);
+  void unlock_object(Register swap, Register obj, Register lock, Label& slow_case);
 
   void initialize_object(
     Register obj,                      // result: pointer to object after successful allocation

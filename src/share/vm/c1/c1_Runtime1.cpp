@@ -205,14 +205,6 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
 #if defined(SPARC) || defined(PPC)
     case handle_exception_nofpu_id:  // Unused on sparc
 #endif
-#ifdef GRAAL
-    case graal_verify_oop_id:
-    case graal_unwind_exception_call_id:
-    case graal_OSR_migration_end_id:
-    case graal_arithmetic_frem_id:
-    case graal_arithmetic_drem_id:
-    case graal_set_deopt_info_id:
-#endif
       break;
 
     // All other stubs should have oopmaps
@@ -539,9 +531,8 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
     if (TraceExceptions) {
       ttyLocker ttyl;
       ResourceMark rm;
-      int offset = pc - nm->code_begin();
-      tty->print_cr("Exception <%s> (0x%x) thrown in compiled method <%s> at PC " PTR_FORMAT " [" PTR_FORMAT "+%d] for thread 0x%x",
-                    exception->print_value_string(), (address)exception(), nm->method()->print_value_string(), pc, nm->code_begin(), offset, thread);
+      tty->print_cr("Exception <%s> (0x%x) thrown in compiled method <%s> at PC " PTR_FORMAT " for thread 0x%x",
+                    exception->print_value_string(), (address)exception(), nm->method()->print_value_string(), pc, thread);
     }
     // for AbortVMOnException flag
     NOT_PRODUCT(Exceptions::debug_check_abort(exception));
@@ -559,7 +550,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
     thread->set_exception_pc(pc);
 
     // the exception cache is used only by non-implicit exceptions
-    if (continuation != NULL && !SharedRuntime::deopt_blob()->contains(continuation)) {
+    if (continuation != NULL) {
       nm->add_handler_for_exception_and_pc(exception, pc, continuation);
     }
   }
@@ -651,158 +642,6 @@ JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* thre
   ResourceMark rm(thread);
   SharedRuntime::throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_IncompatibleClassChangeError());
 JRT_END
-
-#ifdef GRAAL
-
-JRT_ENTRY(void, Runtime1::graal_create_null_exception(JavaThread* thread))
-  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
-JRT_END
-
-JRT_ENTRY(void, Runtime1::graal_create_out_of_bounds_exception(JavaThread* thread, jint index))
-  char message[jintAsStringSize];
-  sprintf(message, "%d", index);
-  thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
-JRT_END
-
-JRT_ENTRY_NO_ASYNC(void, Runtime1::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
-  NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    char type[1024];
-    obj->klass()->name()->as_C_string(type, 1024);
-    markOop mark = obj->mark();
-    tty->print_cr("entered locking slow case with obj=" INTPTR_FORMAT ", type=%s, mark=" INTPTR_FORMAT ", lock=" INTPTR_FORMAT, obj, type, mark, lock);
-    tty->flush();
-  }
-  if (PrintBiasedLockingStatistics) {
-    Atomic::inc(BiasedLocking::slow_path_entry_count_addr());
-  }
-#endif
-  Handle h_obj(thread, obj);
-  assert(h_obj()->is_oop(), "must be NULL or an object");
-  if (UseBiasedLocking) {
-    // Retry fast entry if bias is revoked to avoid unnecessary inflation
-    ObjectSynchronizer::fast_enter(h_obj, lock, true, CHECK);
-  } else {
-    if (UseFastLocking) {
-      // When using fast locking, the compiled code has already tried the fast case
-      ObjectSynchronizer::slow_enter(h_obj, lock, THREAD);
-    } else {
-      ObjectSynchronizer::fast_enter(h_obj, lock, false, THREAD);
-    }
-  }
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    tty->print_cr("exiting locking");
-    tty->print_cr("");
-    tty->print_cr("done");
-  }
-#endif
-JRT_END
-
-
-JRT_LEAF(void, Runtime1::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
-  NOT_PRODUCT(_monitorexit_slowcase_cnt++;)
-  assert(thread == JavaThread::current(), "threads must correspond");
-  assert(thread->last_Java_sp(), "last_Java_sp must be set");
-  // monitorexit is non-blocking (leaf routine) => no exceptions can be thrown
-  EXCEPTION_MARK;
-
-#ifdef DEBUG
-  if (!obj->is_oop()) {
-    ResetNoHandleMark rhm;
-    nmethod* method = thread->last_frame().cb()->as_nmethod_or_null();
-    if (method != NULL) {
-      tty->print_cr("ERROR in monitorexit in method %s wrong obj " INTPTR_FORMAT, method->name(), obj);
-    }
-    thread->print_stack_on(tty);
-    assert(false, "invalid lock object pointer dected");
-  }
-#endif
-
-  if (UseFastLocking) {
-    // When using fast locking, the compiled code has already tried the fast case
-    ObjectSynchronizer::slow_exit(obj, lock, THREAD);
-  } else {
-    ObjectSynchronizer::fast_exit(obj, lock, THREAD);
-  }
-#ifdef ASSERT
-  if (TraceGraal >= 3) {
-    char type[1024];
-    obj->klass()->name()->as_C_string(type, 1024);
-    tty->print_cr("exited locking slow case with obj=" INTPTR_FORMAT ", type=%s, mark=" INTPTR_FORMAT ", lock=" INTPTR_FORMAT, obj, type, obj->mark(), lock);
-    tty->flush();
-  }
-#endif
-JRT_END
-
-JRT_ENTRY(void, Runtime1::graal_log_object(JavaThread* thread, oop obj, jint flags))
-  bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
-  bool address = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
-  bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
-  if (!string) {
-    if (!address && obj->is_oop_or_null(true)) {
-      char buf[O_BUFLEN];
-      tty->print("%s@%p", obj->klass()->name()->as_C_string(buf, O_BUFLEN), obj);
-    } else {
-      tty->print("%p", obj);
-    }
-  } else {
-    ResourceMark rm;
-    assert(obj != NULL && java_lang_String::is_instance(obj), "must be");
-    char *buf = java_lang_String::as_utf8_string(obj);
-    tty->print(buf);
-  }
-  if (newline) {
-    tty->cr();
-  }
-JRT_END
-
-JRT_ENTRY(void, Runtime1::graal_vm_error(JavaThread* thread, oop where, oop format, jlong value))
-  ResourceMark rm;
-  assert(where == NULL || java_lang_String::is_instance(where), "must be");
-  const char *error_msg = where == NULL ? "<internal Graal error>" : java_lang_String::as_utf8_string(where);
-  char *detail_msg = NULL;
-  if (format != NULL) {
-    const char* buf = java_lang_String::as_utf8_string(format);
-    size_t detail_msg_length = strlen(buf) * 2;
-    detail_msg = (char *) NEW_RESOURCE_ARRAY(u_char, detail_msg_length);
-    jio_snprintf(detail_msg, detail_msg_length, buf, value);
-  }
-  report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
-JRT_END
-
-JRT_ENTRY(void, Runtime1::graal_log_printf(JavaThread* thread, oop format, jlong val))
-  ResourceMark rm;
-  assert(format != NULL && java_lang_String::is_instance(format), "must be");
-  char *buf = java_lang_String::as_utf8_string(format);
-  tty->print(buf, val);
-JRT_END
-
-JRT_ENTRY(void, Runtime1::graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
-  union {
-      jlong l;
-      jdouble d;
-      jfloat f;
-  } uu;
-  uu.l = value;
-  switch (typeChar) {
-    case 'z': tty->print(value == 0 ? "false" : "true"); break;
-    case 'b': tty->print("%d", (jbyte) value); break;
-    case 'c': tty->print("%c", (jchar) value); break;
-    case 's': tty->print("%d", (jshort) value); break;
-    case 'i': tty->print("%d", (jint) value); break;
-    case 'f': tty->print("%f", uu.f); break;
-    case 'j': tty->print(INT64_FORMAT, value); break;
-    case 'd': tty->print("%lf", uu.d); break;
-    default: assert(false, "unknown typeChar"); break;
-  }
-  if (newline) {
-    tty->cr();
-  }
-JRT_END
-
-#endif /* GRAAL */
 
 
 JRT_ENTRY_NO_ASYNC(void, Runtime1::monitorenter(JavaThread* thread, oopDesc* obj, BasicObjectLock* lock))
@@ -1048,9 +887,7 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* thread, Runtime1::StubID stub_i
           mirror = Handle(THREAD, m);
         }
         break;
-      default:
-        tty->print_cr("Unhandled bytecode: %d stub_id=%d caller=%s bci=%d pc=%d", code, stub_id, caller_method->name()->as_C_string(), bci, caller_frame.pc());
-        Unimplemented();
+      default: Unimplemented();
     }
     // convert to handle
     load_klass = KlassHandle(THREAD, k);

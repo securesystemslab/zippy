@@ -48,7 +48,7 @@ Method* getMethodFromHotSpotMethod(oop hotspot_method) {
 #define C2V_VMENTRY(result_type, name, signature) \
   JNIEXPORT result_type JNICALL c2v_ ## name signature { \
   TRACE_graal_3("CompilerToVM::" #name); \
-  VM_ENTRY_MARK; \
+  GRAAL_VM_ENTRY_MARK; \
 
 // Entry to native method implementation that calls a JNI function
 // and hence cannot transition current thread to '_thread_in_vm'.

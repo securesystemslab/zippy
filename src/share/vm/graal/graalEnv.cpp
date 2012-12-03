@@ -70,7 +70,7 @@ KlassHandle GraalEnv::get_klass_by_name_impl(KlassHandle& accessing_klass,
                                           constantPoolHandle& cpool,
                                           Symbol* sym,
                                           bool require_local) {
-  EXCEPTION_CONTEXT;
+  GRAAL_EXCEPTION_CONTEXT;
 
   // Now we need to check the SystemDictionary
   if (sym->byte_at(0) == 'L' &&
@@ -162,7 +162,7 @@ KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle& cpool,
                                         int index,
                                         bool& is_accessible,
                                         KlassHandle& accessor) {
-  EXCEPTION_CONTEXT;
+  GRAAL_EXCEPTION_CONTEXT;
   KlassHandle klass (THREAD, ConstantPool::klass_at_if_loaded(cpool, index));
   Symbol* klass_name = NULL;
   if (klass.is_null()) {
@@ -233,7 +233,7 @@ KlassHandle GraalEnv::get_klass_by_index(constantPoolHandle& cpool,
 // in the accessor klass.
 void GraalEnv::get_field_by_index_impl(instanceKlassHandle& klass, fieldDescriptor& field_desc,
                                         int index) {
-  EXCEPTION_CONTEXT;
+  GRAAL_EXCEPTION_CONTEXT;
 
   assert(klass->is_linked(), "must be linked before using its constant-pool");
 
@@ -285,7 +285,7 @@ methodHandle GraalEnv::lookup_method(instanceKlassHandle& h_accessor,
                                Symbol*       name,
                                Symbol*       sig,
                                Bytecodes::Code bc) {
-  EXCEPTION_CONTEXT;
+  GRAAL_EXCEPTION_CONTEXT;
   LinkResolver::check_klass_accessability(h_accessor, h_holder, KILL_COMPILE_ON_FATAL_(NULL));
   methodHandle dest_method;
   switch (bc) {
@@ -421,7 +421,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                 bool has_debug_info,
                                 bool has_unsafe_access,
                                 Handle installed_code) {
-  EXCEPTION_CONTEXT;
+  GRAAL_EXCEPTION_CONTEXT;
   NMethodSweeper::possibly_sweep();
   nm = NULL;
   int comp_level = CompLevel_simple;
