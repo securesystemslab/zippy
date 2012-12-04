@@ -144,6 +144,9 @@ ProjectCreatorIDEOptionsIgnoreCompiler1=\
  -ignorePath_TARGET tiered \
  -ignorePath_TARGET c1_
 
+ProjectCreatorIDEOptionsIgnoreGraal=\
+ -ignorePath_TARGET graal
+ 
 ProjectCreatorIDEOptionsIgnoreCompiler2=\
  -ignorePath_TARGET compiler2 \
  -ignorePath_TARGET tiered \
@@ -230,15 +233,18 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler1 COMPILER1 \
  -ignorePath_compiler1 core \
  -ignorePath_compiler1 src/share/vm/graal \
-$(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
+ $(ProjectCreatorIDEOptionsIgnoreGraal:TARGET=compiler1) \
+ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
 ##################################################
 # Graal compiler specific options
 ##################################################
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
- -define_graal COMPILER1 \
  -define_graal GRAAL \
-$(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
+ -ignorePath_graal core \
+ -ignorePath_graal src/share/vm/c1 \
+ $(ProjectCreatorIDEOptionsIgnoreCompiler1:TARGET=graal) \
+ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
 
 ##################################################
 # Server(C2) compiler specific options
@@ -260,6 +266,7 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -additionalFile_compiler2 ad_$(Platform_arch_model)_pipeline.cpp \
  -additionalFile_compiler2 adGlobals_$(Platform_arch_model).hpp \
  -additionalFile_compiler2 dfa_$(Platform_arch_model).cpp \
+ $(ProjectCreatorIDEOptionsIgnoreGraal:TARGET=compiler2) \
  $(ProjectCreatorIDEOptionsIgnoreCompiler1:TARGET=compiler2)
 
 # Add in the jvmti (JSR-163) options

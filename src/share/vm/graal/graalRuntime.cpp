@@ -229,6 +229,9 @@ const char* GraalRuntime::name_for_address(address entry) {
   FUNCTION_CASE(entry, TRACE_TIME_METHOD);
 #endif
 
+  ShouldNotReachHere();
+  return NULL;
+
 #undef FUNCTION_CASE
 }
 
