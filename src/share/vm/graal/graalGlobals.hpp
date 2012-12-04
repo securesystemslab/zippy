@@ -51,7 +51,7 @@
           "Bootstrap Graal before running Java main method")                \
                                                                             \
   product(ccstr, GraalClassPath, NULL,                                      \
-          "Use the class path for Graal classes")                           \
+          "Use this path, zip, or jar, to locate Graal-specific classes")   \
                                                                             \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
@@ -61,9 +61,6 @@
                                                                             \
   product_pd(intx, SafepointPollOffset,                                     \
           "Offset added to polling address (Intel only)")                   \
-                                                                            \
-  develop(bool, UseFastNewInstance, true,                                   \
-          "Use fast inlined instance allocation")                           \
                                                                             \
   develop(bool, UseFastNewTypeArray, true,                                  \
           "Use fast inlined type array allocation")                         \

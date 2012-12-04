@@ -43,7 +43,6 @@ define_pd_global(intx, OnStackReplacePercentage,     933  );
 define_pd_global(intx, FreqInlineSize,               325  );
 define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
 define_pd_global(uintx,MetaspaceSize,                12*M );
-define_pd_global(uintx,MaxPermSize,                  64*M );
 define_pd_global(bool, NeverActAsServerClassMachine, true );
 define_pd_global(uint64_t,MaxRAM,                    1ULL*G);
 define_pd_global(bool, CICompileOSR,                 true );
@@ -57,13 +56,6 @@ define_pd_global(bool, ProfileInterpreter,           true );
 define_pd_global(intx, CodeCacheExpansionSize,       64*K );
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);
 define_pd_global(intx, TypeProfileWidth,             8);
-
-define_pd_global(bool, RoundFPResults,               true );
-
-define_pd_global(bool, LIRFillDelaySlots,            false);
-define_pd_global(bool, OptimizeSinglePrecision,      true );
-define_pd_global(bool, CSEArrayLength,               false);
-define_pd_global(bool, TwoOperandLIRForm,            true );
 
 define_pd_global(intx, SafepointPollOffset,          256  );
 
