@@ -48,7 +48,7 @@ public:
 
   virtual const char* name() { return "G"; }
 
-  virtual bool supports_native()                 { return false; }
+  virtual bool supports_native()                 { return true; }
   virtual bool supports_osr   ()                 { return true; }
 
   bool is_graal()                                { return true; }
