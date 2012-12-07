@@ -80,8 +80,7 @@ enum {
 #define GRAAL_STUBS(stub, last_entry) \
   stub(graal_register_finalizer)      \
   stub(graal_new_instance)            \
-  stub(graal_new_type_array)          \
-  stub(graal_new_object_array)  \
+  stub(graal_new_array)               \
   stub(graal_new_multi_array)         \
   stub(graal_handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
   stub(graal_slow_subtype_check)      \
@@ -128,12 +127,11 @@ class GraalRuntime: public AllStatic {
                                        Register arg1 = noreg, Register arg2 = noreg, Register arg3 = noreg);
 
   // runtime entry points
-  static void new_instance    (JavaThread* thread, Klass* klass);
-  static void new_type_array  (JavaThread* thread, Klass* klass, jint length);
-  static void new_object_array(JavaThread* thread, Klass* klass, jint length);
-  static void new_multi_array (JavaThread* thread, Klass* klass, int rank, jint* dims);
+  static void new_instance(JavaThread* thread, Klass* klass);
+  static void new_array(JavaThread* thread, Klass* klass, jint length);
+  static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
 
-  static void unimplemented_entry   (JavaThread* thread, StubID id);
+  static void unimplemented_entry(JavaThread* thread, StubID id);
 
   static address exception_handler_for_pc(JavaThread* thread);
 

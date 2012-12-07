@@ -683,8 +683,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_long("debugStub", VmIds::addStub((address)warning));
   set_long("instanceofStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_slow_subtype_check_id)));
   set_long("newInstanceStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_instance_id)));
-  set_long("newTypeArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_type_array_id)));
-  set_long("newObjectArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_object_array_id)));
+  set_long("newArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_array_id)));
   set_long("newMultiArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_multi_array_id)));
   set_long("inlineCacheMissStub", VmIds::addStub(SharedRuntime::get_ic_miss_stub()));
   set_long("handleExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_handle_exception_nofpu_id)));
