@@ -514,15 +514,6 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
   return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
 C2V_END
 
-C2V_VMENTRY(jlong, getPrototypeMarkWord, (JNIEnv *, jobject, jobject klass))
-  KlassHandle klass_handle(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(klass)));
-  if (klass_handle->oop_is_array()) {
-    return (int32_t)(intptr_t) markOopDesc::prototype();
-  } else {
-    return (jlong) (intptr_t) klass_handle->prototype_header();
-  }
-C2V_END
-
 C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klass))
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
@@ -679,6 +670,15 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("klassInstanceSizeOffset", in_bytes(Klass::layout_helper_offset()));
   set_boolean("tlabStats", TLABStats);
   set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
+
+  set_long("arrayPrototypeMarkWord", (intptr_t)markOopDesc::prototype());
+  set_int("layoutHelperLog2ElementSizeShift", Klass::_lh_log2_element_size_shift);
+  set_int("layoutHelperLog2ElementSizeMask", Klass::_lh_log2_element_size_mask);
+  set_int("layoutHelperElementTypeShift", Klass::_lh_element_type_shift);
+  set_int("layoutHelperElementTypeMask", Klass::_lh_element_type_mask);
+  set_int("layoutHelperHeaderSizeShift", Klass::_lh_header_size_shift);
+  set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
+  set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
 
   set_long("debugStub", VmIds::addStub((address)warning));
   set_long("instanceofStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_slow_subtype_check_id)));
@@ -949,7 +949,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupReferencedTypeInPool",    CC"("HS_RESOLVED_TYPE"IB)V",                                      FN_PTR(lookupReferencedTypeInPool)},
   {CC"lookupFieldInPool",             CC"("HS_RESOLVED_TYPE"IB)"FIELD,                                  FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
-  {CC"getPrototypeMarkWord",          CC"("HS_RESOLVED_TYPE")J",                                        FN_PTR(getPrototypeMarkWord)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"isTypeInitialized",             CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeInitialized)},
   {CC"initializeType",                CC"("HS_RESOLVED_TYPE")V",                                        FN_PTR(initializeType)},
