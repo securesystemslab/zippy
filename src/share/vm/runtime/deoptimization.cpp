@@ -36,9 +36,7 @@
 #include "memory/resourceArea.hpp"
 #include "oops/method.hpp"
 #include "oops/oop.inline.hpp"
-#ifdef GRAAL
 #include "oops/fieldStreams.hpp"
-#endif
 #include "prims/jvmtiThreadState.hpp"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/compilationPolicy.hpp"
@@ -809,77 +807,6 @@ bool Deoptimization::realloc_objects(JavaThread* thread, frame* fr, GrowableArra
   return true;
 }
 
-// This assumes that the fields are stored in ObjectValue in the same order
-// they are yielded by do_nonstatic_fields.
-class FieldReassigner: public FieldClosure {
-  frame* _fr;
-  RegisterMap* _reg_map;
-  ObjectValue* _sv;
-  InstanceKlass* _ik;
-  oop _obj;
-
-  int _i;
-public:
-  FieldReassigner(frame* fr, RegisterMap* reg_map, ObjectValue* sv, oop obj) :
-    _fr(fr), _reg_map(reg_map), _sv(sv), _obj(obj), _i(0) {}
-
-  int i() const { return _i; }
-
-
-  void do_field(fieldDescriptor* fd) {
-    intptr_t val;
-    StackValue* value =
-      StackValue::create_stack_value(_fr, _reg_map, _sv->field_at(i()));
-    int offset = fd->offset();
-    switch (fd->field_type()) {
-    case T_OBJECT: case T_ARRAY:
-      assert(value->type() == T_OBJECT, "Agreement.");
-      _obj->obj_field_put(offset, value->get_obj()());
-      break;
-
-    case T_LONG: case T_DOUBLE: {
-      assert(value->type() == T_INT, "Agreement.");
-      StackValue* low =
-        StackValue::create_stack_value(_fr, _reg_map, _sv->field_at(++_i));
-#ifdef _LP64
-      jlong res = (jlong)low->get_int();
-#else
-#ifdef SPARC
-      // For SPARC we have to swap high and low words.
-      jlong res = jlong_from((jint)low->get_int(), (jint)value->get_int());
-#else
-      jlong res = jlong_from((jint)value->get_int(), (jint)low->get_int());
-#endif //SPARC
-#endif
-      _obj->long_field_put(offset, res);
-      break;
-    }
-    // Have to cast to INT (32 bits) pointer to avoid little/big-endian problem.
-    case T_INT: case T_FLOAT: // 4 bytes.
-      assert(value->type() == T_INT, "Agreement.");
-      val = value->get_int();
-      _obj->int_field_put(offset, (jint)*((jint*)&val));
-      break;
-
-    case T_SHORT: case T_CHAR: // 2 bytes
-      assert(value->type() == T_INT, "Agreement.");
-      val = value->get_int();
-      _obj->short_field_put(offset, (jshort)*((jint*)&val));
-      break;
-
-    case T_BOOLEAN: case T_BYTE: // 1 byte
-      assert(value->type() == T_INT, "Agreement.");
-      val = value->get_int();
-      _obj->bool_field_put(offset, (jboolean)*((jint*)&val));
-      break;
-
-    default:
-      ShouldNotReachHere();
-    }
-    _i++;
-  }
-};
-
 // restore elements of an eliminated type array
 void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, typeArrayOop obj, BasicType type) {
   int index = 0;
@@ -932,7 +859,6 @@ void Deoptimization::reassign_type_array_elements(frame* fr, RegisterMap* reg_ma
   }
 }
 
-
 // restore fields of an eliminated object array
 void Deoptimization::reassign_object_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, objArrayOop obj) {
   for (int i = 0; i < sv->field_size(); i++) {
@@ -942,7 +868,15 @@ void Deoptimization::reassign_object_array_elements(frame* fr, RegisterMap* reg_
   }
 }
 
-#ifdef GRAAL
+typedef struct {
+  int offset;
+  BasicType type;
+} ReassignedField;
+
+int compare(ReassignedField* left, ReassignedField* right) {
+  return left->offset - right->offset;
+}
+
 // Restore fields of an eliminated instance object using the same field order
 // returned by HotSpotResolvedObjectType.getInstanceFields(true)
 static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap* reg_map, ObjectValue* sv, int svIndex, oop obj) {
@@ -950,14 +884,21 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
     svIndex = reassign_fields_by_klass(klass->superklass(), fr, reg_map, sv, svIndex, obj);
   }
 
+  GrowableArray<ReassignedField>* fields = new GrowableArray<ReassignedField>();
   for (AllFieldStream fs(klass); !fs.done(); fs.next()) {
-    if (fs.access_flags().is_static()) {
-      continue;
+    if (!fs.access_flags().is_static()) {
+      ReassignedField field;
+      field.offset = fs.offset();
+      field.type = FieldType::basic_type(fs.signature());
+      fields->append(field);
     }
+  }
+  fields->sort(compare);
+  for (int i = 0; i < fields->length(); i++) {
     intptr_t val;
     StackValue* value = StackValue::create_stack_value(fr, reg_map, sv->field_at(svIndex));
-    int offset = fs.offset();
-    BasicType type = FieldType::basic_type(fs.signature());
+    int offset = fields->at(i).offset;
+    BasicType type = fields->at(i).type;
     switch (type) {
       case T_OBJECT: case T_ARRAY:
         assert(value->type() == T_OBJECT, "Agreement.");
@@ -1006,8 +947,6 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
   }
   return svIndex;
 }
-#endif
-
 
 // restore fields of all eliminated objects and arrays
 void Deoptimization::reassign_fields(frame* fr, RegisterMap* reg_map, GrowableArray<ScopeValue*>* objects) {
@@ -1022,12 +961,7 @@ void Deoptimization::reassign_fields(frame* fr, RegisterMap* reg_map, GrowableAr
 
     if (k->oop_is_instance()) {
       InstanceKlass* ik = InstanceKlass::cast(k());
-#ifndef GRAAL
-      FieldReassigner reassign(fr, reg_map, sv, obj());
-      ik->do_nonstatic_fields(&reassign);
-#else
       reassign_fields_by_klass(ik, fr, reg_map, sv, 0, obj());
-#endif
     } else if (k->oop_is_typeArray()) {
       TypeArrayKlass* ak = TypeArrayKlass::cast(k());
       reassign_type_array_elements(fr, reg_map, sv, (typeArrayOop) obj(), ak->element_type());

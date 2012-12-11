@@ -247,31 +247,19 @@ JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
   thread->set_vm_result(obj);
 JRT_END
 
-
-JRT_ENTRY(void, GraalRuntime::new_type_array(JavaThread* thread, Klass* klass, jint length))
-  // Note: no handle for klass needed since they are not used
-  //       anymore after new_typeArray() and no GC can happen before.
-  //       (This may have to change if this code changes!)
-  assert(klass->is_klass(), "not a class");
-  BasicType elt_type = TypeArrayKlass::cast(klass)->element_type();
-  oop obj = oopFactory::new_typeArray(elt_type, length, CHECK);
-  thread->set_vm_result(obj);
-  // This is pretty rare but this runtime patch is stressful to deoptimization
-  // if we deoptimize here so force a deopt to stress the path.
-  if (DeoptimizeALot) {
-    deopt_caller();
-  }
-
-JRT_END
-
-
-JRT_ENTRY(void, GraalRuntime::new_object_array(JavaThread* thread, Klass* array_klass, jint length))
+JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, jint length))
   // Note: no handle for klass needed since they are not used
   //       anymore after new_objArray() and no GC can happen before.
   //       (This may have to change if this code changes!)
   assert(array_klass->is_klass(), "not a class");
-  Klass* elem_klass = ObjArrayKlass::cast(array_klass)->element_klass();
-  objArrayOop obj = oopFactory::new_objArray(elem_klass, length, CHECK);
+  oop obj;
+  if (array_klass->oop_is_typeArray()) {
+    BasicType elt_type = TypeArrayKlass::cast(array_klass)->element_type();
+    obj = oopFactory::new_typeArray(elt_type, length, CHECK);
+  } else {
+    Klass* elem_klass = ObjArrayKlass::cast(array_klass)->element_klass();
+    obj = oopFactory::new_objArray(elem_klass, length, CHECK);
+  }
   thread->set_vm_result(obj);
   // This is pretty rare but this runtime patch is stressful to deoptimization
   // if we deoptimize here so force a deopt to stress the path.

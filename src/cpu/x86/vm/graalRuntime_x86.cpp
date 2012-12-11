@@ -804,44 +804,18 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
 
       break;
 
-    case graal_new_type_array_id:
-    case graal_new_object_array_id:
+    case graal_new_array_id:
       {
         Register length   = rbx; // Incoming
         Register klass    = rdx; // Incoming
         Register obj      = rax; // Result
 
-        if (id == graal_new_type_array_id) {
-          __ set_info("new_type_array", dont_gc_arguments);
-        } else {
-          __ set_info("new_object_array", dont_gc_arguments);
-        }
+        __ set_info("new_array", dont_gc_arguments);
 
-#ifdef ASSERT
-        // assert object type is really an array of the proper kind
-        {
-          Label ok;
-          Register t0 = obj;
-          __ movl(t0, Address(klass, Klass::layout_helper_offset()));
-          __ sarl(t0, Klass::_lh_array_tag_shift);
-          int tag = ((id == graal_new_type_array_id)
-                     ? Klass::_lh_array_tag_type_value
-                     : Klass::_lh_array_tag_obj_value);
-          __ cmpl(t0, tag);
-          __ jcc(Assembler::equal, ok);
-          __ stop("assert(is an array klass)");
-          __ should_not_reach_here();
-          __ bind(ok);
-        }
-#endif // ASSERT
         __ enter();
         OopMap* map = save_live_registers(sasm, 3);
         int call_offset;
-        if (id == graal_new_type_array_id) {
-          call_offset = __ call_RT(obj, noreg, CAST_FROM_FN_PTR(address, new_type_array), klass, length);
-        } else {
-          call_offset = __ call_RT(obj, noreg, CAST_FROM_FN_PTR(address, new_object_array), klass, length);
-        }
+        call_offset = __ call_RT(obj, noreg, CAST_FROM_FN_PTR(address, new_array), klass, length);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
