@@ -630,6 +630,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int(env, config, "threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int(env, config, "threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
   set_int(env, config, "threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
+  set_int(env, config, "osThreadOffset", in_bytes(JavaThread::osthread_offset()));
+  set_int(env, config, "osThreadInterruptedOffset", in_bytes(OSThread::interrupted_offset()));
   set_int(env, config, "unlockedMask", (int) markOopDesc::unlocked_value);
   set_int(env, config, "biasedLockMaskInPlace", (int) markOopDesc::biased_lock_mask_in_place);
   set_int(env, config, "ageMaskInPlace", (int) markOopDesc::age_mask_in_place);
@@ -648,6 +650,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int(env, config, "runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
   set_int(env, config, "klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
   set_int(env, config, "klassAccessFlagsOffset", in_bytes(Klass::access_flags_offset()));
+  set_int(env, config, "klassLayoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
+  set_int(env, config, "klassSuperKlassOffset", in_bytes(Klass::super_offset()));
   set_int(env, config, "klassOffset", java_lang_Class::klass_offset_in_bytes());
   set_int(env, config, "graalMirrorInClassOffset", java_lang_Class::graal_mirror_offset_in_bytes());
   set_int(env, config, "methodDataOffset", in_bytes(Method::method_data_offset()));
@@ -655,6 +659,12 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int(env, config, "methodCompiledEntryOffset", in_bytes(Method::from_compiled_offset()));
   set_int(env, config, "basicLockSize", sizeof(BasicLock));
   set_int(env, config, "basicLockDisplacedHeaderOffset", BasicLock::displaced_header_offset_in_bytes());
+  set_int(env, config, "uninitializedIdentityHashCodeValue", markOopDesc::no_hash);
+  set_int(env, config, "identityHashCodeShift", markOopDesc::hash_shift);
+
+  set_int(env, config, "arrayKlassLayoutHelperIdentifier", 0x80000000);
+  assert((Klass::_lh_array_tag_obj_value & Klass::_lh_array_tag_type_value & 0x80000000) != 0, "obj_array and type_array must have first bit set");
+  set_int(env, config, "arrayKlassComponentMirrorOffset", in_bytes(ArrayKlass::component_mirror_offset()));
   
   set_int(env, config, "metaspaceArrayLengthOffset", Array<Klass*>::length_offset_in_bytes());
   set_int(env, config, "metaspaceArrayBaseOffset", Array<Klass*>::base_offset_in_bytes());
@@ -699,6 +709,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_long(env, config, "logPrimitiveStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_primitive_id)));
   set_long(env, config, "logObjectStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_object_id)));
   set_long(env, config, "logPrintfStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id)));
+  set_long(env, config, "identityHashCodeStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_identity_hash_code_id)));
+  set_long(env, config, "threadIsInterruptedStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_thread_is_interrupted_id)));
 
 
   BarrierSet* bs = Universe::heap()->barrier_set();

@@ -99,6 +99,8 @@ enum {
   stub(graal_log_object)              \
   stub(graal_log_printf)              \
   stub(graal_log_primitive)           \
+  stub(graal_identity_hash_code)      \
+  stub(graal_thread_is_interrupted)   \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
@@ -144,6 +146,9 @@ class GraalRuntime: public AllStatic {
   static void graal_vm_error(JavaThread* thread, oop where, oop format, jlong value);
   static void graal_log_printf(JavaThread* thread, oop format, jlong value);
   static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
+  
+  static jint graal_identity_hash_code(JavaThread* thread, oopDesc* objd);
+  static jboolean graal_thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
 
   // Note: Must be kept in sync with constants in com.oracle.graal.snippets.Log
   enum {

@@ -1179,6 +1179,35 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
+    case graal_identity_hash_code_id: {
+      Register obj = j_rarg0; // Incoming
+      __ set_info("identity_hash_code", dont_gc_arguments);
+      __ enter();
+      OopMap* map = save_live_registers(sasm, 1);
+      int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_identity_hash_code), obj);
+      oop_maps = new OopMapSet();
+      oop_maps->add_gc_map(call_offset, map);
+      restore_live_registers_except_rax(sasm);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+    case graal_thread_is_interrupted_id: {
+      Register thread = j_rarg0;
+      Register clear_interrupted = j_rarg1;
+
+      __ set_info("identity_hash_code", dont_gc_arguments);
+      __ enter();
+      OopMap* map = save_live_registers(sasm, 1);
+      int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_thread_is_interrupted), thread, clear_interrupted);
+      oop_maps = new OopMapSet();
+      oop_maps->add_gc_map(call_offset, map);
+      restore_live_registers_except_rax(sasm);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+
     default:
       { GraalStubFrame f(sasm, "unimplemented entry", dont_gc_arguments);
         __ movptr(rax, (int)id);

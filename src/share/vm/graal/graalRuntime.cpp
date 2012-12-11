@@ -595,6 +595,23 @@ JRT_ENTRY(void, GraalRuntime::graal_log_primitive(JavaThread* thread, jchar type
   }
 JRT_END
 
+JRT_ENTRY(jint, GraalRuntime::graal_identity_hash_code(JavaThread* thread, oop obj))
+  return (jint) obj->identity_hash();
+JRT_END
+
+JRT_ENTRY(jboolean, GraalRuntime::graal_thread_is_interrupted(JavaThread* thread, oop receiver, jboolean clear_interrupted))
+  // TEMP:
+  tty->print_cr("ThreadIsInterruptedSlowCase");
+
+  // Ensure that the C++ Thread and OSThread structures aren't freed before we operate
+  Handle receiverHandle(thread, receiver);
+  JRT_BLOCK
+    MutexLockerEx ml(thread->threadObj() == receiver ? NULL : Threads_lock);
+    JavaThread* receiverThread = java_lang_Thread::thread(receiverHandle());
+    return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
+  JRT_BLOCK_END
+JRT_END
+
 // JVM_InitializeGraalRuntime
 JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
   return VMToCompiler::graalRuntimePermObject();
