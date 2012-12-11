@@ -868,13 +868,19 @@ void Deoptimization::reassign_object_array_elements(frame* fr, RegisterMap* reg_
   }
 }
 
-typedef struct {
-  int offset;
-  BasicType type;
-} ReassignedField;
+class ReassignedField {
+public:
+  int _offset;
+  BasicType _type;
+public:
+  ReassignedField() {
+    _offset = 0;
+    _type = T_ILLEGAL;
+  }
+};
 
 int compare(ReassignedField* left, ReassignedField* right) {
-  return left->offset - right->offset;
+  return left->_offset - right->_offset;
 }
 
 // Restore fields of an eliminated instance object using the same field order
@@ -888,8 +894,8 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
   for (AllFieldStream fs(klass); !fs.done(); fs.next()) {
     if (!fs.access_flags().is_static()) {
       ReassignedField field;
-      field.offset = fs.offset();
-      field.type = FieldType::basic_type(fs.signature());
+      field._offset = fs.offset();
+      field._type = FieldType::basic_type(fs.signature());
       fields->append(field);
     }
   }
@@ -897,8 +903,8 @@ static int reassign_fields_by_klass(InstanceKlass* klass, frame* fr, RegisterMap
   for (int i = 0; i < fields->length(); i++) {
     intptr_t val;
     StackValue* value = StackValue::create_stack_value(fr, reg_map, sv->field_at(svIndex));
-    int offset = fields->at(i).offset;
-    BasicType type = fields->at(i).type;
+    int offset = fields->at(i)._offset;
+    BasicType type = fields->at(i)._type;
     switch (type) {
       case T_OBJECT: case T_ARRAY:
         assert(value->type() == T_OBJECT, "Agreement.");

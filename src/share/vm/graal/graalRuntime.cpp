@@ -588,9 +588,6 @@ JRT_ENTRY(jint, GraalRuntime::graal_identity_hash_code(JavaThread* thread, oop o
 JRT_END
 
 JRT_ENTRY(jboolean, GraalRuntime::graal_thread_is_interrupted(JavaThread* thread, oop receiver, jboolean clear_interrupted))
-  // TEMP:
-  tty->print_cr("ThreadIsInterruptedSlowCase");
-
   // Ensure that the C++ Thread and OSThread structures aren't freed before we operate
   Handle receiverHandle(thread, receiver);
   JRT_BLOCK

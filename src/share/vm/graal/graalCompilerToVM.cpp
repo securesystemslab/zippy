@@ -589,7 +589,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
 #ifdef _WIN64
-  set_boolean(env, config, "windowsOs", true);
+  set_boolean("windowsOs", true);
 #else
   set_boolean("windowsOs", false);
 #endif
