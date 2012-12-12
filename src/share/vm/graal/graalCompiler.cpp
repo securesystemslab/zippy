@@ -36,7 +36,7 @@
 
 GraalCompiler* GraalCompiler::_instance = NULL;
 
-GraalCompiler::GraalCompiler() {
+GraalCompiler::GraalCompiler() : AbstractCompiler(graal) {
   _initialized = false;
   assert(_instance == NULL, "only one instance allowed");
   _instance = this;

@@ -121,6 +121,11 @@ Method::Method(ConstMethod* xconst,
   backedge_counter()->init();
   clear_number_of_breakpoints();
 
+#ifdef GRAAL
+  set_graal_invocation_time(0L);
+  set_graal_priority(0);
+#endif
+
 #ifdef TIERED
   set_rate(0);
   set_prev_event_count(0);

@@ -43,6 +43,11 @@ class GraalStubAssembler: public MacroAssembler {
   int         _stub_id;
 
  public:
+
+  enum {
+    no_frame_size            = -1
+  };
+
   // creation
   GraalStubAssembler(CodeBuffer* code, const char * name, int stub_id);
   void set_info(const char* name, bool must_gc_arguments);
@@ -70,9 +75,6 @@ class GraalStubAssembler: public MacroAssembler {
 // set frame size and return address offset to these values in blobs
 // (if the compiled frame uses ebp as link pointer on IA; otherwise,
 // the frame size must be fixed)
-enum {
-  no_frame_size            = -1
-};
 
 // Holds all assembly stubs and VM
 // runtime routines needed by code code generated

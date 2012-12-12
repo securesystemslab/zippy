@@ -124,7 +124,7 @@ void Abstract_VM_Version::initialize() {
     #define VMTYPE "Zero"
   #endif // SHARK
   #else // ZERO
-  #ifdef GRAAL
+  #ifdef GRAALVM
      #define VMTYPE "Graal"
   #else // GRAAL
      #define VMTYPE COMPILER1_PRESENT("Client")   \

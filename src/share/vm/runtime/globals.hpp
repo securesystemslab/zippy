@@ -1219,6 +1219,9 @@ class CommandLineFlags {
   notproduct(bool, TraceJVMCalls, false,                                    \
           "Trace JVM calls")                                                \
                                                                             \
+  product(bool, TraceSignals, false,                                        \
+          "Trace signals and implicit exception handling")                  \
+                                                                            \
   product(ccstr, TraceJVMTI, NULL,                                          \
           "Trace flags for JVMTI functions and events")                     \
                                                                             \
@@ -2373,7 +2376,7 @@ class CommandLineFlags {
   product(intx, CICompilerCount, CI_COMPILER_COUNT,                         \
           "Number of compiler threads to run")                              \
                                                                             \
-  product(intx, CompilationPolicyChoice, NOT_GRAAL(0) GRAAL_ONLY(4),        \
+  product(intx, CompilationPolicyChoice, NOT_GRAALVM(0) GRAALVM_ONLY(4),    \
           "which compilation policy (0/1)")                                 \
                                                                             \
   develop(bool, UseStackBanging, true,                                      \

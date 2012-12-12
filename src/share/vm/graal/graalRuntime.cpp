@@ -119,7 +119,7 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
   // generate code for runtime stub
   OopMapSet* oop_maps;
   oop_maps = generate_code_for(id, sasm);
-  assert(oop_maps == NULL || sasm->frame_size() != no_frame_size,
+  assert(oop_maps == NULL || sasm->frame_size() != GraalStubAssembler::no_frame_size,
          "if stub has an oop map it must have a valid frame size");
 
 #ifdef ASSERT
@@ -130,14 +130,12 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
 #if defined(SPARC) || defined(PPC)
     case handle_exception_nofpu_id:  // Unused on sparc
 #endif
-#ifdef GRAAL
     case graal_verify_oop_id:
     case graal_unwind_exception_call_id:
     case graal_OSR_migration_end_id:
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
-#endif
       break;
 
     // All other stubs should have oopmaps
@@ -168,7 +166,7 @@ void GraalRuntime::initialize(BufferBlob* blob) {
   for (int id = 0; id < number_of_ids; id++) generate_blob_for(blob, (StubID)id);
   // printing
 #ifndef PRODUCT
-  if (PrintSimpleStubs) {
+  if (GraalPrintSimpleStubs) {
     ResourceMark rm;
     for (int id = 0; id < number_of_ids; id++) {
       _blobs[id]->print();
@@ -469,7 +467,7 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::graal_monitorenter(JavaThread* thread, oo
     // Retry fast entry if bias is revoked to avoid unnecessary inflation
     ObjectSynchronizer::fast_enter(h_obj, lock, true, CHECK);
   } else {
-    if (UseFastLocking) {
+    if (GraalUseFastLocking) {
       // When using fast locking, the compiled code has already tried the fast case
       ObjectSynchronizer::slow_enter(h_obj, lock, THREAD);
     } else {
@@ -500,7 +498,7 @@ JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj,
   }
 #endif
 
-  if (UseFastLocking) {
+  if (GraalUseFastLocking) {
     // When using fast locking, the compiled code has already tried the fast case
     ObjectSynchronizer::slow_exit(obj, lock, THREAD);
   } else {

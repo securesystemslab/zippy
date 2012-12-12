@@ -31,6 +31,13 @@
 // Sets the default values for platform dependent flags used by the Graal compiler.
 // (see graalGlobals.hpp)
 
+#ifndef COMPILER2
+define_pd_global(intx, TypeProfileWidth,             8);
+#endif
+
+define_pd_global(intx, GraalSafepointPollOffset,     256  );
+
+#if !defined(COMPILER1) && !defined(COMPILER2)
 define_pd_global(bool, BackgroundCompilation,        true );
 define_pd_global(bool, UseTLAB,                      true );
 define_pd_global(bool, ResizeTLAB,                   true );
@@ -44,27 +51,17 @@ define_pd_global(intx, FreqInlineSize,               325  );
 define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
 define_pd_global(uintx,MetaspaceSize,                12*M );
 define_pd_global(uintx,MaxPermSize,                  64*M );
-define_pd_global(bool, NeverActAsServerClassMachine, true );
+define_pd_global(bool, NeverActAsServerClassMachine, false);
 define_pd_global(uint64_t,MaxRAM,                    1ULL*G);
 define_pd_global(bool, CICompileOSR,                 true );
-
 define_pd_global(bool, ProfileTraps,                 true );
-define_pd_global(bool, UseOnStackReplacement,        true);
-define_pd_global(intx, CompileThreshold,             10000 );
-define_pd_global(intx, InitialCodeCacheSize,         16*M  );
+define_pd_global(bool, UseOnStackReplacement,        true );
+define_pd_global(intx, CompileThreshold,             10000);
+define_pd_global(intx, InitialCodeCacheSize,         16*M );
 define_pd_global(intx, ReservedCodeCacheSize,        64*M );
 define_pd_global(bool, ProfileInterpreter,           true );
 define_pd_global(intx, CodeCacheExpansionSize,       64*K );
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);
-define_pd_global(intx, TypeProfileWidth,             8);
-
-define_pd_global(bool, RoundFPResults,               true );
-
-define_pd_global(bool, LIRFillDelaySlots,            false);
-define_pd_global(bool, OptimizeSinglePrecision,      true );
-define_pd_global(bool, CSEArrayLength,               false);
-define_pd_global(bool, TwoOperandLIRForm,            true );
-
-define_pd_global(intx, SafepointPollOffset,          256  );
+#endif
 
 #endif // CPU_X86_VM_GRAALGLOBALS_X86_HPP

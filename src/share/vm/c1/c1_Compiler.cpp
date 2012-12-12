@@ -44,7 +44,7 @@
 
 volatile int Compiler::_runtimes = uninitialized;
 
-Compiler::Compiler() {
+Compiler::Compiler() : AbstractCompiler(c1) {
 }
 
 

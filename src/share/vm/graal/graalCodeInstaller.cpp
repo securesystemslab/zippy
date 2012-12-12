@@ -448,6 +448,22 @@ void CodeInstaller::process_exception_handlers() {
   }
 }
 
+// If deoptimization happens, the interpreter should reexecute these bytecodes.
+// This function mainly helps the compilers to set up the reexecute bit.
+static bool bytecode_should_reexecute(Bytecodes::Code code) {
+  switch (code) {
+    case Bytecodes::_invokedynamic:
+    case Bytecodes::_invokevirtual:
+    case Bytecodes::_invokeinterface:
+    case Bytecodes::_invokespecial:
+    case Bytecodes::_invokestatic:
+      return false;
+    default:
+      return true;
+    }
+  return true;
+}
+
 void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeValue*>* objects) {
   assert(frame->klass() == BytecodeFrame::klass(), "BytecodeFrame expected");
   oop caller_frame = BytecodePosition::caller(frame);
@@ -463,7 +479,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
      reexecute = false;
   } else {
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
-    reexecute = Interpreter::bytecode_should_reexecute(code);
+    reexecute = bytecode_should_reexecute(code);
     if (frame != NULL) {
       reexecute = (BytecodeFrame::duringCall(frame) == JNI_FALSE);
     }
@@ -797,7 +813,8 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_POLL_NEAR: {
         NativeInstruction* ni = nativeInstruction_at(instruction);
         int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
-        intptr_t new_disp = (intptr_t) (os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())) - (intptr_t) ni;
+        int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
+        intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
         *disp = (int32_t)new_disp;
       }
       case MARK_POLL_FAR:
@@ -806,43 +823,13 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_POLL_RETURN_NEAR: {
         NativeInstruction* ni = nativeInstruction_at(instruction);
         int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
-        intptr_t new_disp = (intptr_t) (os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())) - (intptr_t) ni;
+        int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
+        intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
         *disp = (int32_t)new_disp;
       }
       case MARK_POLL_RETURN_FAR:
         _instructions->relocate(instruction, relocInfo::poll_return_type);
         break;
-      case MARK_KLASS_PATCHING:
-      case MARK_ACCESS_FIELD_PATCHING: {
-        unsigned char* byte_count = (unsigned char*) (instruction - 1);
-        unsigned char* byte_skip = (unsigned char*) (instruction - 2);
-        unsigned char* being_initialized_entry_offset = (unsigned char*) (instruction - 3);
-
-        assert(*byte_skip == 5, "unexpected byte_skip");
-
-        assert(references->length() == 2, "MARK_KLASS_PATCHING/MARK_ACCESS_FIELD_PATCHING needs 2 references");
-        oop ref1 = ((oop*) references->base(T_OBJECT))[0];
-        oop ref2 = ((oop*) references->base(T_OBJECT))[1];
-        int i_byte_count = CompilationResult_Site::pcOffset(ref2) - CompilationResult_Site::pcOffset(ref1);
-        assert(i_byte_count == (unsigned char)i_byte_count, "invalid offset");
-        *byte_count = i_byte_count;
-        *being_initialized_entry_offset = *byte_count + *byte_skip;
-
-        // we need to correct the offset of a field access - it's created with MAX_INT to ensure the correct size, and HotSpot expects 0
-        if (id == MARK_ACCESS_FIELD_PATCHING) {
-          NativeMovRegMem* inst = nativeMovRegMem_at(_instructions->start() + CompilationResult_Site::pcOffset(ref1));
-          assert(inst->offset() == max_jint, "unexpected offset value");
-          inst->set_offset(0);
-        }
-        break;
-      }
-      case MARK_DUMMY_OOP_RELOCATION: {
-        _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-
-        RelocIterator iter(_instructions, (address) instruction, (address) (instruction + 1));
-        relocInfo::change_reloc_info_for_address(&iter, (address) instruction, relocInfo::oop_type, relocInfo::none);
-        break;
-      }
       default:
         ShouldNotReachHere();
         break;

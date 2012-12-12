@@ -589,15 +589,13 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
 #ifdef _WIN64
-  set_boolean(env, config, "windowsOs", true);
+  set_boolean("windowsOs", true);
 #else
   set_boolean("windowsOs", false);
 #endif
   set_boolean("verifyOops", VerifyOops);
-  set_boolean("useFastLocking", UseFastLocking);
-  set_boolean("useFastNewObjectArray", UseFastNewObjectArray);
+  set_boolean("useFastLocking", GraalUseFastLocking);
   set_boolean("useBiasedLocking", UseBiasedLocking);
-  set_boolean("useFastNewTypeArray", UseFastNewTypeArray);
   set_boolean("useTLAB", UseTLAB);
   set_int("codeEntryAlignment", CodeEntryAlignment);
   set_int("vmPageSize", os::vm_page_size());
@@ -628,7 +626,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
   set_int("threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int("threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
-  set_long("safepointPollingAddress", (jlong)(os::get_polling_page() + (SafepointPollOffset % os::vm_page_size())));
   set_boolean("isPollingPageFar", Assembler::is_polling_page_far());
   set_int("classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   set_int("runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
@@ -709,6 +706,26 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_long("logPrimitiveStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_primitive_id)));
   set_long("logObjectStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_object_id)));
   set_long("logPrintfStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id)));
+
+  set_int("deoptReasonNone", Deoptimization::Reason_none);
+  set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
+  set_int("deoptReasonRangeCheck", Deoptimization::Reason_range_check);
+  set_int("deoptReasonClassCheck", Deoptimization::Reason_class_check);
+  set_int("deoptReasonArrayCheck", Deoptimization::Reason_array_check);
+  set_int("deoptReasonUnreached0", Deoptimization::Reason_unreached0);
+  set_int("deoptReasonTypeCheckInlining", Deoptimization::Reason_type_checked_inlining);
+  set_int("deoptReasonOptimizedTypeCheck", Deoptimization::Reason_optimized_type_check);
+  set_int("deoptReasonNotCompiledExceptionHandler", Deoptimization::Reason_not_compiled_exception_handler);
+  set_int("deoptReasonUnresolved", Deoptimization::Reason_unresolved);
+  set_int("deoptReasonJsrMismatch", Deoptimization::Reason_jsr_mismatch);
+  set_int("deoptReasonDiv0Check", Deoptimization::Reason_div0_check);
+  set_int("deoptReasonConstraint", Deoptimization::Reason_constraint);
+
+  set_int("deoptActionNone", Deoptimization::Action_none);
+  set_int("deoptActionMaybeRecompile", Deoptimization::Action_maybe_recompile);
+  set_int("deoptActionReinterpret", Deoptimization::Action_reinterpret);
+  set_int("deoptActionMakeNotEntrant", Deoptimization::Action_make_not_entrant);
+  set_int("deoptActionMakeNotCompilable", Deoptimization::Action_make_not_compilable);
 
 
   BarrierSet* bs = Universe::heap()->barrier_set();

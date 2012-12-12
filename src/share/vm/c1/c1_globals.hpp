@@ -56,8 +56,6 @@
 //
 #define C1_FLAGS(develop, develop_pd, product, product_pd, notproduct)      \
                                                                             \
-  product(bool, TraceSignals, false,                                        \
-          "Trace signals and implicit exception handling")                  \
   /* Printing */                                                            \
   notproduct(bool, PrintC1Statistics, false,                                \
           "Print Compiler1 statistics" )                                    \

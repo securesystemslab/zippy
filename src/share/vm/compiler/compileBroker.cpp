@@ -753,8 +753,13 @@ void CompileBroker::compilation_init() {
   // Set the interface to the current compiler(s).
   int c1_count = CompilationPolicy::policy()->compiler_count(CompLevel_simple);
   int c2_count = CompilationPolicy::policy()->compiler_count(CompLevel_full_optimization);
-#if defined(GRAAL)
-  _compilers[0] = new GraalCompiler();
+
+#ifdef GRAAL
+  GraalCompiler* graal = new GraalCompiler();
+#endif
+
+#if defined(GRAALVM)
+  _compilers[0] = graal;
   c1_count = 0;
   c2_count = 0;
 #elif defined(COMPILER1)
@@ -971,9 +976,9 @@ CompilerThread* CompileBroker::make_compiler_thread(const char* name, CompileQue
 // Initialize the compilation queue
 void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler_count) {
   EXCEPTION_MARK;
-#if !defined(ZERO) && !defined(SHARK) && !defined(GRAAL)
+#if !defined(ZERO) && !defined(SHARK) && !defined(GRAALVM)
   assert(c2_compiler_count > 0 || c1_compiler_count > 0, "No compilers?");
-#endif // !ZERO && !SHARK
+#endif // !ZERO && !SHARK && !GRAALVM
   if (c2_compiler_count > 0) {
     _c2_method_queue  = new CompileQueue("C2MethodQueue",  MethodCompileQueue_lock);
   }
@@ -1024,7 +1029,6 @@ void CompileBroker::mark_on_stack() {
 // ------------------------------------------------------------------
 // CompileBroker::is_idle
 bool CompileBroker::is_idle() {
-#ifndef GRAAL
   if (_c2_method_queue != NULL && !_c2_method_queue->is_empty()) {
     return false;
   } else if (_c1_method_queue != NULL && !_c1_method_queue->is_empty()) {
@@ -1037,7 +1041,6 @@ bool CompileBroker::is_idle() {
       }
     }
   }
-#endif
   // No pending or active compilations.
   return true;
 }
@@ -1122,7 +1125,7 @@ void CompileBroker::compile_method_base(methodHandle method,
   if (InstanceRefKlass::owns_pending_list_lock(JavaThread::current())) {
     return;
   }
-#ifdef GRAAL
+#ifdef GRAALVM
   if (!JavaThread::current()->is_compiling()) {
     method->set_queued_for_compilation();
     GraalCompiler::instance()->compile_method(method, osr_bci, is_compile_blocking(method, osr_bci));

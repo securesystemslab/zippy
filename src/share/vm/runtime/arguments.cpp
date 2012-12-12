@@ -3442,9 +3442,12 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   // which are subtlely different from each other but neither works with
   // biased locking.
   if (UseHeavyMonitors
-#if defined(COMPILER1) || defined(GRAAL)
+#ifdef COMPILER1
       || !UseFastLocking
 #endif // COMPILER1
+#ifdef GRAAL
+      || !GraalUseFastLocking
+#endif // GRAAL
     ) {
     if (!FLAG_IS_DEFAULT(UseBiasedLocking) && UseBiasedLocking) {
       // flag set to true on command line; warn the user that they

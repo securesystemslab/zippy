@@ -37,12 +37,20 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   // Used for tracking global state of compiler runtime initialization
   enum { uninitialized, initializing, initialized };
 
+  // The (closed set) of concrete compiler classes. Using an tag like this
+  // avoids a confusing use of macros around the definition of the
+  // 'is_<compiler type>' methods.
+  enum Type { c1, c2, shark, graal };
+
   // This method will call the initialization method "f" once (per compiler class/subclass)
   // and do so without holding any locks
   void initialize_runtimes(initializer f, volatile int* state);
 
+ private:
+  Type _type;
+
  public:
-  AbstractCompiler() : _is_initialized(false)    {}
+  AbstractCompiler(Type type) : _is_initialized(false), _type(type)    {}
 
   // Name of this compiler
   virtual const char* name() = 0;
@@ -53,37 +61,10 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   virtual bool supports_native()                 { return true; }
 
   virtual bool supports_osr   ()                 { return true; }
-#if defined(TIERED) || ( !defined(COMPILER1) && !defined(COMPILER2) && !defined(SHARK) && !defined(GRAAL))
-  virtual bool is_c1   ()                        { return false; }
-  virtual bool is_c2   ()                        { return false; }
-  virtual bool is_shark()                        { return false; }
-  virtual bool is_graal()                        { return false; }
-#else
-#ifdef COMPILER1
-  bool is_c1   ()                                { return true; }
-  bool is_c2   ()                                { return false; }
-  bool is_shark()                                { return false; }
-  bool is_graal()                                { return false; }
-#endif // COMPILER1
-#ifdef COMPILER2
-  bool is_c1   ()                                { return false; }
-  bool is_c2   ()                                { return true; }
-  bool is_shark()                                { return false; }
-  bool is_graal()                                { return false; }
-#endif // COMPILER2
-#ifdef SHARK
-  bool is_c1   ()                                { return false; }
-  bool is_c2   ()                                { return false; }
-  bool is_shark()                                { return true; }
-  bool is_graal()                                { return false; }
-#endif // SHARK
-#ifdef GRAAL
-  bool is_c1   ()                                { return false; }
-  bool is_c2   ()                                { return false; }
-  bool is_shark()                                { return false; }
-  bool is_graal()                                { return true; }
-#endif // GRAAL
-#endif // TIERED
+  bool is_c1   ()                                { return _type == c1; }
+  bool is_c2   ()                                { return _type == c2; }
+  bool is_shark()                                { return _type == shark; }
+  bool is_graal()                                { return _type == graal; }
 
   void mark_initialized()                        { _is_initialized = true; }
   bool is_initialized()                          { return _is_initialized; }

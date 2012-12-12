@@ -1996,7 +1996,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   int vep_offset = ((intptr_t)__ pc()) - start;
 
-#ifdef GRAAL
+#ifdef GRAALVM
   if (InlineObjectHash && (method->intrinsic_id() == vmIntrinsics::_hashCode || method->intrinsic_id() == vmIntrinsics::_identityHashCode)) {
     // Object.hashCode can pull the hashCode from the header word
     // instead of doing a full VM transition once it's been computed.
@@ -2038,7 +2038,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
     __ bind (slowCase);
   }
-#endif // GRAAL
+#endif // GRAALVM
 
   // The instruction at the verified entry point must be 5 bytes or longer
   // because it can be patched on the fly by make_non_entrant. The stack bang
@@ -3420,7 +3420,7 @@ void SharedRuntime::generate_deopt_blob() {
   __ push(0);
 
   // Save everything in sight.
-  RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
+  map = RegisterSaver::save_live_registers(masm, 0, &frame_size_in_words);
 
   // Now it is safe to overwrite any register
 
