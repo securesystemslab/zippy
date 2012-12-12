@@ -493,6 +493,12 @@ void GraalCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThre
   const char* comment = "backedge_count";
 
   if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m)) {
+    if (TraceCompilationPolicy) {
+      tty->print("backedge invocation trigger: ");
+      m->print_short_name(tty);
+      tty->print_cr(" ( interpreted " INTPTR_FORMAT ", size=%d, hotCount=%d ) ", (address)m(), m->code_size(), hot_count);
+    }
+
     CompileBroker::compile_method(m, bci, CompLevel_highest_tier,
                                   m, hot_count, comment, thread);
     NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, CompLevel_highest_tier, true));)
