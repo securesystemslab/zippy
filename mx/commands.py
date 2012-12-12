@@ -844,6 +844,10 @@ def gate(args):
                     dacapo(['pmd'])
                     tasks.append(t.stop())
 
+                    t = Task('UnitTests:' + theVm + ':' + vmbuild)
+                    unittest(['@-XX:CompileCommand=exclude,*::run*', 'graal.api'])
+                    tasks.append(t.stop())
+
     except KeyboardInterrupt:
         total.abort(1)
 
