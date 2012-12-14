@@ -224,16 +224,17 @@ C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_
 C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method, jobject resultHolder))
   methodHandle method = asMethod(metaspace_method);
   KlassHandle holder = method->method_holder();
-  if (holder->is_interface()) {
-    // Cannot trust interfaces. Because of:
-    // interface I { void foo(); }
-    // class A { public void foo() {} }
-    // class B extends A implements I { }
-    // class C extends B { public void foo() { } }
-    // class D extends B { }
-    // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
-    return 0L;
-  }
+  // TODO (chaeubl): check if the following is necessary
+  //if (holder->is_interface()) {
+  //  // Cannot trust interfaces. Because of:
+  //  // interface I { void foo(); }
+  //  // class A { public void foo() {} }
+  //  // class B extends A implements I { }
+  //  // class C extends B { public void foo() { } }
+  //  // class D extends B { }
+  //  // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
+  //  return 0L;
+  //}
   methodHandle ucm;
   {
     ResourceMark rm;
@@ -248,6 +249,19 @@ C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_
   Handle type = GraalCompiler::createHotSpotResolvedObjectType(ucm(), CHECK_0);
   objArrayOop(JNIHandles::resolve(resultHolder))->obj_at_put(0, type());
   return (jlong) (address) ucm();
+C2V_END
+
+C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface_type))
+  InstanceKlass* klass = (InstanceKlass*) asKlass(HotSpotResolvedObjectType::metaspaceKlass(interface_type));
+  assert(klass->is_interface(), "must be");
+  if (klass->nof_implementors() == 1) {
+    InstanceKlass* implementor = (InstanceKlass*) klass->implementor();
+    if (!implementor->is_abstract() && !implementor->is_interface() && implementor->is_leaf_class()) {
+      Handle type = GraalCompiler::get_JavaType(implementor, CHECK_NULL);
+      return JNIHandles::make_local(THREAD, type());
+    }
+  }
+  return NULL;
 C2V_END
 
 C2V_ENTRY(jint, getInvocationCount, (JNIEnv *, jobject, jlong metaspace_method))
@@ -947,6 +961,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeExceptionHandlers",   CC"("METASPACE_METHOD EXCEPTION_HANDLERS")"EXCEPTION_HANDLERS,    FN_PTR(initializeExceptionHandlers)},
   {CC"hasBalancedMonitors",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
   {CC"getUniqueConcreteMethod",       CC"("METASPACE_METHOD"["HS_RESOLVED_TYPE")"METASPACE_METHOD,      FN_PTR(getUniqueConcreteMethod)},
+  {CC"getUniqueImplementor",          CC"("HS_RESOLVED_TYPE")"RESOLVED_TYPE,                            FN_PTR(getUniqueImplementor)},
   {CC"getStackTraceElement",          CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
   {CC"initializeMethodData",          CC"("METASPACE_METHOD_DATA METHOD_DATA")V",                       FN_PTR(initializeMethodData)},
