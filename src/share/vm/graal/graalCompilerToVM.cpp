@@ -224,17 +224,16 @@ C2V_VMENTRY(jobject, getJavaField, (JNIEnv *, jobject, jobject reflection_field_
 C2V_VMENTRY(jlong, getUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method, jobject resultHolder))
   methodHandle method = asMethod(metaspace_method);
   KlassHandle holder = method->method_holder();
-  // TODO (chaeubl): check if the following is necessary
-  //if (holder->is_interface()) {
-  //  // Cannot trust interfaces. Because of:
-  //  // interface I { void foo(); }
-  //  // class A { public void foo() {} }
-  //  // class B extends A implements I { }
-  //  // class C extends B { public void foo() { } }
-  //  // class D extends B { }
-  //  // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
-  //  return 0L;
-  //}
+  if (holder->is_interface()) {
+    // Cannot trust interfaces. Because of:
+    // interface I { void foo(); }
+    // class A { public void foo() {} }
+    // class B extends A implements I { }
+    // class C extends B { public void foo() { } }
+    // class D extends B { }
+    // Would lead to identify C.foo() as the unique concrete method for I.foo() without seeing A.foo().
+    return 0L;
+  }
   methodHandle ucm;
   {
     ResourceMark rm;
