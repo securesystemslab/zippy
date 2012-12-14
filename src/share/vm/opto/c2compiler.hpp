@@ -33,6 +33,8 @@ private:
   static void initialize_runtime();
 
 public:
+  C2Compiler() : AbstractCompiler(c2) {}
+
   // Name
   const char *name() { return "C2"; }
 

@@ -122,9 +122,7 @@ void Rewriter::rewrite_Object_init(methodHandle method, TRAPS) {
     Bytecodes::Code opcode = bcs.raw_next();
     switch (opcode) {
       case Bytecodes::_return:
-#ifndef GRAAL
           *bcs.bcp() = Bytecodes::_return_register_finalizer;
-#endif
         break;
 
       case Bytecodes::_istore:
@@ -325,14 +323,12 @@ void Rewriter::scan_method(Method* method, bool reverse) {
       switch (c) {
         case Bytecodes::_lookupswitch   : {
 #ifndef CC_INTERP
-#ifndef GRAAL
             Bytecode_lookupswitch bc(method, bcp);
             (*bcp) = (
               bc.number_of_pairs() < BinarySwitchThreshold
               ? Bytecodes::_fast_linearswitch
               : Bytecodes::_fast_binaryswitch
             );
-#endif
 #endif
           break;
         }

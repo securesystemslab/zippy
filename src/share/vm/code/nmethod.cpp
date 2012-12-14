@@ -868,27 +868,28 @@ nmethod::nmethod(
 
 #ifdef GRAAL
     _graal_installed_code = installed_code();
-
-    // Graal might not produce any stub sections
-    if (offsets->value(CodeOffsets::Exceptions) != -1) {
-      _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
+#endif
+    if (compiler->is_graal()) {
+      // Graal might not produce any stub sections
+      if (offsets->value(CodeOffsets::Exceptions) != -1) {
+        _exception_offset        = code_offset()          + offsets->value(CodeOffsets::Exceptions);
+      } else {
+        _exception_offset = -1;
+      }
+      if (offsets->value(CodeOffsets::Deopt) != -1) {
+        _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
+      } else {
+        _deoptimize_offset = -1;
+      }
+      if (offsets->value(CodeOffsets::DeoptMH) != -1) {
+        _deoptimize_mh_offset  = code_offset()          + offsets->value(CodeOffsets::DeoptMH);
+      } else {
+        _deoptimize_mh_offset  = -1;
+      }
     } else {
-      _exception_offset = -1;
-    }
-    if (offsets->value(CodeOffsets::Deopt) != -1) {
-      _deoptimize_offset       = code_offset()          + offsets->value(CodeOffsets::Deopt);
-    } else {
-      _deoptimize_offset = -1;
-    }
-    if (offsets->value(CodeOffsets::DeoptMH) != -1) {
-      _deoptimize_mh_offset  = code_offset()          + offsets->value(CodeOffsets::DeoptMH);
-    } else {
-      _deoptimize_mh_offset  = -1;
-    }
-#else
-    // Exception handler and deopt handler are in the stub section
-    assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
-    assert(offsets->value(CodeOffsets::Deopt     ) != -1, "must be set");
+      // Exception handler and deopt handler are in the stub section
+      assert(offsets->value(CodeOffsets::Exceptions) != -1, "must be set");
+      assert(offsets->value(CodeOffsets::Deopt     ) != -1, "must be set");
 
       _exception_offset        = _stub_offset          + offsets->value(CodeOffsets::Exceptions);
       _deoptimize_offset       = _stub_offset          + offsets->value(CodeOffsets::Deopt);
@@ -897,7 +898,7 @@ nmethod::nmethod(
       } else {
         _deoptimize_mh_offset  = -1;
       }
-#endif
+    }
     if (offsets->value(CodeOffsets::UnwindHandler) != -1) {
       _unwind_handler_offset = code_offset()         + offsets->value(CodeOffsets::UnwindHandler);
     } else {
@@ -1241,9 +1242,7 @@ bool nmethod::can_not_entrant_be_converted() {
 }
 
 void nmethod::inc_decompile_count() {
-#ifndef GRAAL
-  if (!is_compiled_by_c2()) return;
-#endif
+  if (!is_compiled_by_c2() && !is_compiled_by_graal()) return;
   // Could be gated by ProfileTraps, but do not bother...
   Method* m = method();
   if (m == NULL)  return;

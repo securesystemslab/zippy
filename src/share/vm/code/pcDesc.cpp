@@ -44,11 +44,11 @@ address PcDesc::real_pc(const nmethod* code) const {
 void PcDesc::print(nmethod* code) {
 #ifndef PRODUCT
   ResourceMark rm;
-#ifdef GRAAL
-  tty->print_cr("PcDesc(pc=0x%lx offset=%x bits=%x leaf_graph_id=%d):", real_pc(code), pc_offset(), _flags, leaf_graph_id());
-#else
-  tty->print_cr("PcDesc(pc=0x%lx offset=%x bits=%x):", real_pc(code), pc_offset(), _flags);
-#endif
+  if (code->is_compiled_by_graal()) {
+    tty->print_cr("PcDesc(pc=0x%lx offset=%x bits=%x leaf_graph_id=%d):", real_pc(code), pc_offset(), _flags, leaf_graph_id());
+  } else {
+    tty->print_cr("PcDesc(pc=0x%lx offset=%x bits=%x):", real_pc(code), pc_offset(), _flags);
+  }
 
   if (scope_decode_offset() == DebugInformationRecorder::serialized_null) {
     return;

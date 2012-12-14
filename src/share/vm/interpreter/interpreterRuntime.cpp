@@ -433,11 +433,13 @@ IRT_ENTRY(address, InterpreterRuntime::exception_handler_for_exception(JavaThrea
     }
   } while (should_repeat == true);
 
-#ifdef GRAAL
+#ifdef GRAALVM
   if (h_method->method_data() != NULL) {
     ResourceMark rm(thread);
     ProfileData* pdata = h_method->method_data()->allocate_bci_to_data(current_bci);
     if (pdata != NULL) {
+      // We re-purpose the DS_RECOMPILE_BIT to record that an exception was thrown at
+      // the current bci.
       int tstate0 = pdata->trap_state();
       int tstate1 = Deoptimization::trap_state_set_recompiled(tstate0, true);
       if (tstate1 != tstate0) {

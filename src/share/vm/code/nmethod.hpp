@@ -118,8 +118,6 @@ class nmethod : public CodeBlob {
 
 #ifdef GRAAL
   // Needed to keep nmethods alive that are not the default nmethod for the associated Method.
-  // This field is initialized to Universe::non_oop_word() so that a non-default nmethod
-  // is not unloaded between being allocated and having this field set in the Graal specific code
   oop       _graal_installed_code;
 #endif
 

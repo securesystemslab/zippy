@@ -182,9 +182,23 @@
 #ifdef GRAAL
 #define GRAAL_ONLY(code) code
 #define NOT_GRAAL(code)
+#if !defined(COMPILER1) && !defined(COMPILER2)
+// Graal is the only compiler in the system and so will be used for compilation
+// requests issued by the compile broker.
+#define GRAALVM
+#define GRAALVM_ONLY(code) code
+#define NOT_GRAALVM(code)
 #else
+// Graal is not the only compiler in the system and so will only be used for
+// compilation requests issued via the Graal API
+#define GRAALVM_ONLY(code)
+#define NOT_GRAALVM(code) code
+#endif
+#else // !GRAAL
 #define GRAAL_ONLY(code)
 #define NOT_GRAAL(code) code
+#define GRAALVM_ONLY(code)
+#define NOT_GRAALVM(code) code
 #endif // GRAAL
 
 #ifdef HIGH_LEVEL_INTERPRETER

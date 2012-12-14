@@ -49,9 +49,6 @@ private:
     MARK_POLL_RETURN_NEAR           = 0x3002,
     MARK_POLL_FAR                   = 0x3003,
     MARK_POLL_RETURN_FAR            = 0x3004,
-    MARK_KLASS_PATCHING             = 0x4000,
-    MARK_DUMMY_OOP_RELOCATION       = 0x4001,
-    MARK_ACCESS_FIELD_PATCHING      = 0x4002
   };
 
   Arena         _arena;

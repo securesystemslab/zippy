@@ -1316,8 +1316,8 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       if (thread->graal_deopt_info() != NULL) {
         oop deopt_info = thread->graal_deopt_info();
         if (java_lang_String::is_instance(deopt_info)) {
-          char buf[1024];
-          java_lang_String::as_utf8_string(deopt_info, buf, 1024);
+          char buf[O_BUFLEN];
+          java_lang_String::as_utf8_string(deopt_info, buf, O_BUFLEN);
           tty->print_cr("deopt info: %s", buf);
         } else {
           tty->print_cr("deopt info:");
@@ -1862,40 +1862,24 @@ const char* Deoptimization::format_trap_state(char* buf, size_t buflen,
 Deoptimization::DeoptAction Deoptimization::_unloaded_action
   = Deoptimization::Action_reinterpret;
 const char* Deoptimization::_trap_reason_name[Reason_LIMIT] = {
-#ifdef GRAAL
-  "none",
-  "null_check",
-  "range_check",
-  "class_check",
-  "array_check",
-  "unreached",
-  "type_checked_inlining",
-  "optimized_type_check",
-  "not_compiled_exception_handler",
-  "unresolved",
-  "jsr_mismatch",
-  "div0_check",
-  "constraint"
-#else
   // Note:  Keep this in sync. with enum DeoptReason.
   "none",
   "null_check",
-  "null_assert",
+  "null_assert" GRAAL_ONLY("|unreached0"),
   "range_check",
   "class_check",
   "array_check",
-  "intrinsic",
-  "bimorphic",
+  "intrinsic" GRAAL_ONLY("|type_checked_inlining"),
+  "bimorphic" GRAAL_ONLY("|optimized_type_check"),
   "unloaded",
-  "uninitialized",
+  "uninitialized" GRAAL_ONLY("|unresolved"),
   "unreached",
-  "unhandled",
+  "unhandled" GRAAL_ONLY("|not_compiled_exception_handler"),
   "constraint",
   "div0_check",
-  "age",
+  "age" GRAAL_ONLY("|jsr_mismatch"),
   "predicate",
   "loop_limit_check"
-#endif
 };
 const char* Deoptimization::_trap_action_name[Action_LIMIT] = {
   // Note:  Keep this in sync. with enum DeoptAction.

@@ -630,24 +630,25 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
   ResourceMark rm;
 
 #ifdef GRAAL
-  // lookup exception handler for this pc
-  int catch_pco = ret_pc - nm->code_begin();
-  ExceptionHandlerTable table(nm);
-  HandlerTableEntry *t = table.entry_for(catch_pco, -1, 0);
-  if (t != NULL) {
-    return nm->code_begin() + t->pco();
-  } else {
-    // there is no exception handler for this pc => deoptimize
-    nm->make_not_entrant();
-    JavaThread* thread = JavaThread::current();
-    RegisterMap reg_map(thread);
-    frame runtime_frame = thread->last_frame();
-    frame caller_frame = runtime_frame.sender(&reg_map);
-    Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_not_compiled_exception_handler);
-    return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
+  if (nm->is_compiled_by_graal()) {
+    // lookup exception handler for this pc
+    int catch_pco = ret_pc - nm->code_begin();
+    ExceptionHandlerTable table(nm);
+    HandlerTableEntry *t = table.entry_for(catch_pco, -1, 0);
+    if (t != NULL) {
+      return nm->code_begin() + t->pco();
+    } else {
+      // there is no exception handler for this pc => deoptimize
+      nm->make_not_entrant();
+      JavaThread* thread = JavaThread::current();
+      RegisterMap reg_map(thread);
+      frame runtime_frame = thread->last_frame();
+      frame caller_frame = runtime_frame.sender(&reg_map);
+      Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_not_compiled_exception_handler);
+      return SharedRuntime::deopt_blob()->unpack_with_exception_in_tls();
+    }
   }
-
-#else
+#endif
 
   ScopeDesc* sd = nm->scope_desc_at(ret_pc);
   // determine handler bci, if any
@@ -728,7 +729,6 @@ address SharedRuntime::compute_compiled_exc_handler(nmethod* nm, address ret_pc,
   }
 
   return nm->code_begin() + t->pco();
-#endif
 }
 
 JRT_ENTRY(void, SharedRuntime::throw_AbstractMethodError(JavaThread* thread))
@@ -871,9 +871,13 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           _implicit_null_throws++;
 #endif
 #ifdef GRAAL
-          target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_null_check);
-#else
+          if (nm->is_compiled_by_graal()) {
+            target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_null_check);
+          } else {
+#endif
           target_pc = nm->continuation_for_implicit_exception(pc);
+#ifdef GRAAL
+          }
 #endif
           // If there's an unexpected fault, target_pc might be NULL,
           // in which case we want to fall through into the normal
@@ -891,12 +895,16 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
         _implicit_div0_throws++;
 #endif
 #ifdef GRAAL
-        if (TraceSignals) {
-          tty->print_cr("Graal implicit div0");
-        }
-        target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
-#else
+        if (nm->is_compiled_by_graal()) {
+          if (TraceSignals) {
+            tty->print_cr("Graal implicit div0");
+          }
+          target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
+        } else {
+#endif
         target_pc = nm->continuation_for_implicit_exception(pc);
+#ifdef GRAAL
+        }
 #endif
         // If there's an unexpected fault, target_pc might be NULL,
         // in which case we want to fall through into the normal

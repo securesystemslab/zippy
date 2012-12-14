@@ -60,7 +60,7 @@ namespace {
 #endif
 
 SharkCompiler::SharkCompiler()
-  : AbstractCompiler() {
+  : AbstractCompiler(shark) {
   // Create the lock to protect the memory manager and execution engine
   _execution_engine_lock = new Monitor(Mutex::leaf, "SharkExecutionEngineLock");
   MutexLocker locker(execution_engine_lock());

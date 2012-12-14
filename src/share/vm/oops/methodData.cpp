@@ -455,7 +455,7 @@ int MethodData::compute_data_size(BytecodeStream* stream) {
   return DataLayout::compute_size_in_bytes(cell_count);
 }
 
-#ifdef GRAAL
+#ifdef GRAALVM
 int MethodData::compute_extra_data_count(int data_size, int empty_bc_count) {
   if (!ProfileTraps) return 0;
 
@@ -500,7 +500,7 @@ int MethodData::compute_allocation_size_in_bytes(methodHandle method) {
   int extra_data_count = compute_extra_data_count(data_size, empty_bc_count);
   object_size += extra_data_count * DataLayout::compute_size_in_bytes(0);
 
-#ifndef GRAAL
+#ifndef GRAALVM
   // Add a cell to record information about modified arguments.
   int arg_size = method->size_of_parameters();
   object_size += DataLayout::compute_size_in_bytes(arg_size+1);
@@ -704,7 +704,7 @@ MethodData::MethodData(methodHandle method, int size, TRAPS) {
   int extra_size = extra_data_count * DataLayout::compute_size_in_bytes(0);
   object_size += extra_size;
 
-#ifndef GRAAL
+#ifndef GRAALVM
   // Add a cell to record information about modified arguments.
   // Set up _args_modified array after traps cells so that
   // the code for traps cells works.
@@ -728,7 +728,7 @@ MethodData::MethodData(methodHandle method, int size, TRAPS) {
 }
 
 bool MethodData::is_empty_data(int size_in_bytes, Bytecodes::Code code) {
-#ifdef GRAAL
+#ifdef GRAALVM
   return size_in_bytes == 0 && Bytecodes::can_trap(code);
 #else
   return size_in_bytes == 0;
@@ -762,12 +762,6 @@ bool MethodData::is_mature() const {
 void MethodData::inc_decompile_count() {
   _nof_decompiles += 1;
   if (decompile_count() > (uint)PerMethodRecompilationCutoff) {
-#ifdef GRAAL
-    // TODO (chaeubl) enable this in the fastdebug build only once we are more stable
-    ResourceMark m;
-    tty->print_cr("WARN: endless recompilation of %s. Method was set to not compilable.", method()->name_and_sig_as_C_string());
-    //ShouldNotReachHere();
-#endif
     method()->set_not_compilable(CompLevel_full_optimization);
   }
 }

@@ -384,9 +384,7 @@ DeoptimizationBlob::DeoptimizationBlob(
   _unpack_offset           = unpack_offset;
   _unpack_with_exception   = unpack_with_exception_offset;
   _unpack_with_reexecution = unpack_with_reexecution_offset;
-#if defined(COMPILER1) || defined(GRAAL)
   _unpack_with_exception_in_tls   = -1;
-#endif
 }
 
 

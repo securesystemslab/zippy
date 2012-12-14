@@ -550,6 +550,8 @@ def build(args, vm=None):
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env['ALT_BOOTDIR'] = jdk
+            if not env.has_key('OMIT_GRAAL'):
+                env['GRAAL'] = join(_graal_home, 'graal') # needed for TEST_IN_BUILD
             env.setdefault('INSTALL', 'y')
             if mx.get_os() == 'solaris' :
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
@@ -840,6 +842,10 @@ def gate(args):
 
                     t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
                     dacapo(['pmd'])
+                    tasks.append(t.stop())
+
+                    t = Task('UnitTests:' + theVm + ':' + vmbuild)
+                    unittest(['@-XX:CompileCommand=exclude,*::run*', 'graal.api'])
                     tasks.append(t.stop())
 
     except KeyboardInterrupt:

@@ -625,7 +625,14 @@ public:
 class ReceiverTypeData : public CounterData {
 protected:
   enum {
+#ifdef GRAAL
+    // Graal is interested in knowing the percentage of type checks
+    // involving a type not explicitly in the profile
+    nonprofiled_receiver_count_off_set = counter_cell_count,
+    receiver0_offset,
+#else
     receiver0_offset = counter_cell_count,
+#endif
     count0_offset,
     receiver_type_row_cell_count = (count0_offset + 1) - receiver0_offset
   };
@@ -639,7 +646,7 @@ public:
   virtual bool is_ReceiverTypeData() { return true; }
 
   static int static_cell_count() {
-    return counter_cell_count + (uint) TypeProfileWidth * receiver_type_row_cell_count;
+    return counter_cell_count + (uint) TypeProfileWidth * receiver_type_row_cell_count GRAAL_ONLY(+ 1);
   }
 
   virtual int cell_count() {
@@ -710,6 +717,11 @@ public:
   static ByteSize receiver_count_offset(uint row) {
     return cell_offset(receiver_count_cell_index(row));
   }
+#ifdef GRAAL
+  static ByteSize nonprofiled_receiver_count_offset() {
+    return cell_offset(nonprofiled_receiver_count_off_set);
+  }
+#endif
   static ByteSize receiver_type_data_size() {
     return cell_offset(static_cell_count());
   }
@@ -1168,11 +1180,7 @@ public:
 
   // Whole-method sticky bits and flags
   enum {
-#ifdef GRAAL
-    _trap_hist_limit    = 13,   // decoupled from Deoptimization::Reason_LIMIT
-#else
     _trap_hist_limit    = 17,   // decoupled from Deoptimization::Reason_LIMIT
-#endif
     _trap_hist_mask     = max_jubyte,
     _extra_data_count   = 4     // extra DataLayout headers, for trap history
   }; // Public flag values

@@ -39,7 +39,6 @@ class Deoptimization : AllStatic {
  public:
   // What condition caused the deoptimization
   enum DeoptReason {
-#ifdef GRAAL
     Reason_many = -1,             // indicates presence of several reasons
     Reason_none = 0,              // indicates absence of a relevant deopt.
     // Next 7 reasons are recorded per bytecode in DataLayout::trap_bits.
@@ -49,26 +48,6 @@ class Deoptimization : AllStatic {
     //  - bytecode y in method b() causes deopt
     //  - Graal deoptimizes to bytecode x in method a()
     // -> the deopt reason will be recorded for method a() at bytecode x
-    Reason_null_check,
-    Reason_range_check,
-    Reason_class_check,
-    Reason_array_check,
-    Reason_unreached,
-    Reason_type_checked_inlining,
-    Reason_optimized_type_check,
-
-    // recorded per method
-    Reason_not_compiled_exception_handler,
-    Reason_unresolved,
-    Reason_jsr_mismatch,
-    Reason_div0_check,
-    Reason_constraint,
-    Reason_LIMIT,
-    Reason_RECORDED_LIMIT = Reason_optimized_type_check
-#else
-    Reason_many = -1,             // indicates presence of several reasons
-    Reason_none = 0,              // indicates absence of a relevant deopt.
-    // Next 7 reasons are recorded per bytecode in DataLayout::trap_bits
     Reason_null_check,            // saw unexpected null or zero divisor (@bci)
     Reason_null_assert,           // saw unexpected non-null or non-zero (@bci)
     Reason_range_check,           // saw unexpected array index (@bci)
@@ -77,6 +56,13 @@ class Deoptimization : AllStatic {
     Reason_intrinsic,             // saw unexpected operand to intrinsic (@bci)
     Reason_bimorphic,             // saw unexpected object class in bimorphic inlining (@bci)
 
+#ifdef GRAAL
+    Reason_unreached0             = Reason_null_assert,
+    Reason_type_checked_inlining  = Reason_intrinsic,
+    Reason_optimized_type_check   = Reason_bimorphic,
+#endif
+
+    // recorded per method
     Reason_unloaded,              // unloaded or class constant pool entry
     Reason_uninitialized,         // bad class state (uninitialized)
     Reason_unreached,             // code is not reached, compiler
@@ -87,8 +73,14 @@ class Deoptimization : AllStatic {
     Reason_predicate,             // compiler generated predicate failed
     Reason_loop_limit_check,      // compiler generated loop limits check failed
     Reason_LIMIT,
+
+#ifdef GRAAL
+    Reason_not_compiled_exception_handler = Reason_unhandled,
+    Reason_unresolved                     = Reason_uninitialized,
+    Reason_jsr_mismatch                   = Reason_age,
+#endif
+
     Reason_RECORDED_LIMIT = Reason_bimorphic  // some are not recorded per bc
-#endif // GRAAL
     // Note:  Keep this enum in sync. with _trap_reason_name.
     // Note:  Reason_RECORDED_LIMIT should be < 8 to fit into 3 bits of
     // DataLayout::trap_bits.  This dependency is enforced indirectly
@@ -283,7 +275,7 @@ class Deoptimization : AllStatic {
       return (DeoptReason)
         ((~(trap_request) >> _reason_shift) & right_n_bits(_reason_bits));
     } else {
-#ifdef GRAAL
+#ifdef GRAALVM
       ShouldNotReachHere();
       return Reason_none;
 #else
@@ -297,7 +289,7 @@ class Deoptimization : AllStatic {
       return (DeoptAction)
         ((~(trap_request) >> _action_shift) & right_n_bits(_action_bits));
     } else {
-#ifdef GRAAL
+#ifdef GRAALVM
       ShouldNotReachHere();
       return Action_make_not_compilable;
 #else
@@ -310,7 +302,7 @@ class Deoptimization : AllStatic {
     if (trap_request < 0) {
       return -1;
     } else {
-#ifdef GRAAL
+#ifdef GRAALVM
       ShouldNotReachHere();
       return -1;
 #else
@@ -320,7 +312,7 @@ class Deoptimization : AllStatic {
   }
   static int make_trap_request(DeoptReason reason, DeoptAction action,
                                int index = -1) {
-#ifdef GRAAL
+#ifdef GRAALVM
     assert(index == -1, "Graal does not use index");
 #endif
 

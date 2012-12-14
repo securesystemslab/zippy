@@ -40,14 +40,16 @@
 #endif
 
 //
-// Defines all global flags used by the Graal compiler.
+// Defines all global flags used by the Graal compiler. Only flags that need
+// to be accessible to the Graal C++ code should be defined here. All other
+// Graal flags should be defined in GraalOptions.java.
 //
-#define GRAAL_FLAGS(develop, develop_pd, product, product_pd, notproduct)      \
+#define GRAAL_FLAGS(develop, develop_pd, product, product_pd, notproduct)   \
                                                                             \
   product(bool, DebugGraal, true,                                           \
           "Enable JVMTI for the compiler thread")                           \
                                                                             \
-  product(bool, BootstrapGraal, true,                                       \
+  product(bool, BootstrapGraal, GRAALVM_ONLY(true) NOT_GRAALVM(false),      \
           "Bootstrap Graal before running Java main method")                \
                                                                             \
   product(ccstr, GraalClassPath, NULL,                                      \
@@ -56,26 +58,20 @@
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \
-  product(bool, TraceSignals, false,                                        \
-          "Trace signals and implicit exception handling")                  \
+  develop(bool, GraalUseFastLocking, true,                                  \
+          "Use fast inlined locking code")                                  \
                                                                             \
-  product_pd(intx, SafepointPollOffset,                                     \
-          "Offset added to polling address (Intel only)")                   \
-                                                                            \
-  develop(bool, UseFastNewTypeArray, true,                                  \
+  develop(bool, GraalUseFastNewTypeArray, true,                             \
           "Use fast inlined type array allocation")                         \
                                                                             \
-  develop(bool, UseFastNewObjectArray, true,                                \
+  develop(bool, GraalUseFastNewObjectArray, true,                           \
           "Use fast inlined object array allocation")                       \
-                                                                            \
-  develop(bool, UseFastLocking, true,                                       \
-          "Use fast inlined locking code")                                  \
                                                                             \
   develop(intx, GraalNMethodSizeLimit, (64*K)*wordSize,                     \
           "Maximum size of a compiled method.")                             \
                                                                             \
-  notproduct(bool, PrintSimpleStubs, false,                                 \
-          "Print SimpleStubs")                                              \
+  notproduct(bool, GraalPrintSimpleStubs, false,                            \
+          "Print simple Graal stubs")                                       \
                                                                             \
 
 
