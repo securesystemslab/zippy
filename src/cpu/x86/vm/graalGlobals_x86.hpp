@@ -31,10 +31,6 @@
 // Sets the default values for platform dependent flags used by the Graal compiler.
 // (see graalGlobals.hpp)
 
-#ifndef COMPILER2
-define_pd_global(intx, TypeProfileWidth,             8);
-#endif
-
 define_pd_global(intx, GraalSafepointPollOffset,     256  );
 
 #if !defined(COMPILER1) && !defined(COMPILER2)
@@ -61,6 +57,7 @@ define_pd_global(intx, ReservedCodeCacheSize,        64*M );
 define_pd_global(bool, ProfileInterpreter,           true );
 define_pd_global(intx, CodeCacheExpansionSize,       64*K );
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);
+define_pd_global(intx, TypeProfileWidth,             8);
 #endif
 
 #endif // CPU_X86_VM_GRAALGLOBALS_X86_HPP
