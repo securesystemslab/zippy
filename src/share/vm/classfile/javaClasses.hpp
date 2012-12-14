@@ -1135,8 +1135,7 @@ class java_security_AccessControlContext: AllStatic {
 // Interface to java.lang.ClassLoader objects
 
 #define CLASSLOADER_INJECTED_FIELDS(macro)                            \
-  macro(java_lang_ClassLoader, loader_data,  intptr_signature, false) \
-  macro(java_lang_ClassLoader, dependencies, object_signature, false)
+  macro(java_lang_ClassLoader, loader_data,  intptr_signature, false)
 
 class java_lang_ClassLoader : AllStatic {
  private:
@@ -1145,7 +1144,6 @@ class java_lang_ClassLoader : AllStatic {
    hc_parent_offset = 0
   };
   static int _loader_data_offset;
-  static int _dependencies_offset;
   static bool offsets_computed;
   static int parent_offset;
   static int parallelCapable_offset;
@@ -1155,9 +1153,6 @@ class java_lang_ClassLoader : AllStatic {
 
   static ClassLoaderData** loader_data_addr(oop loader);
   static ClassLoaderData* loader_data(oop loader);
-
-  static oop  dependencies(oop loader);
-  static HeapWord* dependencies_addr(oop loader);
 
   static oop parent(oop loader);
   static bool isAncestor(oop loader, oop cl);
