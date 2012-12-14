@@ -635,7 +635,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("epochMaskInPlace", (int) markOopDesc::epoch_mask_in_place);
   set_int("biasedLockPattern", (int) markOopDesc::biased_lock_pattern);
   set_int("methodMaxLocalsOffset", in_bytes(Method::size_of_locals_offset()));
-  set_int("methodMaxStackOffset", in_bytes(Method::max_stack_offset()));
+  set_int("methodConstMethodOffset", in_bytes(Method::const_offset()));
+  set_int("constMethodMaxStackOffset", in_bytes(ConstMethod::max_stack_offset()));
   set_int("extraStackEntries", Method::extra_stack_entries());
   set_int("methodAccessFlagsOffset", in_bytes(Method::access_flags_offset()));
   set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
