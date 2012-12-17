@@ -92,8 +92,9 @@ void ThreadLocalAllocBuffer::accumulate_statistics() {
     global_stats()->update_fast_refill_waste(_fast_refill_waste);
 
   } else {
+    // (ds) _gc_waste can be non-zero (see above) even if _number_of_refills is 0
     assert(_number_of_refills == 0 && _fast_refill_waste == 0 &&
-           _slow_refill_waste == 0 && _gc_waste          == 0,
+           _slow_refill_waste == 0/* && _gc_waste          == 0*/,
            "tlab stats == 0");
   }
   global_stats()->update_slow_allocations(_slow_allocations);

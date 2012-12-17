@@ -70,6 +70,7 @@ class GraalStubAssembler: public MacroAssembler {
   int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1);
   int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2);
   int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2, Register arg3);
+  int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2, Register arg3, Register arg4);
 };
 
 // set frame size and return address offset to these values in blobs
@@ -144,7 +145,7 @@ class GraalRuntime: public AllStatic {
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void graal_vm_error(JavaThread* thread, oop where, oop format, jlong value);
-  static void graal_log_printf(JavaThread* thread, oop format, jlong value);
+  static void graal_log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
   static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
   
   static jint graal_identity_hash_code(JavaThread* thread, oopDesc* objd);

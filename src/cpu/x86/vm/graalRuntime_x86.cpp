@@ -186,6 +186,36 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
   return call_RT(oop_result1, metadata_result, entry, 3);
 }
 
+int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2, Register arg3, Register arg4) {
+#ifdef _LP64
+  // if there is any conflict use the stack
+  if (arg1 == c_rarg2 || arg1 == c_rarg3 || arg1 == c_rarg4 ||
+      arg2 == c_rarg1 || arg2 == c_rarg3 || arg2 == c_rarg4 ||
+      arg3 == c_rarg1 || arg3 == c_rarg2 || arg3 == c_rarg4 ||
+      arg4 == c_rarg1 || arg4 == c_rarg2 || arg4 == c_rarg3) {
+    push(arg4);
+    push(arg3);
+    push(arg2);
+    push(arg1);
+    pop(c_rarg1);
+    pop(c_rarg2);
+    pop(c_rarg3);
+    pop(c_rarg4);
+  } else {
+    mov(c_rarg1, arg1);
+    mov(c_rarg2, arg2);
+    mov(c_rarg3, arg3);
+    mov(c_rarg4, arg4);
+  }
+#else
+  push(arg4);
+  push(arg3);
+  push(arg2);
+  push(arg1);
+#endif // _LP64
+  return call_RT(oop_result1, metadata_result, entry, 4);
+}
+
 // Implementation of GraalStubFrame
 
 class GraalStubFrame: public StackObj {
@@ -1022,7 +1052,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ enter();
       oop_maps = new OopMapSet();
       OopMap* oop_map = save_live_registers(sasm, 0);
-      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_printf, j_rarg0, j_rarg1, j_rarg2);
+      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_printf, j_rarg0, j_rarg1, j_rarg2, j_rarg3);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
       __ leave();
