@@ -551,11 +551,11 @@ JRT_ENTRY(void, GraalRuntime::graal_vm_error(JavaThread* thread, oop where, oop 
   report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::graal_log_printf(JavaThread* thread, oop format, jlong val))
+JRT_ENTRY(void, GraalRuntime::graal_log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   assert(format != NULL && java_lang_String::is_instance(format), "must be");
   char *buf = java_lang_String::as_utf8_string(format);
-  tty->print(buf, val);
+  tty->print(buf, v1, v2, v3);
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
