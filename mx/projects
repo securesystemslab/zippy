@@ -90,6 +90,13 @@ project@com.oracle.graal.hotspot.server@dependencies=com.oracle.graal.hotspot
 project@com.oracle.graal.hotspot.server@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.server@javaCompliance=1.7
 
+# graal.hotspot.test
+project@com.oracle.graal.hotspot.test@subDir=graal
+project@com.oracle.graal.hotspot.test@sourceDirs=src
+project@com.oracle.graal.hotspot.test@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.test
+project@com.oracle.graal.hotspot.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.test@javaCompliance=1.7
+
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
@@ -247,3 +254,18 @@ project@com.oracle.graal.asm.amd64@sourceDirs=src
 project@com.oracle.graal.asm.amd64@dependencies=com.oracle.graal.asm,com.oracle.graal.amd64
 project@com.oracle.graal.asm.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.amd64@javaCompliance=1.7
+
+# truffle.api
+project@com.oracle.truffle.api@subDir=graal
+project@com.oracle.truffle.api@sourceDirs=src
+project@com.oracle.truffle.api@dependencies=
+project@com.oracle.truffle.api@checkstyle=com.oracle.graal.graph
+project@com.oracle.truffle.api@javaCompliance=1.7
+
+# truffle.api.test
+project@com.oracle.truffle.api.test@subDir=graal
+project@com.oracle.truffle.api.test@sourceDirs=src
+project@com.oracle.truffle.api.test@dependencies=com.oracle.truffle.api,JUNIT
+project@com.oracle.truffle.api.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.truffle.api.test@javaCompliance=1.7
+
