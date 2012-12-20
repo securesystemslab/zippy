@@ -793,7 +793,7 @@ def gate(args):
 
         _vmbuild = 'product'
         t = Task('UnitTests:product')
-        unittest(['@-XX:CompileCommand=exclude,*::run*'])
+        unittest([])
         tasks.append(t.stop())
 
         for vmbuild in ['fastdebug', 'product']:
