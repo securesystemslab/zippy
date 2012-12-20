@@ -691,12 +691,6 @@ def unittest(args):
 
     def harness(p, vmArgs, classes):
         prefixArgs = ['-XX:-BootstrapGraal', '-esa']
-        if p.name.endswith('.jtt'):
-            prefixArgs = prefixArgs + [
-                '-XX:CompileOnly=com/oracle/graal/jtt',
-                '-XX:CompileCommand=compileonly,java/lang/Object::<init>',
-                '-XX:CompileCommand=quiet',
-                '-Xcomp']
         vm(prefixArgs + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
     _run_tests(args, harness)
 
