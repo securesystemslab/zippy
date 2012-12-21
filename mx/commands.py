@@ -396,7 +396,14 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log = open(logFile, 'w')
     ret = False
     while True:
-        line = stdout.readline().decode(sys.stdout.encoding)
+        
+        # encoding may be None on windows plattforms
+        if sys.stdout.encoding is None:
+            encoding = 'utf-8'
+        else:
+            encoding = sys.stdout.encoding
+        
+        line = stdout.readline().decode(encoding)
         if logFile:
             log.write(line.encode('utf-8'))
         line = line.strip()
