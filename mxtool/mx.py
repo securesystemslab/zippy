@@ -1438,7 +1438,7 @@ def build(args, parser=None):
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties):
                     # Try to fix a missing properties file by running eclipseinit
-                    eclipseinit([])
+                    eclipseinit([], buildProcessorJars=False)
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
@@ -1872,13 +1872,14 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
-def eclipseinit(args, suite=None):
+def eclipseinit(args, suite=None, buildProcessorJars=True):
     """(re)generate Eclipse project configurations"""
 
     if suite is None:
         suite = _mainSuite
         
-    processorjars()
+    if buildProcessorJars:
+        processorjars()
 
     for p in projects():
         if p.native:
