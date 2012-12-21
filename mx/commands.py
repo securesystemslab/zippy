@@ -690,13 +690,7 @@ def unittest(args):
     those with a '-' prefix. VM args should have a @ prefix."""
 
     def harness(p, vmArgs, classes):
-        prefixArgs = ['-XX:-BootstrapGraal', '-esa']
-        if p.name.endswith('.jtt'):
-            prefixArgs = prefixArgs + [
-                '-XX:CompileOnly=com/oracle/graal/jtt',
-                '-XX:CompileCommand=compileonly,java/lang/Object::<init>',
-                '-XX:CompileCommand=quiet',
-                '-Xcomp']
+        prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
         vm(prefixArgs + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
     _run_tests(args, harness)
 
@@ -799,7 +793,7 @@ def gate(args):
 
         _vmbuild = 'product'
         t = Task('UnitTests:product')
-        unittest(['@-XX:CompileCommand=exclude,*::run*'])
+        unittest([])
         tasks.append(t.stop())
 
         for vmbuild in ['fastdebug', 'product']:

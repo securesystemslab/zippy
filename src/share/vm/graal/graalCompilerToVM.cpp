@@ -850,7 +850,7 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jlong 
   assert(metaspace_method != 0, "just checking");
   methodHandle mh = asMethod(metaspace_method);
   Symbol* signature = mh->signature();
-  JavaCallArguments jca;
+  JavaCallArguments jca(mh->size_of_parameters());
 
   JavaArgumentUnboxer jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
   JavaValue result(jap.get_ret_type());

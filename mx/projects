@@ -237,7 +237,7 @@ project@com.oracle.graal.compiler.test@javaCompliance=1.7
 # graal.jtt
 project@com.oracle.graal.jtt@subDir=graal
 project@com.oracle.graal.jtt@sourceDirs=src
-project@com.oracle.graal.jtt@dependencies=JUNIT
+project@com.oracle.graal.jtt@dependencies=com.oracle.graal.compiler.test
 project@com.oracle.graal.jtt@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.jtt@javaCompliance=1.7
 
