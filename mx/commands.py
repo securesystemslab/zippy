@@ -690,7 +690,7 @@ def unittest(args):
     those with a '-' prefix. VM args should have a @ prefix."""
 
     def harness(p, vmArgs, classes):
-        prefixArgs = ['-XX:-BootstrapGraal', '-esa']
+        prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
         vm(prefixArgs + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
     _run_tests(args, harness)
 
