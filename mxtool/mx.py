@@ -1382,7 +1382,7 @@ def build(args, parser=None):
                         dst = join(outputDir, src[len(sourceDir) + 1:])
                         if not exists(dirname(dst)):
                             os.makedirs(dirname(dst))
-                        if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) != os.path.getmtime(src)):
+                        if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
                             shutil.copyfile(src, dst)
 
                 if not mustBuild:
@@ -1481,34 +1481,42 @@ def processorjars():
             
 
 def jar(destFileName, dirs):
-    lib = library("ANT_JAR_TOOL", fatalIfMissing=False)
+    latestMod = _latestModification(dirs)
     
-    if lib is None :
-        log('No library ANT_JAR_TOOL defined. Falling back to JDK Jar tool.');
-        _java_jar_tool(destFileName, dirs)
-    else:
-        _ant_jar_tool(lib, destFileName, dirs)
-
-def _java_jar_tool(destFileName, dirs):
-    created = False
-    for directory in dirs:
-        if created:
-            cmd = 'uf'
-        else:
-            cmd = 'cf'
-            created = True
-        jarCmd = [java().jar, cmd, destFileName, '-C', directory, '.']
-        subprocess.check_call(jarCmd)
-    
-def _ant_jar_tool(lib, destFileName, dirs):
-    antJar = lib.get_path(True)
-    
-    jarCmd = [java().java, '-jar', antJar, destFileName]
-    for directory in dirs :
-        jarCmd.append(directory)
+    if exists(destFileName):
+        mod = os.path.getmtime(destFileName)
+        if int(round(latestMod*1000)) == int(round(mod*1000)):
+            # nothing todo
+            return
         
-    subprocess.check_call(jarCmd)
+    if latestMod is None and exists(destFileName):
+        return
 
+    jarCmd = [java().jar, 'cf', destFileName]
+    
+    for directory in dirs:
+        jarCmd += ['-C', directory, '.']
+    
+    subprocess.check_call(jarCmd)
+    log('Written jar file {0}'.format(destFileName))
+    
+    atime = os.path.getatime(destFileName)
+    os.utime(destFileName, (atime, latestMod))
+
+def _latestModification(directories):
+    latestMod = None
+    for directory in directories:
+        if not os.path.exists (directory):
+            continue
+        for root, _, files in os.walk(directory):
+                for names in files:
+                    filepath = os.path.join(root, names)
+                    mod = os.path.getmtime(filepath)
+                    if latestMod is None:
+                        latestMod = mod
+                    elif mod > latestMod:
+                        latestMod = mod
+    return latestMod
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -1899,9 +1907,8 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
 
         if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
             genDir = p.source_gen_dir();
-            if exists(genDir):
-                shutil.rmtree(genDir)
-            os.mkdir(genDir)
+            if not exists(genDir):
+                os.mkdir(genDir)
             out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
 
         # Every Java program depends on the JRE
@@ -2047,7 +2054,6 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
             out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             for ap in p.annotationProcessors:
                 apProject = project(ap)
-                out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + apProject.name + '/' + apProject.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
                 for dep in apProject.all_deps([], True):
                     if dep.isLibrary():
                         if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
@@ -2086,46 +2092,32 @@ def _needsEclipseJarBuild(p):
     return False
 
 def _genEclipseJarBuild(p):
-    externalToolDir = '.externalToolBuilders'
-    relPath = join(externalToolDir, 'Jar.launch') 
-    absPath = join(p.dir, relPath)
+    launchOut = XMLDoc();
+    launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': 'false'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': 'false'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true'})
     
-    if not exists(join(p.dir, externalToolDir)):
-        os.makedirs(join(p.dir, externalToolDir))
+    baseDir = dirname(dirname(os.path.abspath(__file__)))
     
-    antOut = XMLDoc()
-    antOut.open('project', {'name' : p.name, 'default' : 'default', 'basedir' : '.'})
-    antOut.open('target', {'name' : 'default'})
-    antOut.open('jar', {'destfile' : p.name + '.jar'})
-    antOut.element('fileset', {'dir' : p.output_dir()})
-    antOut.close('jar')
-    antOut.close('target')
-    antOut.close('project')
+    cmd = 'mx.sh'
+    if get_os() == 'windows':
+        cmd = 'mx.cmd'
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION',           'value': join(baseDir, cmd) })
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS',    'value': 'auto,full,incremental'})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS',     'value': ''.join(['jar', ' ', p.name])})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED','value': 'true'})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',  'value': baseDir})
     
-    update_file(join(p.dir, 'eclipse-build.xml'), antOut.xml(indent='\t', newl='\n'))
     
-    launchOut = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<launchConfiguration type="org.eclipse.ant.AntBuilderLaunchConfigurationType">
-<booleanAttribute key="org.eclipse.ant.ui.ATTR_TARGETS_UPDATED" value="true"/>
-<booleanAttribute key="org.eclipse.ant.ui.DEFAULT_VM_INSTALL" value="false"/>
-<booleanAttribute key="org.eclipse.ant.uiSET_INPUTHANDLER" value="false"/>
-<stringAttribute key="org.eclipse.debug.core.ATTR_REFRESH_SCOPE" value="${working_set:&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#13;&#10;&lt;resources&gt;&#13;&#10;&lt;item path=&quot;/""" + p.name + """&quot; type=&quot;4&quot;/&gt;&#13;&#10;&lt;/resources&gt;}"/>
-<booleanAttribute key="org.eclipse.debug.core.capture_output" value="false"/>
-<booleanAttribute key="org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON" value="false"/>
-<booleanAttribute key="org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND" value="true"/>
-<stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.ant.ui.AntClasspathProvider"/>
-<booleanAttribute key="org.eclipse.jdt.launching.DEFAULT_CLASSPATH" value="true"/>
-<stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.eclipse.ant.internal.launching.remote.InternalAntRunner"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value=""" + '"' + p.name + '"' + """/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="${workspace_loc:/""" + p.name + """/eclipse-build.xml}"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS" value="auto,full,incremental"/>
-<booleanAttribute key="org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED" value="true"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY" value="${workspace_loc:/""" + p.name + """}"/>
-<stringAttribute key="process_factory_id" value="org.eclipse.ant.ui.remoteAntProcessFactory"/>
-</launchConfiguration>
-"""
-    update_file(absPath, launchOut)
+    launchOut.close('launchConfiguration')
+    
+    externalToolDir = join(p.dir, '.externalToolBuilders')
+    
+    if not exists(externalToolDir):
+        os.makedirs(externalToolDir)
+    update_file(join(externalToolDir, 'Jar.launch'), launchOut.xml(indent='\t', newl='\n'))
     
     return "<project>/.externalToolBuilders/Jar.launch"
 
