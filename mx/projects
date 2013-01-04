@@ -140,7 +140,7 @@ project@com.oracle.graal.alloc@javaCompliance=1.7
 # graal.word
 project@com.oracle.graal.word@subDir=graal
 project@com.oracle.graal.word@sourceDirs=src
-project@com.oracle.graal.word@dependencies=com.oracle.graal.nodes,com.oracle.graal.phases
+project@com.oracle.graal.word@dependencies=com.oracle.graal.phases
 project@com.oracle.graal.word@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.word@javaCompliance=1.7
 
