@@ -12,6 +12,8 @@
 ^work/
 \.checkstyle$
 \.classpath
+\.factorypath
+\.externalToolBuilders
 \.project
 \.settings/
 \.metadata/
@@ -43,6 +45,7 @@ output\.cfg$
 ^test-output/
 scratch/
 bin/
+src_gen/
 ^local/
 ^src/share/tools/hsdis/build/
 ^src/share/tools/IdealGraphVisualizer/[a-zA-Z0-9]*/build/
@@ -59,3 +62,7 @@ javadoc/
 syntax: glob
 *.bgv
 core.*
+*.jar
+eclipse-build.xml
+rebuild-launch.out
+

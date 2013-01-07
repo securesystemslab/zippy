@@ -2249,6 +2249,7 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
           "com.oracle.graal.hotspot",
           "com.oracle.graal.asm",
           "com.oracle.graal.alloc",
+          "com.oracle.graal.word",
           "com.oracle.graal.snippets",
           "com.oracle.graal.compiler",
           "com.oracle.graal.loop",

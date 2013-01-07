@@ -188,14 +188,17 @@ class Project(Dependency):
             if not exists(s):
                 os.mkdir(s)
 
-    def all_deps(self, deps, includeLibs, includeSelf=True):
+    def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
         """
         Add the transitive set of dependencies for this project, including
         libraries if 'includeLibs' is true, to the 'deps' list.
         """
+        childDeps = list(self.deps)
+        if includeAnnotationProcessors and hasattr(self, 'annotationProcessors') and len(self.annotationProcessors) > 0:
+            childDeps = self.annotationProcessors + childDeps
         if self in deps:
             return deps
-        for name in self.deps:
+        for name in childDeps:
             assert name != self.name
             dep = _libs.get(name, None)
             if dep is not None:
@@ -208,7 +211,7 @@ class Project(Dependency):
                         abort('project named ' + name + ' required by ' + self.name + ' is ignored')
                     abort('dependency named ' + name + ' required by ' + self.name + ' is not found')
                 if not dep in deps:
-                    dep.all_deps(deps, includeLibs)
+                    dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
         if not self in deps and includeSelf:
             deps.append(self)
         return deps
@@ -464,7 +467,7 @@ class Suite:
             srcDirs = pop_list(attrs, 'sourceDirs')
             deps = pop_list(attrs, 'dependencies')
             ap = pop_list(attrs, 'annotationProcessors')
-            deps += ap
+            #deps += ap
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None);
             if subDir is None:
@@ -478,9 +481,6 @@ class Suite:
                 abort('javaCompliance property required for non-native project ' + name)
             if len(ap) > 0:
                 p.annotationProcessors = ap
-            apc = pop_list(attrs, 'annotationProcessorClasses')
-            if len(apc) > 0:
-                p.annotationProcessorClasses = apc
             p.__dict__.update(attrs)
             self.projects.append(p)
 
@@ -729,7 +729,7 @@ def classpath_walk(names=None, resolve=True, includeSelf=True, includeBootClassp
                     entryPath = zi.filename
                     yield zf, entryPath
 
-def sorted_deps(projectNames=None, includeLibs=False):
+def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessors=False):
     """
     Gets projects and libraries sorted such that dependencies
     are before the projects that depend on them. Unless 'includeLibs' is
@@ -742,7 +742,7 @@ def sorted_deps(projectNames=None, includeLibs=False):
         projects = [project(name) for name in projectNames]
 
     for p in projects:
-        p.all_deps(deps, includeLibs)
+        p.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
     return deps
 
 class ArgParser(ArgumentParser):
@@ -1296,7 +1296,7 @@ def build(args, parser=None):
     if args.only is not None:
         sortedProjects = [project(name) for name in args.only.split(',')]
     else:
-        sortedProjects = sorted_deps(projects)
+        sortedProjects = sorted_deps(projects, includeAnnotationProcessors=True)
     
     for p in sortedProjects:
         if p.native:
@@ -1380,7 +1380,9 @@ def build(args, parser=None):
                             log('could not file .class directive in Jasmin source: ' + src)
                     else:
                         dst = join(outputDir, src[len(sourceDir) + 1:])
-                        if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) != os.path.getmtime(src)):
+                        if not exists(dirname(dst)):
+                            os.makedirs(dirname(dst))
+                        if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
                             shutil.copyfile(src, dst)
 
                 if not mustBuild:
@@ -1410,18 +1412,12 @@ def build(args, parser=None):
             javacArgs += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
 
         if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
-            annotationProcessors = []
-            for apProject in p.annotationProcessors:
-                apClasses = project(apProject).annotationProcessorClasses
-                if len(apClasses) == 0:
-                    abort("Project " + p + " specifies " + apProject + " as an annotation processor but " + apProject + " does not specifiy any annotation processor class")
-                annotationProcessors += apClasses
-            
+            processorPath = classpath(p.annotationProcessors, resolve=True)
             genDir = p.source_gen_dir();
             if exists(genDir):
                 shutil.rmtree(genDir)
             os.mkdir(genDir)
-            javacArgs += ['-processor', ",".join(annotationProcessors), "-s", genDir]
+            javacArgs += ['-processorpath', join(processorPath), '-s', genDir] 
         else:
             javacArgs += ['-proc:none']
 
@@ -1442,7 +1438,7 @@ def build(args, parser=None):
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties):
                     # Try to fix a missing properties file by running eclipseinit
-                    eclipseinit([])
+                    eclipseinit([], buildProcessorJars=False)
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
@@ -1467,36 +1463,60 @@ def build(args, parser=None):
         return args
     return None
 
-def processorjars(args):
-    hasProcessorJars = []
+def processorjars():
+    projects = set([])
     
     for p in sorted_deps():
-        if hasattr(p, 'annotationProcessorClasses') and len(p.annotationProcessorClasses) > 0:
-            hasProcessorJars.append(p)
+        if _needsEclipseJarBuild(p):
+            projects.add(p)
             
-    if len(hasProcessorJars) <= 0:
+    if len(projects) <= 0:
         return
     
-    build(['--projects', ",".join(map(lambda p: p.name, hasProcessorJars))])
+    build(['--projects', ",".join(map(lambda p: p.name, projects))])
 
-    for p in hasProcessorJars:
-        spDir = join(p.output_dir(), 'META-INF', 'services')
-        if not exists(spDir):
-            os.makedirs(spDir)
-        spFile = join(spDir, 'javax.annotation.processing.Processor')
-        with open(spFile, 'w') as fp:
-            fp.writelines(p.annotationProcessorClasses)
-        created = False
-        for dep in p.all_deps([], False):
-            if created:
-                cmd = 'uf'
-            else:
-                cmd = 'cf'
-                created = True
-            jarCmd = [java().jar, cmd, join(p.dir, p.name + 'AnnotationProcessor.jar'), '-C', dep.output_dir(), '.']
-            subprocess.check_call(jarCmd)
-            log('added ' + dep.name + ' to ' + p.name + '.jar');
+    for p in projects:
+        targetJar = join(p.dir, p.name + '.jar')
+        jar(targetJar, [p.output_dir()])
             
+
+def jar(destFileName, dirs):
+    latestMod = _latestModification(dirs)
+    
+    if exists(destFileName):
+        mod = os.path.getmtime(destFileName)
+        if int(round(latestMod*1000)) == int(round(mod*1000)):
+            # nothing todo
+            return
+        
+    if latestMod is None and exists(destFileName):
+        return
+
+    jarCmd = [java().jar, 'cf', destFileName]
+    
+    for directory in dirs:
+        jarCmd += ['-C', directory, '.']
+    
+    subprocess.check_call(jarCmd)
+    log('Written jar file {0}'.format(destFileName))
+    
+    atime = os.path.getatime(destFileName)
+    os.utime(destFileName, (atime, latestMod))
+
+def _latestModification(directories):
+    latestMod = None
+    for directory in directories:
+        if not os.path.exists (directory):
+            continue
+        for root, _, files in os.walk(directory):
+                for names in files:
+                    filepath = os.path.join(root, names)
+                    mod = os.path.getmtime(filepath)
+                    if latestMod is None:
+                        latestMod = mod
+                    elif mod > latestMod:
+                        latestMod = mod
+    return latestMod
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -1860,13 +1880,14 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
-def eclipseinit(args, suite=None):
+def eclipseinit(args, suite=None, buildProcessorJars=True):
     """(re)generate Eclipse project configurations"""
 
     if suite is None:
         suite = _mainSuite
         
-    processorjars([])
+    if buildProcessorJars:
+        processorjars()
 
     for p in projects():
         if p.native:
@@ -1883,6 +1904,12 @@ def eclipseinit(args, suite=None):
             if not exists(srcDir):
                 os.mkdir(srcDir)
             out.element('classpathentry', {'kind' : 'src', 'path' : src})
+
+        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+            genDir = p.source_gen_dir();
+            if not exists(genDir):
+                os.mkdir(genDir)
+            out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
 
         # Every Java program depends on the JRE
         out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'})
@@ -1975,6 +2002,23 @@ def eclipseinit(args, suite=None):
                 out.element('name', data=buildCommand)
                 out.element('arguments', data='')
                 out.close('buildCommand')
+
+        if (_needsEclipseJarBuild(p)):
+            out.open('buildCommand')
+            out.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
+            out.element('triggers', data='auto,full,incremental,')
+            out.open('arguments')
+            out.open('dictionary')
+            out.element('key', data = 'LaunchConfigHandle')
+            out.element('value', data = _genEclipseJarBuild(p))
+            out.close('dictionary')
+            out.open('dictionary')
+            out.element('key', data = 'incclean')
+            out.element('value', data = 'true')
+            out.close('dictionary')
+            out.close('arguments')
+            out.close('buildCommand')       
+                
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -2010,7 +2054,6 @@ def eclipseinit(args, suite=None):
             out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             for ap in p.annotationProcessors:
                 apProject = project(ap)
-                out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + apProject.name + '/' + apProject.name + 'AnnotationProcessor.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
                 for dep in apProject.all_deps([], True):
                     if dep.isLibrary():
                         if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
@@ -2022,10 +2065,64 @@ def eclipseinit(args, suite=None):
                                     # safest to simply use absolute paths.
                                     path = join(suite.dir, path)
                                 out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                    else:
+                        out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
 
     make_eclipse_attach('localhost', '8000', deps=projects())
+
+
+def _needsEclipseJarBuild(p):
+    processors = set([])
+    
+    for otherProject in projects():
+        if hasattr(otherProject, 'annotationProcessors') and len(otherProject.annotationProcessors) > 0:
+            for processorName in otherProject.annotationProcessors:
+                processors.add(project(processorName, fatalIfMissing=True))
+                 
+    if p in processors:
+        return True
+    
+    for otherProject in processors:
+        deps = otherProject.all_deps([], True)
+        if p in deps:
+            return True
+    
+    return False
+
+def _genEclipseJarBuild(p):
+    launchOut = XMLDoc();
+    launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': 'false'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': 'false'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true'})
+    
+    baseDir = dirname(dirname(os.path.abspath(__file__)))
+    
+    cmd = 'mx.sh'
+    if get_os() == 'windows':
+        cmd = 'mx.cmd'
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION',           'value': join(baseDir, cmd) })
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS',    'value': 'auto,full,incremental'})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS',     'value': ''.join(['jar', ' ', p.name])})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED','value': 'true'})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',  'value': baseDir})
+    
+    
+    launchOut.close('launchConfiguration')
+    
+    externalToolDir = join(p.dir, '.externalToolBuilders')
+    
+    if not exists(externalToolDir):
+        os.makedirs(externalToolDir)
+    update_file(join(externalToolDir, 'Jar.launch'), launchOut.xml(indent='\t', newl='\n'))
+    
+    return "<project>/.externalToolBuilders/Jar.launch"
+
+
+
 
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
@@ -2063,9 +2160,10 @@ def netbeansinit(args, suite=None):
         out.element('explicit-platform', {'explicit-source-supported' : 'true'})
         out.open('source-roots')
         out.element('root', {'id' : 'src.dir'})
+        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+            out.element('root', {'id' : 'src.ap-source-output.dir'})
         out.close('source-roots')
         out.open('test-roots')
-        out.element('root', {'id' : 'test.src.dir'})
         out.close('test-roots')
         out.close('data')
 
@@ -2099,12 +2197,18 @@ def netbeansinit(args, suite=None):
         out = StringIO.StringIO()
         jdkPlatform = 'JDK_' + java().version
 
+        annotationProcessorEnabled = "false"
+        annotationProcessorReferences = ""
+        annotationProcessorSrcFolder = ""
+        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+            annotationProcessorEnabled = "true"
+            annotationProcessorSrcFolder = "src.ap-source-output.dir=${build.generated.sources.dir}/ap-source-output"
+
         content = """
-annotation.processing.enabled=false
-annotation.processing.enabled.in.editor=false
+annotation.processing.enabled=""" + annotationProcessorEnabled + """
+annotation.processing.enabled.in.editor=""" + annotationProcessorEnabled + """
 annotation.processing.processors.list=
 annotation.processing.run.all.processors=true
-annotation.processing.source.output=${build.generated.sources.dir}/ap-source-output
 application.title=""" + p.name + """
 application.vendor=mx
 build.classes.dir=${build.dir}
@@ -2134,15 +2238,11 @@ jar.compress=false
 # Space-separated list of extra javac options
 javac.compilerargs=
 javac.deprecation=false
-javac.processorpath=\\
-    ${javac.classpath}
 javac.source=1.7
 javac.target=1.7
 javac.test.classpath=\\
     ${javac.classpath}:\\
     ${build.classes.dir}
-javac.test.processorpath=\\
-    ${javac.test.classpath}
 javadoc.additionalparam=
 javadoc.author=false
 javadoc.encoding=${source.encoding}
@@ -2170,7 +2270,8 @@ run.jvmargs=
 run.test.classpath=\\
     ${javac.test.classpath}:\\
     ${build.test.classes.dir}
-test.src.dir=
+test.src.dir=./test
+""" + annotationProcessorSrcFolder + """
 source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         print >> out, content
 
@@ -2188,7 +2289,19 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 print >> out, 'src.' + src + '.dir=${' + ref + '}'
 
         javacClasspath = []
-        for dep in p.all_deps([], True):
+        
+        deps = p.all_deps([], True)
+        annotationProcessorOnlyDeps = []
+        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+            for ap in p.annotationProcessors:
+                apProject = project(ap)
+                if not apProject in deps:
+                    deps.append(apProject)
+                    annotationProcessorOnlyDeps.append(apProject)
+        
+        annotationProcessorReferences = [];
+        
+        for dep in deps:
             if dep == p:
                 continue;
 
@@ -2208,11 +2321,16 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 print >> out, 'project.' + n + '=' + relDepPath
                 print >> out, ref + '=${project.' + n + '}/dist/' + dep.name + '.jar'
 
-            javacClasspath.append('${' + ref + '}')
+            if not dep in annotationProcessorOnlyDeps:
+                javacClasspath.append('${' + ref + '}')
+            else:
+                annotationProcessorReferences.append('${' + ref + '}')
+                annotationProcessorReferences +=  ":\\\n    ${" + ref + "}"
 
         print >> out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath)
-
-
+        print >> out, 'javac.test.processorpath=${javac.test.classpath}\\\n    ' + (os.pathsep + '\\\n    ').join(annotationProcessorReferences)
+        print >> out, 'javac.processorpath=${javac.classpath}\\\n    ' + (os.pathsep + '\\\n    ').join(annotationProcessorReferences)
+    
         updated = update_file(join(p.dir, 'nbproject', 'project.properties'), out.getvalue()) or updated
         out.close()
 
@@ -2223,7 +2341,6 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
 def ideclean(args, suite=None):
     """remove all Eclipse and NetBeans project configurations"""
-
     def rm(path):
         if exists(path):
             os.remove(path)
@@ -2233,10 +2350,17 @@ def ideclean(args, suite=None):
             continue
 
         shutil.rmtree(join(p.dir, '.settings'), ignore_errors=True)
+        shutil.rmtree(join(p.dir, '.externalToolBuilders'), ignore_errors=True)
         shutil.rmtree(join(p.dir, 'nbproject'), ignore_errors=True)
         rm(join(p.dir, '.classpath'))
         rm(join(p.dir, '.project'))
         rm(join(p.dir, 'build.xml'))
+        rm(join(p.dir, 'eclipse-build.xml'))
+        try:
+            rm(join(p.dir, p.name + '.jar'))
+        except:
+            log("Error removing {0}".format(p.name + '.jar'))
+            
 
 def ideinit(args, suite=None):
     """(re)generate Eclipse and NetBeans project configurations"""
