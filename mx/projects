@@ -237,7 +237,7 @@ project@com.oracle.graal.printer@javaCompliance=1.7
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=JUNIT,com.oracle.graal.compiler,com.oracle.graal.printer,com.oracle.graal.java,com.oracle.graal.api.runtime
+project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.printer,JUNIT
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 
