@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.impl;
+package com.oracle.graal.printer;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import java.io.*;
+import java.util.*;
 
-public class DefaultCallTarget extends CallTarget {
+import com.oracle.graal.compiler.*;
+import com.oracle.graal.debug.*;
+import com.oracle.graal.phases.*;
 
-    protected final RootNode rootNode;
-    protected final FrameDescriptor frameDescriptor;
 
-    protected DefaultCallTarget(RootNode function, FrameDescriptor frameDescriptor) {
-        this.rootNode = function;
-        this.frameDescriptor = frameDescriptor;
-    }
+public class DebugEnvironment {
 
-    @Override
-    public String toString() {
-        return "DefaultCallTarget " + rootNode;
-    }
-
-    @Override
-    public Object call(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = new DefaultVirtualFrame(frameDescriptor, caller, args);
-        return rootNode.execute(frame);
+    public static void initialize(PrintStream log) {
+        Debug.enable();
+        List<DebugDumpHandler> dumpHandlers = new ArrayList<>();
+        dumpHandlers.add(new GraphPrinterDumpHandler());
+        if (GraalOptions.PrintCFG) {
+            if (GraalOptions.PrintBinaryGraphs) {
+                TTY.println("CFG dumping slows down PrintBinaryGraphs: use -G:-PrintCFG to disable it");
+            }
+            dumpHandlers.add(new CFGPrinterObserver());
+        }
+        GraalDebugConfig hotspotDebugConfig = new GraalDebugConfig(GraalOptions.Log, GraalOptions.Meter, GraalOptions.Time, GraalOptions.Dump, GraalOptions.MethodFilter, log, dumpHandlers);
+        Debug.setConfig(hotspotDebugConfig);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.impl;
+package com.oracle.graal.hotspot.debug;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.graal.api.meta.*;
 
-public class DefaultCallTarget extends CallTarget {
 
-    protected final RootNode rootNode;
-    protected final FrameDescriptor frameDescriptor;
+public class LineNumberTableImpl implements LineNumberTable {
+    private final int[] lineNumbers;
+    private final int[] bci;
 
-    protected DefaultCallTarget(RootNode function, FrameDescriptor frameDescriptor) {
-        this.rootNode = function;
-        this.frameDescriptor = frameDescriptor;
+    public LineNumberTableImpl(int[] lineNumbers, int[] bci) {
+        this.lineNumbers = lineNumbers;
+        this.bci = bci;
     }
 
     @Override
-    public String toString() {
-        return "DefaultCallTarget " + rootNode;
+    public int[] getLineNumberEntries() {
+        return lineNumbers;
     }
 
     @Override
-    public Object call(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = new DefaultVirtualFrame(frameDescriptor, caller, args);
-        return rootNode.execute(frame);
+    public int[] getBciEntries() {
+        return bci;
+    }
+
+    @Override
+    public int getLineNumber(@SuppressWarnings("hiding") int bci) {
+        for (int i = 0; i < this.bci.length - 1; i++) {
+            if (this.bci[i] <= bci && bci < this.bci[i + 1]) {
+                return lineNumbers[i];
+            }
+        }
+        return lineNumbers[lineNumbers.length - 1];
     }
 }

@@ -938,6 +938,47 @@ C2V_VMENTRY(jobject, decodePC, (JNIEnv *, jobject, jlong pc))
   return JNIHandles::make_local(result());
 C2V_END
 
+C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot_method))
+// XXX: Attention: it seEms that the line number table of a method just contains lines that are important, means that
+// empty lines are left out or lines that can't have a breakpoint on it; eg int a; or try {
+  Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
+  if(!method->has_linenumber_table()) {
+    return NULL;
+  }
+  u2 num_entries = 0;
+  CompressedLineNumberReadStream streamForSize(method->compressed_linenumber_table());
+  while (streamForSize.read_pair()) {
+    num_entries++;
+  }
+
+  CompressedLineNumberReadStream stream(method->compressed_linenumber_table());
+  jlongArray result = env->NewLongArray(2 * num_entries);
+
+  int i = 0;
+  jlong value;
+  while (stream.read_pair()) {
+    value = ((long) stream.bci());
+    env->SetLongArrayRegion(result,i,1,&value);
+    value = ((long) stream.line());
+    env->SetLongArrayRegion(result,i + 1,1,&value);
+    i += 2;
+  }
+
+  return result;
+C2V_END
+
+
+C2V_VMENTRY(jobject, getFileName, (JNIEnv *, jobject, jobject klass))
+  ResourceMark rm;
+  InstanceKlass* k = (InstanceKlass*) asKlass(HotSpotResolvedObjectType::metaspaceKlass(klass));
+  Symbol *s = k->source_file_name();
+  int length;
+  jchar *name = s->as_unicode(length);
+
+  Handle result = java_lang_String::create_from_unicode(name, length, CHECK_NULL);
+  return JNIHandles::make_local(result());
+
+C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
@@ -960,6 +1001,7 @@ C2V_END
 #define CLASS                 "Ljava/lang/Class;"
 #define STACK_TRACE_ELEMENT   "Ljava/lang/StackTraceElement;"
 #define HS_RESOLVED_TYPE      "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;"
+#define HS_RESOLVED_JAVA_TYPE "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
 #define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
 #define HS_COMP_RESULT        "Lcom/oracle/graal/hotspot/HotSpotCompilationResult;"
@@ -1008,6 +1050,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"executeCompiledMethodVarargs",  CC"("METASPACE_METHOD NMETHOD "["OBJECT")"OBJECT,                 FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"decodePC",                      CC"(J)"STRING,                                                    FN_PTR(decodePC)},
+  {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
+  {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
 };
 
 int CompilerToVM_methods_count() {
