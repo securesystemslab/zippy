@@ -110,7 +110,7 @@ def getSPECjbb2005(benchArgs = []):
     classpath = ['jbb.jar', 'check.jar']
     return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
     
-def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, iterationTime=None):
+def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
     specjvm2008 = mx.get_env('SPECJVM2008')
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
@@ -129,6 +129,8 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
         opts += ['-it', str(iterationTime)]
     if skipKitValidation:
         opts += ['-ikv']
+    if skipCheck:
+        opts += ['-ict']
     
     return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC'], defaultCwd=specjvm2008)
 

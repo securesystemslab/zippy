@@ -944,11 +944,11 @@ def bench(args):
         benchmarks += sanitycheck.getBootstraps()
     #SPECjvm2008
     if ('specjvm2008' in args or 'all' in args):
-        benchmarks += [sanitycheck.getSPECjvm2008([], True, 120, 120)]
+        benchmarks += [sanitycheck.getSPECjvm2008([], False, True, 120, 120)]
     else:
         specjvms = [a[12:] for a in args if a.startswith('specjvm2008:')]
         for specjvm in specjvms:
-            benchmarks += [sanitycheck.getSPECjvm2008([specjvm], True, 120, 120)]
+            benchmarks += [sanitycheck.getSPECjvm2008([specjvm], False, True, 120, 120)]
             
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
@@ -966,16 +966,20 @@ def bench(args):
 def specjvm2008(args):
     """run one or all SPECjvm2008 benchmarks
 
-    All options begining with - will be passed to the vm except for -ikv -wt and -it.
+    All options begining with - will be passed to the vm except for -ikv -ict -wt and -it.
     Other options are supposed to be benchmark names and will be passed to SPECjvm2008."""
     benchArgs = [a for a in args if a[0] != '-']
     vmArgs = [a for a in args if a[0] == '-']
     wt = None
     it = None
     skipValid = False
+    skipCheck = False
     if '-v' in vmArgs:
         vmArgs.remove('-v')
         benchArgs.append('-v')
+    if '-ict' in vmArgs:
+        skipCheck = True
+        vmArgs.remove('-ict')
     if '-ikv' in vmArgs:
         skipValid = True
         vmArgs.remove('-ikv')
@@ -996,7 +1000,7 @@ def specjvm2008(args):
         vmArgs.remove('-it')
         benchArgs.remove(args[itIdx+1])
     vm = _vm;
-    sanitycheck.getSPECjvm2008(benchArgs, skipValid, wt, it).bench(vm, opts=vmArgs)
+    sanitycheck.getSPECjvm2008(benchArgs, skipCheck, skipValid, wt, it).bench(vm, opts=vmArgs)
 
 def hsdis(args, copyToDir=None):
     """download the hsdis library
