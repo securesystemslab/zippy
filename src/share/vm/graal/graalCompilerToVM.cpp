@@ -609,6 +609,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("verifyOops", VerifyOops);
   set_boolean("useFastLocking", GraalUseFastLocking);
   set_boolean("useBiasedLocking", UseBiasedLocking);
+  set_boolean("usePopCountInstruction", UsePopCountInstruction);
+  set_boolean("useAESIntrinsics", UseAESIntrinsics);
   set_boolean("useTLAB", UseTLAB);
   set_int("codeEntryAlignment", CodeEntryAlignment);
   set_int("vmPageSize", os::vm_page_size());
