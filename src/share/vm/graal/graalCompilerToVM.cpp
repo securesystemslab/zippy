@@ -736,6 +736,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_long("logPrintfStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id)));
   set_long("aescryptEncryptBlockStub", VmIds::addStub(StubRoutines::aescrypt_encryptBlock()));
   set_long("aescryptDecryptBlockStub", VmIds::addStub(StubRoutines::aescrypt_decryptBlock()));
+  set_long("cipherBlockChainingEncryptAESCryptStub", VmIds::addStub(StubRoutines::cipherBlockChaining_encryptAESCrypt()));
+  set_long("cipherBlockChainingDecryptAESCryptStub", VmIds::addStub(StubRoutines::cipherBlockChaining_decryptAESCrypt()));
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
