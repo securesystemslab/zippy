@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.impl;
+package com.oracle.graal.snippets;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.graal.snippets.ClassSubstitution.*;
+import com.oracle.graal.snippets.nodes.*;
 
-public class DefaultCallTarget extends CallTarget {
+@ClassSubstitution(Long.class)
+public class LongSubstitutions {
 
-    protected final RootNode rootNode;
-    protected final FrameDescriptor frameDescriptor;
-
-    protected DefaultCallTarget(RootNode function, FrameDescriptor frameDescriptor) {
-        this.rootNode = function;
-        this.frameDescriptor = frameDescriptor;
+    @MethodSubstitution
+    public static long reverseBytes(long i) {
+        return ReverseBytesNode.reverse(i);
     }
 
-    @Override
-    public String toString() {
-        return "DefaultCallTarget " + rootNode;
+    @MethodSubstitution
+    public static int numberOfLeadingZeros(long i) {
+        if (i == 0) {
+            return 64;
+        }
+        return 63 - BitScanReverseNode.scan(i);
     }
 
-    @Override
-    public Object call(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = new DefaultVirtualFrame(frameDescriptor, caller, args);
-        return rootNode.execute(frame);
+    @MethodSubstitution
+    public static int numberOfTrailingZeros(long i) {
+        if (i == 0) {
+            return 64;
+        }
+        return BitScanForwardNode.scan(i);
+    }
+
+    @MethodSubstitution
+    public static int bitCount(long i) {
+        return BitCountNode.bitCount(i);
     }
 }

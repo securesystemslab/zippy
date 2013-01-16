@@ -108,9 +108,9 @@ def getSPECjbb2005(benchArgs = []):
     success = re.compile(r"^Valid run, Score is  [0-9]+$")
     matcher = Matcher(score, {'const:group' : "const:SPECjbb2005", 'const:name' : 'const:score', 'const:score' : 'score'})
     classpath = ['jbb.jar', 'check.jar']
-    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
+    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
     
-def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, iterationTime=None):
+def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
     specjvm2008 = mx.get_env('SPECJVM2008')
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
@@ -129,8 +129,10 @@ def getSPECjvm2008(benchArgs = [], skipKitValidation=False, warmupTime=None, ite
         opts += ['-it', str(iterationTime)]
     if skipKitValidation:
         opts += ['-ikv']
+    if skipCheck:
+        opts += ['-ict']
     
-    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -162,7 +164,7 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'}, startNewLine=True)
     dacapoMatcher1 = Matcher(dacapoTime1, {'const:group' : "const:DaCapo-1stRun", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+UseSerialGC'])
+    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -192,7 +194,7 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:Scala-DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
-    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+UseSerialGC'])
+    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")

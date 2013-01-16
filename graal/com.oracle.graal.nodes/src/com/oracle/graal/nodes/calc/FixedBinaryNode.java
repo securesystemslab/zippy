@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.impl;
+package com.oracle.graal.nodes.calc;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.type.*;
 
-public class DefaultCallTarget extends CallTarget {
+@NodeInfo(shortName = "/")
+public class FixedBinaryNode extends FixedWithNextNode {
 
-    protected final RootNode rootNode;
-    protected final FrameDescriptor frameDescriptor;
+    @Input private ValueNode x;
+    @Input private ValueNode y;
 
-    protected DefaultCallTarget(RootNode function, FrameDescriptor frameDescriptor) {
-        this.rootNode = function;
-        this.frameDescriptor = frameDescriptor;
+    public ValueNode x() {
+        return x;
     }
 
-    @Override
-    public String toString() {
-        return "DefaultCallTarget " + rootNode;
+    public ValueNode y() {
+        return y;
     }
 
-    @Override
-    public Object call(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = new DefaultVirtualFrame(frameDescriptor, caller, args);
-        return rootNode.execute(frame);
+    public FixedBinaryNode(Kind kind, ValueNode x, ValueNode y) {
+        super(StampFactory.forKind(kind));
+        this.x = x;
+        this.y = y;
     }
 }
