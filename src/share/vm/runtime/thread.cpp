@@ -2207,7 +2207,7 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
           RegisterMap reg_map(this, UseBiasedLocking);
           frame compiled_frame = f.sender(&reg_map);
           if (!StressCompiledExceptionHandlers && compiled_frame.can_be_deoptimized()) {
-            Deoptimization::deoptimize(this, compiled_frame, &reg_map);
+            Deoptimization::deoptimize(this, compiled_frame, &reg_map, Deoptimization::Reason_constraint);
           }
         }
       }
