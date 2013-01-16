@@ -205,7 +205,7 @@ template <MEMFLAGS F> class CHeapObj ALLOCATION_SUPER_CLASS_SPEC {
 // Calling new or delete will result in fatal error.
 
 class StackObj ALLOCATION_SUPER_CLASS_SPEC {
- public:
+ private:
   void* operator new(size_t size);
   void  operator delete(void* p);
 };
@@ -229,7 +229,7 @@ class StackObj ALLOCATION_SUPER_CLASS_SPEC {
 // be defined as a an empty string "".
 //
 class _ValueObj {
- public:
+ private:
   void* operator new(size_t size);
   void operator delete(void* p);
 };

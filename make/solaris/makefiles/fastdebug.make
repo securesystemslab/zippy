@@ -125,7 +125,6 @@ MAPFILE += $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-graal
 # and mustn't be otherwise.
 MAPFILE_DTRACE = $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-$(TYPE)
 
-G_SUFFIX = _g
 VERSION = optimized
 SYSDEFS += -DASSERT -DFASTDEBUG -DCHECK_UNHANDLED_OOPS
 PICFLAGS = DEFAULT

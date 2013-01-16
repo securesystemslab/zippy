@@ -64,8 +64,10 @@
 
 ClassLoaderData * ClassLoaderData::_the_null_class_loader_data = NULL;
 
-ClassLoaderData::ClassLoaderData(Handle h_class_loader) : _class_loader(h_class_loader()),
-  _metaspace(NULL), _unloading(false), _keep_alive(false), _klasses(NULL),
+ClassLoaderData::ClassLoaderData(Handle h_class_loader, bool is_anonymous) :
+  _class_loader(h_class_loader()),
+  _is_anonymous(is_anonymous), _keep_alive(is_anonymous), // initially
+  _metaspace(NULL), _unloading(false), _klasses(NULL),
   _claimed(0), _jmethod_ids(NULL), _handles(NULL), _deallocate_list(NULL),
   _next(NULL), _dependencies(NULL),
   _metaspace_lock(new Mutex(Monitor::leaf+1, "Metaspace allocation lock", true)) {
@@ -167,16 +169,18 @@ void ClassLoaderData::add_dependency(Handle dependency, TRAPS) {
     ok = (objArrayOop)ok->obj_at(1);
   }
 
+  // Must handle over GC points
+  assert (last != NULL, "dependencies should be initialized");
+  objArrayHandle last_handle(THREAD, last);
+
   // Create a new dependency node with fields for (class_loader or mirror, next)
   objArrayOop deps = oopFactory::new_objectArray(2, CHECK);
   deps->obj_at_put(0, dependency());
 
-  // Must handle over more GC points
+  // Must handle over GC points
   objArrayHandle new_dependency(THREAD, deps);
 
   // Add the dependency under lock
-  assert (last != NULL, "dependencies should be initialized");
-  objArrayHandle last_handle(THREAD, last);
   locked_add_dependency(last_handle, new_dependency);
 }
 
@@ -257,13 +261,6 @@ void ClassLoaderData::remove_class(Klass* scratch_class) {
   ShouldNotReachHere();   // should have found this class!!
 }
 
-
-bool ClassLoaderData::is_anonymous() const {
-  Klass* k = _klasses;
-  return (_keep_alive || (k != NULL && k->oop_is_instance() &&
-          InstanceKlass::cast(k)->is_anonymous()));
-}
-
 void ClassLoaderData::unload() {
   _unloading = true;
 
@@ -333,10 +330,19 @@ Metaspace* ClassLoaderData::metaspace_non_null() {
     }
     if (this == the_null_class_loader_data()) {
       assert (class_loader() == NULL, "Must be");
-      size_t word_size = Metaspace::first_chunk_word_size();
-      set_metaspace(new Metaspace(_metaspace_lock, word_size));
+      set_metaspace(new Metaspace(_metaspace_lock, Metaspace::BootMetaspaceType));
+    } else if (is_anonymous()) {
+      if (TraceClassLoaderData && Verbose && class_loader() != NULL) {
+        tty->print_cr("is_anonymous: %s", class_loader()->klass()->internal_name());
+      }
+      set_metaspace(new Metaspace(_metaspace_lock, Metaspace::AnonymousMetaspaceType));
+    } else if (class_loader()->is_a(SystemDictionary::reflect_DelegatingClassLoader_klass())) {
+      if (TraceClassLoaderData && Verbose && class_loader() != NULL) {
+        tty->print_cr("is_reflection: %s", class_loader()->klass()->internal_name());
+      }
+      set_metaspace(new Metaspace(_metaspace_lock, Metaspace::ReflectionMetaspaceType));
     } else {
-      set_metaspace(new Metaspace(_metaspace_lock));  // default size for now.
+      set_metaspace(new Metaspace(_metaspace_lock, Metaspace::StandardMetaspaceType));
     }
   }
   return _metaspace;
@@ -396,8 +402,7 @@ void ClassLoaderData::free_deallocate_list() {
 // These anonymous class loaders are to contain classes used for JSR292
 ClassLoaderData* ClassLoaderData::anonymous_class_loader_data(oop loader, TRAPS) {
   // Add a new class loader data to the graph.
-  ClassLoaderData* cld = ClassLoaderDataGraph::add(NULL, loader, CHECK_NULL);
-  return cld;
+  return ClassLoaderDataGraph::add(NULL, loader, CHECK_NULL);
 }
 
 const char* ClassLoaderData::loader_name() {
@@ -475,7 +480,9 @@ ClassLoaderData* ClassLoaderDataGraph::add(ClassLoaderData** cld_addr, Handle lo
   // Create one.
   ClassLoaderData* *list_head = &_head;
   ClassLoaderData* next = _head;
-  ClassLoaderData* cld = new ClassLoaderData(loader);
+
+  bool is_anonymous = (cld_addr == NULL);
+  ClassLoaderData* cld = new ClassLoaderData(loader, is_anonymous);
 
   if (cld_addr != NULL) {
     // First, Atomically set it
@@ -485,10 +492,6 @@ ClassLoaderData* ClassLoaderDataGraph::add(ClassLoaderData** cld_addr, Handle lo
       // Returns the data.
       return old;
     }
-  } else {
-    // Disallow unloading for this CLD during initialization if there is no
-    // class_loader oop to link this to.
-    cld->set_keep_alive(true);
   }
 
   // We won the race, and therefore the task of adding the data to the list of
@@ -678,8 +681,8 @@ void ClassLoaderData::initialize_shared_metaspaces() {
          "only supported for null loader data for now");
   assert (!_shared_metaspaces_initialized, "only initialize once");
   MutexLockerEx ml(metaspace_lock(),  Mutex::_no_safepoint_check_flag);
-  _ro_metaspace = new Metaspace(_metaspace_lock, SharedReadOnlySize/wordSize);
-  _rw_metaspace = new Metaspace(_metaspace_lock, SharedReadWriteSize/wordSize);
+  _ro_metaspace = new Metaspace(_metaspace_lock, Metaspace::ROMetaspaceType);
+  _rw_metaspace = new Metaspace(_metaspace_lock, Metaspace::ReadWriteMetaspaceType);
   _shared_metaspaces_initialized = true;
 }
 

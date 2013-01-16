@@ -939,6 +939,9 @@ class CommandLineFlags {
   develop(bool, PrintExceptionHandlers, false,                              \
           "Print exception handler tables for all nmethods when generated") \
                                                                             \
+  develop(bool, StressCompiledExceptionHandlers, false,                     \
+         "Exercise compiled exception handlers")                            \
+                                                                            \
   develop(bool, InterceptOSException, false,                                \
           "Starts debugger when an implicit OS (e.g., NULL) "               \
           "exception happens")                                              \
@@ -1114,13 +1117,6 @@ class CommandLineFlags {
                                                                             \
   product(bool, ReduceSignalUsage, false,                                   \
           "Reduce the use of OS signals in Java and/or the VM")             \
-                                                                            \
-  notproduct(bool, ValidateMarkSweep, false,                                \
-          "Do extra validation during MarkSweep collection")                \
-                                                                            \
-  notproduct(bool, RecordMarkSweepCompaction, false,                        \
-          "Enable GC-to-GC recording and querying of compaction during "    \
-          "MarkSweep")                                                      \
                                                                             \
   develop_pd(bool, ShareVtableStubs,                                        \
           "Share vtable stubs (smaller code but worse branch prediction")   \
@@ -1623,7 +1619,7 @@ class CommandLineFlags {
   develop(bool, CMSTraceThreadState, false,                                 \
           "Trace the CMS thread state (enable the trace_state() method)")   \
                                                                             \
-  product(bool, CMSClassUnloadingEnabled, false,                            \
+  product(bool, CMSClassUnloadingEnabled, true,                             \
           "Whether class unloading enabled when using CMS GC")              \
                                                                             \
   product(uintx, CMSClassUnloadingMaxInterval, 0,                           \
@@ -1847,7 +1843,7 @@ class CommandLineFlags {
                                                                             \
   product(intx, CMSIsTooFullPercentage, 98,                                 \
           "An absolute ceiling above which CMS will always consider the "   \
-          "perm gen ripe for collection")                                   \
+          "unloading of classes when class unloading is enabled")           \
                                                                             \
   develop(bool, CMSTestInFreeList, false,                                   \
           "Check if the coalesced range is already in the "                 \
@@ -1916,13 +1912,13 @@ class CommandLineFlags {
           "Metadata deallocation alot interval")                            \
                                                                             \
   develop(bool, TraceMetadataChunkAllocation, false,                        \
-          "Trace humongous metadata allocations")                           \
+          "Trace chunk metadata allocations")                               \
                                                                             \
   product(bool, TraceMetadataHumongousAllocation, false,                    \
           "Trace humongous metadata allocations")                           \
                                                                             \
   develop(bool, TraceMetavirtualspaceAllocation, false,                     \
-          "Trace humongous metadata allocations")                           \
+          "Trace virtual space metadata allocations")                       \
                                                                             \
   notproduct(bool, ExecuteInternalVMTests, false,                           \
           "Enable execution of internal VM tests.")                         \
@@ -2234,7 +2230,8 @@ class CommandLineFlags {
   develop(bool, TraceClassLoaderData, false,                                \
           "Trace class loader loader_data lifetime")                        \
                                                                             \
-  product(uintx, InitialBootClassLoaderMetaspaceSize, 3*M,                  \
+  product(uintx, InitialBootClassLoaderMetaspaceSize,                       \
+          NOT_LP64(2200*K) LP64_ONLY(4*M),                                  \
           "Initial size of the boot class loader data metaspace")           \
                                                                             \
   product(bool, TraceGen0Time, false,                                       \
@@ -3560,10 +3557,10 @@ class CommandLineFlags {
   /* Shared spaces */                                                       \
                                                                             \
   product(bool, UseSharedSpaces, true,                                      \
-          "Use shared spaces in the permanent generation")                  \
+          "Use shared spaces for metadata")                                 \
                                                                             \
   product(bool, RequireSharedSpaces, false,                                 \
-          "Require shared spaces in the permanent generation")              \
+          "Require shared spaces for metadata")                             \
                                                                             \
   product(bool, DumpSharedSpaces, false,                                    \
            "Special mode: JVM reads a class list, loads classes, builds "   \
@@ -3574,16 +3571,16 @@ class CommandLineFlags {
           "Print usage of shared spaces")                                   \
                                                                             \
   product(uintx, SharedReadWriteSize,  NOT_LP64(12*M) LP64_ONLY(16*M),      \
-          "Size of read-write space in permanent generation (in bytes)")    \
+          "Size of read-write space for metadata (in bytes)")               \
                                                                             \
   product(uintx, SharedReadOnlySize,  NOT_LP64(12*M) LP64_ONLY(16*M),       \
-          "Size of read-only space in permanent generation (in bytes)")     \
+          "Size of read-only space for metadata (in bytes)")                \
                                                                             \
   product(uintx, SharedMiscDataSize,    NOT_LP64(2*M) LP64_ONLY(4*M),       \
-          "Size of the shared data area adjacent to the heap (in bytes)")   \
+          "Size of the shared miscellaneous data area (in bytes)")          \
                                                                             \
   product(uintx, SharedMiscCodeSize,    120*K,                              \
-          "Size of the shared code area adjacent to the heap (in bytes)")   \
+          "Size of the shared miscellaneous code area (in bytes)")          \
                                                                             \
   product(uintx, SharedDummyBlockSize, 0,                                   \
           "Size of dummy block used to shift heap addresses (in bytes)")    \

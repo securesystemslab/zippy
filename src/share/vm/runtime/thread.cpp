@@ -2206,8 +2206,8 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
           // BiasedLocking needs an updated RegisterMap for the revoke monitors pass
           RegisterMap reg_map(this, UseBiasedLocking);
           frame compiled_frame = f.sender(&reg_map);
-          if (compiled_frame.can_be_deoptimized()) {
-            Deoptimization::deoptimize(this, compiled_frame, &reg_map, Deoptimization::Reason_constraint);
+          if (!StressCompiledExceptionHandlers && compiled_frame.can_be_deoptimized()) {
+            Deoptimization::deoptimize(this, compiled_frame, &reg_map);
           }
         }
       }
@@ -3540,11 +3540,12 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
       java_lang_Thread::set_thread_status(thread_object,
                                           java_lang_Thread::RUNNABLE);
 
-      // The VM preresolve methods to these classes. Make sure that get initialized
-      initialize_class(vmSymbols::java_lang_reflect_Method(), CHECK_0);
-      initialize_class(vmSymbols::java_lang_ref_Finalizer(),  CHECK_0);
       // The VM creates & returns objects of this class. Make sure it's initialized.
       initialize_class(vmSymbols::java_lang_Class(), CHECK_0);
+
+      // The VM preresolves methods to these classes. Make sure that they get initialized
+      initialize_class(vmSymbols::java_lang_reflect_Method(), CHECK_0);
+      initialize_class(vmSymbols::java_lang_ref_Finalizer(),  CHECK_0);
       call_initializeSystemClass(CHECK_0);
 
       // get the Java runtime name after java.lang.System is initialized

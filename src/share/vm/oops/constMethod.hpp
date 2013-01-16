@@ -46,6 +46,7 @@
 // | interp_kind  | flags    | code_size                  |
 // | name index              | signature index            |
 // | method_idnum            | max_stack                  |
+// | max_locals              | size_of_parameters         |
 // |------------------------------------------------------|
 // |                                                      |
 // | byte codes                                           |
@@ -76,9 +77,18 @@
 // |  (access flags bit tells whether table is present)   |
 // |  (indexed from end of ConstMethod*)                  |
 // |------------------------------------------------------|
+// | method parameters elements + length (length last)    |
+// |  (length is u2, elements are u2, u4 structures)      |
+// |  (see class MethodParametersElement)                 |
+// |  (access flags bit tells whether table is present)   |
+// |  (indexed from end of ConstMethod*)                  |
+// |------------------------------------------------------|
 // | generic signature index (u2)                         |
 // |  (indexed from start of constMethodOop)              |
 // |------------------------------------------------------|
+//
+// IMPORTANT: If anything gets added here, there need to be changes to
+// ensure that ServicabilityAgent doesn't get broken as a result!
 
 
 // Utitily class decribing elements in checked exceptions table inlined in Method*.
@@ -108,6 +118,13 @@ class ExceptionTableElement VALUE_OBJ_CLASS_SPEC {
   u2 catch_type_index;
 };
 
+// Utility class describing elements in method parameters
+class MethodParametersElement VALUE_OBJ_CLASS_SPEC {
+ public:
+  u2 name_cp_index;
+  u4 flags;
+};
+
 
 class ConstMethod : public MetaspaceObj {
   friend class VMStructs;
@@ -122,7 +139,8 @@ private:
     _has_localvariable_table = 4,
     _has_exception_table = 8,
     _has_generic_signature = 16,
-    _is_overpass = 32
+    _has_method_parameters = 32,
+    _is_overpass = 64
   };
 
   // Bit vector of signature
@@ -150,7 +168,8 @@ private:
                                                  // initially corresponds to the index into the methods array.
                                                  // but this may change with redefinition
   u2                _max_stack;                  // Maximum number of entries on the expression stack
-
+  u2                _max_locals;                 // Number of local variables used by this method
+  u2                _size_of_parameters;         // size of the parameter block (receiver + arguments) in words
 
   // Constructor
   ConstMethod(int byte_code_size,
@@ -158,6 +177,7 @@ private:
               int localvariable_table_length,
               int exception_table_length,
               int checked_exceptions_length,
+              int method_parameters_length,
               u2  generic_signature_index,
               MethodType is_overpass,
               int size);
@@ -169,6 +189,7 @@ public:
                                int localvariable_table_length,
                                int exception_table_length,
                                int checked_exceptions_length,
+                               int method_parameters_length,
                                u2  generic_signature_index,
                                MethodType mt,
                                TRAPS);
@@ -180,7 +201,8 @@ public:
                                  int checked_exceptions_len,
                                  int compressed_line_number_size,
                                  int localvariable_table_len,
-                                 int exception_table_len);
+                                 int exception_table_len,
+                                 int method_parameters_length);
 
   bool has_generic_signature() const
     { return (_flags & _has_generic_signature) != 0; }
@@ -196,6 +218,9 @@ public:
 
   bool has_exception_handler() const
     { return (_flags & _has_exception_table) != 0; }
+
+  bool has_method_parameters() const
+    { return (_flags & _has_method_parameters) != 0; }
 
   MethodType method_type() const {
     return ((_flags & _is_overpass) == 0) ? NORMAL : OVERPASS;
@@ -282,10 +307,11 @@ public:
 
   // Size needed
   static int size(int code_size, int compressed_line_number_size,
-                         int local_variable_table_length,
-                         int exception_table_length,
-                         int checked_exceptions_length,
-                         u2  generic_signature_index);
+                  int local_variable_table_length,
+                  int exception_table_length,
+                  int checked_exceptions_length,
+                  int method_parameters_length,
+                  u2  generic_signature_index);
 
   int size() const                    { return _constMethod_size;}
   void set_constMethod_size(int size)     { _constMethod_size = size; }
@@ -306,6 +332,7 @@ public:
   u2* checked_exceptions_length_addr() const;
   u2* localvariable_table_length_addr() const;
   u2* exception_table_length_addr() const;
+  u2* method_parameters_length_addr() const;
 
   // checked exceptions
   int checked_exceptions_length() const;
@@ -318,6 +345,10 @@ public:
   // exception table
   int exception_table_length() const;
   ExceptionTableElement* exception_table_start() const;
+
+  // method parameters table
+  int method_parameters_length() const;
+  MethodParametersElement* method_parameters_start() const;
 
   // byte codes
   void    set_code(address code) {
@@ -338,6 +369,11 @@ public:
 
   static ByteSize max_stack_offset()
                             { return byte_offset_of(ConstMethod, _max_stack); }
+  static ByteSize size_of_locals_offset()
+                            { return byte_offset_of(ConstMethod, _max_locals); }
+  static ByteSize size_of_parameters_offset()
+                            { return byte_offset_of(ConstMethod, _size_of_parameters); }
+
 
   // Unique id for the method
   static const u2 MAX_IDNUM;
@@ -348,6 +384,14 @@ public:
   // max stack
   int  max_stack() const                         { return _max_stack; }
   void set_max_stack(int size)                   { _max_stack = size; }
+
+  // max locals
+  int  max_locals() const                        { return _max_locals; }
+  void set_max_locals(int size)                  { _max_locals = size; }
+
+  // size of parameters
+  int  size_of_parameters() const                { return _size_of_parameters; }
+  void set_size_of_parameters(int size)          { _size_of_parameters = size; }
 
   // Deallocation for RedefineClasses
   void deallocate_contents(ClassLoaderData* loader_data);
