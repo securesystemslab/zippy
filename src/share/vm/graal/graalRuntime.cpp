@@ -588,11 +588,9 @@ JRT_END
 JRT_ENTRY(jboolean, GraalRuntime::graal_thread_is_interrupted(JavaThread* thread, oop receiver, jboolean clear_interrupted))
   // Ensure that the C++ Thread and OSThread structures aren't freed before we operate
   Handle receiverHandle(thread, receiver);
-  JRT_BLOCK
-    MutexLockerEx ml(thread->threadObj() == receiver ? NULL : Threads_lock);
-    JavaThread* receiverThread = java_lang_Thread::thread(receiverHandle());
-    return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
-  JRT_BLOCK_END
+  MutexLockerEx ml(thread->threadObj() == receiver ? NULL : Threads_lock);
+  JavaThread* receiverThread = java_lang_Thread::thread(receiverHandle());
+  return (jint) Thread::is_interrupted(receiverThread, clear_interrupted != 0);
 JRT_END
 
 // JVM_InitializeGraalRuntime

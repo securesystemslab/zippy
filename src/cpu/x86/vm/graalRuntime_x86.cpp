@@ -188,25 +188,46 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
 
 int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2, Register arg3, Register arg4) {
 #ifdef _LP64
-  // if there is any conflict use the stack
-  if (arg1 == c_rarg2 || arg1 == c_rarg3 || arg1 == c_rarg4 ||
-      arg2 == c_rarg1 || arg2 == c_rarg3 || arg2 == c_rarg4 ||
-      arg3 == c_rarg1 || arg3 == c_rarg2 || arg3 == c_rarg4 ||
-      arg4 == c_rarg1 || arg4 == c_rarg2 || arg4 == c_rarg3) {
-    push(arg4);
-    push(arg3);
-    push(arg2);
-    push(arg1);
-    pop(c_rarg1);
-    pop(c_rarg2);
-    pop(c_rarg3);
-    pop(c_rarg4);
-  } else {
-    mov(c_rarg1, arg1);
-    mov(c_rarg2, arg2);
-    mov(c_rarg3, arg3);
-    mov(c_rarg4, arg4);
-  }
+  #ifdef _WIN64
+    // on windows we only have the registers c_rarg0 to c_rarg3 for transferring parameters -> remaining parameters are on the stack
+    if (arg1 == c_rarg2 || arg1 == c_rarg3 || 
+        arg2 == c_rarg1 || arg2 == c_rarg3 || 
+        arg3 == c_rarg1 || arg3 == c_rarg2 || 
+        arg4 == c_rarg1 || arg4 == c_rarg2) {
+      push(arg4);
+      push(arg3);
+      push(arg2);
+      push(arg1);
+      pop(c_rarg1);
+      pop(c_rarg2);
+      pop(c_rarg3);
+    } else {
+      mov(c_rarg1, arg1);
+      mov(c_rarg2, arg2);
+      mov(c_rarg3, arg3);
+      push(arg4);
+    }
+  #else
+    // if there is any conflict use the stack
+    if (arg1 == c_rarg2 || arg1 == c_rarg3 || arg1 == c_rarg4 ||
+        arg2 == c_rarg1 || arg2 == c_rarg3 || arg2 == c_rarg4 ||
+        arg3 == c_rarg1 || arg3 == c_rarg2 || arg3 == c_rarg4 ||
+        arg4 == c_rarg1 || arg4 == c_rarg2 || arg4 == c_rarg3) {
+      push(arg4);
+      push(arg3);
+      push(arg2);
+      push(arg1);
+      pop(c_rarg1);
+      pop(c_rarg2);
+      pop(c_rarg3);
+      pop(c_rarg4);
+    } else {
+      mov(c_rarg1, arg1);
+      mov(c_rarg2, arg2);
+      mov(c_rarg3, arg3);
+      mov(c_rarg4, arg4);
+    }
+  #endif
 #else
   push(arg4);
   push(arg3);
