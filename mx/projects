@@ -287,7 +287,7 @@ project@com.oracle.truffle.api.codegen@javaCompliance=1.7
 project@com.oracle.truffle.codegen.processor@subDir=graal
 project@com.oracle.truffle.codegen.processor@sourceDirs=src
 project@com.oracle.truffle.codegen.processor@dependencies=com.oracle.truffle.api.codegen,com.oracle.truffle.api
-project@com.oracle.truffle.codegen.processor@checkstyle=com.oracle.graal.graph 
+project@com.oracle.truffle.codegen.processor@checkstyle=com.oracle.graal.graph
 project@com.oracle.truffle.codegen.processor@javaCompliance=1.7
 
 # truffle.sl
