@@ -172,18 +172,18 @@ class Dependency:
         return isinstance(self, Library)
 
 class Project(Dependency):
-    def __init__(self, suite, name, srcDirs, deps, javaCompliance, dir):
+    def __init__(self, suite, name, srcDirs, deps, javaCompliance, d):
         Dependency.__init__(self, suite, name)
         self.srcDirs = srcDirs
         self.deps = deps
         self.checkstyleProj = name
         self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance is not None else None
         self.native = False
-        self.dir = dir
+        self.dir = d
         
         # Create directories for projects that don't yet exist
-        if not exists(dir):
-            os.mkdir(dir)
+        if not exists(d):
+            os.mkdir(d)
         for s in self.source_dirs():
             if not exists(s):
                 os.mkdir(s)
@@ -412,14 +412,14 @@ class Library(Dependency):
             cp.append(path)
 
 class Suite:
-    def __init__(self, dir, primary):
-        self.dir = dir
+    def __init__(self, d, primary):
+        self.dir = d
         self.projects = []
         self.libs = []
         self.includes = []
         self.commands = None
         self.primary = primary
-        mxDir = join(dir, 'mx')
+        mxDir = join(d, 'mx')
         self._load_env(mxDir)
         self._load_commands(mxDir)
         self._load_includes(mxDir)
@@ -471,10 +471,10 @@ class Suite:
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None);
             if subDir is None:
-                dir = join(self.dir, name)
+                d = join(self.dir, name)
             else:
-                dir = join(self.dir, subDir, name)
-            p = Project(self, name, srcDirs, deps, javaCompliance, dir)
+                d = join(self.dir, subDir, name)
+            p = Project(self, name, srcDirs, deps, javaCompliance, d)
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             if not p.native and p.javaCompliance is None:
@@ -632,13 +632,13 @@ def get_os():
     else:
         abort('Unknown operating system ' + sys.platform)
 
-def _loadSuite(dir, primary=False):
-    mxDir = join(dir, 'mx')
+def _loadSuite(d, primary=False):
+    mxDir = join(d, 'mx')
     if not exists(mxDir) or not isdir(mxDir):
         return None
-    if not _suites.has_key(dir):
-        suite = Suite(dir, primary)
-        _suites[dir] = suite
+    if not _suites.has_key(d):
+        suite = Suite(d, primary)
+        _suites[d] = suite
         return suite
 
 def suites():

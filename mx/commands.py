@@ -26,10 +26,9 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, types
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
-from threading import Thread
 import mx
 import sanitycheck
 import json
@@ -80,8 +79,8 @@ _copyrightTemplate = """/*
 
 def _chmodDir(chmodFlags, dirname, fnames):
     os.chmod(dirname, chmodFlags)
-    for file in fnames:
-        os.chmod(os.path.join(dirname, file), chmodFlags)
+    for name in fnames:
+        os.chmod(os.path.join(dirname, name), chmodFlags)
 
 def chmodRecursive(dirname, chmodFlags):
     os.path.walk(dirname, _chmodDir, chmodFlags)
@@ -875,7 +874,7 @@ def deoptalot(args):
         count = int(args[0])
         del args[0]
     
-    for n in range(count):
+    for _ in range(count):
         if not vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops'] + args + ['-version'], vmbuild='fastdebug') == 0:
             mx.abort("Failed")
             
