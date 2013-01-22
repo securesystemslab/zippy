@@ -1463,6 +1463,66 @@ def build(args, parser=None):
         return args
     return None
 
+def eclipseformat(args):
+    """run the Eclipse Code Formatter on the Java sources
+
+    The exit code 1 denotes that at least one file was modified."""
+
+    parser = ArgumentParser(prog='mx eclipseformat')
+    parser.add_argument('-e', '--eclipse-exe', help='location of the Eclipse executable')
+    parser.add_argument('-C', '--no-backup', action='store_false', dest='backup', help='do not save backup of modified files')
+    
+    args = parser.parse_args(args)
+    if args.eclipse_exe is None:
+        args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
+    if args.eclipse_exe is None:
+        abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
+    
+    eclipseinit([], buildProcessorJars=False)
+
+    modified = dict()
+    for p in sorted_deps():
+        if p.native:
+            continue
+        sourceDirs = p.source_dirs()
+        prefsFile = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
+
+        if not exists(prefsFile):
+            log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(prefsFile))
+            continue
+
+        for sourceDir in sourceDirs:
+            javafiles = dict()
+            for root, _, files in os.walk(sourceDir):
+                for f in [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']:
+                    with open(f) as fp:
+                        content = fp.read()
+                        javafiles[f] = content
+            if len(javafiles) == 0:
+                log('[no Java sources in {0} - skipping]'.format(sourceDir))
+                continue
+
+            run([args.eclipse_exe, '-nosplash', '-application', 'org.eclipse.jdt.core.JavaCodeFormatter', '-config', prefsFile] + javafiles.keys())
+            
+            for f, oldContent in javafiles.iteritems():
+                with open(f) as fp:
+                    newContent = fp.read()
+                    if oldContent != newContent:
+                        modified[f] = oldContent
+                
+    log('{0} files were modified'.format(len(modified)))
+    if len(modified) != 0:
+        if args.backup:
+            backup = os.path.abspath('eclipseformat.backup.zip')
+            arcbase = _mainSuite.dir
+            zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
+            for f, content in modified.iteritems():
+                arcname = os.path.relpath(f, arcbase).replace(os.sep, '/')
+                zf.writestr(arcname, content)
+            zf.close()
+            log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
+        return 1
+
 def processorjars():
     projects = set([])
     
@@ -2816,6 +2876,7 @@ commands = {
     'canonicalizeprojects': [canonicalizeprojects, ''],
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
+    'eclipseformat': [eclipseformat, ''],
     'findclass': [findclass, ''],
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
