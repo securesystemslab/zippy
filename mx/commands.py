@@ -574,6 +574,9 @@ def build(args, vm=None):
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
 
+            # We don't need to run the Queens test (i.e. test_gamma)
+            env.setdefault('TEST_IN_BUILD', 'false')
+
             # Clear these 2 variables as having them set can cause very confusing build problems
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
