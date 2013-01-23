@@ -1525,7 +1525,7 @@ def eclipseformat(args):
 
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
-                for f in [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']:
+                for f in [join(root, name) for name in files if name.endswith('.java')]:
                     batch.javafiles.append(FileInfo(f))
         if len(batch.javafiles) == 0:
             log('[no Java sources in {0} - skipping]'.format(p.name))
