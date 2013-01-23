@@ -1471,44 +1471,75 @@ def eclipseformat(args):
     parser = ArgumentParser(prog='mx eclipseformat')
     parser.add_argument('-e', '--eclipse-exe', help='location of the Eclipse executable')
     parser.add_argument('-C', '--no-backup', action='store_false', dest='backup', help='do not save backup of modified files')
+    parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
     
     args = parser.parse_args(args)
     if args.eclipse_exe is None:
         args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
     if args.eclipse_exe is None:
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
-    
+
     eclipseinit([], buildProcessorJars=False)
 
-    modified = dict()
-    for p in sorted_deps():
+    # build list of projects to be processed
+    projects = sorted_deps()
+    if args.projects is not None:
+        projects = [project(name) for name in args.projects.split(',')]
+
+    class Batch:
+        def __init__(self, settingsFile):
+            self.path = settingsFile
+            self.javafiles = list()
+            
+        def settings(self):
+            with open(self.path) as fp:
+                return fp.read()
+
+    class FileInfo:
+        def __init__(self, path):
+            self.path = path
+            with open(path) as fp:
+                self.content = fp.read()
+            self.times = (os.path.getatime(path), os.path.getmtime(path))
+
+        def update(self):
+            with open(self.path) as fp:
+                content = fp.read()
+                if self.content != content:
+                    self.content = content
+                    return True
+            os.utime(self.path, self.times)
+            
+    modified = list()
+    batches = dict() # all sources with the same formatting settings are formatted together
+    for p in projects:
         if p.native:
             continue
         sourceDirs = p.source_dirs()
-        prefsFile = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
+        
+        batch = Batch(join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs'))
 
-        if not exists(prefsFile):
-            log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(prefsFile))
+        if not exists(batch.path):
+            log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(batch.path))
             continue
 
         for sourceDir in sourceDirs:
-            javafiles = dict()
             for root, _, files in os.walk(sourceDir):
-                for f in [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']:
-                    with open(f) as fp:
-                        content = fp.read()
-                        javafiles[f] = content
-            if len(javafiles) == 0:
-                log('[no Java sources in {0} - skipping]'.format(sourceDir))
-                continue
+                for f in [join(root, name) for name in files if name.endswith('.java')]:
+                    batch.javafiles.append(FileInfo(f))
+        if len(batch.javafiles) == 0:
+            log('[no Java sources in {0} - skipping]'.format(p.name))
+            continue
 
-            run([args.eclipse_exe, '-nosplash', '-application', 'org.eclipse.jdt.core.JavaCodeFormatter', '-config', prefsFile] + javafiles.keys())
-            
-            for f, oldContent in javafiles.iteritems():
-                with open(f) as fp:
-                    newContent = fp.read()
-                    if oldContent != newContent:
-                        modified[f] = oldContent
+        res = batches.setdefault(batch.settings(), batch)
+        if res is not batch:
+            res.javafiles = res.javafiles + batch.javafiles
+
+    for batch in batches.itervalues():
+        run([args.eclipse_exe, '-nosplash', '-application', 'org.eclipse.jdt.core.JavaCodeFormatter', '-config', batch.path] + [f.path for f in batch.javafiles])
+        for fi in batch.javafiles:
+            if fi.update():
+                modified.append(fi)
                 
     log('{0} files were modified'.format(len(modified)))
     if len(modified) != 0:
@@ -1516,12 +1547,13 @@ def eclipseformat(args):
             backup = os.path.abspath('eclipseformat.backup.zip')
             arcbase = _mainSuite.dir
             zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
-            for f, content in modified.iteritems():
-                arcname = os.path.relpath(f, arcbase).replace(os.sep, '/')
-                zf.writestr(arcname, content)
+            for fi in modified:
+                arcname = os.path.relpath(fi.path, arcbase).replace(os.sep, '/')
+                zf.writestr(arcname, fi.content)
             zf.close()
             log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
         return 1
+    return 0
 
 def processorjars():
     projects = set([])

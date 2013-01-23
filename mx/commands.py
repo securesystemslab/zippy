@@ -775,6 +775,13 @@ def gate(args):
         clean(cleanArgs)
         tasks.append(t.stop())
 
+        eclipse_exe = os.environ.get('ECLIPSE_EXE')
+        if eclipse_exe is not None:
+            t = Task('CodeFormatCheck')
+            if mx.eclipseformat(['-e', eclipse_exe]) != 0:
+                t.abort('Formatter modified files - run "mx eclipseformat", check in changes and repush')
+            tasks.append(t.stop())
+        
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
