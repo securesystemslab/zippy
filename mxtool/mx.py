@@ -1553,6 +1553,7 @@ def eclipseformat(args):
             zf.close()
             log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
         return 1
+    return 0
 
 def processorjars():
     projects = set([])
