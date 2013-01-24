@@ -26,29 +26,30 @@ import java.lang.annotation.*;
 
 /**
  * <p>
- * Annotates a type system class that represents type information for a node. Generates code for converting and managing
- * types. Methods contained in the type system may be annotated with {@link TypeCast}, {@link TypeCheck} or
- * {@link GuardCheck}. These methods alter the default behavior of the type system.
+ * Annotates a type system class that represents type information for a node. Generates code for
+ * converting and managing types. Methods contained in the type system may be annotated with
+ * {@link TypeCast}, {@link TypeCheck} or {@link GuardCheck}. These methods alter the default
+ * behavior of the type system.
  * </p>
- *
- *
+ * 
+ * 
  * <b>Example:</b>
  * <p>
- * Shows a <code>@TypeSystem</code> definition with three types. In this example BigIntegers can be also treated as
- * integers if their bit width is less than 32.
+ * Shows a <code>@TypeSystem</code> definition with three types. In this example BigIntegers can be
+ * also treated as integers if their bit width is less than 32.
  * </p>
- *
+ * 
  * <pre>
- *
- * &#064;TypeSystem(types = {int.class, BigInteger.class, String.class}, nodeBaseClass = TypedNode.class)
+ * 
+ * {@literal @}TypeSystem(types = {int.class, BigInteger.class, String.class}, nodeBaseClass = TypedNode.class)
  * public abstract class Types {
- *
- *     &#064;TypeCheck
+ * 
+ *     {@literal @}TypeCheck
  *     public boolean isInteger(Object value) {
  *         return value instanceof Integer || (value instanceof BigInteger &amp;&amp; ((BigInteger) value).bitLength() &lt; Integer.SIZE);
  *     }
- *
- *     &#064;TypeCast
+ * 
+ *     {@literal @}TypeCast
  *     public int asInteger(Object value) {
  *         if (value instanceof Integer) {
  *             return (int) value;
@@ -58,7 +59,7 @@ import java.lang.annotation.*;
  *     }
  * }
  * </pre>
- *
+ * 
  * @see TypeCast
  * @see TypeCheck
  * @see GuardCheck
@@ -68,7 +69,8 @@ import java.lang.annotation.*;
 public @interface TypeSystem {
 
     /**
-     * Sets the types contained by this type system. The order of types also determines the order of specialization.
+     * Sets the types contained by this type system. The order of types also determines the order of
+     * specialization.
      */
     Class[] value();
 
