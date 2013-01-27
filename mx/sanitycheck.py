@@ -202,15 +202,15 @@ def getBootstraps():
     scoreMatcherBig = Matcher(time, {'const:group' : 'const:Bootstrap-bigHeap', 'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     
     tests = []
-    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ingoreVms=['client', 'server']))
-    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ingoreVms=['client', 'server']))
+    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server']))
+    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server']))
     return tests
 
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ingoreVms=[]):
+    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[]):
         self.name = name
         self.successREs = successREs
         self.failureREs = failureREs + [re.compile(r"Exception occured in scope: ")]
@@ -218,7 +218,7 @@ class Test:
         self.vmOpts = vmOpts
         self.cmd = cmd
         self.defaultCwd = defaultCwd
-        self.ingoreVms = ingoreVms;
+        self.ignoredVMs = ignoredVMs;
         
         
     def __str__(self):
@@ -228,7 +228,7 @@ class Test:
         """
         Run this program as a sanity test.
         """
-        if (vm in self.ingoreVms):
+        if (vm in self.ignoredVMs):
             return True;
         if cwd is None:
             cwd = self.defaultCwd
@@ -269,7 +269,7 @@ class Test:
         """
         Run this program as a benchmark.
         """
-        if (vm in self.ingoreVms):
+        if (vm in self.ignoredVMs):
             return {};
         if cwd is None:
             cwd = self.defaultCwd
