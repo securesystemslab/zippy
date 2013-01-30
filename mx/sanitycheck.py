@@ -24,9 +24,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 from outputparser import OutputParser, Matcher
-import re
-import mx
-import os
+import re, mx, commands, os, sys, StringIO, subprocess
 from os.path import isfile, join, exists
 
 dacapoSanityWarmup = {
@@ -103,9 +101,9 @@ def getSPECjbb2005(benchArgs = []):
     if specjbb2005 is None or not exists(join(specjbb2005, 'jbb.jar')):
         mx.abort('Please set the SPECJBB2005 environment variable to a SPECjbb2005 directory')
     
-    score = re.compile(r"^Valid run, Score is  (?P<score>[0-9]+)$")
+    score = re.compile(r"^Valid run, Score is  (?P<score>[0-9]+)$", re.MULTILINE)
     error = re.compile(r"VALIDATION ERROR")
-    success = re.compile(r"^Valid run, Score is  [0-9]+$")
+    success = re.compile(r"^Valid run, Score is  [0-9]+$", re.MULTILINE)
     matcher = Matcher(score, {'const:group' : "const:SPECjbb2005", 'const:name' : 'const:score', 'const:score' : 'score'})
     classpath = ['jbb.jar', 'check.jar']
     return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
@@ -116,11 +114,11 @@ def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, war
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
         mx.abort('Please set the SPECJVM2008 environment variable to a SPECjvm2008 directory')
     
-    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\._]+)( result)?: (?P<score>[0-9]+((,|\.)[0-9]+)?)( SPECjvm2008 Base)? ops/m$")
-    error = re.compile(r"^Errors in benchmark: ")
+    score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\._]+)( result)?: (?P<score>[0-9]+((,|\.)[0-9]+)?)( SPECjvm2008 Base)? ops/m$", re.MULTILINE)
+    error = re.compile(r"^Errors in benchmark: ", re.MULTILINE)
     # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
-    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+((,|\.)[0-9]+)?( SPECjvm2008 (Base|Peak))? ops/m$")
-    matcher = Matcher(score, {'const:group' : "const:SPECjvm2008", 'const:name' : 'benchmark', 'const:score' : 'score'}, startNewLine=True)
+    success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+((,|\.)[0-9]+)?( SPECjvm2008 (Base|Peak))? ops/m$", re.MULTILINE)
+    matcher = Matcher(score, {'const:group' : "const:SPECjvm2008", 'const:name' : 'benchmark', 'const:score' : 'score'})
     
     opts = []
     if warmupTime is not None:
@@ -156,12 +154,12 @@ def getDacapo(name, n, dacapoArgs=[]):
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
     
-    dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$")
-    dacapoFail = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) FAILED (warmup|) =====$")
+    dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$", re.MULTILINE)
+    dacapoFail = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     dacapoTime1 = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) completed warmup 1 in (?P<time>[0-9]+) msec =====")
     
-    dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'}, startNewLine=True)
+    dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
     dacapoMatcher1 = Matcher(dacapoTime1, {'const:group' : "const:DaCapo-1stRun", 'const:name' : 'benchmark', 'const:score' : 'time'})
     
     return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
@@ -188,8 +186,8 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified Scala DaCapo jar file does not exist or is not a jar file: ' + dacapo)
     
-    dacapoSuccess = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$")
-    dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$")
+    dacapoSuccess = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$", re.MULTILINE)
+    dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 0\.1\.0(-SNAPSHOT)? (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     
     dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:Scala-DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
@@ -202,24 +200,34 @@ def getBootstraps():
     scoreMatcherBig = Matcher(time, {'const:group' : 'const:Bootstrap-bigHeap', 'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
     
     tests = []
-    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server']))
-    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server']))
+    tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
+    tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     return tests
 
+class Tee:
+    def __init__(self):
+        self.output = StringIO.StringIO()
+    def eat(self, line):
+        self.output.write(line)
+        sys.stdout.write(line)
+
+_debugBenchParser = False
+      
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[]):
+    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[], benchmarkCompilationRate=True):
+
         self.name = name
         self.successREs = successREs
-        self.failureREs = failureREs + [re.compile(r"Exception occured in scope: ")]
+        self.failureREs = failureREs + [re.compile(r"Exception occurred in scope: ")]
         self.scoreMatchers = scoreMatchers
         self.vmOpts = vmOpts
         self.cmd = cmd
         self.defaultCwd = defaultCwd
-        self.ignoredVMs = ignoredVMs;
-        
+        self.ignoredVMs = ignoredVMs
+        self.benchmarkCompilationRate = benchmarkCompilationRate
         
     def __str__(self):
         return self.name
@@ -229,10 +237,10 @@ class Test:
         Run this program as a sanity test.
         """
         if (vm in self.ignoredVMs):
-            return True;
+            return True
         if cwd is None:
             cwd = self.defaultCwd
-        parser = OutputParser(nonZeroIsFatal = False)
+        parser = OutputParser()
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
         parser.addMatcher(Matcher(jvmError, {'const:jvmError' : 'jvmerror'}))
         
@@ -240,40 +248,41 @@ class Test:
             parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
         for failureRE in self.failureREs:
             parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
-        
-        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
-        
-        parsedLines = result['parsed']
-        if len(parsedLines) == 0:
+
+        tee = Tee()
+        retcode = commands.vm(self.vmOpts + opts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+        output = tee.output.getvalue()
+        valueMaps = parser.parse(output)
+
+        if len(valueMaps) == 0:
             return False
         
-        assert len(parsedLines) == 1, 'Test matchers should not return more than one line'
+        assert len(valueMaps) == 1, 'Test matchers should not return more than one record'
         
-        parsed = parsedLines[0]
+        record = valueMaps[0]
         
-        if parsed.has_key('jvmError'):
+        jvmErrorFile = record.get('jvmError')
+        if jvmErrorFile:
             mx.log('/!\\JVM Error : dumping error log...')
-            f = open(parsed['jvmError'], 'rb');
-            for line in iter(f.readline, ''):
-                mx.log(line.rstrip())
-            f.close()
-            os.unlink(parsed['jvmError'])
+            with open(jvmErrorFile, 'rb') as fp:
+                mx.log(fp.read())
+            os.unlink(jvmErrorFile)
             return False
         
-        if parsed.has_key('failed') and parsed['failed'] is '1':
+        if record.get('failed') == '1':
             return False
         
-        return result['retcode'] is 0 and parsed.has_key('passed') and parsed['passed'] is '1'
+        return retcode == 0 and record.get('passed') == '1'
     
     def bench(self, vm, cwd=None, opts=[], vmbuild=None):
         """
         Run this program as a benchmark.
         """
         if (vm in self.ignoredVMs):
-            return {};
+            return {}
         if cwd is None:
             cwd = self.defaultCwd
-        parser = OutputParser(nonZeroIsFatal = False)
+        parser = OutputParser()
         
         for successRE in self.successREs:
             parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
@@ -281,27 +290,43 @@ class Test:
             parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
         for scoreMatcher in self.scoreMatchers:
             parser.addMatcher(scoreMatcher)
+
+        if self.benchmarkCompilationRate:
+            opts.append('-Dgraal.benchmark.compilation=true')
+            bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
+            ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
+            parser.addMatcher(Matcher(bps, {'const:group' : 'const:ParsedBytecodesPerSecond', 'const:name' : 'const:' + self.name, 'const:score' : 'rate'}))
+            parser.addMatcher(Matcher(ibps, {'const:group' : 'const:InlinedBytecodesPerSecond', 'const:name' : 'const:' + self.name, 'const:score' : 'rate'}))
             
-        result = parser.parse(vm, self.vmOpts + opts + self.cmd, cwd, vmbuild)
-        if result['retcode'] is not 0:
-            mx.abort("Benchmark failed (non-zero retcode)")
-        
-        parsed = result['parsed']
-        
+        outputfile = self.name + '.output'
+        if _debugBenchParser and exists(outputfile):
+            with open(outputfile) as fp:
+                output = fp.read()
+                mx.log(output)
+        else:
+            tee = Tee()
+            if commands.vm(self.vmOpts + opts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+                mx.abort("Benchmark failed (non-zero retcode)")
+            output = tee.output.getvalue()
+            if _debugBenchParser:
+                with open(outputfile, 'wb') as fp:
+                    fp.write(output)
+
         ret = {}
-        
-        passed = False;
-        
-        for line in parsed:
-            assert (line.has_key('name') and line.has_key('score') and line.has_key('group')) or line.has_key('passed') or line.has_key('failed')
-            if line.has_key('failed') and line['failed'] is '1':
+        passed = False
+        for valueMap in parser.parse(output):
+            assert (valueMap.has_key('name') and valueMap.has_key('score') and valueMap.has_key('group')) or valueMap.has_key('passed') or valueMap.has_key('failed'), valueMap
+            if valueMap.get('failed') == '1':
                 mx.abort("Benchmark failed")
-            if line.has_key('passed') and line['passed'] is '1':
+            if valueMap.get('passed') == '1':
                 passed = True
-            if line.has_key('name') and line.has_key('score') and line.has_key('group'):
-                if not ret.has_key(line['group']):
-                    ret[line['group']] = {};
-                ret[line['group']][line['name']] = line['score']
+            groupName = valueMap.get('group')
+            if groupName:
+                group = ret.setdefault(groupName, {})
+                name = valueMap.get('name')
+                score = valueMap.get('score')
+                if name and score:
+                    group[name] = score
         
         if not passed:
             mx.abort("Benchmark failed (not passed)")

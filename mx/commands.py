@@ -925,7 +925,11 @@ def bench(args):
             mx.abort('-resultfile must be followed by a file name')
     vm = _vm
     if len(args) is 0:
-        args += ['all']
+        args = ['all']
+
+    def benchmarks_in_group(group):
+        prefix = group + ':'
+        return [a[len(prefix):] for a in args if a.startswith(prefix)]
 
     results = {}
     benchmarks = []
@@ -933,20 +937,20 @@ def bench(args):
     if ('dacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
-        dacapos = [a[7:] for a in args if a.startswith('dacapo:')]
+        dacapos = benchmarks_in_group('dacapo')
         for dacapo in dacapos:
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
-                mx.abort('Unknown dacapo : ' + dacapo)
+                mx.abort('Unknown DaCapo : ' + dacapo)
             benchmarks += [sanitycheck.getDacapo(dacapo, sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
 
     if ('scaladacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
-        dacapos = [a[7:] for a in args if a.startswith('scaladacapo:')]
-        for dacapo in dacapos:
-            if dacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
-                mx.abort('Unknown dacapo : ' + dacapo)
-            benchmarks += [sanitycheck.getScalaDacapo(dacapo, sanitycheck.dacapoScalaSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+        scaladacapos = benchmarks_in_group('scaladacapo')
+        for scaladacapo in scaladacapos:
+            if scaladacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
+                mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
+            benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark])]
 
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):
@@ -955,7 +959,7 @@ def bench(args):
     if ('specjvm2008' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjvm2008([], False, True, 120, 120)]
     else:
-        specjvms = [a[12:] for a in args if a.startswith('specjvm2008:')]
+        specjvms = benchmarks_in_group('specjvm2008')
         for specjvm in specjvms:
             benchmarks += [sanitycheck.getSPECjvm2008([specjvm], False, True, 120, 120)]
             
@@ -963,10 +967,9 @@ def bench(args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
 
     for test in benchmarks:
-        for (group, res) in test.bench(vm).items():
-            if not results.has_key(group):
-                results[group] = {};
-            results[group].update(res)
+        for (groupName, res) in test.bench(vm).items():
+            group = results.setdefault(groupName, {})
+            group.update(res)
     mx.log(json.dumps(results))
     if resultFile:
         with open(resultFile, 'w') as f:
