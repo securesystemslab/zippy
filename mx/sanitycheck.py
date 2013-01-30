@@ -107,6 +107,19 @@ def getSPECjbb2005(benchArgs = []):
     matcher = ValuesMatcher(score, {'group' : 'SPECjbb2005', 'name' : 'score', 'score' : '<score>'})
     classpath = ['jbb.jar', 'check.jar']
     return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
+
+def getSPECjbb2013(benchArgs = []):
+    
+    specjbb2013 = mx.get_env('SPECJBB2013')
+    if specjbb2013 is None or not exists(join(specjbb2013, 'specjbb2013.jar')):
+        mx.abort('Please set the SPECJBB2013 environment variable to a SPECjbb2013 directory')
+    
+    jops = re.compile(r"^RUN RESULT: hbIR \(max attempted\) = [0-9]+, hbIR \(settled\) = [0-9]+, max-jOPS = (?P<max>[0-9]+), critical-jOPS = (?P<critical>[0-9]+)$", re.MULTILINE)
+    #error?
+    success = re.compile(r"org.spec.jbb.controller: Run finished", re.MULTILINE)
+    matcherMax = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'max', 'score' : '<max>'})
+    matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
+    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', ], defaultCwd=specjbb2013)
     
 def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
