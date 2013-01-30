@@ -965,6 +965,9 @@ def bench(args):
             
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
+        
+    if ('specjbb2013' in args or 'all' in args):
+        benchmarks += [sanitycheck.getSPECjbb2013()]
 
     for test in benchmarks:
         for (groupName, res) in test.bench(vm).items():
