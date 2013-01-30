@@ -23,6 +23,8 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
+import re
+
 class OutputParser:
     
     def __init__(self):
@@ -62,9 +64,8 @@ class ValuesMatcher:
             valueMaps.append(valueMap)
         
     def get_template_value(self, match, template):
-        if template.startswith('<'):
-            assert template.endswith('>')
-            groupName = template[1:-1]
+        def replace_var(m):
+            groupName = m.group(1)
             return match.group(groupName)
-        else:
-            return template
+        
+        return re.sub(r'<([\w]+)>', replace_var, template)

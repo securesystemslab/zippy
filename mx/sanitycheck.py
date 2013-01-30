@@ -291,10 +291,14 @@ class Test:
 
         if self.benchmarkCompilationRate:
             opts.append('-XX:+CITime')
-            bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
-            ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
-            parser.addMatcher(ValuesMatcher(bps, {'group' : 'ParsedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
-            parser.addMatcher(ValuesMatcher(ibps, {'group' : 'InlinedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
+            if vm == 'graal':
+                bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
+                ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
+                parser.addMatcher(ValuesMatcher(bps, {'group' : 'ParsedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
+                parser.addMatcher(ValuesMatcher(ibps, {'group' : 'InlinedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
+            else:
+                ibps = re.compile(r"(?P<compiler>[\w]+) compilation speed: +(?P<rate>[0-9]+) bytes/s {standard")
+                parser.addMatcher(ValuesMatcher(ibps, {'group' : 'InlinedBytecodesPerSecond', 'name' : '<compiler>:' + self.name, 'score' : '<rate>'}))
             
         startDelim = 'START: ' + self.name
         endDelim = 'END: ' + self.name
