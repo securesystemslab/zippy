@@ -46,7 +46,7 @@ public:
   static GraalCompiler* instance() { return _instance; }
 
 
-  virtual const char* name() { return "G"; }
+  virtual const char* name() { return "Graal"; }
 
   virtual bool supports_native()                 { return true; }
   virtual bool supports_osr   ()                 { return true; }
