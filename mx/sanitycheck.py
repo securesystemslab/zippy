@@ -290,7 +290,7 @@ class Test:
             parser.addMatcher(scoreMatcher)
 
         if self.benchmarkCompilationRate:
-            opts.append('-Dgraal.benchmark.compilation=true')
+            opts.append('-XX:+CITime')
             bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
             ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
             parser.addMatcher(ValuesMatcher(bps, {'group' : 'ParsedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))

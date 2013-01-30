@@ -607,6 +607,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("windowsOs", false);
 #endif
   set_boolean("verifyOops", VerifyOops);
+  set_boolean("ciTime", CITime);
   set_boolean("useFastLocking", GraalUseFastLocking);
   set_boolean("useBiasedLocking", UseBiasedLocking);
   set_boolean("usePopCountInstruction", UsePopCountInstruction);
