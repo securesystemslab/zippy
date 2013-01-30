@@ -39,7 +39,13 @@ class OutputParser:
                 records.append(record)
         return records
 
-class Matcher:
+"""
+Produces some named values for some given text if it matches a given
+regular expression. The named values are specified by a dictionary
+where any keys or value may be expressed as named group in the
+regular expression. A named group is enclosed in '<' and '>'.
+"""
+class ValuesMatcher:
     
     def __init__(self, regex, valuesTemplate):
         assert isinstance(valuesTemplate, dict)
@@ -52,13 +58,15 @@ class Matcher:
             return False
         values = {}
         for key, value in self.valuesTemplate.items():
-            values[self.get_value_or_const(match, key)] = self.get_value_or_const(match, value)
+            values[self.get_template_value(match, key)] = self.get_template_value(match, value)
                     
         return values
     
         
-    def get_value_or_const(self, match, name):
-        if name.startswith('const:'):
-            return name.split(':')[1]
+    def get_template_value(self, match, template):
+        if template.startswith('<'):
+            assert template.endswith('>')
+            groupName = template[1:-1]
+            return match.group(groupName)
         else:
-            return match.group(name)
+            return template

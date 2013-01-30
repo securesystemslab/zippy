@@ -23,7 +23,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-from outputparser import OutputParser, Matcher
+from outputparser import OutputParser, ValuesMatcher
 import re, mx, commands, os, sys, StringIO, subprocess
 from os.path import isfile, join, exists
 
@@ -104,7 +104,7 @@ def getSPECjbb2005(benchArgs = []):
     score = re.compile(r"^Valid run, Score is  (?P<score>[0-9]+)$", re.MULTILINE)
     error = re.compile(r"VALIDATION ERROR")
     success = re.compile(r"^Valid run, Score is  [0-9]+$", re.MULTILINE)
-    matcher = Matcher(score, {'const:group' : "const:SPECjbb2005", 'const:name' : 'const:score', 'const:score' : 'score'})
+    matcher = ValuesMatcher(score, {'group' : 'SPECjbb2005', 'name' : 'score', 'score' : '<score>'})
     classpath = ['jbb.jar', 'check.jar']
     return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
     
@@ -118,7 +118,7 @@ def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, war
     error = re.compile(r"^Errors in benchmark: ", re.MULTILINE)
     # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
     success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+((,|\.)[0-9]+)?( SPECjvm2008 (Base|Peak))? ops/m$", re.MULTILINE)
-    matcher = Matcher(score, {'const:group' : "const:SPECjvm2008", 'const:name' : 'benchmark', 'const:score' : 'score'})
+    matcher = ValuesMatcher(score, {'group' : 'SPECjvm2008', 'name' : '<benchmark>', 'score' : '<score>'})
     
     opts = []
     if warmupTime is not None:
@@ -159,8 +159,8 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoTime = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     dacapoTime1 = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) completed warmup 1 in (?P<time>[0-9]+) msec =====")
     
-    dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
-    dacapoMatcher1 = Matcher(dacapoTime1, {'const:group' : "const:DaCapo-1stRun", 'const:name' : 'benchmark', 'const:score' : 'time'})
+    dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : 'DaCapo', 'name' : '<benchmark>', 'score' : '<time>'})
+    dacapoMatcher1 = ValuesMatcher(dacapoTime1, {'group' : 'DaCapo-1stRun', 'name' : '<benchmark>', 'score' : '<time>'})
     
     return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
 
@@ -190,14 +190,14 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 0\.1\.0(-SNAPSHOT)? (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     
-    dacapoMatcher = Matcher(dacapoTime, {'const:group' : "const:Scala-DaCapo", 'const:name' : 'benchmark', 'const:score' : 'time'})
+    dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : "Scala-DaCapo", 'name' : '<benchmark>', 'score' : '<time>'})
     
     return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
-    scoreMatcher = Matcher(time, {'const:group' : 'const:Bootstrap', 'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
-    scoreMatcherBig = Matcher(time, {'const:group' : 'const:Bootstrap-bigHeap', 'const:name' : 'const:BootstrapTime', 'const:score' : 'time'})
+    scoreMatcher = ValuesMatcher(time, {'group' : 'Bootstrap', 'name' : 'BootstrapTime', 'score' : '<time>'})
+    scoreMatcherBig = ValuesMatcher(time, {'group' : 'Bootstrap-bigHeap', 'name' : 'BootstrapTime', 'score' : '<time>'})
     
     tests = []
     tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
@@ -242,12 +242,12 @@ class Test:
             cwd = self.defaultCwd
         parser = OutputParser()
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
-        parser.addMatcher(Matcher(jvmError, {'const:jvmError' : 'jvmerror'}))
+        parser.addMatcher(ValuesMatcher(jvmError, {'jvmError' : '<jvmerror>'}))
         
         for successRE in self.successREs:
-            parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
+            parser.addMatcher(ValuesMatcher(successRE, {'passed' : '1'}))
         for failureRE in self.failureREs:
-            parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
+            parser.addMatcher(ValuesMatcher(failureRE, {'failed' : '1'}))
 
         tee = Tee()
         retcode = commands.vm(self.vmOpts + opts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
@@ -285,9 +285,9 @@ class Test:
         parser = OutputParser()
         
         for successRE in self.successREs:
-            parser.addMatcher(Matcher(successRE, {'const:passed' : 'const:1'}))
+            parser.addMatcher(ValuesMatcher(successRE, {'passed' : '1'}))
         for failureRE in self.failureREs:
-            parser.addMatcher(Matcher(failureRE, {'const:failed' : 'const:1'}))
+            parser.addMatcher(ValuesMatcher(failureRE, {'failed' : '1'}))
         for scoreMatcher in self.scoreMatchers:
             parser.addMatcher(scoreMatcher)
 
@@ -295,8 +295,8 @@ class Test:
             opts.append('-Dgraal.benchmark.compilation=true')
             bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
             ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
-            parser.addMatcher(Matcher(bps, {'const:group' : 'const:ParsedBytecodesPerSecond', 'const:name' : 'const:' + self.name, 'const:score' : 'rate'}))
-            parser.addMatcher(Matcher(ibps, {'const:group' : 'const:InlinedBytecodesPerSecond', 'const:name' : 'const:' + self.name, 'const:score' : 'rate'}))
+            parser.addMatcher(ValuesMatcher(bps, {'group' : 'ParsedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
+            parser.addMatcher(ValuesMatcher(ibps, {'group' : 'InlinedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
             
         outputfile = self.name + '.output'
         if _debugBenchParser and exists(outputfile):
