@@ -211,8 +211,6 @@ class Tee:
         self.output.write(line)
         sys.stdout.write(line)
 
-_debugBenchParser = False
-      
 """
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
@@ -298,21 +296,31 @@ class Test:
             parser.addMatcher(ValuesMatcher(bps, {'group' : 'ParsedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
             parser.addMatcher(ValuesMatcher(ibps, {'group' : 'InlinedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
             
-        outputfile = self.name + '.output'
-        if _debugBenchParser and exists(outputfile):
+        startDelim = 'START: ' + self.name
+        endDelim = 'END: ' + self.name
+        
+        outputfile = os.environ.get('BENCH_OUTPUT', None)
+        if outputfile:
+            # Used only to debug output parsing
             with open(outputfile) as fp:
                 output = fp.read()
+                start = output.find(startDelim)
+                end = output.find(endDelim, start)
+                if start == -1 and end == -1:
+                    return {}
+                output = output[start + len(startDelim + os.linesep): end]
+                mx.log(startDelim)
                 mx.log(output)
+                mx.log(endDelim)
         else:
             tee = Tee()
+            mx.log(startDelim)
             if commands.vm(self.vmOpts + opts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
                 mx.abort("Benchmark failed (non-zero retcode)")
+            mx.log(endDelim)
             output = tee.output.getvalue()
-            if _debugBenchParser:
-                with open(outputfile, 'wb') as fp:
-                    fp.write(output)
 
-        ret = {}
+        groups = {}
         passed = False
         for valueMap in parser.parse(output):
             assert (valueMap.has_key('name') and valueMap.has_key('score') and valueMap.has_key('group')) or valueMap.has_key('passed') or valueMap.has_key('failed'), valueMap
@@ -322,7 +330,7 @@ class Test:
                 passed = True
             groupName = valueMap.get('group')
             if groupName:
-                group = ret.setdefault(groupName, {})
+                group = groups.setdefault(groupName, {})
                 name = valueMap.get('name')
                 score = valueMap.get('score')
                 if name and score:
@@ -331,4 +339,4 @@ class Test:
         if not passed:
             mx.abort("Benchmark failed (not passed)")
         
-        return ret
+        return groups

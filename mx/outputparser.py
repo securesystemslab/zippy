@@ -32,18 +32,17 @@ class OutputParser:
         self.matchers.append(matcher)
     
     def parse(self, output):
-        records = []
+        valueMaps = []
         for matcher in self.matchers:
-            record = matcher.parse(output)
-            if record:
-                records.append(record)
-        return records
+            matcher.parse(output, valueMaps)
+        return valueMaps
 
 """
-Produces some named values for some given text if it matches a given
-regular expression. The named values are specified by a dictionary
-where any keys or value may be expressed as named group in the
-regular expression. A named group is enclosed in '<' and '>'.
+Produces a value map for each match of a given regular expression
+in some text. The value map is specified by a template map
+where each key and value in the template map is either a constant
+value or a named group in the regular expression. The latter is
+given as the group name enclosed in '<' and '>'.
 """
 class ValuesMatcher:
     
@@ -52,16 +51,15 @@ class ValuesMatcher:
         self.regex = regex
         self.valuesTemplate = valuesTemplate
         
-    def parse(self, text):
-        match = self.regex.search(text)
-        if not match:
-            return False
-        values = {}
-        for key, value in self.valuesTemplate.items():
-            values[self.get_template_value(match, key)] = self.get_template_value(match, value)
-                    
-        return values
-    
+    def parse(self, text, valueMaps):
+        for match in self.regex.finditer(text):
+            valueMap = {}
+            for keyTemplate, valueTemplate in self.valuesTemplate.items():
+                key = self.get_template_value(match, keyTemplate)
+                value = self.get_template_value(match, valueTemplate)
+                assert not valueMap.has_key(key), key
+                valueMap[key] = value
+            valueMaps.append(valueMap)
         
     def get_template_value(self, match, template):
         if template.startswith('<'):
