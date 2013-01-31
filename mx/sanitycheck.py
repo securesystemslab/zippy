@@ -239,6 +239,8 @@ class Test:
         self.defaultCwd = defaultCwd
         self.ignoredVMs = ignoredVMs
         self.benchmarkCompilationRate = benchmarkCompilationRate
+        if benchmarkCompilationRate:
+            self.vmOpts = self.vmOpts + ['-XX:+CITime']
         
     def __str__(self):
         return self.name
@@ -303,7 +305,6 @@ class Test:
             parser.addMatcher(scoreMatcher)
 
         if self.benchmarkCompilationRate:
-            opts.append('-XX:+CITime')
             if vm == 'graal':
                 bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
                 ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
