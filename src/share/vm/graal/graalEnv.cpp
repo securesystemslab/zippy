@@ -418,6 +418,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                 int compile_id,
                                 bool has_debug_info,
                                 bool has_unsafe_access,
+                                GrowableArray<jlong>* leaf_graph_ids,
                                 Handle installed_code) {
   GRAAL_EXCEPTION_CONTEXT;
   NMethodSweeper::possibly_sweep();
@@ -463,7 +464,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                debug_info, dependencies, code_buffer,
                                frame_words, oop_map_set,
                                handler_table, inc_table,
-                               compiler, comp_level, installed_code);
+                               compiler, comp_level, leaf_graph_ids, installed_code);
 
     // Free codeBlobs
     //code_buffer->free_blob();

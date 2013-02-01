@@ -82,7 +82,7 @@ class DebugInformationRecorder: public ResourceObj {
   void add_oopmap(int pc_offset, OopMap* map);
 
   // adds a jvm mapping at pc-offset, for a safepoint only
-  void add_safepoint(int pc_offset, jlong leaf_graph_id, OopMap* map);
+  void add_safepoint(int pc_offset, OopMap* map);
 
   // adds a jvm mapping at pc-offset, for a non-safepoint (profile point)
   void add_non_safepoint(int pc_offset);
@@ -196,7 +196,7 @@ class DebugInformationRecorder: public ResourceObj {
     guarantee(_pcs_length > 1, "a safepoint must be declared already");
     return &_pcs[_pcs_length-2];
   }
-  void add_new_pc_offset(int pc_offset, jlong leaf_graph_id = -1);
+  void add_new_pc_offset(int pc_offset);
   void end_scopes(int pc_offset, bool is_safepoint);
 
   int  serialize_monitor_values(GrowableArray<MonitorValue*>* monitors);

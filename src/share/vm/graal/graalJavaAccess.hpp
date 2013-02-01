@@ -48,7 +48,7 @@ void graal_compute_offsets();
  */
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)                \
-  start_class(HotSpotResolvedObjectType)                                                                                                                         \
+  start_class(HotSpotResolvedObjectType)                                                                                                                       \
     long_field(HotSpotResolvedObjectType, metaspaceKlass)                                                                                                      \
     oop_field(HotSpotResolvedObjectType, javaMirror, "Ljava/lang/Class;")                                                                                      \
   end_class                                                                                                                                                    \
@@ -98,6 +98,7 @@ void graal_compute_offsets();
   start_class(CompilationResult)                                                                                                                               \
     int_field(CompilationResult, frameSize)                                                                                                                    \
     int_field(CompilationResult, customStackAreaOffset)                                                                                                        \
+    oop_field(CompilationResult, leafGraphIds, "[J")                                                                                                           \
     oop_field(CompilationResult, targetCode, "[B")                                                                                                             \
     oop_field(CompilationResult, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")                                                                       \
     int_field(CompilationResult, targetCodeSize)                                                                                                               \
@@ -127,7 +128,7 @@ void graal_compute_offsets();
   start_class(CompilationResult_DataPatch)                                                                                                                     \
     oop_field(CompilationResult_DataPatch, constant, "Lcom/oracle/graal/api/meta/Constant;")                                                                   \
     int_field(CompilationResult_DataPatch, alignment)                                                                                                          \
-    boolean_field(CompilationResult_DataPatch, inlined)                                                                                                           \
+    boolean_field(CompilationResult_DataPatch, inlined)                                                                                                        \
   end_class                                                                                                                                                    \
   start_class(CompilationResult_Safepoint)                                                                                                                     \
     oop_field(CompilationResult_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")                                                                 \
@@ -152,7 +153,6 @@ void graal_compute_offsets();
     int_field(BytecodeFrame, numLocals)                                                                                                                        \
     int_field(BytecodeFrame, numStack)                                                                                                                         \
     int_field(BytecodeFrame, numLocks)                                                                                                                         \
-    long_field(BytecodeFrame, leafGraphId)                                                                                                                     \
     boolean_field(BytecodeFrame, rethrowException)                                                                                                             \
     boolean_field(BytecodeFrame, duringCall)                                                                                                                   \
   end_class                                                                                                                                                    \

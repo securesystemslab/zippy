@@ -127,14 +127,14 @@ void DebugInformationRecorder::add_oopmap(int pc_offset, OopMap* map) {
   _oopmaps->add_gc_map(pc_offset, map);
 }
 
-void DebugInformationRecorder::add_safepoint(int pc_offset, jlong leaf_graph_id, OopMap* map) {
+void DebugInformationRecorder::add_safepoint(int pc_offset, OopMap* map) {
   assert(!_oop_recorder->is_complete(), "not frozen yet");
   // Store the new safepoint
 
   // Add the oop map
   add_oopmap(pc_offset, map);
 
-  add_new_pc_offset(pc_offset, leaf_graph_id);
+  add_new_pc_offset(pc_offset);
 
   assert(_recording_state == rs_null, "nesting of recording calls");
   debug_only(_recording_state = rs_safepoint);
@@ -150,7 +150,7 @@ void DebugInformationRecorder::add_non_safepoint(int pc_offset) {
   debug_only(_recording_state = rs_non_safepoint);
 }
 
-void DebugInformationRecorder::add_new_pc_offset(int pc_offset, jlong leaf_graph_id) {
+void DebugInformationRecorder::add_new_pc_offset(int pc_offset) {
   assert(_pcs_length == 0 || last_pc()->pc_offset() < pc_offset,
          "must specify a new, larger pc offset");
 
@@ -168,7 +168,7 @@ void DebugInformationRecorder::add_new_pc_offset(int pc_offset, jlong leaf_graph
   assert(_pcs_size > _pcs_length, "There must be room for after expanding");
 
   _pcs[_pcs_length++] = PcDesc(pc_offset, DebugInformationRecorder::serialized_null,
-                               DebugInformationRecorder::serialized_null, leaf_graph_id);
+                               DebugInformationRecorder::serialized_null);
 }
 
 
