@@ -29,16 +29,39 @@ import java.util.*;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
+import javax.lang.model.util.*;
 
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.ParameterSpec.Cardinality;
 
-public abstract class TemplateMethodParser<E extends TemplateMethod> {
+public abstract class TemplateMethodParser<T extends Template, E extends TemplateMethod> {
 
     private final ProcessorContext context;
 
-    public TemplateMethodParser(ProcessorContext context) {
+    protected final T template;
+
+    private boolean emitErrors = true;
+    private boolean parseNullOnError = true;
+
+    public TemplateMethodParser(ProcessorContext context, T template) {
+        this.template = template;
         this.context = context;
+    }
+
+    public boolean isEmitErrors() {
+        return emitErrors;
+    }
+
+    public void setParseNullOnError(boolean nullOnError) {
+        this.parseNullOnError = nullOnError;
+    }
+
+    public boolean isParseNullOnError() {
+        return parseNullOnError;
+    }
+
+    public void setEmitErrors(boolean emitErrors) {
+        this.emitErrors = emitErrors;
     }
 
     public ProcessorContext getContext() {
@@ -49,9 +72,49 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
 
     public abstract E create(TemplateMethod method);
 
-    public abstract Class<? extends Annotation> getAnnotationType();
+    public abstract boolean isParsable(ExecutableElement method);
 
-    public final E parse(ExecutableElement method, AnnotationMirror annotation, Template template) {
+    public Class<? extends Annotation> getAnnotationType() {
+        return null;
+    }
+
+    public final List<E> parse(List<? extends Element> elements) {
+        List<ExecutableElement> methods = new ArrayList<>();
+        methods.addAll(ElementFilter.methodsIn(elements));
+
+        List<E> parsedMethods = new ArrayList<>();
+        boolean valid = true;
+        for (ExecutableElement method : methods) {
+            if (!isParsable(method)) {
+                continue;
+            }
+
+            Class<? extends Annotation> annotationType = getAnnotationType();
+            AnnotationMirror mirror = null;
+            if (annotationType != null) {
+                mirror = Utils.findAnnotationMirror(getContext().getEnvironment(), method, annotationType);
+            }
+
+            if (method.getModifiers().contains(Modifier.PRIVATE)) {
+                getContext().getLog().error(method, "Method must not be private.");
+                valid = false;
+                continue;
+            }
+
+            E parsedMethod = parse(method, mirror);
+            if (parsedMethod != null) {
+                parsedMethods.add(parsedMethod);
+            } else {
+                valid = false;
+            }
+        }
+        if (!valid && parseNullOnError) {
+            return null;
+        }
+        return parsedMethods;
+    }
+
+    private E parse(ExecutableElement method, AnnotationMirror annotation) {
         MethodSpec methodSpecification = createSpecification(method, annotation);
         if (methodSpecification == null) {
             return null;
@@ -63,18 +126,20 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
 
         ActualParameter returnTypeMirror = resolveTypeMirror(returnTypeSpec, method.getReturnType(), template);
         if (returnTypeMirror == null) {
-            String expectedReturnType = createTypeSignature(returnTypeSpec, true);
-            String actualReturnType = Utils.getSimpleName(method.getReturnType());
+            if (isEmitErrors()) {
+                String expectedReturnType = createTypeSignature(returnTypeSpec, true);
+                String actualReturnType = Utils.getSimpleName(method.getReturnType());
 
-            String message = String.format("The provided return type \"%s\" does not match expected return type \"%s\".\nExpected signature: \n %s", actualReturnType, expectedReturnType,
-                            createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
+                String message = String.format("The provided return type \"%s\" does not match expected return type \"%s\".\nExpected signature: \n %s", actualReturnType, expectedReturnType,
+                                createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
 
-            context.getLog().error(method, annotation, message);
+                context.getLog().error(method, annotation, message);
+            }
             return null;
         }
 
-        Iterator< ? extends VariableElement> variableIterator = method.getParameters().iterator();
-        Iterator< ? extends ParameterSpec> specificationIterator = parameterSpecs.iterator();
+        Iterator<? extends VariableElement> variableIterator = method.getParameters().iterator();
+        Iterator<? extends ParameterSpec> specificationIterator = parameterSpecs.iterator();
 
         List<ActualParameter> resolvedMirrors = new ArrayList<>();
         VariableElement parameter = null;
@@ -93,13 +158,15 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
                     specification = null;
                     continue;
                 } else if (!specification.isOptional()) {
-                    // non option type specification found -> argument missing
-                    String expectedType = createTypeSignature(specification, false);
+                    if (isEmitErrors()) {
+                        // non option type specification found -> argument missing
+                        String expectedType = createTypeSignature(specification, false);
 
-                    String message = String.format("Missing argument \"%s\".\nExpected signature: \n %s", expectedType,
-                                    createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
+                        String message = String.format("Missing argument \"%s\".\nExpected signature: \n %s", expectedType,
+                                        createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
 
-                    context.getLog().error(method, message);
+                        context.getLog().error(method, message);
+                    }
                     return null;
                 } else {
                     // specification is optional -> continue
@@ -116,13 +183,15 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
                     continue;
                 }
 
-                String expectedReturnType = createTypeSignature(specification, false);
-                String actualReturnType = Utils.getSimpleName(parameter.asType()) + " " + parameter.getSimpleName();
+                if (isEmitErrors()) {
+                    String expectedReturnType = createTypeSignature(specification, false);
+                    String actualReturnType = Utils.getSimpleName(parameter.asType()) + " " + parameter.getSimpleName();
 
-                String message = String.format("The provided argument type \"%s\" does not match expected type \"%s\".\nExpected signature: \n %s", actualReturnType, expectedReturnType,
-                                createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
+                    String message = String.format("The provided argument type \"%s\" does not match expected type \"%s\".\nExpected signature: \n %s", actualReturnType, expectedReturnType,
+                                    createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
 
-                context.getLog().error(parameter, message);
+                    context.getLog().error(parameter, message);
+                }
                 return null;
             }
 
@@ -136,16 +205,18 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
 
         if (variableIterator.hasNext()) {
             parameter = variableIterator.next();
-            String actualReturnType = Utils.getSimpleName(parameter.asType()) + " " + parameter.getSimpleName();
-            String message = String.format("No argument expected but found \"%s\".\nExpected signature: \n %s", actualReturnType,
-                            createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
+            if (isEmitErrors()) {
+                String actualReturnType = Utils.getSimpleName(parameter.asType()) + " " + parameter.getSimpleName();
+                String message = String.format("No argument expected but found \"%s\".\nExpected signature: \n %s", actualReturnType,
+                                createExpectedSignature(method.getSimpleName().toString(), returnTypeSpec, parameterSpecs));
 
-            context.getLog().error(parameter, message);
+                context.getLog().error(parameter, message);
+            }
             return null;
         }
 
         ActualParameter[] paramMirrors = resolvedMirrors.toArray(new ActualParameter[resolvedMirrors.size()]);
-        return create(new TemplateMethod(methodSpecification, method, annotation, returnTypeMirror, paramMirrors));
+        return create(new TemplateMethod(template, methodSpecification, method, annotation, returnTypeMirror, paramMirrors));
     }
 
     private ActualParameter resolveTypeMirror(ParameterSpec specification, TypeMirror mirror, Template typeSystem) {
@@ -160,7 +231,7 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
         return new ActualParameter(specification, resolvedType);
     }
 
-    public static String createExpectedSignature(String methodName, ParameterSpec returnType, List< ? extends ParameterSpec> parameters) {
+    public static String createExpectedSignature(String methodName, ParameterSpec returnType, List<? extends ParameterSpec> parameters) {
         StringBuilder b = new StringBuilder();
 
         b.append("    ");
@@ -199,7 +270,7 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
 
         TypeMirror[] types = null;
 
-        //TODO allowed types may differ so different <Any> must be generated.
+        // TODO allowed types may differ so different <Any> must be generated.
         if (returnType.getAllowedTypes().length > 1) {
             types = returnType.getAllowedTypes();
         }
@@ -236,6 +307,5 @@ public abstract class TemplateMethodParser<E extends TemplateMethod> {
         }
         return builder.toString();
     }
-
 
 }

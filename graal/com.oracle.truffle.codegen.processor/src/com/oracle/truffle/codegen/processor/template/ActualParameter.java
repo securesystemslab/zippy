@@ -45,6 +45,6 @@ public class ActualParameter {
     }
 
     public TypeData getActualTypeData(TypeSystemData typeSystem) {
-        return typeSystem.getTypes()[typeSystem.findType(actualType)];
+        return typeSystem.findTypeData(actualType);
     }
 }

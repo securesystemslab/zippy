@@ -22,29 +22,35 @@
  */
 package com.oracle.truffle.sl.nodes;
 
+import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.api.frame.*;
 
-public class IfNode extends StatementNode {
+@ExecuteChildren("conditionNode")
+public abstract class IfNode extends StatementNode {
 
-    @Child
-    private ConditionNode condition;
-    @Child
-    private StatementNode thenPart;
-    @Child
-    private StatementNode elsePart;
+    @Child protected ConditionNode conditionNode;
+
+    @Child private StatementNode thenPartNode;
+
+    @Child private StatementNode elsePartNode;
 
     public IfNode(ConditionNode condition, StatementNode thenPart, StatementNode elsePart) {
-        this.condition = adoptChild(condition);
-        this.thenPart = adoptChild(thenPart);
-        this.elsePart = adoptChild(elsePart);
+        this.conditionNode = adoptChild(condition);
+        this.thenPartNode = adoptChild(thenPart);
+        this.elsePartNode = adoptChild(elsePart);
     }
 
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        if (condition.executeCondition(frame)) {
-            thenPart.executeVoid(frame);
-        } else if (elsePart != null) {
-            elsePart.executeVoid(frame);
+    protected IfNode(IfNode node) {
+        this(node.conditionNode, node.thenPartNode, node.elsePartNode);
+    }
+
+    @Specialization
+    public void doVoid(VirtualFrame frame, boolean condition) {
+        if (condition) {
+            thenPartNode.executeVoid(frame);
+        } else {
+            elsePartNode.executeVoid(frame);
         }
     }
+
 }

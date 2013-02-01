@@ -23,69 +23,49 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import mx
-import commands
-import subprocess
+import re
 
 class OutputParser:
     
-    def __init__(self, nonZeroIsFatal=True):
+    def __init__(self):
         self.matchers = []
-        self.nonZeroIsFatal = nonZeroIsFatal
         
     def addMatcher(self, matcher):
         self.matchers.append(matcher)
     
-    def parse(self, vm, cmd, cwd=None, vmbuild=None):
-        ret = []
-        
-        def parseLine(line):
-            anyMatch = False
-            for matcher in self.matchers:
-                parsed = matcher.parse(line.strip())
-                if parsed:
-                    anyMatch = True
-                    if len(ret) is 0 or (matcher.startNewLine and len(ret[len(ret)-1]) > 0):
-                        ret.append({})
-                    ret[len(ret)-1].update(parsed)
-            if anyMatch :
-                mx.log('>' + line.rstrip())
-            else :
-                mx.log( line.rstrip())
-        
-        retcode = commands.vm(cmd, vm, nonZeroIsFatal=self.nonZeroIsFatal, out=parseLine, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
-        return {'parsed' : ret, 'retcode' : retcode}
+    def parse(self, output):
+        valueMaps = []
+        for matcher in self.matchers:
+            matcher.parse(output, valueMaps)
+        return valueMaps
 
-class Matcher:
+"""
+Produces a value map for each match of a given regular expression
+in some text. The value map is specified by a template map
+where each key and value in the template map is either a constant
+value or a named group in the regular expression. The latter is
+given as the group name enclosed in '<' and '>'.
+"""
+class ValuesMatcher:
     
-    def __init__(self, regex, valuesToParse, startNewLine=False):
-        assert isinstance(valuesToParse, dict)
+    def __init__(self, regex, valuesTemplate):
+        assert isinstance(valuesTemplate, dict)
         self.regex = regex
-        self.valuesToParse = valuesToParse
-        self.startNewLine = startNewLine
+        self.valuesTemplate = valuesTemplate
         
-    def parse(self, line):
-        match = self.regex.search(line)
-        if not match:
-            return False
-        ret = {}
-        for key, value in self.valuesToParse.items():
-            ret[self.parsestr(match, key)] = self.parsestr(match, value)
-        return ret
+    def parse(self, text, valueMaps):
+        for match in self.regex.finditer(text):
+            valueMap = {}
+            for keyTemplate, valueTemplate in self.valuesTemplate.items():
+                key = self.get_template_value(match, keyTemplate)
+                value = self.get_template_value(match, valueTemplate)
+                assert not valueMap.has_key(key), key
+                valueMap[key] = value
+            valueMaps.append(valueMap)
         
-    def parsestr(self, match, key):
-        if isinstance(key, tuple):
-            if len(key) != 2:
-                raise Exception('Tuple arguments must have a length of 2')
-            tup1, tup2 = key
-            # check if key is a function
-            if hasattr(tup1, '__call__'):
-                return tup1(self.parsestr(match, tup2))
-            elif hasattr(tup2, '__call__'):
-                return tup2(self.parsestr(match, tup1))
-            else:
-                raise Exception('Tuple must contain a function pointer')
-        elif key.startswith('const:'):
-            return key.split(':')[1]
-        else:
-            return match.group(key)
+    def get_template_value(self, match, template):
+        def replace_var(m):
+            groupName = m.group(1)
+            return match.group(groupName)
+        
+        return re.sub(r'<([\w]+)>', replace_var, template)

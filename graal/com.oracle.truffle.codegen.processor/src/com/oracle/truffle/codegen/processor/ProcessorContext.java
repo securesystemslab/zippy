@@ -45,18 +45,16 @@ public class ProcessorContext {
 
     private final ProcessCallback callback;
     private final Log log;
-    private TruffleTypes truffleTypes;
+    private final TruffleTypes truffleTypes;
 
     public ProcessorContext(ProcessingEnvironment env, ProcessCallback callback) {
         this.environment = env;
         this.callback = callback;
         this.log = new Log(environment);
+        this.truffleTypes = new TruffleTypes(this);
     }
 
     public TruffleTypes getTruffleTypes() {
-        if (truffleTypes == null) {
-            truffleTypes = new TruffleTypes(this);
-        }
         return truffleTypes;
     }
 
@@ -149,7 +147,7 @@ public class ProcessorContext {
         return null;
     }
 
-    public TypeMirror getType(Class< ? > element) {
+    public TypeMirror getType(Class<?> element) {
         TypeMirror mirror;
         if (element.isPrimitive()) {
             if (element == boolean.class) {

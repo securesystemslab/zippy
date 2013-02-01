@@ -39,16 +39,20 @@ public class Log {
         this.processingEnv = env;
     }
 
-    public void warning(Element element, String format, Object ... args) {
+    public void warning(Element element, String format, Object... args) {
         message(Kind.WARNING, element, null, null, format, args);
     }
 
-    public void warning(Element element, AnnotationMirror mirror, String format, Object ... args) {
+    public void warning(Element element, AnnotationMirror mirror, String format, Object... args) {
         message(Kind.WARNING, element, mirror, null, format, args);
     }
 
     public void error(Element element, String format, Object... args) {
         message(Kind.ERROR, element, null, null, format, args);
+    }
+
+    public void error(String format, Object... args) {
+        message(Kind.ERROR, null, null, null, format, args);
     }
 
     public void error(Element element, AnnotationMirror mirror, String format, Object... args) {

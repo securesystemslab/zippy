@@ -26,10 +26,9 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, types
+import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, REMAINDER
-from threading import Thread
 import mx
 import sanitycheck
 import json
@@ -80,8 +79,8 @@ _copyrightTemplate = """/*
 
 def _chmodDir(chmodFlags, dirname, fnames):
     os.chmod(dirname, chmodFlags)
-    for file in fnames:
-        os.chmod(os.path.join(dirname, file), chmodFlags)
+    for name in fnames:
+        os.chmod(os.path.join(dirname, name), chmodFlags)
 
 def chmodRecursive(dirname, chmodFlags):
     os.path.walk(dirname, _chmodDir, chmodFlags)
@@ -575,6 +574,9 @@ def build(args, vm=None):
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
 
+            # We don't need to run the Queens test (i.e. test_gamma)
+            env.setdefault('TEST_IN_BUILD', 'false')
+
             # Clear these 2 variables as having them set can cause very confusing build problems
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
@@ -776,6 +778,13 @@ def gate(args):
         clean(cleanArgs)
         tasks.append(t.stop())
 
+        eclipse_exe = os.environ.get('ECLIPSE_EXE')
+        if eclipse_exe is not None:
+            t = Task('CodeFormatCheck')
+            if mx.eclipseformat(['-e', eclipse_exe]) != 0:
+                t.abort('Formatter modified files - run "mx eclipseformat", check in changes and repush')
+            tasks.append(t.stop())
+        
         t = Task('BuildJava')
         build(['--no-native'])
         tasks.append(t.stop())
@@ -875,7 +884,7 @@ def deoptalot(args):
         count = int(args[0])
         del args[0]
     
-    for n in range(count):
+    for _ in range(count):
         if not vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops'] + args + ['-version'], vmbuild='fastdebug') == 0:
             mx.abort("Failed")
             
@@ -916,7 +925,11 @@ def bench(args):
             mx.abort('-resultfile must be followed by a file name')
     vm = _vm
     if len(args) is 0:
-        args += ['all']
+        args = ['all']
+
+    def benchmarks_in_group(group):
+        prefix = group + ':'
+        return [a[len(prefix):] for a in args if a.startswith(prefix)]
 
     results = {}
     benchmarks = []
@@ -924,20 +937,20 @@ def bench(args):
     if ('dacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
-        dacapos = [a[7:] for a in args if a.startswith('dacapo:')]
+        dacapos = benchmarks_in_group('dacapo')
         for dacapo in dacapos:
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
-                mx.abort('Unknown dacapo : ' + dacapo)
+                mx.abort('Unknown DaCapo : ' + dacapo)
             benchmarks += [sanitycheck.getDacapo(dacapo, sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
 
     if ('scaladacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
-        dacapos = [a[7:] for a in args if a.startswith('scaladacapo:')]
-        for dacapo in dacapos:
-            if dacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
-                mx.abort('Unknown dacapo : ' + dacapo)
-            benchmarks += [sanitycheck.getScalaDacapo(dacapo, sanitycheck.dacapoScalaSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+        scaladacapos = benchmarks_in_group('scaladacapo')
+        for scaladacapo in scaladacapos:
+            if scaladacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
+                mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
+            benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark])]
 
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):
@@ -946,18 +959,20 @@ def bench(args):
     if ('specjvm2008' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjvm2008([], False, True, 120, 120)]
     else:
-        specjvms = [a[12:] for a in args if a.startswith('specjvm2008:')]
+        specjvms = benchmarks_in_group('specjvm2008')
         for specjvm in specjvms:
             benchmarks += [sanitycheck.getSPECjvm2008([specjvm], False, True, 120, 120)]
             
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
+        
+    if ('specjbb2013' in args or 'all' in args):
+        benchmarks += [sanitycheck.getSPECjbb2013()]
 
     for test in benchmarks:
-        for (group, res) in test.bench(vm).items():
-            if not results.has_key(group):
-                results[group] = {};
-            results[group].update(res)
+        for (groupName, res) in test.bench(vm).items():
+            group = results.setdefault(groupName, {})
+            group.update(res)
     mx.log(json.dumps(results))
     if resultFile:
         with open(resultFile, 'w') as f:

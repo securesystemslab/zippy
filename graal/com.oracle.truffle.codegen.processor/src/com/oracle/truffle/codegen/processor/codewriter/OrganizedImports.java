@@ -143,7 +143,8 @@ public final class OrganizedImports {
     private static boolean processStaticImportElements(Set<String> newElements, Set<String> ambiguousElements, Set<String> declaredElements) {
         boolean allAmbiguous = false;
         if (declaredElements.containsAll(newElements)) {
-            // all types already declared -> we can remove the import completely -> they will all get ambiguous
+            // all types already declared -> we can remove the import completely -> they will all
+            // get ambiguous
             allAmbiguous = true;
         }
         Set<String> newAmbiguous = new HashSet<>();
@@ -182,7 +183,7 @@ public final class OrganizedImports {
                 continue; // java.lang is automatically imported
             }
 
-            if (importTypePackageName.equals(getPackageName(e))) {
+            if (importTypePackageName.equals(getPackageName(e)) && Utils.isTopLevelClass(importType)) {
                 continue; // same package name -> no import
             }
 
@@ -199,8 +200,8 @@ public final class OrganizedImports {
     }
 
     private static void collectInnerTypeImports(TypeElement e, Set<String> autoImportedTypes) {
+        autoImportedTypes.add(getQualifiedName(e));
         for (TypeElement innerClass : ElementFilter.typesIn(e.getEnclosedElements())) {
-            collectSuperTypeImports(innerClass, autoImportedTypes);
             collectInnerTypeImports(innerClass, autoImportedTypes);
         }
     }

@@ -39,8 +39,7 @@ public class TypeData extends Template {
     private final List<TypeCastData> typeCasts = new ArrayList<>();
     private final List<TypeCheckData> typeChecks = new ArrayList<>();
 
-    public TypeData(TypeElement templateType, AnnotationMirror annotation,
-                    TypeMirror primitiveType, TypeMirror boxedType) {
+    public TypeData(TypeElement templateType, AnnotationMirror annotation, TypeMirror primitiveType, TypeMirror boxedType) {
         super(templateType, annotation);
         this.primitiveType = primitiveType;
         this.boxedType = boxedType;
@@ -84,5 +83,10 @@ public class TypeData extends Template {
         }
         return Utils.typeEquals(boxedType, getTypeSystem().getVoidType().getBoxedType());
     }
-}
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + Utils.getSimpleName(primitiveType) + "]";
+    }
+
+}

@@ -73,8 +73,7 @@
 // |------------------------------------------------------|
 // | result_index (C++ interpreter only)                  |
 // |------------------------------------------------------|
-// | method_size             |   max_locals               |
-// | size_of_parameters      |   intrinsic_id|   flags    |
+// | method_size             |   intrinsic_id|   flags    |
 // |------------------------------------------------------|
 // | throwout_count          |   num_breakpoints          |
 // |------------------------------------------------------|
@@ -116,8 +115,6 @@ class Method : public Metadata {
   int               _result_index;               // C++ interpreter needs for converting results to/from stack
 #endif
   u2                _method_size;                // size of this object
-  u2                _max_locals;                 // Number of local variables used by this method
-  u2                _size_of_parameters;         // size of the parameter block (receiver + arguments) in words
   u1                _intrinsic_id;               // vmSymbols::intrinsic_id (0 == _none)
   u1                _jfr_towrite  : 1,           // Flags
                     _force_inline : 1,
@@ -167,6 +164,7 @@ class Method : public Metadata {
                           int localvariable_table_length,
                           int exception_table_length,
                           int checked_exceptions_length,
+                          int method_parameters_length,
                           u2 generic_signature_index,
                           ConstMethod::MethodType method_type,
                           TRAPS);
@@ -232,6 +230,13 @@ class Method : public Metadata {
     }
     return ik->annotations()->get_method_default_annotations_of(method_idnum());
   }
+  AnnotationArray* type_annotations() const {
+  InstanceKlass* ik = method_holder();
+  Annotations* type_annos = ik->type_annotations();
+  if (type_annos == NULL)
+    return NULL;
+  return type_annos->get_method_annotations_of(method_idnum());
+}
 
 #ifdef CC_INTERP
   void set_result_index(BasicType type);
@@ -296,8 +301,8 @@ class Method : public Metadata {
   void      set_max_stack(int size)              {        constMethod()->set_max_stack(size); }
 
   // max locals
-  int  max_locals() const                        { return _max_locals; }
-  void set_max_locals(int size)                  { _max_locals = size; }
+  int  max_locals() const                        { return constMethod()->max_locals(); }
+  void set_max_locals(int size)                  { constMethod()->set_max_locals(size); }
 
   int highest_comp_level() const;
   void set_highest_comp_level(int level);
@@ -315,7 +320,8 @@ class Method : public Metadata {
   void set_interpreter_throwout_count(int count) { _interpreter_throwout_count = count; }
 
   // size of parameters
-  int  size_of_parameters() const                { return _size_of_parameters; }
+  int  size_of_parameters() const                { return constMethod()->size_of_parameters(); }
+  void set_size_of_parameters(int size)          { constMethod()->set_size_of_parameters(size); }
 
   bool has_stackmap_table() const {
     return constMethod()->has_stackmap_table();
@@ -349,7 +355,7 @@ class Method : public Metadata {
   // exception handler which caused the exception to be thrown, which
   // is needed for proper retries. See, for example,
   // InterpreterRuntime::exception_handler_for_exception.
-  int fast_exception_handler_bci_for(KlassHandle ex_klass, int throw_bci, TRAPS);
+  static int fast_exception_handler_bci_for(methodHandle mh, KlassHandle ex_klass, int throw_bci, TRAPS);
 
   // method data access
   MethodData* method_data() const              {
@@ -487,6 +493,12 @@ class Method : public Metadata {
   void print_codes_on(outputStream* st) const                      PRODUCT_RETURN;
   void print_codes_on(int from, int to, outputStream* st) const    PRODUCT_RETURN;
 
+  // method parameters
+  int method_parameters_length() const
+                         { return constMethod()->method_parameters_length(); }
+  MethodParametersElement* method_parameters_start() const
+                          { return constMethod()->method_parameters_start(); }
+
   // checked exceptions
   int checked_exceptions_length() const
                          { return constMethod()->checked_exceptions_length(); }
@@ -600,8 +612,6 @@ class Method : public Metadata {
 #ifdef CC_INTERP
   static ByteSize result_index_offset()          { return byte_offset_of(Method, _result_index ); }
 #endif /* CC_INTERP */
-  static ByteSize size_of_locals_offset()        { return byte_offset_of(Method, _max_locals        ); }
-  static ByteSize size_of_parameters_offset()    { return byte_offset_of(Method, _size_of_parameters); }
   static ByteSize from_compiled_offset()         { return byte_offset_of(Method, _from_compiled_entry); }
   static ByteSize code_offset()                  { return byte_offset_of(Method, _code); }
   static ByteSize invocation_counter_offset()    { return byte_offset_of(Method, _invocation_counter); }
@@ -810,10 +820,8 @@ class Method : public Metadata {
                            Array<AnnotationArray*>* methods_annotations,
                            Array<AnnotationArray*>* methods_parameter_annotations,
                            Array<AnnotationArray*>* methods_default_annotations,
+                           Array<AnnotationArray*>* methods_type_annotations,
                            bool idempotent = false);
-
-  // size of parameters
-  void set_size_of_parameters(int size)          { _size_of_parameters = size; }
 
   // Deallocation function for redefine classes or if an error occurs
   void deallocate_contents(ClassLoaderData* loader_data);

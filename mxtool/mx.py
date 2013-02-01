@@ -172,18 +172,18 @@ class Dependency:
         return isinstance(self, Library)
 
 class Project(Dependency):
-    def __init__(self, suite, name, srcDirs, deps, javaCompliance, dir):
+    def __init__(self, suite, name, srcDirs, deps, javaCompliance, d):
         Dependency.__init__(self, suite, name)
         self.srcDirs = srcDirs
         self.deps = deps
         self.checkstyleProj = name
         self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance is not None else None
         self.native = False
-        self.dir = dir
+        self.dir = d
         
         # Create directories for projects that don't yet exist
-        if not exists(dir):
-            os.mkdir(dir)
+        if not exists(d):
+            os.mkdir(d)
         for s in self.source_dirs():
             if not exists(s):
                 os.mkdir(s)
@@ -412,14 +412,14 @@ class Library(Dependency):
             cp.append(path)
 
 class Suite:
-    def __init__(self, dir, primary):
-        self.dir = dir
+    def __init__(self, d, primary):
+        self.dir = d
         self.projects = []
         self.libs = []
         self.includes = []
         self.commands = None
         self.primary = primary
-        mxDir = join(dir, 'mx')
+        mxDir = join(d, 'mx')
         self._load_env(mxDir)
         self._load_commands(mxDir)
         self._load_includes(mxDir)
@@ -471,10 +471,10 @@ class Suite:
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None);
             if subDir is None:
-                dir = join(self.dir, name)
+                d = join(self.dir, name)
             else:
-                dir = join(self.dir, subDir, name)
-            p = Project(self, name, srcDirs, deps, javaCompliance, dir)
+                d = join(self.dir, subDir, name)
+            p = Project(self, name, srcDirs, deps, javaCompliance, d)
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             if not p.native and p.javaCompliance is None:
@@ -632,13 +632,13 @@ def get_os():
     else:
         abort('Unknown operating system ' + sys.platform)
 
-def _loadSuite(dir, primary=False):
-    mxDir = join(dir, 'mx')
+def _loadSuite(d, primary=False):
+    mxDir = join(d, 'mx')
     if not exists(mxDir) or not isdir(mxDir):
         return None
-    if not _suites.has_key(dir):
-        suite = Suite(dir, primary)
-        _suites[dir] = suite
+    if not _suites.has_key(d):
+        suite = Suite(d, primary)
+        _suites[d] = suite
         return suite
 
 def suites():
@@ -1462,6 +1462,98 @@ def build(args, parser=None):
     if suppliedParser:
         return args
     return None
+
+def eclipseformat(args):
+    """run the Eclipse Code Formatter on the Java sources
+
+    The exit code 1 denotes that at least one file was modified."""
+
+    parser = ArgumentParser(prog='mx eclipseformat')
+    parser.add_argument('-e', '--eclipse-exe', help='location of the Eclipse executable')
+    parser.add_argument('-C', '--no-backup', action='store_false', dest='backup', help='do not save backup of modified files')
+    parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
+    
+    args = parser.parse_args(args)
+    if args.eclipse_exe is None:
+        args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
+    if args.eclipse_exe is None:
+        abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
+
+    eclipseinit([], buildProcessorJars=False)
+
+    # build list of projects to be processed
+    projects = sorted_deps()
+    if args.projects is not None:
+        projects = [project(name) for name in args.projects.split(',')]
+
+    class Batch:
+        def __init__(self, settingsFile):
+            self.path = settingsFile
+            self.javafiles = list()
+            
+        def settings(self):
+            with open(self.path) as fp:
+                return fp.read()
+
+    class FileInfo:
+        def __init__(self, path):
+            self.path = path
+            with open(path) as fp:
+                self.content = fp.read()
+            self.times = (os.path.getatime(path), os.path.getmtime(path))
+
+        def update(self):
+            with open(self.path) as fp:
+                content = fp.read()
+                if self.content != content:
+                    self.content = content
+                    return True
+            os.utime(self.path, self.times)
+            
+    modified = list()
+    batches = dict() # all sources with the same formatting settings are formatted together
+    for p in projects:
+        if p.native:
+            continue
+        sourceDirs = p.source_dirs()
+        
+        batch = Batch(join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs'))
+
+        if not exists(batch.path):
+            log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(batch.path))
+            continue
+
+        for sourceDir in sourceDirs:
+            for root, _, files in os.walk(sourceDir):
+                for f in [join(root, name) for name in files if name.endswith('.java')]:
+                    batch.javafiles.append(FileInfo(f))
+        if len(batch.javafiles) == 0:
+            log('[no Java sources in {0} - skipping]'.format(p.name))
+            continue
+
+        res = batches.setdefault(batch.settings(), batch)
+        if res is not batch:
+            res.javafiles = res.javafiles + batch.javafiles
+
+    for batch in batches.itervalues():
+        run([args.eclipse_exe, '-nosplash', '-application', 'org.eclipse.jdt.core.JavaCodeFormatter', '-config', batch.path] + [f.path for f in batch.javafiles])
+        for fi in batch.javafiles:
+            if fi.update():
+                modified.append(fi)
+                
+    log('{0} files were modified'.format(len(modified)))
+    if len(modified) != 0:
+        if args.backup:
+            backup = os.path.abspath('eclipseformat.backup.zip')
+            arcbase = _mainSuite.dir
+            zf = zipfile.ZipFile(backup, 'w', zipfile.ZIP_DEFLATED)
+            for fi in modified:
+                arcname = os.path.relpath(fi.path, arcbase).replace(os.sep, '/')
+                zf.writestr(arcname, fi.content)
+            zf.close()
+            log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
+        return 1
+    return 0
 
 def processorjars():
     projects = set([])
@@ -2816,6 +2908,7 @@ commands = {
     'canonicalizeprojects': [canonicalizeprojects, ''],
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
+    'eclipseformat': [eclipseformat, ''],
     'findclass': [findclass, ''],
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],

@@ -275,12 +275,10 @@ void CompileTask::initialize(int compile_id,
                              const char* comment,
                              bool is_blocking) {
   assert(!_lock->is_locked(), "bad locking");
-  InstanceKlass* holder = method->method_holder();
 
   _compile_id = compile_id;
   _method = method();
-  _method_holder = JNIHandles::make_global(
-        holder->is_anonymous() ? holder->java_mirror(): holder->class_loader());
+  _method_holder = JNIHandles::make_global(method->method_holder()->klass_holder());
   _osr_bci = osr_bci;
   _is_blocking = is_blocking;
   _comp_level = comp_level;
@@ -304,10 +302,7 @@ void CompileTask::initialize(int compile_id,
       } else {
         _hot_method = hot_method();
         // only add loader or mirror if different from _method_holder
-        InstanceKlass* hot_holder = hot_method->method_holder();
-        _hot_method_holder = JNIHandles::make_global(
-               hot_holder->is_anonymous() ? hot_holder->java_mirror() :
-                                            hot_holder->class_loader());
+        _hot_method_holder = JNIHandles::make_global(hot_method->method_holder()->klass_holder());
       }
     }
   }
@@ -1246,7 +1241,7 @@ nmethod* CompileBroker::compile_method(methodHandle method, int osr_bci,
   // lock, make sure that the compilation
   // isn't prohibited in a straightforward way.
 
-  if (compiler(comp_level) == NULL || compilation_is_prohibited(method, osr_bci, comp_level)) {
+  if (compiler(comp_level) == NULL || !compiler(comp_level)->can_compile_method(method) || compilation_is_prohibited(method, osr_bci, comp_level)) {
     return NULL;
   }
 
@@ -1742,6 +1737,20 @@ void CompileBroker::maybe_block() {
   }
 }
 
+// wrapper for CodeCache::print_summary()
+static void codecache_print(bool detailed)
+{
+  ResourceMark rm;
+  stringStream s;
+  // Dump code cache  into a buffer before locking the tty,
+  {
+    MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+    CodeCache::print_summary(&s, detailed);
+  }
+  ttyLocker ttyl;
+  tty->print_cr(s.as_string());
+}
+
 // ------------------------------------------------------------------
 // CompileBroker::invoke_compiler_on_method
 //
@@ -1869,6 +1878,9 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
     tty->print_cr("size: %d time: %d inlined: %d bytes", code_size, (int)time.milliseconds(), task->num_inlined_bytecodes());
   }
 
+  if (PrintCodeCacheOnCompilation)
+    codecache_print(/* detailed= */ false);
+
   // Disable compilation, if required.
   switch (compilable) {
   case ciEnv::MethodCompilable_never:
@@ -1913,6 +1925,7 @@ void CompileBroker::handle_full_code_cache() {
   UseInterpreter = true;
   if (UseCompiler || AlwaysCompileLoopMethods ) {
     if (xtty != NULL) {
+      ResourceMark rm;
       stringStream s;
       // Dump code cache state into a buffer before locking the tty,
       // because log_state() will use locks causing lock conflicts.
@@ -1926,9 +1939,9 @@ void CompileBroker::handle_full_code_cache() {
     }
     warning("CodeCache is full. Compiler has been disabled.");
     warning("Try increasing the code cache size using -XX:ReservedCodeCacheSize=");
-    CodeCache::print_bounds(tty);
 #ifndef PRODUCT
     if (CompileTheWorld || ExitOnFullCodeCache) {
+      codecache_print(/* detailed= */ true);
       before_exit(JavaThread::current());
       exit_globals(); // will delete tty
       vm_direct_exit(CompileTheWorld ? 0 : 1);
@@ -1941,6 +1954,7 @@ void CompileBroker::handle_full_code_cache() {
       AlwaysCompileLoopMethods  = false;
     }
   }
+  codecache_print(/* detailed= */ true);
 }
 
 // ------------------------------------------------------------------
@@ -2087,9 +2101,17 @@ void CompileBroker::collect_statistics(CompilerThread* thread, elapsedTimer time
       if (is_osr) {
         _t_osr_compilation.add(time);
         _sum_osr_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
+#ifdef GRAAL
+        compiler(task->comp_level())->stats()->_t_osr_compilation.add(time);
+        compiler(task->comp_level())->stats()->_sum_osr_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
+#endif
       } else {
         _t_standard_compilation.add(time);
         _sum_standard_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
+#ifdef GRAAL
+        compiler(task->comp_level())->stats()->_t_standard_compilation.add(time);
+        compiler(task->comp_level())->stats()->_sum_standard_bytes_compiled += method->code_size() + task->num_inlined_bytecodes();
+#endif
       }
     }
 
@@ -2162,8 +2184,25 @@ void CompileBroker::print_times() {
   tty->print_cr("  Total compiled bytecodes : %6d bytes", tcb);
   tty->print_cr("    Standard compilation   : %6d bytes", CompileBroker::_sum_standard_bytes_compiled);
   tty->print_cr("    On stack replacement   : %6d bytes", CompileBroker::_sum_osr_bytes_compiled);
-  int bps = (int)(tcb / CompileBroker::_t_total_compilation.seconds());
+  double tcs = CompileBroker::_t_total_compilation.seconds();
+  int bps = tcs == 0.0 ? 0 : (int)(tcb / tcs);
   tty->print_cr("  Average compilation speed: %6d bytes/s", bps);
+#ifdef GRAAL
+  for (unsigned int i = 0; i < sizeof(_compilers) / sizeof(AbstractCompiler*); i++) {
+    AbstractCompiler* comp = _compilers[i];
+    if (comp != NULL) {
+      CompilerStatistics* stats = comp->stats();
+      int bytecodes = stats->_sum_osr_bytes_compiled + stats->_sum_standard_bytes_compiled;
+      if (bytecodes != 0) {
+        double seconds = stats->_t_osr_compilation.seconds() + stats->_t_standard_compilation.seconds();
+        int bps = seconds == 0.0 ? 0 : (int) (bytecodes / seconds);
+        tty->print_cr("  %7s compilation speed: %6d bytes/s {standard: %6.3f s, %6d bytes; osr: %6.3f s, %6d bytes}",
+            comp->name(), bps, stats->_t_standard_compilation.seconds(), stats->_sum_standard_bytes_compiled,
+            stats->_t_osr_compilation.seconds(), stats->_sum_osr_bytes_compiled);
+      }
+    }
+  }
+#endif
   tty->cr();
   tty->print_cr("  nmethod code size        : %6d bytes", CompileBroker::_sum_nmethod_code_size);
   tty->print_cr("  nmethod total size       : %6d bytes", CompileBroker::_sum_nmethod_size);

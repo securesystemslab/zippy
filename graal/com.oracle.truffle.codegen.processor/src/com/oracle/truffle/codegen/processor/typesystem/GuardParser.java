@@ -31,34 +31,37 @@ import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.*;
 import com.oracle.truffle.codegen.processor.template.ParameterSpec.Cardinality;
-import com.oracle.truffle.codegen.processor.template.ParameterSpec.Kind;
 
+public class GuardParser extends TemplateMethodParser<Template, GuardData> {
 
-public class GuardParser extends TypeSystemMethodParser<GuardData> {
+    private final TypeSystemData typeSystem;
 
-    private final Template origin;
-
-    public GuardParser(ProcessorContext context, TypeSystemData typeSystem, Template origin) {
-        super(context, typeSystem);
-        this.origin = origin;
+    public GuardParser(ProcessorContext context, Template template, TypeSystemData typeSystem) {
+        super(context, template);
+        this.typeSystem = typeSystem;
     }
 
     @Override
     public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
         List<ParameterSpec> specs = new ArrayList<>();
-        specs.add(new ParameterSpec("value1", getTypeSystem(), Kind.EXECUTE, false, Cardinality.ONE));
-        specs.add(new ParameterSpec("valueN", getTypeSystem(), Kind.EXECUTE, false, Cardinality.MULTIPLE));
-        ParameterSpec returnTypeSpec = new ParameterSpec("returnType", getContext().getType(boolean.class), Kind.ATTRIBUTE, false);
+        specs.add(new ParameterSpec("value1", typeSystem, false, Cardinality.ONE));
+        specs.add(new ParameterSpec("valueN", typeSystem, false, Cardinality.MULTIPLE));
+        ParameterSpec returnTypeSpec = new ParameterSpec("returnType", getContext().getType(boolean.class), false);
         return new MethodSpec(returnTypeSpec, specs);
     }
 
     @Override
-    public GuardData create(TemplateMethod method) {
-        return new GuardData(method, origin);
+    public boolean isParsable(ExecutableElement method) {
+        return Utils.findAnnotationMirror(getContext().getEnvironment(), method, getAnnotationType()) != null;
     }
 
     @Override
-    public Class< ? extends Annotation> getAnnotationType() {
+    public GuardData create(TemplateMethod method) {
+        return new GuardData(method, template);
+    }
+
+    @Override
+    public Class<? extends Annotation> getAnnotationType() {
         return GuardCheck.class;
     }
 

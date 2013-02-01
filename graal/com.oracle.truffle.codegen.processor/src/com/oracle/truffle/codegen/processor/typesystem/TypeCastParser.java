@@ -31,8 +31,6 @@ import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.*;
 import com.oracle.truffle.codegen.processor.template.ParameterSpec.Cardinality;
-import com.oracle.truffle.codegen.processor.template.ParameterSpec.Kind;
-
 
 class TypeCastParser extends TypeSystemMethodParser<TypeCastData> {
 
@@ -47,8 +45,8 @@ class TypeCastParser extends TypeSystemMethodParser<TypeCastData> {
             return null;
         }
         List<ParameterSpec> specs = new ArrayList<>();
-        specs.add(new ParameterSpec("value", getTypeSystem(), Kind.EXECUTE, false, Cardinality.ONE));
-        ParameterSpec returnTypeSpec = new ParameterSpec("returnType", targetType.getPrimitiveType(), Kind.ATTRIBUTE, false);
+        specs.add(new ParameterSpec("value", getTypeSystem(), false, Cardinality.ONE));
+        ParameterSpec returnTypeSpec = new ParameterSpec("returnType", targetType.getPrimitiveType(), false);
         MethodSpec spec = new MethodSpec(returnTypeSpec, specs);
         return spec;
     }
@@ -61,7 +59,7 @@ class TypeCastParser extends TypeSystemMethodParser<TypeCastData> {
     }
 
     @Override
-    public Class< ? extends Annotation> getAnnotationType() {
+    public Class<? extends Annotation> getAnnotationType() {
         return TypeCast.class;
     }
 }

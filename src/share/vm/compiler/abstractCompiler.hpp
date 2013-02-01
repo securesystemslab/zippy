@@ -29,6 +29,17 @@
 
 typedef void (*initializer)(void);
 
+#ifdef GRAAL
+class CompilerStatistics {
+ public:
+  elapsedTimer _t_osr_compilation;
+  elapsedTimer _t_standard_compilation;
+  int _sum_osr_bytes_compiled;
+  int _sum_standard_bytes_compiled;
+  CompilerStatistics() : _sum_osr_bytes_compiled(0), _sum_standard_bytes_compiled(0) {}
+};
+#endif
+
 class AbstractCompiler : public CHeapObj<mtCompiler> {
  private:
   bool _is_initialized; // Mark whether compiler object is initialized
@@ -49,6 +60,10 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
  private:
   Type _type;
 
+#ifdef GRAAL
+  CompilerStatistics _stats;
+#endif
+
  public:
   AbstractCompiler(Type type) : _is_initialized(false), _type(type)    {}
 
@@ -61,6 +76,7 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   virtual bool supports_native()                 { return true; }
 
   virtual bool supports_osr   ()                 { return true; }
+  virtual bool can_compile_method(methodHandle method)  { return true; }
   bool is_c1   ()                                { return _type == c1; }
   bool is_c2   ()                                { return _type == c2; }
   bool is_shark()                                { return _type == shark; }
@@ -83,6 +99,10 @@ class AbstractCompiler : public CHeapObj<mtCompiler> {
   virtual void print_timers() {
     ShouldNotReachHere();
   }
+
+#ifdef GRAAL
+  CompilerStatistics* stats() { return &_stats; }
+#endif
 };
 
 #endif // SHARE_VM_COMPILER_ABSTRACTCOMPILER_HPP

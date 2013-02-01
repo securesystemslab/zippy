@@ -27,4 +27,5 @@ import com.oracle.truffle.api.frame.*;
 public abstract class ConditionNode extends StatementNode {
 
     public abstract boolean executeCondition(VirtualFrame frame);
+
 }

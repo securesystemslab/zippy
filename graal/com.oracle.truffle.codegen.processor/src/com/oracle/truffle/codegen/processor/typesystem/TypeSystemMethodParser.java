@@ -28,30 +28,30 @@ import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.*;
 
-
-abstract class TypeSystemMethodParser<E extends TemplateMethod> extends TemplateMethodParser<E> {
-
-    private final TypeSystemData typeSystem;
+abstract class TypeSystemMethodParser<E extends TemplateMethod> extends TemplateMethodParser<TypeSystemData, E> {
 
     public TypeSystemMethodParser(ProcessorContext context, TypeSystemData typeSystem) {
-        super(context);
-        this.typeSystem = typeSystem;
+        super(context, typeSystem);
     }
 
     public TypeSystemData getTypeSystem() {
-        return typeSystem;
+        return template;
+    }
+
+    @Override
+    public final boolean isParsable(ExecutableElement method) {
+        return Utils.findAnnotationMirror(getContext().getEnvironment(), method, getAnnotationType()) != null;
     }
 
     protected TypeData findTypeByMethodName(ExecutableElement method, AnnotationMirror annotationMirror, String prefix) {
         String methodName = method.getSimpleName().toString();
         if (!methodName.startsWith(prefix)) {
             String annotationName = Utils.getSimpleName(annotationMirror.getAnnotationType());
-            getContext().getLog().error(method, "Methods annotated with %s must match the pattern '%s'.",
-                            annotationName, String.format("%s${typeName}", prefix));
+            getContext().getLog().error(method, "Methods annotated with %s must match the pattern '%s'.", annotationName, String.format("%s${typeName}", prefix));
             return null;
         }
         String typeName = methodName.substring(prefix.length(), methodName.length());
-        TypeData type = typeSystem.findType(typeName);
+        TypeData type = getTypeSystem().findType(typeName);
         if (type == null) {
             String annotationName = TypeSystem.class.getSimpleName();
             getContext().getLog().error(method, "Type '%s' is not declared in this @%s.", typeName, annotationName);

@@ -100,34 +100,6 @@ const char* Argument::name() const {
 bool AbstractAssembler::pd_check_instruction_mark() { return false; }
 #endif
 
-
-void MacroAssembler::print_instruction(int inst) {
-  const char* s;
-  switch (inv_op(inst)) {
-  default:         s = "????"; break;
-  case call_op:    s = "call"; break;
-  case branch_op:
-    switch (inv_op2(inst)) {
-      case fb_op2:     s = "fb";   break;
-      case fbp_op2:    s = "fbp";  break;
-      case br_op2:     s = "br";   break;
-      case bp_op2:     s = "bp";   break;
-      case cb_op2:     s = "cb";   break;
-      case bpr_op2: {
-        if (is_cbcond(inst)) {
-          s = is_cxb(inst) ? "cxb" : "cwb";
-        } else {
-          s = "bpr";
-        }
-        break;
-      }
-      default:         s = "????"; break;
-    }
-  }
-  ::tty->print("%s", s);
-}
-
-
 // Patch instruction inst at offset inst_pos to refer to dest_pos
 // and return the resulting instruction.
 // We should have pcs, not offsets, but since all is relative, it will work out
@@ -1252,7 +1224,7 @@ void  MacroAssembler::set_narrow_oop(jobject obj, Register d) {
   // Relocation with special format (see relocInfo_sparc.hpp).
   relocate(rspec, 1);
   // Assembler::sethi(0x3fffff, d);
-  emit_long( op(branch_op) | rd(d) | op2(sethi_op2) | hi22(0x3fffff) );
+  emit_int32( op(branch_op) | rd(d) | op2(sethi_op2) | hi22(0x3fffff) );
   // Don't add relocation for 'add'. Do patching during 'sethi' processing.
   add(d, 0x3ff, d);
 
@@ -1268,7 +1240,7 @@ void  MacroAssembler::set_narrow_klass(Klass* k, Register d) {
   // Relocation with special format (see relocInfo_sparc.hpp).
   relocate(rspec, 1);
   // Assembler::sethi(encoded_k, d);
-  emit_long( op(branch_op) | rd(d) | op2(sethi_op2) | hi22(encoded_k) );
+  emit_int32( op(branch_op) | rd(d) | op2(sethi_op2) | hi22(encoded_k) );
   // Don't add relocation for 'add'. Do patching during 'sethi' processing.
   add(d, low10(encoded_k), d);
 

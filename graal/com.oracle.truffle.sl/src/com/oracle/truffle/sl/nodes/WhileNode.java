@@ -26,10 +26,9 @@ import com.oracle.truffle.api.frame.*;
 
 public class WhileNode extends StatementNode {
 
-    @Child
-    private ConditionNode condition;
-    @Child
-    private StatementNode body;
+    @Child private ConditionNode condition;
+
+    @Child private StatementNode body;
 
     private final BreakException breakTarget;
     private final ContinueException continueTarget;

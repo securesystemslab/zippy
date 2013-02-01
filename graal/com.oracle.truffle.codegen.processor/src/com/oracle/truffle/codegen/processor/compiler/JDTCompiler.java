@@ -48,10 +48,10 @@ public class JDTCompiler extends AbstractCompiler {
             }
 
             /*
-            AbstractMethodDeclaration decl = ((MethodBinding)(((ElementImpl)method)._binding)).sourceMethod();
-            int bodyStart = decl.bodyStart;
-            int bodyEnd = decl.bodyEnd;
-            */
+             * AbstractMethodDeclaration decl =
+             * ((MethodBinding)(((ElementImpl)method)._binding)).sourceMethod(); int bodyStart =
+             * decl.bodyStart; int bodyEnd = decl.bodyEnd;
+             */
             Object decl = method(field(method, "_binding"), "sourceMethod");
             int bodyStart = (int) field(decl, "bodyStart");
             int bodyEnd = (int) field(decl, "bodyEnd");
@@ -66,18 +66,15 @@ public class JDTCompiler extends AbstractCompiler {
         }
     }
 
-
     private static char[] getSource(Element element) throws Exception {
         /*
-        Binding binding = ((ElementImpl)element)._binding;
-        char[] source = null;
-        if (binding instanceof MethodBinding) {
-            source = ((MethodBinding) binding).sourceMethod().compilationResult.getCompilationUnit().getContents();
-        } else if (binding instanceof SourceTypeBinding) {
-            source = ((SourceTypeBinding)binding).scope.referenceContext.compilationResult.compilationUnit.getContents();
-        }
-        return source;
-        */
+         * Binding binding = ((ElementImpl)element)._binding; char[] source = null; if (binding
+         * instanceof MethodBinding) { source = ((MethodBinding)
+         * binding).sourceMethod().compilationResult.getCompilationUnit().getContents(); } else if
+         * (binding instanceof SourceTypeBinding) { source =
+         * ((SourceTypeBinding)binding).scope.referenceContext
+         * .compilationResult.compilationUnit.getContents(); } return source;
+         */
 
         Object binding = field(element, "_binding");
         Class<?> methodBindingClass = Class.forName("org.eclipse.jdt.internal.compiler.lookup.MethodBinding");
@@ -95,7 +92,6 @@ public class JDTCompiler extends AbstractCompiler {
         }
         return source;
     }
-
 
     @Override
     public String getHeaderComment(ProcessingEnvironment env, Element type) {
