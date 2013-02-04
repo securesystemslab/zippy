@@ -55,13 +55,6 @@ project@com.oracle.graal.api.code@dependencies=com.oracle.graal.api.meta
 project@com.oracle.graal.api.code@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api.code@javaCompliance=1.7
 
-# graal.api.interpreter
-project@com.oracle.graal.api.interpreter@subDir=graal
-project@com.oracle.graal.api.interpreter@sourceDirs=src
-project@com.oracle.graal.api.interpreter@dependencies=com.oracle.graal.api.meta
-project@com.oracle.graal.api.interpreter@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.api.interpreter@javaCompliance=1.7
-
 # graal.amd64
 project@com.oracle.graal.amd64@subDir=graal
 project@com.oracle.graal.amd64@sourceDirs=src
@@ -72,7 +65,7 @@ project@com.oracle.graal.amd64@javaCompliance=1.7
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.oracle.graal.api.interpreter,com.oracle.graal.api.runtime,com.oracle.graal.printer
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.snippets,com.oracle.graal.api.runtime,com.oracle.graal.printer
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
@@ -164,13 +157,6 @@ project@com.oracle.graal.nodes@sourceDirs=src
 project@com.oracle.graal.nodes@dependencies=com.oracle.graal.api.code,com.oracle.graal.graph,com.oracle.graal.debug
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
-
-# graal.interpreter
-project@com.oracle.graal.interpreter@subDir=graal
-project@com.oracle.graal.interpreter@sourceDirs=src
-project@com.oracle.graal.interpreter@dependencies=com.oracle.graal.api.interpreter,com.oracle.graal.bytecode,com.oracle.graal.api.runtime
-project@com.oracle.graal.interpreter@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.interpreter@javaCompliance=1.7
 
 # graal.phases
 project@com.oracle.graal.phases@subDir=graal
