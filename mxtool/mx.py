@@ -2096,21 +2096,23 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 out.close('buildCommand')
 
         if (_needsEclipseJarBuild(p)):
-            out.open('buildCommand')
-            out.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
-            out.element('triggers', data='auto,full,incremental,')
-            out.open('arguments')
-            out.open('dictionary')
-            out.element('key', data = 'LaunchConfigHandle')
-            out.element('value', data = _genEclipseJarBuild(p))
-            out.close('dictionary')
-            out.open('dictionary')
-            out.element('key', data = 'incclean')
-            out.element('value', data = 'true')
-            out.close('dictionary')
-            out.close('arguments')
-            out.close('buildCommand')       
-                
+            targetValues = _genEclipseJarBuild(p);
+            for value in targetValues:
+                out.open('buildCommand')
+                out.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
+                out.element('triggers', data='auto,full,incremental,')
+                out.open('arguments')
+                out.open('dictionary')
+                out.element('key', data = 'LaunchConfigHandle')
+                out.element('value', data = value)
+                out.close('dictionary')
+                out.open('dictionary')
+                out.element('key', data = 'incclean')
+                out.element('value', data = 'true')
+                out.close('dictionary')
+                out.close('arguments')
+                out.close('buildCommand')       
+                    
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -2184,12 +2186,20 @@ def _needsEclipseJarBuild(p):
     return False
 
 def _genEclipseJarBuild(p):
+    builders = []
+    builders.append(_genEclipseLaunch(p, 'Jar.launch', ''.join(['jar ', p.name]), refresh = False, async = False))
+    builders.append(_genEclipseLaunch(p, 'Refresh.launch', '', refresh = True, async = True))
+    return builders
+
+def _genEclipseLaunch(p, name, mxCommand, refresh=True, async=False):
     launchOut = XMLDoc();
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
+    if refresh:
+        launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': 'false'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': 'false'})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true'})
+    if async:
+        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true'})
     
     baseDir = dirname(dirname(os.path.abspath(__file__)))
     
@@ -2198,7 +2208,7 @@ def _genEclipseJarBuild(p):
         cmd = 'mx.cmd'
     launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION',           'value': join(baseDir, cmd) })
     launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS',    'value': 'auto,full,incremental'})
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS',     'value': ''.join(['jar', ' ', p.name])})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS',     'value': mxCommand})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED','value': 'true'})
     launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',  'value': baseDir})
     
@@ -2209,11 +2219,9 @@ def _genEclipseJarBuild(p):
     
     if not exists(externalToolDir):
         os.makedirs(externalToolDir)
-    update_file(join(externalToolDir, 'Jar.launch'), launchOut.xml(indent='\t', newl='\n'))
+    update_file(join(externalToolDir, name), launchOut.xml(indent='\t', newl='\n'))
     
-    return "<project>/.externalToolBuilders/Jar.launch"
-
-
+    return ''.join(["<project>/.externalToolBuilders/", name])
 
 
 def netbeansinit(args, suite=None):
