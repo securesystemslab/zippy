@@ -595,7 +595,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
 {
   assert(debug_info->oop_recorder() == code_buffer->oop_recorder(), "shared OR");
   code_buffer->finalize_oop_references(method);
-  size_t leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
+  int leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
   // create nmethod
   nmethod* nm = NULL;
   { MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
@@ -911,7 +911,7 @@ nmethod::nmethod(
       _unwind_handler_offset = -1;
     }
 
-    size_t leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
+    int leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
 
     _oops_offset             = data_offset();
     _metadata_offset         = _oops_offset          + round_to(code_buffer->total_oop_size(), oopSize);
