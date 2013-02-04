@@ -209,13 +209,13 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   assert(deoptee.is_compiled_frame(), "Wrong frame type");
 
 #ifdef GRAAL
-  PcDesc* pc_desc = ((nmethod*) deoptee.cb())->pc_desc_at(deoptee.pc());
-  if (pc_desc != NULL && pc_desc->leaf_graph_id() != -1) {
-    GraalCompiler* compiler = (GraalCompiler*) ((nmethod*) deoptee.cb())->compiler();
+  nmethod* nm = (nmethod*) deoptee.cb();
+  GraalCompiler* compiler = (GraalCompiler*) nm->compiler();
+  for (jlong* p = nm->leaf_graph_ids_begin(); p != nm->leaf_graph_ids_end(); p++) {
     if (PrintDeoptimizationDetails) {
-      tty->print_cr("leaf graph id: %d", pc_desc->leaf_graph_id());
+      tty->print_cr("leaf graph id: %d", *p);
     }
-    compiler->deopt_leaf_graph(pc_desc->leaf_graph_id());
+    compiler->deopt_leaf_graph(*p);
   }
 #endif
 
