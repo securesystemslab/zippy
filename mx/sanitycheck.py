@@ -119,7 +119,7 @@ def getSPECjbb2013(benchArgs = []):
     success = re.compile(r"org.spec.jbb.controller: Run finished", re.MULTILINE)
     matcherMax = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'max', 'score' : '<max>'})
     matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
-    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', '-XX:CompileCommand=exclude,*.FastMath::slowLog'], defaultCwd=specjbb2013)
+    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
     
 def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
@@ -239,6 +239,8 @@ class Test:
         self.defaultCwd = defaultCwd
         self.ignoredVMs = ignoredVMs
         self.benchmarkCompilationRate = benchmarkCompilationRate
+        if benchmarkCompilationRate:
+            self.vmOpts = self.vmOpts + ['-XX:+CITime']
         
     def __str__(self):
         return self.name
@@ -303,7 +305,6 @@ class Test:
             parser.addMatcher(scoreMatcher)
 
         if self.benchmarkCompilationRate:
-            opts.append('-XX:+CITime')
             if vm == 'graal':
                 bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
                 ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")

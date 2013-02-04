@@ -45,7 +45,7 @@ public class DebugInfoBuilder {
     private HashMap<VirtualObjectNode, VirtualObject> virtualObjects = new HashMap<>();
     private IdentityHashMap<VirtualObjectNode, EscapeObjectState> objectStates = new IdentityHashMap<>();
 
-    public LIRFrameState build(FrameState topState, List<StackSlot> lockData, List<StackSlot> pointerSlots, LabelRef exceptionEdge, long leafGraphId) {
+    public LIRFrameState build(FrameState topState, List<StackSlot> lockData, LabelRef exceptionEdge) {
         assert virtualObjects.size() == 0;
         assert objectStates.size() == 0;
 
@@ -65,7 +65,7 @@ public class DebugInfoBuilder {
             current = current.outerFrameState();
         } while (current != null);
 
-        BytecodeFrame frame = computeFrameForState(topState, lockData, leafGraphId);
+        BytecodeFrame frame = computeFrameForState(topState, lockData);
 
         VirtualObject[] virtualObjectsArray = null;
         if (virtualObjects.size() != 0) {
@@ -103,10 +103,10 @@ public class DebugInfoBuilder {
         }
         objectStates.clear();
 
-        return new LIRFrameState(frame, virtualObjectsArray, pointerSlots, exceptionEdge);
+        return new LIRFrameState(frame, virtualObjectsArray, exceptionEdge);
     }
 
-    private BytecodeFrame computeFrameForState(FrameState state, List<StackSlot> lockDataSlots, long leafGraphId) {
+    private BytecodeFrame computeFrameForState(FrameState state, List<StackSlot> lockDataSlots) {
         int numLocals = state.localsSize();
         int numStack = state.stackSize();
         int numLocks = state.locksSize();
@@ -129,14 +129,14 @@ public class DebugInfoBuilder {
         if (state.outerFrameState() != null) {
             // remove the locks that were used for this frame from the lockDataSlots list
             List<StackSlot> nextLockDataSlots = lockDataSlots.subList(0, lockDataSlots.size() - numLocks);
-            caller = computeFrameForState(state.outerFrameState(), nextLockDataSlots, -1);
+            caller = computeFrameForState(state.outerFrameState(), nextLockDataSlots);
         } else {
             if (lockDataSlots.size() != numLocks) {
                 throw new BailoutException("unbalanced monitors: found monitor for unknown frame (%d != %d) at %s", lockDataSlots.size(), numLocks, state);
             }
         }
         assert state.bci >= 0 || state.bci == FrameState.BEFORE_BCI;
-        return new BytecodeFrame(caller, state.method(), state.bci, state.rethrowException(), state.duringCall(), values, numLocals, numStack, numLocks, leafGraphId);
+        return new BytecodeFrame(caller, state.method(), state.bci, state.rethrowException(), state.duringCall(), values, numLocals, numStack, numLocks);
     }
 
     private Value toValue(ValueNode value) {
@@ -148,6 +148,7 @@ public class DebugInfoBuilder {
                 throw new GraalInternalError("no mapping found for virtual object %s", obj);
             }
             if (state instanceof MaterializedObjectState) {
+                assert !(((MaterializedObjectState) state).materializedValue() instanceof VirtualObjectNode);
                 return toValue(((MaterializedObjectState) state).materializedValue());
             } else {
                 assert obj.entryCount() == 0 || state instanceof VirtualObjectState || obj instanceof BoxedVirtualObjectNode;

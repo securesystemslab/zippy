@@ -210,7 +210,7 @@ CodeEmitInfo::CodeEmitInfo(CodeEmitInfo* info, ValueStack* stack)
 
 void CodeEmitInfo::record_debug_info(DebugInformationRecorder* recorder, int pc_offset) {
   // record the safepoint before recording the debug info for enclosing scopes
-  recorder->add_safepoint(pc_offset, -1, _oop_map->deep_copy());
+  recorder->add_safepoint(pc_offset, _oop_map->deep_copy());
   _scope_debug_info->record_debug_info(recorder, pc_offset, true/*topmost*/, _is_method_handle_invoke);
   recorder->end_safepoint(pc_offset);
 }

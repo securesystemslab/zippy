@@ -93,12 +93,6 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
         public LIRInstruction createMove(Value result, Value input) {
             return new SpillMoveOp(result, input);
         }
-
-        @Override
-        public LIRInstruction createExchange(Value input1, Value input2) {
-            // TODO (cwimmer) implement XCHG operation for LIR
-            return null;
-        }
     }
 
     public AMD64LIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, ResolvedJavaMethod method, LIR lir) {
@@ -717,8 +711,8 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo, long leafGraphId) {
-        LIRFrameState info = state(leafGraphId);
+    public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo) {
+        LIRFrameState info = state();
         LabelRef stubEntry = createDeoptStub(action, reason, info, deoptInfo);
         append(new JumpOp(stubEntry, info));
     }
@@ -851,9 +845,9 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected void emitNullCheckGuard(ValueNode object, long leafGraphId) {
+    protected void emitNullCheckGuard(ValueNode object) {
         Variable value = load(operand(object));
-        LIRFrameState info = state(leafGraphId);
+        LIRFrameState info = state();
         append(new NullCheckOp(value, info));
     }
 
