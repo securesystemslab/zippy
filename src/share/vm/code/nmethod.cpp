@@ -586,7 +586,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
   ExceptionHandlerTable* handler_table,
   ImplicitExceptionTable* nul_chk_table,
   AbstractCompiler* compiler,
-  int comp_level
+  int comp_level,
+  GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
   , Handle installed_code
 #endif
@@ -594,6 +595,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
 {
   assert(debug_info->oop_recorder() == code_buffer->oop_recorder(), "shared OR");
   code_buffer->finalize_oop_references(method);
+  size_t leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
   // create nmethod
   nmethod* nm = NULL;
   { MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
@@ -603,7 +605,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
       + round_to(dependencies->size_in_bytes() , oopSize)
       + round_to(handler_table->size_in_bytes(), oopSize)
       + round_to(nul_chk_table->size_in_bytes(), oopSize)
-      + round_to(debug_info->data_size()       , oopSize);
+      + round_to(debug_info->data_size()       , oopSize)
+      + leaf_graph_ids_size;
     nm = new (nmethod_size)
       nmethod(method(), nmethod_size, compile_id, entry_bci, offsets,
               orig_pc_offset, debug_info, dependencies, code_buffer, frame_size,
@@ -611,7 +614,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
               handler_table,
               nul_chk_table,
               compiler,
-              comp_level
+              comp_level,
+              leaf_graph_ids
 #ifdef GRAAL
               , installed_code
 #endif
@@ -693,7 +697,8 @@ nmethod::nmethod(
     _dependencies_offset     = _scopes_pcs_offset;
     _handler_table_offset    = _dependencies_offset;
     _nul_chk_table_offset    = _handler_table_offset;
-    _nmethod_end_offset      = _nul_chk_table_offset;
+    _leaf_graph_ids_offset   = _nul_chk_table_offset;
+    _nmethod_end_offset      = _leaf_graph_ids_offset;
     _compile_id              = compile_id;
     _comp_level              = CompLevel_none;
     _entry_point             = code_begin()          + offsets->value(CodeOffsets::Entry);
@@ -839,7 +844,8 @@ nmethod::nmethod(
   ExceptionHandlerTable* handler_table,
   ImplicitExceptionTable* nul_chk_table,
   AbstractCompiler* compiler,
-  int comp_level
+  int comp_level,
+  GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
   , Handle installed_code
 #endif
@@ -905,6 +911,8 @@ nmethod::nmethod(
       _unwind_handler_offset = -1;
     }
 
+    size_t leaf_graph_ids_size = leaf_graph_ids == NULL ? 0 : round_to(sizeof(jlong) * leaf_graph_ids->length(), oopSize);
+
     _oops_offset             = data_offset();
     _metadata_offset         = _oops_offset          + round_to(code_buffer->total_oop_size(), oopSize);
     _scopes_data_offset      = _metadata_offset      + round_to(code_buffer->total_metadata_size(), wordSize);
@@ -913,7 +921,8 @@ nmethod::nmethod(
     _dependencies_offset     = _scopes_pcs_offset    + adjust_pcs_size(debug_info->pcs_size());
     _handler_table_offset    = _dependencies_offset  + round_to(dependencies->size_in_bytes (), oopSize);
     _nul_chk_table_offset    = _handler_table_offset + round_to(handler_table->size_in_bytes(), oopSize);
-    _nmethod_end_offset      = _nul_chk_table_offset + round_to(nul_chk_table->size_in_bytes(), oopSize);
+    _leaf_graph_ids_offset   = _nul_chk_table_offset + round_to(nul_chk_table->size_in_bytes(), oopSize);
+    _nmethod_end_offset      = _leaf_graph_ids_offset + leaf_graph_ids_size;
 
     _entry_point             = code_begin()          + offsets->value(CodeOffsets::Entry);
     _verified_entry_point    = code_begin()          + offsets->value(CodeOffsets::Verified_Entry);
@@ -935,6 +944,10 @@ nmethod::nmethod(
     // Copy contents of ExceptionHandlerTable to nmethod
     handler_table->copy_to(this);
     nul_chk_table->copy_to(this);
+
+    if (leaf_graph_ids != NULL && leaf_graph_ids_size > 0) {
+      memcpy(leaf_graph_ids_begin(), leaf_graph_ids->adr_at(0), leaf_graph_ids_size);
+    }
 
     // we use the information of entry points to find out if a method is
     // static or non static
