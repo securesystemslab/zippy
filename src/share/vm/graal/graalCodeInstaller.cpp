@@ -288,6 +288,17 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   }
 }
 
+GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
+  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompilationResult::comp(comp_result));
+
+  GrowableArray<jlong>* result = new GrowableArray<jlong>(leafGraphArray->length());
+  for (int i = 0; i < leafGraphArray->length(); i++) {
+    result->append(((jlong*) leafGraphArray->base(T_LONG))[i]);
+  }
+
+  return result;
+}
+
 // constructor used to create a method
 CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code) {
   GraalCompiler::initialize_buffer_blob();
@@ -304,9 +315,10 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
+  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, installed_code);
+    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code);
 
   method->clear_queued_for_compilation();
 }
@@ -552,7 +564,7 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
 
   // address instruction = _instructions->start() + pc_offset;
   // jint next_pc_offset = Assembler::locate_next_instruction(instruction) - _instructions->start();
-  _debug_recorder->add_safepoint(pc_offset, -1, create_oop_map(_total_frame_size, _parameter_count, debug_info));
+  _debug_recorder->add_safepoint(pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
 
   oop frame = DebugInfo::bytecodePosition(debug_info);
   if (frame != NULL) {
@@ -615,8 +627,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   if (debug_info != NULL) {
     oop frame = DebugInfo::bytecodePosition(debug_info);
-    jlong leaf_graph_id = frame == NULL ? -1 : BytecodeFrame::leafGraphId(frame);
-    _debug_recorder->add_safepoint(next_pc_offset, leaf_graph_id, create_oop_map(_total_frame_size, _parameter_count, debug_info));
+    _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
     if (frame != NULL) {
       record_scope(next_pc_offset, frame, new GrowableArray<ScopeValue*>());
     } else {
