@@ -220,10 +220,17 @@ project@com.oracle.graal.printer@dependencies=com.oracle.graal.java,com.oracle.g
 project@com.oracle.graal.printer@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.printer@javaCompliance=1.7
 
+# graal.test
+project@com.oracle.graal.test@subDir=graal
+project@com.oracle.graal.test@sourceDirs=src
+project@com.oracle.graal.test@dependencies=JUNIT
+project@com.oracle.graal.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.test@javaCompliance=1.7
+
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.printer,JUNIT
+project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.printer,com.oracle.graal.test
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 
@@ -247,6 +254,13 @@ project@com.oracle.graal.asm.amd64@sourceDirs=src
 project@com.oracle.graal.asm.amd64@dependencies=com.oracle.graal.asm,com.oracle.graal.amd64
 project@com.oracle.graal.asm.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.amd64@javaCompliance=1.7
+
+# graal.asm.amd64.test
+project@com.oracle.graal.asm.amd64.test@subDir=graal
+project@com.oracle.graal.asm.amd64.test@sourceDirs=src
+project@com.oracle.graal.asm.amd64.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.test,com.oracle.graal.asm.amd64
+project@com.oracle.graal.asm.amd64.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.asm.amd64.test@javaCompliance=1.7
 
 # truffle.api
 project@com.oracle.truffle.api@subDir=graal
