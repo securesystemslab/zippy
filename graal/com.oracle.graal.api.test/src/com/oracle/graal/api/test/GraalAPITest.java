@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,20 +20,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.frame;
+package com.oracle.graal.api.test;
 
-/**
- * A slot in a frame that can store a value of a given type.
- */
-public interface FrameSlot {
+import static org.junit.Assert.*;
 
-    Object getIdentifier();
+import org.junit.*;
 
-    int getIndex();
+import com.oracle.graal.api.runtime.*;
 
-    Class<?> getType();
+public class GraalAPITest {
 
-    void setType(Class<?> type);
+    @Test
+    public void testRuntimeAvailable() {
+        assertNotNull(Graal.getRuntime());
+        System.out.println(Graal.getRuntime().getClass());
+    }
 
-    void registerOneShotTypeListener(FrameSlotTypeListener listener);
+    @Test
+    public void testRuntimeNamed() {
+        assertNotNull(Graal.getRuntime().getName());
+        System.out.println(Graal.getRuntime().getName());
+    }
 }
