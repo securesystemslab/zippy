@@ -198,7 +198,7 @@ public class EscapeAnalysisTest extends GraalCompilerTest {
         StructuredGraph graph = parse(snippet);
         try {
             for (Invoke n : graph.getInvokes()) {
-                n.node().setProbability(100000);
+                n.setInliningRelevance(1);
             }
 
             Assumptions assumptions = new Assumptions(false);
@@ -211,7 +211,7 @@ public class EscapeAnalysisTest extends GraalCompilerTest {
                 Assert.assertTrue(returnNode.result().toString(), returnNode.result().isConstant());
                 Assert.assertEquals(expectedConstantResult, returnNode.result().asConstant());
             }
-            int newInstanceCount = graph.getNodes(NewInstanceNode.class).count() + graph.getNodes(NewObjectArrayNode.class).count() + graph.getNodes(MaterializeObjectNode.class).count();
+            int newInstanceCount = graph.getNodes(NewInstanceNode.class).count() + graph.getNodes(NewArrayNode.class).count() + graph.getNodes(MaterializeObjectNode.class).count();
             Assert.assertEquals(0, newInstanceCount);
             return returnNode;
         } catch (AssertionFailedError t) {

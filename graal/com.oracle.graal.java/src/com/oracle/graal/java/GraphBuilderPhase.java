@@ -765,7 +765,7 @@ public final class GraphBuilderPhase extends Phase {
     private void genNewPrimitiveArray(int typeCode) {
         Class<?> clazz = arrayTypeCodeToClass(typeCode);
         ResolvedJavaType elementType = runtime.lookupJavaType(clazz);
-        NewPrimitiveArrayNode nta = currentGraph.add(new NewPrimitiveArrayNode(elementType, frameState.ipop(), true, false));
+        NewArrayNode nta = currentGraph.add(new NewArrayNode(elementType, frameState.ipop(), true, false));
         frameState.apush(append(nta));
     }
 
@@ -773,7 +773,7 @@ public final class GraphBuilderPhase extends Phase {
         JavaType type = lookupType(cpi, ANEWARRAY);
         ValueNode length = frameState.ipop();
         if (type instanceof ResolvedJavaType) {
-            NewArrayNode n = currentGraph.add(new NewObjectArrayNode((ResolvedJavaType) type, length, true, false));
+            NewArrayNode n = currentGraph.add(new NewArrayNode((ResolvedJavaType) type, length, true, false));
             frameState.apush(append(n));
         } else {
             append(currentGraph.add(new DeoptimizeNode(DeoptimizationAction.InvalidateRecompile, DeoptimizationReason.Unresolved)));
@@ -1143,6 +1143,19 @@ public final class GraphBuilderPhase extends Phase {
         return true;
     }
 
+    /**
+     * Helper function that sums up the probabilities of all keys that lead to a specific successor.
+     * 
+     * @return an array of size successorCount with the accumulated probability for each successor.
+     */
+    private static double[] successorProbabilites(int successorCount, int[] keySuccessors, double[] keyProbabilities) {
+        double[] probability = new double[successorCount];
+        for (int i = 0; i < keySuccessors.length; i++) {
+            probability[keySuccessors[i]] += keyProbabilities[i];
+        }
+        return probability;
+    }
+
     private void genSwitch(BytecodeSwitch bs) {
         int bci = bci();
         ValueNode value = frameState.ipop();
@@ -1185,7 +1198,7 @@ public final class GraphBuilderPhase extends Phase {
             }
         }
 
-        double[] successorProbabilities = IntegerSwitchNode.successorProbabilites(actualSuccessors.size(), keySuccessors, keyProbabilities);
+        double[] successorProbabilities = successorProbabilites(actualSuccessors.size(), keySuccessors, keyProbabilities);
         IntegerSwitchNode switchNode = currentGraph.add(new IntegerSwitchNode(value, actualSuccessors.size(), keys, keyProbabilities, keySuccessors));
         for (int i = 0; i < actualSuccessors.size(); i++) {
             switchNode.setBlockSuccessor(i, createBlockTarget(successorProbabilities[i], actualSuccessors.get(i), frameState));

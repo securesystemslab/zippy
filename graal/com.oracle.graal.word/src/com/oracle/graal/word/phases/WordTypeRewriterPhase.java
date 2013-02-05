@@ -95,12 +95,13 @@ public class WordTypeRewriterPhase extends Phase {
             if (x.kind() == wordKind || y.kind() == wordKind) {
                 assert x.kind() == wordKind;
                 assert y.kind() == wordKind;
-                graph.replaceFloating(objectEqualsNode, graph.unique(new IntegerEqualsNode(x, y)));
+
+                // TODO Remove the whole iteration of ObjectEqualsNodes when we are sure that there
+                // is no more code where this triggers.
+                throw GraalInternalError.shouldNotReachHere("Comparison of words with == and != is no longer supported");
             }
         }
 
-        // Replace ObjectEqualsNodes with IntegerEqualsNodes where the values being compared are
-        // words
         for (LoadIndexedNode load : graph.getNodes().filter(LoadIndexedNode.class).snapshot()) {
             if (isWord(load)) {
                 load.setStamp(StampFactory.forKind(wordKind));
@@ -284,7 +285,19 @@ public class WordTypeRewriterPhase extends Phase {
     }
 
     public boolean isWord(ValueNode node) {
+        /*
+         * If we already know that we have a word type, we do not need to infer the stamp. This
+         * avoids exceptions in inferStamp when the inputs have already been rewritten to word,
+         * i.e., when the expected input is no longer an object.
+         */
+        if (isWord0(node)) {
+            return true;
+        }
         node.inferStamp();
+        return isWord0(node);
+    }
+
+    private boolean isWord0(ValueNode node) {
         if (node.stamp() == StampFactory.forWord()) {
             return true;
         }
