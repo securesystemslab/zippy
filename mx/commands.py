@@ -966,7 +966,7 @@ def bench(args):
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
         
-    if ('specjbb2013' in args or 'all' in args):
+    if ('specjbb2013' in args): # or 'all' in args //currently not in default set
         benchmarks += [sanitycheck.getSPECjbb2013()]
 
     for test in benchmarks:
