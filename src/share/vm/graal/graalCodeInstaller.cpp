@@ -291,8 +291,15 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
   arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompilationResult::comp(comp_result));
 
-  GrowableArray<jlong>* result = new GrowableArray<jlong>(leafGraphArray->length());
-  for (int i = 0; i < leafGraphArray->length(); i++) {
+  jint length;
+  if (leafGraphArray == NULL) {
+    length = 0;
+  } else {
+    length = leafGraphArray->length();
+  }
+
+  GrowableArray<jlong>* result = new GrowableArray<jlong>(length);
+  for (int i = 0; i < length; i++) {
     result->append(((jlong*) leafGraphArray->base(T_LONG))[i]);
   }
 
