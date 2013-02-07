@@ -86,15 +86,6 @@ jboolean VMToCompiler::setOption(Handle option) {
   return result.get_jboolean();
 }
 
-void VMToCompiler::setDefaultOptions() {
-  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
-
-  Thread* THREAD = Thread::current();
-  JavaValue result(T_VOID);
-  JavaCalls::call_static(&result, compilerKlass, vmSymbols::setDefaultOptions_name(), vmSymbols::void_method_signature(), THREAD);
-  check_pending_exception("Error while calling setDefaultOptions");
-}
-
 jboolean VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority) {
   assert(method != NULL, "just checking");
   assert(!holder.is_null(), "just checking");

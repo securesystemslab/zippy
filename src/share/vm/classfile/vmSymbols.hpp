@@ -339,7 +339,6 @@
   template(compileMethod_name,                    "compileMethod")                                                                    \
   template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;IZI)Z")                 \
   template(setOption_name,                        "setOption")                                                                        \
-  template(setDefaultOptions_name,                "setDefaultOptions")                                                                \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
   template(createUnresolvedJavaMethod_name,       "createUnresolvedJavaMethod")                                                       \
   template(createUnresolvedJavaMethod_signature,  "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;)Lcom/oracle/graal/api/meta/JavaMethod;") \
