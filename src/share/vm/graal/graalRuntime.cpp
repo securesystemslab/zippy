@@ -22,12 +22,13 @@
  */
 
 #include "precompiled.hpp"
-#include "runtime/interfaceSupport.hpp"
-#include "prims/jvm.h"
+#include "asm/codeBuffer.hpp"
 #include "graal/graalRuntime.hpp"
 #include "graal/graalVMToCompiler.hpp"
-#include "asm/codeBuffer.hpp"
+#include "memory/oopFactory.hpp"
+#include "prims/jvm.h"
 #include "runtime/biasedLocking.hpp"
+#include "runtime/interfaceSupport.hpp"
 
 // Implementation of GraalStubAssembler
 
@@ -128,7 +129,7 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     // These stubs don't need to have an oopmap
     case graal_slow_subtype_check_id:
 #if defined(SPARC) || defined(PPC)
-    case handle_exception_nofpu_id:  // Unused on sparc
+    case graal_handle_exception_nofpu_id:  // Unused on sparc
 #endif
     case graal_verify_oop_id:
     case graal_unwind_exception_call_id:

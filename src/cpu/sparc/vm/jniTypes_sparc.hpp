@@ -112,6 +112,25 @@ public:
                                                           return *(jdouble *)&jl; }
 #endif
 
+  static inline jint    get_int   (intptr_t *from, int& pos) {
+    return get_int(from + pos++);
+  }
+  static inline jlong   get_long  (intptr_t *from, int& pos) {
+    jlong result = get_long(from + pos);
+    pos += 2;
+    return result;
+  }
+  static inline oop     get_obj   (intptr_t *from, int& pos) {
+    return get_obj(from + pos++);
+  }
+  static inline jfloat  get_float (intptr_t *from, int& pos) {
+    return get_float(from + pos++);
+  }
+  static inline jdouble get_double(intptr_t *from, int& pos) {
+    jdouble result = get_double(from + pos);
+    pos += 2;
+    return result;
+  }
 };
 
 #endif // CPU_SPARC_VM_JNITYPES_SPARC_HPP

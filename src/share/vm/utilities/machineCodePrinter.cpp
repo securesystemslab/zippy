@@ -22,6 +22,9 @@
  */
 
 #include "precompiled.hpp"
+#include "code/stubs.hpp"
+#include "compiler/disassembler.hpp"
+#include "runtime/thread.hpp"
 #include "utilities/machineCodePrinter.hpp"
 #include "utilities/ostream.hpp"
 

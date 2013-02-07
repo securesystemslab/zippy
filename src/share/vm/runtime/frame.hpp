@@ -208,6 +208,7 @@ class frame VALUE_OBJ_CLASS_SPEC {
   void set_link(intptr_t* addr);
 
   // Return address
+  address* sender_pc_addr() const;
   address  sender_pc() const;
 
   // Support for deoptimization

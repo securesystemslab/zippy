@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "compiler/disassembler.hpp"
 #include "runtime/javaCalls.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalCompiler.hpp"
