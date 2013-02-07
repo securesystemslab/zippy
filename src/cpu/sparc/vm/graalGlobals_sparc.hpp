@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,29 +19,18 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
+ *
  */
 
-#ifndef SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
-#define SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
+#ifndef CPU_SPARC_VM_GRAALGLOBALS_SPARC_HPP
+#define CPU_SPARC_VM_GRAALGLOBALS_SPARC_HPP
 
-#include "memory/allocation.hpp"
-#include "utilities/ostream.hpp"
+#include "utilities/globalDefinitions.hpp"
+#include "utilities/macros.hpp"
 
-class MachineCodePrinter : public AllStatic {
-private:
-  static fileStream* _st;
-  static volatile int _write_lock;
+// Sets the default values for platform dependent flags used by the Graal compiler.
+// (see graalGlobals.hpp)
 
-public:
-  static void initialize();
-  static void print(nmethod* nm);
-  static void print(CodeBlob* cb);
-  static void print(StubQueue* stub_queue);
-  static void flush();
+define_pd_global(intx, GraalSafepointPollOffset,     0    );
 
-private:
-  static void lock();
-  static void unlock();
-};
-
-#endif // SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
+#endif // CPU_SPARC_VM_GRAALGLOBALS_SPARC_HPP

@@ -48,7 +48,7 @@ private:
     MARK_POLL_NEAR                  = 0x3001,
     MARK_POLL_RETURN_NEAR           = 0x3002,
     MARK_POLL_FAR                   = 0x3003,
-    MARK_POLL_RETURN_FAR            = 0x3004,
+    MARK_POLL_RETURN_FAR            = 0x3004
   };
 
   Arena         _arena;

@@ -30,6 +30,7 @@
 #include "code/dependencies.hpp"
 #include "compiler/compileLog.hpp"
 #include "oops/oop.inline.hpp"
+#include "oops/objArrayKlass.hpp"
 #include "runtime/handles.hpp"
 #include "runtime/handles.inline.hpp"
 #include "utilities/copy.hpp"
