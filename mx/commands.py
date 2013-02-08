@@ -786,7 +786,7 @@ def gate(args):
             tasks.append(t.stop())
         
         t = Task('BuildJava')
-        build(['--no-native'])
+        build(['--no-native', '--jdt-warning-as-error'])
         tasks.append(t.stop())
         
         if exists('jacoco.exec'):
