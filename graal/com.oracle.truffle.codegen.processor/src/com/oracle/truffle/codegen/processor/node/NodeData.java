@@ -128,22 +128,29 @@ public class NodeData extends Template {
 
     public ExecutableTypeData findGenericExecutableType(ProcessorContext context) {
         List<ExecutableTypeData> types = findGenericExecutableTypes(context);
-        if (types.size() == 1) {
+        if (types.isEmpty()) {
+            return null;
+        } else if (types.size() == 1) {
             return types.get(0);
-        } else {
-            ExecutableTypeData execType = null;
-            for (ExecutableTypeData type : types) {
-                TypeData returnType = type.getReturnType().getActualTypeData(getTypeSystem());
-                if (!returnType.isVoid()) {
-                    if (execType != null) {
-                        // multiple generic types not allowed
-                        return null;
-                    }
-                    execType = type;
-                }
+        } else if (types.size() == 2) {
+            if (types.get(0).getType().isVoid()) {
+                return types.get(1);
+            } else if (types.get(1).getType().isVoid()) {
+                return types.get(0);
             }
-            return execType;
         }
+
+        ExecutableTypeData execType = null;
+        for (ExecutableTypeData type : types) {
+            TypeData returnType = type.getReturnType().getActualTypeData(getTypeSystem());
+            if (returnType.isGeneric()) {
+                if (execType != null) {
+                    return null;
+                }
+                execType = type;
+            }
+        }
+        return execType;
     }
 
     private List<ExecutableTypeData> findGenericExecutableTypes(ProcessorContext context) {
