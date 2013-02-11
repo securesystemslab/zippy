@@ -63,6 +63,7 @@ VMReg get_hotspot_reg(jint graal_reg) {
     }
 #endif
     ShouldNotReachHere();
+    return NULL;
   }
 }
 
