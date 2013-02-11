@@ -276,6 +276,13 @@ project@com.oracle.graal.asm@dependencies=com.oracle.graal.api.code
 project@com.oracle.graal.asm@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm@javaCompliance=1.7
 
+# graal.asm.test
+project@com.oracle.graal.asm.test@subDir=graal
+project@com.oracle.graal.asm.test@sourceDirs=src
+project@com.oracle.graal.asm.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.test,com.oracle.graal.asm
+project@com.oracle.graal.asm.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.asm.test@javaCompliance=1.7
+
 # graal.asm.amd64
 project@com.oracle.graal.asm.amd64@subDir=graal
 project@com.oracle.graal.asm.amd64@sourceDirs=src
@@ -286,7 +293,7 @@ project@com.oracle.graal.asm.amd64@javaCompliance=1.7
 # graal.asm.amd64.test
 project@com.oracle.graal.asm.amd64.test@subDir=graal
 project@com.oracle.graal.asm.amd64.test@sourceDirs=src
-project@com.oracle.graal.asm.amd64.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.test,com.oracle.graal.asm.amd64
+project@com.oracle.graal.asm.amd64.test@dependencies=com.oracle.graal.asm.test,com.oracle.graal.asm.amd64
 project@com.oracle.graal.asm.amd64.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.amd64.test@javaCompliance=1.7
 
