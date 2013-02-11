@@ -375,6 +375,10 @@ void print_statistics() {
     CompileBroker::print_times();
   }
 
+  if(PrintNMethodStatistics) {
+    nmethod::print_statistics();
+  }
+
   if (PrintCodeCache) {
     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     CodeCache::print();

@@ -67,7 +67,7 @@ CFLAGS$(HOTSPARC_GENERIC) += $(OPT_CFLAGS/BYFILE)
 # Linker mapfiles
 MAPFILE = $(GAMMADIR)/make/solaris/makefiles/mapfile-vers
 ifdef GRAAL
-MAPFILE += $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-graal
+MAPFILE += $(GAMMADIR)/make/solaris/makefiles/mapfile-vers-GRAAL
 endif
 
 ifndef USE_GCC

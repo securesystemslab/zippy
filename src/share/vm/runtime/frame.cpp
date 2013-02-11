@@ -637,8 +637,10 @@ void frame::interpreter_frame_print_on(outputStream* st) const {
   st->print("; ");
   interpreter_frame_method()->print_name(st);
   st->cr();
+#ifdef AMD64
   // last sp
   st->print_cr(" - last sp       at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_last_sp_addr(), *interpreter_frame_last_sp_addr());
+#endif
   // sender sp
   st->print_cr(" - sender sp     at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_sender_sp_addr(), *interpreter_frame_sender_sp_addr());
   // old fp

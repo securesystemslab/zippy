@@ -191,8 +191,6 @@
   // Note: not necessarily the real 'frame pointer' (see real_fp)
   intptr_t*   fp() const { return _fp; }
 
-  inline address* sender_pc_addr() const;
-
   // return address of param, zero origin index.
   inline address* native_param_addr(int idx) const;
 

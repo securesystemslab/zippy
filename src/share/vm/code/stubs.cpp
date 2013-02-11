@@ -254,7 +254,7 @@ void StubQueue::verify() {
   guarantee(_queue_begin != _queue_end || n == 0, "buffer indices must be the same");
 }
 
-void StubQueue::print_on(outputStream* st) {
+void StubQueue::print_on(outputStream* st) const {
   MutexLockerEx lock(_mutex);
   for (Stub* s = first(); s != NULL; s = next(s)) {
     stub_print(s, st);

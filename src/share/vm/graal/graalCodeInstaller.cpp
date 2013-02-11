@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "compiler/disassembler.hpp"
 #include "runtime/javaCalls.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalCompiler.hpp"
@@ -30,27 +31,38 @@
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalVmIds.hpp"
 #include "graal/graalRuntime.hpp"
+#include "asm/register.hpp"
 #include "classfile/vmSymbols.hpp"
-#include "vmreg_x86.inline.hpp"
+#include "code/vmreg.hpp"
 
-
-// TODO this should be handled in a more robust way - not hard coded...
-Register CPU_REGS[] = { rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
-bool OOP_ALLOWED[] = {true, true, true, true, false, false, true, true, true, true, false, true, true, true, true, true};
-const static int NUM_CPU_REGS = sizeof(CPU_REGS) / sizeof(Register);
-XMMRegister XMM_REGS[] = { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15 };
-const static int NUM_XMM_REGS = sizeof(XMM_REGS) / sizeof(XMMRegister);
-const static int NUM_REGS = NUM_CPU_REGS + NUM_XMM_REGS;
-const static jlong NO_REF_MAP = 0x8000000000000000L;
+#ifdef TARGET_ARCH_x86
+# include "vmreg_x86.inline.hpp"
+#endif
+#ifdef TARGET_ARCH_sparc
+# include "vmreg_sparc.inline.hpp"
+#endif
+#ifdef TARGET_ARCH_zero
+# include "vmreg_zero.inline.hpp"
+#endif
+#ifdef TARGET_ARCH_arm
+# include "vmreg_arm.inline.hpp"
+#endif
+#ifdef TARGET_ARCH_ppc
+# include "vmreg_ppc.inline.hpp"
+#endif
 
 // convert Graal register indices (as used in oop maps) to HotSpot registers
 VMReg get_hotspot_reg(jint graal_reg) {
-
-  assert(graal_reg >= 0 && graal_reg < NUM_REGS, "invalid register number");
-  if (graal_reg < NUM_CPU_REGS) {
-    return CPU_REGS[graal_reg]->as_VMReg();
+  if (graal_reg < RegisterImpl::number_of_registers) {
+    return as_Register(graal_reg)->as_VMReg();
   } else {
-    return XMM_REGS[graal_reg - NUM_CPU_REGS]->as_VMReg();
+    int remainder = graal_reg - RegisterImpl::number_of_registers;
+#ifdef TARGET_ARCH_x86
+    if (remainder < XMMRegisterImpl::number_of_registers) {
+      return as_XMMRegister(remainder)->as_VMReg();
+    }
+#endif
+    ShouldNotReachHere();
   }
 }
 
@@ -76,11 +88,10 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   oop frame_map = (oop) DebugInfo::frameRefMap(debug_info);
 
   if (register_map != NULL) {
-    for (jint i = 0; i < NUM_CPU_REGS; i++) {
+    for (jint i = 0; i < RegisterImpl::number_of_registers; i++) {
       bool is_oop = is_bit_set(register_map, i);
       VMReg reg = get_hotspot_reg(i);
       if (is_oop) {
-        assert(OOP_ALLOWED[i], "this register may never be an oop, register map misaligned?");
         map->set_oop(reg);
       } else {
         map->set_value(reg);
@@ -156,11 +167,15 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       } else {
         locationType = Location::dbl;
       }
+#ifdef TARGET_ARCH_x86
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
       if (type == T_DOUBLE) {
         second = value;
       }
       return value;
+#else
+      ShouldNotReachHere("Platform currently does not support floating point values.");
+#endif
     }
   } else if (value->is_a(StackSlot::klass())) {
     if (type == T_DOUBLE) {
@@ -291,8 +306,15 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
 GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
   arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompilationResult::comp(comp_result));
 
-  GrowableArray<jlong>* result = new GrowableArray<jlong>(leafGraphArray->length());
-  for (int i = 0; i < leafGraphArray->length(); i++) {
+  jint length;
+  if (leafGraphArray == NULL) {
+    length = 0;
+  } else {
+    length = leafGraphArray->length();
+  }
+
+  GrowableArray<jlong>* result = new GrowableArray<jlong>(length);
+  for (int i = 0; i < length; i++) {
     result->append(((jlong*) leafGraphArray->base(T_LONG))[i]);
   }
 

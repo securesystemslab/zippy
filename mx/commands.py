@@ -786,7 +786,7 @@ def gate(args):
             tasks.append(t.stop())
         
         t = Task('BuildJava')
-        build(['--no-native'])
+        build(['--no-native', '--jdt-warning-as-error'])
         tasks.append(t.stop())
         
         if exists('jacoco.exec'):
@@ -966,7 +966,7 @@ def bench(args):
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
         
-    if ('specjbb2013' in args or 'all' in args):
+    if ('specjbb2013' in args): # or 'all' in args //currently not in default set
         benchmarks += [sanitycheck.getSPECjbb2013()]
 
     for test in benchmarks:

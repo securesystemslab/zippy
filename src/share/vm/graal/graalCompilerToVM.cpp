@@ -30,6 +30,7 @@
 #include "graal/graalRuntime.hpp"
 #include "compiler/compileBroker.hpp"
 #include "compiler/compilerOracle.hpp"
+#include "compiler/disassembler.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalCompiler.hpp"
 #include "graal/graalEnv.hpp"

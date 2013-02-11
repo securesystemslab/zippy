@@ -492,7 +492,7 @@ void GraalCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThre
   int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
 
-  if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m)) {
+  if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m) && !m->queued_for_compilation() && m->code() == NULL) {
     if (TraceCompilationPolicy) {
       tty->print("backedge invocation trigger: ");
       m->print_short_name(tty);

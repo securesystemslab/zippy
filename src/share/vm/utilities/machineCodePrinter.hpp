@@ -24,6 +24,9 @@
 #ifndef SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
 #define SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
 
+#include "memory/allocation.hpp"
+#include "utilities/ostream.hpp"
+
 class MachineCodePrinter : public AllStatic {
 private:
   static fileStream* _st;

@@ -26,7 +26,6 @@ import java.util.*;
 
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.virtual.nodes.*;
@@ -62,7 +61,7 @@ public class GraphEffectList extends EffectList {
      * 
      * @param node The floating node to be added.
      */
-    public void addFloatingNode(final FloatingNode node) {
+    public void addFloatingNode(final ValueNode node) {
         add(new Effect() {
 
             @Override

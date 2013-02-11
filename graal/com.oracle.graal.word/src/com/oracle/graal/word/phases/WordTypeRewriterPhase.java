@@ -95,12 +95,13 @@ public class WordTypeRewriterPhase extends Phase {
             if (x.kind() == wordKind || y.kind() == wordKind) {
                 assert x.kind() == wordKind;
                 assert y.kind() == wordKind;
-                graph.replaceFloating(objectEqualsNode, graph.unique(new IntegerEqualsNode(x, y)));
+
+                // TODO Remove the whole iteration of ObjectEqualsNodes when we are sure that there
+                // is no more code where this triggers.
+                throw GraalInternalError.shouldNotReachHere("Comparison of words with == and != is no longer supported");
             }
         }
 
-        // Replace ObjectEqualsNodes with IntegerEqualsNodes where the values being compared are
-        // words
         for (LoadIndexedNode load : graph.getNodes().filter(LoadIndexedNode.class).snapshot()) {
             if (isWord(load)) {
                 load.setStamp(StampFactory.forKind(wordKind));
@@ -247,7 +248,7 @@ public class WordTypeRewriterPhase extends Phase {
         } else {
             comparison = new IntegerLessThanNode(a, b);
         }
-        MaterializeNode materialize = MaterializeNode.create(graph.unique(comparison));
+        ConditionalNode materialize = graph.unique(new ConditionalNode(graph.unique(comparison), ConstantNode.forInt(1, graph), ConstantNode.forInt(0, graph)));
 
         ValueNode op;
         if (condition.canonicalNegate()) {
