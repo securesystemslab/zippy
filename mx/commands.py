@@ -1174,8 +1174,17 @@ def mx_post_parse_cmd_line(opts):
     assert len(parts) >= 2
     assert parts[0] == '1'
     major = int(parts[1])
-    if not major >= 7:
-        mx.abort('Requires Java version 1.7 or greater, got version ' + version)
+    minor = 0
+    update = 0
+    if len(parts) >= 3:
+        minorParts = parts[2].split('_')
+        if len(minorParts) >= 1:
+            minor = int(minorParts[0])
+        if len(minorParts) >= 2:
+            update = int(minorParts[1])
+    
+    if (not major >= 7) or (major == 7 and minor == 0 and not update >= 4) :
+        mx.abort('Requires Java version 1.7.0_04 or greater, got version ' + version)
 
     if (_vmSourcesAvailable):
         if hasattr(opts, 'vm') and opts.vm is not None:
