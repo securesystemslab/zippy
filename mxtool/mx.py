@@ -1802,6 +1802,13 @@ def clean(args, parser=None):
                 run([gmake_cmd(), '-C', p.dir, 'clean'])
         else:
             if args.java:
+                genDir = p.source_gen_dir();
+                if genDir != '' and exists(genDir):
+                    log('Clearing {0}...'.format(genDir))
+                    for f in os.listdir(genDir):
+                        shutil.rmtree(join(genDir, f))
+                    
+                    
                 outputDir = p.output_dir()
                 if outputDir != '' and exists(outputDir):
                     log('Removing {0}...'.format(outputDir))
