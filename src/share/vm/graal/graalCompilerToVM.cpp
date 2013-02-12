@@ -701,6 +701,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("layoutHelperLog2ElementSizeMask", Klass::_lh_log2_element_size_mask);
   set_int("layoutHelperElementTypeShift", Klass::_lh_element_type_shift);
   set_int("layoutHelperElementTypeMask", Klass::_lh_element_type_mask);
+  // this filters out the bit that differentiates a type array from an object array
+  set_int("layoutHelperElementTypePrimitiveInPlace", (Klass::_lh_array_tag_type_value & ~Klass::_lh_array_tag_obj_value) << Klass::_lh_array_tag_shift);
   set_int("layoutHelperHeaderSizeShift", Klass::_lh_header_size_shift);
   set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
   set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));

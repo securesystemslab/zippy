@@ -365,12 +365,13 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, nmethod* nm, Jav
   }
   else debug_only(args->verify(method, result->get_type(), thread));
 
+#ifndef GRAAL
   // Ignore call if method is empty
   if (method->is_empty_method()) {
     assert(result->get_type() == T_VOID, "an empty method must return a void value");
     return;
   }
-
+#endif
 
 #ifdef ASSERT
   { InstanceKlass* holder = method->method_holder();
