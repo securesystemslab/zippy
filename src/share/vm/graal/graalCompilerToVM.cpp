@@ -844,6 +844,21 @@ C2V_VMENTRY(jobject, disassembleNative, (JNIEnv *jniEnv, jobject, jbyteArray cod
   return JNIHandles::make_local(result());
 C2V_END
 
+C2V_VMENTRY(jobject, disassembleNMethod, (JNIEnv *jniEnv, jobject, jlong metaspace_nmethod))
+  ResourceMark rm;
+  HandleMark hm;
+
+  nmethod* nm = (nmethod*) (address) metaspace_nmethod;
+  if (nm == NULL || !nm->is_alive()) {
+    return NULL;
+  }
+  stringStream(st);
+  Disassembler::decode(nm, &st);
+
+  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
+  return JNIHandles::make_local(result());
+C2V_END
+
 C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspace_method, int bci))
   ResourceMark rm;
   HandleMark hm;
@@ -1056,6 +1071,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE HS_CODE_INFO")I",           FN_PTR(installCode0)},
   {CC"disassembleNative",             CC"([BJ)"STRING,                                                  FN_PTR(disassembleNative)},
+  {CC"disassembleNMethod",            CC"(J)"STRING,                                                    FN_PTR(disassembleNMethod)},
   {CC"executeCompiledMethod",         CC"("METASPACE_METHOD NMETHOD OBJECT OBJECT OBJECT")"OBJECT,      FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",  CC"("METASPACE_METHOD NMETHOD "["OBJECT")"OBJECT,                 FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
