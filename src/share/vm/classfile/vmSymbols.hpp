@@ -303,6 +303,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
+  template(com_oracle_graal_hotspot_debug_LocalImpl,                 "com/oracle/graal/hotspot/debug/LocalImpl")                      \
   AMD64_ONLY(template(com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/amd64/AMD64HotSpotGraalRuntime"))\
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
@@ -354,6 +355,8 @@
   template(createResolvedJavaType_signature,      "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/Class;ZI)Lcom/oracle/graal/api/meta/ResolvedJavaType;") \
   template(createPrimitiveJavaType_name,          "createPrimitiveJavaType")                                                          \
   template(createPrimitiveJavaType_signature,     "(I)Lcom/oracle/graal/api/meta/JavaType;")                                          \
+  template(createLocalImpl_name,                  "createLocalImpl")                                                                  \
+  template(createLocalImpl_signature,             "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;III)Lcom/oracle/graal/hotspot/debug/LocalImpl;") \
   template(createConstant_name,                   "createConstant")                                                                   \
   template(createConstant_signature,              "(Lcom/oracle/graal/api/meta/Kind;J)Lcom/oracle/graal/api/meta/Constant;")          \
   template(createConstantFloat_name,              "createConstantFloat")                                                              \

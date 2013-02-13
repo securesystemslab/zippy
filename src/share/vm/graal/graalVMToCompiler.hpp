@@ -94,6 +94,9 @@ public:
 
   // public abstract Constant createConstantObject(long vmId);
   static oop createConstantObject(Handle object, TRAPS);
+
+  // public abstract Local createLocal(String name, int bci_start, int bci_end);
+  static oop createLocal(Handle name, Handle type, int bci_start, int bci_end, int slot, Handle holder, TRAPS);
 };
 
 inline void check_pending_exception(const char* message, bool dump_core = false) {
