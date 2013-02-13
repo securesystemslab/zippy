@@ -1168,7 +1168,7 @@ def download(path, urls, verbose=False):
         javaClass = join(myDir, 'URLConnectionDownload.class')
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([java().javac, '-d', myDir, javaSource])
-        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls) == 0:
+        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls, nonZeroIsFatal=False) == 0:
             return
 
     def url_open(url):
@@ -1436,7 +1436,8 @@ def build(args, parser=None):
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir] + javacArgs
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
-                if not exists(jdtProperties):
+                rootJdtProperties = join(p.suite.dir, 'mx', 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
+                if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
                     # Try to fix a missing properties file by running eclipseinit
                     eclipseinit([], buildProcessorJars=False)
                 if not exists(jdtProperties):
