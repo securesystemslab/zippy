@@ -3588,7 +3588,7 @@ class CommandLineFlags {
   product(uintx, SharedDummyBlockSize, 0,                                   \
           "Size of dummy block used to shift heap addresses (in bytes)")    \
                                                                             \
-  diagnostic(bool, EnableInvokeDynamic, false,                              \
+  diagnostic(bool, EnableInvokeDynamic, true,                               \
           "support JSR 292 (method handles, invokedynamic, "                \
           "anonymous classes")                                              \
                                                                             \
