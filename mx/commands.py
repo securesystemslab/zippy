@@ -1152,7 +1152,7 @@ def mx_init():
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
 
     if (_vmSourcesAvailable):
-        mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client'], help='the VM to build/run (default: graal)')
+        mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=['graal', 'server', 'client', 'server0'], help='the VM to build/run (default: graal)')
         mx.add_argument('--product', action='store_const', dest='vmbuild', const='product', help='select the product build of the VM')
         mx.add_argument('--debug', action='store_const', dest='vmbuild', const='debug', help='select the debug build of the VM')
         mx.add_argument('--fastdebug', action='store_const', dest='vmbuild', const='fastdebug', help='select the fast debug build of the VM')
@@ -1169,7 +1169,7 @@ def mx_init():
     mx.commands.update(commands)
 
 def mx_post_parse_cmd_line(opts):
-    version = mx.java().version
+    version = mx.java().version.split('-')[0]
     parts = version.split('.')
     assert len(parts) >= 2
     assert parts[0] == '1'

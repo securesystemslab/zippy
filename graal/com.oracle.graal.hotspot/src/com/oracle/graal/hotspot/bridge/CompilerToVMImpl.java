@@ -126,6 +126,9 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native String disassembleNative(byte[] code, long address);
 
     @Override
+    public native String disassembleNMethod(long nmethod);
+
+    @Override
     public native StackTraceElement getStackTraceElement(long metaspaceMethod, int bci);
 
     @Override
@@ -145,6 +148,9 @@ public class CompilerToVMImpl implements CompilerToVM {
 
     @Override
     public native long[] getLineNumberTable(HotSpotResolvedJavaMethod method);
+
+    @Override
+    public native Local[] getLocalVariableTable(HotSpotResolvedJavaMethod method);
 
     @Override
     public native String getFileName(HotSpotResolvedJavaType method);
