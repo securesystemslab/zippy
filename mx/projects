@@ -62,6 +62,13 @@ project@com.oracle.graal.amd64@dependencies=com.oracle.graal.api.code
 project@com.oracle.graal.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.amd64@javaCompliance=1.7
 
+# graal.ptx
+project@com.oracle.graal.ptx@subDir=graal
+project@com.oracle.graal.ptx@sourceDirs=src
+project@com.oracle.graal.ptx@dependencies=com.oracle.graal.api.code
+project@com.oracle.graal.ptx@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.ptx@javaCompliance=1.7
+
 # graal.sparc
 project@com.oracle.graal.sparc@subDir=graal
 project@com.oracle.graal.sparc@sourceDirs=src
@@ -82,6 +89,13 @@ project@com.oracle.graal.hotspot.amd64@sourceDirs=src
 project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.amd64
 project@com.oracle.graal.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64@javaCompliance=1.7
+
+# graal.hotspot.ptx
+project@com.oracle.graal.hotspot.ptx@subDir=graal
+project@com.oracle.graal.hotspot.ptx@sourceDirs=src
+project@com.oracle.graal.hotspot.ptx@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.ptx
+project@com.oracle.graal.hotspot.ptx@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.ptx@javaCompliance=1.7
 
 # graal.hotspot.sparc
 project@com.oracle.graal.hotspot.sparc@subDir=graal
@@ -136,6 +150,13 @@ project@com.oracle.graal.lir.amd64@sourceDirs=src
 project@com.oracle.graal.lir.amd64@dependencies=com.oracle.graal.lir,com.oracle.graal.asm.amd64
 project@com.oracle.graal.lir.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir.amd64@javaCompliance=1.7
+
+# graal.lir.ptx
+project@com.oracle.graal.lir.ptx@subDir=graal
+project@com.oracle.graal.lir.ptx@sourceDirs=src
+project@com.oracle.graal.lir.ptx@dependencies=com.oracle.graal.lir,com.oracle.graal.asm.ptx
+project@com.oracle.graal.lir.ptx@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.lir.ptx@javaCompliance=1.7
 
 # graal.lir.sparc
 project@com.oracle.graal.lir.sparc@subDir=graal
@@ -221,6 +242,13 @@ project@com.oracle.graal.compiler.amd64@dependencies=com.oracle.graal.compiler,c
 project@com.oracle.graal.compiler.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.amd64@javaCompliance=1.7
 
+# graal.compiler.ptx
+project@com.oracle.graal.compiler.ptx@subDir=graal
+project@com.oracle.graal.compiler.ptx@sourceDirs=src
+project@com.oracle.graal.compiler.ptx@dependencies=com.oracle.graal.compiler,com.oracle.graal.lir.ptx
+project@com.oracle.graal.compiler.ptx@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.ptx@javaCompliance=1.7
+
 # graal.compiler.sparc
 project@com.oracle.graal.compiler.sparc@subDir=graal
 project@com.oracle.graal.compiler.sparc@sourceDirs=src
@@ -296,6 +324,13 @@ project@com.oracle.graal.asm.amd64.test@sourceDirs=src
 project@com.oracle.graal.asm.amd64.test@dependencies=com.oracle.graal.asm.test,com.oracle.graal.asm.amd64
 project@com.oracle.graal.asm.amd64.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.amd64.test@javaCompliance=1.7
+
+# graal.asm.ptx
+project@com.oracle.graal.asm.ptx@subDir=graal
+project@com.oracle.graal.asm.ptx@sourceDirs=src
+project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.asm,com.oracle.graal.ptx
+project@com.oracle.graal.asm.ptx@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.asm.ptx@javaCompliance=1.7
 
 # graal.asm.sparc
 project@com.oracle.graal.asm.sparc@subDir=graal
