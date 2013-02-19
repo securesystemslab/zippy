@@ -120,7 +120,7 @@ C2V_END
 C2V_VMENTRY(jstring, getSignature, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   assert(method != NULL && method->signature() != NULL, "signature required");
-  return VmIds::toString<jstring>(method->signature(), THREAD);
+  return (jstring)JNIHandles::make_local(java_lang_String::create_from_symbol(method->signature(), THREAD)());
 C2V_END
 
 C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong metaspace_method, jobjectArray java_handlers))
@@ -271,7 +271,7 @@ C2V_END
 
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
-  Handle name = VmIds::toString<Handle>(method->name(), CHECK);
+  Handle name = java_lang_String::create_from_symbol(method->name(), CHECK);
   InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
   HotSpotResolvedJavaMethod::set_name(hotspot_method, name());
   HotSpotResolvedJavaMethod::set_codeSize(hotspot_method, method->code_size());
@@ -432,8 +432,8 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
-    Handle name = VmIds::toString<Handle>(cp->name_ref_at(index), CHECK_NULL);
-    Handle signature  = VmIds::toString<Handle>(cp->signature_ref_at(index), CHECK_NULL);
+    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
+    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
     int holder_index = cp->klass_ref_index_at(index);
     Handle type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createUnresolvedJavaMethod(name, signature, type, THREAD));
@@ -551,7 +551,7 @@ C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
       Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, Thread::current());
       int flags = fs.access_flags().as_int();
       bool internal = fs.access_flags().is_internal();
-      Handle name = VmIds::toString<Handle>(fs.name(), Thread::current());
+      Handle name = java_lang_String::create_from_symbol(fs.name(), Thread::current());
       Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, Thread::current());
       fields.append(field());
     }

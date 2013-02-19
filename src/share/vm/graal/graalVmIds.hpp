@@ -39,9 +39,6 @@ public:
   // Returns the stub address with the given vmId taken from a java.lang.Long
   static address getStub(oop id);
 
-  // Helper function to convert a symbol to a java.lang.String object
-  template <typename T> static T toString(Symbol* symbol, TRAPS);
-
   // Helper function to convert a java.lang.String object to a symbol (this will return NULL if the symbol doesn't exist in the system)
   static Symbol* toSymbol(jstring string);
 
@@ -51,22 +48,6 @@ public:
 
 inline address VmIds::getStub(oop obj) {
   return (address)(getBoxedLong(obj));
-}
-
-template <> inline Handle VmIds::toString<Handle>(Symbol* symbol, TRAPS) {
-  return java_lang_String::create_from_symbol(symbol, THREAD);
-}
-
-template <> inline oop VmIds::toString<oop>(Symbol* symbol, TRAPS) {
-  return toString<Handle>(symbol, THREAD)();
-}
-
-template <> inline jstring VmIds::toString<jstring>(Symbol* symbol, TRAPS) {
-  return (jstring)JNIHandles::make_local(toString<oop>(symbol, THREAD));
-}
-
-template <> inline jobject VmIds::toString<jobject>(Symbol* symbol, TRAPS) {
-  return JNIHandles::make_local(toString<oop>(symbol, THREAD));
 }
 
 inline Symbol* VmIds::toSymbol(jstring string) {
