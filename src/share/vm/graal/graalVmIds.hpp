@@ -35,11 +35,6 @@
 class VmIds : public AllStatic {
 
 public:
-  // Adds a stub address, and returns the corresponding vmId (which is of type STUB)
-  static jlong addStub(address stub);
-
-  // Returns the stub address with the given vmId
-  static address getStub(jlong id);
 
   // Returns the stub address with the given vmId taken from a java.lang.Long
   static address getStub(oop id);
@@ -55,7 +50,7 @@ public:
 };
 
 inline address VmIds::getStub(oop obj) {
-  return getStub(getBoxedLong(obj));
+  return (address)(getBoxedLong(obj));
 }
 
 template <> inline Handle VmIds::toString<Handle>(Symbol* symbol, TRAPS) {

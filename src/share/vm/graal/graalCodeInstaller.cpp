@@ -362,7 +362,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
   const char* cname = java_lang_String::as_utf8_string(_name);
   blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
   IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
-  id = VmIds::addStub(blob->code_begin());
+  id = (jlong)blob->code_begin();
 }
 
 void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
