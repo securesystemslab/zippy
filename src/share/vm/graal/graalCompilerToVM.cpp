@@ -37,7 +37,6 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
-#include "graal/graalVmIds.hpp"
 
 
 Method* getMethodFromHotSpotMethod(oop hotspot_method) {
@@ -120,7 +119,7 @@ C2V_END
 C2V_VMENTRY(jstring, getSignature, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   assert(method != NULL && method->signature() != NULL, "signature required");
-  return VmIds::toString<jstring>(method->signature(), THREAD);
+  return (jstring)JNIHandles::make_local(java_lang_String::create_from_symbol(method->signature(), THREAD)());
 C2V_END
 
 C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong metaspace_method, jobjectArray java_handlers))
@@ -271,7 +270,7 @@ C2V_END
 
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
-  Handle name = VmIds::toString<Handle>(method->name(), CHECK);
+  Handle name = java_lang_String::create_from_symbol(method->name(), CHECK);
   InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
   HotSpotResolvedJavaMethod::set_name(hotspot_method, name());
   HotSpotResolvedJavaMethod::set_codeSize(hotspot_method, method->code_size());
@@ -323,8 +322,8 @@ C2V_END
 C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
   ResourceMark rm;
 
-  Symbol* nameSymbol = VmIds::toSymbol(jname);
   Handle name = JNIHandles::resolve(jname);
+  Symbol* nameSymbol = java_lang_String::as_symbol(name, THREAD);
   assert(nameSymbol != NULL, "name to symbol creation failed");
 
   oop result = NULL;
@@ -432,8 +431,8 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
-    Handle name = VmIds::toString<Handle>(cp->name_ref_at(index), CHECK_NULL);
-    Handle signature  = VmIds::toString<Handle>(cp->signature_ref_at(index), CHECK_NULL);
+    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
+    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
     int holder_index = cp->klass_ref_index_at(index);
     Handle type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createUnresolvedJavaMethod(name, signature, type, THREAD));
@@ -514,8 +513,8 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(resolved_type));
-  Symbol* name_symbol = VmIds::toSymbol(name);
-  Symbol* signature_symbol = VmIds::toSymbol(signature);
+  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
+  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
   methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
   if (method.is_null()) {
     if (TraceGraal >= 3) {
@@ -551,7 +550,7 @@ C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
       Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, Thread::current());
       int flags = fs.access_flags().as_int();
       bool internal = fs.access_flags().is_internal();
-      Handle name = VmIds::toString<Handle>(fs.name(), Thread::current());
+      Handle name = java_lang_String::create_from_symbol(fs.name(), Thread::current());
       Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, Thread::current());
       fields.append(field());
     }
@@ -598,6 +597,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
 #define set_int(name, value) do { env->SetIntField(config, getFieldID(env, config, name, "I"), value); } while (0)
 #define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
+#define set_stub(name, value) do { set_long(name, (jlong) value); } while (0)
 #define set_object(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "Ljava/lang/Object;"), value); } while (0)
 #define set_int_array(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "[I"), value); } while (0)
 
@@ -707,41 +707,41 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
   set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
 
-  set_long("debugStub", VmIds::addStub((address)warning));
-  set_long("instanceofStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_slow_subtype_check_id)));
-  set_long("newInstanceStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_instance_id)));
-  set_long("newArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_array_id)));
-  set_long("newMultiArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_multi_array_id)));
-  set_long("identityHashCodeStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_identity_hash_code_id)));
-  set_long("threadIsInterruptedStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_thread_is_interrupted_id)));
-  set_long("inlineCacheMissStub", VmIds::addStub(SharedRuntime::get_ic_miss_stub()));
-  set_long("handleExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_handle_exception_nofpu_id)));
-  set_long("handleDeoptStub", VmIds::addStub(SharedRuntime::deopt_blob()->unpack()));
-  set_long("monitorEnterStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorenter_id)));
-  set_long("monitorExitStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorexit_id)));
-  set_long("verifyOopStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_verify_oop_id)));
-  set_long("vmErrorStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_vm_error_id)));
-  set_long("deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));
-  set_long("unwindExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_unwind_exception_call_id)));
-  set_long("osrMigrationEndStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_OSR_migration_end_id)));
-  set_long("registerFinalizerStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_register_finalizer_id)));
-  set_long("setDeoptInfoStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_set_deopt_info_id)));
-  set_long("createNullPointerExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_create_null_pointer_exception_id)));
-  set_long("createOutOfBoundsExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_create_out_of_bounds_exception_id)));
-  set_long("javaTimeMillisStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeMillis)));
-  set_long("javaTimeNanosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeNanos)));
-  set_long("arithmeticFremStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_frem_id)));
-  set_long("arithmeticDremStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_drem_id)));
-  set_long("arithmeticSinStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dsin)));
-  set_long("arithmeticCosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dcos)));
-  set_long("arithmeticTanStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dtan)));
-  set_long("logPrimitiveStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_primitive_id)));
-  set_long("logObjectStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_object_id)));
-  set_long("logPrintfStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id)));
-  set_long("aescryptEncryptBlockStub", VmIds::addStub(StubRoutines::aescrypt_encryptBlock()));
-  set_long("aescryptDecryptBlockStub", VmIds::addStub(StubRoutines::aescrypt_decryptBlock()));
-  set_long("cipherBlockChainingEncryptAESCryptStub", VmIds::addStub(StubRoutines::cipherBlockChaining_encryptAESCrypt()));
-  set_long("cipherBlockChainingDecryptAESCryptStub", VmIds::addStub(StubRoutines::cipherBlockChaining_decryptAESCrypt()));
+  set_stub("debugStub", (address)warning);
+  set_stub("instanceofStub", GraalRuntime::entry_for(GraalRuntime::graal_slow_subtype_check_id));
+  set_stub("newInstanceStub", GraalRuntime::entry_for(GraalRuntime::graal_new_instance_id));
+  set_stub("newArrayStub", GraalRuntime::entry_for(GraalRuntime::graal_new_array_id));
+  set_stub("newMultiArrayStub", GraalRuntime::entry_for(GraalRuntime::graal_new_multi_array_id));
+  set_stub("identityHashCodeStub", GraalRuntime::entry_for(GraalRuntime::graal_identity_hash_code_id));
+  set_stub("threadIsInterruptedStub", GraalRuntime::entry_for(GraalRuntime::graal_thread_is_interrupted_id));
+  set_stub("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
+  set_stub("handleExceptionStub", GraalRuntime::entry_for(GraalRuntime::graal_handle_exception_nofpu_id));
+  set_stub("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
+  set_stub("monitorEnterStub", GraalRuntime::entry_for(GraalRuntime::graal_monitorenter_id));
+  set_stub("monitorExitStub", GraalRuntime::entry_for(GraalRuntime::graal_monitorexit_id));
+  set_stub("verifyOopStub", GraalRuntime::entry_for(GraalRuntime::graal_verify_oop_id));
+  set_stub("vmErrorStub", GraalRuntime::entry_for(GraalRuntime::graal_vm_error_id));
+  set_stub("deoptimizeStub", SharedRuntime::deopt_blob()->uncommon_trap());
+  set_stub("unwindExceptionStub", GraalRuntime::entry_for(GraalRuntime::graal_unwind_exception_call_id));
+  set_stub("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::graal_OSR_migration_end_id));
+  set_stub("registerFinalizerStub", GraalRuntime::entry_for(GraalRuntime::graal_register_finalizer_id));
+  set_stub("setDeoptInfoStub", GraalRuntime::entry_for(GraalRuntime::graal_set_deopt_info_id));
+  set_stub("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::graal_create_null_pointer_exception_id));
+  set_stub("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::graal_create_out_of_bounds_exception_id));
+  set_stub("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
+  set_stub("javaTimeNanosStub", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
+  set_stub("arithmeticFremStub", GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_frem_id));
+  set_stub("arithmeticDremStub", GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_drem_id));
+  set_stub("arithmeticSinStub", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
+  set_stub("arithmeticCosStub", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
+  set_stub("arithmeticTanStub", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
+  set_stub("logPrimitiveStub", GraalRuntime::entry_for(GraalRuntime::graal_log_primitive_id));
+  set_stub("logObjectStub", GraalRuntime::entry_for(GraalRuntime::graal_log_object_id));
+  set_stub("logPrintfStub", GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id));
+  set_stub("aescryptEncryptBlockStub", StubRoutines::aescrypt_encryptBlock());
+  set_stub("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
+  set_stub("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
+  set_stub("cipherBlockChainingDecryptAESCryptStub", StubRoutines::cipherBlockChaining_decryptAESCrypt());
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);

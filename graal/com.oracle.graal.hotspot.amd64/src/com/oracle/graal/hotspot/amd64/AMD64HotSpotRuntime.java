@@ -177,6 +177,17 @@ public class AMD64HotSpotRuntime extends HotSpotRuntime {
                 /* arg3:      r */                         word,
               /* arg4: inLength */                         Kind.Int));
 
+        addRuntimeCall(AMD64HotSpotBackend.EXCEPTION_HANDLER, config.handleExceptionStub,
+                /*        temps */ null,
+                /*          ret */ ret(Kind.Void));
+
+        addRuntimeCall(AMD64HotSpotBackend.DEOPT_HANDLER, config.handleDeoptStub,
+                /*        temps */ null,
+                /*          ret */ ret(Kind.Void));
+
+        addRuntimeCall(AMD64HotSpotBackend.IC_MISS_HANDLER, config.inlineCacheMissStub,
+                /*        temps */ null,
+                /*          ret */ ret(Kind.Void));
         // @formatter:on
 
     }

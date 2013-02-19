@@ -44,7 +44,7 @@ public abstract class AbstractAssembler {
         }
     }
 
-    public final void bind(Label l) {
+    public void bind(Label l) {
         assert !l.isBound() : "can bind label only once";
         l.bind(codeBuffer.position());
         l.patchInstructions(this);
@@ -55,14 +55,6 @@ public abstract class AbstractAssembler {
     public abstract void jmp(Label l);
 
     protected abstract void patchJumpTarget(int branch, int jumpTarget);
-
-    /**
-     * Emits instruction(s) that access an address specified by a given displacement from the stack
-     * pointer in the direction that the stack grows (which is down on most architectures).
-     * 
-     * @param disp the displacement from the stack pointer at which the stack should be accessed
-     */
-    public abstract void bangStack(int disp);
 
     protected final void emitByte(int x) {
         codeBuffer.emitByte(x);
@@ -78,5 +70,17 @@ public abstract class AbstractAssembler {
 
     protected final void emitLong(long x) {
         codeBuffer.emitLong(x);
+    }
+
+    /**
+     * Some GPU architectures have a text based encoding.
+     */
+    protected final void emitString(String x) {
+        codeBuffer.emitString(x);
+    }
+
+    // XXX for pretty-printing
+    protected final void emitString0(String x) {
+        codeBuffer.emitString0(x);
     }
 }

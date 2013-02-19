@@ -31,6 +31,7 @@ import java.lang.reflect.*;
 
 import com.oracle.graal.amd64.*;
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.code.RuntimeCallTarget.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.AMD64Assembler.ConditionFlag;
@@ -54,6 +55,10 @@ import com.oracle.graal.phases.*;
  * HotSpot AMD64 specific backend.
  */
 public class AMD64HotSpotBackend extends HotSpotBackend {
+
+    public static final Descriptor EXCEPTION_HANDLER = new Descriptor("exceptionHandler", true, void.class);
+    public static final Descriptor DEOPT_HANDLER = new Descriptor("deoptHandler", true, void.class);
+    public static final Descriptor IC_MISS_HANDLER = new Descriptor("icMissHandler", true, void.class);
 
     public AMD64HotSpotBackend(HotSpotRuntime runtime, TargetDescription target) {
         super(runtime, target);
@@ -162,6 +167,32 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         }
     }
 
+    /**
+     * Emits code to do stack overflow checking.
+     * 
+     * @param afterFrameInit specifies if the stack pointer has already been adjusted to allocate
+     *            the current frame
+     */
+    protected static void emitStackOverflowCheck(TargetMethodAssembler tasm, boolean afterFrameInit) {
+        if (GraalOptions.StackShadowPages > 0) {
+
+            AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
+            int frameSize = tasm.frameMap.frameSize();
+            if (frameSize > 0) {
+                int lastFramePage = frameSize / tasm.target.pageSize;
+                // emit multiple stack bangs for methods with frames larger than a page
+                for (int i = 0; i <= lastFramePage; i++) {
+                    int disp = (i + GraalOptions.StackShadowPages) * tasm.target.pageSize;
+                    if (afterFrameInit) {
+                        disp -= frameSize;
+                    }
+                    tasm.blockComment("[stack overflow check]");
+                    asm.movq(new Address(asm.target.wordKind, AMD64.RSP, -disp), AMD64.rax);
+                }
+            }
+        }
+    }
+
     class HotSpotFrameContext implements FrameContext {
 
         @Override
@@ -196,7 +227,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             RegisterConfig regConfig = tasm.frameMap.registerConfig;
 
             if (csl != null && csl.size != 0) {
-                tasm.targetMethod.setRegisterRestoreEpilogueOffset(asm.codeBuffer.position());
+                tasm.compilationResult.setRegisterRestoreEpilogueOffset(asm.codeBuffer.position());
                 // saved all registers, restore all registers
                 int frameToCSA = tasm.frameMap.offsetToCalleeSaveArea();
                 asm.restore(csl, frameToCSA);
@@ -242,7 +273,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         HotSpotFrameContext frameContext = omitFrame ? null : new HotSpotFrameContext();
         TargetMethodAssembler tasm = new TargetMethodAssembler(target, runtime(), frameMap, masm, frameContext, lir.stubs);
         tasm.setFrameSize(frameMap.frameSize());
-        tasm.targetMethod.setCustomStackAreaOffset(frameMap.offsetToCustomArea());
+        tasm.compilationResult.setCustomStackAreaOffset(frameMap.offsetToCustomArea());
         return tasm;
     }
 
@@ -279,11 +310,11 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         boolean frameOmitted = tasm.frameContext == null;
         if (!frameOmitted) {
             tasm.recordMark(Marks.MARK_EXCEPTION_HANDLER_ENTRY);
-            AMD64Call.directCall(tasm, asm, config.handleExceptionStub, null);
+            AMD64Call.directCall(tasm, asm, runtime().lookupRuntimeCall(EXCEPTION_HANDLER), null);
             AMD64Call.shouldNotReachHere(tasm, asm);
 
             tasm.recordMark(Marks.MARK_DEOPT_HANDLER_ENTRY);
-            AMD64Call.directCall(tasm, asm, config.handleDeoptStub, null);
+            AMD64Call.directCall(tasm, asm, runtime().lookupRuntimeCall(DEOPT_HANDLER), null);
             AMD64Call.shouldNotReachHere(tasm, asm);
         } else {
             // No need to emit the stubs for entries back into the method since
@@ -293,7 +324,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
 
         if (unverifiedStub != null) {
             asm.bind(unverifiedStub);
-            AMD64Call.directJmp(tasm, asm, config.inlineCacheMissStub);
+            AMD64Call.directJmp(tasm, asm, runtime().lookupRuntimeCall(IC_MISS_HANDLER));
         }
 
         for (int i = 0; i < GraalOptions.MethodEndBreakpointGuards; ++i) {
@@ -301,4 +332,5 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         }
 
     }
+
 }

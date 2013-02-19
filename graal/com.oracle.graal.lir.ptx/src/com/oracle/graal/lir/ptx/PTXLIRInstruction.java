@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,18 +20,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package com.oracle.graal.lir.ptx;
 
-#include "precompiled.hpp"
-#include "graal/graalVmIds.hpp"
-#include "ci/ciUtilities.hpp"
+import com.oracle.graal.asm.ptx.*;
+import com.oracle.graal.lir.*;
+import com.oracle.graal.lir.asm.*;
 
-// VmIds implementation
+/**
+ * Convenience class to provide PTXAssembler for the {@link #emitCode} method.
+ */
+public abstract class PTXLIRInstruction extends LIRInstruction {
 
-jlong VmIds::addStub(address stub) {
-  return (jlong)stub;
+    @Override
+    public final void emitCode(TargetMethodAssembler tasm) {
+        emitCode(tasm, (PTXAssembler) tasm.asm);
+    }
+
+    public abstract void emitCode(TargetMethodAssembler tasm, PTXAssembler masm);
 }
-
-address VmIds::getStub(jlong id) {
-  return (address)id;
-}
-
