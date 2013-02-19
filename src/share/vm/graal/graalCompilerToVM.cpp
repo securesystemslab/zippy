@@ -614,6 +614,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("usePopCountInstruction", UsePopCountInstruction);
   set_boolean("useAESIntrinsics", UseAESIntrinsics);
   set_boolean("useTLAB", UseTLAB);
+  set_boolean("useG1GC", UseG1GC);
   set_int("codeEntryAlignment", CodeEntryAlignment);
   set_int("vmPageSize", os::vm_page_size());
   set_int("stackShadowPages", StackShadowPages);
