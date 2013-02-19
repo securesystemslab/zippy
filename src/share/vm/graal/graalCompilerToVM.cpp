@@ -720,6 +720,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_long("handleDeoptStub", VmIds::addStub(SharedRuntime::deopt_blob()->unpack()));
   set_long("monitorEnterStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorenter_id)));
   set_long("monitorExitStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorexit_id)));
+  set_long("g1WBSlowStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_g1_wb_slow_id)));
   set_long("verifyOopStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_verify_oop_id)));
   set_long("vmErrorStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_vm_error_id)));
   set_long("deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));

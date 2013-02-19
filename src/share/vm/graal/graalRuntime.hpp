@@ -103,6 +103,7 @@ class GraalStubAssembler: public MacroAssembler {
   stub(graal_log_primitive)           \
   stub(graal_identity_hash_code)      \
   stub(graal_thread_is_interrupted)   \
+  stub(graal_g1_wb_slow)              \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
@@ -140,6 +141,7 @@ class GraalRuntime: public AllStatic {
 
   static address exception_handler_for_pc(JavaThread* thread);
 
+  static void graal_g1_wb_slow(JavaThread* thread, oopDesc* obj);
   static void graal_create_null_exception(JavaThread* thread);
   static void graal_create_out_of_bounds_exception(JavaThread* thread, jint index);
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
