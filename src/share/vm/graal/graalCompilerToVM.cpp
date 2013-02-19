@@ -323,8 +323,8 @@ C2V_END
 C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
   ResourceMark rm;
 
-  Symbol* nameSymbol = VmIds::toSymbol(jname);
   Handle name = JNIHandles::resolve(jname);
+  Symbol* nameSymbol = java_lang_String::as_symbol(name, THREAD);
   assert(nameSymbol != NULL, "name to symbol creation failed");
 
   oop result = NULL;
@@ -514,8 +514,8 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(resolved_type));
-  Symbol* name_symbol = VmIds::toSymbol(name);
-  Symbol* signature_symbol = VmIds::toSymbol(signature);
+  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
+  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
   methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
   if (method.is_null()) {
     if (TraceGraal >= 3) {

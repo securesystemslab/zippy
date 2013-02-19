@@ -39,19 +39,12 @@ public:
   // Returns the stub address with the given vmId taken from a java.lang.Long
   static address getStub(oop id);
 
-  // Helper function to convert a java.lang.String object to a symbol (this will return NULL if the symbol doesn't exist in the system)
-  static Symbol* toSymbol(jstring string);
-
   // Helper function to get the contents of a java.lang.Long
   static jlong getBoxedLong(oop obj);
 };
 
 inline address VmIds::getStub(oop obj) {
   return (address)(getBoxedLong(obj));
-}
-
-inline Symbol* VmIds::toSymbol(jstring string) {
-  return java_lang_String::as_symbol(JNIHandles::resolve(string), Thread::current());
 }
 
 inline jlong VmIds::getBoxedLong(oop obj) {
