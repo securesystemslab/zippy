@@ -37,7 +37,6 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
-#include "graal/graalVmIds.hpp"
 
 
 Method* getMethodFromHotSpotMethod(oop hotspot_method) {

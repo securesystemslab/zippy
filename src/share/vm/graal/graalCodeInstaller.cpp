@@ -29,7 +29,6 @@
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCompilerToVM.hpp"
-#include "graal/graalVmIds.hpp"
 #include "graal/graalRuntime.hpp"
 #include "asm/register.hpp"
 #include "classfile/vmSymbols.hpp"
@@ -661,19 +660,20 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   if (global_stub != NULL) {
     assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
 
+    jlong global_stub_destination = global_stub->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
     if (inst->is_call()) {
       // NOTE: for call without a mov, the offset must fit a 32-bit immediate
       //       see also CompilerToVM.getMaxCallTargetOffset()
       NativeCall* call = nativeCall_at((address) (inst));
-      call->set_destination(VmIds::getStub(global_stub));
+      call->set_destination((address) global_stub_destination);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
     } else if (inst->is_mov_literal64()) {
       NativeMovConstReg* mov = nativeMovConstReg_at((address) (inst));
-      mov->set_data((intptr_t) VmIds::getStub(global_stub));
+      mov->set_data((intptr_t) global_stub_destination);
       _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
     } else {
       NativeJump* jump = nativeJump_at((address) (inst));
-      jump->set_jump_destination(VmIds::getStub(global_stub));
+      jump->set_jump_destination((address) global_stub_destination);
       _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     }
     TRACE_graal_3("relocating (stub)  at %p", inst);
