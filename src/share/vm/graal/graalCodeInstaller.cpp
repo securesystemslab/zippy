@@ -605,7 +605,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop hotspot_method = NULL; // JavaMethod
   oop global_stub = NULL;
 
-  if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
+  if (target_klass->is_subclass_of(SystemDictionary::HotSpotRuntimeCallTarget_klass())) {
     global_stub = target;
   } else {
     hotspot_method = target;
@@ -658,9 +658,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (global_stub != NULL) {
-    assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
-
-    jlong global_stub_destination = global_stub->long_field(java_lang_boxing_object::value_offset_in_bytes(T_LONG));
+    jlong global_stub_destination = HotSpotRuntimeCallTarget::address(global_stub);
     if (inst->is_call()) {
       // NOTE: for call without a mov, the offset must fit a 32-bit immediate
       //       see also CompilerToVM.getMaxCallTargetOffset()
