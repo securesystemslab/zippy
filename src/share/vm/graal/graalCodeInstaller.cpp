@@ -208,7 +208,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
         return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
     } else if (type == T_ADDRESS) {
-      return new ConstantLongValue(prim);
+      ShouldNotReachHere();
     }
     tty->print("%i", type);
   } else if (value->is_a(VirtualObject::klass())) {
