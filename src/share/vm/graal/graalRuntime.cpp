@@ -483,8 +483,12 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::graal_monitorenter(JavaThread* thread, oo
   }
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_g1_wb_slow(JavaThread* thread, oopDesc* obj))
-    tty->print_cr("HELLO WRITE BARRIER");
+JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
+    tty->print_cr("HELLO PRE WRITE BARRIER");
+JRT_END
+
+JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj))
+    tty->print_cr("HELLO POST WRITE BARRIER");
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))

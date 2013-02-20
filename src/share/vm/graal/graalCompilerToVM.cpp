@@ -38,6 +38,7 @@
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
 #include "graal/graalVmIds.hpp"
+#include "gc_implementation/g1/heapRegion.hpp"
 
 
 Method* getMethodFromHotSpotMethod(oop hotspot_method) {
@@ -720,7 +721,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_long("handleDeoptStub", VmIds::addStub(SharedRuntime::deopt_blob()->unpack()));
   set_long("monitorEnterStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorenter_id)));
   set_long("monitorExitStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorexit_id)));
-  set_long("g1WBSlowStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_g1_wb_slow_id)));
+  set_long("wbPreCallStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_wb_pre_call_id)));
+  set_long("wbPostCallStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_wb_post_call_id)));
   set_long("verifyOopStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_verify_oop_id)));
   set_long("vmErrorStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_vm_error_id)));
   set_long("deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));
@@ -764,7 +766,13 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("deoptActionReinterpret", Deoptimization::Action_reinterpret);
   set_int("deoptActionMakeNotEntrant", Deoptimization::Action_make_not_entrant);
   set_int("deoptActionMakeNotCompilable", Deoptimization::Action_make_not_compilable);
+  set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
+  set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
+  set_int("logOfHRGrainBytes", HeapRegion::LogOfHRGrainBytes);
 
+  set_int("g1SATBQueueMarkingOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_active()));
+  set_int("g1SATBQueueIndexOffset", in_bytes(JavaThread::satb_mark_queue_offset() +  PtrQueue::byte_offset_of_index()));
+  set_int("g1SATBQueueBufferOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_buf()));
 
   BarrierSet* bs = Universe::heap()->barrier_set();
   switch (bs->kind()) {
