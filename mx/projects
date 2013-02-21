@@ -242,6 +242,13 @@ project@com.oracle.graal.compiler.ptx@dependencies=com.oracle.graal.compiler,com
 project@com.oracle.graal.compiler.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.ptx@javaCompliance=1.7
 
+# graal.compiler.ptx.test
+project@com.oracle.graal.compiler.ptx.test@subDir=graal
+project@com.oracle.graal.compiler.ptx.test@sourceDirs=src
+project@com.oracle.graal.compiler.ptx.test@dependencies=com.oracle.graal.compiler.ptx,com.oracle.graal.compiler.test
+project@com.oracle.graal.compiler.ptx.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.ptx.test@javaCompliance=1.7
+
 # graal.compiler.sparc
 project@com.oracle.graal.compiler.sparc@subDir=graal
 project@com.oracle.graal.compiler.sparc@sourceDirs=src
