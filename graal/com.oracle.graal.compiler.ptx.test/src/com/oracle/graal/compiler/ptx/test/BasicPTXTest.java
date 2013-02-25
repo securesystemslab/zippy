@@ -20,53 +20,46 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.test;
-
-import java.util.*;
+package com.oracle.graal.compiler.ptx.test;
 
 import org.junit.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.runtime.*;
+import com.oracle.graal.compiler.*;
+import com.oracle.graal.compiler.ptx.*;
+import com.oracle.graal.compiler.test.*;
+import com.oracle.graal.debug.*;
+import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
-import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.PhasePlan.*;
+import com.oracle.graal.ptx.*;
 
-public class InvokeExceptionTest extends GraalCompilerTest {
-
-    public static synchronized void throwException(int i) {
-        if (i == 1) {
-            throw new RuntimeException();
-        }
-    }
+/**
+ * Test class for small Java methods compiled to PTX kernels.
+ */
+public class BasicPTXTest extends GraalCompilerTest {
 
     @Test
     public void test1() {
-        // fill the profiling data...
-        for (int i = 0; i < 10000; i++) {
-            try {
-                throwException(i & 1);
-                test1Snippet(0);
-            } catch (Throwable t) {
-                // nothing to do...
-            }
-        }
         test("test1Snippet");
     }
 
     @SuppressWarnings("all")
-    public static void test1Snippet(int a) {
-        throwException(a);
+    public static int test1Snippet(int a) {
+        return a + 1;
     }
 
     private void test(String snippet) {
-        StructuredGraph graph = parseProfiled(snippet);
-        Collection<Invoke> hints = new ArrayList<>();
-        for (Invoke invoke : graph.getInvokes()) {
-            hints.add(invoke);
-        }
-        Assumptions assumptions = new Assumptions(false);
-        new InliningPhase(runtime(), hints, assumptions, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL).apply(graph);
-        new CanonicalizerPhase(runtime(), assumptions).apply(graph);
-        new DeadCodeEliminationPhase().apply(graph);
+        StructuredGraph graph = parse(snippet);
+        Debug.dump(graph, "Graph");
+        TargetDescription target = new TargetDescription(new PTX(), true, 1, 0, 0, 0, 0, true);
+        PTXBackend ptxBackend = new PTXBackend(Graal.getRequiredCapability(CodeCacheProvider.class), target);
+        PhasePlan phasePlan = new PhasePlan();
+        GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.NONE);
+        phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
+        CompilationResult result = GraalCompiler.compileMethod(runtime, ptxBackend, target, graph.method(), graph, null, phasePlan, OptimisticOptimizations.NONE);
+        System.out.println("result=" + result);
     }
 }

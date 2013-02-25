@@ -65,7 +65,6 @@ public class TargetMethodAssembler {
     public final FrameContext frameContext;
 
     private List<ExceptionInfo> exceptionInfoList;
-    private int lastSafepointPos;
 
     public TargetMethodAssembler(TargetDescription target, CodeCacheProvider runtime, FrameMap frameMap, AbstractAssembler asm, FrameContext frameContext, List<Code> stubs) {
         this.target = target;
@@ -75,8 +74,6 @@ public class TargetMethodAssembler {
         this.asm = asm;
         this.compilationResult = new CompilationResult();
         this.frameContext = frameContext;
-        // 0 is a valid pc for safepoints in template methods
-        this.lastSafepointPos = -1;
     }
 
     public void setFrameSize(int frameSize) {
@@ -109,9 +106,6 @@ public class TargetMethodAssembler {
             }
         }
 
-        // Set the info on callee-saved registers
-        compilationResult.setCalleeSaveLayout(frameMap.registerConfig.getCalleeSaveLayout());
-
         Debug.metric("TargetMethods").increment();
         Debug.metric("CodeBytesEmitted").add(compilationResult.getTargetCodeSize());
         Debug.metric("SafepointsEmitted").add(compilationResult.getSafepoints().size());
@@ -135,8 +129,6 @@ public class TargetMethodAssembler {
     public void recordImplicitException(int pcOffset, LIRFrameState info) {
         // record an implicit exception point
         if (info != null) {
-            assert lastSafepointPos < pcOffset : lastSafepointPos + "<" + pcOffset;
-            lastSafepointPos = pcOffset;
             compilationResult.recordSafepoint(pcOffset, info.debugInfo());
             assert info.exceptionEdge == null;
         }
@@ -144,23 +136,17 @@ public class TargetMethodAssembler {
 
     public void recordDirectCall(int posBefore, int posAfter, InvokeTarget callTarget, LIRFrameState info) {
         DebugInfo debugInfo = info != null ? info.debugInfo() : null;
-        assert lastSafepointPos < posAfter;
-        lastSafepointPos = posAfter;
         compilationResult.recordCall(posBefore, posAfter - posBefore, callTarget, debugInfo, true);
     }
 
     public void recordIndirectCall(int posBefore, int posAfter, InvokeTarget callTarget, LIRFrameState info) {
         DebugInfo debugInfo = info != null ? info.debugInfo() : null;
-        assert lastSafepointPos < posAfter;
-        lastSafepointPos = posAfter;
         compilationResult.recordCall(posBefore, posAfter - posBefore, callTarget, debugInfo, false);
     }
 
     public void recordSafepoint(int pos, LIRFrameState info) {
         // safepoints always need debug info
         DebugInfo debugInfo = info.debugInfo();
-        assert lastSafepointPos < pos;
-        lastSafepointPos = pos;
         compilationResult.recordSafepoint(pos, debugInfo);
     }
 
@@ -169,11 +155,7 @@ public class TargetMethodAssembler {
         int pos = asm.codeBuffer.position();
         Debug.log("Data reference in code: pos = %d, data = %s", pos, data.toString());
         compilationResult.recordDataReference(pos, data, alignment, inlined);
-        return Address.Placeholder;
-    }
-
-    public int lastSafepointPos() {
-        return lastSafepointPos;
+        return asm.getPlaceholder();
     }
 
     /**
@@ -251,7 +233,7 @@ public class TargetMethodAssembler {
     public Address asAddress(Value value) {
         if (isStackSlot(value)) {
             StackSlot slot = (StackSlot) value;
-            return new Address(slot.getKind(), frameMap.registerConfig.getFrameRegister().asValue(), frameMap.offsetForStackSlot(slot));
+            return asm.makeAddress(slot.getKind(), frameMap.registerConfig.getFrameRegister().asValue(), frameMap.offsetForStackSlot(slot));
         }
         return (Address) value;
     }

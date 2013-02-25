@@ -24,6 +24,7 @@ package com.oracle.graal.hotspot.meta;
 
 import java.lang.annotation.*;
 import java.lang.reflect.*;
+import java.net.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
@@ -191,7 +192,22 @@ public final class HotSpotResolvedPrimitiveType extends HotSpotResolvedJavaType 
     }
 
     @Override
-    public String getClassFilePath() {
+    public URL getClassFilePath() {
+        return null;
+    }
+
+    @Override
+    public boolean isLocal() {
+        return false;
+    }
+
+    @Override
+    public boolean isMember() {
+        return false;
+    }
+
+    @Override
+    public ResolvedJavaType getEnclosingType() {
         return null;
     }
 }

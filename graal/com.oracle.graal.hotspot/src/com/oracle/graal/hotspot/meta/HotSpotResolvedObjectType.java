@@ -500,14 +500,24 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     }
 
     @Override
-    public String getClassFilePath() {
+    public URL getClassFilePath() {
         Class<?> cls = mirror();
-        String name = cls.getName();
-        int dot = name.lastIndexOf('.');
-        if (dot != -1) {
-            name = name.substring(dot + 1);
-        }
-        URL classFilePath = cls.getResource(name + ".class");
-        return classFilePath == null ? null : classFilePath.getPath();
+        return cls.getResource(MetaUtil.getSimpleName(cls, true).replace('.', '$') + ".class");
+    }
+
+    @Override
+    public boolean isLocal() {
+        return mirror().isLocalClass();
+    }
+
+    @Override
+    public boolean isMember() {
+        return mirror().isMemberClass();
+    }
+
+    @Override
+    public ResolvedJavaType getEnclosingType() {
+        final Class<?> encl = mirror().getEnclosingClass();
+        return encl == null ? null : fromClass(encl);
     }
 }

@@ -32,6 +32,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.compiler.*;
+import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.Verbosity;
@@ -68,11 +69,13 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     protected final GraalCodeCacheProvider runtime;
     protected final GraalCompiler graalCompiler;
+    protected final Backend backend;
 
     public GraalCompilerTest() {
         DebugEnvironment.initialize(System.out);
         this.runtime = Graal.getRequiredCapability(GraalCodeCacheProvider.class);
         this.graalCompiler = Graal.getRequiredCapability(GraalCompiler.class);
+        this.backend = Graal.getRequiredCapability(Backend.class);
     }
 
     protected void assertEquals(StructuredGraph expected, StructuredGraph graph) {
@@ -305,8 +308,6 @@ public abstract class GraalCompilerTest extends GraalTest {
             Assert.assertTrue("expected " + expect.exception, actual.exception != null);
             Assert.assertEquals(expect.exception.getClass(), actual.exception.getClass());
         } else {
-            // System.out.println(name + "(" + Arrays.toString(args) + "): expected=" +
-            // expect.returnValue + ", actual=" + actual.returnValue);
             assertEquals(expect.returnValue, actual.returnValue);
         }
     }
@@ -342,8 +343,6 @@ public abstract class GraalCompilerTest extends GraalTest {
             if (cached != null) {
                 if (cached.isValid()) {
                     return cached;
-                } else {
-                    // System.out.println(cached.getMethod() + " was invalidated");
                 }
 
             }
@@ -363,7 +362,7 @@ public abstract class GraalCompilerTest extends GraalTest {
                 GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
                 phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
                 editPhasePlan(method, graph, phasePlan);
-                CompilationResult compResult = graalCompiler.compileMethod(method, graph, null, phasePlan, OptimisticOptimizations.ALL);
+                CompilationResult compResult = GraalCompiler.compileMethod(runtime(), backend, runtime().getTarget(), method, graph, null, phasePlan, OptimisticOptimizations.ALL);
                 if (printCompilation) {
                     TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
                 }

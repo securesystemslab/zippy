@@ -29,6 +29,7 @@ import java.util.concurrent.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
@@ -143,10 +144,9 @@ public final class CompilationTask implements Runnable, Comparable<CompilationTa
                         } else {
                             // Compiling an intrinsic graph - must clone the graph
                             graph = graph.copy();
-                            // System.out.println("compiling intrinsic " + method);
                         }
                         InlinedBytecodes.add(method.getCodeSize());
-                        return graalRuntime.getCompiler().compileMethod(method, graph, graalRuntime.getCache(), plan, optimisticOpts);
+                        return GraalCompiler.compileMethod(graalRuntime.getRuntime(), graalRuntime.getBackend(), graalRuntime.getTarget(), method, graph, graalRuntime.getCache(), plan, optimisticOpts);
                     }
                 });
             } finally {
