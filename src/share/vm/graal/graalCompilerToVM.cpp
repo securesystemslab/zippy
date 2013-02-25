@@ -615,7 +615,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("useAESIntrinsics", UseAESIntrinsics);
   set_boolean("useTLAB", UseTLAB);
   set_int("codeEntryAlignment", CodeEntryAlignment);
-  set_int("vmPageSize", os::vm_page_size());
   set_int("stackShadowPages", StackShadowPages);
   set_int("hubOffset", oopDesc::klass_offset_in_bytes());
   set_int("markOffset", oopDesc::mark_offset_in_bytes());
