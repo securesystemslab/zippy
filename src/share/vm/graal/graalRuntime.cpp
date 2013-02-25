@@ -485,6 +485,9 @@ JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
     tty->print_cr("HELLO PRE WRITE BARRIER");
+if(!obj->is_oop()) {
+     tty->print_cr("ERROR in pre writebarrier address is not object " INTPTR_FORMAT, obj);
+}
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj))
