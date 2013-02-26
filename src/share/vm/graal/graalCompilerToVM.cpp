@@ -777,7 +777,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   BarrierSet* bs = Universe::heap()->barrier_set();
   switch (bs->kind()) {
     case BarrierSet::CardTableModRef:
-    case BarrierSet::CardTableExtension: {
+    case BarrierSet::CardTableExtension:
+    case BarrierSet::G1SATBCT:
+    case BarrierSet::G1SATBCTLogging:{
       jlong base = (jlong)((CardTableModRefBS*)bs)->byte_map_base;
       assert(base != 0, "unexpected byte_map_base");
       set_long("cardtableStartAddress", base);
@@ -790,10 +792,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
       set_int("cardtableShift", 0);
       // No post barriers
       break;
-#ifndef SERIALGC
-    case BarrierSet::G1SATBCT:
-    case BarrierSet::G1SATBCTLogging:
-#endif // SERIALGC
     default:
       ShouldNotReachHere();
       break;

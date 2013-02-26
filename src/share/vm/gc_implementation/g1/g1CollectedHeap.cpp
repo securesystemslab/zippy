@@ -2398,6 +2398,17 @@ void G1CollectedHeap::allocate_dummy_regions() {
 }
 #endif // !PRODUCT
 
+#ifdef GRAAL
+  HeapWord** G1CollectedHeap::top_addr() const {
+    return _mutator_alloc_region.top_addr();
+  }
+
+  HeapWord** G1CollectedHeap::end_addr()  const {
+    return  _mutator_alloc_region.end_addr();
+  }
+
+#endif
+
 void G1CollectedHeap::increment_old_marking_cycles_started() {
   assert(_old_marking_cycles_started == _old_marking_cycles_completed ||
     _old_marking_cycles_started == _old_marking_cycles_completed + 1,

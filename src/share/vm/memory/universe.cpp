@@ -750,6 +750,7 @@ jint Universe::initialize_heap() {
 #ifndef SERIALGC
     G1CollectorPolicy* g1p = new G1CollectorPolicy();
     G1CollectedHeap* g1h = new G1CollectedHeap(g1p);
+    printf("MPIKA!");
     Universe::_collectedHeap = g1h;
 #else  // SERIALGC
     fatal("UseG1GC not supported in java kernel vm.");
