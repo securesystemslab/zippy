@@ -485,13 +485,12 @@ JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
     tty->print_cr("HELLO PRE WRITE BARRIER");
-if(!obj->is_oop()) {
-     tty->print_cr("ERROR in pre writebarrier address is not object " INTPTR_FORMAT, obj);
-}
+    SharedRuntime::g1_wb_pre(obj, thread);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj))
+JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, address* card_addr))
     tty->print_cr("HELLO POST WRITE BARRIER");
+    thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
