@@ -143,7 +143,7 @@ class GraalRuntime: public AllStatic {
   static address exception_handler_for_pc(JavaThread* thread);
 
   static void graal_wb_pre_call(JavaThread* thread, oopDesc* obj);
-  static void graal_wb_post_call(JavaThread* thread, address* obj);
+  static void graal_wb_post_call(JavaThread* thread, oopDesc* obj,void* obj);
   static void graal_create_null_exception(JavaThread* thread);
   static void graal_create_out_of_bounds_exception(JavaThread* thread, jint index);
   static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);

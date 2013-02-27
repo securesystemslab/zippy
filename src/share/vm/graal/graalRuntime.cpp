@@ -488,8 +488,8 @@ JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj)
     SharedRuntime::g1_wb_pre(obj, thread);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, address* card_addr))
-    tty->print_cr("HELLO POST WRITE BARRIER");
+JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
+    tty->print_cr("HELLO POST WRITE BARRIER Card address 0x%016lx", card_addr);
     thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
