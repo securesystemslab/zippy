@@ -112,11 +112,9 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         public void visitExceptionObject(ExceptionObjectNode x) {
             HotSpotVMConfig config = runtime().config;
             RegisterValue thread = runtime().threadRegister().asValue();
-            Address exceptionAddress = new AMD64Address(Kind.Object, thread, config.threadExceptionOopOffset);
-            Address pcAddress = new AMD64Address(Kind.Long, thread, config.threadExceptionPcOffset);
-            Value exception = emitLoad(exceptionAddress, false);
-            emitStore(exceptionAddress, Constant.NULL_OBJECT, false);
-            emitStore(pcAddress, Constant.LONG_0, false);
+            Value exception = emitLoad(Kind.Object, thread, config.threadExceptionOopOffset, Value.ILLEGAL, 0, false);
+            emitStore(Kind.Object, thread, config.threadExceptionOopOffset, Value.ILLEGAL, 0, Constant.NULL_OBJECT, false);
+            emitStore(Kind.Long, thread, config.threadExceptionPcOffset, Value.ILLEGAL, 0, Constant.LONG_0, false);
             setResult(x, exception);
         }
 
@@ -130,7 +128,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             Variable newVal = load(operand(x.newValue()));
 
             int disp = 0;
-            Address address;
+            AMD64Address address;
             Value index = operand(x.offset());
             if (ValueUtil.isConstant(index) && NumUtil.isInt(ValueUtil.asConstant(index).asLong() + disp)) {
                 assert !runtime.needsDataPatch(asConstant(index));
@@ -141,11 +139,11 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             }
 
             RegisterValue rax = AMD64.rax.asValue(kind);
-            emitMove(expected, rax);
+            emitMove(rax, expected);
             append(new CompareAndSwapOp(rax, address, rax, newVal));
 
             Variable result = newVariable(x.kind());
-            emitMove(rax, result);
+            emitMove(result, rax);
             setResult(x, result);
         }
 
@@ -163,9 +161,9 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         @Override
         protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
             Value metaspaceMethod = AMD64.rbx.asValue();
-            emitMove(operand(((HotSpotIndirectCallTargetNode) callTarget).metaspaceMethod()), metaspaceMethod);
+            emitMove(metaspaceMethod, operand(((HotSpotIndirectCallTargetNode) callTarget).metaspaceMethod()));
             Value targetAddress = AMD64.rax.asValue();
-            emitMove(operand(callTarget.computedAddress()), targetAddress);
+            emitMove(targetAddress, operand(callTarget.computedAddress()));
             append(new AMD64IndirectCallOp(callTarget.target(), result, parameters, temps, metaspaceMethod, targetAddress, callState));
         }
     }

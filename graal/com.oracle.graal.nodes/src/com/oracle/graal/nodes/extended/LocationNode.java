@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.extended;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ValueNumberable;
+import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -42,27 +43,37 @@ public class LocationNode extends FloatingNode implements LIRLowerable, ValueNum
     private Object locationIdentity;
 
     /**
+     * Creates a new unique location identity for read and write operations.
+     * 
+     * @param name the name of the new location identity, for debugging purposes
+     * @return the new location identity
+     */
+    public static Object createLocation(final String name) {
+        return new Object() {
+
+            @Override
+            public String toString() {
+                return name;
+            }
+        };
+    }
+
+    /**
      * Denotes any location. A write to such a location kills all values in a memory map during an
      * analysis of memory accesses in a graph.
      */
-    public static final Object ANY_LOCATION = new Object() {
+    public static final Object ANY_LOCATION = createLocation("ANY_LOCATION");
 
-        @Override
-        public String toString() {
-            return "ANY_LOCATION";
-        }
-    };
+    /**
+     * Denotes an unknown location. A read from this location cannot be moved or coalesced with
+     * other reads because its interaction with other reads is not known.
+     */
+    public static final Object UNKNOWN_LOCATION = createLocation("UNKNOWN_LOCATION");
 
     /**
      * Denotes the location of a value that is guaranteed to be final.
      */
-    public static final Object FINAL_LOCATION = new Object() {
-
-        @Override
-        public String toString() {
-            return "FINAL_LOCATION";
-        }
-    };
+    public static final Object FINAL_LOCATION = createLocation("FINAL_LOCATION");
 
     public static Object getArrayLocation(Kind elementKind) {
         return elementKind;
@@ -95,5 +106,17 @@ public class LocationNode extends FloatingNode implements LIRLowerable, ValueNum
     @Override
     public void generate(LIRGeneratorTool generator) {
         // nothing to do...
+    }
+
+    public Value generateLea(LIRGeneratorTool gen, ValueNode base) {
+        return gen.emitLea(gen.operand(base), displacement(), Value.ILLEGAL, 0);
+    }
+
+    public Value generateLoad(LIRGeneratorTool gen, ValueNode base, boolean canTrap) {
+        return gen.emitLoad(getValueKind(), gen.operand(base), displacement(), Value.ILLEGAL, 0, canTrap);
+    }
+
+    public void generateStore(LIRGeneratorTool gen, ValueNode base, ValueNode value, boolean canTrap) {
+        gen.emitStore(getValueKind(), gen.operand(base), displacement(), Value.ILLEGAL, 0, gen.operand(value), canTrap);
     }
 }

@@ -45,16 +45,6 @@ public abstract class LIRGeneratorTool {
      */
     public abstract boolean canInlineConstant(Constant c);
 
-    /**
-     * Checks whether the supplied constant can be used without loading it into a register for store
-     * operations, i.e., on the right hand side of a memory access.
-     * 
-     * @param c The constant to check.
-     * @return True if the constant can be used directly, false if the constant needs to be in a
-     *         register.
-     */
-    public abstract boolean canStoreConstant(Constant c);
-
     public abstract RegisterAttributes attributes(Register register);
 
     public abstract Value operand(ValueNode object);
@@ -63,27 +53,17 @@ public abstract class LIRGeneratorTool {
 
     public abstract Value setResult(ValueNode x, Value operand);
 
-    public abstract Address makeAddress(LocationNode location, ValueNode object);
-
-    public abstract Address makeAddress(Kind kind, Value base, int displacement);
-
-    public Address makeAddress(Kind kind, Value base) {
-        return makeAddress(kind, base, 0);
-    }
-
-    public Address makeAddress(Kind kind, int address) {
-        return makeAddress(kind, Value.ILLEGAL, address);
-    }
-
     public abstract Value emitMove(Value input);
 
-    public abstract void emitMove(Value src, Value dst);
+    public abstract void emitMove(Value dst, Value src);
 
-    public abstract Value emitLoad(Value loadAddress, boolean canTrap);
+    public abstract Value emitLoad(Kind kind, Value base, int displacement, Value index, int scale, boolean canTrap);
 
-    public abstract void emitStore(Value storeAddress, Value input, boolean canTrap);
+    public abstract void emitStore(Kind kind, Value base, int displacement, Value index, int scale, Value input, boolean canTrap);
 
-    public abstract Value emitLea(Value address);
+    public abstract Value emitLea(Value base, int displacement, Value index, int scale);
+
+    public abstract Value emitLea(StackSlot slot);
 
     public abstract Value emitNegate(Value input);
 

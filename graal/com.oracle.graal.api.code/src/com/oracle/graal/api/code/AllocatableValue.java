@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,38 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.extended;
+package com.oracle.graal.api.code;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.api.meta.*;
 
 /**
- * Creates a memory barrier.
+ * Common base class for values that can be manipulated by the register allocator.
  */
-public class MembarNode extends FixedWithNextNode implements LIRLowerable, MemoryCheckpoint {
+public abstract class AllocatableValue extends Value {
 
-    private final int barriers;
+    private static final long serialVersionUID = 153019506717492133L;
 
     /**
-     * @param barriers a mask of the barrier constants defined in {@link MemoryBarriers}
+     * Marker to tell the register allocator that no storage location needs to be allocated for this
+     * value.
      */
-    public MembarNode(int barriers) {
-        super(StampFactory.forVoid());
-        this.barriers = barriers;
+    @SuppressWarnings("serial") public static final AllocatableValue UNUSED = new AllocatableValue(Kind.Illegal) {
+
+        @Override
+        public String toString() {
+            return "-";
+        }
+    };
+
+    public AllocatableValue(Kind kind) {
+        super(kind);
     }
 
-    @Override
-    public Object getLocationIdentity() {
-        return LocationNode.ANY_LOCATION;
-    }
-
-    @Override
-    public void generate(LIRGeneratorTool generator) {
-        generator.emitMembar(barriers);
-    }
-
-    @NodeIntrinsic
-    public static native void memoryBarrier(@ConstantNodeParameter int barriers);
 }
