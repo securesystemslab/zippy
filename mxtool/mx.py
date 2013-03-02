@@ -2474,6 +2474,25 @@ def ideinit(args, suite=None):
     """(re)generate Eclipse and NetBeans project configurations"""
     eclipseinit(args, suite)
     netbeansinit(args, suite)
+    fsckprojects([])
+
+def fsckprojects(args):
+    """find directories corresponding to deleted Java projects and delete them"""
+    for suite in suites():
+        projectDirs = [p.dir for p in suite.projects]
+        for root, dirnames, files in os.walk(suite.dir):
+            currentDir = join(suite.dir, root)
+            if currentDir in projectDirs:
+                # don't traverse subdirs of an existing project
+                dirnames[:] = []
+            else:
+                projectConfigFiles = frozenset(['.classpath', 'nbproject'])
+                indicators = projectConfigFiles.intersection(files)
+                if len(indicators) != 0:
+                    response = raw_input(currentDir + ' looks like a removed project -- delete it? [yn]: ')
+                    if 'y' == response:
+                        shutil.rmtree(currentDir)
+                        log('Deleted ' + currentDir)
 
 def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
     """generate javadoc for some/all Java projects"""
@@ -2926,6 +2945,7 @@ commands = {
     'eclipseinit': [eclipseinit, ''],
     'eclipseformat': [eclipseformat, ''],
     'findclass': [findclass, ''],
+    'fsckprojects': [fsckprojects, ''],
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
