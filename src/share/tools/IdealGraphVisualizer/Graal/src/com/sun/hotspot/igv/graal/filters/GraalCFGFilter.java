@@ -45,7 +45,6 @@ public class GraalCFGFilter extends AbstractFilter {
         Set<Connection> connectionsToRemove = new HashSet<>();
         for (Figure f : d.getFigures()) {
             final String prop = f.getProperties().get("probability");
-            
             if (prop == null) {
                 figuresToRemove.add(f);
             }
@@ -54,7 +53,15 @@ public class GraalCFGFilter extends AbstractFilter {
         
         for (Figure f : d.getFigures()) {
             Properties p = f.getProperties();
-            int predCount = Integer.parseInt(p.get("predecessorCount"));
+            int predCount;
+            String predCountString = p.get("predecessorCount");
+            if (predCountString != null) {
+                predCount = Integer.parseInt(predCountString);
+            } else if (Boolean.parseBoolean(p.get("hasPredecessor"))) {
+                predCount = 1;
+            } else {
+                predCount = 0;
+            }
             for (InputSlot is : f.getInputSlots()) {
                 if (is.getPosition() >= predCount && !"EndNode".equals(is.getProperties().get("class"))) {
                     for (Connection c : is.getConnections()) {
