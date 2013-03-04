@@ -77,6 +77,8 @@ _copyrightTemplate = """/*
 
 """
 
+_minVersion = mx.JavaVersion('1.7.0_04')
+
 def _chmodDir(chmodFlags, dirname, fnames):
     os.chmod(dirname, chmodFlags)
     for name in fnames:
@@ -91,7 +93,7 @@ def clean(args):
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
         mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
-        jdks = join(_graal_home, 'jdk' + mx.java().version)
+        jdks = join(_graal_home, 'jdk' + str(mx.java().version))
         if exists(jdks):
             shutil.rmtree(jdks)
 
@@ -318,7 +320,7 @@ def _jdk(build='product', create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
-    jdk = join(_graal_home, 'jdk' + mx.java().version, build)
+    jdk = join(_graal_home, 'jdk' + str(mx.java().version), build)
     jdkContents = ['bin', 'include', 'jre', 'lib']
     if (exists(join(jdk, 'db'))):
         jdkContents.append('db')
@@ -435,7 +437,7 @@ def jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
 
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    print join(_graal_home, 'jdk' + mx.java().version, build)
+    print join(_graal_home, 'jdk' + str(mx.java().version), build)
 
 def build(args, vm=None):
     """build the VM binary
@@ -1168,23 +1170,10 @@ def mx_init():
 
     mx.commands.update(commands)
 
-def mx_post_parse_cmd_line(opts):
-    version = mx.java().version.split('-')[0]
-    parts = version.split('.')
-    assert len(parts) >= 2
-    assert parts[0] == '1'
-    major = int(parts[1])
-    minor = 0
-    update = 0
-    if len(parts) >= 3:
-        minorParts = parts[2].split('_')
-        if len(minorParts) >= 1:
-            minor = int(minorParts[0])
-        if len(minorParts) >= 2:
-            update = int(minorParts[1])
-    
-    if (not major >= 7) or (major == 7 and minor == 0 and not update >= 4) :
-        mx.abort('Requires Java version 1.7.0_04 or greater, got version ' + version)
+def mx_post_parse_cmd_line(opts):#
+    # TODO _minVersion check could probably be part of a Suite in mx?
+    if (mx.java().version < _minVersion) :
+        mx.abort('Requires Java version ' + str(_minVersion) + ' or greater, got version ' + str(mx.java().version))
 
     if (_vmSourcesAvailable):
         if hasattr(opts, 'vm') and opts.vm is not None:
