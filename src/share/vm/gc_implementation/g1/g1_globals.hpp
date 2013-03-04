@@ -41,10 +41,10 @@
   develop(intx, G1MarkingVerboseLevel, 0,                                   \
           "Level (0-4) of verboseness of the marking code")                 \
                                                                             \
-  develop(bool, G1PrintReachableAtInitialMark, false,                       \
+  develop(bool, G1PrintReachableAtInitialMark, true,                       \
           "Reachable object dump at the initial mark pause")                \
                                                                             \
-  develop(bool, G1VerifyDuringGCPrintReachable, false,                      \
+  develop(bool, G1VerifyDuringGCPrintReachable, true,                      \
           "If conc mark verification fails, dump reachable objects")        \
                                                                             \
   develop(ccstr, G1PrintReachableBaseFile, NULL,                            \

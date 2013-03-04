@@ -2670,6 +2670,7 @@ JNI_ENTRY(jobject, jni_GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID
 
     if (needs_barrier) {
       oop referent = JNIHandles::resolve(ret);
+      tty->print_cr("ENQUEUE in jni");
       G1SATBCardTableModRefBS::enqueue(referent);
     }
   }

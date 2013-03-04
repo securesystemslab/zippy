@@ -160,6 +160,16 @@ do {                                                                         \
 } while (0)
 #endif // #ifndef USE_REPEATED_ASSERTS
 
+#define assert1(p, msg)
+do {                                                                         \
+  for (int __i = 0; __i < AssertRepeat; __i++) {                             \
+    if (!(p)) {                                                              \
+      report_vm_error(__FILE__, __LINE__, "assert(" #p ") failed", msg);     \
+      BREAKPOINT;                                                            \
+    }                                                                        \
+  }                                                                          \
+} while (0)
+
 // This version of assert is for use with checking return status from
 // library calls that return actual error values eg. EINVAL,
 // ENOMEM etc, rather than returning -1 and setting errno.

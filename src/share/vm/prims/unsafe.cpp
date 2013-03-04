@@ -208,6 +208,8 @@ UNSAFE_ENTRY(jobject, Unsafe_GetObject140(JNIEnv *env, jobject unsafe, jobject o
     }
 
     if (needs_barrier) {
+      tty->print_cr("GENERATE PRE BARRIER UNSAFE");
+
       oop referent = JNIHandles::resolve(ret);
       G1SATBCardTableModRefBS::enqueue(referent);
     }
@@ -266,6 +268,8 @@ UNSAFE_ENTRY(jobject, Unsafe_GetObject(JNIEnv *env, jobject unsafe, jobject obj,
     }
 
     if (needs_barrier) {
+      tty->print_cr("GENERATE PRE BARRIER UNSAFE");
+
       oop referent = JNIHandles::resolve(ret);
       G1SATBCardTableModRefBS::enqueue(referent);
     }

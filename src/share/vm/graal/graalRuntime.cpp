@@ -29,7 +29,7 @@
 #include "prims/jvm.h"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/interfaceSupport.hpp"
-
+#include "utilities/debug.hpp"
 // Implementation of GraalStubAssembler
 
 GraalStubAssembler::GraalStubAssembler(CodeBuffer* code, const char * name, int stub_id) : MacroAssembler(code) {
@@ -483,14 +483,32 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::graal_monitorenter(JavaThread* thread, oo
   }
 JRT_END
 
+static const bool TRACE_WB=true;
+
 JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
-    tty->print_cr("HELLO PRE WRITE BARRIER");
+if(TRACE_WB) tty->print_cr("HELLO PRE WRITE BARRIER");
     SharedRuntime::g1_wb_pre(obj, thread);
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
-    tty->print_cr("HELLO POST WRITE BARRIER Card address 0x%016lx", card_addr);
+    if(TRACE_WB) tty->print_cr("HELLO POST WRITE BARRIER Card address 0x%016lx", card_addr);
     thread->dirty_card_queue().enqueue(card_addr);
+//if(!((CardTableModRefBS*)(Universe::heap()->barrier_set()))->is_valid_card_address(obj,(signed char*)card_addr)) {
+//  tty->print_cr("Invalid worker start card");
+//}
+
+
+JRT_END
+
+JRT_LEAF(void, GraalRuntime::graal_ver_oop(JavaThread* thread, oopDesc* obj))
+if(!TRACE_WB) return;
+if(obj==NULL) tty->print_cr("ERROR NULL in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
+if (obj!=NULL &&!obj->is_oop()) {
+  tty->print_cr("ERROR in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
+
+}else {
+  tty->print_cr("PASS in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
+}
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
@@ -526,6 +544,14 @@ JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj,
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::graal_log_object(JavaThread* thread, oop obj, jint flags))
+if (!obj->is_oop()) {
+  tty->print_cr("ERROR in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
+
+}else {
+  tty->print_cr("WIN in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
+}
+
+if(obj==NULL) return;
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
   bool address = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
   bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);

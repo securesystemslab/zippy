@@ -3761,12 +3761,14 @@ void GraphKit::g1_write_barrier_post(Node* oop_store,
         Node* card_val = __ load(__ ctrl(), card_adr, TypeInt::INT, T_BYTE, Compile::AliasIdxRaw);
 
         __ if_then(card_val, BoolTest::ne, zero); {
+          tty->print_cr("Object hotspot mark card");
           g1_mark_card(ideal, card_adr, oop_store, alias_idx, index, index_adr, buffer, tf);
         } __ end_if();
       } __ end_if();
     } __ end_if();
   } else {
     // Object.clone() instrinsic uses this path.
+    tty->print_cr("Object clone mark card");
     g1_mark_card(ideal, card_adr, oop_store, alias_idx, index, index_adr, buffer, tf);
   }
 

@@ -1195,17 +1195,17 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
    case graal_wb_pre_call_id: {
       Register obj = j_rarg0;
       {
-       // GraalStubFrame f(sasm, "graal_wb_pre_call", dont_gc_arguments);
-        //OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
+        GraalStubFrame f(sasm, "graal_wb_pre_call", dont_gc_arguments);
+        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
         // note: really a leaf routine but must setup last java sp
         //       => use call_RT for now (speed can be improved by
         //       doing last java sp setup manually)
         int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_wb_pre_call), obj);
 
-        //oop_maps = new OopMapSet();
-        //oop_maps->add_gc_map(call_offset, map);
-        //restore_live_registers(sasm, save_fpu_registers);
+        oop_maps = new OopMapSet();
+        oop_maps->add_gc_map(call_offset, map);
+        restore_live_registers(sasm, save_fpu_registers);
       }
       __ ret(0);
       break;
@@ -1213,21 +1213,39 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
    case graal_wb_post_call_id: {
       Register obj = j_rarg0;
       {
-       // GraalStubFrame f(sasm, "graal_wb_post_call", dont_gc_arguments);
-        //OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
+        GraalStubFrame f(sasm, "graal_wb_post_call", dont_gc_arguments);
+        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
         // note: really a leaf routine but must setup last java sp
         //       => use call_RT for now (speed can be improved by
         //       doing last java sp setup manually)
         int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_wb_post_call), obj);
 
-        //oop_maps = new OopMapSet();
-        //oop_maps->add_gc_map(call_offset, map);
-       // restore_live_registers(sasm, save_fpu_registers);
+        oop_maps = new OopMapSet();
+        oop_maps->add_gc_map(call_offset, map);
+       restore_live_registers(sasm, save_fpu_registers);
       }
       __ ret(0);
       break;
    }
+   case graal_ver_oop_id: {
+         Register obj = j_rarg0;
+         {
+           GraalStubFrame f(sasm, "graal_wb_post_call", dont_gc_arguments);
+           OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
+
+           // note: really a leaf routine but must setup last java sp
+           //       => use call_RT for now (speed can be improved by
+           //       doing last java sp setup manually)
+           int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_ver_oop), obj);
+
+           oop_maps = new OopMapSet();
+           oop_maps->add_gc_map(call_offset, map);
+           restore_live_registers(sasm, save_fpu_registers);
+         }
+         __ ret(0);
+         break;
+      }
    case graal_identity_hash_code_id: {
       Register obj = j_rarg0; // Incoming
       __ set_info("identity_hash_code", dont_gc_arguments);
