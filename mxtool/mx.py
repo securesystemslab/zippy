@@ -1001,6 +1001,24 @@ class JavaCompliance:
             other = JavaCompliance(other)
 
         return cmp(self.value, other.value)
+    
+"""
+A Java version as defined in JSR-56
+"""
+class JavaVersion:
+    def __init__(self, versionString):
+        validChar = '[\x21-\x25\x27-\x29\x2c\x2f-\x5e\x60-\x7f]'
+        separator = '[.-_]'
+        m = re.match(validChar + '+(' + separator + validChar + '+)*', versionString)
+        assert m is not None, 'not a recognized version string: ' + versionString
+        self.versionString = versionString;
+        self.parts = versionString.split(separator)
+        
+    def __str__(self):
+        return self.versionString
+    
+    def __cmp__(self, other):
+        return cmp(self.parts, other.parts)
 
 """
 A JavaConfig object encapsulates info on how Java commands are run.
@@ -1039,8 +1057,8 @@ class JavaConfig:
 
         output = output.split()
         assert output[1] == 'version'
-        self.version = output[2].strip('"')
-        self.javaCompliance = JavaCompliance(self.version)
+        self.version = JavaVersion(output[2].strip('"'))
+        self.javaCompliance = JavaCompliance(self.version.versionString)
 
         if self.debug_port is not None:
             self.java_args += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(self.debug_port)]
@@ -2303,7 +2321,7 @@ def netbeansinit(args, suite=None):
         updated = update_file(join(p.dir, 'nbproject', 'project.xml'), out.xml(indent='    ', newl='\n')) or updated
 
         out = StringIO.StringIO()
-        jdkPlatform = 'JDK_' + java().version
+        jdkPlatform = 'JDK_' + str(java().version)
 
         annotationProcessorEnabled = "false"
         annotationProcessorReferences = ""
@@ -2444,7 +2462,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
     if updated:
         log('If using NetBeans:')
-        log('  1. Ensure that a platform named "JDK ' + java().version + '" is defined (Tools -> Java Platforms)')
+        log('  1. Ensure that a platform named "JDK_' + str(java().version) + '" is defined (Tools -> Java Platforms)')
         log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
 def ideclean(args, suite=None):
