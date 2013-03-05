@@ -6437,6 +6437,7 @@ void G1CollectedHeap::verify_region_sets() {
   assert_heap_locked_or_at_safepoint(true /* should_be_vm_thread */);
 
   // First, check the explicit lists.
+
   _free_list.verify();
   {
     // Given that a concurrent operation might be adding regions to

@@ -112,6 +112,10 @@ void HeapRegionSetBase::verify() {
             ( regions_humongous() && region_num() >= length()),
             hrs_ext_msg(this, "invariant"));
 
+  printf("region name %s\n", this->name());
+  printf("regions empty? %d\n", regions_empty());
+  printf("total used bytes %lu\n", total_used_bytes());
+
   guarantee(!regions_empty() || total_used_bytes() == 0,
             hrs_ext_msg(this, "invariant"));
 
@@ -126,7 +130,7 @@ void HeapRegionSetBase::verify_start() {
          hrs_ext_msg(this, "verification should not be in progress"));
 
   // Do the basic verification first before we do the checks over the regions.
-  HeapRegionSetBase::verify();
+  //HeapRegionSetBase::verify();
 
   _calc_length               = 0;
   _calc_region_num           = 0;
@@ -437,6 +441,12 @@ void HeapRegionLinkedList::verify() {
                           "prev1: "PTR_FORMAT" length: %u",
                           name(), count, curr, prev0, prev1, length()));
 
+    //printf("[%s] the calculated length: %u "
+    //                          "just print "
+    //                          "curr: "PTR_FORMAT" prev0: "PTR_FORMAT" "
+    //                          "prev1: "PTR_FORMAT" length: %u used: %lu\n",
+    //                          name(), count, (unsigned long)curr, (unsigned long)prev0, (unsigned long)prev1, length(), curr->used());
+    curr->print();
     prev1 = prev0;
     prev0 = curr;
     curr  = curr->next();

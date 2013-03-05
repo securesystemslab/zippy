@@ -197,7 +197,7 @@
   develop(bool, G1RecordHRRSOops, false,                                    \
           "When true, record recent calls to rem set operations.")          \
                                                                             \
-  develop(bool, G1RecordHRRSEvents, false,                                  \
+  develop(bool, G1RecordHRRSEvents, true,                                  \
           "When true, record recent calls to rem set operations.")          \
                                                                             \
   develop(intx, G1MaxVerifyFailures, -1,                                    \
@@ -221,7 +221,7 @@
           "It determines the minimum reserve we should have in the heap "   \
           "to minimize the probability of promotion failure.")              \
                                                                             \
-  diagnostic(bool, G1PrintHeapRegions, false,                               \
+  diagnostic(bool, G1PrintHeapRegions, true,                               \
           "If set G1 will print information on which regions are being "    \
           "allocated and which are reclaimed.")                             \
                                                                             \

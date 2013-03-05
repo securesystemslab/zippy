@@ -493,11 +493,6 @@ JRT_END
 JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
     if(TRACE_WB) tty->print_cr("HELLO POST WRITE BARRIER Card address 0x%016lx", card_addr);
     thread->dirty_card_queue().enqueue(card_addr);
-//if(!((CardTableModRefBS*)(Universe::heap()->barrier_set()))->is_valid_card_address(obj,(signed char*)card_addr)) {
-//  tty->print_cr("Invalid worker start card");
-//}
-
-
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_ver_oop(JavaThread* thread, oopDesc* obj))
@@ -505,9 +500,6 @@ if(!TRACE_WB) return;
 if(obj==NULL) tty->print_cr("ERROR NULL in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
 if (obj!=NULL &&!obj->is_oop()) {
   tty->print_cr("ERROR in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
-
-}else {
-  tty->print_cr("PASS in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
 }
 JRT_END
 
