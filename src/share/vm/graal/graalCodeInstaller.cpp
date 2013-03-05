@@ -575,13 +575,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
   DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
-  GrowableArray<DeferredWriteValue*>* deferred_writes = new GrowableArray<DeferredWriteValue*> ();
-//  deferred_writes->append(new DeferredWriteValue(new LocationValue(Location::new_reg_loc(Location::lng, rax->as_VMReg())), new ConstantIntValue(0), 0, 100, new ConstantIntValue(123)));
-  DebugToken* deferred_writes_token = _debug_recorder->create_deferred_writes(deferred_writes);
-
   bool throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
 
-  _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token, deferred_writes_token);
+  _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {

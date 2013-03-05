@@ -213,29 +213,6 @@ int DebugInformationRecorder::serialize_scope_values(GrowableArray<ScopeValue*>*
   return result;
 }
 
-#ifdef GRAAL
-
-int DebugInformationRecorder::serialize_deferred_writes(GrowableArray<DeferredWriteValue*>* deferred_writes) {
-  if (deferred_writes == NULL || deferred_writes->is_empty()) return DebugInformationRecorder::serialized_null;
-  assert(_recording_state == rs_safepoint, "must be recording a safepoint");
-  int result = stream()->position();
-  assert(result != serialized_null, "sanity");
-  stream()->write_int(deferred_writes->length());
-  for (int index = 0; index < deferred_writes->length(); index++) {
-    deferred_writes->at(index)->write_on(stream());
-  }
-
-  // (See comment below on DebugInformationRecorder::describe_scope.)
-  int shared_result = find_sharable_decode_offset(result);
-  if (shared_result != serialized_null) {
-    stream()->set_position(result);
-    result = shared_result;
-  }
-
-  return result;
-}
-
-#endif // GRAAL
 
 #ifndef PRODUCT
 // These variables are put into one block to reduce relocations
@@ -313,9 +290,6 @@ void DebugInformationRecorder::describe_scope(int         pc_offset,
                                               DebugToken* locals,
                                               DebugToken* expressions,
                                               DebugToken* monitors
-#ifdef GRAAL
-                                              , DebugToken* deferred_writes
-#endif // GRAAL
                                               ) {
   assert(_recording_state != rs_null, "nesting of recording calls");
   PcDesc* last_pd = last_pc();
@@ -355,9 +329,6 @@ void DebugInformationRecorder::describe_scope(int         pc_offset,
   stream()->write_int((intptr_t) locals);
   stream()->write_int((intptr_t) expressions);
   stream()->write_int((intptr_t) monitors);
-#ifdef GRAAL
-  stream()->write_int((intptr_t) deferred_writes);
-#endif // GRAAL
 
   // Here's a tricky bit.  We just wrote some bytes.
   // Wouldn't it be nice to find that we had already
@@ -439,14 +410,6 @@ DebugToken* DebugInformationRecorder::create_monitor_values(GrowableArray<Monito
   return (DebugToken*) (intptr_t) serialize_monitor_values(monitors);
 }
 
-#ifdef GRAAL
-
-DebugToken* DebugInformationRecorder::create_deferred_writes(GrowableArray<DeferredWriteValue*>* deferred_writes) {
-  assert(!recorders_frozen(), "not frozen yet");
-  return (DebugToken*) (intptr_t) serialize_deferred_writes(deferred_writes);
-}
-
-#endif // GRAAL
 
 int DebugInformationRecorder::data_size() {
   debug_only(mark_recorders_frozen());  // mark it "frozen" for asserts

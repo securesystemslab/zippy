@@ -73,9 +73,6 @@ void ScopeDesc::decode_body() {
     _locals_decode_offset = DebugInformationRecorder::serialized_null;
     _expressions_decode_offset = DebugInformationRecorder::serialized_null;
     _monitors_decode_offset = DebugInformationRecorder::serialized_null;
-#ifdef GRAAL
-    _deferred_writes_decode_offset = DebugInformationRecorder::serialized_null;
-#endif // GRAAL
   } else {
     // decode header
     DebugInfoReadStream* stream  = stream_at(decode_offset());
@@ -88,9 +85,6 @@ void ScopeDesc::decode_body() {
     _locals_decode_offset      = stream->read_int();
     _expressions_decode_offset = stream->read_int();
     _monitors_decode_offset    = stream->read_int();
-#ifdef GRAAL
-    _deferred_writes_decode_offset = stream->read_int();
-#endif // GRAAL
   }
 }
 
