@@ -344,7 +344,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code);
+    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code);
 
   method->clear_queued_for_compilation();
 }
@@ -688,9 +688,8 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
     TRACE_graal_3("method call");
     switch (_next_call_type) {
-      case MARK_INLINE_INVOKEVIRTUAL: {
+      case MARK_INLINE_INVOKE:
         break;
-      }
       case MARK_INVOKEVIRTUAL:
       case MARK_INVOKEINTERFACE: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
@@ -700,23 +699,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
         _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc), Assembler::call32_operand);
         break;
       }
-      case MARK_INVOKESTATIC: {
-        assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
-
-        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-        call->set_destination(SharedRuntime::get_resolve_static_call_stub());
-        _instructions->relocate(call->instruction_address(), relocInfo::static_call_type, Assembler::call32_operand);
-        break;
-      }
-      case MARK_INVOKESPECIAL: {
-        assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
-
-        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-        call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
-        _instructions->relocate(call->instruction_address(), relocInfo::opt_virtual_call_type, Assembler::call32_operand);
-        break;
-      }
-      case MARK_INVOKE_INVALID:
       default:
         fatal("invalid _next_call_type value");
         break;
@@ -816,14 +798,6 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_DEOPT_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
-      case MARK_STATIC_CALL_STUB: {
-        _instructions->relocate(instruction, metadata_Relocation::spec_for_immediate());
-        assert(references->length() == 1, "static call stub needs one reference");
-        oop ref = ((oop*) references->base(T_OBJECT))[0];
-        address call_pc = _instructions->start() + CompilationResult_Site::pcOffset(ref);
-        _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
-        break;
-      }
       case MARK_INVOKEVIRTUAL:
       case MARK_INVOKEINTERFACE: {
         // Convert the initial value of the Klass* slot in an inline cache
@@ -832,15 +806,9 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         assert(n_copy->data() == 0, "inline cache Klass* initial value should be 0L");
         n_copy->set_data((intptr_t)Universe::non_oop_word());
       }
-      case MARK_INLINE_INVOKEVIRTUAL:
-      case MARK_INVOKE_INVALID:
-      case MARK_INVOKESPECIAL:
-      case MARK_INVOKESTATIC:
+      case MARK_INLINE_INVOKE:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = instruction;
-        break;
-      case MARK_IMPLICIT_NULL:
-        _implicit_exception_table.append(pc_offset, pc_offset);
         break;
       case MARK_POLL_NEAR: {
         NativeInstruction* ni = nativeInstruction_at(instruction);

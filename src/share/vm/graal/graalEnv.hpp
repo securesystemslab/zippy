@@ -138,7 +138,6 @@ public:
                        int                       frame_words,
                        OopMapSet*                oop_map_set,
                        ExceptionHandlerTable*    handler_table,
-                       ImplicitExceptionTable*   inc_table,
                        AbstractCompiler*         compiler,
                        DebugInformationRecorder* debug_info,
                        Dependencies*             dependencies,

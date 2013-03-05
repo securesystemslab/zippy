@@ -31,24 +31,19 @@ class CodeInstaller {
 private:
   // these need to correspond to Marks.java
   enum MarkId {
-    MARK_VERIFIED_ENTRY             = 0x0001,
-    MARK_UNVERIFIED_ENTRY           = 0x0002,
-    MARK_OSR_ENTRY                  = 0x0003,
-  //MARK_UNWIND_ENTRY               = 0x0004,
-    MARK_EXCEPTION_HANDLER_ENTRY    = 0x0005,
-    MARK_DEOPT_HANDLER_ENTRY        = 0x0006,
-    MARK_STATIC_CALL_STUB           = 0x1000,
-    MARK_INVOKE_INVALID             = 0x2000,
-    MARK_INVOKEINTERFACE            = 0x2001,
-    MARK_INVOKESTATIC               = 0x2002,
-    MARK_INVOKESPECIAL              = 0x2003,
-    MARK_INVOKEVIRTUAL              = 0x2004,
-    MARK_INLINE_INVOKEVIRTUAL       = 0x2005,
-    MARK_IMPLICIT_NULL              = 0x3000,
-    MARK_POLL_NEAR                  = 0x3001,
-    MARK_POLL_RETURN_NEAR           = 0x3002,
-    MARK_POLL_FAR                   = 0x3003,
-    MARK_POLL_RETURN_FAR            = 0x3004
+    MARK_VERIFIED_ENTRY             = 1,
+    MARK_UNVERIFIED_ENTRY           = 2,
+    MARK_OSR_ENTRY                  = 3,
+    MARK_EXCEPTION_HANDLER_ENTRY    = 4,
+    MARK_DEOPT_HANDLER_ENTRY        = 5,
+    MARK_INVOKEINTERFACE            = 6,
+    MARK_INVOKEVIRTUAL              = 7,
+    MARK_INLINE_INVOKE              = 8,
+    MARK_POLL_NEAR                  = 9,
+    MARK_POLL_RETURN_NEAR           = 10,
+    MARK_POLL_FAR                   = 11,
+    MARK_POLL_RETURN_FAR            = 12,
+    MARK_INVOKE_INVALID             = -1
   };
 
   Arena         _arena;
@@ -77,7 +72,6 @@ private:
   DebugInformationRecorder* _debug_recorder;
   Dependencies*             _dependencies;
   ExceptionHandlerTable     _exception_handler_table;
-  ImplicitExceptionTable    _implicit_exception_table;
 
 public:
 

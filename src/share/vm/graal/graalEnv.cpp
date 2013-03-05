@@ -410,7 +410,6 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                 int frame_words,
                                 OopMapSet* oop_map_set,
                                 ExceptionHandlerTable* handler_table,
-                                ImplicitExceptionTable* inc_table,
                                 AbstractCompiler* compiler,
                                 DebugInformationRecorder* debug_info,
                                 Dependencies* dependencies,
@@ -455,7 +454,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
       //code_buffer->free_blob();
       return GraalEnv::dependencies_failed;
     }
-
+    ImplicitExceptionTable implicit_tbl;
     nm =  nmethod::new_nmethod(method,
                                compile_id,
                                entry_bci,
@@ -463,7 +462,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                orig_pc_offset,
                                debug_info, dependencies, code_buffer,
                                frame_words, oop_map_set,
-                               handler_table, inc_table,
+                               handler_table, &implicit_tbl,
                                compiler, comp_level, leaf_graph_ids, installed_code);
 
     // Free codeBlobs
