@@ -35,6 +35,7 @@
 #include "runtime/safepoint.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/macros.hpp"
+#include "utilities/machineCodePrinter.hpp"
 
 // Initialization done by VM thread in vm_init_globals()
 void check_ThreadShadow();

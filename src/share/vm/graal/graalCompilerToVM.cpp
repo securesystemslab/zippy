@@ -407,10 +407,6 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
     Handle type = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
     result = type();
-  } else if (tag.is_object()) {
-    oop obj = cp->object_at(index);
-    assert(obj->is_instance(), "must be an instance");
-    result = VMToCompiler::createConstantObject(obj, CHECK_NULL);
   } else {
     tty->print("unknown constant pool tag (%s) at cpi %d in %s: ", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string());
     ShouldNotReachHere();

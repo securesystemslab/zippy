@@ -760,13 +760,6 @@ bool MethodData::is_mature() const {
   return CompilationPolicy::policy()->is_mature(_method);
 }
 
-void MethodData::inc_decompile_count() {
-  _nof_decompiles += 1;
-  if (decompile_count() > (uint)PerMethodRecompilationCutoff) {
-    method()->set_not_compilable(CompLevel_full_optimization);
-  }
-}
-
 // Translate a bci to its corresponding data index (di).
 address MethodData::bci_to_dp(int bci) {
   ResourceMark rm;
