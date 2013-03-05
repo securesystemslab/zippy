@@ -903,7 +903,6 @@ class JavaThread: public Thread {
  private:
 
 #ifdef GRAAL
-  volatile oop _graal_deopt_info;
   address _graal_alternate_call_target;
   DebugScopedValue* _debug_scope;
 #endif
@@ -1282,9 +1281,6 @@ class JavaThread: public Thread {
   void set_deferred_card_mark(MemRegion mr)      { _deferred_card_mark = mr;   }
 
 #ifdef GRAAL
-  oop      graal_deopt_info() const              { return _graal_deopt_info; }
-  void set_graal_deopt_info(oop o)               { _graal_deopt_info = o; }
-  
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
 
   DebugScopedValue* debug_scope() const                { return _debug_scope; }
@@ -1375,7 +1371,6 @@ class JavaThread: public Thread {
   static ByteSize saved_exception_pc_offset()    { return byte_offset_of(JavaThread, _saved_exception_pc  ); }
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
 #ifdef GRAAL
-  static ByteSize graal_deopt_info_offset()      { return byte_offset_of(JavaThread, _graal_deopt_info    ); }
   static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
 #endif
 #ifdef HIGH_LEVEL_INTERPRETER

@@ -136,7 +136,6 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case OSR_migration_end_id:
     case arithmetic_frem_id:
     case arithmetic_drem_id:
-    case set_deopt_info_id:
       break;
 
     // All other stubs should have oopmaps

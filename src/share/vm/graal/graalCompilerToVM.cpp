@@ -724,7 +724,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_stub("unwindExceptionStub", GraalRuntime::entry_for(GraalRuntime::unwind_exception_call_id));
   set_stub("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::OSR_migration_end_id));
   set_stub("registerFinalizerStub", GraalRuntime::entry_for(GraalRuntime::register_finalizer_id));
-  set_stub("setDeoptInfoStub", GraalRuntime::entry_for(GraalRuntime::set_deopt_info_id));
   set_stub("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));
   set_stub("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
   set_stub("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));

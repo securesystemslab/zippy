@@ -1029,12 +1029,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case set_deopt_info_id: {
-    __ movptr(Address(r15_thread, JavaThread::graal_deopt_info_offset()), rscratch1);
-    __ ret(0);
-      break;
-    }
-
     case create_null_pointer_exception_id: {
 		__ enter();
 		oop_maps = new OopMapSet();
