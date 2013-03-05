@@ -132,25 +132,6 @@ GrowableArray<MonitorValue*>* ScopeDesc::decode_monitor_values(int decode_offset
   return result;
 }
 
-#ifdef GRAAL
-
-GrowableArray<DeferredWriteValue*>* ScopeDesc::decode_deferred_writes(int decode_offset) {
-  if (decode_offset == DebugInformationRecorder::serialized_null) return NULL;
-  DebugInfoReadStream* stream  = stream_at(decode_offset);
-  int length = stream->read_int();
-  GrowableArray<DeferredWriteValue*>* result = new GrowableArray<DeferredWriteValue*> (length);
-  for (int index = 0; index < length; index++) {
-    result->push(new DeferredWriteValue(stream));
-  }
-  return result;
-}
-
-GrowableArray<DeferredWriteValue*>* ScopeDesc::deferred_writes() {
-  return decode_deferred_writes(_deferred_writes_decode_offset);
-}
-
-#endif // GRAAL
-
 DebugInfoReadStream* ScopeDesc::stream_at(int decode_offset) const {
   return new DebugInfoReadStream(_code, decode_offset, _objects);
 }
@@ -261,19 +242,6 @@ void ScopeDesc::print_on(outputStream* st, PcDesc* pd) const {
     }
   }
 #endif // COMPILER2 || GRAAL
-#ifdef GRAAL
-  // deferred writes
-  { GrowableArray<DeferredWriteValue*>* l = ((ScopeDesc*) this)->deferred_writes();
-    if (l != NULL) {
-      st->print_cr("   Deferred writes");
-      for (int index = 0; index < l->length(); index++) {
-        st->print("    - @%d: ", index);
-        l->at(index)->print_on(st);
-        st->cr();
-      }
-    }
-  }
-#endif
 }
 
 #endif

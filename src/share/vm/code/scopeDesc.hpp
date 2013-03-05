@@ -78,9 +78,6 @@ class ScopeDesc : public ResourceObj {
   GrowableArray<ScopeValue*>*   expressions();
   GrowableArray<MonitorValue*>* monitors();
   GrowableArray<ScopeValue*>*   objects();
-#ifdef GRAAL
-  GrowableArray<DeferredWriteValue*>* deferred_writes();
-#endif // GRAAL
 
   // Stack walking, returns NULL if this is the outer most scope.
   ScopeDesc* sender() const;
