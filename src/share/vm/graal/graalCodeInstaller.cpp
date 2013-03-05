@@ -126,6 +126,10 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
         assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
         int index = oop_recorder->find_index(klass);
         TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
+      } else if (obj->is_a(HotSpotResolvedJavaMethod::klass())) {
+        Method* method = (Method*) (address) HotSpotResolvedJavaMethod::metaspaceMethod(obj);
+        int index = oop_recorder->find_index(method);
+        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), method->name()->as_C_string());
       } else {
         assert(java_lang_String::is_instance(obj),
             err_msg("unexpected annotation type (%s) for constant %ld (%p) of kind %c", obj->klass()->name()->as_C_string(), prim, prim, kind));
