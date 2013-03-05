@@ -1575,7 +1575,7 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
-    projects = set([])
+    projects = set()
     
     for p in sorted_deps():
         if _needsEclipseJarBuild(p):
@@ -1584,50 +1584,39 @@ def processorjars():
     if len(projects) <= 0:
         return
     
-    build(['--projects', ",".join(map(lambda p: p.name, projects))])
+    pnames = [p.name for p in projects]
+    build(['--projects', ",".join(pnames)])
+    jarprojects(pnames)
 
-    for p in projects:
-        targetJar = join(p.dir, p.name + '.jar')
-        jar(targetJar, [p.output_dir()])
+def jarprojects(args):
+    """create jar files for the output of one or more projects"""
+    parser = ArgumentParser(prog='mx jar');
+    parser.add_argument('-d', '--dest', help='single jar file to create')
+    parser.add_argument('projects', nargs=REMAINDER, metavar='projects...')
+    args = parser.parse_args(args)
+    
+    if not args.projects:
+        args.projects = [p.name for p in projects()]
+
+    if args.dest is not None:
+        zf = zipfile.ZipFile(args.dest, 'w')
+    
+    for pname in args.projects:
+        p = project(pname, fatalIfMissing=True)
+        if args.dest is None:
+            jar = join(p.dir, p.name + '.jar')
+            zf = zipfile.ZipFile(jar, 'w')
+        outputDir = p.output_dir()
+        for root, _, files in os.walk(outputDir):
+            for f in files:
+                relpath = root[len(outputDir) + 1:]
+                arcname = join(relpath, f).replace(os.sep, '/')
+                zf.write(join(root, f), arcname)
+        if args.dest is None:
+            zf.close()
             
-
-def jar(destFileName, dirs):
-    latestMod = _latestModification(dirs)
-    
-    if exists(destFileName):
-        mod = os.path.getmtime(destFileName)
-        if int(round(latestMod*1000)) == int(round(mod*1000)):
-            # nothing todo
-            return
-        
-    if latestMod is None and exists(destFileName):
-        return
-
-    jarCmd = [java().jar, 'cf', destFileName]
-    
-    for directory in dirs:
-        jarCmd += ['-C', directory, '.']
-    
-    subprocess.check_call(jarCmd)
-    log('Written jar file {0}'.format(destFileName))
-    
-    atime = os.path.getatime(destFileName)
-    os.utime(destFileName, (atime, latestMod))
-
-def _latestModification(directories):
-    latestMod = None
-    for directory in directories:
-        if not os.path.exists (directory):
-            continue
-        for root, _, files in os.walk(directory):
-                for names in files:
-                    filepath = os.path.join(root, names)
-                    mod = os.path.getmtime(filepath)
-                    if latestMod is None:
-                        latestMod = mod
-                    elif mod > latestMod:
-                        latestMod = mod
-    return latestMod
+    if args.dest is not None:
+        zf.close()
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -2213,7 +2202,7 @@ def _needsEclipseJarBuild(p):
 
 def _genEclipseJarBuild(p):
     builders = []
-    builders.append(_genEclipseLaunch(p, 'Jar.launch', ''.join(['jar ', p.name]), refresh = False, async = False))
+    builders.append(_genEclipseLaunch(p, 'Jar.launch', ''.join(['jarprojects ', p.name]), refresh = False, async = False))
     builders.append(_genEclipseLaunch(p, 'Refresh.launch', '', refresh = True, async = True))
     return builders
 
@@ -2967,6 +2956,7 @@ commands = {
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
+    'jarprojects': [jarprojects, '[options]'],
     'projectgraph': [projectgraph, ''],
     'javap': [javap, ''],
     'javadoc': [javadoc, '[options]'],

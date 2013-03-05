@@ -1096,20 +1096,6 @@ def jacocoreport(args):
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
-def jar(args):
-    parser = ArgumentParser(prog='mx jar');
-    parser.add_argument('projects', nargs=REMAINDER, metavar='projects...')
-    args = parser.parse_args(args)
-    
-    if not args.projects:
-        mx.abort('Please specify at least one project to jar.')
-    
-    for pname in args.projects:
-        p = mx.project(pname, fatalIfMissing=True)
-        outputDir = p.output_dir()
-        targetJar = join(p.dir, p.name + '.jar')
-        mx.jar(targetJar, [outputDir])
-
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1136,7 +1122,6 @@ def mx_init():
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
-        'jar': [jar, '[-options]'],
         #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
