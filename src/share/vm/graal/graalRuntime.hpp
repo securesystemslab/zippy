@@ -95,7 +95,6 @@ class GraalStubAssembler: public MacroAssembler {
   stub(monitorexit)             \
   stub(verify_oop)              \
   stub(vm_error)                \
-  stub(set_deopt_info)          \
   stub(create_null_pointer_exception) \
   stub(create_out_of_bounds_exception) \
   stub(log_object)              \
