@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -101,6 +101,8 @@ class LocalVariableTableElement;
 class AdapterHandlerEntry;
 class MethodData;
 class ConstMethod;
+class InlineTableSizes;
+class KlassSizeStats;
 
 class Method : public Metadata {
  friend class VMStructs;
@@ -131,8 +133,8 @@ class Method : public Metadata {
   int               _graal_priority;
 #endif
 #ifdef TIERED
-  jlong             _prev_time;                   // Previous time the rate was acquired
   float             _rate;                        // Events (invocation and backedge counter increments) per millisecond
+  jlong             _prev_time;                   // Previous time the rate was acquired
 #endif
 
 #ifndef PRODUCT
@@ -160,12 +162,7 @@ class Method : public Metadata {
   static Method* allocate(ClassLoaderData* loader_data,
                           int byte_code_size,
                           AccessFlags access_flags,
-                          int compressed_line_number_size,
-                          int localvariable_table_length,
-                          int exception_table_length,
-                          int checked_exceptions_length,
-                          int method_parameters_length,
-                          u2 generic_signature_index,
+                          InlineTableSizes* sizes,
                           ConstMethod::MethodType method_type,
                           TRAPS);
 
@@ -210,33 +207,17 @@ class Method : public Metadata {
 
   // annotations support
   AnnotationArray* annotations() const           {
-    InstanceKlass* ik = method_holder();
-    if (ik->annotations() == NULL) {
-      return NULL;
-    }
-    return ik->annotations()->get_method_annotations_of(method_idnum());
+    return constMethod()->method_annotations();
   }
   AnnotationArray* parameter_annotations() const {
-    InstanceKlass* ik = method_holder();
-    if (ik->annotations() == NULL) {
-      return NULL;
-    }
-    return ik->annotations()->get_method_parameter_annotations_of(method_idnum());
+    return constMethod()->parameter_annotations();
   }
   AnnotationArray* annotation_default() const    {
-    InstanceKlass* ik = method_holder();
-    if (ik->annotations() == NULL) {
-      return NULL;
-    }
-    return ik->annotations()->get_method_default_annotations_of(method_idnum());
+    return constMethod()->default_annotations();
   }
-  AnnotationArray* type_annotations() const {
-  InstanceKlass* ik = method_holder();
-  Annotations* type_annos = ik->type_annotations();
-  if (type_annos == NULL)
-    return NULL;
-  return type_annos->get_method_annotations_of(method_idnum());
-}
+  AnnotationArray* type_annotations() const      {
+    return constMethod()->type_annotations();
+  }
 
 #ifdef CC_INTERP
   void set_result_index(BasicType type);
@@ -450,13 +431,6 @@ class Method : public Metadata {
   address interpreter_entry() const              { return _i2i_entry; }
   // Only used when first initialize so we can set _i2i_entry and _from_interpreted_entry
   void set_interpreter_entry(address entry)      { _i2i_entry = entry;  _from_interpreted_entry = entry; }
-  int  interpreter_kind(void) {
-     return constMethod()->interpreter_kind();
-  }
-  void set_interpreter_kind();
-  void set_interpreter_kind(int kind) {
-    constMethod()->set_interpreter_kind(kind);
-  }
 
   // native function (used for native methods only)
   enum {
@@ -494,6 +468,8 @@ class Method : public Metadata {
   void print_codes_on(int from, int to, outputStream* st) const    PRODUCT_RETURN;
 
   // method parameters
+  bool has_method_parameters() const
+                         { return constMethod()->has_method_parameters(); }
   int method_parameters_length() const
                          { return constMethod()->method_parameters_length(); }
   MethodParametersElement* method_parameters_start() const
@@ -605,6 +581,9 @@ class Method : public Metadata {
   static int header_size()                       { return sizeof(Method)/HeapWordSize; }
   static int size(bool is_native);
   int size() const                               { return method_size(); }
+#if INCLUDE_SERVICES
+  void collect_statistics(KlassSizeStats *sz) const;
+#endif
 
   // interpreter support
   static ByteSize const_offset()                 { return byte_offset_of(Method, _constMethod       ); }
@@ -776,18 +755,18 @@ class Method : public Metadata {
   // whether it is not compilable for another reason like having a
   // breakpoint set in it.
   bool  is_not_compilable(int comp_level = CompLevel_any) const;
-  void set_not_compilable(int comp_level = CompLevel_all, bool report = true);
+  void set_not_compilable(int comp_level = CompLevel_all, bool report = true, const char* reason = NULL);
   void set_not_compilable_quietly(int comp_level = CompLevel_all) {
     set_not_compilable(comp_level, false);
   }
   bool  is_not_osr_compilable(int comp_level = CompLevel_any) const;
-  void set_not_osr_compilable(int comp_level = CompLevel_all, bool report = true);
+  void set_not_osr_compilable(int comp_level = CompLevel_all, bool report = true, const char* reason = NULL);
   void set_not_osr_compilable_quietly(int comp_level = CompLevel_all) {
     set_not_osr_compilable(comp_level, false);
   }
 
  private:
-  void print_made_not_compilable(int comp_level, bool is_osr, bool report);
+  void print_made_not_compilable(int comp_level, bool is_osr, bool report, const char* reason);
 
  public:
   bool  is_not_c1_compilable() const          { return access_flags().is_not_c1_compilable(); }
@@ -812,16 +791,15 @@ class Method : public Metadata {
   static bool has_unloaded_classes_in_signature(methodHandle m, TRAPS);
 
   // Printing
-  void print_short_name(outputStream* st = tty)  /*PRODUCT_RETURN*/; // prints as klassname::methodname; Exposed so field engineers can debug VM
+  void print_short_name(outputStream* st = tty); // prints as klassname::methodname; Exposed so field engineers can debug VM
+#if INCLUDE_JVMTI
+  void print_name(outputStream* st = tty); // prints as "virtual void foo(int)"; exposed for TraceRedefineClasses
+#else
   void print_name(outputStream* st = tty)        PRODUCT_RETURN; // prints as "virtual void foo(int)"
+#endif
 
   // Helper routine used for method sorting
-  static void sort_methods(Array<Method*>* methods,
-                           Array<AnnotationArray*>* methods_annotations,
-                           Array<AnnotationArray*>* methods_parameter_annotations,
-                           Array<AnnotationArray*>* methods_default_annotations,
-                           Array<AnnotationArray*>* methods_type_annotations,
-                           bool idempotent = false);
+  static void sort_methods(Array<Method*>* methods, bool idempotent = false);
 
   // Deallocation function for redefine classes or if an error occurs
   void deallocate_contents(ClassLoaderData* loader_data);

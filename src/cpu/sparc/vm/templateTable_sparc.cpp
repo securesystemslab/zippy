@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/stubRoutines.hpp"
 #include "runtime/synchronizer.hpp"
+#include "utilities/macros.hpp"
 
 #ifndef CC_INTERP
 #define __ _masm->
@@ -53,7 +54,7 @@ static void do_oop_store(InterpreterMacroAssembler* _masm,
   assert(tmp != val && tmp != base && tmp != index, "register collision");
   assert(index == noreg || offset == 0, "only one offset");
   switch (barrier) {
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
     case BarrierSet::G1SATBCT:
     case BarrierSet::G1SATBCTLogging:
       {
@@ -82,7 +83,7 @@ static void do_oop_store(InterpreterMacroAssembler* _masm,
         }
       }
       break;
-#endif // SERIALGC
+#endif // INCLUDE_ALL_GCS
     case BarrierSet::CardTableModRef:
     case BarrierSet::CardTableExtension:
       {
@@ -339,8 +340,6 @@ void TemplateTable::ldc(bool wide) {
 
   __ bind(notInt);
  // __ cmp(O2, JVM_CONSTANT_String);
-  __ brx(Assembler::equal, true, Assembler::pt, isString);
-  __ delayed()->cmp(O2, JVM_CONSTANT_Object);
   __ brx(Assembler::notEqual, true, Assembler::pt, notString);
   __ delayed()->ldf(FloatRegisterImpl::S, O0, O1, Ftos_f);
   __ bind(isString);

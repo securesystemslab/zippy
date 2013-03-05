@@ -32,7 +32,7 @@
 
 #define G1_FLAGS(develop, develop_pd, product, product_pd, diagnostic, experimental, notproduct, manageable, product_rw) \
                                                                             \
-  product(intx, G1ConfidencePercent, 50,                                    \
+  product(uintx, G1ConfidencePercent, 50,                                   \
           "Confidence level for MMU/pause predictions")                     \
                                                                             \
   develop(intx, G1MarkingOverheadPercent, 0,                                \
@@ -100,9 +100,6 @@
           "If the young survival rate is S, and there's room left in "      \
           "to-space, we will allow regions whose survival rate is up to "   \
           "S + (1 - S)*X, where X is this parameter (as a fraction.)")      \
-                                                                            \
-  develop(intx, G1InitYoungSurvRatio, 50,                                   \
-          "Expected Survival Rate for newly allocated bytes")               \
                                                                             \
   develop(bool, G1SATBPrintStubs, false,                                    \
           "If true, print generated stubs for the SATB barrier")            \
