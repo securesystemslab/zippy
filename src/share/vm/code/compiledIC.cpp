@@ -95,7 +95,7 @@ void CompiledIC::internal_set_ic_destination(address entry_point, bool is_icstub
   // Don't use ic_destination for this test since that forwards
   // through ICBuffer instead of returning the actual current state of
   // the CompiledIC.
-  if (is_icholder_entry(_ic_call->destination())) {
+  if (is_icholder_entry(_ic_call->destination()) && !_is_optimized) {
     // When patching for the ICStub case the cached value isn't
     // overwritten until the ICStub copied into the CompiledIC during
     // the next safepoint.  Make sure that the CompiledICHolder* is
@@ -125,6 +125,13 @@ void CompiledIC::internal_set_ic_destination(address entry_point, bool is_icstub
 #endif
   _ic_call->set_destination_mt_safe(entry_point);
 }
+
+#ifdef GRAAL
+  if (_value == NULL) {
+    // Can happen when Graal converted a virtual call into an invoke special based on static analysis.
+    return;
+  }
+#endif
 
   if (is_optimized() || is_icstub) {
     // Optimized call sites don't have a cache value and ICStub call
@@ -265,12 +272,14 @@ bool CompiledIC::is_call_to_interpreted() const {
     // Check if we are calling into our own codeblob (i.e., to a stub)
     CodeBlob* cb = CodeCache::find_blob(_ic_call->instruction_address());
     address dest = ic_destination();
+#ifndef GRAAL
 #ifdef ASSERT
     {
       CodeBlob* db = CodeCache::find_blob_unsafe(dest);
       assert(!db->is_adapter_blob(), "must use stub!");
     }
 #endif /* ASSERT */
+#endif
     is_call_to_interpreted = cb->contains(dest);
   }
   return is_call_to_interpreted;
@@ -551,7 +560,13 @@ bool CompiledStaticCall::is_call_to_interpreted() const {
 
 
 void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) {
+  set_destination_mt_safe(entry);
   address stub=find_stub();
+#ifdef GRAAL
+  if (stub == NULL) {
+    return;
+  }
+#endif
   assert(stub!=NULL, "stub not found");
 
   if (TraceICs) {
@@ -646,7 +661,11 @@ address CompiledStaticCall::find_stub() {
         case relocInfo::poll_type:
         case relocInfo::poll_return_type: // A safepoint can't overlap a call.
         default:
+#ifdef GRAAL
+          return NULL;
+#else
           ShouldNotReachHere();
+#endif
       }
     }
   }
@@ -702,9 +721,11 @@ void CompiledStaticCall::verify() {
 
   // Verify stub
   address stub = find_stub();
+#ifndef GRAAL
   assert(stub != NULL, "no stub found for static call");
   NativeMovConstReg* method_holder = nativeMovConstReg_at(stub);   // creation also verifies the object
   NativeJump*        jump          = nativeJump_at(method_holder->next_instruction_address());
+#endif
 
   // Verify state
   assert(is_clean() || is_call_to_compiled() || is_call_to_interpreted(), "sanity check");

@@ -38,11 +38,13 @@ private:
     MARK_DEOPT_HANDLER_ENTRY        = 5,
     MARK_INVOKEINTERFACE            = 6,
     MARK_INVOKEVIRTUAL              = 7,
-    MARK_INLINE_INVOKE              = 8,
-    MARK_POLL_NEAR                  = 9,
-    MARK_POLL_RETURN_NEAR           = 10,
-    MARK_POLL_FAR                   = 11,
-    MARK_POLL_RETURN_FAR            = 12,
+    MARK_INVOKESTATIC               = 8,
+    MARK_INVOKESPECIAL              = 9,
+    MARK_INLINE_INVOKE              = 10,
+    MARK_POLL_NEAR                  = 11,
+    MARK_POLL_RETURN_NEAR           = 12,
+    MARK_POLL_FAR                   = 13,
+    MARK_POLL_RETURN_FAR            = 14,
     MARK_INVOKE_INVALID             = -1
   };
 
