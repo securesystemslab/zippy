@@ -143,11 +143,35 @@ DEFAULT_JAVA_ARGS = '-ea -Xss2m -Xmx1g'
 
 _projects = dict()
 _libs = dict()
+_dists = dict()
 _suites = dict()
 _mainSuite = None
 _opts = None
 _java = None
 
+"""
+A distribution is a jar or zip file containing the output from one or more Java projects.
+"""
+class Distribution:
+    def __init__(self, suite, name, path, deps):
+        self.suite = suite
+        self.name = name
+        self.path = path.replace('/', os.sep)
+        if not isabs(self.path):
+            self.path = join(suite.dir, self.path)
+        self.deps = deps
+        self.update_listeners = set()
+        
+    def __str__(self):
+        return self.name
+    
+    def add_update_listener(self, listener):
+        self.update_listeners.add(listener)
+        
+    def notify_updated(self):
+        for l in self.update_listeners:
+            l(self)
+    
 """
 A dependency is a library or project specified in a suite.
 """
@@ -416,6 +440,7 @@ class Suite:
         self.dir = d
         self.projects = []
         self.libs = []
+        self.dists = []
         self.includes = []
         self.commands = None
         self.primary = primary
@@ -427,6 +452,7 @@ class Suite:
     def _load_projects(self, mxDir):
         libsMap = dict()
         projsMap = dict()
+        distsMap = dict()
         projectsFile = join(mxDir, 'projects')
         if not exists(projectsFile):
             return
@@ -447,8 +473,10 @@ class Suite:
                         m = projsMap
                     elif kind == 'library':
                         m = libsMap
+                    elif kind == 'distribution':
+                        m = distsMap
                     else:
-                        abort('Property name does not start with "project@" or "library@": ' + key)
+                        abort('Property name does not start with "project@", "library@" or "distribution@": ' + key)
 
                     attrs = m.get(name)
                     if attrs is None:
@@ -494,6 +522,13 @@ class Suite:
             l.__dict__.update(attrs)
             self.libs.append(l)
 
+        for name, attrs in distsMap.iteritems():
+            path = attrs.pop('path')
+            deps = pop_list(attrs, 'dependencies')
+            d = Distribution(self, name, path, deps)
+            d.__dict__.update(attrs)
+            self.dists.append(d)
+
     def _load_commands(self, mxDir):
         commands = join(mxDir, 'commands.py')
         if exists(commands):
@@ -536,8 +571,6 @@ class Suite:
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
-        if hasattr(self, 'mx_post_parse_cmd_line'):
-            self.mx_post_parse_cmd_line(opts)
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -549,6 +582,13 @@ class Suite:
             if existing is not None:
                 abort('cannot redefine library  ' + l.name)
             _libs[l.name] = l
+        for d in self.dists:
+            existing = _dists.get(l.name)
+            if existing is not None:
+                abort('cannot redefine distribution  ' + d.name)
+            _dists[d.name] = d
+        if hasattr(self, 'mx_post_parse_cmd_line'):
+            self.mx_post_parse_cmd_line(opts)
 
 class XMLElement(xml.dom.minidom.Element):
     def writexml(self, writer, indent="", addindent="", newl=""):
@@ -652,6 +692,16 @@ def projects():
     Get the list of all loaded projects.
     """
     return _projects.values()
+
+def distribution(name, fatalIfMissing=True):
+    """
+    Get the distribution for a given name. This will abort if the named distribution does
+    not exist and 'fatalIfMissing' is true.
+    """
+    d = _dists.get(name)
+    if d is None and fatalIfMissing:
+        abort('distribution named ' + name + ' not found')
+    return d
 
 def project(name, fatalIfMissing=True):
     """
@@ -1477,6 +1527,9 @@ def build(args, parser=None):
         finally:
             for n in toBeDeleted:
                 os.remove(n)
+                
+    for dist in _dists.values():
+        archive(['@' + dist.name])
 
     if suppliedParser:
         return args
@@ -1578,7 +1631,7 @@ def processorjars():
     projects = set()
     
     for p in sorted_deps():
-        if _needsEclipseJarBuild(p):
+        if _isAnnotationProcessorDependency(p):
             projects.add(p)
             
     if len(projects) <= 0:
@@ -1586,37 +1639,40 @@ def processorjars():
     
     pnames = [p.name for p in projects]
     build(['--projects', ",".join(pnames)])
-    jarprojects(pnames)
+    archive(pnames)
 
-def jarprojects(args):
-    """create jar files for the output of one or more projects"""
-    parser = ArgumentParser(prog='mx jar');
-    parser.add_argument('-d', '--dest', help='single jar file to create')
-    parser.add_argument('projects', nargs=REMAINDER, metavar='projects...')
+def archive(args):
+    """create jar files for projects and distributions"""
+    parser = ArgumentParser(prog='mx archive');
+    parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
     
-    if not args.projects:
-        args.projects = [p.name for p in projects()]
+    for name in args.names:
+        if name.startswith('@'):
+            dname = name[1:]
+            d = distribution(dname)
+            zf = zipfile.ZipFile(d.path, 'w')
+            for p in sorted_deps(d.deps):
+                outputDir = p.output_dir()
+                for root, _, files in os.walk(outputDir):
+                    for f in files:
+                        relpath = root[len(outputDir) + 1:]
+                        arcname = join(relpath, f).replace(os.sep, '/')
+                        zf.write(join(root, f), arcname)
+            zf.close()
+            d.notify_updated()
 
-    if args.dest is not None:
-        zf = zipfile.ZipFile(args.dest, 'w')
-    
-    for pname in args.projects:
-        p = project(pname, fatalIfMissing=True)
-        if args.dest is None:
+        else:
+            p = project(name)
+            outputDir = p.output_dir()
             jar = join(p.dir, p.name + '.jar')
             zf = zipfile.ZipFile(jar, 'w')
-        outputDir = p.output_dir()
-        for root, _, files in os.walk(outputDir):
-            for f in files:
-                relpath = root[len(outputDir) + 1:]
-                arcname = join(relpath, f).replace(os.sep, '/')
-                zf.write(join(root, f), arcname)
-        if args.dest is None:
+            for root, _, files in os.walk(outputDir):
+                for f in files:
+                    relpath = root[len(outputDir) + 1:]
+                    arcname = join(relpath, f).replace(os.sep, '/')
+                    zf.write(join(root, f), arcname)
             zf.close()
-            
-    if args.dest is not None:
-        zf.close()
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -1996,6 +2052,12 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
     if buildProcessorJars:
         processorjars()
 
+    projToDist = dict()
+    for dist in _dists.values():
+        distDeps = sorted_deps(dist.deps)
+        for p in distDeps:
+            projToDist[p.name] = (dist, [dep.name for dep in distDeps])
+
     for p in projects():
         if p.native:
             continue
@@ -2110,24 +2172,14 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 out.element('arguments', data='')
                 out.close('buildCommand')
 
-        if (_needsEclipseJarBuild(p)):
-            targetValues = _genEclipseJarBuild(p);
-            for value in targetValues:
-                out.open('buildCommand')
-                out.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
-                out.element('triggers', data='auto,full,incremental,')
-                out.open('arguments')
-                out.open('dictionary')
-                out.element('key', data = 'LaunchConfigHandle')
-                out.element('value', data = value)
-                out.close('dictionary')
-                out.open('dictionary')
-                out.element('key', data = 'incclean')
-                out.element('value', data = 'true')
-                out.close('dictionary')
-                out.close('arguments')
-                out.close('buildCommand')       
-                    
+        if _isAnnotationProcessorDependency(p):
+            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh = False, async = False)
+            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh = True, async = True)
+                       
+        if projToDist.has_key(p.name):
+            dist, distDeps = projToDist[p.name]
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
+        
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -2182,8 +2234,11 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
     make_eclipse_attach('localhost', '8000', deps=projects())
 
 
-def _needsEclipseJarBuild(p):
-    processors = set([])
+def _isAnnotationProcessorDependency(p):
+    """
+    Determines if a given project is part of an annotation processor.
+    """
+    processors = set()
     
     for otherProject in projects():
         if hasattr(otherProject, 'annotationProcessors') and len(otherProject.annotationProcessors) > 0:
@@ -2200,13 +2255,7 @@ def _needsEclipseJarBuild(p):
     
     return False
 
-def _genEclipseJarBuild(p):
-    builders = []
-    builders.append(_genEclipseLaunch(p, 'Jar.launch', ''.join(['jarprojects ', p.name]), refresh = False, async = False))
-    builders.append(_genEclipseLaunch(p, 'Refresh.launch', '', refresh = True, async = True))
-    return builders
-
-def _genEclipseLaunch(p, name, mxCommand, refresh=True, async=False):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False):
     launchOut = XMLDoc();
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
     if refresh:
@@ -2236,9 +2285,21 @@ def _genEclipseLaunch(p, name, mxCommand, refresh=True, async=False):
         os.makedirs(externalToolDir)
     update_file(join(externalToolDir, name), launchOut.xml(indent='\t', newl='\n'))
     
-    return ''.join(["<project>/.externalToolBuilders/", name])
-
-
+    dotProjectDoc.open('buildCommand')
+    dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
+    dotProjectDoc.element('triggers', data='auto,full,incremental,')
+    dotProjectDoc.open('arguments')
+    dotProjectDoc.open('dictionary')
+    dotProjectDoc.element('key', data = 'LaunchConfigHandle')
+    dotProjectDoc.element('value', data = '<project>/.externalToolBuilders/' + name)
+    dotProjectDoc.close('dictionary')
+    dotProjectDoc.open('dictionary')
+    dotProjectDoc.element('key', data = 'incclean')
+    dotProjectDoc.element('value', data = 'true')
+    dotProjectDoc.close('dictionary')
+    dotProjectDoc.close('arguments')
+    dotProjectDoc.close('buildCommand')
+    
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
 
@@ -2956,7 +3017,7 @@ commands = {
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
-    'jarprojects': [jarprojects, '[options]'],
+    'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
     'javap': [javap, ''],
     'javadoc': [javadoc, '[options]'],

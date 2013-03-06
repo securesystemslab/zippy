@@ -373,7 +373,19 @@ def _jdk(build='product', create=False):
     else:
         if not exists(jdk):
             mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx build ' + build + '\'')
+            
+    _installGraalJarInJdks(mx.distribution('GRAAL'))
+    
     return jdk
+
+def _installGraalJarInJdks(graalDist):
+    graalJar = graalDist.path
+    jdks = join(_graal_home, 'jdk' + str(mx.java().version))
+    if exists(jdks):
+        for e in os.listdir(jdks):
+            jreLibDir = join(jdks, e, 'jre', 'lib')
+            if exists(jreLibDir):
+                shutil.copyfile(graalJar, join(jreLibDir, 'graal.jar'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
@@ -487,25 +499,6 @@ def build(args, vm=None):
         def filterXusage(line):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
-
-        # Check that the declaration of graal_projects in arguments.cpp is up to date
-        argumentsCpp = join(_graal_home, 'src', 'share', 'vm', 'runtime', 'arguments.cpp')
-        assert exists(argumentsCpp), 'File does not exist: ' + argumentsCpp
-        with open(argumentsCpp) as fp:
-            source = fp.read();
-            decl = 'const char* graal_projects[] = {'
-            start = source.find(decl)
-            assert start != -1, 'Could not find "' + decl + '" in ' + fp.name
-            end = source.find('};', start)
-            assert end != -1, 'Could not find "' + decl + '" ... "};" in ' + fp.name
-            actual = frozenset(re.findall(r'"([^"]+)"', source[start + len(decl):end]))
-            expected = frozenset([p.name for p in mx.project('com.oracle.graal.hotspot.' + _arch()).all_deps([], False)])
-            missing = expected - actual
-            extra = actual - expected
-            if len(missing) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing project(s) to declaration:\n    ' + '\n    '.join(missing))
-            if len(extra) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove project(s) from declaration:\n    ' + '\n    '.join(extra))
 
         # Check if a build really needs to be done
         timestampFile = join(vmDir, '.build-timestamp')
@@ -656,6 +649,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     if '-d64' not in args:
         args = ['-d64'] + args
+
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     dbg = _native_dbg.split() if _native_dbg is not None else []
     return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
@@ -1173,3 +1167,5 @@ def mx_post_parse_cmd_line(opts):#
     _jacoco = opts.jacoco
     global _native_dbg
     _native_dbg = opts.native_dbg
+
+    mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
