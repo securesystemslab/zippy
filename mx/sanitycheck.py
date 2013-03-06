@@ -27,6 +27,8 @@ from outputparser import OutputParser, ValuesMatcher
 import re, mx, commands, os, sys, StringIO, subprocess
 from os.path import isfile, join, exists
 
+gc='UseG1GC'
+
 dacapoSanityWarmup = {
     'avrora':     [0, 0,  3,  6, 13],
     'batik':      [0, 0,  5,  5, 20],
@@ -106,7 +108,7 @@ def getSPECjbb2005(benchArgs = []):
     success = re.compile(r"^Valid run, Score is  [0-9]+$", re.MULTILINE)
     matcher = ValuesMatcher(score, {'group' : 'SPECjbb2005', 'name' : 'score', 'score' : '<score>'})
     classpath = ['jbb.jar', 'check.jar']
-    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
+    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+'+gc, '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
 
 def getSPECjbb2013(benchArgs = []):
     
@@ -119,7 +121,7 @@ def getSPECjbb2013(benchArgs = []):
     success = re.compile(r"org.spec.jbb.controller: Run finished", re.MULTILINE)
     matcherMax = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'max', 'score' : '<max>'})
     matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
-    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
+    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+'+gc, '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
     
 def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
@@ -143,7 +145,7 @@ def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, war
     if skipCheck:
         opts += ['-ict']
     
-    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+'+gc, '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -175,7 +177,7 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : 'DaCapo', 'name' : '<benchmark>', 'score' : '<time>'})
     dacapoMatcher1 = ValuesMatcher(dacapoTime1, {'group' : 'DaCapo-1stRun', 'name' : '<benchmark>', 'score' : '<time>'})
     
-    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
+    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -205,7 +207,7 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : "Scala-DaCapo", 'name' : '<benchmark>', 'score' : '<time>'})
     
-    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'])
+    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")

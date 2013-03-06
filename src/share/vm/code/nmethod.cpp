@@ -2475,7 +2475,9 @@ void nmethod::verify_interrupt_point(address call_site) {
     MutexLocker ml_verify (CompiledIC_lock);
     ic = CompiledIC_at(this, call_site);
   }
+
   PcDesc* pd = pc_desc_at(ic->end_of_call());
+ // if(pd!=NULL) {
   assert(pd != NULL, "PcDesc must exist");
   for (ScopeDesc* sd = new ScopeDesc(this, pd->scope_decode_offset(),
                                      pd->obj_decode_offset(), pd->should_reexecute(), pd->rethrow_exception(),
@@ -2483,6 +2485,7 @@ void nmethod::verify_interrupt_point(address call_site) {
        !sd->is_top(); sd = sd->sender()) {
     sd->verify();
   }
+  //}
 }
 
 void nmethod::verify_scopes() {

@@ -41,10 +41,10 @@
   develop(intx, G1MarkingVerboseLevel, 0,                                   \
           "Level (0-4) of verboseness of the marking code")                 \
                                                                             \
-  develop(bool, G1PrintReachableAtInitialMark, true,                       \
+  develop(bool, G1PrintReachableAtInitialMark, false,                       \
           "Reachable object dump at the initial mark pause")                \
                                                                             \
-  develop(bool, G1VerifyDuringGCPrintReachable, true,                      \
+  develop(bool, G1VerifyDuringGCPrintReachable, false,                      \
           "If conc mark verification fails, dump reachable objects")        \
                                                                             \
   develop(ccstr, G1PrintReachableBaseFile, NULL,                            \
@@ -197,7 +197,7 @@
   develop(bool, G1RecordHRRSOops, false,                                    \
           "When true, record recent calls to rem set operations.")          \
                                                                             \
-  develop(bool, G1RecordHRRSEvents, true,                                  \
+  develop(bool, G1RecordHRRSEvents, false,                                  \
           "When true, record recent calls to rem set operations.")          \
                                                                             \
   develop(intx, G1MaxVerifyFailures, -1,                                    \
@@ -221,7 +221,7 @@
           "It determines the minimum reserve we should have in the heap "   \
           "to minimize the probability of promotion failure.")              \
                                                                             \
-  diagnostic(bool, G1PrintHeapRegions, true,                               \
+  diagnostic(bool, G1PrintHeapRegions, false,                               \
           "If set G1 will print information on which regions are being "    \
           "allocated and which are reclaimed.")                             \
                                                                             \

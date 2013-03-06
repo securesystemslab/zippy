@@ -486,13 +486,15 @@ JRT_END
 static const bool TRACE_WB=true;
 
 JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
-if(TRACE_WB) tty->print_cr("HELLO PRE WRITE BARRIER");
+if(TRACE_WB) tty->print_cr("HELLO1 PRE WRITE BARRIER");
     SharedRuntime::g1_wb_pre(obj, thread);
+if(TRACE_WB) tty->print_cr("HELLO2 PRE WRITE BARRIER");
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
-    if(TRACE_WB) tty->print_cr("HELLO POST WRITE BARRIER Card address 0x%016lx", card_addr);
+    if(TRACE_WB) tty->print_cr("HELLO1 POST WRITE BARRIER Card address 0x%016lx", card_addr);
     thread->dirty_card_queue().enqueue(card_addr);
+    if(TRACE_WB) tty->print_cr("HELLO2 POST WRITE BARRIER Card address 0x%016lx", card_addr);
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_ver_oop(JavaThread* thread, oopDesc* obj))
