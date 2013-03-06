@@ -127,7 +127,6 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
   // Make sure that stubs that need oopmaps have them
   switch (id) {
     // These stubs don't need to have an oopmap
-    case slow_subtype_check_id:
 #if defined(SPARC) || defined(PPC)
     case handle_exception_nofpu_id:  // Unused on sparc
 #endif

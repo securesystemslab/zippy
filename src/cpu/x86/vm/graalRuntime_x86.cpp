@@ -46,12 +46,6 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
   assert(!(oop_result1->is_valid() || metadata_result->is_valid()) || oop_result1 != metadata_result, "registers must be different");
   assert(oop_result1 != thread && metadata_result != thread, "registers must be different");
   assert(args_size >= 0, "illegal args_size");
-  bool align_stack = false;
-#ifdef _LP64
-  // At a method handle call, the stack may not be properly aligned
-  // when returning with an exception.
-  align_stack = (stub_id() == false /*GraalRuntime::handle_exception_from_callee_id*/);
-#endif
 
 #ifdef _LP64
   mov(c_rarg0, thread);
@@ -65,20 +59,11 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
 #endif // _LP64
 
   int call_offset;
-  if (!align_stack) {
-    set_last_Java_frame(thread, noreg, rbp, NULL);
-  } else {
-    address the_pc = pc();
-    call_offset = offset();
-    set_last_Java_frame(thread, noreg, rbp, the_pc);
-    andptr(rsp, -(StackAlignmentInBytes));    // Align stack
-  }
+  set_last_Java_frame(thread, rsp, noreg, NULL);
 
   // do the call
   call(RuntimeAddress(entry));
-  if (!align_stack) {
-    call_offset = offset();
-  }
+  call_offset = offset();
   // verify callee-saved register
 #ifdef ASSERT
   guarantee(thread != rax, "change this code");
@@ -93,7 +78,7 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
   }
   pop(rax);
 #endif
-  reset_last_Java_frame(thread, true, align_stack);
+  reset_last_Java_frame(thread, true, false);
 
   // discard thread and arguments
   NOT_LP64(addptr(rsp, num_rt_args()*BytesPerWord));
@@ -356,6 +341,7 @@ static OopMap* generate_oop_map(GraalStubAssembler* sasm, int num_rt_args,
   map->set_callee_saved(VMRegImpl::stack2reg(rcx_off + num_rt_args), rcx->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rdx_off + num_rt_args), rdx->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rbx_off + num_rt_args), rbx->as_VMReg());
+  map->set_callee_saved(VMRegImpl::stack2reg(rbp_off + num_rt_args), rbp->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rsi_off + num_rt_args), rsi->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rdi_off + num_rt_args), rdi->as_VMReg());
 #ifdef _LP64
@@ -373,6 +359,7 @@ static OopMap* generate_oop_map(GraalStubAssembler* sasm, int num_rt_args,
   map->set_callee_saved(VMRegImpl::stack2reg(rcxH_off + num_rt_args), rcx->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rdxH_off + num_rt_args), rdx->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rbxH_off + num_rt_args), rbx->as_VMReg()->next());
+  map->set_callee_saved(VMRegImpl::stack2reg(rbpH_off + num_rt_args), rbp->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rsiH_off + num_rt_args), rsi->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rdiH_off + num_rt_args), rdi->as_VMReg()->next());
 
@@ -933,69 +920,10 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       }
       break;
 
-    case slow_subtype_check_id:
-      {
-        // Typical calling sequence:
-        // __ push(klass_RInfo);  // object klass or other subclass
-        // __ push(sup_k_RInfo);  // array element klass or other superclass
-        // __ call(slow_subtype_check);
-        // Note that the subclass is pushed first, and is therefore deepest.
-        // Previous versions of this code reversed the names 'sub' and 'super'.
-        // This was operationally harmless but made the code unreadable.
-        enum layout {
-          rax_off, SLOT2(raxH_off)
-          rcx_off, SLOT2(rcxH_off)
-          rsi_off, SLOT2(rsiH_off)
-          rdi_off, SLOT2(rdiH_off)
-          // saved_rbp_off, SLOT2(saved_rbpH_off)
-          return_off, SLOT2(returnH_off)
-          sup_k_off, SLOT2(sup_kH_off)
-          klass_off, SLOT2(superH_off)
-          framesize,
-          result_off = klass_off  // deepest argument is also the return value
-        };
-
-        __ set_info("slow_subtype_check", dont_gc_arguments);
-        __ push(rdi);
-        __ push(rsi);
-        __ push(rcx);
-        __ push(rax);
-
-        // This is called by pushing args and not with C abi
-        __ movptr(rsi, Address(rsp, (klass_off) * VMRegImpl::stack_slot_size)); // subclass
-        __ movptr(rax, Address(rsp, (sup_k_off) * VMRegImpl::stack_slot_size)); // superclass
-
-        Label miss;
-        Label success;
-        __ check_klass_subtype_fast_path(rsi, rax, rcx, &success, &miss, NULL);
-
-        __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, NULL, &miss);
-
-        // fallthrough on success:
-        __ bind(success);
-        __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), 1); // result
-        __ pop(rax);
-        __ pop(rcx);
-        __ pop(rsi);
-        __ pop(rdi);
-        __ ret(0);
-
-        __ bind(miss);
-        __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), NULL_WORD); // result
-        __ pop(rax);
-        __ pop(rcx);
-        __ pop(rsi);
-        __ pop(rdi);
-        __ ret(0);
-      }
-      break;
-
     case unwind_exception_call_id: {
       // remove the frame from the stack
       __ movptr(rsp, rbp);
       __ pop(rbp);
-      // exception_oop is passed using ordinary java calling conventions
-      __ movptr(rax, j_rarg0);
 
       Label nonNullExceptionOop;
       __ testptr(rax, rax);

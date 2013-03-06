@@ -86,7 +86,6 @@ class GraalStubAssembler: public MacroAssembler {
   stub(new_array)               \
   stub(new_multi_array)         \
   stub(handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
-  stub(slow_subtype_check)      \
   stub(unwind_exception_call)   \
   stub(OSR_migration_end)       \
   stub(arithmetic_frem)         \
