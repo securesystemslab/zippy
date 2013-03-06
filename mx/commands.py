@@ -373,7 +373,19 @@ def _jdk(build='product', create=False):
     else:
         if not exists(jdk):
             mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx build ' + build + '\'')
+            
+    _installGraalJarInJdks(mx.distribution('GRAAL'))
+    
     return jdk
+
+def _installGraalJarInJdks(graalDist):
+    graalJar = graalDist.path
+    jdks = join(_graal_home, 'jdk' + str(mx.java().version))
+    if exists(jdks):
+        for e in os.listdir(jdks):
+            jreLibDir = join(jdks, e, 'jre', 'lib')
+            if exists(jreLibDir):
+                shutil.copyfile(graalJar, join(jreLibDir, 'graal.jar'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
@@ -1177,3 +1189,5 @@ def mx_post_parse_cmd_line(opts):#
     _jacoco = opts.jacoco
     global _native_dbg
     _native_dbg = opts.native_dbg
+
+    mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)

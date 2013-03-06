@@ -160,9 +160,17 @@ class Distribution:
         if not isabs(self.path):
             self.path = join(suite.dir, self.path)
         self.deps = deps
+        self.update_listeners = set()
         
     def __str__(self):
         return self.name
+    
+    def add_update_listener(self, listener):
+        self.update_listeners.add(listener)
+        
+    def notify_updated(self):
+        for l in self.update_listeners:
+            l(self)
     
 """
 A dependency is a library or project specified in a suite.
@@ -563,8 +571,6 @@ class Suite:
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
-        if hasattr(self, 'mx_post_parse_cmd_line'):
-            self.mx_post_parse_cmd_line(opts)
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -581,6 +587,8 @@ class Suite:
             if existing is not None:
                 abort('cannot redefine distribution  ' + d.name)
             _dists[d.name] = d
+        if hasattr(self, 'mx_post_parse_cmd_line'):
+            self.mx_post_parse_cmd_line(opts)
 
 class XMLElement(xml.dom.minidom.Element):
     def writexml(self, writer, indent="", addindent="", newl=""):
@@ -1652,6 +1660,8 @@ def archive(args):
                         arcname = join(relpath, f).replace(os.sep, '/')
                         zf.write(join(root, f), arcname)
             zf.close()
+            d.notify_updated()
+
         else:
             p = project(name)
             outputDir = p.output_dir()
