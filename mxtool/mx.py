@@ -2557,8 +2557,7 @@ def fsckprojects(args):
                 projectConfigFiles = frozenset(['.classpath', 'nbproject'])
                 indicators = projectConfigFiles.intersection(files)
                 if len(indicators) != 0:
-                    response = raw_input(currentDir + ' looks like a removed project -- delete it? [yn]: ')
-                    if 'y' == response:
+                    if not sys.stdout.isatty() or raw_input(currentDir + ' looks like a removed project -- delete it? [yn]: ') == 'y':
                         shutil.rmtree(currentDir)
                         log('Deleted ' + currentDir)
 
