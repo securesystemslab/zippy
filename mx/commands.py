@@ -656,6 +656,10 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     if '-d64' not in args:
         args = ['-d64'] + args
+
+    graalJar = join(_graal_home, 'graal.jar')
+    if exists(graalJar):
+        args = ['-XX:GraalClassPath=' + graalJar] + args
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     dbg = _native_dbg.split() if _native_dbg is not None else []
     return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
