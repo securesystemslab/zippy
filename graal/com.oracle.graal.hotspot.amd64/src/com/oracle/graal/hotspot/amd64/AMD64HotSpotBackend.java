@@ -165,6 +165,13 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             emitMove(targetAddress, operand(callTarget.computedAddress()));
             append(new AMD64IndirectCallOp(callTarget.target(), result, parameters, temps, metaspaceMethod, targetAddress, callState));
         }
+
+        @Override
+        public void emitUnwind(Value exception) {
+            RegisterValue exceptionParameter = AMD64.rax.asValue();
+            emitMove(exceptionParameter, exception);
+            append(new AMD64HotSpotUnwindOp(exceptionParameter));
+        }
     }
 
     /**
@@ -203,7 +210,6 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
             emitStackOverflowCheck(tasm, false);
             asm.push(rbp);
-            asm.movq(rbp, rsp);
             asm.decrementq(rsp, frameSize - 8); // account for the push of RBP above
             if (GraalOptions.ZapStackOnMethodEntry) {
                 final int intSize = 4;
