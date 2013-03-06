@@ -52,9 +52,6 @@
   product(bool, BootstrapGraal, GRAALVM_ONLY(true) NOT_GRAALVM(false),      \
           "Bootstrap Graal before running Java main method")                \
                                                                             \
-  product(ccstr, GraalClassPath, NULL,                                      \
-          "Use this path, zip, or jar, to locate Graal-specific classes")   \
-                                                                            \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \

@@ -500,25 +500,6 @@ def build(args, vm=None):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
 
-        # Check that the declaration of graal_projects in arguments.cpp is up to date
-        argumentsCpp = join(_graal_home, 'src', 'share', 'vm', 'runtime', 'arguments.cpp')
-        assert exists(argumentsCpp), 'File does not exist: ' + argumentsCpp
-        with open(argumentsCpp) as fp:
-            source = fp.read();
-            decl = 'const char* graal_projects[] = {'
-            start = source.find(decl)
-            assert start != -1, 'Could not find "' + decl + '" in ' + fp.name
-            end = source.find('};', start)
-            assert end != -1, 'Could not find "' + decl + '" ... "};" in ' + fp.name
-            actual = frozenset(re.findall(r'"([^"]+)"', source[start + len(decl):end]))
-            expected = frozenset([p.name for p in mx.project('com.oracle.graal.hotspot.' + _arch()).all_deps([], False)])
-            missing = expected - actual
-            extra = actual - expected
-            if len(missing) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing project(s) to declaration:\n    ' + '\n    '.join(missing))
-            if len(extra) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove project(s) from declaration:\n    ' + '\n    '.join(extra))
-
         # Check if a build really needs to be done
         timestampFile = join(vmDir, '.build-timestamp')
         if opts2.force or not exists(timestampFile):
@@ -669,9 +650,6 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     if '-d64' not in args:
         args = ['-d64'] + args
 
-    graalJar = join(_graal_home, 'graal.jar')
-    if exists(graalJar):
-        args = ['-XX:GraalClassPath=' + graalJar] + args
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     dbg = _native_dbg.split() if _native_dbg is not None else []
     return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
