@@ -95,7 +95,7 @@ void CompiledIC::internal_set_ic_destination(address entry_point, bool is_icstub
   // Don't use ic_destination for this test since that forwards
   // through ICBuffer instead of returning the actual current state of
   // the CompiledIC.
-  if (is_icholder_entry(_ic_call->destination()) && !_is_optimized) {
+  if (is_icholder_entry(_ic_call->destination()) GRAAL_ONLY(&& _value != NULL)) {
     // When patching for the ICStub case the cached value isn't
     // overwritten until the ICStub copied into the CompiledIC during
     // the next safepoint.  Make sure that the CompiledICHolder* is
