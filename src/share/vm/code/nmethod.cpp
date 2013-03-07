@@ -42,9 +42,11 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
-#include "utilities/debug.hpp"
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
+#endif
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
 #endif
 
 #ifdef DTRACE_ENABLED
