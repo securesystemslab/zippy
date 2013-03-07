@@ -46,9 +46,6 @@
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
-#ifdef GRAAL
-#include "graal/graalJavaAccess.hpp"
-#endif
 
 #ifdef DTRACE_ENABLED
 

@@ -61,11 +61,6 @@ class ScopeValue: public ResourceObj {
   // Serialization of debugging information
   virtual void write_on(DebugInfoWriteStream* stream) = 0;
   static ScopeValue* read_from(DebugInfoReadStream* stream);
-
-#ifdef GRAAL
-  // Printing
-  virtual void print_on(outputStream* st) const = 0;
-#endif // GRAAL
 };
 
 
