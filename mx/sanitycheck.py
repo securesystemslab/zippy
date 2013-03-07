@@ -270,9 +270,12 @@ class Test:
         if len(valueMaps) == 0:
             return False
         
-        assert len(valueMaps) == 1, 'Test matchers should not return more than one record'
-        
-        record = valueMaps[0]
+        record = {}
+        for valueMap in valueMaps:
+            for key, value in valueMap.items():
+                if record.has_key(key) and record[key] != value:
+                    mx.abort('Inconsistant values returned by test machers : ' + str(valueMaps))
+                record[key] = value
         
         jvmErrorFile = record.get('jvmError')
         if jvmErrorFile:
