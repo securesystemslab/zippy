@@ -699,6 +699,21 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
         _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc), Assembler::call32_operand);
         break;
       }
+      case MARK_INVOKESTATIC: {
+        assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
+
+        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
+        call->set_destination(SharedRuntime::get_resolve_static_call_stub());
+        _instructions->relocate(call->instruction_address(), relocInfo::static_call_type, Assembler::call32_operand);
+        break;
+      }
+      case MARK_INVOKESPECIAL: {
+        assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
+        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
+        call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
+        _instructions->relocate(call->instruction_address(), relocInfo::opt_virtual_call_type, Assembler::call32_operand);
+        break;
+      }
       default:
         fatal("invalid _next_call_type value");
         break;
@@ -807,6 +822,8 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         n_copy->set_data((intptr_t)Universe::non_oop_word());
       }
       case MARK_INLINE_INVOKE:
+      case MARK_INVOKESTATIC:
+      case MARK_INVOKESPECIAL:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = instruction;
         break;

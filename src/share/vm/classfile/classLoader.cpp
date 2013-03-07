@@ -442,20 +442,11 @@ void ClassLoader::setup_meta_index() {
 void ClassLoader::setup_bootstrap_search_path() {
   assert(_first_entry == NULL, "should not setup bootstrap class search path twice");
   char* sys_class_path = os::strdup(Arguments::get_sysclasspath());
-#ifdef GRAAL
-  char* compiler_class_path = os::strdup(Arguments::get_compilerclasspath());
-#endif
   if (TraceClassLoading && Verbose) {
     tty->print_cr("[Bootstrap loader class path=%s]", sys_class_path);
-#ifdef GRAAL
-    tty->print_cr("[Compiler loader class path=%s]", compiler_class_path);
-#endif
   }
 
   setup_bootstrap_search_path(sys_class_path);
-#ifdef GRAAL
-  setup_bootstrap_search_path(compiler_class_path);
-#endif
 }
 
 void ClassLoader::setup_bootstrap_search_path(char* sys_class_path) {

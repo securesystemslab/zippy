@@ -702,7 +702,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
   set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
 
-  set_stub("instanceofStub", GraalRuntime::entry_for(GraalRuntime::slow_subtype_check_id));
   set_stub("newInstanceStub", GraalRuntime::entry_for(GraalRuntime::new_instance_id));
   set_stub("newArrayStub", GraalRuntime::entry_for(GraalRuntime::new_array_id));
   set_stub("newMultiArrayStub", GraalRuntime::entry_for(GraalRuntime::new_multi_array_id));
