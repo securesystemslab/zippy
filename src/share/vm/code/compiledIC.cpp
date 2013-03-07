@@ -661,11 +661,7 @@ address CompiledStaticCall::find_stub() {
         case relocInfo::poll_type:
         case relocInfo::poll_return_type: // A safepoint can't overlap a call.
         default:
-#ifdef GRAAL
-          return NULL;
-#else
           ShouldNotReachHere();
-#endif
       }
     }
   }

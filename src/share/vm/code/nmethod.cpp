@@ -521,7 +521,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
               code_buffer, frame_size,
               basic_lock_owner_sp_offset, basic_lock_sp_offset,
               oop_maps);
-    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_native_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
   }
