@@ -132,6 +132,7 @@ class JavaCallArguments : public StackObj {
       _max_size = max_size;
       _size = 0;
       _start_at_zero = false;
+      GRAAL_ONLY(_alternative_target = NULL;)
     } else {
       initialize();
     }
