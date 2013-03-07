@@ -102,7 +102,6 @@ const char* outputStream::do_vsnprintf(char* buffer, size_t buflen,
     result_len = strlen(result);
   } else {
     DEBUG_ONLY(warning("increase O_BUFLEN in ostream.hpp -- output truncated");)
-
     result = buffer;
     result_len = buflen - 1;
     buffer[result_len] = 0;
@@ -658,9 +657,7 @@ void defaultStream::init_log() {
       // Print it as a java-style property list.
       // System properties don't generally contain newlines, so don't bother with unparsing.
       for (SystemProperty* p = Arguments::system_properties(); p != NULL; p = p->next()) {
-        xs->text()->print(p->key() ? p->key() : "");
-        xs->text()->print("=");
-        xs->text()->print_cr(p->value() ? p->value() : "");
+        xs->text()->print_cr("%s=%s", p->key(), p->value());
       }
       xs->tail("properties");
     }

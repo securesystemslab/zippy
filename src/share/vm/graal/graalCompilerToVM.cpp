@@ -877,7 +877,8 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jlong 
     THROW_0(vmSymbols::MethodInvalidatedException());
   }
 
-  JavaCalls::call(&result, mh, nm, &jca, CHECK_NULL);
+  jca.set_alternative_target(nm);
+  JavaCalls::call(&result, mh, &jca, CHECK_NULL);
 
   if (jap.get_ret_type() == T_VOID) {
     return NULL;
@@ -906,7 +907,8 @@ C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jlong metaspa
     THROW_0(vmSymbols::MethodInvalidatedException());
   }
 
-  JavaCalls::call(&result, method, nm, &args, CHECK_NULL);
+  args.set_alternative_target(nm);
+  JavaCalls::call(&result, method, &args, CHECK_NULL);
 
   return JNIHandles::make_local((oop) result.get_jobject());
 C2V_END

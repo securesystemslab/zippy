@@ -80,9 +80,6 @@
 #ifdef COMPILER1
 #include "c1/c1_globals.hpp"
 #endif
-#ifdef GRAAL
-#include "graal/graalGlobals.hpp"
-#endif
 
 // --------------------------------------------------------------------------------------------------
 // Implementation of Safepoint begin/end

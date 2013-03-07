@@ -769,13 +769,10 @@ class JavaThread: public Thread {
   JavaThread*    _next;                          // The next thread in the Threads list
   oop            _threadObj;                     // The Java level thread object
 
-  // (thomaswue) Necessary for holding a compilation buffer and ci environment.
+  // (thomaswue) Necessary for holding a compilation buffer.
   // Moved up from CompilerThread to JavaThread in order to enable code
   // installation from Java application code.
   BufferBlob*   _buffer_blob;
-  ciEnv*        _env;
-  bool          _is_compiling;
-
 #ifdef ASSERT
  private:
   int _java_call_counter;
@@ -905,12 +902,7 @@ class JavaThread: public Thread {
 
 #ifdef GRAAL
   address _graal_alternate_call_target;
-  DebugScopedValue* _debug_scope;
 #endif
-#ifdef HIGH_LEVEL_INTERPRETER
-  bool _high_level_interpreter_in_vm;
-#endif
-
   StackGuardState        _stack_guard_state;
 
   nmethod*      _scanned_nmethod;  // nmethod being scanned by the sweeper
@@ -922,6 +914,9 @@ class JavaThread: public Thread {
   volatile address _exception_pc;                // PC where exception happened
   volatile address _exception_handler_pc;        // PC for handler of exception
   volatile int     _is_method_handle_return;     // true (== 1) if the current exception PC is a MethodHandle call site.
+
+  // support for compilation
+  bool    _is_compiling;                         // is true if a compilation is active inthis thread (one compilation per thread possible)
 
   // support for JNI critical regions
   jint    _jni_active_critical;                  // count of entries into JNI critical region
@@ -982,13 +977,7 @@ class JavaThread: public Thread {
   struct JNINativeInterface_* get_jni_functions() {
     return (struct JNINativeInterface_ *)_jni_environment.functions;
   }
-  
-  bool is_compiling() const                      { return _is_compiling; }
-  void set_compiling(bool b)                     { _is_compiling = b; }
 
-  // Get/set the thread's compilation environment.
-  ciEnv*        env()                            { return _env; }
-  void          set_env(ciEnv* env)              { _env = env; }
 
   BufferBlob*   get_buffer_blob()                { return _buffer_blob; }
   void          set_buffer_blob(BufferBlob* b)   { _buffer_blob = b; };
@@ -1017,6 +1006,10 @@ class JavaThread: public Thread {
 
   // Testers
   virtual bool is_Java_thread() const            { return true;  }
+
+  // compilation
+  void set_is_compiling(bool f)                  { _is_compiling = f; }
+  bool is_compiling() const                      { return _is_compiling; }
 
   // Thread chain operations
   JavaThread* next() const                       { return _next; }
@@ -1283,13 +1276,6 @@ class JavaThread: public Thread {
 
 #ifdef GRAAL
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
-
-  DebugScopedValue* debug_scope() const                { return _debug_scope; }
-  void set_debug_scope(DebugScopedValue* ds)           { _debug_scope = ds; }
-#endif
-#ifdef HIGH_LEVEL_INTERPRETER
-  bool high_level_interpreter_in_vm()            { return _high_level_interpreter_in_vm; }
-  void set_high_level_interpreter_in_vm(bool value) { _high_level_interpreter_in_vm = value; }
 #endif
 
   // Exception handling for compiled methods
@@ -1373,9 +1359,6 @@ class JavaThread: public Thread {
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
 #ifdef GRAAL
   static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
-#endif
-#ifdef HIGH_LEVEL_INTERPRETER
-  static ByteSize high_level_interpreter_in_vm_offset() { return byte_offset_of(JavaThread, _high_level_interpreter_in_vm); }
 #endif
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }
@@ -1832,6 +1815,7 @@ class CompilerThread : public JavaThread {
  private:
   CompilerCounters* _counters;
 
+  ciEnv*        _env;
   CompileLog*   _log;
   CompileTask*  _task;
   CompileQueue* _queue;
@@ -1845,17 +1829,14 @@ class CompilerThread : public JavaThread {
 
   bool is_Compiler_thread() const                { return true; }
   // Hide this compiler thread from external view.
-  // (thomaswue) For Graal, the compiler thread should be visible.
-  bool is_hidden_from_external_view() const      {
-#ifdef GRAALVM
-    return !DebugGraal;
-#else
-    return true;
-#endif
-  }
+  bool is_hidden_from_external_view() const      { return true; }
 
   CompileQueue* queue()                          { return _queue; }
   CompilerCounters* counters()                   { return _counters; }
+
+  // Get/set the thread's compilation environment.
+  ciEnv*        env()                            { return _env; }
+  void          set_env(ciEnv* env)              { _env = env; }
 
   // Get/set the thread's logging information
   CompileLog*   log()                            { return _log; }

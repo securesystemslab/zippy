@@ -43,7 +43,6 @@
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/machineCodePrinter.hpp"
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
@@ -523,10 +522,6 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
     if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
-
-    if (PrintMachineCodeToFile) {
-      MachineCodePrinter::print(nm);
-    }
   }
   // verify nmethod
   debug_only(if (nm) nm->verify();) // might block
@@ -640,10 +635,6 @@ nmethod* nmethod::new_nmethod(methodHandle method,
     if (nm != NULL)  nmethod_stats.note_nmethod(nm);
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
-
-    if (nm != NULL && PrintMachineCodeToFile) {
-      MachineCodePrinter::print(nm);
-    }
   }
 
   // verify nmethod
@@ -1829,13 +1820,11 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
       CompiledIC* cic = CompiledIC_at(iter.reloc());
       if (!cic->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
-        cic->set_to_clean();
       }
     } else if (iter.type() == relocInfo::static_call_type) {
       CompiledStaticCall* csc = compiledStaticCall_at(iter.reloc());
       if (!csc->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
-        csc->set_to_clean();
       }
     }
     if (static_call_addr != NULL) {
@@ -3018,19 +3007,3 @@ void nmethod::print_statistics() {
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }
-
-#ifdef GRAAL
-void DebugScopedNMethod::print_on(outputStream* st) {
-  if (_nm != NULL) {
-    st->print("nmethod@%p", _nm);
-    Method* method = _nm->method();
-    if (method != NULL) {
-      char holder[O_BUFLEN];
-      char nameAndSig[O_BUFLEN];
-      method->method_holder()->name()->as_C_string(holder, O_BUFLEN);
-      method->name_and_sig_as_C_string(nameAndSig, O_BUFLEN);
-      st->print(" - %s::%s", holder, nameAndSig);
-    }
-  }
-}
-#endif

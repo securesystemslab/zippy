@@ -560,10 +560,10 @@ bool CompiledStaticCall::is_call_to_interpreted() const {
 
 
 void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) {
-  set_destination_mt_safe(entry);
   address stub=find_stub();
 #ifdef GRAAL
   if (stub == NULL) {
+    set_destination_mt_safe(entry);
     return;
   }
 #endif

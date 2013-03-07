@@ -191,12 +191,13 @@
   // Note: not necessarily the real 'frame pointer' (see real_fp)
   intptr_t*   fp() const { return _fp; }
 
+  inline address* sender_pc_addr() const;
+
   // return address of param, zero origin index.
   inline address* native_param_addr(int idx) const;
 
   // expression stack tos if we are nested in a java call
   intptr_t* interpreter_frame_last_sp() const;
-  intptr_t** interpreter_frame_last_sp_addr() const;
 
   // helper to update a map with callee-saved RBP
   static void update_map_with_saved_link(RegisterMap* map, intptr_t** link_addr);

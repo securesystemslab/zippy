@@ -98,6 +98,9 @@ class JavaCallArguments : public StackObj {
   int         _size;
   int         _max_size;
   bool        _start_at_zero;      // Support late setting of receiver
+#ifdef GRAAL
+  nmethod*    _alternative_target; // Nmethod that should be called instead of normal target
+#endif
 
   void initialize() {
     // Starts at first element to support set_receiver.
@@ -107,6 +110,7 @@ class JavaCallArguments : public StackObj {
     _max_size = _default_size;
     _size = 0;
     _start_at_zero = false;
+    GRAAL_ONLY(_alternative_target = NULL;)
   }
 
  public:
@@ -133,6 +137,16 @@ class JavaCallArguments : public StackObj {
     }
   }
 
+#ifdef GRAAL
+  void set_alternative_target(nmethod* target) {
+    _alternative_target = target;
+  }
+
+  nmethod* alternative_target() {
+    return _alternative_target;
+  }
+#endif
+
   inline void push_oop(Handle h)    { _is_oop[_size] = true;
                                JNITypes::put_obj((oop)h.raw_value(), _value, _size); }
 
@@ -147,12 +161,6 @@ class JavaCallArguments : public StackObj {
 
   inline void push_float(float f)   { _is_oop[_size] = false;
                                JNITypes::put_float(f, _value, _size); }
-
-  inline oop* get_raw_oop(int& pos)   { return (oop*)JNITypes::get_obj(_value, pos); }
-  inline jint get_int(int& pos)       { return JNITypes::get_int(_value, pos); }
-  inline jdouble get_double(int& pos) { return JNITypes::get_double(_value, pos); }
-  inline jlong get_long(int& pos)     { return JNITypes::get_long(_value, pos); }
-  inline jfloat get_float(int& pos)   { return JNITypes::get_float(_value, pos); }
 
   // receiver
   Handle receiver() {
@@ -185,8 +193,8 @@ class JavaCallArguments : public StackObj {
 //
 
 class JavaCalls: AllStatic {
-  static void call_helper(JavaValue* result, methodHandle* method, nmethod* nm, JavaCallArguments* args, TRAPS);
-public:
+  static void call_helper(JavaValue* result, methodHandle* method, JavaCallArguments* args, TRAPS);
+ public:
   // Optimized Constuctor call
   static void call_default_constructor(JavaThread* thread, methodHandle method, Handle receiver, TRAPS);
 
@@ -225,7 +233,6 @@ public:
 
   // Low-level interface
   static void call(JavaValue* result, methodHandle method, JavaCallArguments* args, TRAPS);
-  static void call(JavaValue* result, methodHandle method, nmethod* nm, JavaCallArguments* args, TRAPS);
 };
 
 #endif // SHARE_VM_RUNTIME_JAVACALLS_HPP

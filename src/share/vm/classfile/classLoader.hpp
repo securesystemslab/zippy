@@ -206,7 +206,6 @@ class ClassLoader: AllStatic {
   // Initialization
   static void setup_meta_index();
   static void setup_bootstrap_search_path();
-  static void setup_bootstrap_search_path(char* sys_class_path);
   static void load_zip_library();
   static void create_class_path_entry(char *path, struct stat st, ClassPathEntry **new_entry, bool lazy);
 

@@ -291,7 +291,7 @@ class nmethod : public CodeBlob {
   // Inform external interfaces that a compiled method has been unloaded
   void post_compiled_method_unload();
 
-  // Initialize fields to their default values
+  // Initailize fields to their default values
   void init_defaults();
 
  public:
@@ -357,9 +357,6 @@ class nmethod : public CodeBlob {
   bool is_compiled_by_c2() const;
   bool is_compiled_by_shark() const;
 
-
-#define CHECK_POSITIVE(val) assert(val, "should be positive")
-
   // boundaries for different parts
   address consts_begin          () const          { return           header_begin() + _consts_offset        ; }
   address consts_end            () const          { return           header_begin() +  code_offset()        ; }
@@ -367,8 +364,8 @@ class nmethod : public CodeBlob {
   address insts_end             () const          { return           header_begin() + _stub_offset          ; }
   address stub_begin            () const          { return           header_begin() + _stub_offset          ; }
   address stub_end              () const          { return           header_begin() + _oops_offset          ; }
-  address exception_begin       () const          { assert(_exception_offset >= 0, "no exception handler"); return header_begin() + _exception_offset ; }
-  address deopt_handler_begin   () const          { assert(_deoptimize_offset >= 0, "no deopt handler"); return header_begin() + _deoptimize_offset ; }
+  address exception_begin       () const          { return           header_begin() + _exception_offset     ; }
+  address deopt_handler_begin   () const          { return           header_begin() + _deoptimize_offset    ; }
   address deopt_mh_handler_begin() const          { return           header_begin() + _deoptimize_mh_offset ; }
   address unwind_handler_begin  () const          { return _unwind_handler_offset != -1 ? (header_begin() + _unwind_handler_offset) : NULL; }
   oop*    oops_begin            () const          { return (oop*)   (header_begin() + _oops_offset)         ; }
@@ -773,20 +770,5 @@ class nmethodLocker : public StackObj {
     lock_nmethod(_nm);
   }
 };
-
-#ifdef GRAAL
-class DebugScopedNMethod : public DebugScopedValue {
-private:
-  nmethod* _nm;
-public:
-  DebugScopedNMethod(const char* file, int line, nmethod* nm) : DebugScopedValue(file, line), _nm(nm) {}
-  void print_on(outputStream* st);
-};
-#define DS_NMETHOD(nm) DebugScopedNMethod __dsnm__(__FILE__, __LINE__, nm)
-#define DS_NMETHOD1(name, nm) DebugScopedNMethod name(__FILE__, __LINE__, nm)
-#else
-#define DS_NMETHOD(nm) do {} while (0)
-#define DS_NMETHOD1(name, nm) do {} while (0)
-#endif
 
 #endif // SHARE_VM_CODE_NMETHOD_HPP

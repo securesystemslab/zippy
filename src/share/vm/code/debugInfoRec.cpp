@@ -289,8 +289,7 @@ void DebugInformationRecorder::describe_scope(int         pc_offset,
                                               bool        return_oop,
                                               DebugToken* locals,
                                               DebugToken* expressions,
-                                              DebugToken* monitors
-                                              ) {
+                                              DebugToken* monitors) {
   assert(_recording_state != rs_null, "nesting of recording calls");
   PcDesc* last_pd = last_pc();
   assert(last_pd->pc_offset() == pc_offset, "must be last pc");

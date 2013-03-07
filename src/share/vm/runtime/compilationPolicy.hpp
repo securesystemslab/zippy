@@ -126,7 +126,7 @@ class GraalCompPolicy : public NonTieredCompPolicy {
 
 // StackWalkCompPolicy - existing C2 policy
 
-#if defined(COMPILER2)
+#ifdef COMPILER2
 class StackWalkCompPolicy : public NonTieredCompPolicy {
  public:
   virtual void method_invocation_event(methodHandle m, JavaThread* thread);

@@ -1325,7 +1325,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();
       guarantee(expressions != NULL, "must have exception to throw");
       ScopeValue* topOfStack = expressions->top();
-      Handle topOfStackObj = cvf->create_stack_value(topOfStack)->get_obj();
+      Handle topOfStackObj = StackValue::create_stack_value(&fr, &reg_map, topOfStack)->get_obj();
       THREAD->set_pending_exception(topOfStackObj(), NULL, 0);
     }
     
