@@ -66,7 +66,7 @@ class compiledVFrame: public javaVFrame {
   // Returns SynchronizationEntryBCI or bci() (used for synchronization)
   int raw_bci() const;
 
- //protected:
+ protected:
   ScopeDesc* _scope;
 
 

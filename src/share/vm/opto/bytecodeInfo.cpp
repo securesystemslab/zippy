@@ -236,7 +236,8 @@ bool InlineTree::should_not_inline(ciMethod *callee_method,
     return false;
   }
   if (callee_method->should_not_inline()) {
-    return "disallowed by CompilerOracle";
+    set_msg("disallowed by CompilerOracle");
+    return false;
   }
 
   // Now perform checks which are heuristic

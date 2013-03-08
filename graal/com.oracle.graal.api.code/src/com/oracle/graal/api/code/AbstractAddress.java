@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,28 +20,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package com.oracle.graal.api.code;
 
-#ifndef SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
-#define SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
-
-#include "memory/allocation.hpp"
-#include "utilities/ostream.hpp"
-
-class MachineCodePrinter : public AllStatic {
-private:
-  static fileStream* _st;
-  static volatile int _write_lock;
-
-public:
-  static void initialize();
-  static void print(nmethod* nm);
-  static void print(CodeBlob* cb);
-  static void print(StubQueue* stub_queue);
-  static void flush();
-
-private:
-  static void lock();
-  static void unlock();
-};
-
-#endif // SHARE_VM_UTILITIES_MACHINE_CODE_PRINTER_HPP
+/**
+ * Abstract base class that represents a platform specific address.
+ */
+public abstract class AbstractAddress {
+}

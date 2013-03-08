@@ -1763,8 +1763,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   int vep_offset = ((intptr_t)__ pc()) - start;
 
-#if defined(COMPILER1) || defined(GRAAL)
-
+#ifdef COMPILER1
   if (InlineObjectHash && method->intrinsic_id() == vmIntrinsics::_hashCode) {
     // Object.hashCode can pull the hashCode from the header word
     // instead of doing a full VM transition once it's been computed.
@@ -1793,7 +1792,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
     __ ret(0);
     __ bind (slowCase);
   }
-#endif // COMPILER1 || GRAAL
+#endif // COMPILER1
 
   // The instruction at the verified entry point must be 5 bytes or longer
   // because it can be patched on the fly by make_non_entrant. The stack bang

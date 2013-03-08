@@ -2180,6 +2180,7 @@ Arguments::ArgsRange Arguments::parse_memory_size(const char* s,
 }
 
 // Parse JavaVMInitArgs structure
+
 jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
   // For components of the system classpath.
   SysClassPath scp(Arguments::get_sysclasspath());

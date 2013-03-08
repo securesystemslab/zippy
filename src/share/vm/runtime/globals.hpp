@@ -1218,9 +1218,6 @@ class CommandLineFlags {
   notproduct(bool, TraceJVMCalls, false,                                    \
           "Trace JVM calls")                                                \
                                                                             \
-  product(bool, TraceSignals, false,                                        \
-          "Trace signals and implicit exception handling")                  \
-                                                                            \
   product(ccstr, TraceJVMTI, NULL,                                          \
           "Trace flags for JVMTI functions and events")                     \
                                                                             \
@@ -1252,7 +1249,7 @@ class CommandLineFlags {
   develop(bool, TraceClassInitialization, false,                            \
           "Trace class initialization")                                     \
                                                                             \
-  product(bool, TraceExceptions, false,                                     \
+  develop(bool, TraceExceptions, false,                                     \
           "Trace exceptions")                                               \
                                                                             \
   develop(bool, TraceICs, false,                                            \
@@ -2620,9 +2617,6 @@ class CommandLineFlags {
                                                                             \
   diagnostic(bool, PrintInterpreter, false,                                 \
           "Prints the generated interpreter code")                          \
-                                                                            \
-  product(bool, PrintMachineCodeToFile, false,                              \
-          "Prints the generated machine code to a file (int + comp)")       \
                                                                             \
   product(bool, UseInterpreter, true,                                       \
           "Use interpreter for non-compiled methods")                       \

@@ -63,7 +63,7 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
   _method = vf->method();
   _bci    = vf->raw_bci();
   _reexecute = vf->should_reexecute();
-  
+
   int index;
 
   // Get the monitors off-stack
@@ -429,6 +429,11 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
     RegisterMap map(thread);
     vframe* f = vframe::new_vframe(iframe(), &map, thread);
     f->print();
+
+    tty->print_cr("locals size     %d", locals()->size());
+    tty->print_cr("expression size %d", expressions()->size());
+
+    method()->print_value();
     tty->cr();
     // method()->print_codes();
   } else if (TraceDeoptimization) {

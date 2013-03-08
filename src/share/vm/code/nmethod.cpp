@@ -42,8 +42,6 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
-#include "utilities/debug.hpp"
-#include "utilities/machineCodePrinter.hpp"
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
@@ -126,6 +124,7 @@ bool nmethod::is_compiled_by_shark() const {
 //   PrintC1Statistics, PrintOptoStatistics, LogVMOutput, and LogCompilation.
 // (In the latter two cases, they like other stats are printed to the log only.)
 
+#ifndef PRODUCT
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
 static
@@ -215,6 +214,7 @@ struct nmethod_stats_struct {
                   pc_desc_tests, pc_desc_searches, pc_desc_adds);
   }
 } nmethod_stats;
+#endif //PRODUCT
 
 
 //---------------------------------------------------------------------------------
@@ -520,13 +520,9 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
               code_buffer, frame_size,
               basic_lock_owner_sp_offset, basic_lock_sp_offset,
               oop_maps);
-    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_native_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
-
-    if (PrintMachineCodeToFile) {
-      MachineCodePrinter::print(nm);
-    }
   }
   // verify nmethod
   debug_only(if (nm) nm->verify();) // might block
@@ -558,7 +554,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
 
     nm = new (nmethod_size) nmethod(method(), nmethod_size, &offsets, code_buffer, frame_size);
 
-    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
   }
@@ -637,13 +633,9 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
     }
-    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
-
-    if (nm != NULL && PrintMachineCodeToFile) {
-      MachineCodePrinter::print(nm);
-    }
   }
 
   // verify nmethod
@@ -1819,8 +1811,8 @@ BoolObjectClosure* CheckClass::_is_alive = NULL;
 // really alive.
 void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* is_alive) {
 #ifdef ASSERT
-  RelocIterator iter(this, low_boundary);
-  while (iter.next()) {
+    RelocIterator iter(this, low_boundary);
+    while (iter.next()) {
     // static_stub_Relocations may have dangling references to
     // Method*s so trim them out here.  Otherwise it looks like
     // compiled code is maintaining a link to dead metadata.
@@ -1829,13 +1821,11 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
       CompiledIC* cic = CompiledIC_at(iter.reloc());
       if (!cic->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
-        cic->set_to_clean();
       }
     } else if (iter.type() == relocInfo::static_call_type) {
       CompiledStaticCall* csc = compiledStaticCall_at(iter.reloc());
       if (!csc->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
-        csc->set_to_clean();
       }
     }
     if (static_call_addr != NULL) {
@@ -2512,9 +2502,7 @@ void nmethod::verify_scopes() {
         // information in a table.
         break;
     }
-#ifndef GRAAL
     assert(stub == NULL || stub_contains(stub), "static call stub outside stub section");
-#endif
   }
 }
 
@@ -3006,8 +2994,6 @@ void nmethod::print_nul_chk_table() {
   ImplicitExceptionTable(this).print(code_begin());
 }
 
-#endif // PRODUCT
-
 void nmethod::print_statistics() {
   ttyLocker ttyl;
   if (xtty != NULL)  xtty->head("statistics type='nmethod'");
@@ -3019,18 +3005,4 @@ void nmethod::print_statistics() {
   if (xtty != NULL)  xtty->tail("statistics");
 }
 
-#ifdef GRAAL
-void DebugScopedNMethod::print_on(outputStream* st) {
-  if (_nm != NULL) {
-    st->print("nmethod@%p", _nm);
-    Method* method = _nm->method();
-    if (method != NULL) {
-      char holder[O_BUFLEN];
-      char nameAndSig[O_BUFLEN];
-      method->method_holder()->name()->as_C_string(holder, O_BUFLEN);
-      method->name_and_sig_as_C_string(nameAndSig, O_BUFLEN);
-      st->print(" - %s::%s", holder, nameAndSig);
-    }
-  }
-}
-#endif
+#endif // PRODUCT

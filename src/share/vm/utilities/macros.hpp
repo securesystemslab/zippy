@@ -201,14 +201,6 @@
 #define NOT_GRAALVM(code) code
 #endif // GRAAL
 
-#ifdef HIGH_LEVEL_INTERPRETER
-#define HIGH_LEVEL_INTERPRETER_ONLY(code) code
-#define NOT_HIGH_LEVEL_INTERPRETER(code)
-#else
-#define HIGH_LEVEL_INTERPRETER_ONLY(code)
-#define NOT_HIGH_LEVEL_INTERPRETER(code) code
-#endif // HIGH_LEVEL_INTERPRETER
-
 #ifdef TIERED
 #define TIERED_ONLY(code) code
 #define NOT_TIERED(code)

@@ -597,67 +597,44 @@ void frame::print_on(outputStream* st) const {
 void frame::interpreter_frame_print_on(outputStream* st) const {
 #ifndef PRODUCT
   assert(is_interpreted_frame(), "Not an interpreted frame");
-  assert(interpreter_frame_method() != NULL && interpreter_frame_method()->contains(interpreter_frame_bcp()), "must be");
   jint i;
-  st->print_cr(" - sp                                  = " INTPTR_FORMAT, sp());
-  // expressions
+  for (i = 0; i < interpreter_frame_method()->max_locals(); i++ ) {
+    intptr_t x = *interpreter_frame_local_at(i);
+    st->print(" - local  [" INTPTR_FORMAT "]", x);
+    st->fill_to(23);
+    st->print_cr("; #%d", i);
+  }
   for (i = interpreter_frame_expression_stack_size() - 1; i >= 0; --i ) {
-    intptr_t* x = interpreter_frame_expression_stack_at(i);
-    st->print(" - stack         at " INTPTR_FORMAT " = " INTPTR_FORMAT, x, *x);
-    st->fill_to(70);
+    intptr_t x = *interpreter_frame_expression_stack_at(i);
+    st->print(" - stack  [" INTPTR_FORMAT "]", x);
+    st->fill_to(23);
     st->print_cr("; #%d", i);
   }
   // locks for synchronization
-  st->print_cr(" - monitorend                          = " INTPTR_FORMAT, interpreter_frame_monitor_end());
   for (BasicObjectLock* current = interpreter_frame_monitor_end();
        current < interpreter_frame_monitor_begin();
        current = next_monitor_in_interpreter_frame(current)) {
-    st->print (" - lock          at " INTPTR_FORMAT " = ", current->lock());
-    current->lock()->print_on(st);
-    st->cr();
-    st->print (" - obj           at " INTPTR_FORMAT " = " INTPTR_FORMAT " ", current->obj_addr(), *current->obj_addr());
+    st->print(" - obj    [");
     current->obj()->print_value_on(st);
-    st->cr();
+    st->print_cr("]");
+    st->print(" - lock   [");
+    current->lock()->print_on(st);
+    st->print_cr("]");
   }
-  st->print_cr(" - monitorbegin                        = " INTPTR_FORMAT, interpreter_frame_monitor_begin());
-  
-  // bcp/bcx
-  st->print   (" - bcp           at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_bcx_addr(), interpreter_frame_bcp());
-  st->fill_to(70);
-  st->print_cr("; @%d - %s", interpreter_frame_bci(), Bytecodes::name(interpreter_frame_method()->code_at(interpreter_frame_bci())));
+  // monitor
+  st->print_cr(" - monitor[" INTPTR_FORMAT "]", interpreter_frame_monitor_begin());
+  // bcp
+  st->print(" - bcp    [" INTPTR_FORMAT "]", interpreter_frame_bcp());
+  st->fill_to(23);
+  st->print_cr("; @%d", interpreter_frame_bci());
   // locals
-  st->print_cr(" - locals        at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_locals_addr(), *interpreter_frame_locals_addr());
-  // constant pool cache
-  st->print_cr(" - constant pool at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_cache_addr(), *interpreter_frame_cache_addr());
-  // method data
-  st->print_cr(" - method data   at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_mdx_addr(), *interpreter_frame_mdx_addr());
+  st->print_cr(" - locals [" INTPTR_FORMAT "]", interpreter_frame_local_at(0));
   // method
-  st->print   (" - method        at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_method_addr(), *interpreter_frame_method_addr());
-  st->fill_to(70);
+  st->print(" - method [" INTPTR_FORMAT "]", (address)interpreter_frame_method());
+  st->fill_to(23);
   st->print("; ");
   interpreter_frame_method()->print_name(st);
   st->cr();
-#ifdef AMD64
-  // last sp
-  st->print_cr(" - last sp       at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_last_sp_addr(), *interpreter_frame_last_sp_addr());
-#endif
-  // sender sp
-  st->print_cr(" - sender sp     at " INTPTR_FORMAT " = " INTPTR_FORMAT, interpreter_frame_sender_sp_addr(), *interpreter_frame_sender_sp_addr());
-  // old fp
-  st->print_cr(" - old fp        at " INTPTR_FORMAT " = " INTPTR_FORMAT, link_addr(), *link_addr());
-  // return address
-  st->print_cr(" - return pc     at " INTPTR_FORMAT " = " INTPTR_FORMAT, sender_pc_addr(), *sender_pc_addr());
-
-  // locals
-  for (i = interpreter_frame_method()->max_locals() - 1; i >= 0; i--) {
-    intptr_t* x = interpreter_frame_local_at(i);
-    st->print (" - local         at " INTPTR_FORMAT " = " INTPTR_FORMAT, x, *x);
-    st->fill_to(70);
-    st->print_cr("; #%d", i);
-  }
-
-  // fp
-  st->print_cr(" - fp                                  = " INTPTR_FORMAT, fp());
 #endif
 }
 
@@ -735,9 +712,8 @@ void frame::print_on_error(outputStream* st, char* buf, int buflen, bool verbose
     } else if (_cb->is_nmethod()) {
       Method* m = ((nmethod *)_cb)->method();
       if (m != NULL) {
-        address code = _cb->code_begin();
         m->name_and_sig_as_C_string(buf, buflen);
-        st->print("J  %s [" PTR_FORMAT "+%d]", buf, code, pc() - code);
+        st->print("J  %s", buf);
       } else {
         st->print("J  " PTR_FORMAT, pc());
       }

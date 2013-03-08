@@ -39,7 +39,7 @@ static void call_wrapper_dummy() {}
 // up the offset from FS of the thread pointer.
 void ThreadLocalStorage::generate_code_for_get_thread() {
       os::os_exception_wrapper( (java_call_t)call_wrapper_dummy,
-                                NULL, NULL, NULL, NULL, NULL);
+                                NULL, NULL, NULL, NULL);
 }
 
 void ThreadLocalStorage::pd_init() { }

@@ -1015,6 +1015,15 @@ def specjvm2008(args):
         benchArgs.remove(args[itIdx+1])
     vm = _vm;
     sanitycheck.getSPECjvm2008(benchArgs, skipCheck, skipValid, wt, it).bench(vm, opts=vmArgs)
+    
+def specjbb2013(args):
+    """runs the composite SPECjbb2013 benchmark
+
+    All options begining with - will be passed to the vm"""
+    benchArgs = [a for a in args if a[0] != '-']
+    vmArgs = [a for a in args if a[0] == '-']
+    vm = _vm;
+    sanitycheck.getSPECjbb2013(benchArgs).bench(vm, opts=vmArgs)
 
 def hsdis(args, copyToDir=None):
     """download the hsdis library
@@ -1118,7 +1127,8 @@ def mx_init():
         'jdkhome': [jdkhome, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
-        'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
+        'specjvm2008': [specjvm2008, '[VM options|specjvm2008 options (-v, -ikv, -ict, -wt, -it)]'],
+        'specjbb2013': [specjbb2013, '[VM options]'],
         #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],

@@ -60,7 +60,7 @@ void compilationPolicy_init() {
     break;
 
   case 1:
-#if defined(COMPILER2)
+#ifdef COMPILER2
     CompilationPolicy::set_policy(new StackWalkCompPolicy());
 #else
     Unimplemented();
@@ -81,7 +81,7 @@ void compilationPolicy_init() {
 #endif
     break;
   case 4:
-#if defined(GRAALVM)
+#ifdef GRAALVM
     CompilationPolicy::set_policy(new GraalCompPolicy());
 #else
     Unimplemented();
@@ -188,7 +188,6 @@ int NonTieredCompPolicy::compiler_count(CompLevel comp_level) {
 #endif
 
 #ifdef COMPILER1
-  GRAALVM_ONLY(ShouldNotReachHere();)
   if (is_c1_compile(comp_level)) {
     return _compiler_count;
   } else {
@@ -212,7 +211,6 @@ void NonTieredCompPolicy::reset_counter_for_invocation_event(methodHandle m) {
 }
 
 void NonTieredCompPolicy::reset_counter_for_back_branch_event(methodHandle m) {
-//  GRAAL_ONLY(assert(false, "unexpected"));
   // Delay next back-branch event but pump up invocation counter to triger
   // whole method compilation.
   InvocationCounter* i = m->invocation_counter();
@@ -510,7 +508,7 @@ void GraalCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThre
 
 // StackWalkCompPolicy - walk up stack to find a suitable method to compile
 
-#if defined(COMPILER2)
+#ifdef COMPILER2
 const char* StackWalkCompPolicy::_msg = NULL;
 
 
