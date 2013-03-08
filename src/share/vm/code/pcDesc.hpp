@@ -81,8 +81,7 @@ class PcDesc VALUE_OBJ_CLASS_SPEC {
   bool is_same_info(const PcDesc* pd) {
     return _scope_decode_offset == pd->_scope_decode_offset &&
       _obj_decode_offset == pd->_obj_decode_offset &&
-      _flags == pd->_flags
-      ;
+      _flags == pd->_flags;
   }
 
   bool     is_method_handle_invoke()       const { return (_flags & PCDESC_is_method_handle_invoke) != 0;     }

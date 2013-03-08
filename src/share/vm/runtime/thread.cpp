@@ -1410,7 +1410,6 @@ void JavaThread::initialize() {
   // Set the claimed par_id to -1 (ie not claiming any par_ids)
   set_claimed_par_id(-1);
   
-  _env   = NULL;
   _buffer_blob = NULL;
   set_saved_exception_pc(NULL);
   set_threadObj(NULL);
@@ -1441,10 +1440,6 @@ void JavaThread::initialize() {
   _stack_guard_state = stack_guard_unused;
 #ifdef GRAAL
   _graal_alternate_call_target = NULL;
-  _debug_scope = NULL;
-#endif
-#ifdef HIGH_LEVEL_INTERPRETER
-  _high_level_interpreter_in_vm = false;
 #endif
   _exception_oop = NULL;
   _exception_pc  = 0;
@@ -2194,9 +2189,7 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
 
   // Do not throw asynchronous exceptions against the compiler thread
   // (the compiler thread should not be a Java thread -- fix in 1.4.2)
-
-  // (thomaswue) May we do this?
-  //if (is_Compiler_thread()) return;
+  if (is_Compiler_thread()) return;
 
   {
     // Actually throw the Throwable against the target Thread - however
@@ -3240,6 +3233,7 @@ static void compiler_thread_entry(JavaThread* thread, TRAPS) {
 // Create a CompilerThread
 CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
 : JavaThread(&compiler_thread_entry) {
+  _env   = NULL;
   _log   = NULL;
   _task  = NULL;
   _queue = queue;

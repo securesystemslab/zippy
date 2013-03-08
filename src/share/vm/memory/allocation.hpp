@@ -34,9 +34,6 @@
 #ifdef COMPILER2
 #include "opto/c2_globals.hpp"
 #endif
-#ifdef GRAAL
-#include "graal/graalGlobals.hpp"
-#endif
 
 #include <new>
 

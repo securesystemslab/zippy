@@ -44,9 +44,6 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/sweeper.hpp"
 #include "utilities/dtrace.hpp"
-#ifdef GRAAL
-#include "graal/graalCompiler.hpp"
-#endif
 #include "utilities/events.hpp"
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"

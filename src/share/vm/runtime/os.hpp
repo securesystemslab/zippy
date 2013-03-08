@@ -79,7 +79,7 @@ enum ThreadPriority {        // JLS 20.20.1-3
 };
 
 // Typedef for structured exception handling support
-typedef void (*java_call_t)(JavaValue* value, methodHandle* method, nmethod* nm, JavaCallArguments* args, Thread* thread);
+typedef void (*java_call_t)(JavaValue* value, methodHandle* method, JavaCallArguments* args, Thread* thread);
 
 class os: AllStatic {
  public:
@@ -658,7 +658,7 @@ class os: AllStatic {
   static void init_random(long initval);   // initialize random sequence
 
   // Structured OS Exception support
-  static void os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, nmethod* nm, JavaCallArguments* args, Thread* thread);
+  static void os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, JavaCallArguments* args, Thread* thread);
 
   // On Windows this will create an actual minidump, on Linux/Solaris it will simply check core dump limits
   static void check_or_create_dump(void* exceptionRecord, void* contextRecord, char* buffer, size_t bufferSize);

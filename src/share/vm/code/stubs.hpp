@@ -107,21 +107,20 @@ class StubInterface: public CHeapObj<mtCode> {
  public:
   // Initialization/finalization
   virtual void    initialize(Stub* self, int size,
-                             CodeComments& comments)           = 0; // called after creation (called twice if allocated via (request, commit))
-  virtual void    finalize(Stub* self)                         = 0; // called before deallocation
+                             CodeComments& comments)       = 0; // called after creation (called twice if allocated via (request, commit))
+  virtual void    finalize(Stub* self)                     = 0; // called before deallocation
 
   // General info/converters
-  virtual int     size(Stub* self) const                       = 0; // the total size of the stub in bytes (must be a multiple of CodeEntryAlignment)
-  virtual int     code_size_to_size(int code_size) const       = 0; // computes the total stub size in bytes given the code size in bytes
+  virtual int     size(Stub* self) const                   = 0; // the total size of the stub in bytes (must be a multiple of CodeEntryAlignment)
+  virtual int     code_size_to_size(int code_size) const   = 0; // computes the total stub size in bytes given the code size in bytes
 
   // Code info
-  virtual address code_begin(Stub* self) const                 = 0; // points to the first code byte
-  virtual address code_end(Stub* self) const                   = 0; // points to the first byte after the code
+  virtual address code_begin(Stub* self) const             = 0; // points to the first code byte
+  virtual address code_end(Stub* self) const               = 0; // points to the first byte after the code
 
   // Debugging
-  virtual void    verify(Stub* self) const                     = 0; // verifies the stub
-  NOT_PRODUCT(using AllocatedObj::print_on;)
-  virtual void    print_on(Stub* self, outputStream* st) const = 0; // prints information about the stub
+  virtual void    verify(Stub* self)                       = 0; // verifies the stub
+  virtual void    print(Stub* self)                        = 0; // prints information about the stub
 };
 
 
@@ -129,29 +128,28 @@ class StubInterface: public CHeapObj<mtCode> {
 // class, forwarding stub interface calls to the corresponding
 // stub calls.
 
-#define DEF_STUB_INTERFACE(stub)                                 \
-  class stub##Interface: public StubInterface {                  \
-   private:                                                      \
-    static stub*    cast(Stub* self)                             { return (stub*)self; }                 \
-                                                                 \
-   public:                                                       \
-    /* Initialization/finalization */                            \
-    virtual void    initialize(Stub* self, int size,             \
-                               CodeComments& comments)           { cast(self)->initialize(size, comments); } \
-    virtual void    finalize(Stub* self)                         { cast(self)->finalize(); }             \
-                                                                 \
-    /* General info */                                           \
-    virtual int     size(Stub* self) const                       { return cast(self)->size(); }          \
-    virtual int     code_size_to_size(int code_size) const       { return stub::code_size_to_size(code_size); } \
-                                                                 \
-    /* Code info */                                              \
-    virtual address code_begin(Stub* self) const                 { return cast(self)->code_begin(); }    \
-    virtual address code_end(Stub* self) const                   { return cast(self)->code_end(); }      \
-                                                                 \
-    /* Debugging */                                              \
-    virtual void    verify(Stub* self) const                     { cast(self)->verify(); }               \
-    NOT_PRODUCT(using AllocatedObj::print_on;)                   \
-    virtual void    print_on(Stub* self, outputStream* st) const { cast(self)->print_on(st); }           \
+#define DEF_STUB_INTERFACE(stub)                           \
+  class stub##Interface: public StubInterface {            \
+   private:                                                \
+    static stub*    cast(Stub* self)                       { return (stub*)self; }                 \
+                                                           \
+   public:                                                 \
+    /* Initialization/finalization */                      \
+    virtual void    initialize(Stub* self, int size,       \
+                               CodeComments& comments)     { cast(self)->initialize(size, comments); } \
+    virtual void    finalize(Stub* self)                   { cast(self)->finalize(); }             \
+                                                           \
+    /* General info */                                     \
+    virtual int     size(Stub* self) const                 { return cast(self)->size(); }          \
+    virtual int     code_size_to_size(int code_size) const { return stub::code_size_to_size(code_size); } \
+                                                           \
+    /* Code info */                                        \
+    virtual address code_begin(Stub* self) const           { return cast(self)->code_begin(); }    \
+    virtual address code_end(Stub* self) const             { return cast(self)->code_end(); }      \
+                                                           \
+    /* Debugging */                                        \
+    virtual void    verify(Stub* self)                     { cast(self)->verify(); }               \
+    virtual void    print(Stub* self)                      { cast(self)->print(); }                \
   };
 
 
@@ -184,7 +182,7 @@ class StubQueue: public CHeapObj<mtCode> {
   bool  stub_contains(Stub* s, address pc) const { return _stub_interface->code_begin(s) <= pc && pc < _stub_interface->code_end(s); }
   int   stub_code_size_to_size(int code_size) const { return _stub_interface->code_size_to_size(code_size); }
   void  stub_verify(Stub* s)                     { _stub_interface->verify(s); }
-  void  stub_print(Stub* s, outputStream* st) const { _stub_interface->print_on(s, st); }
+  void  stub_print(Stub* s)                      { _stub_interface->print(s); }
 
   static void register_queue(StubQueue*);
 
@@ -228,9 +226,8 @@ class StubQueue: public CHeapObj<mtCode> {
   address stub_code_end(Stub* s) const           { return _stub_interface->code_end(s);   }
 
   // Debugging/printing
-  void verify();                                 // verifies the stub queue
-  virtual void print() const                     { print_on(tty); }
-  virtual void print_on(outputStream* st) const;
+  void  verify();                                // verifies the stub queue
+  void  print();                                 // prints information about the stub queue
 };
 
 #endif // SHARE_VM_CODE_STUBS_HPP

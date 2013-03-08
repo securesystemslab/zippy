@@ -47,7 +47,7 @@ class DerivedPointerEntry;
 class OopMapValue: public StackObj {
   friend class VMStructs;
 private:
-  int _value;
+  short _value;
   int value() const                                 { return _value; }
   void set_value(int value)                         { _value = value; }
   short _content_reg;
@@ -55,7 +55,7 @@ private:
 public:
   // Constants
   enum { type_bits                = 5,
-         register_bits            = BitsPerJavaInteger - type_bits };
+         register_bits            = BitsPerShort - type_bits };
 
   enum { type_shift               = 0,
          register_shift           = type_bits };

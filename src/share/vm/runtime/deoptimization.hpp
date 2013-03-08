@@ -37,7 +37,7 @@ class Deoptimization : AllStatic {
   friend class VMStructs;
 
  public:
-  // What condition caused the deoptimization
+  // What condition caused the deoptimization?
   enum DeoptReason {
     Reason_many = -1,             // indicates presence of several reasons
     Reason_none = 0,              // indicates absence of a relevant deopt.
@@ -85,7 +85,7 @@ class Deoptimization : AllStatic {
     // Note:  Reason_RECORDED_LIMIT should be < 8 to fit into 3 bits of
     // DataLayout::trap_bits.  This dependency is enforced indirectly
     // via asserts, to avoid excessive direct header-to-header dependencies.
-    // See Deoptimization::trap_state_reason and class DataLayout
+    // See Deoptimization::trap_state_reason and class DataLayout.
   };
 
   // What action must be taken by the runtime?
@@ -132,7 +132,7 @@ class Deoptimization : AllStatic {
   // executing in a particular CodeBlob if UseBiasedLocking is enabled
   static void revoke_biases_of_monitors(CodeBlob* cb);
 
-//#ifdef COMPILER2
+#if defined(COMPILER2) || defined(GRAAL)
   // Support for restoring non-escaping objects
   static bool realloc_objects(JavaThread* thread, frame* fr, GrowableArray<ScopeValue*>* objects, TRAPS);
   static void reassign_type_array_elements(frame* fr, RegisterMap* reg_map, ObjectValue* sv, typeArrayOop obj, BasicType type);
@@ -140,7 +140,7 @@ class Deoptimization : AllStatic {
   static void reassign_fields(frame* fr, RegisterMap* reg_map, GrowableArray<ScopeValue*>* objects);
   static void relock_objects(GrowableArray<MonitorInfo*>* monitors, JavaThread* thread);
   NOT_PRODUCT(static void print_objects(GrowableArray<ScopeValue*>* objects);)
-//#endif // COMPILER2
+#endif // COMPILER2 || GRAAL
 
   public:
   static vframeArray* create_vframeArray(JavaThread* thread, frame fr, RegisterMap *reg_map, GrowableArray<compiledVFrame*>* chunk);
@@ -319,12 +319,11 @@ class Deoptimization : AllStatic {
     assert((1 << _reason_bits) >= Reason_LIMIT, "enough bits");
     assert((1 << _action_bits) >= Action_LIMIT, "enough bits");
     int trap_request;
-    if (index != -1) {
+    if (index != -1)
       trap_request = index;
-    } else {
+    else
       trap_request = (~(((reason) << _reason_shift)
                         + ((action) << _action_shift)));
-    }
     assert(reason == trap_request_reason(trap_request), "valid reason");
     assert(action == trap_request_action(trap_request), "valid action");
     assert(index  == trap_request_index(trap_request),  "valid index");

@@ -446,10 +446,6 @@ void ClassLoader::setup_bootstrap_search_path() {
     tty->print_cr("[Bootstrap loader class path=%s]", sys_class_path);
   }
 
-  setup_bootstrap_search_path(sys_class_path);
-}
-
-void ClassLoader::setup_bootstrap_search_path(char* sys_class_path) {
   int len = (int)strlen(sys_class_path);
   int end = 0;
 
@@ -899,23 +895,7 @@ instanceKlassHandle ClassLoader::load_classfile(Symbol* h_name, TRAPS) {
     PerfClassTraceTime vmtimer(perf_sys_class_lookup_time(),
                                ((JavaThread*) THREAD)->get_thread_stat()->perf_timers_addr(),
                                PerfClassTraceTime::CLASS_LOAD);
-    ClassPathEntry* e = _first_entry; 
-    while (e != NULL) {
-      stream = e->open_stream(name);
-      if (stream != NULL) {
-        break;
-      }
-      e = e->next();
-      ++classpath_index;
-    }
-  }
-
-  if (stream == NULL && !(THREAD->is_Compiler_thread())) {  
-	  classpath_index = 0;
-    PerfClassTraceTime vmtimer(perf_sys_class_lookup_time(),
-                               ((JavaThread*) THREAD)->get_thread_stat()->perf_timers_addr(),
-                               PerfClassTraceTime::CLASS_LOAD);
-    ClassPathEntry* e = _first_entry; 
+    ClassPathEntry* e = _first_entry;
     while (e != NULL) {
       stream = e->open_stream(name);
       if (stream != NULL) {

@@ -96,8 +96,8 @@ void ICStub::clear() {
 void ICStub::verify() {
 }
 
-void ICStub::print_on(outputStream* st) {
-  st->print_cr("ICStub: site: " INTPTR_FORMAT, _ic_site);
+void ICStub::print() {
+  tty->print_cr("ICStub: site: " INTPTR_FORMAT, _ic_site);
 }
 #endif
 

@@ -1000,20 +1000,4 @@ class ExceptionTable : public StackObj {
   }
 };
 
-#ifdef GRAAL
-class DebugScopedMethod : public DebugScopedValue {
-private:
-  Method* _method;
-public:
-  DebugScopedMethod(const char* file, int line, Method* method) : DebugScopedValue(file, line), _method(method) {}
-  void print_on(outputStream* st);
-};
-#define DS_METHOD(method) DebugScopedMethod __dsm__(__FILE__, __LINE__, method)
-#define DS_METHOD1(var, method) DebugScopedMethod var(__FILE__, __LINE__, method)
-#else
-#define DS_METHOD(method) do {} while (0)
-#define DS_METHOD1(var, method) do {} while (0)
-#endif
-
 #endif // SHARE_VM_OOPS_METHODOOP_HPP
-

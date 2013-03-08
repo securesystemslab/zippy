@@ -1319,7 +1319,6 @@ static methodHandle jni_resolve_virtual_call(Handle recv, methodHandle method, T
 }
 
 
-static bool first_time_InvokeMain = true;
 
 static void jni_invoke_static(JNIEnv *env, JavaValue* result, jobject receiver, JNICallType call_type, jmethodID method_id, JNI_ArgumentPusher *args, TRAPS) {
   methodHandle method(THREAD, Method::resolve_jmethod_id(method_id));
@@ -1328,8 +1327,6 @@ static void jni_invoke_static(JNIEnv *env, JavaValue* result, jobject receiver, 
   // the jni parser
   ResourceMark rm(THREAD);
   int number_of_parameters = method->size_of_parameters();
-
-  // Invoke the method. Result is returned as oop.
   JavaCallArguments java_args(number_of_parameters);
   args->set_java_argument_object(&java_args);
 
@@ -1337,23 +1334,16 @@ static void jni_invoke_static(JNIEnv *env, JavaValue* result, jobject receiver, 
 
   // Fill out JavaCallArguments object
   args->iterate( Fingerprinter(method).fingerprint() );
-  // Initialize result type (must be done after args->iterate())
+  // Initialize result type
   result->set_type(args->get_ret_type());
 
+  // Invoke the method. Result is returned as oop.
   JavaCalls::call(result, method, &java_args, CHECK);
 
   // Convert result
   if (result->get_type() == T_OBJECT || result->get_type() == T_ARRAY) {
     result->set_jobject(JNIHandles::make_local(env, (oop) result->get_jobject()));
   }
-
-#ifdef HIGH_LEVEL_INTERPRETER
-  if (invoked_main_method) {
-    assert(THREAD->is_Java_thread(), "other threads must not call into java");
-    JavaThread* thread = (JavaThread*)THREAD;
-    thread->set_high_level_interpreter_in_vm(false);
-  }
-#endif
 }
 
 

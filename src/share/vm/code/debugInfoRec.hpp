@@ -107,8 +107,7 @@ class DebugInformationRecorder: public ResourceObj {
                       bool        return_oop = false,
                       DebugToken* locals      = NULL,
                       DebugToken* expressions = NULL,
-                      DebugToken* monitors    = NULL
-                      );
+                      DebugToken* monitors    = NULL);
 
 
   void dump_object_pool(GrowableArray<ScopeValue*>* objects);

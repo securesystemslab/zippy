@@ -830,37 +830,3 @@ void get_debug_command()
 #endif
 
 #endif // !PRODUCT
-
-#ifdef GRAAL
-
-DebugScopedValue::DebugScopedValue(const char* file, int line) {
-  _file = file;
-  _line = line;
-  Thread* thread = Thread::current();
-  if (thread != NULL && thread->is_Java_thread()) {
-    JavaThread* javaThread = (JavaThread*) thread;
-    _parent = javaThread->debug_scope();
-    javaThread->set_debug_scope(this);
-  } else {
-    _parent = NULL;
-  }
-}
-
-DebugScopedValue::~DebugScopedValue() {
-  Thread* thread = Thread::current();
-  if (thread != NULL && thread->is_Java_thread()) {
-    JavaThread* javaThread = (JavaThread*) thread;
-    javaThread->set_debug_scope(_parent);
-    _parent = NULL;
-  }
-}
-
-void DebugScopedValue::print(outputStream* st) {
-  st->print("%s:%d: ", _file, _line);
-  print_on(st);
-}
-
-void DebugScopedScalar::print_on(outputStream* st) {
-  st->print("int: %d, char: %c, long: %ld, hex: %p", _value, _value, _value, _value);
-}
-#endif
