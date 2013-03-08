@@ -1651,7 +1651,8 @@ def archive(args):
         if name.startswith('@'):
             dname = name[1:]
             d = distribution(dname)
-            zf = zipfile.ZipFile(d.path, 'w')
+            _, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path), dir=dirname(d.path))
+            zf = zipfile.ZipFile(tmp, 'w')
             for p in sorted_deps(d.deps):
                 outputDir = p.output_dir()
                 for root, _, files in os.walk(outputDir):
@@ -1660,19 +1661,24 @@ def archive(args):
                         arcname = join(relpath, f).replace(os.sep, '/')
                         zf.write(join(root, f), arcname)
             zf.close()
+            # Atomic on Unix
+            shutil.move(tmp, d.path)
+            #print time.time(), 'move:', tmp, '->', d.path
             d.notify_updated()
 
         else:
             p = project(name)
             outputDir = p.output_dir()
-            jar = join(p.dir, p.name + '.jar')
-            zf = zipfile.ZipFile(jar, 'w')
+            _, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
+            zf = zipfile.ZipFile(tmp, 'w')
             for root, _, files in os.walk(outputDir):
                 for f in files:
                     relpath = root[len(outputDir) + 1:]
                     arcname = join(relpath, f).replace(os.sep, '/')
                     zf.write(join(root, f), arcname)
             zf.close()
+            # Atomic on Unix
+            shutil.move(tmp, join(p.dir, p.name + '.jar'))
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
