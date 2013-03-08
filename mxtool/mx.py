@@ -1651,7 +1651,7 @@ def archive(args):
         if name.startswith('@'):
             dname = name[1:]
             d = distribution(dname)
-            _, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path), dir=dirname(d.path))
+            fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
             zf = zipfile.ZipFile(tmp, 'w')
             for p in sorted_deps(d.deps):
                 outputDir = p.output_dir()
@@ -1661,6 +1661,7 @@ def archive(args):
                         arcname = join(relpath, f).replace(os.sep, '/')
                         zf.write(join(root, f), arcname)
             zf.close()
+            os.close(fd)
             # Atomic on Unix
             shutil.move(tmp, d.path)
             #print time.time(), 'move:', tmp, '->', d.path
@@ -1669,7 +1670,7 @@ def archive(args):
         else:
             p = project(name)
             outputDir = p.output_dir()
-            _, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
+            fd, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
             zf = zipfile.ZipFile(tmp, 'w')
             for root, _, files in os.walk(outputDir):
                 for f in files:
@@ -1677,6 +1678,7 @@ def archive(args):
                     arcname = join(relpath, f).replace(os.sep, '/')
                     zf.write(join(root, f), arcname)
             zf.close()
+            os.close(fd)
             # Atomic on Unix
             shutil.move(tmp, join(p.dir, p.name + '.jar'))
 
@@ -2184,7 +2186,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                        
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True, logToConsole=True)
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
         
         out.close('buildSpec')
         out.open('natures')
