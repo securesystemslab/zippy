@@ -2258,6 +2258,10 @@ def _isAnnotationProcessorDependency(p):
 def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False):
     launchOut = XMLDoc();
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
+    launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
+    launchOut.element('mapEntry', {'key' : 'JAVA_HOME',	'value' : java().jdk})
+    launchOut.close('mapAttribute')
+    
     if refresh:
         launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': 'false'})
