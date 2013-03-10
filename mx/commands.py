@@ -385,7 +385,11 @@ def _installGraalJarInJdks(graalDist):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
             if exists(jreLibDir):
-                shutil.copyfile(graalJar, join(jreLibDir, 'graal.jar'))
+                # do a copy and then a move to get atomic updating (on Unix) of graal.jar in the JRE
+                fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
+                shutil.copyfile(graalJar, tmp)
+                os.close(fd)
+                shutil.move(tmp, join(jreLibDir, 'graal.jar'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
