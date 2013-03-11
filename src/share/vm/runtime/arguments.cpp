@@ -2222,20 +2222,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     FREE_C_HEAP_ARRAY(char, altclasses_path, mtInternal);
   }
 
-#ifdef GRAAL
-  {
-    // Append graal.jar to bootclasspath if enabled
-    const char* jar_file = "graal.jar";
-    const size_t path_len = strlen(get_meta_index_dir()) + 1 + strlen(jar_file);
-    char* path = NEW_C_HEAP_ARRAY(char, path_len, mtInternal);
-    strcpy(path, get_meta_index_dir());
-    strcat(path, jar_file);
-    scp.add_suffix(path);
-    scp_assembly_required = true;
-    FREE_C_HEAP_ARRAY(char, path, mtInternal);
-  }
-#endif
-
   // Parse _JAVA_OPTIONS environment variable (if present) (mimics classic VM)
   result = parse_java_options_environment_variable(&scp, &scp_assembly_required);
   if (result != JNI_OK) {
