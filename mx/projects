@@ -238,6 +238,13 @@ project@com.oracle.graal.compiler.amd64@dependencies=com.oracle.graal.compiler,c
 project@com.oracle.graal.compiler.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.amd64@javaCompliance=1.7
 
+# graal.compiler.amd64.test
+project@com.oracle.graal.compiler.amd64.test@subDir=graal
+project@com.oracle.graal.compiler.amd64.test@sourceDirs=src
+project@com.oracle.graal.compiler.amd64.test@dependencies=com.oracle.graal.compiler.test
+project@com.oracle.graal.compiler.amd64.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.amd64.test@javaCompliance=1.7
+
 # graal.compiler.ptx
 project@com.oracle.graal.compiler.ptx@subDir=graal
 project@com.oracle.graal.compiler.ptx@sourceDirs=src
