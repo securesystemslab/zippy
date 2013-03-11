@@ -784,9 +784,20 @@ def gate(args):
             if mx.eclipseformat(['-e', eclipse_exe]) != 0:
                 t.abort('Formatter modified files - run "mx eclipseformat", check in changes and repush')
             tasks.append(t.stop())
+
+        t = Task('Canonicalization Check')
+        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
+        if mx.canonicalizeprojects([]) != 0:
+            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
+        tasks.append(t.stop())
         
         t = Task('BuildJava')
         build(['--no-native', '--jdt-warning-as-error'])
+        tasks.append(t.stop())
+        
+        t = Task('Checkstyle')
+        if mx.checkstyle([]) != 0:
+            t.abort('Checkstyle warnings were found')
         tasks.append(t.stop())
         
         if exists('jacoco.exec'):
@@ -796,10 +807,9 @@ def gate(args):
             _jacoco = 'append'
         else:
             _jacoco = 'off'
-        
 
         t = Task('BuildHotSpotGraal: fastdebug,product')
-        buildvms(['--vms', 'graal', '--builds', 'fastdebug,product'])
+        buildvms(['--vms', 'graal,server', '--builds', 'fastdebug,product'])
         tasks.append(t.stop())
 
         _vmbuild = 'fastdebug'
@@ -808,9 +818,12 @@ def gate(args):
         tasks.append(t.stop())
 
         _vmbuild = 'product'
-        t = Task('UnitTests:product')
+        originalVm = _vm
+        _vm = 'server' # hosted mode
+        t = Task('UnitTests:hosted-product')
         unittest([])
         tasks.append(t.stop())
+        _vm = originalVm
 
         for vmbuild in ['fastdebug', 'product']:
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
@@ -823,17 +836,6 @@ def gate(args):
             jacocoreport([args.jacocout])
             
         _jacoco = 'off'
-
-        t = Task('Checkstyle')
-        if mx.checkstyle([]) != 0:
-            t.abort('Checkstyle warnings were found')
-        tasks.append(t.stop())
-
-        t = Task('Canonicalization Check')
-        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
-        if mx.canonicalizeprojects([]) != 0:
-            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
-        tasks.append(t.stop())
 
         t = Task('CleanAndBuildGraalVisualizer')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
