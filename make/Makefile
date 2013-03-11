@@ -84,6 +84,9 @@ else
   ALT_OUT=
 endif
 
+# Directory for shared code (e.g. graal.jar)
+SHARED_DIR=$(OUTPUTDIR)/shared
+
 # Typical C1/C2 targets made available with this Makefile
 C1_VM_TARGETS=product1 fastdebug1 optimized1 jvmg1
 C2_VM_TARGETS=product  fastdebug  optimized  jvmg
@@ -187,7 +190,7 @@ $(GRAAL_VM_TARGETS):
 	$(MAKE) VM_TARGET=$@ generic_buildgraal $(ALT_OUT)
 
 # Build compiler1 (client) rule, different for platforms
-generic_build1:
+generic_build1: buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 ifeq ($(OSNAME),windows)
   ifeq ($(ARCH_DATA_MODEL), 32)
@@ -208,7 +211,7 @@ else
 endif
 
 # Build compiler2 (server) rule, different for platforms
-generic_build2:
+generic_build2: buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 ifeq ($(OSNAME),windows)
 	$(CD) $(OUTPUTDIR); \
@@ -257,11 +260,15 @@ else
 	@$(ECHO) "Error: trying to build a minimal target but JVM_VARIANT_MINIMAL1 is not true."
 endif
 
-generic_buildgraal:
+generic_buildgraal: buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 	$(CD) $(OUTPUTDIR); \
 		$(MAKE) -f $(ABS_OS_MAKEFILE) \
 			$(MAKE_ARGS) $(VM_TARGET) 
+
+# Builds code that can be shared among different build flavors
+buildshared:
+	$(REMOTE) $(ANT) -f $(GAMMADIR)/make/build-graal.xml -Dgamma.dir=$(GAMMADIR) -Dshared.dir=$(SHARED_DIR)
 
 # Export file rule
 generic_export: $(EXPORT_LIST)
@@ -386,6 +393,7 @@ $(EXPORT_MINIMAL_DIR)/%.map:  $(MINIMAL1_DIR)/%.map
 # Shared Library
 ifneq ($(OSNAME),windows)
     ifeq ($(JVM_VARIANT_SERVER), true)
+	# C2
         $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(C2_DIR)/%.$(LIBRARY_SUFFIX)
 		$(install-file)
         $(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(C2_DIR)/%.$(LIBRARY_SUFFIX)
@@ -404,7 +412,27 @@ ifneq ($(OSNAME),windows)
 		$(install-file)
         $(EXPORT_SERVER_DIR)/64/%.diz:    			$(C2_DIR)/%.diz
 		$(install-file)
-    endif
+
+	# Graal
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(GRAAL_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(GRAAL_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/64/%.$(LIBRARY_SUFFIX):    $(GRAAL_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo: 		$(GRAAL_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.debuginfo:       		$(GRAAL_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/64/%.debuginfo:    		$(GRAAL_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.diz: 			$(GRAAL_DIR)/%.diz
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.diz:       			$(GRAAL_DIR)/%.diz
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/64/%.diz:    			$(GRAAL_DIR)/%.diz
+		$(install-file)
+     endif
     ifeq ($(JVM_VARIANT_CLIENT), true)
         $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(C1_DIR)/%.$(LIBRARY_SUFFIX)
 		$(install-file)
@@ -479,6 +507,10 @@ endif
 $(EXPORT_LIB_DIR)/%.jar: $(GEN_DIR)/%.jar
 	$(install-file)
 
+# Shared jar files
+$(EXPORT_JRE_LIB_DIR)/%.jar: $(SHARED_DIR)/%.jar
+	$(install-file)
+
 # Include files (jvmti.h, jvmticmlr.h, jni.h, $(JDK_INCLUDE_SUBDIR)/jni_md.h, jmm.h, jfr.h)
 $(EXPORT_INCLUDE_DIR)/%: $(GEN_DIR)/jvmtifiles/%
 	$(install-file)
@@ -521,6 +553,7 @@ $(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_MINIMAL
 #
 clobber clean: clean_build clean_export clean_jdk
 clean_build:
+	$(RM) -r $(SHARED_DIR)
 	$(RM) -r $(C1_DIR)
 	$(RM) -r $(C2_DIR)
 	$(RM) -r $(ZERO_DIR)
