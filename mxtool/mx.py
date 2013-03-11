@@ -2337,6 +2337,14 @@ def netbeansinit(args, suite=None):
         out.open('project', {'name' : p.name, 'default' : 'default', 'basedir' : '.'})
         out.element('description', data='Builds, tests, and runs the project ' + p.name + '.')
         out.element('import', {'file' : 'nbproject/build-impl.xml'})
+        out.open('target', {'name' : '-post-compile'})
+        out.open('exec', { 'executable' : sys.executable})
+        out.element('env', {'key' : 'JAVA_HOME', 'value' : java().jdk})
+        out.element('arg', {'value' : os.path.abspath(__file__)})
+        out.element('arg', {'value' : 'archive'})
+        out.element('arg', {'value' : '@GRAAL'})
+        out.close('exec')
+        out.close('target')
         out.close('project')
         updated = update_file(join(p.dir, 'build.xml'), out.xml(indent='\t', newl='\n')) or updated
 
