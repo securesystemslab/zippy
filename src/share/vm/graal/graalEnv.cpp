@@ -43,6 +43,7 @@
 #include "runtime/sharedRuntime.hpp"
 #include "utilities/dtrace.hpp"
 #include "graal/graalRuntime.hpp"
+#include "graal/graalJavaAccess.hpp"
 
 // ------------------------------------------------------------------
 // Note: the logic of this method should mirror the logic of
@@ -418,7 +419,8 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                 bool has_debug_info,
                                 bool has_unsafe_access,
                                 GrowableArray<jlong>* leaf_graph_ids,
-                                Handle installed_code) {
+                                Handle installed_code,
+                                Handle triggered_deoptimizations) {
   GRAAL_EXCEPTION_CONTEXT;
   NMethodSweeper::possibly_sweep();
   nm = NULL;
@@ -463,7 +465,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                debug_info, dependencies, code_buffer,
                                frame_words, oop_map_set,
                                handler_table, &implicit_tbl,
-                               compiler, comp_level, leaf_graph_ids, installed_code);
+                               compiler, comp_level, leaf_graph_ids, installed_code, triggered_deoptimizations);
 
     // Free codeBlobs
     //code_buffer->free_blob();
@@ -492,7 +494,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
       // (Put nm into the task handle *before* publishing to the Java heap.)
       if (task != NULL)  task->set_code(nm);
 
-      if (installed_code.is_null()) {
+      if (HotSpotInstalledCode::isDefault(installed_code())) {
         if (entry_bci == InvocationEntryBci) {
           if (TieredCompilation) {
             // If there is an old version we're done with it

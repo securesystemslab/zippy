@@ -326,7 +326,7 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code) {
+CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations) {
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
@@ -344,7 +344,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code);
+    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
 
   method->clear_queued_for_compilation();
 }

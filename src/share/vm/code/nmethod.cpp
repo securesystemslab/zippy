@@ -490,6 +490,7 @@ void nmethod::init_defaults() {
   _compiler                = NULL;
 #ifdef GRAAL
   _graal_installed_code   = NULL;
+  _triggered_deoptimizations = NULL;
 #endif
 #ifdef HAVE_DTRACE_H
   _trap_offset             = 0;
@@ -585,7 +586,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
   int comp_level,
   GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
-  , Handle installed_code
+  , Handle installed_code,
+  Handle triggered_deoptimizations
 #endif
 )
 {
@@ -613,7 +615,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
               comp_level,
               leaf_graph_ids
 #ifdef GRAAL
-              , installed_code
+              , installed_code,
+              triggered_deoptimizations
 #endif
               );
     if (nm != NULL) {
@@ -839,7 +842,8 @@ nmethod::nmethod(
   int comp_level,
   GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
-  , Handle installed_code
+  , Handle installed_code,
+  Handle triggered_deoptimizations
 #endif
   )
   : CodeBlob("nmethod", code_buffer, sizeof(nmethod),
@@ -866,6 +870,7 @@ nmethod::nmethod(
 
 #ifdef GRAAL
     _graal_installed_code = installed_code();
+    _triggered_deoptimizations = (typeArrayOop)triggered_deoptimizations();
 #endif
     if (compiler->is_graal()) {
       // Graal might not produce any stub sections
@@ -1685,8 +1690,16 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
 
 #ifdef GRAAL
   // Follow Graal method
-  if (_graal_installed_code != NULL && can_unload(is_alive, (oop*)&_graal_installed_code, unloading_occurred)) {
-    return;
+  if (_graal_installed_code != NULL) {
+    if (HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+      if (!is_alive->do_object_b(_graal_installed_code)) {
+        _graal_installed_code = NULL;
+      }
+    } else {
+      if (can_unload(is_alive, (oop*)&_graal_installed_code, unloading_occurred)) {
+        return;
+      }
+    }
   }
 #endif
 
@@ -1910,8 +1923,11 @@ void nmethod::oops_do(OopClosure* f, bool do_strong_roots_only) {
   }
 
 #ifdef GRAAL
-  if (_graal_installed_code != NULL) {
+  if(_graal_installed_code != NULL) {
     f->do_oop((oop*) &_graal_installed_code);
+  }
+  if (_triggered_deoptimizations != NULL) {
+    f->do_oop((oop*) &_triggered_deoptimizations);
   }
 #endif
 

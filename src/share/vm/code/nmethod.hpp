@@ -119,6 +119,7 @@ class nmethod : public CodeBlob {
 #ifdef GRAAL
   // Needed to keep nmethods alive that are not the default nmethod for the associated Method.
   oop       _graal_installed_code;
+  typeArrayOop _triggered_deoptimizations;
 #endif
 
   // To support simple linked-list chaining of nmethods:
@@ -271,7 +272,8 @@ class nmethod : public CodeBlob {
           int comp_level,
           GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
-          , Handle installed_code
+          , Handle installed_code,
+          Handle triggered_deoptimizations
 #endif
           );
 
@@ -312,7 +314,8 @@ class nmethod : public CodeBlob {
                               int comp_level,
                               GrowableArray<jlong>* leaf_graph_ids = NULL
 #ifdef GRAAL
-                              , Handle installed_code = NULL
+                              , Handle installed_code = Handle(),
+                              Handle triggered_deoptimizations = Handle()
 #endif
   );
 

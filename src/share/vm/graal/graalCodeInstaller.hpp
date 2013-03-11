@@ -78,7 +78,7 @@ private:
 public:
 
   // constructor used to create a method
-  CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code);
+  CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations);
 
   // constructor used to create a stub
   CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id);
