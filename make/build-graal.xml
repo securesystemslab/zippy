@@ -34,7 +34,7 @@
 
   <target name="compile">
     <mkdir dir="${classes.dir}"/>
-    <javac srcdir="${src.dir}" destdir="${classes.dir}" debug="on">
+    <javac srcdir="${src.dir}" destdir="${classes.dir}" debug="on" includeantruntime="false">
       <include name="com.oracle.graal.*/**"/>
       <exclude name="com.oracle.graal.test/**"/>
       <exclude name="com.oracle.graal.*.test/**"/>
