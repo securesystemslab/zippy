@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,33 +40,6 @@ import com.oracle.graal.lir.StandardOp.MoveOp;
 import com.oracle.graal.lir.asm.*;
 
 public class AMD64Move {
-
-    @Opcode("MOVE")
-    public static class SpillMoveOp extends AMD64LIRInstruction implements MoveOp {
-
-        @Def({REG, STACK}) protected Value result;
-        @Use({REG, STACK, CONST}) protected Value input;
-
-        public SpillMoveOp(Value result, Value input) {
-            this.result = result;
-            this.input = input;
-        }
-
-        @Override
-        public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-            move(tasm, masm, getResult(), getInput());
-        }
-
-        @Override
-        public Value getInput() {
-            return input;
-        }
-
-        @Override
-        public Value getResult() {
-            return result;
-        }
-    }
 
     @Opcode("MOVE")
     public static class MoveToRegOp extends AMD64LIRInstruction implements MoveOp {
@@ -124,10 +97,10 @@ public class AMD64Move {
 
     public abstract static class MemOp extends AMD64LIRInstruction {
 
-        @Use({ADDR}) protected AMD64Address address;
+        @Use({COMPOSITE}) protected AMD64AddressValue address;
         @State protected LIRFrameState state;
 
-        public MemOp(AMD64Address address, LIRFrameState state) {
+        public MemOp(AMD64AddressValue address, LIRFrameState state) {
             this.address = address;
             this.state = state;
         }
@@ -147,7 +120,7 @@ public class AMD64Move {
 
         @Def({REG}) protected AllocatableValue result;
 
-        public LoadOp(AllocatableValue result, AMD64Address address, LIRFrameState state) {
+        public LoadOp(AllocatableValue result, AMD64AddressValue address, LIRFrameState state) {
             super(address, state);
             this.result = result;
         }
@@ -157,28 +130,28 @@ public class AMD64Move {
             switch (address.getKind()) {
                 case Boolean:
                 case Byte:
-                    masm.movsxb(asRegister(result), address);
+                    masm.movsxb(asRegister(result), address.toAddress());
                     break;
                 case Char:
-                    masm.movzxl(asRegister(result), address);
+                    masm.movzxl(asRegister(result), address.toAddress());
                     break;
                 case Short:
-                    masm.movswl(asRegister(result), address);
+                    masm.movswl(asRegister(result), address.toAddress());
                     break;
                 case Int:
-                    masm.movslq(asRegister(result), address);
+                    masm.movslq(asRegister(result), address.toAddress());
                     break;
                 case Long:
-                    masm.movq(asRegister(result), address);
+                    masm.movq(asRegister(result), address.toAddress());
                     break;
                 case Float:
-                    masm.movflt(asFloatReg(result), address);
+                    masm.movflt(asFloatReg(result), address.toAddress());
                     break;
                 case Double:
-                    masm.movdbl(asDoubleReg(result), address);
+                    masm.movdbl(asDoubleReg(result), address.toAddress());
                     break;
                 case Object:
-                    masm.movq(asRegister(result), address);
+                    masm.movq(asRegister(result), address.toAddress());
                     break;
                 default:
                     throw GraalInternalError.shouldNotReachHere();
@@ -190,7 +163,7 @@ public class AMD64Move {
 
         @Use({REG}) protected AllocatableValue input;
 
-        public StoreOp(AMD64Address address, AllocatableValue input, LIRFrameState state) {
+        public StoreOp(AMD64AddressValue address, AllocatableValue input, LIRFrameState state) {
             super(address, state);
             this.input = input;
         }
@@ -201,26 +174,26 @@ public class AMD64Move {
             switch (address.getKind()) {
                 case Boolean:
                 case Byte:
-                    masm.movb(address, asRegister(input));
+                    masm.movb(address.toAddress(), asRegister(input));
                     break;
                 case Char:
                 case Short:
-                    masm.movw(address, asRegister(input));
+                    masm.movw(address.toAddress(), asRegister(input));
                     break;
                 case Int:
-                    masm.movl(address, asRegister(input));
+                    masm.movl(address.toAddress(), asRegister(input));
                     break;
                 case Long:
-                    masm.movq(address, asRegister(input));
+                    masm.movq(address.toAddress(), asRegister(input));
                     break;
                 case Float:
-                    masm.movflt(address, asFloatReg(input));
+                    masm.movflt(address.toAddress(), asFloatReg(input));
                     break;
                 case Double:
-                    masm.movsd(address, asDoubleReg(input));
+                    masm.movsd(address.toAddress(), asDoubleReg(input));
                     break;
                 case Object:
-                    masm.movq(address, asRegister(input));
+                    masm.movq(address.toAddress(), asRegister(input));
                     break;
                 default:
                     throw GraalInternalError.shouldNotReachHere();
@@ -230,9 +203,9 @@ public class AMD64Move {
 
     public static class StoreConstantOp extends MemOp {
 
-        @Use({CONST}) protected Constant input;
+        protected final Constant input;
 
-        public StoreConstantOp(AMD64Address address, Constant input, LIRFrameState state) {
+        public StoreConstantOp(AMD64AddressValue address, Constant input, LIRFrameState state) {
             super(address, state);
             this.input = input;
         }
@@ -242,30 +215,30 @@ public class AMD64Move {
             switch (address.getKind()) {
                 case Boolean:
                 case Byte:
-                    masm.movb(address, input.asInt() & 0xFF);
+                    masm.movb(address.toAddress(), input.asInt() & 0xFF);
                     break;
                 case Char:
                 case Short:
-                    masm.movw(address, input.asInt() & 0xFFFF);
+                    masm.movw(address.toAddress(), input.asInt() & 0xFFFF);
                     break;
                 case Int:
-                    masm.movl(address, input.asInt());
+                    masm.movl(address.toAddress(), input.asInt());
                     break;
                 case Long:
                     if (NumUtil.isInt(input.asLong())) {
-                        masm.movslq(address, (int) input.asLong());
+                        masm.movslq(address.toAddress(), (int) input.asLong());
                     } else {
                         throw GraalInternalError.shouldNotReachHere("Cannot store 64-bit constants to memory");
                     }
                     break;
                 case Float:
-                    masm.movl(address, floatToRawIntBits(input.asFloat()));
+                    masm.movl(address.toAddress(), floatToRawIntBits(input.asFloat()));
                     break;
                 case Double:
                     throw GraalInternalError.shouldNotReachHere("Cannot store 64-bit constants to memory");
                 case Object:
                     if (input.isNull()) {
-                        masm.movptr(address, 0);
+                        masm.movptr(address.toAddress(), 0);
                     } else {
                         throw GraalInternalError.shouldNotReachHere("Cannot store 64-bit constants to memory");
                     }
@@ -279,16 +252,16 @@ public class AMD64Move {
     public static class LeaOp extends AMD64LIRInstruction {
 
         @Def({REG}) protected AllocatableValue result;
-        @Use({ADDR, UNINITIALIZED}) protected AMD64Address address;
+        @Use({COMPOSITE, UNINITIALIZED}) protected AMD64AddressValue address;
 
-        public LeaOp(AllocatableValue result, AMD64Address address) {
+        public LeaOp(AllocatableValue result, AMD64AddressValue address) {
             this.result = result;
             this.address = address;
         }
 
         @Override
         public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-            masm.leaq(asLongReg(result), address);
+            masm.leaq(asLongReg(result), address.toAddress());
         }
     }
 
@@ -343,11 +316,11 @@ public class AMD64Move {
     public static class CompareAndSwapOp extends AMD64LIRInstruction {
 
         @Def protected AllocatableValue result;
-        @Use({ADDR}) protected AMD64Address address;
+        @Use({COMPOSITE}) protected AMD64AddressValue address;
         @Use protected AllocatableValue cmpValue;
         @Use protected AllocatableValue newValue;
 
-        public CompareAndSwapOp(AllocatableValue result, AMD64Address address, AllocatableValue cmpValue, AllocatableValue newValue) {
+        public CompareAndSwapOp(AllocatableValue result, AMD64AddressValue address, AllocatableValue cmpValue, AllocatableValue newValue) {
             this.result = result;
             this.address = address;
             this.cmpValue = cmpValue;
@@ -550,7 +523,7 @@ public class AMD64Move {
         }
     }
 
-    protected static void compareAndSwap(TargetMethodAssembler tasm, AMD64MacroAssembler masm, AllocatableValue result, AMD64Address address, AllocatableValue cmpValue, AllocatableValue newValue) {
+    protected static void compareAndSwap(TargetMethodAssembler tasm, AMD64MacroAssembler masm, AllocatableValue result, AMD64AddressValue address, AllocatableValue cmpValue, AllocatableValue newValue) {
         assert asRegister(cmpValue) == AMD64.rax && asRegister(result) == AMD64.rax;
 
         if (tasm.target.isMP) {
@@ -558,11 +531,11 @@ public class AMD64Move {
         }
         switch (cmpValue.getKind()) {
             case Int:
-                masm.cmpxchgl(asRegister(newValue), address);
+                masm.cmpxchgl(asRegister(newValue), address.toAddress());
                 break;
             case Long:
             case Object:
-                masm.cmpxchgq(asRegister(newValue), address);
+                masm.cmpxchgq(asRegister(newValue), address.toAddress());
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();

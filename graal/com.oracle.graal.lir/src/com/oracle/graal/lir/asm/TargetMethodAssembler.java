@@ -32,7 +32,6 @@ import com.oracle.graal.asm.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.LIR.Code;
 
 public class TargetMethodAssembler {
 
@@ -54,11 +53,6 @@ public class TargetMethodAssembler {
     public final FrameMap frameMap;
 
     /**
-     * Out-of-line stubs to be emitted.
-     */
-    public final List<Code> stubs;
-
-    /**
      * The object that emits code for managing a method's frame. If null, no frame is used by the
      * method.
      */
@@ -66,11 +60,10 @@ public class TargetMethodAssembler {
 
     private List<ExceptionInfo> exceptionInfoList;
 
-    public TargetMethodAssembler(TargetDescription target, CodeCacheProvider runtime, FrameMap frameMap, AbstractAssembler asm, FrameContext frameContext, List<Code> stubs) {
+    public TargetMethodAssembler(TargetDescription target, CodeCacheProvider runtime, FrameMap frameMap, AbstractAssembler asm, FrameContext frameContext) {
         this.target = target;
         this.runtime = runtime;
         this.frameMap = frameMap;
-        this.stubs = stubs;
         this.asm = asm;
         this.compilationResult = new CompilationResult();
         this.frameContext = frameContext;
@@ -150,7 +143,7 @@ public class TargetMethodAssembler {
         compilationResult.recordSafepoint(pos, debugInfo);
     }
 
-    public Address recordDataReferenceInCode(Constant data, int alignment, boolean inlined) {
+    public AbstractAddress recordDataReferenceInCode(Constant data, int alignment, boolean inlined) {
         assert data != null;
         int pos = asm.codeBuffer.position();
         Debug.log("Data reference in code: pos = %d, data = %s", pos, data.toString());
@@ -176,11 +169,11 @@ public class TargetMethodAssembler {
     /**
      * Returns the address of a float constant that is embedded as a data references into the code.
      */
-    public Address asFloatConstRef(Value value) {
+    public AbstractAddress asFloatConstRef(Value value) {
         return asFloatConstRef(value, 4);
     }
 
-    public Address asFloatConstRef(Value value, int alignment) {
+    public AbstractAddress asFloatConstRef(Value value, int alignment) {
         assert value.getKind() == Kind.Float && isConstant(value);
         return recordDataReferenceInCode((Constant) value, alignment, false);
     }
@@ -188,11 +181,11 @@ public class TargetMethodAssembler {
     /**
      * Returns the address of a double constant that is embedded as a data references into the code.
      */
-    public Address asDoubleConstRef(Value value) {
+    public AbstractAddress asDoubleConstRef(Value value) {
         return asDoubleConstRef(value, 8);
     }
 
-    public Address asDoubleConstRef(Value value, int alignment) {
+    public AbstractAddress asDoubleConstRef(Value value, int alignment) {
         assert value.getKind() == Kind.Double && isConstant(value);
         return recordDataReferenceInCode((Constant) value, alignment, false);
     }
@@ -200,41 +193,39 @@ public class TargetMethodAssembler {
     /**
      * Returns the address of a long constant that is embedded as a data references into the code.
      */
-    public Address asLongConstRef(Value value) {
+    public AbstractAddress asLongConstRef(Value value) {
         assert value.getKind() == Kind.Long && isConstant(value);
         return recordDataReferenceInCode((Constant) value, 8, false);
     }
 
-    public Address asIntAddr(Value value) {
+    public AbstractAddress asIntAddr(Value value) {
         assert value.getKind() == Kind.Int;
         return asAddress(value);
     }
 
-    public Address asLongAddr(Value value) {
+    public AbstractAddress asLongAddr(Value value) {
         assert value.getKind() == Kind.Long;
         return asAddress(value);
     }
 
-    public Address asObjectAddr(Value value) {
+    public AbstractAddress asObjectAddr(Value value) {
         assert value.getKind() == Kind.Object;
         return asAddress(value);
     }
 
-    public Address asFloatAddr(Value value) {
+    public AbstractAddress asFloatAddr(Value value) {
         assert value.getKind() == Kind.Float;
         return asAddress(value);
     }
 
-    public Address asDoubleAddr(Value value) {
+    public AbstractAddress asDoubleAddr(Value value) {
         assert value.getKind() == Kind.Double;
         return asAddress(value);
     }
 
-    public Address asAddress(Value value) {
-        if (isStackSlot(value)) {
-            StackSlot slot = (StackSlot) value;
-            return asm.makeAddress(slot.getKind(), frameMap.registerConfig.getFrameRegister().asValue(), frameMap.offsetForStackSlot(slot));
-        }
-        return (Address) value;
+    public AbstractAddress asAddress(Value value) {
+        assert isStackSlot(value);
+        StackSlot slot = asStackSlot(value);
+        return asm.makeAddress(frameMap.registerConfig.getFrameRegister(), frameMap.offsetForStackSlot(slot));
     }
 }

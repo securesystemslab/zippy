@@ -62,12 +62,6 @@ public class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected void emitNullCheckGuard(ValueNode object) {
-        // SPARC: Auto-generated method stub
-
-    }
-
-    @Override
     public void emitJump(LabelRef label, LIRFrameState info) {
         @SuppressWarnings("unused")
         SPARCLIRInstruction instruction = null;
@@ -77,6 +71,12 @@ public class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label, LIRFrameState info) {
+        // SPARC: Auto-generated method stub
+
+    }
+
+    @Override
+    public void emitOverflowCheckBranch(LabelRef label, LIRFrameState info, boolean negated) {
         // SPARC: Auto-generated method stub
 
     }
@@ -118,7 +118,7 @@ public class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected LabelRef createDeoptStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info, Object deoptInfo) {
+    protected LabelRef createDeoptStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info) {
         // SPARC: Auto-generated method stub
         return null;
     }
@@ -340,13 +340,13 @@ public class SPARCLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitDeoptimizeOnOverflow(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo) {
+    public void emitDeoptimizeOnOverflow(DeoptimizationAction action, DeoptimizationReason reason) {
         // SPARC: Auto-generated method stub
 
     }
 
     @Override
-    public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo) {
+    public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason) {
         // SPARC: Auto-generated method stub
 
     }
@@ -372,6 +372,12 @@ public class SPARCLIRGenerator extends LIRGenerator {
     @Override
     public void visitBreakpointNode(BreakpointNode i) {
         // SPARC: Auto-generated method stub
+
+    }
+
+    @Override
+    public void emitUnwind(Value operand) {
+        // TODO Auto-generated method stub
 
     }
 }

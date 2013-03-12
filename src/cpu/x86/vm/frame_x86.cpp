@@ -91,6 +91,12 @@ bool frame::safe_for_sender(JavaThread *thread) {
         return false;
       }
     }
+
+    // Could just be some random pointer within the codeBlob
+    if (!_cb->code_contains(_pc)) {
+      return false;
+    }
+
     // Entry frame checks
     if (is_entry_frame()) {
       // an entry frame must have a valid fp.
@@ -300,11 +306,6 @@ intptr_t* frame::interpreter_frame_sender_sp() const {
 void frame::set_interpreter_frame_sender_sp(intptr_t* sender_sp) {
   assert(is_interpreted_frame(), "interpreted frame expected");
   ptr_at_put(interpreter_frame_sender_sp_offset, (intptr_t) sender_sp);
-}
-
-intptr_t** frame::interpreter_frame_sender_sp_addr() const {
-  assert(is_interpreted_frame(), "interpreted frame expected");
-  return (intptr_t**) addr_at(interpreter_frame_sender_sp_offset);
 }
 
 

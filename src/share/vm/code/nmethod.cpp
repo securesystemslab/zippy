@@ -42,8 +42,6 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
-#include "utilities/debug.hpp"
-#include "utilities/machineCodePrinter.hpp"
 #ifdef SHARK
 #include "shark/sharkCompiler.hpp"
 #endif
@@ -126,6 +124,7 @@ bool nmethod::is_compiled_by_shark() const {
 //   PrintC1Statistics, PrintOptoStatistics, LogVMOutput, and LogCompilation.
 // (In the latter two cases, they like other stats are printed to the log only.)
 
+#ifndef PRODUCT
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
 static
@@ -215,6 +214,7 @@ struct nmethod_stats_struct {
                   pc_desc_tests, pc_desc_searches, pc_desc_adds);
   }
 } nmethod_stats;
+#endif //PRODUCT
 
 
 //---------------------------------------------------------------------------------
@@ -490,6 +490,7 @@ void nmethod::init_defaults() {
   _compiler                = NULL;
 #ifdef GRAAL
   _graal_installed_code   = NULL;
+  _triggered_deoptimizations = NULL;
 #endif
 #ifdef HAVE_DTRACE_H
   _trap_offset             = 0;
@@ -520,13 +521,9 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
               code_buffer, frame_size,
               basic_lock_owner_sp_offset, basic_lock_sp_offset,
               oop_maps);
-    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_native_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
-
-    if (PrintMachineCodeToFile) {
-      MachineCodePrinter::print(nm);
-    }
   }
   // verify nmethod
   debug_only(if (nm) nm->verify();) // might block
@@ -558,7 +555,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
 
     nm = new (nmethod_size) nmethod(method(), nmethod_size, &offsets, code_buffer, frame_size);
 
-    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
   }
@@ -589,7 +586,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
   int comp_level,
   GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
-  , Handle installed_code
+  , Handle installed_code,
+  Handle triggered_deoptimizations
 #endif
 )
 {
@@ -617,7 +615,8 @@ nmethod* nmethod::new_nmethod(methodHandle method,
               comp_level,
               leaf_graph_ids
 #ifdef GRAAL
-              , installed_code
+              , installed_code,
+              triggered_deoptimizations
 #endif
               );
     if (nm != NULL) {
@@ -637,13 +636,9 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
     }
-    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
     if (PrintAssembly && nm != NULL)
       Disassembler::decode(nm);
-
-    if (nm != NULL && PrintMachineCodeToFile) {
-      MachineCodePrinter::print(nm);
-    }
   }
 
   // verify nmethod
@@ -847,7 +842,8 @@ nmethod::nmethod(
   int comp_level,
   GrowableArray<jlong>* leaf_graph_ids
 #ifdef GRAAL
-  , Handle installed_code
+  , Handle installed_code,
+  Handle triggered_deoptimizations
 #endif
   )
   : CodeBlob("nmethod", code_buffer, sizeof(nmethod),
@@ -874,6 +870,7 @@ nmethod::nmethod(
 
 #ifdef GRAAL
     _graal_installed_code = installed_code();
+    _triggered_deoptimizations = (typeArrayOop)triggered_deoptimizations();
 #endif
     if (compiler->is_graal()) {
       // Graal might not produce any stub sections
@@ -1693,8 +1690,16 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
 
 #ifdef GRAAL
   // Follow Graal method
-  if (_graal_installed_code != NULL && can_unload(is_alive, (oop*)&_graal_installed_code, unloading_occurred)) {
-    return;
+  if (_graal_installed_code != NULL) {
+    if (HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+      if (!is_alive->do_object_b(_graal_installed_code)) {
+        _graal_installed_code = NULL;
+      }
+    } else {
+      if (can_unload(is_alive, (oop*)&_graal_installed_code, unloading_occurred)) {
+        return;
+      }
+    }
   }
 #endif
 
@@ -1819,8 +1824,8 @@ BoolObjectClosure* CheckClass::_is_alive = NULL;
 // really alive.
 void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* is_alive) {
 #ifdef ASSERT
-  RelocIterator iter(this, low_boundary);
-  while (iter.next()) {
+    RelocIterator iter(this, low_boundary);
+    while (iter.next()) {
     // static_stub_Relocations may have dangling references to
     // Method*s so trim them out here.  Otherwise it looks like
     // compiled code is maintaining a link to dead metadata.
@@ -1829,13 +1834,11 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
       CompiledIC* cic = CompiledIC_at(iter.reloc());
       if (!cic->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
-        cic->set_to_clean();
       }
     } else if (iter.type() == relocInfo::static_call_type) {
       CompiledStaticCall* csc = compiledStaticCall_at(iter.reloc());
       if (!csc->is_call_to_interpreted()) {
         static_call_addr = iter.addr();
-        csc->set_to_clean();
       }
     }
     if (static_call_addr != NULL) {
@@ -1920,8 +1923,11 @@ void nmethod::oops_do(OopClosure* f, bool do_strong_roots_only) {
   }
 
 #ifdef GRAAL
-  if (_graal_installed_code != NULL) {
+  if(_graal_installed_code != NULL) {
     f->do_oop((oop*) &_graal_installed_code);
+  }
+  if (_triggered_deoptimizations != NULL) {
+    f->do_oop((oop*) &_triggered_deoptimizations);
   }
 #endif
 
@@ -2512,9 +2518,7 @@ void nmethod::verify_scopes() {
         // information in a table.
         break;
     }
-#ifndef GRAAL
     assert(stub == NULL || stub_contains(stub), "static call stub outside stub section");
-#endif
   }
 }
 
@@ -3006,8 +3010,6 @@ void nmethod::print_nul_chk_table() {
   ImplicitExceptionTable(this).print(code_begin());
 }
 
-#endif // PRODUCT
-
 void nmethod::print_statistics() {
   ttyLocker ttyl;
   if (xtty != NULL)  xtty->head("statistics type='nmethod'");
@@ -3019,18 +3021,4 @@ void nmethod::print_statistics() {
   if (xtty != NULL)  xtty->tail("statistics");
 }
 
-#ifdef GRAAL
-void DebugScopedNMethod::print_on(outputStream* st) {
-  if (_nm != NULL) {
-    st->print("nmethod@%p", _nm);
-    Method* method = _nm->method();
-    if (method != NULL) {
-      char holder[O_BUFLEN];
-      char nameAndSig[O_BUFLEN];
-      method->method_holder()->name()->as_C_string(holder, O_BUFLEN);
-      method->name_and_sig_as_C_string(nameAndSig, O_BUFLEN);
-      st->print(" - %s::%s", holder, nameAndSig);
-    }
-  }
-}
-#endif
+#endif // PRODUCT

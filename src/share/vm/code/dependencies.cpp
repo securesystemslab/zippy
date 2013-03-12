@@ -563,6 +563,7 @@ void Dependencies::encode_content_bytes() {
   _size_in_bytes = bytes.position();
 }
 
+
 const char* Dependencies::_dep_name[TYPE_LIMIT] = {
   "end_marker",
   "evol_method",

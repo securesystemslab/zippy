@@ -44,9 +44,6 @@
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/sweeper.hpp"
 #include "utilities/dtrace.hpp"
-#ifdef GRAAL
-#include "graal/graalCompiler.hpp"
-#endif
 #include "utilities/events.hpp"
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"
@@ -1421,7 +1418,7 @@ bool CompileBroker::compilation_is_prohibited(methodHandle method, int osr_bci, 
       method->print_short_name(tty);
       tty->cr();
     }
-    method->set_not_compilable_quietly();
+    method->set_not_compilable(CompLevel_all, !quietly, "excluded by CompilerOracle");
   }
 
   return false;

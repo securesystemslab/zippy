@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -84,10 +84,12 @@ else
   ALT_OUT=
 endif
 
+# Directory for shared code (e.g. graal.jar)
+SHARED_DIR=$(OUTPUTDIR)/shared
+
 # Typical C1/C2 targets made available with this Makefile
 C1_VM_TARGETS=product1 fastdebug1 optimized1 jvmg1
 C2_VM_TARGETS=product  fastdebug  optimized  jvmg
-KERNEL_VM_TARGETS=productkernel fastdebugkernel optimizedkernel jvmgkernel
 ZERO_VM_TARGETS=productzero fastdebugzero optimizedzero jvmgzero
 SHARK_VM_TARGETS=productshark fastdebugshark optimizedshark jvmgshark
 MINIMAL1_VM_TARGETS=productminimal1 fastdebugminimal1 jvmgminimal1
@@ -168,11 +170,6 @@ $(C2_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
 	$(MAKE) BUILD_FLAVOR=$@ VM_TARGET=$@ generic_build2 $(ALT_OUT)
 
-$(KERNEL_VM_TARGETS):
-	$(CD) $(GAMMADIR)/make; \
-	$(MAKE) BUILD_FLAVOR=$(@:%kernel=%) VM_TARGET=$@ \
-	  generic_buildkernel $(ALT_OUT)
-
 $(ZERO_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
 	$(MAKE) BUILD_FLAVOR=$(@:%zero=%) VM_TARGET=$@ \
@@ -193,7 +190,7 @@ $(GRAAL_VM_TARGETS):
 	$(MAKE) VM_TARGET=$@ generic_buildgraal $(ALT_OUT)
 
 # Build compiler1 (client) rule, different for platforms
-generic_build1:
+generic_build1: buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 ifeq ($(OSNAME),windows)
   ifeq ($(ARCH_DATA_MODEL), 32)
@@ -214,7 +211,7 @@ else
 endif
 
 # Build compiler2 (server) rule, different for platforms
-generic_build2:
+generic_build2: buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 ifeq ($(OSNAME),windows)
 	$(CD) $(OUTPUTDIR); \
@@ -228,24 +225,6 @@ else
 	$(CD) $(OUTPUTDIR); \
 	    $(MAKE) -f $(ABS_OS_MAKEFILE) \
 		      $(MAKE_ARGS) $(VM_TARGET)
-endif
-
-generic_buildkernel:
-	$(MKDIR) -p $(OUTPUTDIR)
-ifeq ($(OSNAME),windows)
-  ifeq ($(ARCH_DATA_MODEL), 32)
-	$(CD) $(OUTPUTDIR); \
-	    $(NMAKE) -f $(ABS_OS_MAKEFILE) \
-		      Variant=kernel \
-                      WorkSpace=$(ABS_GAMMADIR) \
-		      BootStrapDir=$(ABS_BOOTDIR) \
-                      BuildUser=$(USERNAME) \
-		      $(MAKE_ARGS) $(VM_TARGET:%kernel=%)
-  else
-	@$(ECHO) "No kernel ($(VM_TARGET)) for ARCH_DATA_MODEL=$(ARCH_DATA_MODEL)"
-  endif
-else
-	@$(ECHO) "No kernel ($(VM_TARGET)) for OS_NAME=$(OSNAME)"
 endif
 
 generic_buildzero:
@@ -281,11 +260,15 @@ else
 	@$(ECHO) "Error: trying to build a minimal target but JVM_VARIANT_MINIMAL1 is not true."
 endif
 
-generic_buildgraal:
+generic_buildgraal: buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 	$(CD) $(OUTPUTDIR); \
 		$(MAKE) -f $(ABS_OS_MAKEFILE) \
 			$(MAKE_ARGS) $(VM_TARGET) 
+
+# Builds code that can be shared among different build flavors
+buildshared:
+	$(REMOTE) $(ANT) -f $(GAMMADIR)/make/build-graal.xml -Dgamma.dir=$(GAMMADIR) -Dshared.dir=$(SHARED_DIR)
 
 # Export file rule
 generic_export: $(EXPORT_LIST)
@@ -327,13 +310,11 @@ XUSAGE=$(HS_SRC_DIR)/share/vm/Xusage.txt
 DOCS_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_docs
 C1_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_compiler1
 C2_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_compiler2
-KERNEL_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_kernel
 ZERO_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_zero
 SHARK_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_shark
 GRAAL_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_graal
 C1_DIR=$(C1_BASE_DIR)/$(VM_SUBDIR)
 C2_DIR=$(C2_BASE_DIR)/$(VM_SUBDIR)
-KERNEL_DIR=$(KERNEL_BASE_DIR)/$(VM_SUBDIR)
 ZERO_DIR=$(ZERO_BASE_DIR)/$(VM_SUBDIR)
 SHARK_DIR=$(SHARK_BASE_DIR)/$(VM_SUBDIR)
 MINIMAL1_BASE_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_minimal1
@@ -347,10 +328,6 @@ endif
 ifeq ($(JVM_VARIANT_CLIENT), true)
     MISC_DIR=$(C1_DIR)
     GEN_DIR=$(C1_BASE_DIR)/generated
-endif
-ifeq ($(JVM_VARIANT_KERNEL), true)
-    MISC_DIR=$(C2_DIR)
-    GEN_DIR=$(C2_BASE_DIR)/generated
 endif
 ifeq ($(JVM_VARIANT_ZEROSHARK), true)
     MISC_DIR=$(SHARK_DIR)
@@ -401,16 +378,6 @@ $(EXPORT_SERVER_DIR)/%.pdb:  $(C2_DIR)/%.pdb
 	$(install-file)
 $(EXPORT_SERVER_DIR)/%.map:  $(C2_DIR)/%.map
 	$(install-file)
-
-# Kernel files always come from kernel area
-$(EXPORT_KERNEL_DIR)/%.diz:  $(KERNEL_DIR)/%.diz
-	$(install-file)
-$(EXPORT_KERNEL_DIR)/%.dll:  $(KERNEL_DIR)/%.dll
-	$(install-file)
-$(EXPORT_KERNEL_DIR)/%.pdb:  $(KERNEL_DIR)/%.pdb
-	$(install-file)
-$(EXPORT_KERNEL_DIR)/%.map:  $(KERNEL_DIR)/%.map
-	$(install-file)
 endif
 
 # Minimal JVM files always come from minimal area
@@ -426,6 +393,7 @@ $(EXPORT_MINIMAL_DIR)/%.map:  $(MINIMAL1_DIR)/%.map
 # Shared Library
 ifneq ($(OSNAME),windows)
     ifeq ($(JVM_VARIANT_SERVER), true)
+	# C2
         $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(C2_DIR)/%.$(LIBRARY_SUFFIX)
 		$(install-file)
         $(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(C2_DIR)/%.$(LIBRARY_SUFFIX)
@@ -444,7 +412,27 @@ ifneq ($(OSNAME),windows)
 		$(install-file)
         $(EXPORT_SERVER_DIR)/64/%.diz:    			$(C2_DIR)/%.diz
 		$(install-file)
-    endif
+
+	# Graal
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(GRAAL_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(GRAAL_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/64/%.$(LIBRARY_SUFFIX):    $(GRAAL_DIR)/%.$(LIBRARY_SUFFIX)
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo: 		$(GRAAL_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.debuginfo:       		$(GRAAL_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/64/%.debuginfo:    		$(GRAAL_DIR)/%.debuginfo
+		$(install-file)
+        $(EXPORT_JRE_LIB_ARCH_DIR)/%.diz: 			$(GRAAL_DIR)/%.diz
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/%.diz:       			$(GRAAL_DIR)/%.diz
+		$(install-file)
+        $(EXPORT_SERVER_DIR)/64/%.diz:    			$(GRAAL_DIR)/%.diz
+		$(install-file)
+     endif
     ifeq ($(JVM_VARIANT_CLIENT), true)
         $(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(C1_DIR)/%.$(LIBRARY_SUFFIX)
 		$(install-file)
@@ -519,7 +507,8 @@ endif
 $(EXPORT_LIB_DIR)/%.jar: $(GEN_DIR)/%.jar
 	$(install-file)
 
-$(EXPORT_JRE_LIB_DIR)/%.jar: $(GEN_DIR)/%.jar
+# Shared jar files
+$(EXPORT_JRE_LIB_DIR)/%.jar: $(SHARED_DIR)/%.jar
 	$(install-file)
 
 # Include files (jvmti.h, jvmticmlr.h, jni.h, $(JDK_INCLUDE_SUBDIR)/jni_md.h, jmm.h, jfr.h)
@@ -553,7 +542,7 @@ $(EXPORT_DOCS_DIR)/platform/jvmti/%: $(DOCS_DIR)/%
 	$(install-file)
 
 # Xusage file
-$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_DIR)/Xusage.txt $(EXPORT_MINIMAL_DIR)/Xusage.txt: $(XUSAGE)
+$(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_MINIMAL_DIR)/Xusage.txt: $(XUSAGE)
 	$(prep-target)
 	$(RM) $@.temp
 	$(SED) 's/\(separated by \)[;:]/\1$(PATH_SEP)/g' $< > $@.temp
@@ -564,9 +553,9 @@ $(EXPORT_SERVER_DIR)/Xusage.txt $(EXPORT_CLIENT_DIR)/Xusage.txt $(EXPORT_KERNEL_
 #
 clobber clean: clean_build clean_export clean_jdk
 clean_build:
+	$(RM) -r $(SHARED_DIR)
 	$(RM) -r $(C1_DIR)
 	$(RM) -r $(C2_DIR)
-	$(RM) -r $(KERNEL_DIR)
 	$(RM) -r $(ZERO_DIR)
 	$(RM) -r $(SHARK_DIR)
 	$(RM) -r $(MINIMAL1_DIR)
@@ -601,10 +590,6 @@ test_jdk:
 		$(JVM_VARIANT_ZERO)$(JVM_VARIANT_ZEROSHARK)), true)
 	$(JDK_IMAGE_DIR)/bin/java -d$(ARCH_DATA_MODEL) -server -Xinternalversion
 	$(JDK_IMAGE_DIR)/bin/java -d$(ARCH_DATA_MODEL) -server -version
-  endif
-  ifeq ($(JVM_VARIANT_KERNEL), true)
-	$(JDK_IMAGE_DIR)/bin/java -d$(ARCH_DATA_MODEL) -kernel -Xinternalversion
-	$(JDK_IMAGE_DIR)/bin/java -d$(ARCH_DATA_MODEL) -kernel -version
   endif
 
 copy_product_jdk::
@@ -681,7 +666,6 @@ target_help:
 	@$(ECHO) "Other targets are:"
 	@$(ECHO) "   $(C1_VM_TARGETS)"
 	@$(ECHO) "   $(C2_VM_TARGETS)"
-	@$(ECHO) "   $(KERNEL_VM_TARGETS)"
 	@$(ECHO) "   $(MINIMAL1_VM_TARGETS)"
 
 # Variable help (only common ones used by this workspace)
@@ -777,8 +761,8 @@ endif
 include $(GAMMADIR)/make/jprt.gmk
 
 .PHONY: all world clobber clean help $(C1_VM_TARGETS) $(C2_VM_TARGETS) \
-        $(KERNEL_VM_TARGETS) $(MINIMAL1_VM_TARGETS) \
-	generic_build1 generic_build2 generic_buildkernel generic_buildminimal1 generic_export \
+        $(MINIMAL1_VM_TARGETS) \
+	generic_build1 generic_build2 generic_buildminimal1 generic_export \
 	export_product export_fastdebug export_debug export_optimized \
 	export_jdk_product export_jdk_fastdebug export_jdk_debug \
 	create_jdk copy_jdk update_jdk test_jdk \

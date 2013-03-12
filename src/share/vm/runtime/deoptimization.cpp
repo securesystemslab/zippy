@@ -1312,20 +1312,6 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     
     if (TraceDeoptimization) {
       tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s", trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name()->as_C_string());
-#ifdef GRAAL
-      if (thread->graal_deopt_info() != NULL) {
-        oop deopt_info = thread->graal_deopt_info();
-        if (java_lang_String::is_instance(deopt_info)) {
-          char buf[O_BUFLEN];
-          java_lang_String::as_utf8_string(deopt_info, buf, O_BUFLEN);
-          tty->print_cr("deopt info: %s", buf);
-        } else {
-          tty->print_cr("deopt info:");
-          deopt_info->print();
-        }
-        thread->set_graal_deopt_info(NULL);
-      }
-#endif
     }
 
     methodHandle    trap_method = trap_scope->method();
@@ -1339,7 +1325,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       GrowableArray<ScopeValue*>* expressions = trap_scope->expressions();
       guarantee(expressions != NULL, "must have exception to throw");
       ScopeValue* topOfStack = expressions->top();
-      Handle topOfStackObj = cvf->create_stack_value(topOfStack)->get_obj();
+      Handle topOfStackObj = StackValue::create_stack_value(&fr, &reg_map, topOfStack)->get_obj();
       THREAD->set_pending_exception(topOfStackObj(), NULL, 0);
     }
     
@@ -1637,7 +1623,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
         if (trap_method() == nm->method()) {
           make_not_compilable = true;
         } else {
-          trap_method->set_not_compilable(CompLevel_full_optimization);
+          trap_method->set_not_compilable(CompLevel_full_optimization, true, "overflow_recompile_count > PerBytecodeRecompilationCutoff");
           // But give grace to the enclosing nm->method().
         }
       }

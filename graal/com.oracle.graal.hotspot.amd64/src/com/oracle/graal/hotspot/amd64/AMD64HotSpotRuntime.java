@@ -23,8 +23,8 @@
 package com.oracle.graal.hotspot.amd64;
 
 import static com.oracle.graal.amd64.AMD64.*;
-import static com.oracle.graal.compiler.amd64.AMD64DeoptimizationStub.*;
 import static com.oracle.graal.compiler.amd64.AMD64LIRGenerator.*;
+import static com.oracle.graal.hotspot.amd64.AMD64DeoptimizeOp.*;
 import static com.oracle.graal.hotspot.nodes.IdentityHashCodeStubCall.*;
 import static com.oracle.graal.hotspot.nodes.MonitorEnterStubCall.*;
 import static com.oracle.graal.hotspot.nodes.MonitorExitStubCall.*;
@@ -40,12 +40,17 @@ import static com.oracle.graal.hotspot.snippets.AESCryptSubstitutions.DecryptBlo
 import static com.oracle.graal.hotspot.snippets.AESCryptSubstitutions.EncryptBlockStubCall.*;
 import static com.oracle.graal.hotspot.snippets.CipherBlockChainingSubstitutions.DecryptAESCryptStubCall.*;
 import static com.oracle.graal.hotspot.snippets.CipherBlockChainingSubstitutions.EncryptAESCryptStubCall.*;
-import static com.oracle.graal.lir.amd64.AMD64Call.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.amd64.snippets.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.snippets.*;
 
 public class AMD64HotSpotRuntime extends HotSpotRuntime {
 
@@ -55,17 +60,12 @@ public class AMD64HotSpotRuntime extends HotSpotRuntime {
         Kind word = graalRuntime.getTarget().wordKind;
 
         // @formatter:off
+        addRuntimeCall(AMD64HotSpotUnwindOp.UNWIND_EXCEPTION, config.unwindExceptionStub,
+                        /*           temps */ null,
+                        /*             ret */ ret(Kind.Void),
+                        /* arg0: exception */ javaCallingConvention(Kind.Object));
 
         addRuntimeCall(DEOPTIMIZE, config.deoptimizeStub,
-                /*           temps */ null,
-                /*             ret */ ret(Kind.Void));
-
-        addRuntimeCall(SET_DEOPT_INFO, config.setDeoptInfoStub,
-                /*           temps */ null,
-                /*             ret */ ret(Kind.Void),
-                /* arg0:      info */ scratch(Kind.Object));
-
-        addRuntimeCall(DEBUG, config.debugStub,
                 /*           temps */ null,
                 /*             ret */ ret(Kind.Void));
 
@@ -190,6 +190,24 @@ public class AMD64HotSpotRuntime extends HotSpotRuntime {
                 /*          ret */ ret(Kind.Void));
         // @formatter:on
 
+    }
+
+    private AMD64ConvertSnippets.Templates convertSnippets;
+
+    @Override
+    public void installSnippets(Backend backend, SnippetInstaller installer, Assumptions assumptions) {
+        installer.installSnippets(AMD64ConvertSnippets.class);
+        convertSnippets = new AMD64ConvertSnippets.Templates(this, assumptions, graalRuntime.getTarget());
+        super.installSnippets(backend, installer, assumptions);
+    }
+
+    @Override
+    public void lower(Node n, LoweringTool tool) {
+        if (n instanceof ConvertNode) {
+            convertSnippets.lower((ConvertNode) n, tool);
+        } else {
+            super.lower(n, tool);
+        }
     }
 
     @Override

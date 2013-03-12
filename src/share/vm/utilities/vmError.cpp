@@ -491,30 +491,6 @@ void VMError::report(outputStream* st) {
        print_bug_submit_message(st, _thread);
      }
 
-#ifdef GRAAL
-  STEP(67, "(printing debug scope)" )
-
-     if (_verbose) {
-       if (_thread != NULL && _thread->is_Java_thread()) {
-         JavaThread* javaThread = (JavaThread*) _thread;
-         DebugScopedValue* ds = javaThread->debug_scope();
-         int level = 0;
-         while (ds != NULL) {
-           if (level == 0) {
-             st->cr();
-             st->print_cr("---------------  D E B U G  S C O P E ---------------");
-             st->cr();
-           }
-           st->print("%d: ", level);
-           ds->print(st);
-           st->cr();
-           ds = ds->parent();
-           level++;
-         }
-       }
-     }
-#endif
-
   STEP(70, "(printing thread)" )
 
      if (_verbose) {

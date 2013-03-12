@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@
 #include "interpreter/bytecode.hpp"
 #include "interpreter/bytecodeStream.hpp"
 #include "interpreter/linkResolver.hpp"
+#include "memory/heapInspection.hpp"
 #include "oops/methodData.hpp"
 #include "prims/jvmtiRedefineClasses.hpp"
 #include "runtime/compilationPolicy.hpp"
@@ -759,13 +760,6 @@ bool MethodData::is_mature() const {
   return CompilationPolicy::policy()->is_mature(_method);
 }
 
-void MethodData::inc_decompile_count() {
-  _nof_decompiles += 1;
-  if (decompile_count() > (uint)PerMethodRecompilationCutoff) {
-    method()->set_not_compilable(CompLevel_full_optimization);
-  }
-}
-
 // Translate a bci to its corresponding data index (di).
 address MethodData::bci_to_dp(int bci) {
   ResourceMark rm;
@@ -890,6 +884,15 @@ void MethodData::print_data_on(outputStream* st) const {
 }
 #endif
 
+#if INCLUDE_SERVICES
+// Size Statistics
+void MethodData::collect_statistics(KlassSizeStats *sz) const {
+  int n = sz->count(this);
+  sz->_method_data_bytes += n;
+  sz->_method_all_bytes += n;
+  sz->_rw_bytes += n;
+}
+#endif // INCLUDE_SERVICES
 
 // Verification
 

@@ -49,7 +49,7 @@ public abstract class LIRGeneratorTool {
 
     public abstract Value operand(ValueNode object);
 
-    public abstract Value newVariable(Kind kind);
+    public abstract AllocatableValue newVariable(Kind kind);
 
     public abstract Value setResult(ValueNode x, Value operand);
 
@@ -97,9 +97,9 @@ public abstract class LIRGeneratorTool {
 
     public abstract void emitMembar(int barriers);
 
-    public abstract void emitDeoptimizeOnOverflow(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo);
+    public abstract void emitDeoptimizeOnOverflow(DeoptimizationAction action, DeoptimizationReason reason);
 
-    public abstract void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo);
+    public abstract void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason);
 
     public abstract Value emitCall(RuntimeCallTarget callTarget, CallingConvention cc, boolean canTrap, Value... args);
 
@@ -132,4 +132,6 @@ public abstract class LIRGeneratorTool {
     public abstract void visitSafepointNode(SafepointNode i);
 
     public abstract void visitBreakpointNode(BreakpointNode i);
+
+    public abstract void emitUnwind(Value operand);
 }

@@ -63,7 +63,7 @@ void vframeArrayElement::fill_in(compiledVFrame* vf) {
   _method = vf->method();
   _bci    = vf->raw_bci();
   _reexecute = vf->should_reexecute();
-  
+
   int index;
 
   // Get the monitors off-stack
@@ -233,8 +233,6 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
       // Force early return from top frame after deoptimization
 #ifndef CC_INTERP
       pc = Interpreter::remove_activation_early_entry(state->earlyret_tos());
-#else
-     // TBD: Need to implement ForceEarlyReturn for CC_INTERP (ia64)
 #endif
     } else {
       // Possibly override the previous pc computation of the top (youngest) frame
@@ -431,6 +429,11 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
     RegisterMap map(thread);
     vframe* f = vframe::new_vframe(iframe(), &map, thread);
     f->print();
+
+    tty->print_cr("locals size     %d", locals()->size());
+    tty->print_cr("expression size %d", expressions()->size());
+
+    method()->print_value();
     tty->cr();
     // method()->print_codes();
   } else if (TraceDeoptimization) {

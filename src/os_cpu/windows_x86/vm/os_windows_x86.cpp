@@ -70,7 +70,7 @@
 extern LONG WINAPI topLevelExceptionFilter(_EXCEPTION_POINTERS* );
 
 // Install a win32 structured exception handler around thread.
-void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, nmethod* nm, JavaCallArguments* args, Thread* thread) {
+void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, JavaCallArguments* args, Thread* thread) {
   __try {
 
 #ifndef AMD64
@@ -110,7 +110,7 @@ void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* met
 #endif // ASSERT
 #endif // !AMD64
 
-    f(value, method, nm, args, thread);
+    f(value, method, args, thread);
   } __except(topLevelExceptionFilter((_EXCEPTION_POINTERS*)_exception_info())) {
       // Nothing to do.
   }
@@ -399,7 +399,7 @@ frame os::current_frame() {
   typedef intptr_t*      get_fp_func           ();
   get_fp_func* func = CAST_TO_FN_PTR(get_fp_func*,
                                      StubRoutines::x86::get_previous_fp_entry());
-  if (func == NULL) return frame(NULL, NULL, NULL);
+  if (func == NULL) return frame();
   intptr_t* fp = (*func)();
 #else
   intptr_t* fp = _get_previous_fp();
@@ -410,7 +410,7 @@ frame os::current_frame() {
                 CAST_FROM_FN_PTR(address, os::current_frame));
   if (os::is_first_C_frame(&myframe)) {
     // stack is not walkable
-    return frame(NULL, NULL, NULL);
+    return frame();
   } else {
     return os::get_sender_for_C_frame(&myframe);
   }

@@ -23,9 +23,8 @@
  */
 
 #include "precompiled.hpp"
-#ifndef SERIALGC
+#include "utilities/macros.hpp"
 #include "utilities/yieldingWorkgroup.hpp"
-#endif
 
 // Forward declaration of classes declared here.
 

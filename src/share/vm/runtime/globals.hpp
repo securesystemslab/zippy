@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1218,9 +1218,6 @@ class CommandLineFlags {
   notproduct(bool, TraceJVMCalls, false,                                    \
           "Trace JVM calls")                                                \
                                                                             \
-  product(bool, TraceSignals, false,                                        \
-          "Trace signals and implicit exception handling")                  \
-                                                                            \
   product(ccstr, TraceJVMTI, NULL,                                          \
           "Trace flags for JVMTI functions and events")                     \
                                                                             \
@@ -1252,7 +1249,7 @@ class CommandLineFlags {
   develop(bool, TraceClassInitialization, false,                            \
           "Trace class initialization")                                     \
                                                                             \
-  product(bool, TraceExceptions, false,                                     \
+  develop(bool, TraceExceptions, false,                                     \
           "Trace exceptions")                                               \
                                                                             \
   develop(bool, TraceICs, false,                                            \
@@ -1822,7 +1819,7 @@ class CommandLineFlags {
   product(bool, ParallelRefProcBalancingEnabled, true,                      \
           "Enable balancing of reference processing queues")                \
                                                                             \
-  product(intx, CMSTriggerRatio, 80,                                        \
+  product(uintx, CMSTriggerRatio, 80,                                       \
           "Percentage of MinHeapFreeRatio in CMS generation that is "       \
           "allocated before a CMS collection cycle commences")              \
                                                                             \
@@ -1836,7 +1833,7 @@ class CommandLineFlags {
                                                                             \
   product(uintx, InitiatingHeapOccupancyPercent, 45,                        \
           "Percentage of the (entire) heap occupancy to start a "           \
-          "concurrent GC cycle. It us used by GCs that trigger a "          \
+          "concurrent GC cycle. It is used by GCs that trigger a "          \
           "concurrent GC cycle based on the occupancy of the entire heap, " \
           "not just one of the generations (e.g., G1). A value of 0 "       \
           "denotes 'do constant GC cycles'.")                               \
@@ -2621,9 +2618,6 @@ class CommandLineFlags {
   diagnostic(bool, PrintInterpreter, false,                                 \
           "Prints the generated interpreter code")                          \
                                                                             \
-  product(bool, PrintMachineCodeToFile, false,                              \
-          "Prints the generated machine code to a file (int + comp)")       \
-                                                                            \
   product(bool, UseInterpreter, true,                                       \
           "Use interpreter for non-compiled methods")                       \
                                                                             \
@@ -3003,10 +2997,10 @@ class CommandLineFlags {
   product(uintx, TLABWasteIncrement,    4,                                  \
           "Increment allowed waste at slow allocation")                     \
                                                                             \
-  product(intx, SurvivorRatio, 8,                                           \
+  product(uintx, SurvivorRatio, 8,                                          \
           "Ratio of eden/survivor space size")                              \
                                                                             \
-  product(intx, NewRatio, 2,                                                \
+  product(uintx, NewRatio, 2,                                               \
           "Ratio of new/old generation sizes")                              \
                                                                             \
   product_pd(uintx, NewSizeThreadIncrease,                                  \
@@ -3036,10 +3030,16 @@ class CommandLineFlags {
           "Min change in heap space due to GC (in bytes)")                  \
                                                                             \
   product(uintx, MinMetaspaceExpansion, ScaleForWordSize(256*K),            \
-          "Min expansion of permanent heap (in bytes)")                     \
+          "Min expansion of Metaspace (in bytes)")                          \
+                                                                            \
+  product(uintx, MinMetaspaceFreeRatio,    40,                              \
+          "Min percentage of Metaspace free after GC to avoid expansion")   \
+                                                                            \
+  product(uintx, MaxMetaspaceFreeRatio,    70,                              \
+          "Max percentage of Metaspace free after GC to avoid shrinking")   \
                                                                             \
   product(uintx, MaxMetaspaceExpansion, ScaleForWordSize(4*M),              \
-          "Max expansion of permanent heap without full GC (in bytes)")     \
+          "Max expansion of Metaspace without full GC (in bytes)")          \
                                                                             \
   product(intx, QueuedAllocationWarningCount, 0,                            \
           "Number of times an allocation that queues behind a GC "          \
@@ -3057,7 +3057,7 @@ class CommandLineFlags {
   product(uintx, InitialTenuringThreshold,    7,                            \
           "Initial value for tenuring threshold")                           \
                                                                             \
-  product(intx, TargetSurvivorRatio,    50,                                 \
+  product(uintx, TargetSurvivorRatio,    50,                                \
           "Desired percentage of survivor space used after scavenge")       \
                                                                             \
   product(uintx, MarkSweepDeadRatio,     5,                                 \

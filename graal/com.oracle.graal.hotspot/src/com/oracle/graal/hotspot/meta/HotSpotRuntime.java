@@ -32,7 +32,6 @@ import static com.oracle.graal.graph.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.hotspot.snippets.SystemSubstitutions.*;
 import static com.oracle.graal.java.GraphBuilderPhase.RuntimeCalls.*;
-import static com.oracle.graal.nodes.UnwindNode.*;
 import static com.oracle.graal.nodes.java.RegisterFinalizerNode.*;
 import static com.oracle.graal.snippets.Log.*;
 import static com.oracle.graal.snippets.MathSubstitutionsX86.*;
@@ -196,10 +195,6 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
         return result;
     }
 
-    protected Value scratch(Kind kind) {
-        return globalStubRegConfig.getScratchRegister().asValue(kind);
-    }
-
     public HotSpotRuntime(HotSpotVMConfig config, HotSpotGraalRuntime graalRuntime) {
         this.config = config;
         this.graalRuntime = graalRuntime;
@@ -207,11 +202,6 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
         globalStubRegConfig = createRegisterConfig(true);
 
         // @formatter:off
-
-        addRuntimeCall(UNWIND_EXCEPTION, config.unwindExceptionStub,
-                        /*           temps */ null,
-                        /*             ret */ ret(Kind.Void),
-                        /* arg0: exception */ javaCallingConvention(Kind.Object));
 
         addRuntimeCall(OnStackReplacementPhase.OSR_MIGRATION_END, config.osrMigrationEndStub,
                         /*           temps */ null,
@@ -371,8 +361,8 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
 
         newInstanceStub = new NewInstanceStub(this, assumptions, graalRuntime.getTarget());
         newArrayStub = new NewArrayStub(this, assumptions, graalRuntime.getTarget());
-        newInstanceStub.install(backend, graalRuntime.getCompiler());
-        newArrayStub.install(backend, graalRuntime.getCompiler());
+        newInstanceStub.install(backend);
+        newArrayStub.install(backend);
     }
 
     public HotSpotGraalRuntime getGraalRuntime() {
@@ -574,6 +564,9 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
                             graph.addAfterFixed(metaspaceMethod, compiledEntry);
                         }
                     }
+                } else if (callTarget.invokeKind() == InvokeKind.Special || callTarget.invokeKind() == InvokeKind.Static) {
+                    loweredCallTarget = graph.add(new HotSpotDirectCallTargetNode(parameters, invoke.node().stamp(), signature, callTarget.targetMethod(), CallingConvention.Type.JavaCall,
+                                    callTarget.invokeKind()));
                 }
 
                 if (loweredCallTarget == null) {
@@ -824,15 +817,16 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
 
     public void installMethod(HotSpotResolvedJavaMethod method, int entryBCI, CompilationResult compResult, CodeInfo[] info) {
         HotSpotCodeInfo hsInfo = makeInfo(method, compResult, info);
-        graalRuntime.getCompilerToVM().installCode(new HotSpotCompilationResult(method, entryBCI, compResult), null, hsInfo);
+        HotSpotInstalledCode code = new HotSpotInstalledCode(method, true);
+        graalRuntime.getCompilerToVM().installCode(new HotSpotCompilationResult(method, entryBCI, compResult), code, hsInfo, method.getSpeculationLog());
     }
 
     @Override
     public InstalledCode addMethod(ResolvedJavaMethod method, CompilationResult compResult, CodeInfo[] info) {
         HotSpotCodeInfo hsInfo = makeInfo(method, compResult, info);
         HotSpotResolvedJavaMethod hotspotMethod = (HotSpotResolvedJavaMethod) method;
-        HotSpotInstalledCode code = new HotSpotInstalledCode(hotspotMethod);
-        CodeInstallResult result = graalRuntime.getCompilerToVM().installCode(new HotSpotCompilationResult(hotspotMethod, -1, compResult), code, hsInfo);
+        HotSpotInstalledCode code = new HotSpotInstalledCode(hotspotMethod, false);
+        CodeInstallResult result = graalRuntime.getCompilerToVM().installCode(new HotSpotCompilationResult(hotspotMethod, -1, compResult), code, hsInfo, null);
         if (result != CodeInstallResult.OK) {
             return null;
         }
@@ -900,7 +894,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
     }
 
     public boolean needsDataPatch(Constant constant) {
-        return constant.getPrimitiveAnnotation() instanceof HotSpotResolvedObjectType;
+        return constant.getPrimitiveAnnotation() != null;
     }
 
     /**
@@ -953,7 +947,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, SnippetP
             long nmethod = ((HotSpotInstalledCode) code).nmethod;
             return graalRuntime.getCompilerToVM().disassembleNMethod(nmethod);
         }
-        return "";
+        return null;
     }
 
     public String disassemble(ResolvedJavaMethod method) {

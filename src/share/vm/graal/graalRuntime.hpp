@@ -81,28 +81,26 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(graal_register_finalizer)      \
-  stub(graal_new_instance)            \
-  stub(graal_new_array)               \
-  stub(graal_new_multi_array)         \
-  stub(graal_handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
-  stub(graal_slow_subtype_check)      \
-  stub(graal_unwind_exception_call)   \
-  stub(graal_OSR_migration_end)       \
-  stub(graal_arithmetic_frem)         \
-  stub(graal_arithmetic_drem)         \
-  stub(graal_monitorenter)            \
-  stub(graal_monitorexit)             \
-  stub(graal_verify_oop)              \
-  stub(graal_vm_error)                \
-  stub(graal_set_deopt_info)          \
-  stub(graal_create_null_pointer_exception) \
-  stub(graal_create_out_of_bounds_exception) \
-  stub(graal_log_object)              \
-  stub(graal_log_printf)              \
-  stub(graal_log_primitive)           \
-  stub(graal_identity_hash_code)      \
-  stub(graal_thread_is_interrupted)   \
+  stub(register_finalizer)      \
+  stub(new_instance)            \
+  stub(new_array)               \
+  stub(new_multi_array)         \
+  stub(handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
+  stub(unwind_exception_call)   \
+  stub(OSR_migration_end)       \
+  stub(arithmetic_frem)         \
+  stub(arithmetic_drem)         \
+  stub(monitorenter)            \
+  stub(monitorexit)             \
+  stub(verify_oop)              \
+  stub(vm_error)                \
+  stub(create_null_pointer_exception) \
+  stub(create_out_of_bounds_exception) \
+  stub(log_object)              \
+  stub(log_printf)              \
+  stub(log_primitive)           \
+  stub(identity_hash_code)      \
+  stub(thread_is_interrupted)   \
   last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
@@ -140,16 +138,16 @@ class GraalRuntime: public AllStatic {
 
   static address exception_handler_for_pc(JavaThread* thread);
 
-  static void graal_create_null_exception(JavaThread* thread);
-  static void graal_create_out_of_bounds_exception(JavaThread* thread, jint index);
-  static void graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void graal_monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void graal_vm_error(JavaThread* thread, oop where, oop format, jlong value);
-  static void graal_log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
-  static void graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
+  static void create_null_exception(JavaThread* thread);
+  static void create_out_of_bounds_exception(JavaThread* thread, jint index);
+  static void monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
+  static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
+  static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
   
-  static jint graal_identity_hash_code(JavaThread* thread, oopDesc* objd);
-  static jboolean graal_thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
+  static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
+  static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
 
   // Note: Must be kept in sync with constants in com.oracle.graal.snippets.Log
   enum {
@@ -157,7 +155,7 @@ class GraalRuntime: public AllStatic {
     LOG_OBJECT_STRING  = 0x02,
     LOG_OBJECT_ADDRESS = 0x04
   };
-  static void graal_log_object(JavaThread* thread, oop msg, jint flags);
+  static void log_object(JavaThread* thread, oop msg, jint flags);
 
  public:
   // initialization

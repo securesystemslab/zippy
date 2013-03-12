@@ -304,8 +304,6 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int typeProfileWidth;
 
     // runtime stubs
-    public long debugStub;
-    public long instanceofStub;
     public long newInstanceStub;
     public long newArrayStub;
     public long newMultiArrayStub;
@@ -320,7 +318,6 @@ public final class HotSpotVMConfig extends CompilerObject {
     public long unwindExceptionStub;
     public long osrMigrationEndStub;
     public long registerFinalizerStub;
-    public long setDeoptInfoStub;
     public long createNullPointerExceptionStub;
     public long createOutOfBoundsExceptionStub;
     public long javaTimeMillisStub;

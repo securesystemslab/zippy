@@ -36,11 +36,11 @@ import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
+import com.oracle.graal.lir.ptx.*;
 import com.oracle.graal.lir.ptx.PTXArithmetic.Op1Stack;
 import com.oracle.graal.lir.ptx.PTXArithmetic.Op2Reg;
 import com.oracle.graal.lir.ptx.PTXArithmetic.Op2Stack;
 import com.oracle.graal.lir.ptx.PTXArithmetic.ShiftOp;
-import com.oracle.graal.lir.ptx.*;
 import com.oracle.graal.lir.ptx.PTXCompare.CompareOp;
 import com.oracle.graal.lir.ptx.PTXControlFlow.BranchOp;
 import com.oracle.graal.lir.ptx.PTXControlFlow.ReturnOp;
@@ -51,7 +51,6 @@ import com.oracle.graal.lir.ptx.PTXMove.StoreOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.ptx.*;
 
 /**
  * This class implements the PTX specific portion of the LIR generator.
@@ -114,40 +113,49 @@ public class PTXLIRGenerator extends LIRGenerator {
         }
     }
 
-    private PTXAddress prepareAddress(Kind kind, Value base, int displacement, Value index, int scale) {
-        Value baseRegister = base;
+    private PTXAddressValue prepareAddress(Kind kind, Value base, int displacement, Value index, int scale) {
+        AllocatableValue baseRegister;
         long finalDisp = displacement;
         if (isConstant(base)) {
             if (asConstant(base).isNull()) {
-                baseRegister = Value.ILLEGAL;
+                baseRegister = AllocatableValue.UNUSED;
             } else if (asConstant(base).getKind() != Kind.Object) {
                 finalDisp += asConstant(base).asLong();
-                baseRegister = Value.ILLEGAL;
+                baseRegister = AllocatableValue.UNUSED;
+            } else {
+                baseRegister = load(base);
             }
+        } else if (base == Value.ILLEGAL) {
+            baseRegister = AllocatableValue.UNUSED;
+        } else {
+            baseRegister = asAllocatable(base);
         }
 
         if (index != Value.ILLEGAL) {
             if (isConstant(index)) {
                 finalDisp += asConstant(index).asLong() * scale;
             } else {
-                Value indexRegister = index;
+                Value indexRegister;
                 if (scale != 1) {
                     indexRegister = emitMul(index, Constant.forInt(scale));
+                } else {
+                    indexRegister = index;
                 }
-                if (baseRegister == Value.ILLEGAL) {
-                    baseRegister = indexRegister;
+
+                if (baseRegister == AllocatableValue.UNUSED) {
+                    baseRegister = asAllocatable(indexRegister);
                 } else {
                     baseRegister = emitAdd(baseRegister, indexRegister);
                 }
             }
         }
 
-        return new PTXAddress(kind, baseRegister, finalDisp);
+        return new PTXAddressValue(kind, baseRegister, finalDisp);
     }
 
     @Override
     public Variable emitLoad(Kind kind, Value base, int displacement, Value index, int scale, boolean canTrap) {
-        PTXAddress loadAddress = prepareAddress(kind, base, displacement, index, scale);
+        PTXAddressValue loadAddress = prepareAddress(kind, base, displacement, index, scale);
         Variable result = newVariable(loadAddress.getKind());
         append(new LoadOp(result, loadAddress, canTrap ? state() : null));
         return result;
@@ -155,7 +163,7 @@ public class PTXLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitStore(Kind kind, Value base, int displacement, Value index, int scale, Value inputVal, boolean canTrap) {
-        PTXAddress storeAddress = prepareAddress(kind, base, displacement, index, scale);
+        PTXAddressValue storeAddress = prepareAddress(kind, base, displacement, index, scale);
         Variable input = load(inputVal);
         append(new StoreOp(storeAddress, input, canTrap ? state() : null));
     }
@@ -189,6 +197,11 @@ public class PTXLIRGenerator extends LIRGenerator {
             default:
                 throw GraalInternalError.shouldNotReachHere("" + left.getKind());
         }
+    }
+
+    @Override
+    public void emitOverflowCheckBranch(LabelRef label, LIRFrameState info, boolean negated) {
+        throw new InternalError("NYI");
     }
 
     @Override
@@ -336,13 +349,13 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitDeoptimizeOnOverflow(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo) {
+    public void emitDeoptimizeOnOverflow(DeoptimizationAction action, DeoptimizationReason reason) {
         throw new InternalError("NYI");
     }
 
     @Override
-    public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason, Object deoptInfo) {
-        throw new InternalError("NYI");
+    public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason) {
+        append(new ReturnOp(Value.ILLEGAL));
     }
 
     @Override
@@ -440,16 +453,11 @@ public class PTXLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected LabelRef createDeoptStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info, Object deoptInfo) {
+    protected LabelRef createDeoptStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info) {
         assert info.topFrame.getBCI() >= 0 : "invalid bci for deopt framestate";
-        PTXDeoptimizationStub stub = new PTXDeoptimizationStub(action, reason, info, deoptInfo);
+        PTXDeoptimizationStub stub = new PTXDeoptimizationStub(action, reason, info);
         lir.stubs.add(stub);
         return LabelRef.forLabel(stub.label);
-    }
-
-    @Override
-    protected void emitNullCheckGuard(ValueNode object) {
-        throw new InternalError("NYI");
     }
 
     @Override
@@ -470,5 +478,11 @@ public class PTXLIRGenerator extends LIRGenerator {
     @Override
     public void visitSafepointNode(SafepointNode i) {
         throw new InternalError("NYI");
+    }
+
+    @Override
+    public void emitUnwind(Value operand) {
+        // TODO Auto-generated method stub
+
     }
 }

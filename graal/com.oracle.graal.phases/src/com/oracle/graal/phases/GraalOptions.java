@@ -109,7 +109,6 @@ public final class GraalOptions {
     public static boolean ZapStackOnMethodEntry              = ____;
     public static boolean DeoptALot                          = ____;
     public static boolean VerifyPhases                       = true;
-    public static boolean CreateDeoptInfo                    = ____;
 
     public static String  PrintFilter                        = null;
 
@@ -165,7 +164,7 @@ public final class GraalOptions {
     public static boolean GenAssertionCode                   = ____;
     public static boolean AlignCallsForPatching              = true;
     public static boolean ResolveClassBeforeStaticInvoke     = ____;
-    public static boolean CanOmitFrame                       = true;
+    public static boolean CanOmitFrame                       = false;
     public static int     SafepointPollOffset                = 256;
 
     public static boolean MemoryAwareScheduling              = true;
@@ -187,10 +186,10 @@ public final class GraalOptions {
     public static boolean OptCanonicalizer                   = true;
     public static boolean OptScheduleOutOfLoops              = true;
     public static boolean OptEliminateGuards                 = true;
+    public static boolean OptEliminateSafepoints             = true;
     public static boolean OptImplicitNullChecks              = true;
     public static boolean OptLivenessAnalysis                = true;
     public static boolean OptLoopTransform                   = true;
-    public static boolean OptSafepointElimination            = true;
     public static boolean OptFloatingReads                   = true;
     public static boolean OptTailDuplication                 = true;
     public static boolean OptEliminatePartiallyRedundantGuards = true;

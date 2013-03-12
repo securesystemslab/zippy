@@ -231,19 +231,23 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
     }
 
     public LIRFrameState state() {
+        return state(null);
+    }
+
+    public LIRFrameState state(DeoptimizationReason reason) {
         assert lastState != null || needOnlyOopMaps() : "must have state before instruction";
-        return stateFor(lastState);
+        return stateFor(lastState, reason);
     }
 
-    public LIRFrameState stateFor(FrameState state) {
-        return stateFor(state, null);
+    public LIRFrameState stateFor(FrameState state, DeoptimizationReason reason) {
+        return stateForWithExceptionEdge(state, reason, null);
     }
 
-    public LIRFrameState stateFor(FrameState state, LabelRef exceptionEdge) {
+    public LIRFrameState stateForWithExceptionEdge(FrameState state, DeoptimizationReason reason, LabelRef exceptionEdge) {
         if (needOnlyOopMaps()) {
-            return new LIRFrameState(null, null, null);
+            return new LIRFrameState(null, null, null, (short) -1);
         }
-        return debugInfoBuilder.build(state, lockDataSlots.subList(0, currentLockCount), exceptionEdge);
+        return debugInfoBuilder.build(state, lockDataSlots.subList(0, currentLockCount), lir.getDeoptimizationReasons().addSpeculation(reason), exceptionEdge);
     }
 
     /**
@@ -562,7 +566,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         for (PhiNode phi : merge.phis()) {
             if (phi.type() == PhiType.Value) {
                 ValueNode curVal = phi.valueAt(pred);
-                resolver.move(operand(curVal), operandForPhi(phi));
+                resolver.move(operandForPhi(phi), operand(curVal));
             }
         }
         resolver.dispose();
@@ -590,15 +594,13 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
 
     @Override
     public void emitGuardCheck(LogicNode comp, DeoptimizationReason deoptReason, DeoptimizationAction action, boolean negated) {
-        if (comp instanceof IsNullNode && negated) {
-            emitNullCheckGuard(((IsNullNode) comp).object());
-        } else if (comp instanceof LogicConstantNode && ((LogicConstantNode) comp).getValue() != negated) {
+        if (comp instanceof LogicConstantNode && ((LogicConstantNode) comp).getValue() != negated) {
             // True constant, nothing to emit.
             // False constants are handled within emitBranch.
         } else {
             // Fall back to a normal branch.
-            LIRFrameState info = state();
-            LabelRef stubEntry = createDeoptStub(action, deoptReason, info, comp);
+            LIRFrameState info = state(deoptReason);
+            LabelRef stubEntry = createDeoptStub(action, deoptReason, info);
             if (negated) {
                 emitBranch(comp, stubEntry, null, info);
             } else {
@@ -606,8 +608,6 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
             }
         }
     }
-
-    protected abstract void emitNullCheckGuard(ValueNode object);
 
     public void emitBranch(LogicNode node, LabelRef trueSuccessor, LabelRef falseSuccessor, LIRFrameState info) {
         if (node instanceof IsNullNode) {
@@ -642,6 +642,17 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
             }
         } else {
             emitCompareBranch(operand(compare.x()), operand(compare.y()), compare.condition(), compare.unorderedIsTrue(), trueSuccessorBlock, info);
+        }
+    }
+
+    public void emitOverflowCheckBranch(LabelRef noOverflowBlock, LabelRef overflowBlock, LIRFrameState info) {
+        if (overflowBlock != null) {
+            emitOverflowCheckBranch(overflowBlock, info, false);
+            if (noOverflowBlock != null) {
+                emitJump(noOverflowBlock, null);
+            }
+        } else {
+            emitOverflowCheckBranch(noOverflowBlock, info, true);
         }
     }
 
@@ -691,6 +702,8 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
 
     public abstract void emitCompareBranch(Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef label, LIRFrameState info);
 
+    public abstract void emitOverflowCheckBranch(LabelRef label, LIRFrameState info, boolean negated);
+
     public abstract void emitIntegerTestBranch(Value left, Value right, boolean negated, LabelRef label, LIRFrameState info);
 
     public abstract Variable emitConditionalMove(Value leftVal, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue);
@@ -707,7 +720,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
 
         LIRFrameState callState = null;
         if (x.stateAfter() != null) {
-            callState = stateFor(x.stateDuring(), x instanceof InvokeWithExceptionNode ? getLIRBlock(((InvokeWithExceptionNode) x).exceptionEdge()) : null);
+            callState = stateForWithExceptionEdge(x.stateDuring(), null, x instanceof InvokeWithExceptionNode ? getLIRBlock(((InvokeWithExceptionNode) x).exceptionEdge()) : null);
         }
 
         Value result = cc.getReturn();
@@ -763,7 +776,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         return result;
     }
 
-    protected abstract LabelRef createDeoptStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info, Object deoptInfo);
+    protected abstract LabelRef createDeoptStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info);
 
     @Override
     public Variable emitCall(RuntimeCallTarget callTarget, CallingConvention cc, boolean canTrap, Value... args) {
@@ -809,7 +822,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
             if ((stateAfter.stackSize() > 0 && stateAfter.stackAt(stateAfter.stackSize() - 1) == x) || (stateAfter.stackSize() > 1 && stateAfter.stackAt(stateAfter.stackSize() - 2) == x)) {
                 stateBeforeReturn = stateAfter.duplicateModified(stateAfter.bci, stateAfter.rethrowException(), x.kind());
             }
-            info = stateFor(stateBeforeReturn);
+            info = stateFor(stateBeforeReturn, null);
         } else {
             info = state();
         }

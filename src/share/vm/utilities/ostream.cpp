@@ -102,7 +102,6 @@ const char* outputStream::do_vsnprintf(char* buffer, size_t buflen,
     result_len = strlen(result);
   } else {
     DEBUG_ONLY(warning("increase O_BUFLEN in ostream.hpp -- output truncated");)
-
     result = buffer;
     result_len = buflen - 1;
     buffer[result_len] = 0;
@@ -432,7 +431,7 @@ rotatingFileStream::~rotatingFileStream() {
 
 rotatingFileStream::rotatingFileStream(const char* file_name) {
   _cur_file_num = 0;
-  _bytes_writen = 0L;
+  _bytes_written = 0L;
   _file_name = NEW_C_HEAP_ARRAY(char, strlen(file_name)+10, mtInternal);
   jio_snprintf(_file_name, strlen(file_name)+10, "%s.%d", file_name, _cur_file_num);
   _file = fopen(_file_name, "w");
@@ -441,7 +440,7 @@ rotatingFileStream::rotatingFileStream(const char* file_name) {
 
 rotatingFileStream::rotatingFileStream(const char* file_name, const char* opentype) {
   _cur_file_num = 0;
-  _bytes_writen = 0L;
+  _bytes_written = 0L;
   _file_name = NEW_C_HEAP_ARRAY(char, strlen(file_name)+10, mtInternal);
   jio_snprintf(_file_name, strlen(file_name)+10, "%s.%d", file_name, _cur_file_num);
   _file = fopen(_file_name, opentype);
@@ -449,10 +448,9 @@ rotatingFileStream::rotatingFileStream(const char* file_name, const char* openty
 }
 
 void rotatingFileStream::write(const char* s, size_t len) {
-  if (_file != NULL)  {
-    // Make an unused local variable to avoid warning from gcc 4.x compiler.
+  if (_file != NULL) {
     size_t count = fwrite(s, 1, len, _file);
-    Atomic::add((jlong)count, &_bytes_writen);
+    _bytes_written += count;
   }
   update_position(s, len);
 }
@@ -466,7 +464,10 @@ void rotatingFileStream::write(const char* s, size_t len) {
 // concurrent GC threads to run parallel with VMThread at safepoint, write and rotate_log
 // must be synchronized.
 void rotatingFileStream::rotate_log() {
-  if (_bytes_writen < (jlong)GCLogFileSize) return;
+  if (_bytes_written < (jlong)GCLogFileSize) {
+    return;
+  }
+
 #ifdef ASSERT
   Thread *thread = Thread::current();
   assert(thread == NULL ||
@@ -476,7 +477,7 @@ void rotatingFileStream::rotate_log() {
   if (NumberOfGCLogFiles == 1) {
     // rotate in same file
     rewind();
-    _bytes_writen = 0L;
+    _bytes_written = 0L;
     return;
   }
 
@@ -492,7 +493,7 @@ void rotatingFileStream::rotate_log() {
   }
   _file = fopen(_file_name, "w");
   if (_file != NULL) {
-    _bytes_writen = 0L;
+    _bytes_written = 0L;
     _need_close = true;
   } else {
     tty->print_cr("failed to open rotation log file %s due to %s\n",
@@ -656,9 +657,7 @@ void defaultStream::init_log() {
       // Print it as a java-style property list.
       // System properties don't generally contain newlines, so don't bother with unparsing.
       for (SystemProperty* p = Arguments::system_properties(); p != NULL; p = p->next()) {
-        xs->text()->print(p->key() ? p->key() : "");
-        xs->text()->print("=");
-        xs->text()->print_cr(p->value() ? p->value() : "");
+        xs->text()->print_cr("%s=%s", p->key(), p->value());
       }
       xs->tail("properties");
     }

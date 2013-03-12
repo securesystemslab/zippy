@@ -77,6 +77,8 @@ _copyrightTemplate = """/*
 
 """
 
+_minVersion = mx.JavaVersion('1.7.0_04')
+
 def _chmodDir(chmodFlags, dirname, fnames):
     os.chmod(dirname, chmodFlags)
     for name in fnames:
@@ -91,7 +93,7 @@ def clean(args):
     if opts.native:
         os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
         mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
-        jdks = join(_graal_home, 'jdk' + mx.java().version)
+        jdks = join(_graal_home, 'jdk' + str(mx.java().version))
         if exists(jdks):
             shutil.rmtree(jdks)
 
@@ -318,7 +320,7 @@ def _jdk(build='product', create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
-    jdk = join(_graal_home, 'jdk' + mx.java().version, build)
+    jdk = join(_graal_home, 'jdk' + str(mx.java().version), build)
     jdkContents = ['bin', 'include', 'jre', 'lib']
     if (exists(join(jdk, 'db'))):
         jdkContents.append('db')
@@ -371,7 +373,23 @@ def _jdk(build='product', create=False):
     else:
         if not exists(jdk):
             mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx build ' + build + '\'')
+            
+    _installGraalJarInJdks(mx.distribution('GRAAL'))
+    
     return jdk
+
+def _installGraalJarInJdks(graalDist):
+    graalJar = graalDist.path
+    jdks = join(_graal_home, 'jdk' + str(mx.java().version))
+    if exists(jdks):
+        for e in os.listdir(jdks):
+            jreLibDir = join(jdks, e, 'jre', 'lib')
+            if exists(jreLibDir):
+                # do a copy and then a move to get atomic updating (on Unix) of graal.jar in the JRE
+                fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
+                shutil.copyfile(graalJar, tmp)
+                os.close(fd)
+                shutil.move(tmp, join(jreLibDir, 'graal.jar'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
@@ -435,7 +453,7 @@ def jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
 
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    print join(_graal_home, 'jdk' + mx.java().version, build)
+    print join(_graal_home, 'jdk' + str(mx.java().version), build)
 
 def build(args, vm=None):
     """build the VM binary
@@ -485,25 +503,6 @@ def build(args, vm=None):
         def filterXusage(line):
             if not 'Xusage.txt' in line:
                 sys.stderr.write(line + os.linesep)
-
-        # Check that the declaration of graal_projects in arguments.cpp is up to date
-        argumentsCpp = join(_graal_home, 'src', 'share', 'vm', 'runtime', 'arguments.cpp')
-        assert exists(argumentsCpp), 'File does not exist: ' + argumentsCpp
-        with open(argumentsCpp) as fp:
-            source = fp.read();
-            decl = 'const char* graal_projects[] = {'
-            start = source.find(decl)
-            assert start != -1, 'Could not find "' + decl + '" in ' + fp.name
-            end = source.find('};', start)
-            assert end != -1, 'Could not find "' + decl + '" ... "};" in ' + fp.name
-            actual = frozenset(re.findall(r'"([^"]+)"', source[start + len(decl):end]))
-            expected = frozenset([p.name for p in mx.project('com.oracle.graal.hotspot.' + _arch()).all_deps([], False)])
-            missing = expected - actual
-            extra = actual - expected
-            if len(missing) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': add missing project(s) to declaration:\n    ' + '\n    '.join(missing))
-            if len(extra) != 0:
-                mx.abort(fp.name + ':' + str(source[:start].count('\n') + 1) + ': remove project(s) from declaration:\n    ' + '\n    '.join(extra))
 
         # Check if a build really needs to be done
         timestampFile = join(vmDir, '.build-timestamp')
@@ -654,6 +653,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-javaagent:' + jacocoagent.get_path(True) + '=' + ','.join([k + '=' + v for k, v in agentOptions.items()])] + args
     if '-d64' not in args:
         args = ['-d64'] + args
+
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     dbg = _native_dbg.split() if _native_dbg is not None else []
     return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
@@ -784,9 +784,20 @@ def gate(args):
             if mx.eclipseformat(['-e', eclipse_exe]) != 0:
                 t.abort('Formatter modified files - run "mx eclipseformat", check in changes and repush')
             tasks.append(t.stop())
+
+        t = Task('Canonicalization Check')
+        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
+        if mx.canonicalizeprojects([]) != 0:
+            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
+        tasks.append(t.stop())
         
         t = Task('BuildJava')
         build(['--no-native', '--jdt-warning-as-error'])
+        tasks.append(t.stop())
+        
+        t = Task('Checkstyle')
+        if mx.checkstyle([]) != 0:
+            t.abort('Checkstyle warnings were found')
         tasks.append(t.stop())
         
         if exists('jacoco.exec'):
@@ -796,10 +807,9 @@ def gate(args):
             _jacoco = 'append'
         else:
             _jacoco = 'off'
-        
 
         t = Task('BuildHotSpotGraal: fastdebug,product')
-        buildvms(['--vms', 'graal', '--builds', 'fastdebug,product'])
+        buildvms(['--vms', 'graal,server', '--builds', 'fastdebug,product'])
         tasks.append(t.stop())
 
         _vmbuild = 'fastdebug'
@@ -808,9 +818,12 @@ def gate(args):
         tasks.append(t.stop())
 
         _vmbuild = 'product'
-        t = Task('UnitTests:product')
+        originalVm = _vm
+        _vm = 'server' # hosted mode
+        t = Task('UnitTests:hosted-product')
         unittest([])
         tasks.append(t.stop())
+        _vm = originalVm
 
         for vmbuild in ['fastdebug', 'product']:
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
@@ -823,17 +836,6 @@ def gate(args):
             jacocoreport([args.jacocout])
             
         _jacoco = 'off'
-
-        t = Task('Checkstyle')
-        if mx.checkstyle([]) != 0:
-            t.abort('Checkstyle warnings were found')
-        tasks.append(t.stop())
-
-        t = Task('Canonicalization Check')
-        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring mx/projects files are canonicalized...'))
-        if mx.canonicalizeprojects([]) != 0:
-            t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
-        tasks.append(t.stop())
 
         t = Task('CleanAndBuildGraalVisualizer')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-q', 'clean', 'build'])
@@ -1016,6 +1018,15 @@ def specjvm2008(args):
         benchArgs.remove(args[itIdx+1])
     vm = _vm;
     sanitycheck.getSPECjvm2008(benchArgs, skipCheck, skipValid, wt, it).bench(vm, opts=vmArgs)
+    
+def specjbb2013(args):
+    """runs the composite SPECjbb2013 benchmark
+
+    All options begining with - will be passed to the vm"""
+    benchArgs = [a for a in args if a[0] != '-']
+    vmArgs = [a for a in args if a[0] == '-']
+    vm = _vm;
+    sanitycheck.getSPECjbb2013(benchArgs).bench(vm, opts=vmArgs)
 
 def hsdis(args, copyToDir=None):
     """download the hsdis library
@@ -1094,20 +1105,6 @@ def jacocoreport(args):
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
-def jar(args):
-    parser = ArgumentParser(prog='mx jar');
-    parser.add_argument('projects', nargs=REMAINDER, metavar='projects...')
-    args = parser.parse_args(args)
-    
-    if not args.projects:
-        mx.abort('Please specify at least one project to jar.')
-    
-    for pname in args.projects:
-        p = mx.project(pname, fatalIfMissing=True)
-        outputDir = p.output_dir()
-        targetJar = join(p.dir, p.name + '.jar')
-        mx.jar(targetJar, [outputDir])
-
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1133,8 +1130,8 @@ def mx_init():
         'jdkhome': [jdkhome, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
         'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
-        'specjvm2008': [specjvm2008, '[VM options|@specjvm2008 options]'],
-        'jar': [jar, '[-options]'],
+        'specjvm2008': [specjvm2008, '[VM options|specjvm2008 options (-v, -ikv, -ict, -wt, -it)]'],
+        'specjbb2013': [specjbb2013, '[VM options]'],
         #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
@@ -1168,23 +1165,10 @@ def mx_init():
 
     mx.commands.update(commands)
 
-def mx_post_parse_cmd_line(opts):
-    version = mx.java().version.split('-')[0]
-    parts = version.split('.')
-    assert len(parts) >= 2
-    assert parts[0] == '1'
-    major = int(parts[1])
-    minor = 0
-    update = 0
-    if len(parts) >= 3:
-        minorParts = parts[2].split('_')
-        if len(minorParts) >= 1:
-            minor = int(minorParts[0])
-        if len(minorParts) >= 2:
-            update = int(minorParts[1])
-    
-    if (not major >= 7) or (major == 7 and minor == 0 and not update >= 4) :
-        mx.abort('Requires Java version 1.7.0_04 or greater, got version ' + version)
+def mx_post_parse_cmd_line(opts):#
+    # TODO _minVersion check could probably be part of a Suite in mx?
+    if (mx.java().version < _minVersion) :
+        mx.abort('Requires Java version ' + str(_minVersion) + ' or greater, got version ' + str(mx.java().version))
 
     if (_vmSourcesAvailable):
         if hasattr(opts, 'vm') and opts.vm is not None:
@@ -1199,3 +1183,5 @@ def mx_post_parse_cmd_line(opts):
     _jacoco = opts.jacoco
     global _native_dbg
     _native_dbg = opts.native_dbg
+
+    mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)

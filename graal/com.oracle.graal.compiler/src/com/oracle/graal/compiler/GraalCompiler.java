@@ -48,17 +48,17 @@ import com.oracle.graal.virtual.phases.ea.*;
 public class GraalCompiler {
 
     public static CompilationResult compileMethod(final GraalCodeCacheProvider runtime, final Backend backend, final TargetDescription target, final ResolvedJavaMethod method,
-                    final StructuredGraph graph, final GraphCache cache, final PhasePlan plan, final OptimisticOptimizations optimisticOpts) {
+                    final StructuredGraph graph, final GraphCache cache, final PhasePlan plan, final OptimisticOptimizations optimisticOpts, final SpeculationLog speculationLog) {
         assert (method.getModifiers() & Modifier.NATIVE) == 0 : "compiling native methods is not supported";
 
-        return Debug.scope("GraalCompiler", new Object[]{graph, method}, new Callable<CompilationResult>() {
+        return Debug.scope("GraalCompiler", new Object[]{graph, method, runtime}, new Callable<CompilationResult>() {
 
             public CompilationResult call() {
                 final Assumptions assumptions = new Assumptions(GraalOptions.OptAssumptions);
                 final LIR lir = Debug.scope("FrontEnd", new Callable<LIR>() {
 
                     public LIR call() {
-                        return emitHIR(runtime, target, graph, assumptions, cache, plan, optimisticOpts);
+                        return emitHIR(runtime, target, graph, assumptions, cache, plan, optimisticOpts, speculationLog);
                     }
                 });
                 final FrameMap frameMap = Debug.scope("BackEnd", lir, new Callable<FrameMap>() {
@@ -96,7 +96,11 @@ public class GraalCompiler {
      * @param target
      */
     public static LIR emitHIR(GraalCodeCacheProvider runtime, TargetDescription target, StructuredGraph graph, Assumptions assumptions, GraphCache cache, PhasePlan plan,
-                    OptimisticOptimizations optimisticOpts) {
+                    OptimisticOptimizations optimisticOpts, final SpeculationLog speculationLog) {
+
+        if (speculationLog != null) {
+            speculationLog.snapshot();
+        }
 
         if (graph.start().next() == null) {
             plan.runPhases(PhasePosition.AFTER_PARSING, graph);
@@ -193,10 +197,10 @@ public class GraalCompiler {
 
         plan.runPhases(PhasePosition.LOW_LEVEL, graph);
 
+        new GuardLoweringPhase().apply(graph);
+
         // Add safepoints to loops
-        if (GraalOptions.GenLoopSafepoints) {
-            new LoopSafepointInsertionPhase().apply(graph);
-        }
+        new SafepointInsertionPhase().apply(graph);
 
         final SchedulePhase schedule = new SchedulePhase();
         schedule.apply(graph);
@@ -216,7 +220,7 @@ public class GraalCompiler {
                 List<Block> codeEmittingOrder = ComputeBlockOrder.computeCodeEmittingOrder(blocks.length, startBlock);
                 List<Block> linearScanOrder = ComputeBlockOrder.computeLinearScanOrder(blocks.length, startBlock);
 
-                LIR lir = new LIR(schedule.getCFG(), schedule.getBlockToNodesMap(), linearScanOrder, codeEmittingOrder);
+                LIR lir = new LIR(schedule.getCFG(), schedule.getBlockToNodesMap(), linearScanOrder, codeEmittingOrder, speculationLog);
                 Debug.dump(lir, "After linear scan order");
                 return lir;
 

@@ -34,7 +34,7 @@
 #include "runtime/init.hpp"
 #include "runtime/safepoint.hpp"
 #include "runtime/sharedRuntime.hpp"
-#include "utilities/machineCodePrinter.hpp"
+#include "utilities/macros.hpp"
 
 // Initialization done by VM thread in vm_init_globals()
 void check_ThreadShadow();
@@ -87,10 +87,6 @@ void vm_init_globals() {
   mutex_init();
   chunkpool_init();
   perfMemory_init();
-
-  if(PrintMachineCodeToFile) {
-    MachineCodePrinter::initialize();
-  }
 }
 
 

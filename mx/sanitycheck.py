@@ -119,7 +119,7 @@ def getSPECjbb2013(benchArgs = []):
     success = re.compile(r"org.spec.jbb.controller: Run finished", re.MULTILINE)
     matcherMax = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'max', 'score' : '<max>'})
     matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
-    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+UseSerialGC', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
+    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xmx6g', '-Xms6g', '-Xmn3g', '-XX:+UseParallelOldGC', '-XX:-UseAdaptiveSizePolicy', '-XX:-UseBiasedLocking', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
     
 def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
@@ -270,9 +270,12 @@ class Test:
         if len(valueMaps) == 0:
             return False
         
-        assert len(valueMaps) == 1, 'Test matchers should not return more than one record'
-        
-        record = valueMaps[0]
+        record = {}
+        for valueMap in valueMaps:
+            for key, value in valueMap.items():
+                if record.has_key(key) and record[key] != value:
+                    mx.abort('Inconsistant values returned by test machers : ' + str(valueMaps))
+                record[key] = value
         
         jvmErrorFile = record.get('jvmError')
         if jvmErrorFile:

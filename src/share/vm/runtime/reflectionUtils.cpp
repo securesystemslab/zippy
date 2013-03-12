@@ -26,9 +26,6 @@
 #include "classfile/javaClasses.hpp"
 #include "memory/universe.inline.hpp"
 #include "runtime/reflectionUtils.hpp"
-#ifdef GRAAL
-#include "graal/graalJavaAccess.hpp"
-#endif
 
 KlassStream::KlassStream(instanceKlassHandle klass, bool local_only, bool classes_only) {
   _klass = klass;

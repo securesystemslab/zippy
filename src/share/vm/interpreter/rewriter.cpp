@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,6 @@ void Rewriter::compute_index_maps() {
         add_cp_cache_entry(i);
         break;
       case JVM_CONSTANT_String:
-      case JVM_CONSTANT_Object:
       case JVM_CONSTANT_MethodHandle      : // fall through
       case JVM_CONSTANT_MethodType        : // fall through
         add_resolved_references_entry(i);
@@ -116,9 +115,7 @@ void Rewriter::rewrite_Object_init(methodHandle method, TRAPS) {
   while (!bcs.is_last_bytecode()) {
     Bytecodes::Code opcode = bcs.raw_next();
     switch (opcode) {
-      case Bytecodes::_return:
-          *bcs.bcp() = Bytecodes::_return_register_finalizer;
-        break;
+      case Bytecodes::_return: *bcs.bcp() = Bytecodes::_return_register_finalizer; break;
 
       case Bytecodes::_istore:
       case Bytecodes::_lstore:
@@ -240,7 +237,7 @@ void Rewriter::maybe_rewrite_ldc(address bcp, int offset, bool is_wide,
     address p = bcp + offset;
     int cp_index = is_wide ? Bytes::get_Java_u2(p) : (u1)(*p);
     constantTag tag = _pool->tag_at(cp_index).value();
-    if (tag.is_method_handle() || tag.is_method_type() || tag.is_string() || tag.is_object()) {
+    if (tag.is_method_handle() || tag.is_method_type() || tag.is_string()) {
       int ref_index = cp_entry_to_resolved_references(cp_index);
       if (is_wide) {
         (*bcp) = Bytecodes::_fast_aldc_w;
@@ -318,12 +315,12 @@ void Rewriter::scan_method(Method* method, bool reverse) {
       switch (c) {
         case Bytecodes::_lookupswitch   : {
 #ifndef CC_INTERP
-            Bytecode_lookupswitch bc(method, bcp);
-            (*bcp) = (
-              bc.number_of_pairs() < BinarySwitchThreshold
-              ? Bytecodes::_fast_linearswitch
-              : Bytecodes::_fast_binaryswitch
-            );
+          Bytecode_lookupswitch bc(method, bcp);
+          (*bcp) = (
+            bc.number_of_pairs() < BinarySwitchThreshold
+            ? Bytecodes::_fast_linearswitch
+            : Bytecodes::_fast_binaryswitch
+          );
 #endif
           break;
         }

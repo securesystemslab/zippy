@@ -45,6 +45,7 @@
 #include "runtime/timer.hpp"
 #include "runtime/vframeArray.hpp"
 #include "utilities/debug.hpp"
+#include "utilities/macros.hpp"
 
 #define __ _masm->
 
@@ -773,7 +774,7 @@ address InterpreterGenerator::generate_accessor_entry(void) {
 
 // Method entry for java.lang.ref.Reference.get.
 address InterpreterGenerator::generate_Reference_get_entry(void) {
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
   // Code: _aload_0, _getfield, _areturn
   // parameter size = 1
   //
@@ -852,7 +853,7 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
 
     return entry;
   }
-#endif // SERIALGC
+#endif // INCLUDE_ALL_GCS
 
   // If G1 is not enabled then attempt to go through the accessor entry point
   // Reference.get is an accessor

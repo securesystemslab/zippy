@@ -24,6 +24,7 @@
 
 // Precompiled headers are turned off for Sun Studion,
 // or if the user passes USE_PRECOMPILED_HEADER=0 to the makefiles.
+
 #ifndef DONT_USE_PRECOMPILED_HEADER
 
 # include "asm/assembler.hpp"
@@ -288,7 +289,7 @@
 #ifdef GRAAL
 # include "graal/graalGlobals.hpp"
 #endif // GRAAL
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
 # include "gc_implementation/concurrentMarkSweep/cmsOopClosures.hpp"
 # include "gc_implementation/concurrentMarkSweep/compactibleFreeListSpace.hpp"
 # include "gc_implementation/concurrentMarkSweep/concurrentMarkSweepGeneration.hpp"
@@ -317,6 +318,6 @@
 # include "gc_implementation/shared/gcAdaptivePolicyCounters.hpp"
 # include "gc_implementation/shared/gcPolicyCounters.hpp"
 # include "gc_implementation/shared/parGCAllocBuffer.hpp"
-#endif // SERIALGC
+#endif // INCLUDE_ALL_GCS
 
 #endif // !DONT_USE_PRECOMPILED_HEADER

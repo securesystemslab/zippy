@@ -68,13 +68,11 @@ import com.oracle.graal.test.*;
 public abstract class GraalCompilerTest extends GraalTest {
 
     protected final GraalCodeCacheProvider runtime;
-    protected final GraalCompiler graalCompiler;
     protected final Backend backend;
 
     public GraalCompilerTest() {
         DebugEnvironment.initialize(System.out);
         this.runtime = Graal.getRequiredCapability(GraalCodeCacheProvider.class);
-        this.graalCompiler = Graal.getRequiredCapability(GraalCompiler.class);
         this.backend = Graal.getRequiredCapability(Backend.class);
     }
 
@@ -350,7 +348,7 @@ public abstract class GraalCompilerTest extends GraalTest {
 
         final int id = compilationId++;
 
-        InstalledCode installedCode = Debug.scope("Compiling", new DebugDumpScope(String.valueOf(id), true), new Callable<InstalledCode>() {
+        InstalledCode installedCode = Debug.scope("Compiling", new Object[]{runtime, new DebugDumpScope(String.valueOf(id), true)}, new Callable<InstalledCode>() {
 
             public InstalledCode call() throws Exception {
                 final boolean printCompilation = GraalOptions.PrintCompilation && !TTY.isSuppressed();
@@ -362,7 +360,8 @@ public abstract class GraalCompilerTest extends GraalTest {
                 GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
                 phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
                 editPhasePlan(method, graph, phasePlan);
-                CompilationResult compResult = GraalCompiler.compileMethod(runtime(), backend, runtime().getTarget(), method, graph, null, phasePlan, OptimisticOptimizations.ALL);
+                CompilationResult compResult = GraalCompiler.compileMethod(runtime(), backend, runtime().getTarget(), method, graph, null, phasePlan, OptimisticOptimizations.ALL,
+                                new SpeculationLog());
                 if (printCompilation) {
                     TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
                 }
@@ -377,8 +376,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected InstalledCode addMethod(final ResolvedJavaMethod method, final CompilationResult compResult) {
-        assert graalCompiler != null;
-        return Debug.scope("CodeInstall", new Object[]{graalCompiler, method}, new Callable<InstalledCode>() {
+        return Debug.scope("CodeInstall", new Object[]{runtime, method}, new Callable<InstalledCode>() {
 
             @Override
             public InstalledCode call() throws Exception {
