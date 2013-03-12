@@ -925,19 +925,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ movptr(rsp, rbp);
       __ pop(rbp);
 
-      Label nonNullExceptionOop;
-      __ testptr(rax, rax);
-      __ jcc(Assembler::notZero, nonNullExceptionOop);
-      {
-        __ enter();
-        oop_maps = new OopMapSet();
-        OopMap* oop_map = save_live_registers(sasm, 0);
-        int call_offset = __ call_RT(rax, noreg, (address)create_null_exception, 0);
-        oop_maps->add_gc_map(call_offset, oop_map);
-        __ leave();
-      }
-      __ bind(nonNullExceptionOop);
-
       __ set_info("unwind_exception", dont_gc_arguments);
       // note: no stubframe since we are about to leave the current
       //       activation and we are calling a leaf VM function only.
