@@ -85,7 +85,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
       memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
     }
     BytecodeStream s(method);
-    while(!s.is_last_bytecode()) {
+    while (!s.is_last_bytecode()) {
       s.next();
       Bytecodes::Code opcode = s.raw_code();
       if (!Bytecodes::is_java_code(opcode)) {
@@ -962,7 +962,7 @@ C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot
 // XXX: Attention: it seEms that the line number table of a method just contains lines that are important, means that
 // empty lines are left out or lines that can't have a breakpoint on it; eg int a; or try {
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
-  if(!method->has_linenumber_table()) {
+  if (!method->has_linenumber_table()) {
     return NULL;
   }
   u2 num_entries = 0;
@@ -991,7 +991,7 @@ C2V_VMENTRY(jobject, getLocalVariableTable, (JNIEnv *, jobject, jobject hotspot_
   ResourceMark rm;
 
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
-  if(!method->has_localvariable_table()) {
+  if (!method->has_localvariable_table()) {
     return NULL;
   }
   int localvariable_table_length = method->localvariable_table_length();

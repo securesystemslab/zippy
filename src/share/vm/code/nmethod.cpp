@@ -1923,7 +1923,7 @@ void nmethod::oops_do(OopClosure* f, bool do_strong_roots_only) {
   }
 
 #ifdef GRAAL
-  if(_graal_installed_code != NULL) {
+  if (_graal_installed_code != NULL) {
     f->do_oop((oop*) &_graal_installed_code);
   }
   if (_triggered_deoptimizations != NULL) {
