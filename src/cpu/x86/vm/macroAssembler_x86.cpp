@@ -2058,7 +2058,7 @@ void MacroAssembler::divss(XMMRegister dst, AddressLiteral src) {
 }
 
 // !defined(COMPILER2) is because of stupid core builds
-#if !defined(_LP64) || defined(COMPILER1) || !defined(COMPILER2)
+#if !defined(_LP64) || defined(COMPILER1) || !defined(COMPILER2) || defined(GRAAL)
 void MacroAssembler::empty_FPU_stack() {
   if (VM_Version::supports_mmx()) {
     emms();
