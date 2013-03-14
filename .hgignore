@@ -61,6 +61,8 @@ src_gen/
 .DS_Store
 javadoc/
 .idea/
+^cscope.out
+^tags
 syntax: glob
 *.bgv
 core.*
