@@ -28,7 +28,6 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
 
 public class ConvertDeoptimizeToGuardPhase extends Phase {
@@ -80,26 +79,23 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
             IfNode ifNode = (IfNode) deoptBegin.predecessor();
             BeginNode otherBegin = ifNode.trueSuccessor();
             LogicNode conditionNode = ifNode.condition();
-            if (conditionNode instanceof InstanceOfNode) {
+            if (conditionNode instanceof InstanceOfNode || conditionNode instanceof InstanceOfDynamicNode) {
                 // TODO The lowering currently does not support a FixedGuard as the usage of an
                 // InstanceOfNode. Relax this restriction.
                 return;
             }
-            boolean negated = false;
+            FixedGuardNode guard = graph.add(new FixedGuardNode(conditionNode, deopt.reason(), deopt.action(), deoptBegin == ifNode.trueSuccessor()));
+            FixedWithNextNode pred = (FixedWithNextNode) ifNode.predecessor();
             if (deoptBegin == ifNode.trueSuccessor()) {
-                negated = true;
-                otherBegin = ifNode.falseSuccessor();
+                graph.removeSplitPropagate(ifNode, ifNode.falseSuccessor());
+            } else {
+                graph.removeSplitPropagate(ifNode, ifNode.trueSuccessor());
             }
-            BeginNode ifBlockBegin = findBeginNode(ifNode);
-            Debug.log("Converting %s on %-5s branch of %s to guard for remaining branch %s. IfBegin=%s", deopt, deoptBegin == ifNode.trueSuccessor() ? "true" : "false", ifNode, otherBegin,
-                            ifBlockBegin);
-            FixedGuardNode guard = graph.add(new FixedGuardNode(conditionNode, deopt.reason(), deopt.action(), negated));
-            otherBegin.replaceAtUsages(ifBlockBegin);
-            FixedNode next = otherBegin.next();
-            otherBegin.setNext(null);
+            Debug.log("Converting %s on %-5s branch of %s to guard for remaining branch %s.", deopt, deoptBegin == ifNode.trueSuccessor() ? "true" : "false", ifNode, otherBegin);
+            FixedNode next = pred.next();
+            pred.setNext(guard);
             guard.setNext(next);
-            ifNode.replaceAtPredecessor(guard);
-            GraphUtil.killCFG(ifNode);
+            Debug.dump(graph, "After introducing fixed guard %s", guard);
         }
     }
 }
