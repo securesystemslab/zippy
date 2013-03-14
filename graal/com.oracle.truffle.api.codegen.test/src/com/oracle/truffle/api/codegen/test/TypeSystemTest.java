@@ -20,36 +20,52 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes;
+package com.oracle.truffle.api.codegen.test;
 
-import java.math.*;
-
+import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.codegen.test.RuntimeStringTest.RuntimeString;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-public abstract class TypedNode extends ConditionNode {
+public class TypeSystemTest {
 
-    @Override
-    public final boolean executeCondition(VirtualFrame frame) {
-        try {
-            return executeBoolean(frame);
-        } catch (UnexpectedResultException ex) {
-            throw new RuntimeException("Illegal type for condition: " + ex.getResult().getClass().getSimpleName());
-        }
+    @TypeSystem({int.class, RuntimeString.class})
+    static class SimpleTypes {
     }
 
-    public abstract boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException;
+    @TypeSystemReference(SimpleTypes.class)
+    abstract static class ValueNode extends Node {
 
-    public abstract int executeInteger(VirtualFrame frame) throws UnexpectedResultException;
+        int executeInt() throws UnexpectedResultException {
+            return SimpleTypesGen.SIMPLETYPES.expectInteger(execute());
+        }
 
-    public abstract BigInteger executeBigInteger(VirtualFrame frame) throws UnexpectedResultException;
+        RuntimeString executeString() {
+            return new RuntimeString(execute().toString());
+        }
 
-    public abstract String executeString(VirtualFrame frame) throws UnexpectedResultException;
+        @SuppressWarnings("static-method")
+        final long executeSpecial() {
+            return 42L;
+        }
 
-    public abstract Object executeGeneric(VirtualFrame frame);
+        abstract Object execute();
 
-    public boolean isString(Object a, Object b) {
-        return a instanceof String || b instanceof String;
+    }
+
+    @TypeSystemReference(SimpleTypes.class)
+    static class TestRootNode extends RootNode {
+
+        @Child private ValueNode node;
+
+        public TestRootNode(ValueNode node) {
+            this.node = adoptChild(node);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return node.execute();
+        }
     }
 
 }

@@ -24,27 +24,12 @@ package com.oracle.truffle.api.codegen;
 
 import java.lang.annotation.*;
 
-/**
- * Specifies the use of a guard for a specialization.
- */
+import com.oracle.truffle.api.nodes.*;
+
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.METHOD})
-public @interface SpecializationGuard {
+@Target({ElementType.TYPE})
+public @interface NodeClass {
 
-    /**
-     * Specifies the name of the guard method annotated by {@link GuardCheck} specified as method in
-     * the {@link TypeSystem} class.
-     */
-    String methodName();
-
-    /**
-     * Determines if a guard check is invoked on specialization. Defaults to true.
-     */
-    boolean onSpecialization() default true;
-
-    /**
-     * Determines if a guard check is invoked on execution. Defaults to true.
-     */
-    boolean onExecution() default true;
+    Class<? extends Node> value();
 
 }

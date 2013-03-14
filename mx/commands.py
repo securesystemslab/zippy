@@ -316,7 +316,7 @@ def _vmCfgInJdk(jdk):
         return join(jdk, 'jre', 'lib', _arch(), 'jvm.cfg')
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
-def _jdk(build='product', create=False):
+def _jdk(build='product', vmToCheck=None, create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
@@ -344,7 +344,6 @@ def _jdk(build='product', create=False):
             if not exists(jvmCfg):
                 mx.abort(jvmCfg + ' does not exist')
 
-            lines = []
             defaultVM = None
             with open(jvmCfg) as f:
                 for line in f:
@@ -353,17 +352,14 @@ def _jdk(build='product', create=False):
                         assert len(parts) == 2, parts
                         assert parts[1] == 'KNOWN', parts[1]
                         defaultVM = parts[0][1:]
-                        lines.append('-' + defaultVM + '0 KNOWN\n')
-                    lines.append(line)
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, 0755)
             shutil.copytree(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), defaultVM + '0'))
 
-            with open(jvmCfg, 'w') as f:
-                for line in lines:
-                    f.write(line)
+            with open(jvmCfg, 'w') as fp:
+                print >> fp, '-' + defaultVM + '0 KNOWN'
 
             # Install a copy of the disassembler library
             try:
@@ -372,10 +368,21 @@ def _jdk(build='product', create=False):
                 pass
     else:
         if not exists(jdk):
-            mx.abort('The ' + build + ' VM has not been created - run \'mx clean; mx build ' + build + '\'')
+            mx.abort('The ' + build + ' VM has not been created - run "mx build ' + build + '"')
             
     _installGraalJarInJdks(mx.distribution('GRAAL'))
     
+    if vmToCheck is not None:
+        jvmCfg = _vmCfgInJdk(jdk)
+        found = False
+        with open(jvmCfg) as f:
+            for line in f:
+                if line.strip() == '-' + vmToCheck + ' KNOWN':
+                    found = True
+                    break
+        if not found:
+            mx.abort('The ' + build + ' ' + vmToCheck + ' VM has not been created - run "mx --vm ' + vmToCheck + ' build ' + build + '"')
+        
     return jdk
 
 def _installGraalJarInJdks(graalDist):
@@ -588,23 +595,18 @@ def build(args, vm=None):
             mx.abort(jvmCfg + ' does not exist')
 
         prefix = '-' + vm
-        vmKnown = prefix + ' KNOWN\n'
-        lines = []
+        vmKnown = prefix + ' KNOWN'
         with open(jvmCfg) as f:
             for line in f:
-                if vmKnown in line:
+                if vmKnown == line.strip():
                     found = True
                     break
-                if not line.startswith(prefix):
-                    lines.append(line)
         if not found:
             mx.log('Appending "' + prefix + ' KNOWN" to ' + jvmCfg)
-            lines.append(vmKnown)
             if mx.get_os() != 'windows':
                 os.chmod(jvmCfg, 0755)
-            with open(jvmCfg, 'w') as f:
-                for line in lines:
-                    f.write(line)
+            with open(jvmCfg, 'a') as f:
+                print >> f, vmKnown
 
         if exists(timestampFile):
             os.utime(timestampFile, None)
@@ -626,7 +628,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         vm = _vm
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
-    jdk = _jdk(build)
+    jdk = _jdk(build, vmToCheck=vm)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
@@ -818,6 +820,10 @@ def gate(args):
         tasks.append(t.stop())
 
         _vmbuild = 'product'
+        t = Task('BootstrapWithRegisterPressure:product')
+        vm(['-G:RegisterPressure=rbx,r11,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        tasks.append(t.stop())
+        
         originalVm = _vm
         _vm = 'server' # hosted mode
         t = Task('UnitTests:hosted-product')

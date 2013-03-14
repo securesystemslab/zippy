@@ -25,10 +25,9 @@ package com.oracle.truffle.api.codegen;
 import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.METHOD})
-public @interface SpecializationThrows {
+@Target({ElementType.METHOD, ElementType.TYPE})
+public @interface NodeId {
 
-    Class<? extends Throwable> javaClass();
+    String value();
 
-    String transitionTo();
 }

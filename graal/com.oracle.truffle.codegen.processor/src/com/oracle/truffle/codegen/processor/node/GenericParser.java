@@ -41,7 +41,7 @@ public class GenericParser extends MethodParser<SpecializationData> {
 
     @Override
     public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
-        return createDefaultMethodSpec(null);
+        return createDefaultMethodSpec(method, mirror, null);
     }
 
     @Override
@@ -51,8 +51,7 @@ public class GenericParser extends MethodParser<SpecializationData> {
         for (ExecutableTypeData type : execTypes) {
             types.add(type.getType().getPrimitiveType());
         }
-        TypeMirror[] array = types.toArray(new TypeMirror[types.size()]);
-        return new ParameterSpec(valueName, array, false, Cardinality.ONE);
+        return new ParameterSpec(valueName, types, false, Cardinality.ONE);
     }
 
     @Override

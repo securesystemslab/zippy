@@ -25,10 +25,12 @@ package com.oracle.truffle.codegen.processor.node;
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 
-public class NodeFieldData {
+import com.oracle.truffle.codegen.processor.template.*;
+
+public class NodeFieldData extends MessageContainer {
 
     public enum FieldKind {
-        FIELD, CHILD, CHILDREN
+        CHILD, CHILDREN
     }
 
     public enum ExecutionKind {
@@ -41,19 +43,37 @@ public class NodeFieldData {
 
     private final FieldKind fieldKind;
     private final ExecutionKind executionKind;
-    private final NodeData nodeData;
+    private NodeData nodeData;
 
-    public NodeFieldData(NodeData typeNodeData, VariableElement fieldElement, Element accessElement, AnnotationMirror childAnnotationMirror, FieldKind fieldKind, ExecutionKind executionKind) {
+    public NodeFieldData(VariableElement fieldElement, Element accessElement, AnnotationMirror childAnnotationMirror, FieldKind fieldKind, ExecutionKind executionKind) {
         this.fieldElement = fieldElement;
         this.accessElement = accessElement;
         this.childAnnotationMirror = childAnnotationMirror;
-        this.nodeData = typeNodeData;
         this.fieldKind = fieldKind;
         this.executionKind = executionKind;
     }
 
+    NodeFieldData(NodeFieldData field) {
+        this.fieldElement = field.fieldElement;
+        this.accessElement = field.accessElement;
+        this.childAnnotationMirror = field.childAnnotationMirror;
+        this.fieldKind = field.fieldKind;
+        this.executionKind = field.executionKind;
+        this.nodeData = field.nodeData;
+    }
+
+    @Override
+    public Element getMessageElement() {
+        return fieldElement;
+    }
+
     public boolean isShortCircuit() {
         return executionKind == ExecutionKind.SHORT_CIRCUIT;
+    }
+
+    void setNode(NodeData nodeData) {
+        this.nodeData = nodeData;
+        getMessages().addAll(nodeData.collectMessages());
     }
 
     public VariableElement getFieldElement() {
@@ -90,7 +110,7 @@ public class NodeFieldData {
 
     @Override
     public String toString() {
-        return "NodeFieldData[name=" + getName() + ", kind=" + fieldKind + ", execution=" + executionKind + "]";
+        return "NodeFieldData[name=" + getName() + ", kind=" + fieldKind + ", execution=" + executionKind + ", node=" + getNodeData().toString() + "]";
     }
 
 }

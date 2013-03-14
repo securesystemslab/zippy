@@ -50,7 +50,8 @@ public class FileTreeCreatorVC10 extends FileTreeCreator {
                if (addFile.equals(fileName)) {
                   // supress any ignore
                   // TODO - may need some adjustments
-                  if (file.toAbsolutePath().toString().contains(cfg.get("Flavour"))) {
+                  String relativePath = startDir.toUri().relativize(file.toUri()).getPath();
+                  if (relativePath.contains(cfg.get("Flavour"))) {
                      currentFileAttr.removeFromIgnored(cfg);
                   }
                }

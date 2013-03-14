@@ -145,8 +145,10 @@ ProjectCreatorIDEOptionsIgnoreCompiler1=\
  -ignorePath_TARGET c1_
 
 ProjectCreatorIDEOptionsIgnoreGraal=\
- -ignorePath_TARGET graal
- 
+ -ignorePath_TARGET src/share/vm/graal \
+ -ignorePath_TARGET graal/generated \
+ -ignorePath_TARGET vm/graal
+
 ProjectCreatorIDEOptionsIgnoreCompiler2=\
  -ignorePath_TARGET compiler2 \
  -ignorePath_TARGET tiered \
@@ -175,7 +177,6 @@ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=core)
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler1 COMPILER1 \
  -ignorePath_compiler1 core \
- -ignorePath_compiler1 src/share/vm/graal \
  $(ProjectCreatorIDEOptionsIgnoreGraal:TARGET=compiler1) \
  $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
@@ -185,7 +186,6 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_graal GRAAL \
  -ignorePath_graal core \
- -ignorePath_graal src/share/vm/c1 \
  $(ProjectCreatorIDEOptionsIgnoreCompiler1:TARGET=graal) \
  $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=graal)
 
@@ -195,8 +195,9 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 #NOTE! This list must be kept in sync with GENERATED_NAMES in adlc.make.
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER2 \
+ -define_compiler2 GRAAL \
  -ignorePath_compiler2 core \
- -ignorePath_compiler2 src/share/vm/graal \
+ -ignorePath_compiler2 graal/generated \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
  -additionalFile_compiler2 ad_$(Platform_arch_model).cpp \
  -additionalFile_compiler2 ad_$(Platform_arch_model).hpp \
@@ -209,7 +210,6 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -additionalFile_compiler2 ad_$(Platform_arch_model)_pipeline.cpp \
  -additionalFile_compiler2 adGlobals_$(Platform_arch_model).hpp \
  -additionalFile_compiler2 dfa_$(Platform_arch_model).cpp \
- $(ProjectCreatorIDEOptionsIgnoreGraal:TARGET=compiler2) \
  $(ProjectCreatorIDEOptionsIgnoreCompiler1:TARGET=compiler2)
 
 # Add in the jvmti (JSR-163) options
