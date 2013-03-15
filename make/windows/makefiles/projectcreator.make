@@ -176,8 +176,9 @@ $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=core)
 ##################################################
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler1 COMPILER1 \
+ -define_compiler1 GRAAL \
  -ignorePath_compiler1 core \
- $(ProjectCreatorIDEOptionsIgnoreGraal:TARGET=compiler1) \
+ -ignorePath_compiler1 graal/generated \
  $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
 ##################################################
@@ -196,6 +197,7 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER2 \
  -define_compiler2 GRAAL \
+ -define_compiler2 TIERED \
  -ignorePath_compiler2 core \
  -ignorePath_compiler2 graal/generated \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
