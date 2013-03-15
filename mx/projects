@@ -185,7 +185,7 @@ project@com.oracle.graal.snippets@javaCompliance=1.7
 # graal.snippets.amd64
 project@com.oracle.graal.snippets.amd64@subDir=graal
 project@com.oracle.graal.snippets.amd64@sourceDirs=src
-project@com.oracle.graal.snippets.amd64@dependencies=com.oracle.graal.snippets,com.oracle.graal.amd64
+project@com.oracle.graal.snippets.amd64@dependencies=com.oracle.graal.snippets
 project@com.oracle.graal.snippets.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.snippets.amd64@javaCompliance=1.7
 
