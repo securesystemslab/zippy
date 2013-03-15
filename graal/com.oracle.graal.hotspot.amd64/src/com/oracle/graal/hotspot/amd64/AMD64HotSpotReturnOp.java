@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,42 +20,44 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.amd64;
+package com.oracle.graal.hotspot.amd64;
+
+import static com.oracle.graal.amd64.AMD64.*;
+import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.code.RuntimeCallTarget.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.*;
-import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.amd64.*;
+import com.oracle.graal.lir.LIRInstruction.Opcode;
 import com.oracle.graal.lir.asm.*;
 
-public class AMD64DeoptimizationStub extends AMD64Code {
+/**
+ * Performs an unwind to throw an exception.
+ */
+@Opcode("RETURN")
+final class AMD64HotSpotReturnOp extends AMD64HotSpotEpilogueOp {
 
-    public static final Descriptor DEOPTIMIZE = new Descriptor("deoptimize", true, void.class);
+    @Use({REG, ILLEGAL}) protected Value value;
 
-    public final Label label = new Label();
-    public final LIRFrameState info;
-    public final DeoptimizationAction action;
-    public final DeoptimizationReason reason;
-
-    public AMD64DeoptimizationStub(DeoptimizationAction action, DeoptimizationReason reason, LIRFrameState info) {
-        this.action = action;
-        this.reason = reason;
-        this.info = info;
+    AMD64HotSpotReturnOp(Value value) {
+        this.value = value;
     }
 
     @Override
     public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-        Register scratch = tasm.frameMap.registerConfig.getScratchRegister();
-        masm.bind(label);
-        masm.movl(scratch, tasm.runtime.encodeDeoptActionAndReason(action, reason));
-        AMD64Call.directCall(tasm, masm, tasm.runtime.lookupRuntimeCall(DEOPTIMIZE), info);
-    }
-
-    @Override
-    public String description() {
-        return "deopt stub[reason=" + reason + ", action=" + action + "]";
+        if (isStackSlot(savedRbp)) {
+            // Restoring RBP from the stack must be done before the frame is removed
+            masm.movq(rbp, (AMD64Address) tasm.asAddress(savedRbp));
+        } else {
+            Register framePointer = asRegister(savedRbp);
+            if (framePointer != rbp) {
+                masm.movq(rbp, framePointer);
+            }
+        }
+        if (tasm.frameContext != null) {
+            tasm.frameContext.leave(tasm);
+        }
+        masm.ret(0);
     }
 }

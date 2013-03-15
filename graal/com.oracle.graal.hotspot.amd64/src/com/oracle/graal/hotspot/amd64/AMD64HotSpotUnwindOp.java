@@ -23,11 +23,12 @@
 package com.oracle.graal.hotspot.amd64;
 
 import static com.oracle.graal.amd64.AMD64.*;
+import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
 import com.oracle.graal.amd64.*;
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.code.RuntimeCallTarget.*;
+import com.oracle.graal.api.code.RuntimeCallTarget.Descriptor;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.lir.LIRInstruction.Opcode;
 import com.oracle.graal.lir.amd64.*;
@@ -36,24 +37,39 @@ import com.oracle.graal.lir.asm.*;
 /**
  * Performs an unwind to throw an exception.
  */
-@Opcode("CALL_INDIRECT")
-final class AMD64HotSpotUnwindOp extends AMD64LIRInstruction {
+@Opcode("UNWIND")
+final class AMD64HotSpotUnwindOp extends AMD64HotSpotEpilogueOp {
 
     public static final Descriptor UNWIND_EXCEPTION = new Descriptor("unwindException", true, void.class, Object.class);
 
+    /**
+     * Unwind stub expects the exception in RAX.
+     */
+    public static final Register EXCEPTION = AMD64.rax;
+
     @Use({REG}) protected AllocatableValue exception;
-    @Temp private RegisterValue framePointer;
 
     AMD64HotSpotUnwindOp(AllocatableValue exception) {
         this.exception = exception;
-        assert exception == AMD64.rax.asValue();
-        framePointer = AMD64.rbp.asValue();
+        assert asRegister(exception) == EXCEPTION;
     }
 
     @Override
     public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-        masm.movq(framePointer.getRegister(), rsp);
-        masm.incrementq(framePointer.getRegister(), tasm.frameMap.frameSize() - 8);
+        // Copy the saved RBP value into the slot just below the return address
+        // so that the stub can pick it up from there.
+        AMD64Address rbpSlot;
+        int rbpSlotOffset = tasm.frameMap.frameSize() - 8;
+        if (isStackSlot(savedRbp)) {
+            rbpSlot = (AMD64Address) tasm.asAddress(savedRbp);
+            assert rbpSlot.getDisplacement() == rbpSlotOffset;
+        } else {
+            rbpSlot = new AMD64Address(rsp, rbpSlotOffset);
+            masm.movq(rbpSlot, asRegister(savedRbp));
+        }
+
+        // Pass the address of the RBP slot in RBP itself
+        masm.leaq(rbp, rbpSlot);
         AMD64Call.directCall(tasm, masm, tasm.runtime.lookupRuntimeCall(UNWIND_EXCEPTION), null);
     }
 }

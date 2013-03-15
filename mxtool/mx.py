@@ -630,6 +630,9 @@ class XMLDoc(xml.dom.minidom.Document):
         e.ownerDocument = self
         return e
 
+    def comment(self, txt):
+        self.current.appendChild(self.createComment(txt))
+
     def open(self, tag, attributes={}, data=None):
         element = self.createElement(tag)
         for key, value in attributes.items():

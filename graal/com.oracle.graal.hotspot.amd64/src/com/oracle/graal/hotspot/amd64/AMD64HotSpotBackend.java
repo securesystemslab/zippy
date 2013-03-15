@@ -25,6 +25,7 @@ package com.oracle.graal.hotspot.amd64;
 import static com.oracle.graal.amd64.AMD64.*;
 import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.lang.reflect.*;
 
@@ -36,22 +37,15 @@ import com.oracle.graal.api.code.RuntimeCallTarget.Descriptor;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.*;
-import com.oracle.graal.asm.amd64.AMD64Address.Scale;
 import com.oracle.graal.asm.amd64.AMD64Assembler.ConditionFlag;
-import com.oracle.graal.compiler.amd64.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
-import com.oracle.graal.hotspot.nodes.*;
-import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.amd64.*;
-import com.oracle.graal.lir.amd64.AMD64Move.CompareAndSwapOp;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.phases.*;
 
 /**
@@ -71,122 +65,6 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
     @Override
     public LIRGenerator newLIRGenerator(StructuredGraph graph, FrameMap frameMap, ResolvedJavaMethod method, LIR lir) {
         return new HotSpotAMD64LIRGenerator(graph, runtime(), target, frameMap, method, lir);
-    }
-
-    static final class HotSpotAMD64LIRGenerator extends AMD64LIRGenerator implements HotSpotLIRGenerator {
-
-        private HotSpotRuntime runtime() {
-            return (HotSpotRuntime) runtime;
-        }
-
-        private HotSpotAMD64LIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, ResolvedJavaMethod method, LIR lir) {
-            super(graph, runtime, target, frameMap, method, lir);
-        }
-
-        @Override
-        protected boolean needOnlyOopMaps() {
-            // Stubs only need oop maps
-            return runtime().asStub(method) != null;
-        }
-
-        @Override
-        protected CallingConvention createCallingConvention() {
-            Stub stub = runtime().asStub(method);
-            if (stub != null) {
-                return stub.getLinkage().getCallingConvention();
-            }
-
-            if (graph.getEntryBCI() == StructuredGraph.INVOCATION_ENTRY_BCI) {
-                return super.createCallingConvention();
-            } else {
-                return frameMap.registerConfig.getCallingConvention(JavaCallee, method.getSignature().getReturnType(null), new JavaType[]{runtime.lookupJavaType(long.class)}, target, false);
-            }
-        }
-
-        @Override
-        public void visitSafepointNode(SafepointNode i) {
-            LIRFrameState info = state();
-            append(new AMD64SafepointOp(info, runtime().config, this));
-        }
-
-        @Override
-        public void visitExceptionObject(ExceptionObjectNode x) {
-            HotSpotVMConfig config = runtime().config;
-            RegisterValue thread = runtime().threadRegister().asValue();
-            Value exception = emitLoad(Kind.Object, thread, config.threadExceptionOopOffset, Value.ILLEGAL, 0, false);
-            emitStore(Kind.Object, thread, config.threadExceptionOopOffset, Value.ILLEGAL, 0, Constant.NULL_OBJECT, false);
-            emitStore(Kind.Long, thread, config.threadExceptionPcOffset, Value.ILLEGAL, 0, Constant.LONG_0, false);
-            setResult(x, exception);
-        }
-
-        @SuppressWarnings("hiding")
-        @Override
-        public void visitDirectCompareAndSwap(DirectCompareAndSwapNode x) {
-            Kind kind = x.newValue().kind();
-            assert kind == x.expectedValue().kind();
-
-            Value expected = loadNonConst(operand(x.expectedValue()));
-            Variable newVal = load(operand(x.newValue()));
-
-            int disp = 0;
-            AMD64AddressValue address;
-            Value index = operand(x.offset());
-            if (ValueUtil.isConstant(index) && NumUtil.isInt(ValueUtil.asConstant(index).asLong() + disp)) {
-                assert !runtime.needsDataPatch(asConstant(index));
-                disp += (int) ValueUtil.asConstant(index).asLong();
-                address = new AMD64AddressValue(kind, load(operand(x.object())), disp);
-            } else {
-                address = new AMD64AddressValue(kind, load(operand(x.object())), load(index), Scale.Times1, disp);
-            }
-
-            RegisterValue rax = AMD64.rax.asValue(kind);
-            emitMove(rax, expected);
-            append(new CompareAndSwapOp(rax, address, rax, newVal));
-
-            Variable result = newVariable(x.kind());
-            emitMove(result, rax);
-            setResult(x, result);
-        }
-
-        @Override
-        public void emitTailcall(Value[] args, Value address) {
-            append(new AMD64TailcallOp(args, address));
-
-        }
-
-        @Override
-        protected void emitDirectCall(DirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-            InvokeKind invokeKind = ((HotSpotDirectCallTargetNode) callTarget).invokeKind();
-            if (invokeKind == InvokeKind.Interface || invokeKind == InvokeKind.Virtual) {
-                append(new AMD64HotspotDirectVirtualCallOp(callTarget.target(), result, parameters, temps, callState, invokeKind));
-            } else {
-                assert invokeKind == InvokeKind.Static || invokeKind == InvokeKind.Special;
-                HotSpotResolvedJavaMethod resolvedMethod = (HotSpotResolvedJavaMethod) callTarget.target();
-                Constant metaspaceMethod = resolvedMethod.getMetaspaceMethodConstant();
-                append(new AMD64HotspotDirectStaticCallOp(callTarget.target(), result, parameters, temps, callState, invokeKind, metaspaceMethod));
-            }
-        }
-
-        @Override
-        protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-            Value metaspaceMethod = AMD64.rbx.asValue();
-            emitMove(metaspaceMethod, operand(((HotSpotIndirectCallTargetNode) callTarget).metaspaceMethod()));
-            Value targetAddress = AMD64.rax.asValue();
-            emitMove(targetAddress, operand(callTarget.computedAddress()));
-            append(new AMD64IndirectCallOp(callTarget.target(), result, parameters, temps, metaspaceMethod, targetAddress, callState));
-        }
-
-        @Override
-        public void emitUnwind(Value exception) {
-            RegisterValue exceptionParameter = AMD64.rax.asValue();
-            emitMove(exceptionParameter, exception);
-            append(new AMD64HotSpotUnwindOp(exceptionParameter));
-        }
-
-        @Override
-        public void emitDeoptimize(DeoptimizationAction action, DeoptimizationReason reason) {
-            append(new AMD64DeoptimizeOp(action, reason, state(reason)));
-        }
     }
 
     /**
@@ -224,8 +102,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
 
             AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
             emitStackOverflowCheck(tasm, false);
-            asm.push(rbp);
-            asm.decrementq(rsp, frameSize - 8); // account for the push of RBP above
+            asm.decrementq(rsp, frameSize);
             if (GraalOptions.ZapStackOnMethodEntry) {
                 final int intSize = 4;
                 for (int i = 0; i < frameSize / intSize; ++i) {
@@ -253,31 +130,35 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
                 asm.restore(csl, frameToCSA);
             }
 
-            asm.incrementq(rsp, frameSize - 8); // account for the pop of RBP below
-            asm.pop(rbp);
+            asm.incrementq(rsp, frameSize);
         }
     }
 
     @Override
-    public TargetMethodAssembler newAssembler(FrameMap frameMap, LIR lir) {
+    public TargetMethodAssembler newAssembler(LIRGenerator lirGen, CompilationResult compilationResult) {
         // Omit the frame if the method:
         // - has no spill slots or other slots allocated during register allocation
         // - has no callee-saved registers
         // - has no incoming arguments passed on the stack
         // - has no instructions with debug info
-        boolean omitFrame = GraalOptions.CanOmitFrame && frameMap.frameSize() == frameMap.initialFrameSize && frameMap.registerConfig.getCalleeSaveLayout().registers.length == 0 &&
-                        !lir.hasArgInCallerFrame() && !lir.hasDebugInfo();
+        HotSpotAMD64LIRGenerator gen = (HotSpotAMD64LIRGenerator) lirGen;
+        FrameMap frameMap = gen.frameMap;
+        LIR lir = gen.lir;
+        boolean omitFrame = CanOmitFrame && !frameMap.frameNeedsAllocating() && !lir.hasArgInCallerFrame();
 
         AbstractAssembler masm = new AMD64MacroAssembler(target, frameMap.registerConfig);
         HotSpotFrameContext frameContext = omitFrame ? null : new HotSpotFrameContext();
-        TargetMethodAssembler tasm = new TargetMethodAssembler(target, runtime(), frameMap, masm, frameContext);
+        TargetMethodAssembler tasm = new TargetMethodAssembler(target, runtime(), frameMap, masm, frameContext, compilationResult);
         tasm.setFrameSize(frameMap.frameSize());
-        tasm.compilationResult.setCustomStackAreaOffset(frameMap.offsetToCustomArea());
+        StackSlot deoptimizationRescueSlot = gen.deoptimizationRescueSlot;
+        if (deoptimizationRescueSlot != null) {
+            tasm.compilationResult.setCustomStackAreaOffset(frameMap.offsetForStackSlot(deoptimizationRescueSlot));
+        }
         return tasm;
     }
 
     @Override
-    public void emitCode(TargetMethodAssembler tasm, ResolvedJavaMethod method, LIR lir) {
+    public void emitCode(TargetMethodAssembler tasm, ResolvedJavaMethod method, LIRGenerator lirGen) {
         AMD64MacroAssembler asm = (AMD64MacroAssembler) tasm.asm;
         FrameMap frameMap = tasm.frameMap;
         RegisterConfig regConfig = frameMap.registerConfig;
@@ -304,7 +185,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         tasm.recordMark(Marks.MARK_VERIFIED_ENTRY);
 
         // Emit code for the LIR
-        lir.emitCode(tasm);
+        lirGen.lir.emitCode(tasm);
 
         boolean frameOmitted = tasm.frameContext == null;
         if (!frameOmitted) {
@@ -316,7 +197,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         } else {
             // No need to emit the stubs for entries back into the method since
             // it has no calls that can cause such "return" entries
-            assert !frameMap.accessesCallerFrame();
+            assert !frameMap.accessesCallerFrame() : method;
         }
 
         if (unverifiedStub != null) {

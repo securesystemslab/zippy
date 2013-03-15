@@ -89,7 +89,7 @@ project@com.oracle.graal.hotspot@javaCompliance=1.7
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
 project@com.oracle.graal.hotspot.amd64@sourceDirs=src
-project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.amd64
+project@com.oracle.graal.hotspot.amd64@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.amd64,com.oracle.graal.snippets.amd64
 project@com.oracle.graal.hotspot.amd64@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64@javaCompliance=1.7
 
@@ -181,6 +181,13 @@ project@com.oracle.graal.snippets@sourceDirs=src
 project@com.oracle.graal.snippets@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word
 project@com.oracle.graal.snippets@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.snippets@javaCompliance=1.7
+
+# graal.snippets.amd64
+project@com.oracle.graal.snippets.amd64@subDir=graal
+project@com.oracle.graal.snippets.amd64@sourceDirs=src
+project@com.oracle.graal.snippets.amd64@dependencies=com.oracle.graal.snippets
+project@com.oracle.graal.snippets.amd64@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.snippets.amd64@javaCompliance=1.7
 
 # graal.snippets.test
 project@com.oracle.graal.snippets.test@subDir=graal
