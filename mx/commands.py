@@ -485,6 +485,13 @@ def initantbuild(args):
     for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
         out.element('src', {'path' : '${src.dir}/' + p.name})
     out.element('compilerarg', {'value' : '-XDignore.symbol.file'})
+    
+    out.open('classpath')
+    out.open('fileset', {'dir' : '${java.home}/../lib'})
+    out.element('include', {'name' : 'tools.jar'})
+    out.close('fileset')
+    out.close('classpath')
+    
     out.close('javac')
     out.close('target')
 
