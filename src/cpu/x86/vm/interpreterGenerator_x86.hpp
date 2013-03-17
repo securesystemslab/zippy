@@ -30,6 +30,8 @@
 //
   friend class AbstractInterpreterGenerator;
 
+  address generate_deopt_entry_for(TosState state, int step);
+
  private:
 
   address generate_normal_entry(bool synchronized);

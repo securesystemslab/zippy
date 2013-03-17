@@ -61,6 +61,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   friend class VMStructs;
 
  protected:
+  bool _pending_monitorenter;
   oop  _pending_exception;                       // Thread has gc actions.
   const char* _exception_file;                   // file information for exception (debugging only)
   int         _exception_line;                   // line information for exception (debugging only)
@@ -79,9 +80,13 @@ class ThreadShadow: public CHeapObj<mtThread> {
   bool has_pending_exception() const             { return _pending_exception != NULL; }
   const char* exception_file() const             { return _exception_file; }
   int  exception_line() const                    { return _exception_line; }
+  bool has_pending_monitorenter() const          { return _pending_monitorenter; }
 
   // Code generation support
   static ByteSize pending_exception_offset()     { return byte_offset_of(ThreadShadow, _pending_exception); }
+  static ByteSize pending_monitorenter_offset()  { return byte_offset_of(ThreadShadow, _pending_monitorenter); }
+
+  bool set_pending_monitorenter(bool b)          { return _pending_monitorenter = b; }
 
   // use THROW whenever possible!
   void set_pending_exception(oop exception, const char* file, int line);
@@ -90,7 +95,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   void clear_pending_exception();
 
   ThreadShadow() : _pending_exception(NULL),
-                   _exception_file(NULL), _exception_line(0) {}
+                   _exception_file(NULL), _exception_line(0), _pending_monitorenter(false) {}
 };
 
 

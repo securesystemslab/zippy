@@ -204,13 +204,26 @@ address TemplateInterpreterGenerator::generate_return_entry_for(TosState state, 
 }
 
 
-address TemplateInterpreterGenerator::generate_deopt_entry_for(TosState state,
+address InterpreterGenerator::generate_deopt_entry_for(TosState state,
                                                                int step) {
   address entry = __ pc();
   // NULL last_sp until next java call
   __ movptr(Address(rbp, frame::interpreter_frame_last_sp_offset * wordSize), (int32_t)NULL_WORD);
   __ restore_bcp();
   __ restore_locals();
+  // Check if we need to take lock at entry of synchronized method.
+  {
+    Label L;
+    __ cmpb(Address(r15_thread, Thread::pending_monitorenter_offset()), 0);
+    __ jcc(Assembler::zero, L);
+    // Clear flag.
+    __ movb(Address(r15_thread, Thread::pending_monitorenter_offset()), 0);
+    // Satisfy calling convention for lock_method().
+    __ get_method(rbx);
+    // Take lock.
+    lock_method();
+    __ bind(L);
+  }
   // handle exceptions
   {
     Label L;
