@@ -662,6 +662,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   assert((Klass::_lh_array_tag_obj_value & Klass::_lh_array_tag_type_value & 0x80000000) != 0, "obj_array and type_array must have first bit set");
   set_int("arrayKlassComponentMirrorOffset", in_bytes(ArrayKlass::component_mirror_offset()));
   
+
+  set_int("pendingDeoptimizationOffset", in_bytes(ThreadShadow::pending_deoptimization_offset()));
+
   set_int("metaspaceArrayLengthOffset", Array<Klass*>::length_offset_in_bytes());
   set_int("metaspaceArrayBaseOffset", Array<Klass*>::base_offset_in_bytes());
   set_int("methodDataOopDataOffset", in_bytes(MethodData::data_offset()));
