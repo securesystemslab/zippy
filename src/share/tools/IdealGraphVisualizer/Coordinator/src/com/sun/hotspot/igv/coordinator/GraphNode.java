@@ -23,8 +23,10 @@
  */
 package com.sun.hotspot.igv.coordinator;
 
+import com.sun.hotspot.igv.coordinator.actions.CloneGraphAction;
 import com.sun.hotspot.igv.coordinator.actions.DiffGraphAction;
 import com.sun.hotspot.igv.coordinator.actions.DiffGraphCookie;
+import com.sun.hotspot.igv.coordinator.actions.GraphCloneCookie;
 import com.sun.hotspot.igv.coordinator.actions.GraphOpenCookie;
 import com.sun.hotspot.igv.coordinator.actions.GraphRemoveCookie;
 import com.sun.hotspot.igv.data.InputGraph;
@@ -72,6 +74,9 @@ public class GraphNode extends AbstractNode {
 
         // Action for diffing to the current graph
         content.add(new DiffGraphCookie(graph));
+
+        // Action for cloning to the current graph
+        content.add(new GraphCloneCookie(viewer, graph));
     }
 
     @Override
@@ -97,7 +102,7 @@ public class GraphNode extends AbstractNode {
 
     @Override
     public Action[] getActions(boolean b) {
-        return new Action[]{(Action) DiffGraphAction.findObject(DiffGraphAction.class, true), (Action) OpenAction.findObject(OpenAction.class, true)};
+        return new Action[]{(Action) DiffGraphAction.findObject(DiffGraphAction.class, true), (Action) CloneGraphAction.findObject(CloneGraphAction.class, true), (Action) OpenAction.findObject(OpenAction.class, true)};
     }
 
     @Override
