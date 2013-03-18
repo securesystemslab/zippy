@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,32 +20,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.jtt.lang;
+package com.oracle.graal.test;
 
-import com.oracle.graal.test.*;
-import com.oracle.graal.jtt.*;
+import java.lang.annotation.*;
 
-/*
- */
-public class String_intern02 extends JTTTest {
+/* copy of org.junit.Test */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+public @interface LongTest {
 
-    public static boolean test(int i) {
-        return ("id" + i).intern() == ("id" + i).intern();
+    static final class None extends Throwable {
+
+        private static final long serialVersionUID = 1L;
+
+        private None() {
+        }
     }
 
-    @LongTest
-    public void run0() throws Throwable {
-        runTest("test", 0);
-    }
+    Class<? extends Throwable> expected() default None.class;
 
-    @LongTest
-    public void run1() throws Throwable {
-        runTest("test", 1);
-    }
-
-    @LongTest
-    public void run2() throws Throwable {
-        runTest("test", 2);
-    }
-
+    long timeout() default 0L;
 }
