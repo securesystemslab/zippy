@@ -730,22 +730,24 @@ def _run_tests(args, harness, annotations):
                 return True
         return False
 
+    classes = []
     for p in mx.projects():
-        classes = _find_classes_with_annotations(p, None, annotations)
+        classes += _find_classes_with_annotations(p, None, annotations)
 
         if len(pos) != 0:
             classes = [c for c in classes if containsAny(c, pos)]
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
 
-        if len(classes) != 0:
-            mx.log('running tests in ' + p.name)
-            harness(p, vmArgs, classes)
+    projectscp = mx.classpath([pcp.name for pcp in mx.projects()])
+
+    if len(classes) != 0:
+        harness(projectscp, vmArgs, classes)
 
 def _unittest(args, annotations):
-    def harness(p, vmArgs, classes):
+    def harness(projectscp, vmArgs, classes):
         prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
-        vm(prefixArgs + vmArgs + ['-cp', mx.classpath(p.name), 'org.junit.runner.JUnitCore'] + classes)
+        vm(prefixArgs + vmArgs + ['-cp', projectscp, 'org.junit.runner.JUnitCore'] + classes)
     _run_tests(args, harness, annotations)
 
 def unittest(args):
