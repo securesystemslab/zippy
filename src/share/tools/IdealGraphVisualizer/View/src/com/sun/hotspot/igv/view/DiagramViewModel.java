@@ -70,6 +70,10 @@ public class DiagramViewModel extends RangeSliderModel implements ChangedListene
         result.setData(this);
         return result;
     }
+    
+    public Group getGroup() {
+        return group;
+    }
 
     public void setData(DiagramViewModel newModel) {
         super.setData(newModel);

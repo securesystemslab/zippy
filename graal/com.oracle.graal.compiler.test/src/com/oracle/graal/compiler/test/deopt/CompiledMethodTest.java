@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.test;
+package com.oracle.graal.compiler.test.deopt;
 
 import java.lang.reflect.*;
 
@@ -29,11 +29,13 @@ import org.junit.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.InstalledCode.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.test.*;
 
 /**
  * In the following tests, the usages of local variable "a" are replaced with the integer constant
@@ -52,7 +54,7 @@ public class CompiledMethodTest extends GraalCompilerTest {
         return f1 + " " + arg1 + " " + arg2 + " " + arg3;
     }
 
-    @Test
+    @LongTest
     public void test1() {
         Method method = getMethod("testMethod");
         final StructuredGraph graph = parse(method);
@@ -78,7 +80,7 @@ public class CompiledMethodTest extends GraalCompilerTest {
         }
     }
 
-    @Test
+    @LongTest
     public void test3() {
         Method method = getMethod("testMethod");
         final StructuredGraph graph = parse(method);
@@ -92,7 +94,7 @@ public class CompiledMethodTest extends GraalCompilerTest {
         }
     }
 
-    @Test
+    @LongTest
     public void test4() {
         Method method = getMethod("testMethodVirtual");
         final StructuredGraph graph = parse(method);
@@ -107,7 +109,7 @@ public class CompiledMethodTest extends GraalCompilerTest {
         }
     }
 
-    @Test
+    @LongTest
     public void test2() throws NoSuchMethodException, SecurityException {
         Method method = CompilableObjectImpl.class.getDeclaredMethod("executeHelper", ObjectCompiler.class, String.class);
         ResolvedJavaMethod javaMethod = runtime.lookupJavaMethod(method);

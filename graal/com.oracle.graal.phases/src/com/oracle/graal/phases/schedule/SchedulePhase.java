@@ -134,16 +134,23 @@ public final class SchedulePhase extends Phase {
     private BlockMap<List<ScheduledNode>> blockToNodesMap;
     private final Map<FloatingNode, List<FixedNode>> phantomUsages = new IdentityHashMap<>();
     private final Map<FixedNode, List<FloatingNode>> phantomInputs = new IdentityHashMap<>();
+    private final SchedulingStrategy selectedStrategy;
+
+    public SchedulePhase() {
+        this(GraalOptions.OptScheduleOutOfLoops ? SchedulingStrategy.LATEST_OUT_OF_LOOPS : SchedulingStrategy.LATEST);
+    }
+
+    public SchedulePhase(SchedulingStrategy strategy) {
+        this.selectedStrategy = strategy;
+    }
 
     @Override
     protected void run(StructuredGraph graph) {
-        SchedulingStrategy strategy = GraalOptions.OptScheduleOutOfLoops ? SchedulingStrategy.LATEST_OUT_OF_LOOPS : SchedulingStrategy.LATEST;
-
         cfg = ControlFlowGraph.compute(graph, true, true, true, false);
         earliestCache = graph.createNodeMap();
         blockToNodesMap = new BlockMap<>(cfg);
 
-        if (GraalOptions.MemoryAwareScheduling && graph.getNodes(FloatingReadNode.class).isNotEmpty()) {
+        if (GraalOptions.MemoryAwareScheduling && selectedStrategy != SchedulingStrategy.EARLIEST && graph.getNodes(FloatingReadNode.class).isNotEmpty()) {
 
             assignBlockToNodes(graph, SchedulingStrategy.EARLIEST);
             sortNodesWithinBlocks(graph, SchedulingStrategy.EARLIEST);
@@ -155,8 +162,8 @@ public final class SchedulePhase extends Phase {
             blockToNodesMap = new BlockMap<>(cfg);
         }
 
-        assignBlockToNodes(graph, strategy);
-        sortNodesWithinBlocks(graph, strategy);
+        assignBlockToNodes(graph, selectedStrategy);
+        sortNodesWithinBlocks(graph, selectedStrategy);
     }
 
     /**
@@ -243,7 +250,8 @@ public final class SchedulePhase extends Phase {
                     // schedule at the latest position possible in the outermost loop possible
                     Block earliestBlock = earliestBlock(node);
                     block = scheduleOutOfLoops(node, block, earliestBlock);
-                    assert earliestBlock.dominates(block) : "Graph can not be scheduled : inconsistent for " + node + " (" + earliestBlock + " needs to dominate " + block + ")";
+                    assert earliestBlock.dominates(block) : "Graph cannot be scheduled : inconsistent for " + node + ", " + node.usages().count() + " usages, (" + earliestBlock +
+                                    " needs to dominate " + block + ")";
                 }
                 break;
             default:

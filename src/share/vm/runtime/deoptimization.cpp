@@ -1316,6 +1316,10 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
 
     methodHandle    trap_method = trap_scope->method();
     int             trap_bci    = trap_scope->bci();
+    if (trap_bci == SynchronizationEntryBCI) {
+      trap_bci = 0;
+      Thread::current()->set_pending_monitorenter(true);
+    }
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
 
     if (trap_scope->rethrow_exception()) {

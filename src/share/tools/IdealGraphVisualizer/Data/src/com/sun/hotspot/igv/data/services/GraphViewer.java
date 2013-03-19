@@ -31,5 +31,5 @@ import com.sun.hotspot.igv.data.InputGraph;
  */
 public interface GraphViewer {
 
-    public void view(InputGraph graph);
+    public void view(InputGraph graph, boolean clone);
 }

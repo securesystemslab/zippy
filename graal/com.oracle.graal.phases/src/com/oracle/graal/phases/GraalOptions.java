@@ -185,7 +185,7 @@ public final class GraalOptions {
     public static boolean SupportJsrBytecodes                = true;
 
     public static boolean OptAssumptions                     = true;
-    public static boolean OptConvertDeoptsToGuards           = ____;
+    public static boolean OptConvertDeoptsToGuards           = true;
     public static boolean OptReadElimination                 = true;
     public static boolean OptCanonicalizer                   = true;
     public static boolean OptScheduleOutOfLoops              = true;
@@ -210,6 +210,12 @@ public final class GraalOptions {
     public static boolean IntrinsifyUnsafeMethods            = true;
     public static boolean IntrinsifyMathMethods              = true;
     public static boolean IntrinsifyAESMethods               = true;
+
+    /**
+     * Method arguments that are passed on the stack can be optimized by the register allocator to avoid spilling 
+     * and reloading. However, this requires that the runtime visits method arguments during stack walking.  
+     */
+    public static boolean IncomingMethodArgumentsGCSafe      = true;
 
     /**
      * Counts the various paths taken through snippets.

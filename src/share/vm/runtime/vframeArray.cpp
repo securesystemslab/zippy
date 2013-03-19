@@ -286,7 +286,7 @@ void vframeArrayElement::unpack_on_stack(int caller_actual_parameters,
 
   _frame.patch_pc(thread, pc);
 
-  assert (!method()->is_synchronized() || locks > 0, "synchronized methods must have monitors");
+  assert (!method()->is_synchronized() || locks > 0 || raw_bci() == SynchronizationEntryBCI, "synchronized methods must have monitors");
 
   BasicObjectLock* top = iframe()->interpreter_frame_monitor_begin();
   for (int index = 0; index < locks; index++) {

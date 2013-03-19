@@ -60,7 +60,7 @@ public class DiffGraphCookie implements Node.Cookie {
         final GraphViewer viewer = Lookup.getDefault().lookup(GraphViewer.class);
         if (viewer != null) {
             InputGraph diffGraph = Difference.createDiffGraph(other, graph);
-            viewer.view(diffGraph);
+            viewer.view(diffGraph, true);
         }
     }
 }

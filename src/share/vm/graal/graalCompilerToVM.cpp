@@ -662,6 +662,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   assert((Klass::_lh_array_tag_obj_value & Klass::_lh_array_tag_type_value & 0x80000000) != 0, "obj_array and type_array must have first bit set");
   set_int("arrayKlassComponentMirrorOffset", in_bytes(ArrayKlass::component_mirror_offset()));
   
+
+  set_int("pendingDeoptimizationOffset", in_bytes(ThreadShadow::pending_deoptimization_offset()));
+
   set_int("metaspaceArrayLengthOffset", Array<Klass*>::length_offset_in_bytes());
   set_int("metaspaceArrayBaseOffset", Array<Klass*>::base_offset_in_bytes());
   set_int("methodDataOopDataOffset", in_bytes(MethodData::data_offset()));
@@ -791,7 +794,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 C2V_END
 
-C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject info, jobject triggered_deoptimizations))
+C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject triggered_deoptimizations))
   ResourceMark rm;
   HandleMark hm;
   Handle compResultHandle = JNIHandles::resolve(compResult);
@@ -805,36 +808,29 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
   if (result != GraalEnv::ok) {
     assert(nm == NULL, "should be");
   } else {
-    if (info != NULL) {
-      arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
-      memcpy(codeCopy->base(T_BYTE), nm->code_begin(), nm->code_size());
-      HotSpotCodeInfo::set_code(info, codeCopy);
-      HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
-    }
-
     if (!installed_code_handle.is_null()) {
       assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
       HotSpotInstalledCode::set_nmethod(installed_code_handle, (jlong) nm);
       HotSpotInstalledCode::set_method(installed_code_handle, HotSpotCompilationResult::method(compResult));
+      HotSpotInstalledCode::set_start(installed_code_handle, (jlong) nm->code_begin());
       assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
     }
   }
   return result;
 C2V_END
 
-C2V_VMENTRY(jobject, disassembleNative, (JNIEnv *jniEnv, jobject, jbyteArray code, jlong start_address))
+C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong metaspace_nmethod))
   ResourceMark rm;
   HandleMark hm;
 
-  stringStream(st);
-  arrayOop code_oop = (arrayOop) JNIHandles::resolve(code);
-  int len = code_oop->length();
-  address begin = (address) code_oop->base(T_BYTE);
-  address end = begin + len;
-  Disassembler::decode(begin, end, &st);
-
-  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
-  return JNIHandles::make_local(result());
+  nmethod* nm = (nmethod*) (address) metaspace_nmethod;
+  if (nm == NULL || !nm->is_alive()) {
+    return NULL;
+  }
+  int length = nm->code_size();
+  arrayOop codeCopy = oopFactory::new_byteArray(length, CHECK_0);
+  memcpy(codeCopy->base(T_BYTE), nm->code_begin(), length);
+  return JNIHandles::make_local(codeCopy);
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleNMethod, (JNIEnv *jniEnv, jobject, jlong metaspace_nmethod))
@@ -939,28 +935,7 @@ C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
   return JNIHandles::make_local(array);
 C2V_END
 
-C2V_VMENTRY(jobject, decodePC, (JNIEnv *, jobject, jlong pc))
-  stringStream(st);
-  CodeBlob* blob = CodeCache::find_blob_unsafe((void*) pc);
-  if (blob == NULL) {
-    st.print("[unidentified pc]");
-  } else {
-    st.print(blob->name());
-
-    nmethod* nm = blob->as_nmethod_or_null();
-    if (nm != NULL && nm->method() != NULL) {
-      st.print(" %s.", nm->method()->method_holder()->external_name());
-      nm->method()->name()->print_symbol_on(&st);
-      st.print("  @ %d", pc - (jlong) nm->entry_point());
-    }
-  }
-  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
-  return JNIHandles::make_local(result());
-C2V_END
-
 C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot_method))
-// XXX: Attention: it seEms that the line number table of a method just contains lines that are important, means that
-// empty lines are left out or lines that can't have a breakpoint on it; eg int a; or try {
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
   if (!method->has_linenumber_table()) {
     return NULL;
@@ -1061,7 +1036,6 @@ C2V_END
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
-#define HS_CODE_INFO          "Lcom/oracle/graal/hotspot/meta/HotSpotCodeInfo;"
 #define METHOD_DATA           "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
@@ -1097,13 +1071,12 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE HS_CODE_INFO"[Z)I",         FN_PTR(installCode0)},
-  {CC"disassembleNative",             CC"([BJ)"STRING,                                                  FN_PTR(disassembleNative)},
+  {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE"[Z)I",                      FN_PTR(installCode0)},
+  {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleNMethod",            CC"(J)"STRING,                                                    FN_PTR(disassembleNMethod)},
   {CC"executeCompiledMethod",         CC"("METASPACE_METHOD NMETHOD OBJECT OBJECT OBJECT")"OBJECT,      FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",  CC"("METASPACE_METHOD NMETHOD "["OBJECT")"OBJECT,                 FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"decodePC",                      CC"(J)"STRING,                                                    FN_PTR(decodePC)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},

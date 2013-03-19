@@ -50,8 +50,6 @@ import com.oracle.graal.lir.amd64.AMD64Arithmetic.BinaryRegStackConst;
 import com.oracle.graal.lir.amd64.AMD64Arithmetic.DivRemOp;
 import com.oracle.graal.lir.amd64.AMD64Arithmetic.Unary1Op;
 import com.oracle.graal.lir.amd64.AMD64Arithmetic.Unary2Op;
-import com.oracle.graal.lir.amd64.AMD64Call.DirectCallOp;
-import com.oracle.graal.lir.amd64.AMD64Call.IndirectCallOp;
 import com.oracle.graal.lir.amd64.AMD64Compare.CompareOp;
 import com.oracle.graal.lir.amd64.AMD64ControlFlow.BranchOp;
 import com.oracle.graal.lir.amd64.AMD64ControlFlow.CondMoveOp;
@@ -780,25 +778,13 @@ public abstract class AMD64LIRGenerator extends LIRGenerator {
     }
 
     @Override
-    protected void emitDirectCall(DirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        append(new DirectCallOp(callTarget.target(), result, parameters, temps, callState));
-    }
+    protected void emitCall(RuntimeCallTarget callTarget, Value result, Value[] arguments, Value[] temps, LIRFrameState info) {
 
-    @Override
-    protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        // The current register allocator cannot handle variables at call sites, need a fixed
-        // register.
-        Value targetAddress = AMD64.rax.asValue();
-        emitMove(targetAddress, operand(callTarget.computedAddress()));
-        append(new IndirectCallOp(callTarget.target(), result, parameters, temps, targetAddress, callState));
-    }
-
-    @Override
-    protected void emitCall(RuntimeCallTarget callTarget, Value result, Value[] arguments, Value[] temps, Value targetAddress, LIRFrameState info) {
-        if (isConstant(targetAddress)) {
-            append(new DirectCallOp(callTarget, result, arguments, temps, info));
+        long maxOffset = callTarget.getMaxCallTargetOffset();
+        if (maxOffset != (int) maxOffset) {
+            append(new AMD64Call.DirectFarRuntimeCallOp(this, callTarget, result, arguments, temps, info));
         } else {
-            append(new IndirectCallOp(callTarget, result, arguments, temps, targetAddress, info));
+            append(new AMD64Call.DirectNearRuntimeCallOp(callTarget, result, arguments, temps, info));
         }
     }
 

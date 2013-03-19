@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.code;
+package com.oracle.graal.test;
 
-import com.oracle.graal.api.meta.*;
+import java.util.*;
 
-/**
- * Represents some code installed in the code cache of the runtime. This encapsulated details are
- * only for informational purposes. At any time, the runtime may invalidate the underlying code
- * (e.g. due to deopt etc).
- */
-public interface CodeInfo {
+import org.junit.*;
+import org.junit.runners.*;
+import org.junit.runners.model.*;
 
-    /**
-     * Returns the start address of this installed code.
-     */
-    long getStart();
+public class GraalLongUnitTest extends BlockJUnit4ClassRunner {
 
-    /**
-     * Returns a copy of this installed code.
-     */
-    byte[] getCode();
+    public GraalLongUnitTest(Class<?> klass) throws InitializationError {
+        super(klass);
+    }
 
-    /**
-     * Returns the method (if any) from which this installed code was compiled.
-     */
-    ResolvedJavaMethod getMethod();
+    @Override
+    protected List<FrameworkMethod> computeTestMethods() {
+        List<FrameworkMethod> methods = new ArrayList<>(5);
+        methods.addAll(getTestClass().getAnnotatedMethods(Test.class));
+        methods.addAll(getTestClass().getAnnotatedMethods(LongTest.class));
+        return methods;
+    }
 }
