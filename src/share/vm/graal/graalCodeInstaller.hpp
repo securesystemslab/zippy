@@ -62,7 +62,6 @@ private:
   jint          _custom_stack_area_offset;
   jint          _parameter_count;
   jint          _constants_size;
-  jint          _total_size;
 
   MarkId        _next_call_type;
   address       _invoke_mark_pc;
