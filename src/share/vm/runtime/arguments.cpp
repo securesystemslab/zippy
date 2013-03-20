@@ -2070,26 +2070,41 @@ bool Arguments::check_vm_args_consistency() {
   }
 #ifdef GRAAL
   if (UseCompressedOops) {
-    jio_fprintf(defaultStream::error_stream(),
+    if (IgnoreUnrecognizedVMOptions) {
+      warning("UseCompressedOops is disabled, because it is not supported by Graal");
+      FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
+    } else {
+      jio_fprintf(defaultStream::error_stream(),
                     "CompressedOops are not supported in Graal at the moment\n");
-        status = false;
+      status = false;
+    }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
     FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
   }
 
   if (UseCompressedKlassPointers) {
-    jio_fprintf(defaultStream::error_stream(),
+    if (IgnoreUnrecognizedVMOptions) {
+      warning("UseCompressedKlassPointers is disabled, because it is not supported by Graal");
+      FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
+    } else {
+      jio_fprintf(defaultStream::error_stream(),
                     "UseCompressedKlassPointers are not supported in Graal at the moment\n");
-        status = false;
+      status = false;
+    }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
     FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
   }
   if (UseG1GC) {
-    jio_fprintf(defaultStream::error_stream(),
+    if (IgnoreUnrecognizedVMOptions) {
+      warning("UseG1GC is disabled, because it is not supported by Graal");
+      FLAG_SET_CMDLINE(bool, UseG1GC, false);
+    } else {
+      jio_fprintf(defaultStream::error_stream(),
                         "G1 is not supported in Graal at the moment\n");
-        status = false;
+      status = false;
+    }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
     FLAG_SET_CMDLINE(bool, UseG1GC, false);
