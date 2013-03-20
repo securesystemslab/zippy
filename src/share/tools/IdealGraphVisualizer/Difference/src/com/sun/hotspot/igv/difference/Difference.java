@@ -207,12 +207,16 @@ public class Difference {
             InputNode nodeTo = inputNodeMap.get(a.getNode(to));
             char fromIndex = e.getFromIndex();
             char toIndex = e.getToIndex();
-
-            InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
-            if (!newEdges.contains(newEdge)) {
-                markAsDeleted(newEdge);
-                newEdges.add(newEdge);
-                graph.addEdge(newEdge);
+            
+            if (nodeFrom == null || nodeTo == null) {
+                System.out.println("Unexpected edge : " + from + " -> " + to);
+            } else {
+                InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
+                if (!newEdges.contains(newEdge)) {
+                    markAsDeleted(newEdge);
+                    newEdges.add(newEdge);
+                    graph.addEdge(newEdge);
+                }
             }
         }
 
@@ -224,17 +228,21 @@ public class Difference {
             char fromIndex = e.getFromIndex();
             char toIndex = e.getToIndex();
 
-            InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
-            if (!newEdges.contains(newEdge)) {
-                markAsNew(newEdge);
-                newEdges.add(newEdge);
-                graph.addEdge(newEdge);
+            if (nodeFrom == null || nodeTo == null) {
+                System.out.println("Unexpected edge : " + from + " -> " + to);
             } else {
-                newEdges.remove(newEdge);
-                graph.removeEdge(newEdge);
-                markAsSame(newEdge);
-                newEdges.add(newEdge);
-                graph.addEdge(newEdge);
+                InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
+                if (!newEdges.contains(newEdge)) {
+                    markAsNew(newEdge);
+                    newEdges.add(newEdge);
+                    graph.addEdge(newEdge);
+                } else {
+                    newEdges.remove(newEdge);
+                    graph.removeEdge(newEdge);
+                    markAsSame(newEdge);
+                    newEdges.add(newEdge);
+                    graph.addEdge(newEdge);
+                }
             }
         }
 
