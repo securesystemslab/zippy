@@ -160,7 +160,6 @@ do {                                                                         \
 } while (0)
 #endif // #ifndef USE_REPEATED_ASSERTS
 
-
 // This version of assert is for use with checking return status from
 // library calls that return actual error values eg. EINVAL,
 // ENOMEM etc, rather than returning -1 and setting errno.

@@ -770,9 +770,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
   set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
   set_int("logOfHRGrainBytes", HeapRegion::LogOfHRGrainBytes);
-
-  set_long("gcCycleAddress", (jlong)(address) Universe::heap()->total_collections_address());
-
   set_int("g1SATBQueueMarkingOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_active()));
   set_int("g1SATBQueueIndexOffset", in_bytes(JavaThread::satb_mark_queue_offset() +  PtrQueue::byte_offset_of_index()));
   set_int("g1SATBQueueBufferOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_buf()));

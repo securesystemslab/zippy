@@ -70,7 +70,6 @@ G1CollectedHeap::attempt_allocation(size_t word_size,
   if (result == NULL) {
     result = attempt_allocation_slow(word_size, gc_count_before_ret);
   }
-
   assert_heap_not_locked();
   if (result != NULL) {
     dirty_young_block(result, word_size);
@@ -90,8 +89,6 @@ inline HeapWord* G1CollectedHeap::survivor_attempt_allocation(size_t
     result = _survivor_gc_alloc_region.attempt_allocation_locked(word_size,
                                                       false /* bot_updates */);
   }
-
-
   if (result != NULL) {
     dirty_young_block(result, word_size);
   }

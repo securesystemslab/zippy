@@ -62,12 +62,7 @@ inline void HeapRegionSetBase::update_for_removal(HeapRegion* hr) {
          hrs_err_msg("[%s] region's used bytes: "SIZE_FORMAT" "
                      "should be <= used bytes: "SIZE_FORMAT,
                      name(), used_bytes, _total_used_bytes));
-
-  //printf("[%s] region's used bytes: "SIZE_FORMAT" "
-  //                     "should be <= used bytes: "SIZE_FORMAT"\n",
-  //                     name(), used_bytes, _total_used_bytes);
   _total_used_bytes -= used_bytes;
-  //printf("TOTAL USED BYTES 4 %lu\n", _total_used_bytes);
 }
 
 inline void HeapRegionSetBase::remove_internal(HeapRegion* hr) {

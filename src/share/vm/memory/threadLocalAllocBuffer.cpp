@@ -144,12 +144,12 @@ void ThreadLocalAllocBuffer::resize() {
 
     size_t aligned_new_size = align_object_size(new_size);
 
-    //if (PrintTLAB && Verbose) {
+    if (PrintTLAB && Verbose) {
       gclog_or_tty->print("TLAB new size: thread: " INTPTR_FORMAT " [id: %2d]"
                           " refills %d  alloc: %8.6f desired_size: " SIZE_FORMAT " -> " SIZE_FORMAT "\n",
                           myThread(), myThread()->osthread()->thread_id(),
                           _target_refills, _allocation_fraction.average(), desired_size(), aligned_new_size);
-    //}
+    }
     set_desired_size(aligned_new_size);
 
     set_refill_waste_limit(initial_refill_waste_limit());
@@ -168,9 +168,9 @@ void ThreadLocalAllocBuffer::fill(HeapWord* start,
                                   HeapWord* top,
                                   size_t    new_size) {
   _number_of_refills++;
-  //if (PrintTLAB && Verbose) {
+  if (PrintTLAB && Verbose) {
     print_stats("fill");
-  //}
+  }
   assert(top <= start + new_size - alignment_reserve(), "size too small");
   initialize(start, top, start + new_size - alignment_reserve());
 
@@ -274,12 +274,12 @@ void ThreadLocalAllocBuffer::print_stats(const char* tag) {
                       100.0 * waste / alloc;
   size_t tlab_used  = Universe::heap()->tlab_capacity(thrd) -
                       Universe::heap()->unsafe_max_tlab_alloc(thrd);
-  gclog_or_tty->print("TLAB: %s thread: " INTPTR_FORMAT " [id: %2d] start addr 0x%16lx"
+  gclog_or_tty->print("TLAB: %s thread: " INTPTR_FORMAT " [id: %2d]"
                       " desired_size: " SIZE_FORMAT "KB"
                       " slow allocs: %d  refill waste: " SIZE_FORMAT "B"
                       " alloc:%8.5f %8.0fKB refills: %d waste %4.1f%% gc: %dB"
                       " slow: %dB fast: %dB\n",
-                      tag, thrd, thrd->tlab().start(), thrd->osthread()->thread_id(),
+                      tag, thrd, thrd->osthread()->thread_id(),
                       _desired_size / (K / HeapWordSize),
                       _slow_allocations, _refill_waste_limit * HeapWordSize,
                       _allocation_fraction.average(),

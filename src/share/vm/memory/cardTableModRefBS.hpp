@@ -267,15 +267,6 @@ public:
     card_size_in_words          = card_size / sizeof(HeapWord)
   };
 
-   bool is_valid_card_address(void* p, jbyte* addr) {
-     size_t ind=index_for(p);
-     tty->print_cr("C cardValue? %d cardAddress 0x%08x offset %d", _byte_map[ind], addr, ind);
-    //for(size_t i=0;i<30000;i++) {
-    //  tty->print_cr("C cardIndex %d val %d",i, _byte_map[i]);
-
-    //}
-     return (addr >= _byte_map) && (addr < _byte_map + _byte_map_size);
-   }
   static int clean_card_val()      { return clean_card; }
   static int clean_card_mask_val() { return clean_card_mask; }
   static int dirty_card_val()      { return dirty_card; }

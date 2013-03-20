@@ -854,9 +854,7 @@ HeapWord* G1CollectedHeap::allocate_new_tlab(size_t word_size) {
   assert(!isHumongous(word_size), "we do not allow humongous TLABs");
 
   unsigned int dummy_gc_count_before;
-  HeapWord* word=attempt_allocation(word_size, &dummy_gc_count_before);
-  tty->print_cr("Allocate new TLAB at 0x%16lx",(oop) word);
-  return word;
+  return attempt_allocation(word_size, &dummy_gc_count_before);
 }
 
 HeapWord*
@@ -2399,17 +2397,6 @@ void G1CollectedHeap::allocate_dummy_regions() {
   }
 }
 #endif // !PRODUCT
-
-#ifdef GRAAL
-  HeapWord** G1CollectedHeap::top_addr() const {
-    return _mutator_alloc_region.top_addr();
-  }
-
-  HeapWord** G1CollectedHeap::end_addr()  const {
-    return  _mutator_alloc_region.end_addr();
-  }
-
-#endif
 
 void G1CollectedHeap::increment_old_marking_cycles_started() {
   assert(_old_marking_cycles_started == _old_marking_cycles_completed ||
@@ -6439,7 +6426,6 @@ void G1CollectedHeap::verify_region_sets() {
   assert_heap_locked_or_at_safepoint(true /* should_be_vm_thread */);
 
   // First, check the explicit lists.
-
   _free_list.verify();
   {
     // Given that a concurrent operation might be adding regions to

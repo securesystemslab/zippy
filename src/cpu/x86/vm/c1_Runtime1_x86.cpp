@@ -1745,7 +1745,6 @@ OopMapSet* Runtime1::generate_code_for(StubID id, StubAssembler* sasm) {
         __ leal(card_addr, __ as_Address(ArrayAddress(cardtable, index)));
 #endif
 
-        tty->print_cr("Intepreter WB");
         __ cmpb(Address(card_addr, 0), 0);
         __ jcc(Assembler::equal, done);
 
