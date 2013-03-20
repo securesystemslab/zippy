@@ -854,7 +854,9 @@ HeapWord* G1CollectedHeap::allocate_new_tlab(size_t word_size) {
   assert(!isHumongous(word_size), "we do not allow humongous TLABs");
 
   unsigned int dummy_gc_count_before;
-  return attempt_allocation(word_size, &dummy_gc_count_before);
+  HeapWord* word=attempt_allocation(word_size, &dummy_gc_count_before);
+  tty->print_cr("Allocate new TLAB at 0x%16lx",(oop) word);
+  return word;
 }
 
 HeapWord*

@@ -483,6 +483,7 @@ class CollectedHeap : public CHeapObj<mtInternal> {
 
   // Total number of GC collections (started)
   unsigned int total_collections() const { return _total_collections; }
+  unsigned int*   total_collections_address()  { return &_total_collections; }
   unsigned int total_full_collections() const { return _total_full_collections;}
 
   // Increment total number of GC collections (started)

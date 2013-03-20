@@ -137,7 +137,7 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case graal_arithmetic_frem_id:
     case graal_arithmetic_drem_id:
     case graal_set_deopt_info_id:
-      break;
+    break;
 
     // All other stubs should have oopmaps
     default:
@@ -234,9 +234,14 @@ const char* GraalRuntime::name_for_address(address entry) {
 #undef FUNCTION_CASE
 }
 
+static const bool TRACE=true;
+
+
 
 JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
   assert(klass->is_klass(), "not a class");
+if(TRACE) tty->print_cr("PreObject Init tlab start 0x%16lx tlab end 0x%16lx", thread->tlab().start(), thread->tlab().end());
+
   instanceKlassHandle h(thread, klass);
   h->check_valid_for_instantiation(true, CHECK);
   // make sure klass is initialized
@@ -244,6 +249,9 @@ JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
   // allocate instance and return via TLS
   oop obj = h->allocate_instance(CHECK);
   thread->set_vm_result(obj);
+  if(TRACE) tty->print_cr("Allocate new object at 0x%16lx size %d ", obj, obj->size());
+  if(TRACE) obj->klass()->print();
+  if(TRACE) tty->print_cr("PostObject Init tlab start 0x%16lx tlab end 0x%16lx", thread->tlab().start(), thread->tlab().end());
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, jint length))
@@ -251,6 +259,8 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
   //       anymore after new_objArray() and no GC can happen before.
   //       (This may have to change if this code changes!)
   assert(array_klass->is_klass(), "not a class");
+if(TRACE) tty->print_cr("PreArray Init tlab start 0x%16lx tlab end 0x%16lx", thread->tlab().start(), thread->tlab().end());
+
   oop obj;
   if (array_klass->oop_is_typeArray()) {
     BasicType elt_type = TypeArrayKlass::cast(array_klass)->element_type();
@@ -260,19 +270,31 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
     obj = oopFactory::new_objArray(elem_klass, length, CHECK);
   }
   thread->set_vm_result(obj);
+  if(TRACE) tty->print_cr("Allocate new array at 0x%16lx size %d", obj, obj->size());
+  if(TRACE) obj->klass()->print();
+  if(TRACE) tty->print_cr("PostArray Init tlab start 0x%16lx tlab end 0x%16lx", thread->tlab().start(), thread->tlab().end());
+
   // This is pretty rare but this runtime patch is stressful to deoptimization
   // if we deoptimize here so force a deopt to stress the path.
   if (DeoptimizeALot) {
     deopt_caller();
   }
-JRT_END
+
+ JRT_END
+
 
 
 JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims))
   assert(klass->is_klass(), "not a class");
   assert(rank >= 1, "rank must be nonzero");
+  if(TRACE) tty->print_cr("PreMultiArray Init tlab start 0x%16lx tlab end 0x%16lx", thread->tlab().start(), thread->tlab().end());
+
   oop obj = ArrayKlass::cast(klass)->multi_allocate(rank, dims, CHECK);
   thread->set_vm_result(obj);
+  if(TRACE) tty->print_cr("Allocate new multiarray at 0x%16lx size %d ", obj, obj->size());
+  if(TRACE) obj->klass()->print();
+  if(TRACE) tty->print_cr("PostMultiArray Init tlab start 0x%16lx tlab end 0x%16lx", thread->tlab().start(), thread->tlab().end());
+
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::unimplemented_entry(JavaThread* thread, StubID id))
@@ -483,26 +505,12 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::graal_monitorenter(JavaThread* thread, oo
   }
 JRT_END
 
-static const bool TRACE_WB=true;
-
 JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
-if(TRACE_WB) tty->print_cr("HELLO1 PRE WRITE BARRIER");
-    SharedRuntime::g1_wb_pre(obj, thread);
-if(TRACE_WB) tty->print_cr("HELLO2 PRE WRITE BARRIER");
+    thread->satb_mark_queue().enqueue(obj);
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
-    if(TRACE_WB) tty->print_cr("HELLO1 POST WRITE BARRIER Card address 0x%016lx", card_addr);
     thread->dirty_card_queue().enqueue(card_addr);
-    if(TRACE_WB) tty->print_cr("HELLO2 POST WRITE BARRIER Card address 0x%016lx", card_addr);
-JRT_END
-
-JRT_LEAF(void, GraalRuntime::graal_ver_oop(JavaThread* thread, oopDesc* obj))
-if(!TRACE_WB) return;
-if(obj==NULL) tty->print_cr("ERROR NULL in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
-if (obj!=NULL &&!obj->is_oop()) {
-  tty->print_cr("ERROR in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
-}
 JRT_END
 
 JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
@@ -538,13 +546,6 @@ JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj,
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::graal_log_object(JavaThread* thread, oop obj, jint flags))
-if (!obj->is_oop()) {
-  tty->print_cr("ERROR in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
-
-}else {
-  tty->print_cr("WIN in verifyoop G1 in method  obj " INTPTR_FORMAT, obj);
-}
-
 if(obj==NULL) return;
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
   bool address = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
@@ -581,10 +582,12 @@ JRT_ENTRY(void, GraalRuntime::graal_vm_error(JavaThread* thread, oop where, oop 
   report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::graal_log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
+JRT_LEAF(void, GraalRuntime::graal_log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   assert(format != NULL && java_lang_String::is_instance(format), "must be");
   char *buf = java_lang_String::as_utf8_string(format);
+  //tty->print( "      G1 PRE from field 0x%016lx to obj 0x%16lx, marking %d\n", v1, v2, v3);
+
   tty->print(buf, v1, v2, v3);
 JRT_END
 
