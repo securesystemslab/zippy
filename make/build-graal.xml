@@ -48,7 +48,7 @@
       <src path="${src.dir}/com.oracle.graal.bytecode"/>
       <src path="${src.dir}/com.oracle.graal.java"/>
       <src path="${src.dir}/com.oracle.graal.word"/>
-      <src path="${src.dir}/com.oracle.graal.snippets"/>
+      <src path="${src.dir}/com.oracle.graal.replacements"/>
       <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.printer"/>
       <src path="${src.dir}/com.oracle.graal.hotspot"/>
@@ -56,7 +56,7 @@
       <src path="${src.dir}/com.oracle.graal.asm.amd64"/>
       <src path="${src.dir}/com.oracle.graal.lir.amd64"/>
       <src path="${src.dir}/com.oracle.graal.compiler.amd64"/>
-      <src path="${src.dir}/com.oracle.graal.snippets.amd64"/>
+      <src path="${src.dir}/com.oracle.graal.replacements.amd64"/>
       <src path="${src.dir}/com.oracle.graal.hotspot.amd64"/>
       <src path="${src.dir}/com.oracle.graal.sparc"/>
       <src path="${src.dir}/com.oracle.graal.asm.sparc"/>
