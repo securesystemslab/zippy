@@ -84,7 +84,9 @@ public class FloatingReadPhase extends Phase {
         @Override
         protected void processNode(FixedNode node, Set<Object> currentState) {
             if (node instanceof MemoryCheckpoint) {
-                currentState.add(((MemoryCheckpoint) node).getLocationIdentity());
+                for (Object identity : ((MemoryCheckpoint) node).getLocationIdentities()) {
+                    currentState.add(identity);
+                }
             }
         }
 
@@ -132,10 +134,12 @@ public class FloatingReadPhase extends Phase {
         }
 
         private void processCheckpoint(MemoryCheckpoint checkpoint, MemoryMap state) {
-            if (checkpoint.getLocationIdentity() == LocationNode.ANY_LOCATION) {
-                state.lastMemorySnapshot.clear();
+            for (Object identity : checkpoint.getLocationIdentities()) {
+                if (identity == LocationNode.ANY_LOCATION) {
+                    state.lastMemorySnapshot.clear();
+                }
+                state.lastMemorySnapshot.put(identity, (ValueNode) checkpoint);
             }
-            state.lastMemorySnapshot.put(checkpoint.getLocationIdentity(), (ValueNode) checkpoint);
         }
 
         private void processRead(ReadNode readNode, MemoryMap state) {
@@ -200,7 +204,21 @@ public class FloatingReadPhase extends Phase {
 
         @Override
         protected MemoryMap afterSplit(BeginNode node, MemoryMap oldState) {
-            return new MemoryMap(oldState);
+            MemoryMap result = new MemoryMap(oldState);
+            if (node.predecessor() instanceof InvokeWithExceptionNode) {
+                /*
+                 * InvokeWithException cannot be the lastLocationAccess for a FloatingReadNode.
+                 * Since it is both the invoke and a control flow split, the scheduler cannot
+                 * schedule anything immediately the invoke. It can only schedule in the normal or
+                 * exceptional successor - and we have to tell the scheduler here which side it
+                 * needs to choose by putting in the location identity on both successors.
+                 */
+                InvokeWithExceptionNode checkpoint = (InvokeWithExceptionNode) node.predecessor();
+                for (Object identity : checkpoint.getLocationIdentities()) {
+                    result.lastMemorySnapshot.put(identity, node);
+                }
+            }
+            return result;
         }
 
         @Override

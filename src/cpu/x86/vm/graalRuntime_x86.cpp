@@ -100,7 +100,7 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
     restore_live_registers(this, false);
     movptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     leave();
-    movl(rscratch1, Deoptimization::make_trap_request(Deoptimization::Reason_constraint, Deoptimization::Action_reinterpret));
+    movl(Address(thread, ThreadShadow::pending_deoptimization_offset()), Deoptimization::make_trap_request(Deoptimization::Reason_constraint, Deoptimization::Action_reinterpret));
     jump(RuntimeAddress(SharedRuntime::deopt_blob()->uncommon_trap()));
     bind(L);
   }

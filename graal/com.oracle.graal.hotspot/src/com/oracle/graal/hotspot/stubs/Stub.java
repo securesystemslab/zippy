@@ -40,19 +40,18 @@ import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
-import com.oracle.graal.snippets.*;
-import com.oracle.graal.snippets.Snippet.ConstantParameter;
-import com.oracle.graal.snippets.SnippetTemplate.AbstractTemplates;
-import com.oracle.graal.snippets.SnippetTemplate.Key;
+import com.oracle.graal.replacements.*;
+import com.oracle.graal.replacements.Snippet.*;
+import com.oracle.graal.replacements.SnippetTemplate.*;
 
 /**
  * Base class for implementing some low level code providing the out-of-line slow path for a
  * snippet. A concrete stub is defined a subclass of this class.
  * <p>
  * Implementation detail: The stub classes re-use some of the functionality for {@link Snippet}s
- * purely for convenience (e.g., can re-use the {@link SnippetInstaller}).
+ * purely for convenience (e.g., can re-use the {@link ReplacementsInstaller}).
  */
-public abstract class Stub extends AbstractTemplates implements SnippetsInterface {
+public abstract class Stub extends AbstractTemplates implements Snippets {
 
     /**
      * The method implementing the stub.

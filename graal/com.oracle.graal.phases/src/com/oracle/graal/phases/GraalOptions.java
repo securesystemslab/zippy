@@ -105,7 +105,6 @@ public final class GraalOptions {
     public static int     LoopUnswitchUncertaintyBoost       = 5;
 
     // debugging settings
-    public static int     MethodEndBreakpointGuards          = 2;
     public static boolean ZapStackOnMethodEntry              = ____;
     public static boolean DeoptALot                          = ____;
     public static boolean VerifyPhases                       = true;
@@ -114,7 +113,7 @@ public final class GraalOptions {
 
     // Debug settings:
     public static boolean Debug                              = true;
-    public static boolean DebugSnippets                      = false;
+    public static boolean DebugReplacements                      = false;
     public static boolean PerThreadDebugValues               = ____;
     public static boolean SummarizeDebugValues               = ____;
     public static boolean SummarizePerPhase                  = ____;
@@ -210,12 +209,6 @@ public final class GraalOptions {
     public static boolean IntrinsifyUnsafeMethods            = true;
     public static boolean IntrinsifyMathMethods              = true;
     public static boolean IntrinsifyAESMethods               = true;
-
-    /**
-     * Method arguments that are passed on the stack can be optimized by the register allocator to avoid spilling 
-     * and reloading. However, this requires that the runtime visits method arguments during stack walking.  
-     */
-    public static boolean IncomingMethodArgumentsGCSafe      = true;
 
     /**
      * Counts the various paths taken through snippets.

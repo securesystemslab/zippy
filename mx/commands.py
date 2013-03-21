@@ -27,7 +27,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing
-from os.path import join, exists, dirname, basename
+from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
@@ -719,7 +719,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _run_tests(args, harness, annotations):
+def _run_tests(args, harness, annotations, testfile):
     pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
     neg = [a[1:] for a in args if a[0] == '-']
     vmArgs = [a[1:] for a in args if a[0] == '@']
@@ -742,13 +742,27 @@ def _run_tests(args, harness, annotations):
     projectscp = mx.classpath([pcp.name for pcp in mx.projects()])
 
     if len(classes) != 0:
-        harness(projectscp, vmArgs, classes)
+        f_testfile = open(testfile, 'w')
+        for c in classes:
+            f_testfile.write(c + '\n')
+        f_testfile.close()
+        harness(projectscp, vmArgs)
 
 def _unittest(args, annotations):
-    def harness(projectscp, vmArgs, classes):
+    mxdir = dirname(__file__)
+    name = 'JUnitWrapper'
+    javaSource = join(mxdir, name + '.java')
+    javaClass = join(mxdir, name + '.class')
+    (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
+
+    def harness(projectscp, vmArgs):
+        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+            subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
         prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
-        vm(prefixArgs + vmArgs + ['-cp', projectscp, 'org.junit.runner.JUnitCore'] + classes)
-    _run_tests(args, harness, annotations)
+        vm(prefixArgs + vmArgs + ['-cp', projectscp + ':' + mxdir, name] + [testfile])
+
+    _run_tests(args, harness, annotations, testfile)
+    os.remove(testfile)
 
 def unittest(args):
     """run the JUnit tests (all testcases)
