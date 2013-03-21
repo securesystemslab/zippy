@@ -761,8 +761,10 @@ def _unittest(args, annotations):
         prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
         vm(prefixArgs + vmArgs + ['-cp', projectscp + ':' + mxdir, name] + [testfile])
 
-    _run_tests(args, harness, annotations, testfile)
-    os.remove(testfile)
+    try:
+        _run_tests(args, harness, annotations, testfile)
+    finally:
+        os.remove(testfile)
 
 def unittest(args):
     """run the JUnit tests (all testcases)
