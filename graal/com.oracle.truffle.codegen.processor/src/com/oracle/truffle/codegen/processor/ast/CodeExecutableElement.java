@@ -59,6 +59,7 @@ public class CodeExecutableElement extends CodeElement<Element> implements Writa
         }
     }
 
+    /* Support JDK8 langtools. */
     public boolean isDefault() {
         return false;
     }
@@ -113,7 +114,7 @@ public class CodeExecutableElement extends CodeElement<Element> implements Writa
     }
 
     public CodeTreeBuilder createBuilder() {
-        CodeTreeBuilder builder = new CodeTreeBuilder();
+        CodeTreeBuilder builder = new CodeTreeBuilder(null);
         this.bodyTree = builder.getTree();
         this.bodyTree.setEnclosingElement(this);
         this.body = null;
@@ -203,7 +204,7 @@ public class CodeExecutableElement extends CodeElement<Element> implements Writa
         return v.visitExecutable(this, p);
     }
 
-    public static CodeExecutableElement clone(ProcessingEnvironment env, ExecutableElement method) {
+    public static CodeExecutableElement clone(@SuppressWarnings("unused") ProcessingEnvironment env, ExecutableElement method) {
         CodeExecutableElement copy = new CodeExecutableElement(method.getReturnType(), method.getSimpleName().toString());
         for (TypeMirror thrownType : method.getThrownTypes()) {
             copy.addThrownType(thrownType);
@@ -219,7 +220,6 @@ public class CodeExecutableElement extends CodeElement<Element> implements Writa
         for (Element element : method.getEnclosedElements()) {
             copy.add(element);
         }
-        copy.setBody(Utils.getMethodBody(env, method));
         copy.getModifiers().addAll(method.getModifiers());
         return copy;
     }

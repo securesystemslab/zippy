@@ -37,13 +37,13 @@ public class ParameterSpec {
     }
 
     private final String name;
-    private final TypeMirror[] allowedTypes;
-    private final TypeMirror valueType;
+    private final List<TypeMirror> allowedTypes;
     private final boolean optional;
-    private final Cardinality cardinality;
+    private Cardinality cardinality;
+    private boolean indexed;
+    private boolean local;
 
-    public ParameterSpec(String name, TypeMirror[] allowedTypes, TypeMirror valueType, boolean optional, Cardinality cardinality) {
-        this.valueType = valueType;
+    public ParameterSpec(String name, List<TypeMirror> allowedTypes, boolean optional, Cardinality cardinality) {
         this.allowedTypes = allowedTypes;
         this.name = name;
         this.optional = optional;
@@ -52,20 +52,40 @@ public class ParameterSpec {
 
     /** Type constructor. */
     public ParameterSpec(String name, TypeMirror singleFixedType, boolean optional) {
-        this(name, new TypeMirror[]{singleFixedType}, singleFixedType, optional, Cardinality.ONE);
+        this(name, Arrays.asList(singleFixedType), optional, Cardinality.ONE);
     }
 
     /** Type system value constructor. */
     public ParameterSpec(String name, TypeSystemData typeSystem, boolean optional, Cardinality cardinality) {
-        this(name, typeSystem.getPrimitiveTypeMirrors(), typeSystem.getGenericType(), optional, cardinality);
+        this(name, typeSystem.getPrimitiveTypeMirrors(), optional, cardinality);
     }
 
     /** Node value constructor. */
     public ParameterSpec(String name, NodeData nodeData, boolean optional, Cardinality cardinality) {
-        this(name, nodeTypeMirrors(nodeData), nodeData.getTypeSystem().getGenericType(), optional, cardinality);
+        this(name, nodeTypeMirrors(nodeData), optional, cardinality);
     }
 
-    private static TypeMirror[] nodeTypeMirrors(NodeData nodeData) {
+    public void setLocal(boolean local) {
+        this.local = local;
+    }
+
+    public boolean isLocal() {
+        return local;
+    }
+
+    public boolean isIndexed() {
+        return indexed;
+    }
+
+    public void setIndexed(boolean indexed) {
+        this.indexed = indexed;
+    }
+
+    public void setCardinality(Cardinality cardinality) {
+        this.cardinality = cardinality;
+    }
+
+    private static List<TypeMirror> nodeTypeMirrors(NodeData nodeData) {
         Set<TypeMirror> typeMirrors = new LinkedHashSet<>();
 
         for (ExecutableTypeData typeData : nodeData.getExecutableTypes()) {
@@ -74,7 +94,7 @@ public class ParameterSpec {
 
         typeMirrors.add(nodeData.getTypeSystem().getGenericType());
 
-        return typeMirrors.toArray(new TypeMirror[typeMirrors.size()]);
+        return new ArrayList<>(typeMirrors);
     }
 
     public final String getName() {
@@ -89,13 +109,12 @@ public class ParameterSpec {
         return cardinality;
     }
 
-    public TypeMirror[] getAllowedTypes() {
+    public List<TypeMirror> getAllowedTypes() {
         return allowedTypes;
     }
 
     public boolean matches(TypeMirror actualType) {
-        for (int i = 0; i < allowedTypes.length; i++) {
-            TypeMirror mirror = allowedTypes[i];
+        for (TypeMirror mirror : allowedTypes) {
             if (Utils.typeEquals(actualType, mirror)) {
                 return true;
             }
@@ -103,7 +122,4 @@ public class ParameterSpec {
         return false;
     }
 
-    public TypeMirror getValueType() {
-        return valueType;
-    }
 }

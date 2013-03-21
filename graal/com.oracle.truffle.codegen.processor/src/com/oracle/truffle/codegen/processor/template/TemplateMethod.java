@@ -22,33 +22,66 @@
  */
 package com.oracle.truffle.codegen.processor.template;
 
+import java.util.*;
+
 import javax.lang.model.element.*;
+import javax.lang.model.type.*;
 
-public class TemplateMethod {
+import com.oracle.truffle.codegen.processor.*;
 
+public class TemplateMethod extends MessageContainer {
+
+    private String id;
     private final Template template;
     private final MethodSpec specification;
     private final ExecutableElement method;
     private final AnnotationMirror markerAnnotation;
     private final ActualParameter returnType;
-    private final ActualParameter[] parameters;
+    private final List<ActualParameter> parameters;
 
-    public TemplateMethod(Template template, MethodSpec specification, ExecutableElement method, AnnotationMirror markerAnnotation, ActualParameter returnType, ActualParameter[] parameters) {
+    public TemplateMethod(String id, Template template, MethodSpec specification, ExecutableElement method, AnnotationMirror markerAnnotation, ActualParameter returnType,
+                    List<ActualParameter> parameters) {
         this.template = template;
         this.specification = specification;
         this.method = method;
         this.markerAnnotation = markerAnnotation;
         this.returnType = returnType;
         this.parameters = parameters;
+        this.id = id;
+
+        if (parameters != null) {
+            for (ActualParameter param : parameters) {
+                param.setMethod(this);
+            }
+        }
     }
 
     public TemplateMethod(TemplateMethod method) {
-        this.template = method.template;
-        this.specification = method.specification;
-        this.method = method.method;
-        this.markerAnnotation = method.markerAnnotation;
-        this.returnType = method.returnType;
-        this.parameters = method.parameters;
+        this(method.id, method.template, method.specification, method.method, method.markerAnnotation, method.returnType, method.parameters);
+        getMessages().addAll(method.getMessages());
+    }
+
+    @Override
+    public Element getMessageElement() {
+        return method;
+    }
+
+    @Override
+    public AnnotationMirror getMessageAnnotation() {
+        return markerAnnotation;
+    }
+
+    @Override
+    protected List<MessageContainer> findChildContainers() {
+        return Collections.emptyList();
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public Template getTemplate() {
@@ -63,26 +96,38 @@ public class TemplateMethod {
         return returnType;
     }
 
-    public ActualParameter[] getParameters() {
+    public List<ActualParameter> getParameters() {
         return parameters;
     }
 
     public ActualParameter findParameter(String valueName) {
         for (ActualParameter param : getParameters()) {
-            if (param.getSpecification().getName().equals(valueName)) {
+            if (param.getLocalName().equals(valueName)) {
                 return param;
             }
         }
         return null;
     }
 
+    public List<ActualParameter> getReturnTypeAndParameters() {
+        List<ActualParameter> allParameters = new ArrayList<>(getParameters().size() + 1);
+        allParameters.add(getReturnType());
+        allParameters.addAll(getParameters());
+        return Collections.unmodifiableList(allParameters);
+    }
+
     public ActualParameter findParameter(ParameterSpec spec) {
         for (ActualParameter param : getParameters()) {
-            if (param.getSpecification() == spec) {
+            if (param.getSpecification().getName().equals(spec.getName())) {
                 return param;
             }
         }
         return null;
+    }
+
+    public boolean canBeAccessedByInstanceOf(TypeMirror type) {
+        TypeMirror methodType = Utils.findNearestEnclosingType(getMethod()).asType();
+        return Utils.isAssignable(type, methodType) || Utils.isAssignable(methodType, type);
     }
 
     public ExecutableElement getMethod() {
@@ -90,7 +135,11 @@ public class TemplateMethod {
     }
 
     public String getMethodName() {
-        return getMethod().getSimpleName().toString();
+        if (getMethod() != null) {
+            return getMethod().getSimpleName().toString();
+        } else {
+            return "$synthetic";
+        }
     }
 
     public AnnotationMirror getMarkerAnnotation() {
@@ -99,6 +148,17 @@ public class TemplateMethod {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [method = " + method + "]";
+        return "id = " + getId() + ", " + getClass().getSimpleName() + " [method = " + getMethod() + "]";
+    }
+
+    public ActualParameter getPreviousParam(ActualParameter searchParam) {
+        ActualParameter prev = null;
+        for (ActualParameter param : getParameters()) {
+            if (param == searchParam) {
+                return prev;
+            }
+            prev = param;
+        }
+        return prev;
     }
 }

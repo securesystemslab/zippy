@@ -236,6 +236,33 @@ ifneq ($(ALT_JDK_IMAGE_DIR),)
   JDK_IMAGE_DIR=$(ALT_JDK_IMAGE_DIR)
 endif
 
+# Utilities ant
+ifeq ($(PLATFORM), windows)
+  ifeq ($(ANT_HOME),)
+    ANT_HOME := $(call DirExists,$(JDK_DEVTOOLS_DIR)/share/ant/latest,,)
+  endif
+endif
+
+# There are few problems with ant we need to workaround:
+#  1) ant is using temporary directory java.io.tmpdir
+#     However, this directory is not unique enough and two separate ant processes
+#     can easily end up using the exact same temp directory. This may lead to weird build failures
+#     To workaround this we will define tmp dir explicitly
+#  2) ant attempts to detect JDK location based on java.exe location
+#     This is fragile as developer may have JRE first on the PATH.
+#     To workaround this we will specify JAVA_HOME explicitly
+#  3) Sometimes we need to run ant with the boot jdk, sometimes with the import
+#     jdk, sometimes with the jdk we are building (see deploy repo).
+
+ANT_TMPDIR = $(OUTPUTDIR)/tmp
+ANT_WORKAROUNDS = ANT_OPTS=-Djava.io.tmpdir='$(ANT_TMPDIR)'
+
+ifeq ($(ANT_HOME),)
+  ANT = $(ANT_WORKAROUNDS) JAVA_HOME='$(BOOTDIR)' ant
+else
+  ANT = $(ANT_WORKAROUNDS) JAVA_HOME='$(BOOTDIR)' $(ANT_HOME)/bin/ant
+endif
+
 # The platform dependent defs.make defines platform specific variable such 
 # as ARCH, EXPORT_LIST etc. We must place the include here after BOOTDIR is defined.
 include $(GAMMADIR)/make/$(OSNAME)/makefiles/defs.make
@@ -336,6 +363,7 @@ EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jvmticmlr.h
 EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jni.h
 EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/$(JDK_INCLUDE_SUBDIR)/jni_md.h
 EXPORT_LIST += $(EXPORT_INCLUDE_DIR)/jmm.h
+EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/graal.jar
 
 # By default, run Queens test after building
 TEST_IN_BUILD ?= true

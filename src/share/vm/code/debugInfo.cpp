@@ -77,11 +77,7 @@ ScopeValue* DebugInfoReadStream::get_cached_object() {
 
 enum { LOCATION_CODE = 0, CONSTANT_INT_CODE = 1,  CONSTANT_OOP_CODE = 2,
                           CONSTANT_LONG_CODE = 3, CONSTANT_DOUBLE_CODE = 4,
-                          OBJECT_CODE = 5,        OBJECT_ID_CODE = 6,
-#ifdef GRAAL
-                          DEFERRED_READ_CODE = 7, DEFERRED_WRITE_CODE = 8
-#endif // GRAAL
-};
+                          OBJECT_CODE = 5,        OBJECT_ID_CODE = 6 };
 
 ScopeValue* ScopeValue::read_from(DebugInfoReadStream* stream) {
   ScopeValue* result = NULL;
@@ -93,10 +89,6 @@ ScopeValue* ScopeValue::read_from(DebugInfoReadStream* stream) {
    case CONSTANT_DOUBLE_CODE: result = new ConstantDoubleValue(stream);  break;
    case OBJECT_CODE:          result = stream->read_object_value();      break;
    case OBJECT_ID_CODE:       result = stream->get_cached_object();      break;
-#ifdef GRAAL
-   case DEFERRED_READ_CODE:   result = new DeferredReadValue(stream);    break;
-   case DEFERRED_WRITE_CODE:  result = new DeferredWriteValue(stream);   break;
-#endif // GRAAL
    default: ShouldNotReachHere();
   }
   return result;
@@ -116,63 +108,6 @@ void LocationValue::write_on(DebugInfoWriteStream* stream) {
 void LocationValue::print_on(outputStream* st) const {
   location().print_on(st);
 }
-
-#ifdef GRAAL
-
-// DeferredLocationValue
-
-DeferredLocationValue::DeferredLocationValue(DebugInfoReadStream* stream) {
-  _base = read_from(stream);
-  _index = read_from(stream);
-  _scale = stream->read_int();
-  _disp = stream->read_long();
-}
-
-void DeferredLocationValue::write_on(DebugInfoWriteStream* stream) {
-  _base->write_on(stream);
-  _index->write_on(stream);
-  stream->write_int(_scale);
-  stream->write_long(_disp);
-}
-
-void DeferredLocationValue::print_on(outputStream* st) const {
-  _base->print_on(st);
-  _index->print_on(st);
-  st->print("%i %i", _scale, _disp);
-}
-
-// DeferredReadValue
-
-DeferredReadValue::DeferredReadValue(DebugInfoReadStream* stream)
-: DeferredLocationValue(stream) {
-}
-
-void DeferredReadValue::write_on(DebugInfoWriteStream* st) {
-  DeferredLocationValue::write_on(st);
-}
-
-void DeferredReadValue::print_on(outputStream* st) const {
-  DeferredLocationValue::print_on(st);
-}
-
-// DeferredWriteValue
-
-DeferredWriteValue::DeferredWriteValue(DebugInfoReadStream* stream)
-: DeferredLocationValue(stream) {
-  _value = read_from(stream);
-}
-
-void DeferredWriteValue::write_on(DebugInfoWriteStream* st) {
-  DeferredLocationValue::write_on(st);
-  _value->write_on(st);
-}
-
-void DeferredWriteValue::print_on(outputStream* st) const {
-  DeferredLocationValue::print_on(st);
-  _value->print_on(st);
-}
-
-#endif // GRAAL
 
 // ObjectValue
 

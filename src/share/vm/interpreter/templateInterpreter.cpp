@@ -27,7 +27,6 @@
 #include "interpreter/interpreterGenerator.hpp"
 #include "interpreter/interpreterRuntime.hpp"
 #include "interpreter/templateTable.hpp"
-#include "utilities/machineCodePrinter.hpp"
 
 #ifndef CC_INTERP
 
@@ -52,9 +51,6 @@ void TemplateInterpreter::initialize() {
                           "Interpreter");
     InterpreterGenerator g(_code);
     if (PrintInterpreter) print();
-    if (PrintMachineCodeToFile) {
-      MachineCodePrinter::print(_code);
-    }
   }
 
   // initialize dispatch table
@@ -184,7 +180,7 @@ EntryPoint TemplateInterpreter::_trace_code;
 #endif // !PRODUCT
 EntryPoint TemplateInterpreter::_return_entry[TemplateInterpreter::number_of_return_entries];
 EntryPoint TemplateInterpreter::_earlyret_entry;
-EntryPoint TemplateInterpreter::_deopt_entry [TemplateInterpreter::number_of_deopt_entries ];
+EntryPoint TemplateInterpreter::_deopt_entry[TemplateInterpreter::number_of_deopt_entries ];
 EntryPoint TemplateInterpreter::_continuation_entry;
 EntryPoint TemplateInterpreter::_safept_entry;
 
@@ -276,15 +272,15 @@ void TemplateInterpreterGenerator::generate_all() {
     for (int i = 0; i < Interpreter::number_of_deopt_entries; i++) {
       Interpreter::_deopt_entry[i] =
         EntryPoint(
-          generate_deopt_entry_for(itos, i),
-          generate_deopt_entry_for(itos, i),
-          generate_deopt_entry_for(itos, i),
-          generate_deopt_entry_for(atos, i),
-          generate_deopt_entry_for(itos, i),
-          generate_deopt_entry_for(ltos, i),
-          generate_deopt_entry_for(ftos, i),
-          generate_deopt_entry_for(dtos, i),
-          generate_deopt_entry_for(vtos, i)
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(itos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(itos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(itos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(atos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(itos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(ltos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(ftos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(dtos, i),
+          ((InterpreterGenerator*)this)->generate_deopt_entry_for(vtos, i)
         );
     }
   }

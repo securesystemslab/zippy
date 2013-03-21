@@ -47,9 +47,25 @@ public class Utils {
         }
     }
 
+    public static TypeMirror boxType(ProcessorContext context, TypeMirror primitiveType) {
+        TypeMirror boxedType = primitiveType;
+        if (boxedType.getKind().isPrimitive()) {
+            boxedType = context.getEnvironment().getTypeUtils().boxedClass((PrimitiveType) boxedType).asType();
+        }
+        return boxedType;
+    }
+
+    public static List<TypeMirror> asTypeMirrors(List<? extends Element> elements) {
+        List<TypeMirror> types = new ArrayList<>(elements.size());
+        for (Element element : elements) {
+            types.add(element.asType());
+        }
+        return types;
+    }
+
     public static List<AnnotationMirror> collectAnnotations(ProcessorContext context, AnnotationMirror markerAnnotation, String elementName, Element element,
                     Class<? extends Annotation> annotationClass) {
-        List<AnnotationMirror> result = Utils.getAnnotationValueList(markerAnnotation, elementName);
+        List<AnnotationMirror> result = Utils.getAnnotationValueList(AnnotationMirror.class, markerAnnotation, elementName);
         AnnotationMirror explicit = Utils.findAnnotationMirror(context.getEnvironment(), element, annotationClass);
         if (explicit != null) {
             result.add(explicit);
@@ -59,6 +75,42 @@ public class Utils {
             assert Utils.typeEquals(mirror.getAnnotationType(), context.getType(annotationClass));
         }
         return result;
+    }
+
+    public static TypeMirror getCommonSuperType(ProcessorContext context, TypeMirror[] types) {
+        if (types.length == 0) {
+            return context.getType(Object.class);
+        }
+        TypeMirror prev = types[0];
+        for (int i = 1; i < types.length; i++) {
+            prev = getCommonSuperType(context, prev, types[i]);
+        }
+        return prev;
+    }
+
+    public static TypeMirror getCommonSuperType(ProcessorContext context, TypeMirror type1, TypeMirror type2) {
+        if (typeEquals(type1, type2)) {
+            return type1;
+        }
+        TypeElement element1 = fromTypeMirror(type1);
+        TypeElement element2 = fromTypeMirror(type2);
+        if (element1 == null || element2 == null) {
+            return context.getType(Object.class);
+        }
+
+        List<TypeElement> element1Types = getDirectSuperTypes(element1);
+        element1Types.add(0, element1);
+        List<TypeElement> element2Types = getDirectSuperTypes(element2);
+        element2Types.add(0, element2);
+
+        for (TypeElement superType1 : element1Types) {
+            for (TypeElement superType2 : element2Types) {
+                if (typeEquals(superType1.asType(), superType2.asType())) {
+                    return superType2.asType();
+                }
+            }
+        }
+        return context.getType(Object.class);
     }
 
     public static String getReadableSignature(ExecutableElement method) {
@@ -123,6 +175,46 @@ public class Utils {
         return new LinkedHashSet<>(Arrays.asList(modifier));
     }
 
+    public static String getTypeId(TypeMirror mirror) {
+        switch (mirror.getKind()) {
+            case BOOLEAN:
+                return "Boolean";
+            case BYTE:
+                return "Byte";
+            case CHAR:
+                return "Char";
+            case DOUBLE:
+                return "Double";
+            case FLOAT:
+                return "Float";
+            case SHORT:
+                return "Short";
+            case INT:
+                return "Int";
+            case LONG:
+                return "Long";
+            case DECLARED:
+                return ((DeclaredType) mirror).asElement().getSimpleName().toString();
+            case ARRAY:
+                return getTypeId(((ArrayType) mirror).getComponentType()) + "Array";
+            case VOID:
+                return "Void";
+            case WILDCARD:
+                StringBuilder b = new StringBuilder();
+                WildcardType type = (WildcardType) mirror;
+                if (type.getExtendsBound() != null) {
+                    b.append("Extends").append(getTypeId(type.getExtendsBound()));
+                } else if (type.getSuperBound() != null) {
+                    b.append("Super").append(getTypeId(type.getExtendsBound()));
+                }
+                return b.toString();
+            case TYPEVAR:
+                return "Any";
+            default:
+                throw new RuntimeException("Unknown type specified " + mirror.getKind() + " mirror: " + mirror);
+        }
+    }
+
     public static String getSimpleName(TypeElement element) {
         return getSimpleName(element.asType());
     }
@@ -146,31 +238,43 @@ public class Utils {
             case LONG:
                 return "long";
             case DECLARED:
-                return getGenericName(fromTypeMirror(mirror));
+                return getDeclaredName((DeclaredType) mirror);
             case ARRAY:
                 return getSimpleName(((ArrayType) mirror).getComponentType()) + "[]";
             case VOID:
                 return "void";
+            case WILDCARD:
+                return getWildcardName((WildcardType) mirror);
             case TYPEVAR:
-                return ((TypeParameterElement) ((TypeVariable) mirror).asElement()).getSimpleName().toString();
+                return "?";
             default:
                 throw new RuntimeException("Unknown type specified " + mirror.getKind() + " mirror: " + mirror);
         }
     }
 
-    private static String getGenericName(TypeElement element) {
-        String simpleName = element.getSimpleName().toString();
+    private static String getWildcardName(WildcardType type) {
+        StringBuilder b = new StringBuilder();
+        if (type.getExtendsBound() != null) {
+            b.append("? extends ").append(getSimpleName(type.getExtendsBound()));
+        } else if (type.getSuperBound() != null) {
+            b.append("? super ").append(getSimpleName(type.getExtendsBound()));
+        }
+        return b.toString();
+    }
 
-        if (element.getTypeParameters().size() == 0) {
+    private static String getDeclaredName(DeclaredType element) {
+        String simpleName = element.asElement().getSimpleName().toString();
+
+        if (element.getTypeArguments().size() == 0) {
             return simpleName;
         }
 
         StringBuilder b = new StringBuilder(simpleName);
         b.append("<");
-        if (element.getTypeParameters().size() > 0) {
-            for (int i = 0; i < element.getTypeParameters().size(); i++) {
-                b.append("?");
-                if (i < element.getTypeParameters().size() - 1) {
+        if (element.getTypeArguments().size() > 0) {
+            for (int i = 0; i < element.getTypeArguments().size(); i++) {
+                b.append(getSimpleName(element.getTypeArguments().get(i)));
+                if (i < element.getTypeArguments().size() - 1) {
                     b.append(", ");
                 }
             }
@@ -282,6 +386,19 @@ public class Utils {
         return null;
     }
 
+    public static List<TypeElement> getDirectSuperTypes(TypeElement element) {
+        List<TypeElement> types = new ArrayList<>();
+        if (element.getSuperclass() != null) {
+            TypeElement superElement = fromTypeMirror(element.getSuperclass());
+            if (superElement != null) {
+                types.add(superElement);
+                types.addAll(getDirectSuperTypes(superElement));
+            }
+        }
+
+        return types;
+    }
+
     public static List<TypeElement> getSuperTypes(TypeElement element) {
         List<TypeElement> types = new ArrayList<>();
         List<TypeElement> superTypes = null;
@@ -359,29 +476,32 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> List<T> getAnnotationValueList(AnnotationMirror mirror, String name) {
+    public static <T> List<T> getAnnotationValueList(Class<T> expectedListType, AnnotationMirror mirror, String name) {
+        List<? extends AnnotationValue> values = getAnnotationValue(List.class, mirror, name);
         List<T> result = new ArrayList<>();
-        List<? extends AnnotationValue> values = (List<? extends AnnotationValue>) getAnnotationValue(mirror, name).getValue();
+
         for (AnnotationValue value : values) {
-            result.add((T) value.getValue());
+            result.add(resolveAnnotationValue(expectedListType, value));
         }
         return result;
     }
 
-    public static TypeMirror getAnnotationValueType(AnnotationMirror mirror, String name) {
-        return (TypeMirror) getAnnotationValue(mirror, name).getValue();
+    public static <T> T getAnnotationValue(Class<T> expectedType, AnnotationMirror mirror, String name) {
+        return resolveAnnotationValue(expectedType, getAnnotationValue(mirror, name));
     }
 
-    public static TypeMirror getAnnotationValueTypeMirror(AnnotationMirror mirror, String name) {
-        return (TypeMirror) getAnnotationValue(mirror, name).getValue();
-    }
-
-    public static String getAnnotationValueString(AnnotationMirror mirror, String name) {
-        return (String) getAnnotationValue(mirror, name).getValue();
-    }
-
-    public static int getAnnotationValueInt(AnnotationMirror mirror, String name) {
-        return (int) getAnnotationValue(mirror, name).getValue();
+    @SuppressWarnings({"unchecked"})
+    private static <T> T resolveAnnotationValue(Class<T> expectedType, AnnotationValue value) {
+        Object unboxedValue = value.accept(new AnnotationValueVisitorImpl(), null);
+        if (unboxedValue != null) {
+            if (expectedType == TypeMirror.class && unboxedValue instanceof String) {
+                return null;
+            }
+            if (!expectedType.isAssignableFrom(unboxedValue.getClass())) {
+                throw new ClassCastException(unboxedValue.getClass().getName() + " not assignable from " + expectedType.getName());
+            }
+        }
+        return (T) unboxedValue;
     }
 
     public static AnnotationValue getAnnotationValue(AnnotationMirror mirror, String name) {
@@ -401,7 +521,77 @@ public class Utils {
         if (value == null) {
             value = valueMethod.getDefaultValue();
         }
+
         return value;
+    }
+
+    private static class AnnotationValueVisitorImpl extends AbstractAnnotationValueVisitor7<Object, Void> {
+
+        @Override
+        public Object visitBoolean(boolean b, Void p) {
+            return Boolean.valueOf(b);
+        }
+
+        @Override
+        public Object visitByte(byte b, Void p) {
+            return Byte.valueOf(b);
+        }
+
+        @Override
+        public Object visitChar(char c, Void p) {
+            return c;
+        }
+
+        @Override
+        public Object visitDouble(double d, Void p) {
+            return d;
+        }
+
+        @Override
+        public Object visitFloat(float f, Void p) {
+            return f;
+        }
+
+        @Override
+        public Object visitInt(int i, Void p) {
+            return i;
+        }
+
+        @Override
+        public Object visitLong(long i, Void p) {
+            return i;
+        }
+
+        @Override
+        public Object visitShort(short s, Void p) {
+            return s;
+        }
+
+        @Override
+        public Object visitString(String s, Void p) {
+            return s;
+        }
+
+        @Override
+        public Object visitType(TypeMirror t, Void p) {
+            return t;
+        }
+
+        @Override
+        public Object visitEnumConstant(VariableElement c, Void p) {
+            return c.getConstantValue();
+        }
+
+        @Override
+        public Object visitAnnotation(AnnotationMirror a, Void p) {
+            return a;
+        }
+
+        @Override
+        public Object visitArray(List<? extends AnnotationValue> vals, Void p) {
+            return vals;
+        }
+
     }
 
     public static boolean getAnnotationValueBoolean(AnnotationMirror mirror, String name) {
@@ -468,8 +658,10 @@ public class Utils {
             for (int i = 0; i < params.length; i++) {
                 TypeMirror param1 = params[i];
                 TypeMirror param2 = method.getParameters().get(i).asType();
-                if (!getQualifiedName(param1).equals(getQualifiedName(param2))) {
-                    continue method;
+                if (param1.getKind() != TypeKind.TYPEVAR && param2.getKind() != TypeKind.TYPEVAR) {
+                    if (!getQualifiedName(param1).equals(getQualifiedName(param2))) {
+                        continue method;
+                    }
                 }
             }
             return method;
@@ -520,6 +712,14 @@ public class Utils {
         }
         String qualified1 = getQualifiedName(type1);
         String qualified2 = getQualifiedName(type2);
+
+        if (type1.getKind() == TypeKind.ARRAY || type2.getKind() == TypeKind.ARRAY) {
+            if (type1.getKind() == TypeKind.ARRAY && type2.getKind() == TypeKind.ARRAY) {
+                return typeEquals(((ArrayType) type1).getComponentType(), ((ArrayType) type2).getComponentType());
+            } else {
+                return false;
+            }
+        }
         return qualified1.equals(qualified2);
     }
 
@@ -548,7 +748,7 @@ public class Utils {
             return true;
         }
 
-        // search for any supertypes
+        // search for any super types
         TypeElement exceptionTypeElement = fromTypeMirror(exceptionType);
         List<TypeElement> superTypes = getSuperTypes(exceptionTypeElement);
         for (TypeElement typeElement : superTypes) {
@@ -577,7 +777,7 @@ public class Utils {
         Set<String> typeSuperSet = new HashSet<>(getQualifiedSuperTypeNames(fromTypeMirror(type)));
         String typeName = getQualifiedName(type);
         if (!typeSuperSet.contains(Throwable.class.getCanonicalName()) && !typeName.equals(Throwable.class.getCanonicalName())) {
-            throw new IllegalArgumentException("Given does not extend Throwable.");
+            throw new IllegalArgumentException("Given type does not extend Throwable.");
         }
         return typeSuperSet.contains(RuntimeException.class.getCanonicalName()) || typeName.equals(RuntimeException.class.getCanonicalName());
     }

@@ -39,6 +39,6 @@ public class GraphOpenCookie implements OpenCookie {
 
     @Override
     public void open() {
-        viewer.view(graph);
+        viewer.view(graph, false);
     }
 }

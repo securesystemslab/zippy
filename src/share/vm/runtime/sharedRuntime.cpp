@@ -56,6 +56,7 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/hashtable.inline.hpp"
+#include "utilities/macros.hpp"
 #include "utilities/xmlstream.hpp"
 #ifdef TARGET_ARCH_x86
 # include "nativeInst_x86.hpp"
@@ -212,7 +213,7 @@ void SharedRuntime::print_ic_miss_histogram() {
 }
 #endif // PRODUCT
 
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
 
 // G1 write-barrier pre: executed before a pointer store.
 JRT_LEAF(void, SharedRuntime::g1_wb_pre(oopDesc* orig, JavaThread *thread))
@@ -230,7 +231,7 @@ JRT_LEAF(void, SharedRuntime::g1_wb_post(void* card_addr, JavaThread* thread))
   thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
-#endif // !SERIALGC
+#endif // INCLUDE_ALL_GCS
 
 
 JRT_LEAF(jlong, SharedRuntime::lmul(jlong y, jlong x))
@@ -772,11 +773,8 @@ JRT_END
 #ifdef GRAAL
 address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason) {
   assert(deopt_reason > Deoptimization::Reason_none && deopt_reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
-  if (TraceSignals) {
-    tty->print_cr(err_msg("Deoptimizing on implicit exception at relative pc=%d in method %s", pc - nm->entry_point(), nm->method()->name()->as_C_string()));
-  }
   thread->_ScratchA = (intptr_t)pc;
-  thread->_ScratchB = Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret);
+  thread->set_pending_deoptimization(Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret));
   return (SharedRuntime::deopt_blob()->implicit_exception_uncommon_trap());
 }
 #endif
@@ -898,9 +896,6 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #endif
 #ifdef GRAAL
         if (nm->is_compiled_by_graal()) {
-          if (TraceSignals) {
-            tty->print_cr("Graal implicit div0");
-          }
           target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
         } else {
 #endif
@@ -2867,10 +2862,6 @@ VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, 
 // All of this is done NOT at any Safepoint, nor is any safepoint or GC allowed.
 
 JRT_LEAF(intptr_t*, SharedRuntime::OSR_migration_begin( JavaThread *thread) )
-
-#ifdef IA64
-  ShouldNotReachHere(); // NYI
-#endif /* IA64 */
 
   //
   // This code is dependent on the memory layout of the interpreter local

@@ -29,7 +29,6 @@
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCompilerToVM.hpp"
-#include "graal/graalVmIds.hpp"
 #include "graal/graalRuntime.hpp"
 #include "asm/register.hpp"
 #include "classfile/vmSymbols.hpp"
@@ -127,6 +126,10 @@ static void record_metadata_in_constant(oop constant, OopRecorder* oop_recorder)
         assert((Klass*) prim == klass, err_msg("%s @ %p != %p", klass->name()->as_C_string(), klass, prim));
         int index = oop_recorder->find_index(klass);
         TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), klass->name()->as_C_string());
+      } else if (obj->is_a(HotSpotResolvedJavaMethod::klass())) {
+        Method* method = (Method*) (address) HotSpotResolvedJavaMethod::metaspaceMethod(obj);
+        int index = oop_recorder->find_index(method);
+        TRACE_graal_3("metadata[%d of %d] = %s", index, oop_recorder->metadata_count(), method->name()->as_C_string());
       } else {
         assert(java_lang_String::is_instance(obj),
             err_msg("unexpected annotation type (%s) for constant %ld (%p) of kind %c", obj->klass()->name()->as_C_string(), prim, prim, kind));
@@ -209,7 +212,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
         return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
     } else if (type == T_ADDRESS) {
-      return new ConstantLongValue(prim);
+      ShouldNotReachHere();
     }
     tty->print("%i", type);
   } else if (value->is_a(VirtualObject::klass())) {
@@ -323,7 +326,7 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code) {
+CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations) {
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
@@ -341,7 +344,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    &_implicit_exception_table, GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code);
+    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
 
   method->clear_queued_for_compilation();
 }
@@ -362,7 +365,7 @@ CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id
   const char* cname = java_lang_String::as_utf8_string(_name);
   blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
   IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
-  id = VmIds::addStub(blob->code_begin());
+  id = (jlong)blob->code_begin();
 }
 
 void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
@@ -383,7 +386,6 @@ void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * (BytesPerLong*2);
-  _total_size = align_size_up(_code_size, HeapWordSize) + _constants_size;
 
   _next_call_type = MARK_INVOKE_INVALID;
 }
@@ -572,13 +574,9 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
   DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
 
-  GrowableArray<DeferredWriteValue*>* deferred_writes = new GrowableArray<DeferredWriteValue*> ();
-//  deferred_writes->append(new DeferredWriteValue(new LocationValue(Location::new_reg_loc(Location::lng, rax->as_VMReg())), new ConstantIntValue(0), 0, 100, new ConstantIntValue(123)));
-  DebugToken* deferred_writes_token = _debug_recorder->create_deferred_writes(deferred_writes);
-
   bool throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
 
-  _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token, deferred_writes_token);
+  _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
@@ -606,7 +604,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop hotspot_method = NULL; // JavaMethod
   oop global_stub = NULL;
 
-  if (target_klass->is_subclass_of(SystemDictionary::Long_klass())) {
+  if (target_klass->is_subclass_of(SystemDictionary::HotSpotRuntimeCallTarget_klass())) {
     global_stub = target;
   } else {
     hotspot_method = target;
@@ -618,7 +616,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = 0x0;
-  bool is_call_reg = false;
   if (inst->is_call() || inst->is_jump()) {
     assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size");
     next_pc_offset = pc_offset + NativeCall::instruction_size;
@@ -631,10 +628,8 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   } else if (inst->is_call_reg()) {
     // the inlined vtable stub contains a "call register" instruction
     assert(hotspot_method != NULL, "only valid for virtual calls");
-    is_call_reg = true;
     next_pc_offset = pc_offset + ((NativeCallReg *) inst)->next_instruction_offset();
   } else {
-    tty->print_cr("at pc_offset %d", pc_offset);
     fatal("unsupported type of instruction for call site");
   }
 
@@ -659,21 +654,20 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   }
 
   if (global_stub != NULL) {
-    assert(java_lang_boxing_object::is_instance(global_stub, T_LONG), "global_stub needs to be of type Long");
-
+    jlong global_stub_destination = HotSpotRuntimeCallTarget::address(global_stub);
     if (inst->is_call()) {
       // NOTE: for call without a mov, the offset must fit a 32-bit immediate
       //       see also CompilerToVM.getMaxCallTargetOffset()
       NativeCall* call = nativeCall_at((address) (inst));
-      call->set_destination(VmIds::getStub(global_stub));
+      call->set_destination((address) global_stub_destination);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
     } else if (inst->is_mov_literal64()) {
       NativeMovConstReg* mov = nativeMovConstReg_at((address) (inst));
-      mov->set_data((intptr_t) VmIds::getStub(global_stub));
+      mov->set_data((intptr_t) global_stub_destination);
       _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
     } else {
       NativeJump* jump = nativeJump_at((address) (inst));
-      jump->set_jump_destination(VmIds::getStub(global_stub));
+      jump->set_jump_destination((address) global_stub_destination);
       _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     }
     TRACE_graal_3("relocating (stub)  at %p", inst);
@@ -690,9 +684,8 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
     TRACE_graal_3("method call");
     switch (_next_call_type) {
-      case MARK_INLINE_INVOKEVIRTUAL: {
+      case MARK_INLINE_INVOKE:
         break;
-      }
       case MARK_INVOKEVIRTUAL:
       case MARK_INVOKEINTERFACE: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
@@ -712,13 +705,11 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
       }
       case MARK_INVOKESPECIAL: {
         assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
-
         NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
         call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
         _instructions->relocate(call->instruction_address(), relocInfo::opt_virtual_call_type, Assembler::call32_operand);
         break;
       }
-      case MARK_INVOKE_INVALID:
       default:
         fatal("invalid _next_call_type value");
         break;
@@ -818,14 +809,6 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
       case MARK_DEOPT_HANDLER_ENTRY:
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
-      case MARK_STATIC_CALL_STUB: {
-        _instructions->relocate(instruction, metadata_Relocation::spec_for_immediate());
-        assert(references->length() == 1, "static call stub needs one reference");
-        oop ref = ((oop*) references->base(T_OBJECT))[0];
-        address call_pc = _instructions->start() + CompilationResult_Site::pcOffset(ref);
-        _instructions->relocate(instruction, static_stub_Relocation::spec(call_pc));
-        break;
-      }
       case MARK_INVOKEVIRTUAL:
       case MARK_INVOKEINTERFACE: {
         // Convert the initial value of the Klass* slot in an inline cache
@@ -834,15 +817,11 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         assert(n_copy->data() == 0, "inline cache Klass* initial value should be 0L");
         n_copy->set_data((intptr_t)Universe::non_oop_word());
       }
-      case MARK_INLINE_INVOKEVIRTUAL:
-      case MARK_INVOKE_INVALID:
-      case MARK_INVOKESPECIAL:
+      case MARK_INLINE_INVOKE:
       case MARK_INVOKESTATIC:
+      case MARK_INVOKESPECIAL:
         _next_call_type = (MarkId) id;
         _invoke_mark_pc = instruction;
-        break;
-      case MARK_IMPLICIT_NULL:
-        _implicit_exception_table.append(pc_offset, pc_offset);
         break;
       case MARK_POLL_NEAR: {
         NativeInstruction* ni = nativeInstruction_at(instruction);

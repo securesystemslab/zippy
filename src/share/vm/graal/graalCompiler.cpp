@@ -28,7 +28,6 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalVMToCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
-#include "graal/graalVmIds.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalRuntime.hpp"
 #include "runtime/arguments.hpp"
@@ -160,11 +159,10 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
-  assert(JavaThread::current()->env() == NULL, "ciEnv should be null");
-  JavaThread::current()->set_compiling(true);
+  JavaThread::current()->set_is_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
   jboolean success = VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
-  JavaThread::current()->set_compiling(false);
+  JavaThread::current()->set_is_compiling(false);
   if (success != JNI_TRUE) {
     method->clear_queued_for_compilation();
     CompilationPolicy::policy()->delay_compilation(method());
@@ -188,7 +186,7 @@ void GraalCompiler::print_timers() {
 }
 
 Handle GraalCompiler::get_JavaType(Symbol* klass_name, TRAPS) {
-   return VMToCompiler::createUnresolvedJavaType(VmIds::toString<Handle>(klass_name, THREAD), THREAD);
+   return VMToCompiler::createUnresolvedJavaType(java_lang_String::create_from_symbol(klass_name, THREAD), THREAD);
 }
 
 Handle GraalCompiler::get_JavaTypeFromSignature(Symbol* signature, KlassHandle loading_klass, TRAPS) {
@@ -255,12 +253,12 @@ Handle GraalCompiler::get_JavaTypeFromClass(Handle java_class, TRAPS) {
 }
 
 Handle GraalCompiler::get_JavaType(KlassHandle klass, TRAPS) {
-  Handle name = VmIds::toString<Handle>(klass->name(), THREAD);
+  Handle name = java_lang_String::create_from_symbol(klass->name(), THREAD);
   return createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
 }
 
 Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
-  Handle name = VmIds::toString<Handle>(field_name, CHECK_NULL);
+  Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NULL);
   return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NULL);
 }
 

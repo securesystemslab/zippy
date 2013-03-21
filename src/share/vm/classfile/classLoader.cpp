@@ -442,23 +442,10 @@ void ClassLoader::setup_meta_index() {
 void ClassLoader::setup_bootstrap_search_path() {
   assert(_first_entry == NULL, "should not setup bootstrap class search path twice");
   char* sys_class_path = os::strdup(Arguments::get_sysclasspath());
-#ifdef GRAAL
-  char* compiler_class_path = os::strdup(Arguments::get_compilerclasspath());
-#endif
   if (TraceClassLoading && Verbose) {
     tty->print_cr("[Bootstrap loader class path=%s]", sys_class_path);
-#ifdef GRAAL
-    tty->print_cr("[Compiler loader class path=%s]", compiler_class_path);
-#endif
   }
 
-  setup_bootstrap_search_path(sys_class_path);
-#ifdef GRAAL
-  setup_bootstrap_search_path(compiler_class_path);
-#endif
-}
-
-void ClassLoader::setup_bootstrap_search_path(char* sys_class_path) {
   int len = (int)strlen(sys_class_path);
   int end = 0;
 
@@ -908,23 +895,7 @@ instanceKlassHandle ClassLoader::load_classfile(Symbol* h_name, TRAPS) {
     PerfClassTraceTime vmtimer(perf_sys_class_lookup_time(),
                                ((JavaThread*) THREAD)->get_thread_stat()->perf_timers_addr(),
                                PerfClassTraceTime::CLASS_LOAD);
-    ClassPathEntry* e = _first_entry; 
-    while (e != NULL) {
-      stream = e->open_stream(name);
-      if (stream != NULL) {
-        break;
-      }
-      e = e->next();
-      ++classpath_index;
-    }
-  }
-
-  if (stream == NULL && !(THREAD->is_Compiler_thread())) {  
-	  classpath_index = 0;
-    PerfClassTraceTime vmtimer(perf_sys_class_lookup_time(),
-                               ((JavaThread*) THREAD)->get_thread_stat()->perf_timers_addr(),
-                               PerfClassTraceTime::CLASS_LOAD);
-    ClassPathEntry* e = _first_entry; 
+    ClassPathEntry* e = _first_entry;
     while (e != NULL) {
       stream = e->open_stream(name);
       if (stream != NULL) {

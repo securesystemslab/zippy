@@ -354,7 +354,7 @@ env.sh: $(BUILDTREE_MAKE)
 	$(BUILDTREE_COMMENT); \
 	[ -n "$$JAVA_HOME" ] && { echo ": \$${JAVA_HOME:=$${JAVA_HOME}}"; }; \
 	{ \
-	echo "CLASSPATH=$${CLASSPATH:+$$CLASSPATH:}.:\$${JAVA_HOME}/jre/lib/rt.jar:\$${JAVA_HOME}/jre/lib/i18n.jar"; \
+	echo "CLASSPATH=$${CLASSPATH:+$$CLASSPATH:}.:\$${JAVA_HOME}/jre/lib/rt.jar:$(OUTPUTDIR)/shared/graal.jar:\$${JAVA_HOME}/jre/lib/i18n.jar"; \
 	} | sed s:$${JAVA_HOME:--------}:\$${JAVA_HOME}:g; \
 	echo "HOTSPOT_BUILD_USER=\"$${LOGNAME:-$$USER} in `basename $(GAMMADIR)`\""; \
 	echo "export JAVA_HOME CLASSPATH HOTSPOT_BUILD_USER"; \

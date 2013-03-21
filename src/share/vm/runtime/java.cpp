@@ -67,6 +67,7 @@
 #include "utilities/dtrace.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/histogram.hpp"
+#include "utilities/macros.hpp"
 #include "utilities/vmError.hpp"
 #ifdef TARGET_ARCH_x86
 # include "vm_version_x86.hpp"
@@ -83,11 +84,11 @@
 #ifdef TARGET_ARCH_ppc
 # include "vm_version_ppc.hpp"
 #endif
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/concurrentMarkSweepThread.hpp"
 #include "gc_implementation/parallelScavenge/psScavenge.hpp"
 #include "gc_implementation/parallelScavenge/psScavenge.inline.hpp"
-#endif
+#endif // INCLUDE_ALL_GCS
 #ifdef COMPILER1
 #include "c1/c1_Compiler.hpp"
 #include "c1/c1_Runtime1.hpp"
@@ -248,12 +249,9 @@ void print_statistics() {
     Runtime1::print_statistics();
     Deoptimization::print_statistics();
     SharedRuntime::print_statistics();
-  }
-#endif /* COMPILER1 */
-
-  if(PrintNMethodStatistics) {
     nmethod::print_statistics();
   }
+#endif /* COMPILER1 */
 
 #ifdef COMPILER2
   if ((PrintOptoStatistics || LogVMOutput || LogCompilation) && UseCompiler) {
@@ -373,10 +371,6 @@ void print_statistics() {
 
   if (CITime) {
     CompileBroker::print_times();
-  }
-
-  if(PrintNMethodStatistics) {
-    nmethod::print_statistics();
   }
 
   if (PrintCodeCache) {

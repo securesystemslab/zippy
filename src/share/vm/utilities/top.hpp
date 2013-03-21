@@ -33,17 +33,17 @@
 #include "utilities/macros.hpp"
 #include "utilities/ostream.hpp"
 #include "utilities/sizes.hpp"
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
 #include "gc_implementation/g1/g1_globals.hpp"
-#endif
+#endif // INCLUDE_ALL_GCS
 #ifdef COMPILER1
 #include "c1/c1_globals.hpp"
 #endif
-#ifdef GRAAL
-#include "graal/graalGlobals.hpp"
-#endif
 #ifdef COMPILER2
 #include "opto/c2_globals.hpp"
+#endif
+#ifdef GRAAL
+#include "graal/graalGlobals.hpp"
 #endif
 
 // THIS FILE IS INTESIONALLY LEFT EMPTY

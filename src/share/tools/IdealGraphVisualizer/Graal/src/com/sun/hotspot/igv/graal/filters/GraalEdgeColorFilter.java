@@ -58,7 +58,10 @@ public class GraalEdgeColorFilter extends AbstractFilter {
         for (Figure f : figures) {
             Properties p = f.getProperties();
             int predCount;
-            if (Boolean.parseBoolean(p.get("hasPredecessor"))) {
+            String predCountString = p.get("predecessorCount");
+            if (predCountString != null) {
+                predCount = Integer.parseInt(predCountString);
+            } else if (Boolean.parseBoolean(p.get("hasPredecessor"))) {
                 predCount = 1;
             } else {
                 predCount = 0;

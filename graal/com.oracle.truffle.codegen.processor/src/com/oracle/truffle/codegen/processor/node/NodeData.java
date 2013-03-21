@@ -35,22 +35,89 @@ import com.oracle.truffle.codegen.processor.typesystem.*;
 
 public class NodeData extends Template {
 
-    private NodeData parent;
-    private List<NodeData> declaredChildren;
+    private final String nodeId;
+    private NodeData declaringNode;
+    private List<NodeData> declaredChildren = new ArrayList<>();
 
-    private final TypeSystemData typeSystem;
-
-    private NodeFieldData[] fields;
-    private SpecializationData[] specializations;
-    private TemplateMethod[] specializationListeners;
-    private GuardData[] guards;
-    private ExecutableTypeData[] executableTypes;
-
+    private TypeSystemData typeSystem;
+    private List<NodeFieldData> fields;
     private TypeMirror nodeType;
+    private ParameterSpec instanceParameterSpec;
 
-    public NodeData(TypeElement type, TypeSystemData typeSystem) {
-        super(type, null);
+    private List<SpecializationData> specializations;
+    private List<SpecializationListenerData> specializationListeners;
+    private List<GuardData> guards;
+    private List<ExecutableTypeData> executableTypes;
+    private List<ShortCircuitData> shortCircuits;
+
+    public NodeData(TypeElement type, String id) {
+        super(type, null, null);
+        this.nodeId = id;
+    }
+
+    public NodeData(NodeData splitSource, String templateMethodName, String nodeId) {
+        super(splitSource.getTemplateType(), templateMethodName, null);
+        this.nodeId = nodeId;
+        this.declaringNode = splitSource.declaringNode;
+        this.declaredChildren = splitSource.declaredChildren;
+        this.typeSystem = splitSource.typeSystem;
+        this.nodeType = splitSource.nodeType;
+        this.specializations = splitSource.specializations;
+        this.specializationListeners = splitSource.specializationListeners;
+        this.guards = splitSource.guards;
+        this.executableTypes = splitSource.executableTypes;
+        this.shortCircuits = splitSource.shortCircuits;
+        this.fields = splitSource.fields;
+    }
+
+    void setTypeSystem(TypeSystemData typeSystem) {
         this.typeSystem = typeSystem;
+    }
+
+    @Override
+    protected List<MessageContainer> findChildContainers() {
+        List<MessageContainer> children = new ArrayList<>();
+        if (declaredChildren != null) {
+            children.addAll(declaredChildren);
+        }
+        if (typeSystem != null) {
+            children.add(typeSystem);
+        }
+        if (specializations != null) {
+            for (MessageContainer specialization : specializations) {
+                if (specialization.getMessageElement() != null) {
+                    children.add(specialization);
+                }
+            }
+        }
+        if (specializationListeners != null) {
+            children.addAll(specializationListeners);
+        }
+        if (guards != null) {
+            children.addAll(guards);
+        }
+        if (executableTypes != null) {
+            children.addAll(executableTypes);
+        }
+        if (shortCircuits != null) {
+            children.addAll(shortCircuits);
+        }
+        if (fields != null) {
+            children.addAll(fields);
+        }
+        return children;
+    }
+
+    public ParameterSpec getInstanceParameterSpec() {
+        return instanceParameterSpec;
+    }
+
+    public void setInstanceParameterSpec(ParameterSpec instanceParameter) {
+        this.instanceParameterSpec = instanceParameter;
+    }
+
+    public String getNodeId() {
+        return nodeId;
     }
 
     public TypeMirror getNodeType() {
@@ -71,16 +138,36 @@ public class NodeData extends Template {
         return !noSpecialization;
     }
 
+    public boolean supportsFrame() {
+        for (ExecutableTypeData execType : executableTypes) {
+            if (execType.findParameter("frameValue") == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public List<NodeData> getNodeChildren() {
+        List<NodeData> children = new ArrayList<>();
+        for (NodeData child : getDeclaredChildren()) {
+            if (child.needsFactory()) {
+                children.add(child);
+            }
+            children.addAll(child.getNodeChildren());
+        }
+        return children;
+    }
+
     void setDeclaredChildren(List<NodeData> declaredChildren) {
         this.declaredChildren = declaredChildren;
 
         for (NodeData child : declaredChildren) {
-            child.parent = this;
+            child.declaringNode = this;
         }
     }
 
     public NodeData getParent() {
-        return parent;
+        return declaringNode;
     }
 
     public List<NodeData> getDeclaredChildren() {
@@ -96,20 +183,14 @@ public class NodeData extends Template {
 
         for (SpecializationData specialization : getSpecializations()) {
             methods.add(specialization);
-            if (specialization.getShortCircuits() != null) {
-                methods.addAll(Arrays.asList(specialization.getShortCircuits()));
-            }
         }
 
-        methods.addAll(Arrays.asList(getSpecializationListeners()));
-        methods.addAll(Arrays.asList(getExecutableTypes()));
-        methods.addAll(Arrays.asList(getGuards()));
+        methods.addAll(getSpecializationListeners());
+        methods.addAll(getExecutableTypes());
+        methods.addAll(getGuards());
+        methods.addAll(getShortCircuits());
 
         return methods;
-    }
-
-    public TemplateMethod[] getSpecializationListeners() {
-        return specializationListeners;
     }
 
     public List<GuardData> findGuards(String name) {
@@ -122,38 +203,33 @@ public class NodeData extends Template {
         return foundGuards;
     }
 
-    public ExecutableTypeData[] getExecutableTypes() {
-        return executableTypes;
-    }
-
-    public ExecutableTypeData findGenericExecutableType(ProcessorContext context) {
+    public ExecutableTypeData findGenericExecutableType(ProcessorContext context, TypeData type) {
         List<ExecutableTypeData> types = findGenericExecutableTypes(context);
-        if (types.isEmpty()) {
-            return null;
-        } else if (types.size() == 1) {
-            return types.get(0);
-        } else if (types.size() == 2) {
-            if (types.get(0).getType().isVoid()) {
-                return types.get(1);
-            } else if (types.get(1).getType().isVoid()) {
-                return types.get(0);
+        for (ExecutableTypeData availableType : types) {
+            if (Utils.typeEquals(availableType.getType().getBoxedType(), type.getBoxedType())) {
+                return availableType;
             }
         }
-
-        ExecutableTypeData execType = null;
-        for (ExecutableTypeData type : types) {
-            TypeData returnType = type.getReturnType().getActualTypeData(getTypeSystem());
-            if (returnType.isGeneric()) {
-                if (execType != null) {
-                    return null;
-                }
-                execType = type;
-            }
-        }
-        return execType;
+        return null;
     }
 
-    private List<ExecutableTypeData> findGenericExecutableTypes(ProcessorContext context) {
+    public ExecutableTypeData findAnyGenericExecutableType(ProcessorContext context) {
+        List<ExecutableTypeData> types = findGenericExecutableTypes(context);
+        for (ExecutableTypeData type : types) {
+            if (type.getType().isGeneric()) {
+                return type;
+            }
+        }
+
+        for (ExecutableTypeData type : types) {
+            if (!type.getType().isVoid()) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    public List<ExecutableTypeData> findGenericExecutableTypes(ProcessorContext context) {
         List<ExecutableTypeData> types = new ArrayList<>();
         for (ExecutableTypeData type : executableTypes) {
             if (!type.hasUnexpectedValue(context)) {
@@ -186,47 +262,20 @@ public class NodeData extends Template {
         return result;
     }
 
-    public TypeMirror[] getExecutablePrimitiveTypeMirrors() {
-        TypeMirror[] typeMirrors = new TypeMirror[executableTypes.length];
-        for (int i = 0; i < executableTypes.length; i++) {
-            typeMirrors[i] = executableTypes[i].getType().getPrimitiveType();
+    public List<TypeMirror> getExecutablePrimitiveTypeMirrors() {
+        List<TypeMirror> typeMirrors = new ArrayList<>();
+        for (ExecutableTypeData executableType : executableTypes) {
+            typeMirrors.add(executableType.getType().getPrimitiveType());
         }
         return typeMirrors;
     }
 
-    void setExecutableTypes(ExecutableTypeData[] declaredExecuableTypes) {
-        this.executableTypes = declaredExecuableTypes;
-    }
-
-    void setFields(NodeFieldData[] fields) {
-        this.fields = fields;
-    }
-
-    void setSpecializations(SpecializationData[] specializations) {
-        this.specializations = specializations;
-    }
-
-    void setSpecializationListeners(TemplateMethod[] specializationListeners) {
-        this.specializationListeners = specializationListeners;
-    }
-
-    void setGuards(GuardData[] guards) {
-        this.guards = guards;
-    }
-
-    public GuardData[] getGuards() {
-        return guards;
-    }
-
     public NodeFieldData[] filterFields(FieldKind fieldKind, ExecutionKind usage) {
         List<NodeFieldData> filteredFields = new ArrayList<>();
-        NodeFieldData[] resolvedFields = getFields();
-        if (fields != null) {
-            for (NodeFieldData field : resolvedFields) {
-                if (usage == null || field.getExecutionKind() == usage) {
-                    if (fieldKind == null || field.getKind() == fieldKind) {
-                        filteredFields.add(field);
-                    }
+        for (NodeFieldData field : getFields()) {
+            if (usage == null || field.getExecutionKind() == usage) {
+                if (fieldKind == null || field.getKind() == fieldKind) {
+                    filteredFields.add(field);
                 }
             }
         }
@@ -244,18 +293,13 @@ public class NodeData extends Template {
 
     public boolean needsRewrites(ProcessorContext context) {
         boolean needsRewrites = false;
-        for (NodeFieldData field : getFields()) {
-            if (field.getExecutionKind() == ExecutionKind.DEFAULT || field.getExecutionKind() == ExecutionKind.SHORT_CIRCUIT) {
-                if (!field.getNodeData().hasUnexpectedExecutableTypes(context)) {
-                    continue;
-                }
 
+        for (SpecializationData specialization : getSpecializations()) {
+            if (specialization.hasRewrite(context)) {
                 needsRewrites = true;
                 break;
             }
         }
-
-        needsRewrites &= specializations.length >= 2;
         return needsRewrites;
     }
 
@@ -269,35 +313,63 @@ public class NodeData extends Template {
     }
 
     public TypeSystemData getTypeSystem() {
-        if (typeSystem != null) {
-            return typeSystem;
-        } else {
-            return null;
-        }
-    }
-
-    public NodeFieldData[] getFields() {
-        return fields;
-    }
-
-    public NodeFieldData[] getDeclaredFields() {
-        return fields;
-    }
-
-    public SpecializationData[] getSpecializations() {
-        return specializations;
+        return typeSystem;
     }
 
     public String dump() {
-        StringBuilder b = new StringBuilder();
-        b.append(String.format("[name = %s\n" + "  typeSystem = %s\n" + "  fields = %s\n" + "  types = %s\n" + "  specializations = %s\n" + "  guards = %s\n" + "]",
-                        Utils.getQualifiedName(getTemplateType()), getTypeSystem(), dumpList(fields), dumpList(getExecutableTypes()), dumpList(getSpecializations()), dumpList(guards)));
-        return b.toString();
+        return dump(0);
     }
 
-    private static String dumpList(Object[] array) {
+    private String dump(int level) {
+        String indent = "";
+        for (int i = 0; i < level; i++) {
+            indent += "  ";
+        }
+        StringBuilder builder = new StringBuilder();
+
+        builder.append(String.format("%s%s {", indent, toString()));
+
+        dumpProperty(builder, indent, "templateClass", Utils.getQualifiedName(getTemplateType()));
+        dumpProperty(builder, indent, "typeSystem", getTypeSystem());
+        dumpProperty(builder, indent, "fields", getFields());
+        dumpProperty(builder, indent, "executableTypes", getExecutableTypes());
+        dumpProperty(builder, indent, "specializations", getSpecializations());
+        dumpProperty(builder, indent, "guards", getGuards());
+        dumpProperty(builder, indent, "messages", collectMessages());
+        if (getDeclaredChildren().size() > 0) {
+            builder.append(String.format("\n%s  children = [", indent));
+            for (NodeData node : getDeclaredChildren()) {
+                builder.append("\n");
+                builder.append(node.dump(level + 1));
+            }
+            builder.append(String.format("\n%s  ]", indent));
+        }
+        builder.append(String.format("%s}", indent));
+        return builder.toString();
+    }
+
+    private static void dumpProperty(StringBuilder b, String indent, String propertyName, Object value) {
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            if (!list.isEmpty()) {
+                b.append(String.format("\n%s  %s = %s", indent, propertyName, dumpList((List<?>) value)));
+            }
+        } else {
+            if (value != null) {
+                b.append(String.format("\n%s  %s = %s", indent, propertyName, value));
+            }
+        }
+    }
+
+    private static String dumpList(List<?> array) {
         if (array == null) {
             return "null";
+        }
+
+        if (array.isEmpty()) {
+            return "[]";
+        } else if (array.size() == 1) {
+            return "[" + array.get(0).toString() + "]";
         }
 
         StringBuilder b = new StringBuilder();
@@ -319,6 +391,78 @@ public class NodeData extends Template {
             }
         }
         return null;
+    }
+
+    public List<NodeFieldData> getFields() {
+        return fields;
+    }
+
+    void setFields(List<NodeFieldData> fields) {
+        this.fields = fields;
+    }
+
+    public List<SpecializationData> getSpecializations() {
+        return getSpecializations(false);
+    }
+
+    public List<SpecializationData> getSpecializations(boolean userDefinedOnly) {
+        if (userDefinedOnly) {
+            List<SpecializationData> specs = new ArrayList<>();
+            for (SpecializationData spec : specializations) {
+                if (spec.getMethod() != null) {
+                    specs.add(spec);
+                }
+            }
+            return specs;
+        } else {
+            return specializations;
+        }
+    }
+
+    public List<SpecializationListenerData> getSpecializationListeners() {
+        return specializationListeners;
+    }
+
+    public List<GuardData> getGuards() {
+        return guards;
+    }
+
+    public List<ExecutableTypeData> getExecutableTypes() {
+        return executableTypes;
+    }
+
+    public List<ShortCircuitData> getShortCircuits() {
+        return shortCircuits;
+    }
+
+    void setSpecializations(List<SpecializationData> specializations) {
+        this.specializations = specializations;
+        if (this.specializations != null) {
+            for (SpecializationData specialization : specializations) {
+                specialization.setNode(this);
+            }
+        }
+    }
+
+    void setSpecializationListeners(List<SpecializationListenerData> specializationListeners) {
+        this.specializationListeners = specializationListeners;
+    }
+
+    void setGuards(List<GuardData> guards) {
+        this.guards = guards;
+    }
+
+    void setExecutableTypes(List<ExecutableTypeData> executableTypes) {
+        this.executableTypes = executableTypes;
+    }
+
+    void setShortCircuits(List<ShortCircuitData> shortCircuits) {
+        this.shortCircuits = shortCircuits;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + getNodeId() + "]";
     }
 
 }

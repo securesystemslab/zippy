@@ -7,7 +7,7 @@
 ^dist/
 ^java/
 ^lib/
-^jdk1.7.0
+^jdk1.(7|8).0
 ^java64/
 ^work/
 \.checkstyle$
@@ -61,10 +61,11 @@ src_gen/
 .DS_Store
 javadoc/
 .idea/
+^cscope.out
+^tags
 syntax: glob
 *.bgv
 core.*
 *.jar
 eclipse-build.xml
 rebuild-launch.out
-

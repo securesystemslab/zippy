@@ -1996,50 +1996,6 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   int vep_offset = ((intptr_t)__ pc()) - start;
 
-#ifdef GRAALVM
-  if (InlineObjectHash && (method->intrinsic_id() == vmIntrinsics::_hashCode || method->intrinsic_id() == vmIntrinsics::_identityHashCode)) {
-    // Object.hashCode can pull the hashCode from the header word
-    // instead of doing a full VM transition once it's been computed.
-    // Since hashCode is usually polymorphic at call sites we can't do
-    // this optimization at the call site without a lot of work.
-    Label slowCase;
-    Label nullCase;
-    Register result = rax;
-
-    if (method->intrinsic_id() == vmIntrinsics::_identityHashCode) {
-      __ cmpptr(receiver, 0);
-      __ jcc(Assembler::equal, nullCase);
-    }
-
-    __ movptr(result, Address(receiver, oopDesc::mark_offset_in_bytes()));
-
-    // check if locked
-    __ testptr(result, markOopDesc::unlocked_value);
-    __ jcc (Assembler::zero, slowCase);
-
-    if (UseBiasedLocking) {
-      // Check if biased and fall through to runtime if so
-      __ testptr(result, markOopDesc::biased_lock_bit_in_place);
-      __ jcc (Assembler::notZero, slowCase);
-    }
-
-    // get hash
-    __ shrptr(result, markOopDesc::hash_shift);
-    __ andptr(result, markOopDesc::hash_mask);
-    // test if hashCode exists
-    __ jcc  (Assembler::zero, slowCase);
-    __ ret(0);
-
-    if (method->intrinsic_id() == vmIntrinsics::_identityHashCode) {
-      __ bind(nullCase);
-      __ movl(result, 0);
-      __ ret(0);
-    }
-
-    __ bind (slowCase);
-  }
-#endif // GRAALVM
-
   // The instruction at the verified entry point must be 5 bytes or longer
   // because it can be patched on the fly by make_non_entrant. The stack bang
   // instruction fits that requirement.
@@ -3452,8 +3408,8 @@ void SharedRuntime::generate_deopt_blob() {
   __ jmp(cont);
 
   int implicit_exception_uncommon_trap_offset = __ pc() - start;
+  // pc where the exception happened is in ScratchA
   __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
-  __ movptr(rscratch1, Address(r15_thread, in_bytes(JavaThread::ScratchB_offset())));
 
   int uncommon_trap_offset = __ pc() - start;
 
@@ -3462,8 +3418,8 @@ void SharedRuntime::generate_deopt_blob() {
   // fetch_unroll_info needs to call last_java_frame()
   __ set_last_Java_frame(noreg, noreg, NULL);
 
-  assert(r10 == rscratch1, "scratch register should be r10");
-  __ movl(c_rarg1, Address(rsp, RegisterSaver::r10_offset_in_bytes()));
+  __ movl(c_rarg1, Address(r15_thread, in_bytes(ThreadShadow::pending_deoptimization_offset())));
+  __ movl(Address(r15_thread, in_bytes(ThreadShadow::pending_deoptimization_offset())), -1);
 
   __ movl(r14, (int32_t)Deoptimization::Unpack_reexecute);
   __ mov(c_rarg0, r15_thread);

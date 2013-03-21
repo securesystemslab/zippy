@@ -22,7 +22,11 @@
  */
 package com.oracle.truffle.codegen.processor.node;
 
+import java.util.*;
+
 import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.codegen.processor.*;
+import com.oracle.truffle.codegen.processor.node.NodeFieldData.*;
 import com.oracle.truffle.codegen.processor.template.*;
 
 public class SpecializationData extends TemplateMethod {
@@ -30,13 +34,13 @@ public class SpecializationData extends TemplateMethod {
     private final int order;
     private final boolean generic;
     private final boolean uninitialized;
-    private final SpecializationThrowsData[] exceptions;
-    private SpecializationGuardData[] guards;
-    private ShortCircuitData[] shortCircuits;
+    private final List<SpecializationThrowsData> exceptions;
+    private List<SpecializationGuardData> guards;
+    private List<ShortCircuitData> shortCircuits;
     private boolean useSpecializationsForGeneric = true;
     private NodeData node;
 
-    public SpecializationData(TemplateMethod template, int order, SpecializationThrowsData[] exceptions) {
+    public SpecializationData(TemplateMethod template, int order, List<SpecializationThrowsData> exceptions) {
         super(template);
         this.order = order;
         this.generic = false;
@@ -53,8 +57,40 @@ public class SpecializationData extends TemplateMethod {
         this.order = Specialization.DEFAULT_ORDER;
         this.generic = generic;
         this.uninitialized = uninitialized;
-        this.exceptions = new SpecializationThrowsData[0];
-        this.guards = new SpecializationGuardData[0];
+        this.exceptions = Collections.emptyList();
+        this.guards = new ArrayList<>();
+    }
+
+    @Override
+    protected List<MessageContainer> findChildContainers() {
+        List<MessageContainer> sinks = new ArrayList<>();
+        if (exceptions != null) {
+            sinks.addAll(exceptions);
+        }
+        if (guards != null) {
+            sinks.addAll(guards);
+        }
+        return sinks;
+    }
+
+    public boolean hasRewrite(ProcessorContext context) {
+        if (!getExceptions().isEmpty()) {
+            return true;
+        }
+        if (!getGuards().isEmpty()) {
+            return true;
+        }
+        for (ActualParameter parameter : getParameters()) {
+            NodeFieldData field = getNode().findField(parameter.getSpecification().getName());
+            if (field == null || field.getKind() == FieldKind.FIELD) {
+                continue;
+            }
+            ExecutableTypeData type = field.getNodeData().findExecutableType(parameter.getActualTypeData(field.getNodeData().getTypeSystem()));
+            if (type.hasUnexpectedValue(context)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public NodeData getNode() {
@@ -65,7 +101,7 @@ public class SpecializationData extends TemplateMethod {
         this.node = node;
     }
 
-    public void setGuards(SpecializationGuardData[] guards) {
+    public void setGuards(List<SpecializationGuardData> guards) {
         this.guards = guards;
     }
 
@@ -81,19 +117,19 @@ public class SpecializationData extends TemplateMethod {
         return uninitialized;
     }
 
-    public SpecializationThrowsData[] getExceptions() {
+    public List<SpecializationThrowsData> getExceptions() {
         return exceptions;
     }
 
-    public SpecializationGuardData[] getGuards() {
+    public List<SpecializationGuardData> getGuards() {
         return guards;
     }
 
-    public void setShortCircuits(ShortCircuitData[] shortCircuits) {
+    public void setShortCircuits(List<ShortCircuitData> shortCircuits) {
         this.shortCircuits = shortCircuits;
     }
 
-    public ShortCircuitData[] getShortCircuits() {
+    public List<ShortCircuitData> getShortCircuits() {
         return shortCircuits;
     }
 
@@ -106,10 +142,10 @@ public class SpecializationData extends TemplateMethod {
     }
 
     public SpecializationData findNextSpecialization() {
-        SpecializationData[] specializations = node.getSpecializations();
-        for (int i = 0; i < specializations.length - 1; i++) {
-            if (specializations[i] == this) {
-                return specializations[i + 1];
+        List<SpecializationData> specializations = node.getSpecializations();
+        for (int i = 0; i < specializations.size() - 1; i++) {
+            if (specializations.get(i) == this) {
+                return specializations.get(i + 1);
             }
         }
         return null;
@@ -122,17 +158,6 @@ public class SpecializationData extends TemplateMethod {
             }
         }
         return false;
-    }
-
-    public ActualParameter getPreviousParam(ActualParameter searchParam) {
-        ActualParameter prev = null;
-        for (ActualParameter param : getParameters()) {
-            if (param == searchParam) {
-                return prev;
-            }
-            prev = param;
-        }
-        return prev;
     }
 
 }

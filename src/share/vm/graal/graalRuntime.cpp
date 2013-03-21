@@ -127,18 +127,15 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
   // Make sure that stubs that need oopmaps have them
   switch (id) {
     // These stubs don't need to have an oopmap
-    case graal_slow_subtype_check_id:
 #if defined(SPARC) || defined(PPC)
-    case graal_handle_exception_nofpu_id:  // Unused on sparc
+    case handle_exception_nofpu_id:  // Unused on sparc
 #endif
-    case graal_verify_oop_id:
-    case graal_unwind_exception_call_id:
-    case graal_OSR_migration_end_id:
-    case graal_arithmetic_frem_id:
-    case graal_arithmetic_drem_id:
-    case graal_set_deopt_info_id:
-    break;
-
+    case verify_oop_id:
+    case unwind_exception_call_id:
+    case OSR_migration_end_id:
+    case arithmetic_frem_id:
+    case arithmetic_drem_id:
+      break;
     // All other stubs should have oopmaps
     default:
       assert(oop_maps != NULL, "must have an oopmap");
@@ -443,17 +440,17 @@ address GraalRuntime::exception_handler_for_pc(JavaThread* thread) {
   return continuation;
 }
 
-JRT_ENTRY(void, GraalRuntime::graal_create_null_exception(JavaThread* thread))
+JRT_ENTRY(void, GraalRuntime::create_null_exception(JavaThread* thread))
   thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_NullPointerException(), NULL)());
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::graal_create_out_of_bounds_exception(JavaThread* thread, jint index))
+JRT_ENTRY(void, GraalRuntime::create_out_of_bounds_exception(JavaThread* thread, jint index))
   char message[jintAsStringSize];
   sprintf(message, "%d", index);
   thread->set_vm_result(Exceptions::new_exception(thread, vmSymbols::java_lang_ArrayIndexOutOfBoundsException(), message)());
 JRT_END
 
-JRT_ENTRY_NO_ASYNC(void, GraalRuntime::graal_monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
+JRT_ENTRY_NO_ASYNC(void, GraalRuntime::monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   if (TraceGraal >= 3) {
     char type[O_BUFLEN];
     obj->klass()->name()->as_C_string(type, O_BUFLEN);
@@ -484,15 +481,15 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::graal_monitorenter(JavaThread* thread, oo
   }
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_wb_pre_call(JavaThread* thread, oopDesc* obj))
+JRT_LEAF(void, GraalRuntime::wb_pre_call(JavaThread* thread, oopDesc* obj))
     thread->satb_mark_queue().enqueue(obj);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
+JRT_LEAF(void, GraalRuntime::wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
     thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
+JRT_LEAF(void, GraalRuntime::monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   assert(thread == JavaThread::current(), "threads must correspond");
   assert(thread->last_Java_sp(), "last_Java_sp must be set");
   // monitorexit is non-blocking (leaf routine) => no exceptions can be thrown
@@ -524,7 +521,7 @@ JRT_LEAF(void, GraalRuntime::graal_monitorexit(JavaThread* thread, oopDesc* obj,
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::graal_log_object(JavaThread* thread, oop obj, jint flags))
+JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oop obj, jint flags))
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
   bool address = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
   bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
@@ -546,7 +543,7 @@ JRT_ENTRY(void, GraalRuntime::graal_log_object(JavaThread* thread, oop obj, jint
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::graal_vm_error(JavaThread* thread, oop where, oop format, jlong value))
+JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format, jlong value))
   ResourceMark rm;
   assert(where == NULL || java_lang_String::is_instance(where), "must be");
   const char *error_msg = where == NULL ? "<internal Graal error>" : java_lang_String::as_utf8_string(where);
@@ -560,14 +557,15 @@ JRT_ENTRY(void, GraalRuntime::graal_vm_error(JavaThread* thread, oop where, oop 
   report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::graal_log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
+
+JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   assert(format != NULL && java_lang_String::is_instance(format), "must be");
   char *buf = java_lang_String::as_utf8_string(format);
   tty->print(buf, v1, v2, v3);
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::graal_log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
+JRT_ENTRY(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
   union {
       jlong l;
       jdouble d;
@@ -590,11 +588,11 @@ JRT_ENTRY(void, GraalRuntime::graal_log_primitive(JavaThread* thread, jchar type
   }
 JRT_END
 
-JRT_ENTRY(jint, GraalRuntime::graal_identity_hash_code(JavaThread* thread, oop obj))
+JRT_ENTRY(jint, GraalRuntime::identity_hash_code(JavaThread* thread, oop obj))
   return (jint) obj->identity_hash();
 JRT_END
 
-JRT_ENTRY(jboolean, GraalRuntime::graal_thread_is_interrupted(JavaThread* thread, oop receiver, jboolean clear_interrupted))
+JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oop receiver, jboolean clear_interrupted))
   // Ensure that the C++ Thread and OSThread structures aren't freed before we operate
   Handle receiverHandle(thread, receiver);
   MutexLockerEx ml(thread->threadObj() == receiver ? NULL : Threads_lock);

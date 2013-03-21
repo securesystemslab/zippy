@@ -38,6 +38,7 @@
 #include "services/management.hpp"
 #include "services/memTracker.hpp"
 #include "utilities/defaultStream.hpp"
+#include "utilities/macros.hpp"
 #include "utilities/taskqueue.hpp"
 #ifdef TARGET_OS_FAMILY_linux
 # include "os_linux.inline.hpp"
@@ -51,9 +52,9 @@
 #ifdef TARGET_OS_FAMILY_bsd
 # include "os_bsd.inline.hpp"
 #endif
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/compactibleFreeListSpace.hpp"
-#endif
+#endif // INCLUDE_ALL_GCS
 
 // Note: This is a special bug reporting site for the JVM
 #define DEFAULT_VENDOR_URL_BUG "http://bugreport.sun.com/bugreport/crash.jsp"
@@ -104,9 +105,6 @@ SystemProperty *Arguments::_java_library_path = NULL;
 SystemProperty *Arguments::_java_home = NULL;
 SystemProperty *Arguments::_java_class_path = NULL;
 SystemProperty *Arguments::_sun_boot_class_path = NULL;
-#ifdef GRAAL
-SystemProperty *Arguments::_compiler_class_path = NULL;
-#endif
 
 char* Arguments::_meta_index_path = NULL;
 char* Arguments::_meta_index_dir = NULL;
@@ -168,9 +166,6 @@ void Arguments::init_system_properties() {
   _java_library_path = new SystemProperty("java.library.path", NULL,  true);
   _java_home =  new SystemProperty("java.home", NULL,  true);
   _sun_boot_class_path = new SystemProperty("sun.boot.class.path", NULL,  true);
-#ifdef GRAAL
-  _compiler_class_path = new SystemProperty("compiler.class.path", NULL,  true);
-#endif
 
   _java_class_path = new SystemProperty("java.class.path", "",  true);
 
@@ -182,9 +177,6 @@ void Arguments::init_system_properties() {
   PropertyList_add(&_system_properties, _java_home);
   PropertyList_add(&_system_properties, _java_class_path);
   PropertyList_add(&_system_properties, _sun_boot_class_path);
-#ifdef GRAAL
-  PropertyList_add(&_system_properties, _compiler_class_path);
-#endif
 
   // Set OS specific system properties values
   os::init_system_properties_values();
@@ -845,7 +837,8 @@ bool Arguments::process_argument(const char* arg,
     return true;
   }
 
-  const char * const argname = *arg == '+' || *arg == '-' ? arg + 1 : arg;
+  bool has_plus_minus = (*arg == '+' || *arg == '-');
+  const char* const argname = has_plus_minus ? arg + 1 : arg;
   if (is_newly_obsolete(arg, &since)) {
     char version[256];
     since.to_string(version, sizeof(version));
@@ -856,13 +849,29 @@ bool Arguments::process_argument(const char* arg,
   // For locked flags, report a custom error message if available.
   // Otherwise, report the standard unrecognized VM option.
 
-  Flag* locked_flag = Flag::find_flag((char*)argname, strlen(argname), true);
-  if (locked_flag != NULL) {
+  size_t arg_len;
+  const char* equal_sign = strchr(argname, '=');
+  if (equal_sign == NULL) {
+    arg_len = strlen(argname);
+  } else {
+    arg_len = equal_sign - argname;
+  }
+
+  Flag* found_flag = Flag::find_flag((char*)argname, arg_len, true);
+  if (found_flag != NULL) {
     char locked_message_buf[BUFLEN];
-    locked_flag->get_locked_message(locked_message_buf, BUFLEN);
+    found_flag->get_locked_message(locked_message_buf, BUFLEN);
     if (strlen(locked_message_buf) == 0) {
-      jio_fprintf(defaultStream::error_stream(),
-        "Unrecognized VM option '%s'\n", argname);
+      if (found_flag->is_bool() && !has_plus_minus) {
+        jio_fprintf(defaultStream::error_stream(),
+          "Missing +/- setting for VM option '%s'\n", argname);
+      } else if (!found_flag->is_bool() && has_plus_minus) {
+        jio_fprintf(defaultStream::error_stream(),
+          "Unexpected +/- setting in VM option '%s'\n", argname);
+      } else {
+        jio_fprintf(defaultStream::error_stream(),
+          "Improperly specified VM option '%s'\n", argname);
+      }
     } else {
       jio_fprintf(defaultStream::error_stream(), "%s", locked_message_buf);
     }
@@ -1086,11 +1095,11 @@ void Arguments::set_tiered_flags() {
   }
   // Increase the code cache size - tiered compiles a lot more.
   if (FLAG_IS_DEFAULT(ReservedCodeCacheSize)) {
-    FLAG_SET_DEFAULT(ReservedCodeCacheSize, ReservedCodeCacheSize * 2);
+    FLAG_SET_DEFAULT(ReservedCodeCacheSize, ReservedCodeCacheSize * 5);
   }
 }
 
-#if INCLUDE_ALTERNATE_GCS
+#if INCLUDE_ALL_GCS
 static void disable_adaptive_size_policy(const char* collector_name) {
   if (UseAdaptiveSizePolicy) {
     if (FLAG_IS_CMDLINE(UseAdaptiveSizePolicy)) {
@@ -1257,7 +1266,7 @@ void Arguments::set_cms_and_parnew_gc_flags() {
   // prefer minuscule survivor spaces so as not to waste
   // space for (non-existent) survivors
   if (FLAG_IS_DEFAULT(SurvivorRatio) && MaxTenuringThreshold == 0) {
-    FLAG_SET_ERGO(intx, SurvivorRatio, MAX2((intx)1024, SurvivorRatio));
+    FLAG_SET_ERGO(uintx, SurvivorRatio, MAX2((uintx)1024, SurvivorRatio));
   }
   // If OldPLABSize is set and CMSParPromoteBlocksToClaim is not,
   // set CMSParPromoteBlocksToClaim equal to OldPLABSize.
@@ -1302,7 +1311,7 @@ void Arguments::set_cms_and_parnew_gc_flags() {
     tty->print_cr("ConcGCThreads: %u", ConcGCThreads);
   }
 }
-#endif // INCLUDE_ALTERNATE_GCS
+#endif // INCLUDE_ALL_GCS
 
 void set_object_alignment() {
   // Object alignment.
@@ -1319,10 +1328,10 @@ void set_object_alignment() {
   // Oop encoding heap max
   OopEncodingHeapMax = (uint64_t(max_juint) + 1) << LogMinObjAlignmentInBytes;
 
-#if INCLUDE_ALTERNATE_GCS
+#if INCLUDE_ALL_GCS
   // Set CMS global values
   CompactibleFreeListSpace::set_cms_values();
-#endif // INCLUDE_ALTERNATE_GCS
+#endif // INCLUDE_ALL_GCS
 }
 
 bool verify_object_alignment() {
@@ -1447,13 +1456,18 @@ void Arguments::set_ergonomics_flags() {
     }
     // Set the ClassMetaspaceSize to something that will not need to be
     // expanded, since it cannot be expanded.
-    if (UseCompressedKlassPointers && FLAG_IS_DEFAULT(ClassMetaspaceSize)) {
-      // 100,000 classes seems like a good size, so 100M assumes around 1K
-      // per klass.   The vtable and oopMap is embedded so we don't have a fixed
-      // size per klass.   Eventually, this will be parameterized because it
-      // would also be useful to determine the optimal size of the
-      // systemDictionary.
-      FLAG_SET_ERGO(uintx, ClassMetaspaceSize, 100*M);
+    if (UseCompressedKlassPointers) {
+      if (ClassMetaspaceSize > KlassEncodingMetaspaceMax) {
+        warning("Class metaspace size is too large for UseCompressedKlassPointers");
+        FLAG_SET_DEFAULT(UseCompressedKlassPointers, false);
+      } else if (FLAG_IS_DEFAULT(ClassMetaspaceSize)) {
+        // 100,000 classes seems like a good size, so 100M assumes around 1K
+        // per klass.   The vtable and oopMap is embedded so we don't have a fixed
+        // size per klass.   Eventually, this will be parameterized because it
+        // would also be useful to determine the optimal size of the
+        // systemDictionary.
+        FLAG_SET_ERGO(uintx, ClassMetaspaceSize, 100*M);
+      }
     }
   }
   // Also checks that certain machines are slower with compressed oops
@@ -1733,16 +1747,6 @@ bool Arguments::verify_percentage(uintx value, const char* name) {
   return false;
 }
 
-static void force_serial_gc() {
-  FLAG_SET_DEFAULT(UseSerialGC, true);
-  FLAG_SET_DEFAULT(UseParNewGC, false);
-  FLAG_SET_DEFAULT(UseConcMarkSweepGC, false);
-  FLAG_SET_DEFAULT(CMSIncrementalMode, false);  // special CMS suboption
-  FLAG_SET_DEFAULT(UseParallelGC, false);
-  FLAG_SET_DEFAULT(UseParallelOldGC, false);
-  FLAG_SET_DEFAULT(UseG1GC, false);
-}
-
 static bool verify_serial_gc_flags() {
   return (UseSerialGC &&
         !(UseParNewGC || (UseConcMarkSweepGC || CMSIncrementalMode) || UseG1GC ||
@@ -1892,6 +1896,24 @@ bool Arguments::check_vm_args_consistency() {
   // Keeping the heap 100% free is hard ;-) so limit it to 99%.
   MinHeapFreeRatio = MIN2(MinHeapFreeRatio, (uintx) 99);
 
+  // Min/MaxMetaspaceFreeRatio
+  status = status && verify_percentage(MinMetaspaceFreeRatio, "MinMetaspaceFreeRatio");
+  status = status && verify_percentage(MaxMetaspaceFreeRatio, "MaxMetaspaceFreeRatio");
+
+  if (MinMetaspaceFreeRatio > MaxMetaspaceFreeRatio) {
+    jio_fprintf(defaultStream::error_stream(),
+                "MinMetaspaceFreeRatio (%s" UINTX_FORMAT ") must be less than or "
+                "equal to MaxMetaspaceFreeRatio (%s" UINTX_FORMAT ")\n",
+                FLAG_IS_DEFAULT(MinMetaspaceFreeRatio) ? "Default: " : "",
+                MinMetaspaceFreeRatio,
+                FLAG_IS_DEFAULT(MaxMetaspaceFreeRatio) ? "Default: " : "",
+                MaxMetaspaceFreeRatio);
+    status = false;
+  }
+
+  // Trying to keep 100% free is not practical
+  MinMetaspaceFreeRatio = MIN2(MinMetaspaceFreeRatio, (uintx) 99);
+
   if (FullGCALot && FLAG_IS_DEFAULT(MarkSweepAlwaysCompactCount)) {
     MarkSweepAlwaysCompactCount = 1;  // Move objects every gc.
   }
@@ -1899,7 +1921,7 @@ bool Arguments::check_vm_args_consistency() {
   if (UseParallelOldGC && ParallelOldGCSplitALot) {
     // Settings to encourage splitting.
     if (!FLAG_IS_CMDLINE(NewRatio)) {
-      FLAG_SET_CMDLINE(intx, NewRatio, 2);
+      FLAG_SET_CMDLINE(uintx, NewRatio, 2);
     }
     if (!FLAG_IS_CMDLINE(ScavengeBeforeFullGC)) {
       FLAG_SET_CMDLINE(bool, ScavengeBeforeFullGC, false);
@@ -1994,7 +2016,7 @@ bool Arguments::check_vm_args_consistency() {
 
   status = status && verify_min_value(ParGCArrayScanChunk, 1, "ParGCArrayScanChunk");
 
-#ifndef SERIALGC
+#if INCLUDE_ALL_GCS
   if (UseG1GC) {
     status = status && verify_percentage(InitiatingHeapOccupancyPercent,
                                          "InitiatingHeapOccupancyPercent");
@@ -2003,7 +2025,7 @@ bool Arguments::check_vm_args_consistency() {
     status = status && verify_min_value((intx)G1ConcMarkStepDurationMillis, 1,
                                         "G1ConcMarkStepDurationMillis");
   }
-#endif
+#endif // INCLUDE_ALL_GCS
 
   status = status && verify_interval(RefDiscoveryPolicy,
                                      ReferenceProcessor::DiscoveryPolicyMin,
@@ -2048,18 +2070,28 @@ bool Arguments::check_vm_args_consistency() {
   }
 #ifdef GRAAL
   if (UseCompressedOops) {
-    jio_fprintf(defaultStream::error_stream(),
+    if (IgnoreUnrecognizedVMOptions) {
+      warning("UseCompressedOops is disabled, because it is not supported by Graal");
+      FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
+    } else {
+      jio_fprintf(defaultStream::error_stream(),
                     "CompressedOops are not supported in Graal at the moment\n");
-        status = false;
+      status = false;
+    }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
     FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
   }
 
   if (UseCompressedKlassPointers) {
-    jio_fprintf(defaultStream::error_stream(),
+    if (IgnoreUnrecognizedVMOptions) {
+      warning("UseCompressedKlassPointers is disabled, because it is not supported by Graal");
+      FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
+    } else {
+      jio_fprintf(defaultStream::error_stream(),
                     "UseCompressedKlassPointers are not supported in Graal at the moment\n");
-        status = false;
+      status = false;
+    }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
     FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
@@ -2150,58 +2182,6 @@ Arguments::ArgsRange Arguments::parse_memory_size(const char* s,
 }
 
 // Parse JavaVMInitArgs structure
-#ifdef GRAAL
-static void prepend_to_graal_classpath(SysClassPath &cp, const char* path) {
-  cp.add_prefix(path);
-}
-
-static void prepend_to_graal_classpath(SysClassPath &cp, const char* graal_dir, const char* project) {
-  const int BUFFER_SIZE = 1024;
-  char path[BUFFER_SIZE];
-
-  const char fileSep = *os::file_separator();
-  sprintf(path, "%s%c%s%cbin", graal_dir, fileSep, project, fileSep);
-  
-  DIR* dir = os::opendir(path);
-  if (dir == NULL) {
-    jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The Graal class directory %s could not be opened.\n", path);
-    vm_exit(1);
-  }
-  os::closedir(dir);
-  prepend_to_graal_classpath(cp, path);
-}
-
-// Walk up the directory hierarchy starting from JAVA_HOME looking
-// for a directory named "graal". If found, then the full path to
-// this directory is returned in graal_dir.
-static bool find_graal_dir(char* graal_dir) {
-  strcpy(graal_dir, Arguments::get_java_home());
-  char* end = graal_dir + strlen(graal_dir);
-  const char fileSep = *os::file_separator();
-  while (end != graal_dir) {
-    if (fileSep == '/') 
-      strcat(graal_dir, "/graal");
-    else {
-      assert(fileSep == '\\', "unexpected separator char");
-      strcat(graal_dir, "\\graal");
-    }
-    DIR* dir = os::opendir(graal_dir);
-    if (dir != NULL) {
-      os::closedir(dir);
-      return true;
-    }
-    *end = 0;
-    while (end != graal_dir) {
-      if (*end == fileSep) {
-        *end = 0;
-        break;
-      }
-      end--;
-    }
-  }
-  return false;
-}
-#endif
 
 jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
   // For components of the system classpath.
@@ -2229,72 +2209,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     return result;
   }
 
-#ifdef GRAAL
-    if (PrintVMOptions) {
-      tty->print_cr("Running Graal VM... ");
-    }
-
-    SysClassPath scp_compiler("");
-
-    if (GraalClassPath != NULL) {
-      prepend_to_graal_classpath(scp_compiler, GraalClassPath);
-    } else {
-      const int BUFFER_SIZE = 1024;
-      char graal_dir[BUFFER_SIZE];
-      if (!os::getenv("GRAAL", graal_dir, sizeof(graal_dir))) {
-        if (find_graal_dir(graal_dir) == false) {
-          jio_fprintf(defaultStream::output_stream(), "Error while starting Graal VM: The GRAAL environment variable needs to point to the directory containing the Graal projects.\n");
-          vm_exit(0);
-        }
-      }
-      if (PrintVMOptions) tty->print_cr("GRAAL=%s", graal_dir);
-    
-      // this declaration is checked for correctness by 'mx build' - only
-      // modify its entries, not its name or shape
-      const char* graal_projects[] = {
-  #ifdef AMD64
-          "com.oracle.graal.amd64",
-          "com.oracle.graal.asm.amd64",
-          "com.oracle.graal.lir.amd64",
-          "com.oracle.graal.compiler.amd64",
-          "com.oracle.graal.hotspot.amd64",
-  #endif
-          "com.oracle.graal.api.runtime",
-          "com.oracle.graal.api.meta",
-          "com.oracle.graal.api.code",
-          "com.oracle.graal.hotspot",
-          "com.oracle.graal.asm",
-          "com.oracle.graal.alloc",
-          "com.oracle.graal.word",
-          "com.oracle.graal.snippets",
-          "com.oracle.graal.compiler",
-          "com.oracle.graal.loop",
-          "com.oracle.graal.phases",
-          "com.oracle.graal.phases.common",
-          "com.oracle.graal.virtual",
-          "com.oracle.graal.nodes",
-          "com.oracle.graal.printer",
-          "com.oracle.graal.debug",
-          "com.oracle.graal.graph",
-          "com.oracle.graal.lir",
-          "com.oracle.graal.bytecode",
-          "com.oracle.graal.java"
-      };
-            
-      const int len = sizeof(graal_projects) / sizeof(char*);
-      for (int i = 0; i < len; i++) {
-        if (PrintVMOptions) {
-          tty->print_cr("Adding project directory %s to bootclasspath", graal_projects[i]);
-        }
-        prepend_to_graal_classpath(scp_compiler, graal_dir, graal_projects[i]);
-      }
-    }
-
-    scp_compiler.expand_endorsed();
-    Arguments::set_compilerclasspath(scp_compiler.combined_path());
-
-#endif
-
   if (AggressiveOpts) {
     // Insert alt-rt.jar between user-specified bootclasspath
     // prefix and the default bootclasspath.  os::set_boot_path()
@@ -2308,19 +2222,6 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
     scp.add_suffix_to_prefix(altclasses_path);
     scp_assembly_required = true;
     FREE_C_HEAP_ARRAY(char, altclasses_path, mtInternal);
-  }
-
-  if (WhiteBoxAPI) {
-    // Append wb.jar to bootclasspath if enabled
-    const char* wb_jar = "wb.jar";
-    size_t wb_path_len = strlen(get_meta_index_dir()) + 1 +
-                         strlen(wb_jar);
-    char* wb_path = NEW_C_HEAP_ARRAY(char, wb_path_len, mtInternal);
-    strcpy(wb_path, get_meta_index_dir());
-    strcat(wb_path, wb_jar);
-    scp.add_suffix(wb_path);
-    scp_assembly_required = true;
-    FREE_C_HEAP_ARRAY(char, wb_path, mtInternal);
   }
 
   // Parse _JAVA_OPTIONS environment variable (if present) (mimics classic VM)
@@ -2617,7 +2518,12 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
       }
       // Out of the box management support
       if (match_option(option, "-Dcom.sun.management", &tail)) {
+#if INCLUDE_MANAGEMENT
         FLAG_SET_CMDLINE(bool, ManagementServer, true);
+#else
+        vm_exit_during_initialization(
+            "-Dcom.sun.management is not supported in this VM.", NULL);
+#endif
       }
     // -Xint
     } else if (match_option(option, "-Xint", &tail)) {
@@ -2632,10 +2538,7 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
 
     // -Xshare:dump
     } else if (match_option(option, "-Xshare:dump", &tail)) {
-#if defined(KERNEL)
-      vm_exit_during_initialization(
-          "Dumping a shared archive is not supported on the Kernel JVM.", NULL);
-#elif !INCLUDE_CDS
+#if !INCLUDE_CDS
       vm_exit_during_initialization(
           "Dumping a shared archive is not supported in this VM.", NULL);
 #else
@@ -2966,6 +2869,11 @@ SOLARIS_ONLY(
       //       away and will cause VM initialization failures!
       warning("-XX:+UseVMInterruptibleIO is obsolete and will be removed in a future release.");
       FLAG_SET_CMDLINE(bool, UseVMInterruptibleIO, true);
+#if !INCLUDE_MANAGEMENT
+    } else if (match_option(option, "-XX:+ManagementServer", &tail)) {
+      vm_exit_during_initialization(
+        "ManagementServer is not supported in this VM.", NULL);
+#endif // INCLUDE_MANAGEMENT
     } else if (match_option(option, "-XX:", &tail)) { // -XX:xxxx
       // Skip -XX:Flags= since that case has already been handled
       if (strncmp(tail, "Flags=", strlen("Flags=")) != 0) {
@@ -3205,6 +3113,27 @@ do {                                                            \
   }                                                             \
 } while(0)
 
+
+#define UNSUPPORTED_GC_OPTION(gc)                                     \
+do {                                                                  \
+  if (gc) {                                                           \
+    if (FLAG_IS_CMDLINE(gc)) {                                        \
+      warning(#gc " is not supported in this VM.  Using Serial GC."); \
+    }                                                                 \
+    FLAG_SET_DEFAULT(gc, false);                                      \
+  }                                                                   \
+} while(0)
+
+static void force_serial_gc() {
+  FLAG_SET_DEFAULT(UseSerialGC, true);
+  FLAG_SET_DEFAULT(CMSIncrementalMode, false);  // special CMS suboption
+  UNSUPPORTED_GC_OPTION(UseG1GC);
+  UNSUPPORTED_GC_OPTION(UseParallelGC);
+  UNSUPPORTED_GC_OPTION(UseParallelOldGC);
+  UNSUPPORTED_GC_OPTION(UseConcMarkSweepGC);
+  UNSUPPORTED_GC_OPTION(UseParNewGC);
+}
+
 // Parse entry point called from JNI_CreateJavaVM
 
 jint Arguments::parse(const JavaVMInitArgs* args) {
@@ -3320,28 +3249,15 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
             hotspotrc, hotspotrc);
   }
 
-#if (defined JAVASE_EMBEDDED || defined ARM)
-  UNSUPPORTED_OPTION(UseG1GC, "G1 GC");
-#endif
-
 #ifdef _ALLBSD_SOURCE  // UseLargePages is not yet supported on BSD.
   UNSUPPORTED_OPTION(UseLargePages, "-XX:+UseLargePages");
 #endif
 
-#if !INCLUDE_ALTERNATE_GCS
-  if (UseParallelGC) {
-    warning("Parallel GC is not supported in this VM.  Using Serial GC.");
-  }
-  if (UseParallelOldGC) {
-    warning("Parallel Old GC is not supported in this VM.  Using Serial GC.");
-  }
-  if (UseConcMarkSweepGC) {
-    warning("Concurrent Mark Sweep GC is not supported in this VM.  Using Serial GC.");
-  }
-  if (UseParNewGC) {
-    warning("Par New GC is not supported in this VM.  Using Serial GC.");
-  }
-#endif // INCLUDE_ALTERNATE_GCS
+#if INCLUDE_ALL_GCS
+  #if (defined JAVASE_EMBEDDED || defined ARM)
+    UNSUPPORTED_OPTION(UseG1GC, "G1 GC");
+  #endif
+#endif
 
 #ifndef PRODUCT
   if (TraceBytecodesAt != 0) {
@@ -3388,9 +3304,9 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   // Set object alignment values.
   set_object_alignment();
 
-#ifdef SERIALGC
+#if !INCLUDE_ALL_GCS
   force_serial_gc();
-#endif // SERIALGC
+#endif // INCLUDE_ALL_GCS
 #if !INCLUDE_CDS
   no_shared_spaces();
 #endif // INCLUDE_CDS
@@ -3418,7 +3334,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   // Set heap size based on available physical memory
   set_heap_size();
 
-#if INCLUDE_ALTERNATE_GCS
+#if INCLUDE_ALL_GCS
   // Set per-collector flags
   if (UseParallelGC || UseParallelOldGC) {
     set_parallel_gc_flags();
@@ -3430,11 +3346,9 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
     set_g1_gc_flags();
   }
   check_deprecated_gcs();
-#endif // INCLUDE_ALTERNATE_GCS
-
-#ifdef SERIALGC
+#else // INCLUDE_ALL_GCS
   assert(verify_serial_gc_flags(), "SerialGC unset");
-#endif // SERIALGC
+#endif // INCLUDE_ALL_GCS
 
   // Set bytecode rewriting flags
   set_bytecode_flags();
@@ -3531,7 +3445,7 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
 }
 
 jint Arguments::adjust_after_os() {
-#if INCLUDE_ALTERNATE_GCS
+#if INCLUDE_ALL_GCS
   if (UseParallelGC || UseParallelOldGC) {
     if (UseNUMA) {
       if (FLAG_IS_DEFAULT(MinHeapDeltaBytes)) {
@@ -3542,7 +3456,7 @@ jint Arguments::adjust_after_os() {
       UseNUMAInterleaving = true;
     }
   }
-#endif
+#endif // INCLUDE_ALL_GCS
   return JNI_OK;
 }
 
@@ -3636,36 +3550,6 @@ void Arguments::PropertyList_unique_add(SystemProperty** plist, const char* k, c
 
   PropertyList_add(plist, k, v);
 }
-
-#ifdef KERNEL
-char *Arguments::get_kernel_properties() {
-  // Find properties starting with kernel and append them to string
-  // We need to find out how long they are first because the URL's that they
-  // might point to could get long.
-  int length = 0;
-  SystemProperty* prop;
-  for (prop = _system_properties; prop != NULL; prop = prop->next()) {
-    if (strncmp(prop->key(), "kernel.", 7 ) == 0) {
-      length += (strlen(prop->key()) + strlen(prop->value()) + 5);  // "-D ="
-    }
-  }
-  // Add one for null terminator.
-  char *props = AllocateHeap(length + 1, mtInternal);
-  if (length != 0) {
-    int pos = 0;
-    for (prop = _system_properties; prop != NULL; prop = prop->next()) {
-      if (strncmp(prop->key(), "kernel.", 7 ) == 0) {
-        jio_snprintf(&props[pos], length-pos,
-                     "-D%s=%s ", prop->key(), prop->value());
-        pos = strlen(props);
-      }
-    }
-  }
-  // null terminate props in case of null
-  props[length] = '\0';
-  return props;
-}
-#endif // KERNEL
 
 // Copies src into buf, replacing "%%" with "%" and "%p" with pid
 // Returns true if all of the source pointed by src has been copied over to

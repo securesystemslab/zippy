@@ -63,19 +63,71 @@ public final class OrganizedImports {
     }
 
     public String useImport(TypeMirror type) {
-        String simpleName = getSimpleName(type);
-        TypeMirror usedByType = simpleNamesUsed.get(type);
+        switch (type.getKind()) {
+            case BOOLEAN:
+            case BYTE:
+            case CHAR:
+            case DOUBLE:
+            case FLOAT:
+            case SHORT:
+            case INT:
+            case LONG:
+            case VOID:
+                return Utils.getSimpleName(type);
+            case DECLARED:
+                return createDeclaredTypeName((DeclaredType) type);
+            case ARRAY:
+                return useImport(((ArrayType) type).getComponentType()) + "[]";
+            case WILDCARD:
+                return createWildcardName((WildcardType) type);
+            case TYPEVAR:
+                return "?";
+            default:
+                throw new RuntimeException("Unknown type specified " + type.getKind() + " mirror: " + type);
+        }
+    }
+
+    private String createWildcardName(WildcardType type) {
+        StringBuilder b = new StringBuilder();
+        if (type.getExtendsBound() != null) {
+            b.append("? extends ").append(useImport(type.getExtendsBound()));
+        } else if (type.getSuperBound() != null) {
+            b.append("? super ").append(useImport(type.getExtendsBound()));
+        }
+        return b.toString();
+    }
+
+    private String createDeclaredTypeName(DeclaredType type) {
+        String name = type.asElement().getSimpleName().toString();
+
+        TypeMirror usedByType = simpleNamesUsed.get(name);
         if (usedByType == null) {
-            simpleNamesUsed.put(simpleName, type);
+            simpleNamesUsed.put(name, type);
             usedByType = type;
-        } else if (!typeEquals(type, usedByType)) {
-            // we need a qualified name
-            return getQualifiedName(type);
         }
 
-        // we can use the simple name
-        addUsage(type, importUsage);
-        return simpleName;
+        if (typeEquals(type, usedByType)) {
+            addUsage(type, importUsage);
+        } else {
+            name = getQualifiedName(type);
+        }
+
+        if (type.getTypeArguments().size() == 0) {
+            return name;
+        }
+
+        StringBuilder b = new StringBuilder(name);
+        b.append("<");
+        if (type.getTypeArguments().size() > 0) {
+            for (int i = 0; i < type.getTypeArguments().size(); i++) {
+                b.append(useImport(type.getTypeArguments().get(i)));
+                if (i < type.getTypeArguments().size() - 1) {
+                    b.append(", ");
+                }
+            }
+        }
+        b.append(">");
+        return b.toString();
     }
 
     public String useStaticFieldImport(TypeMirror type, String fieldName) {
@@ -307,6 +359,100 @@ public final class OrganizedImports {
 
         public void visitAnnotation(AnnotationMirror e) {
             addImport(e.getAnnotationType());
+            if (!e.getElementValues().isEmpty()) {
+                Map<? extends ExecutableElement, ? extends AnnotationValue> values = e.getElementValues();
+                Set<? extends ExecutableElement> methodsSet = values.keySet();
+                List<ExecutableElement> methodsList = new ArrayList<>();
+                for (ExecutableElement method : methodsSet) {
+                    if (values.get(method) == null) {
+                        continue;
+                    }
+                    methodsList.add(method);
+                }
+
+                for (int i = 0; i < methodsList.size(); i++) {
+                    AnnotationValue value = values.get(methodsList.get(i));
+                    visitAnnotationValue(value);
+                }
+            }
+        }
+
+        public void visitAnnotationValue(AnnotationValue e) {
+            e.accept(new AnnotationValueReferenceVisitor(), null);
+        }
+
+        private class AnnotationValueReferenceVisitor extends AbstractAnnotationValueVisitor7<Void, Void> {
+
+            @Override
+            public Void visitBoolean(boolean b, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitByte(byte b, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitChar(char c, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitDouble(double d, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitFloat(float f, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitInt(int i, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitLong(long i, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitShort(short s, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitString(String s, Void p) {
+                return null;
+            }
+
+            @Override
+            public Void visitType(TypeMirror t, Void p) {
+                addImport(t);
+                return null;
+            }
+
+            @Override
+            public Void visitEnumConstant(VariableElement c, Void p) {
+                addImport(c.asType());
+                return null;
+            }
+
+            @Override
+            public Void visitAnnotation(AnnotationMirror a, Void p) {
+                ReferenceCollector.this.visitAnnotation(a);
+                return null;
+            }
+
+            @Override
+            public Void visitArray(List<? extends AnnotationValue> vals, Void p) {
+                for (int i = 0; i < vals.size(); i++) {
+                    ReferenceCollector.this.visitAnnotationValue(vals.get(i));
+                }
+                return null;
+            }
         }
 
         @Override

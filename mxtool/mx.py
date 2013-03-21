@@ -143,11 +143,35 @@ DEFAULT_JAVA_ARGS = '-ea -Xss2m -Xmx1g'
 
 _projects = dict()
 _libs = dict()
+_dists = dict()
 _suites = dict()
 _mainSuite = None
 _opts = None
 _java = None
 
+"""
+A distribution is a jar or zip file containing the output from one or more Java projects.
+"""
+class Distribution:
+    def __init__(self, suite, name, path, deps):
+        self.suite = suite
+        self.name = name
+        self.path = path.replace('/', os.sep)
+        if not isabs(self.path):
+            self.path = join(suite.dir, self.path)
+        self.deps = deps
+        self.update_listeners = set()
+        
+    def __str__(self):
+        return self.name
+    
+    def add_update_listener(self, listener):
+        self.update_listeners.add(listener)
+        
+    def notify_updated(self):
+        for l in self.update_listeners:
+            l(self)
+    
 """
 A dependency is a library or project specified in a suite.
 """
@@ -416,6 +440,7 @@ class Suite:
         self.dir = d
         self.projects = []
         self.libs = []
+        self.dists = []
         self.includes = []
         self.commands = None
         self.primary = primary
@@ -427,6 +452,7 @@ class Suite:
     def _load_projects(self, mxDir):
         libsMap = dict()
         projsMap = dict()
+        distsMap = dict()
         projectsFile = join(mxDir, 'projects')
         if not exists(projectsFile):
             return
@@ -447,8 +473,10 @@ class Suite:
                         m = projsMap
                     elif kind == 'library':
                         m = libsMap
+                    elif kind == 'distribution':
+                        m = distsMap
                     else:
-                        abort('Property name does not start with "project@" or "library@": ' + key)
+                        abort('Property name does not start with "project@", "library@" or "distribution@": ' + key)
 
                     attrs = m.get(name)
                     if attrs is None:
@@ -494,6 +522,13 @@ class Suite:
             l.__dict__.update(attrs)
             self.libs.append(l)
 
+        for name, attrs in distsMap.iteritems():
+            path = attrs.pop('path')
+            deps = pop_list(attrs, 'dependencies')
+            d = Distribution(self, name, path, deps)
+            d.__dict__.update(attrs)
+            self.dists.append(d)
+
     def _load_commands(self, mxDir):
         commands = join(mxDir, 'commands.py')
         if exists(commands):
@@ -536,8 +571,6 @@ class Suite:
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
-        if hasattr(self, 'mx_post_parse_cmd_line'):
-            self.mx_post_parse_cmd_line(opts)
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -549,6 +582,13 @@ class Suite:
             if existing is not None:
                 abort('cannot redefine library  ' + l.name)
             _libs[l.name] = l
+        for d in self.dists:
+            existing = _dists.get(l.name)
+            if existing is not None:
+                abort('cannot redefine distribution  ' + d.name)
+            _dists[d.name] = d
+        if hasattr(self, 'mx_post_parse_cmd_line'):
+            self.mx_post_parse_cmd_line(opts)
 
 class XMLElement(xml.dom.minidom.Element):
     def writexml(self, writer, indent="", addindent="", newl=""):
@@ -589,6 +629,9 @@ class XMLDoc(xml.dom.minidom.Document):
         e = XMLElement(tagName)
         e.ownerDocument = self
         return e
+
+    def comment(self, txt):
+        self.current.appendChild(self.createComment(txt))
 
     def open(self, tag, attributes={}, data=None):
         element = self.createElement(tag)
@@ -652,6 +695,16 @@ def projects():
     Get the list of all loaded projects.
     """
     return _projects.values()
+
+def distribution(name, fatalIfMissing=True):
+    """
+    Get the distribution for a given name. This will abort if the named distribution does
+    not exist and 'fatalIfMissing' is true.
+    """
+    d = _dists.get(name)
+    if d is None and fatalIfMissing:
+        abort('distribution named ' + name + ' not found')
+    return d
 
 def project(name, fatalIfMissing=True):
     """
@@ -1001,6 +1054,24 @@ class JavaCompliance:
             other = JavaCompliance(other)
 
         return cmp(self.value, other.value)
+    
+"""
+A Java version as defined in JSR-56
+"""
+class JavaVersion:
+    def __init__(self, versionString):
+        validChar = '[\x21-\x25\x27-\x29\x2c\x2f-\x5e\x60-\x7f]'
+        separator = '[.\-_]'
+        m = re.match(validChar + '+(' + separator + validChar + '+)*', versionString)
+        assert m is not None, 'not a recognized version string: ' + versionString
+        self.versionString = versionString;
+        self.parts = [int(f) if f.isdigit() else f for f in re.split(separator, versionString)]
+        
+    def __str__(self):
+        return self.versionString
+    
+    def __cmp__(self, other):
+        return cmp(self.parts, other.parts)
 
 """
 A JavaConfig object encapsulates info on how Java commands are run.
@@ -1039,8 +1110,8 @@ class JavaConfig:
 
         output = output.split()
         assert output[1] == 'version'
-        self.version = output[2].strip('"')
-        self.javaCompliance = JavaCompliance(self.version)
+        self.version = JavaVersion(output[2].strip('"'))
+        self.javaCompliance = JavaCompliance(self.version.versionString)
 
         if self.debug_port is not None:
             self.java_args += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(self.debug_port)]
@@ -1459,6 +1530,9 @@ def build(args, parser=None):
         finally:
             for n in toBeDeleted:
                 os.remove(n)
+                
+    for dist in _dists.values():
+        archive(['@' + dist.name])
 
     if suppliedParser:
         return args
@@ -1557,59 +1631,59 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
-    projects = set([])
+    projects = set()
     
     for p in sorted_deps():
-        if _needsEclipseJarBuild(p):
+        if _isAnnotationProcessorDependency(p):
             projects.add(p)
             
     if len(projects) <= 0:
         return
     
-    build(['--projects', ",".join(map(lambda p: p.name, projects))])
+    pnames = [p.name for p in projects]
+    build(['--projects', ",".join(pnames)])
+    archive(pnames)
 
-    for p in projects:
-        targetJar = join(p.dir, p.name + '.jar')
-        jar(targetJar, [p.output_dir()])
-            
+def archive(args):
+    """create jar files for projects and distributions"""
+    parser = ArgumentParser(prog='mx archive');
+    parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
+    args = parser.parse_args(args)
+    
+    for name in args.names:
+        if name.startswith('@'):
+            dname = name[1:]
+            d = distribution(dname)
+            fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+            zf = zipfile.ZipFile(tmp, 'w')
+            for p in sorted_deps(d.deps):
+                outputDir = p.output_dir()
+                for root, _, files in os.walk(outputDir):
+                    for f in files:
+                        relpath = root[len(outputDir) + 1:]
+                        arcname = join(relpath, f).replace(os.sep, '/')
+                        zf.write(join(root, f), arcname)
+            zf.close()
+            os.close(fd)
+            # Atomic on Unix
+            shutil.move(tmp, d.path)
+            #print time.time(), 'move:', tmp, '->', d.path
+            d.notify_updated()
 
-def jar(destFileName, dirs):
-    latestMod = _latestModification(dirs)
-    
-    if exists(destFileName):
-        mod = os.path.getmtime(destFileName)
-        if int(round(latestMod*1000)) == int(round(mod*1000)):
-            # nothing todo
-            return
-        
-    if latestMod is None and exists(destFileName):
-        return
-
-    jarCmd = [java().jar, 'cf', destFileName]
-    
-    for directory in dirs:
-        jarCmd += ['-C', directory, '.']
-    
-    subprocess.check_call(jarCmd)
-    log('Written jar file {0}'.format(destFileName))
-    
-    atime = os.path.getatime(destFileName)
-    os.utime(destFileName, (atime, latestMod))
-
-def _latestModification(directories):
-    latestMod = None
-    for directory in directories:
-        if not os.path.exists (directory):
-            continue
-        for root, _, files in os.walk(directory):
-                for names in files:
-                    filepath = os.path.join(root, names)
-                    mod = os.path.getmtime(filepath)
-                    if latestMod is None:
-                        latestMod = mod
-                    elif mod > latestMod:
-                        latestMod = mod
-    return latestMod
+        else:
+            p = project(name)
+            outputDir = p.output_dir()
+            fd, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
+            zf = zipfile.ZipFile(tmp, 'w')
+            for root, _, files in os.walk(outputDir):
+                for f in files:
+                    relpath = root[len(outputDir) + 1:]
+                    arcname = join(relpath, f).replace(os.sep, '/')
+                    zf.write(join(root, f), arcname)
+            zf.close()
+            os.close(fd)
+            # Atomic on Unix
+            shutil.move(tmp, join(p.dir, p.name + '.jar'))
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
@@ -1989,6 +2063,12 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
     if buildProcessorJars:
         processorjars()
 
+    projToDist = dict()
+    for dist in _dists.values():
+        distDeps = sorted_deps(dist.deps)
+        for p in distDeps:
+            projToDist[p.name] = (dist, [dep.name for dep in distDeps])
+
     for p in projects():
         if p.native:
             continue
@@ -2103,24 +2183,14 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 out.element('arguments', data='')
                 out.close('buildCommand')
 
-        if (_needsEclipseJarBuild(p)):
-            targetValues = _genEclipseJarBuild(p);
-            for value in targetValues:
-                out.open('buildCommand')
-                out.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
-                out.element('triggers', data='auto,full,incremental,')
-                out.open('arguments')
-                out.open('dictionary')
-                out.element('key', data = 'LaunchConfigHandle')
-                out.element('value', data = value)
-                out.close('dictionary')
-                out.open('dictionary')
-                out.element('key', data = 'incclean')
-                out.element('value', data = 'true')
-                out.close('dictionary')
-                out.close('arguments')
-                out.close('buildCommand')       
-                    
+        if _isAnnotationProcessorDependency(p):
+            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh = False, async = False)
+            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh = True, async = True)
+                       
+        if projToDist.has_key(p.name):
+            dist, distDeps = projToDist[p.name]
+            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
+        
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -2175,8 +2245,11 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
     make_eclipse_attach('localhost', '8000', deps=projects())
 
 
-def _needsEclipseJarBuild(p):
-    processors = set([])
+def _isAnnotationProcessorDependency(p):
+    """
+    Determines if a given project is part of an annotation processor.
+    """
+    processors = set()
     
     for otherProject in projects():
         if hasattr(otherProject, 'annotationProcessors') and len(otherProject.annotationProcessors) > 0:
@@ -2193,19 +2266,18 @@ def _needsEclipseJarBuild(p):
     
     return False
 
-def _genEclipseJarBuild(p):
-    builders = []
-    builders.append(_genEclipseLaunch(p, 'Jar.launch', ''.join(['jar ', p.name]), refresh = False, async = False))
-    builders.append(_genEclipseLaunch(p, 'Refresh.launch', '', refresh = True, async = True))
-    return builders
-
-def _genEclipseLaunch(p, name, mxCommand, refresh=True, async=False):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False):
     launchOut = XMLDoc();
+    consoleOn = 'true' if logToConsole else 'false'
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
+    launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
+    launchOut.element('mapEntry', {'key' : 'JAVA_HOME',	'value' : java().jdk})
+    launchOut.close('mapAttribute')
+    
     if refresh:
         launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': 'false'})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': 'false'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': consoleOn})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': consoleOn})
     if async:
         launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true'})
     
@@ -2229,9 +2301,21 @@ def _genEclipseLaunch(p, name, mxCommand, refresh=True, async=False):
         os.makedirs(externalToolDir)
     update_file(join(externalToolDir, name), launchOut.xml(indent='\t', newl='\n'))
     
-    return ''.join(["<project>/.externalToolBuilders/", name])
-
-
+    dotProjectDoc.open('buildCommand')
+    dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
+    dotProjectDoc.element('triggers', data='auto,full,incremental,')
+    dotProjectDoc.open('arguments')
+    dotProjectDoc.open('dictionary')
+    dotProjectDoc.element('key', data = 'LaunchConfigHandle')
+    dotProjectDoc.element('value', data = '<project>/.externalToolBuilders/' + name)
+    dotProjectDoc.close('dictionary')
+    dotProjectDoc.open('dictionary')
+    dotProjectDoc.element('key', data = 'incclean')
+    dotProjectDoc.element('value', data = 'true')
+    dotProjectDoc.close('dictionary')
+    dotProjectDoc.close('arguments')
+    dotProjectDoc.close('buildCommand')
+    
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
 
@@ -2256,6 +2340,14 @@ def netbeansinit(args, suite=None):
         out.open('project', {'name' : p.name, 'default' : 'default', 'basedir' : '.'})
         out.element('description', data='Builds, tests, and runs the project ' + p.name + '.')
         out.element('import', {'file' : 'nbproject/build-impl.xml'})
+        out.open('target', {'name' : '-post-compile'})
+        out.open('exec', { 'executable' : sys.executable})
+        out.element('env', {'key' : 'JAVA_HOME', 'value' : java().jdk})
+        out.element('arg', {'value' : os.path.abspath(__file__)})
+        out.element('arg', {'value' : 'archive'})
+        out.element('arg', {'value' : '@GRAAL'})
+        out.close('exec')
+        out.close('target')
         out.close('project')
         updated = update_file(join(p.dir, 'build.xml'), out.xml(indent='\t', newl='\n')) or updated
 
@@ -2303,7 +2395,7 @@ def netbeansinit(args, suite=None):
         updated = update_file(join(p.dir, 'nbproject', 'project.xml'), out.xml(indent='    ', newl='\n')) or updated
 
         out = StringIO.StringIO()
-        jdkPlatform = 'JDK_' + java().version
+        jdkPlatform = 'JDK_' + str(java().version)
 
         annotationProcessorEnabled = "false"
         annotationProcessorReferences = ""
@@ -2444,7 +2536,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
     if updated:
         log('If using NetBeans:')
-        log('  1. Ensure that a platform named "JDK ' + java().version + '" is defined (Tools -> Java Platforms)')
+        log('  1. Ensure that a platform named "JDK_' + str(java().version) + '" is defined (Tools -> Java Platforms)')
         log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
 def ideclean(args, suite=None):
@@ -2474,6 +2566,24 @@ def ideinit(args, suite=None):
     """(re)generate Eclipse and NetBeans project configurations"""
     eclipseinit(args, suite)
     netbeansinit(args, suite)
+    fsckprojects([])
+
+def fsckprojects(args):
+    """find directories corresponding to deleted Java projects and delete them"""
+    for suite in suites():
+        projectDirs = [p.dir for p in suite.projects]
+        for root, dirnames, files in os.walk(suite.dir):
+            currentDir = join(suite.dir, root)
+            if currentDir in projectDirs:
+                # don't traverse subdirs of an existing project
+                dirnames[:] = []
+            else:
+                projectConfigFiles = frozenset(['.classpath', 'nbproject'])
+                indicators = projectConfigFiles.intersection(files)
+                if len(indicators) != 0:
+                    if not sys.stdout.isatty() or raw_input(currentDir + ' looks like a removed project -- delete it? [yn]: ') == 'y':
+                        shutil.rmtree(currentDir)
+                        log('Deleted ' + currentDir)
 
 def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
     """generate javadoc for some/all Java projects"""
@@ -2926,9 +3036,11 @@ commands = {
     'eclipseinit': [eclipseinit, ''],
     'eclipseformat': [eclipseformat, ''],
     'findclass': [findclass, ''],
+    'fsckprojects': [fsckprojects, ''],
     'help': [help_, '[command]'],
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
+    'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
     'javap': [javap, ''],
     'javadoc': [javadoc, '[options]'],

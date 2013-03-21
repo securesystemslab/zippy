@@ -37,7 +37,6 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
-#include "graal/graalVmIds.hpp"
 #include "gc_implementation/g1/heapRegion.hpp"
 
 
@@ -87,7 +86,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
       memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
     }
     BytecodeStream s(method);
-    while(!s.is_last_bytecode()) {
+    while (!s.is_last_bytecode()) {
       s.next();
       Bytecodes::Code opcode = s.raw_code();
       if (!Bytecodes::is_java_code(opcode)) {
@@ -121,7 +120,7 @@ C2V_END
 C2V_VMENTRY(jstring, getSignature, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   assert(method != NULL && method->signature() != NULL, "signature required");
-  return VmIds::toString<jstring>(method->signature(), THREAD);
+  return (jstring)JNIHandles::make_local(java_lang_String::create_from_symbol(method->signature(), THREAD)());
 C2V_END
 
 C2V_VMENTRY(jobjectArray, initializeExceptionHandlers, (JNIEnv *, jobject, jlong metaspace_method, jobjectArray java_handlers))
@@ -272,7 +271,7 @@ C2V_END
 
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
-  Handle name = VmIds::toString<Handle>(method->name(), CHECK);
+  Handle name = java_lang_String::create_from_symbol(method->name(), CHECK);
   InstanceKlass::cast(HotSpotResolvedJavaMethod::klass())->initialize(CHECK);
   HotSpotResolvedJavaMethod::set_name(hotspot_method, name());
   HotSpotResolvedJavaMethod::set_codeSize(hotspot_method, method->code_size());
@@ -324,8 +323,8 @@ C2V_END
 C2V_VMENTRY(jobject, lookupType, (JNIEnv *env, jobject, jstring jname, jobject accessingClass, jboolean eagerResolve))
   ResourceMark rm;
 
-  Symbol* nameSymbol = VmIds::toSymbol(jname);
   Handle name = JNIHandles::resolve(jname);
+  Symbol* nameSymbol = java_lang_String::as_symbol(name, THREAD);
   assert(nameSymbol != NULL, "name to symbol creation failed");
 
   oop result = NULL;
@@ -409,10 +408,6 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
     Handle type = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
     result = type();
-  } else if (tag.is_object()) {
-    oop obj = cp->object_at(index);
-    assert(obj->is_instance(), "must be an instance");
-    result = VMToCompiler::createConstantObject(obj, CHECK_NULL);
   } else {
     tty->print("unknown constant pool tag (%s) at cpi %d in %s: ", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string());
     ShouldNotReachHere();
@@ -433,8 +428,8 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
-    Handle name = VmIds::toString<Handle>(cp->name_ref_at(index), CHECK_NULL);
-    Handle signature  = VmIds::toString<Handle>(cp->signature_ref_at(index), CHECK_NULL);
+    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
+    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
     int holder_index = cp->klass_ref_index_at(index);
     Handle type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createUnresolvedJavaMethod(name, signature, type, THREAD));
@@ -515,8 +510,8 @@ C2V_VMENTRY(jobject, resolveMethod, (JNIEnv *, jobject, jobject resolved_type, j
 
   assert(JNIHandles::resolve(resolved_type) != NULL, "");
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(resolved_type));
-  Symbol* name_symbol = VmIds::toSymbol(name);
-  Symbol* signature_symbol = VmIds::toSymbol(signature);
+  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
+  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
   methodHandle method = klass->lookup_method(name_symbol, signature_symbol);
   if (method.is_null()) {
     if (TraceGraal >= 3) {
@@ -552,7 +547,7 @@ C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
       Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, Thread::current());
       int flags = fs.access_flags().as_int();
       bool internal = fs.access_flags().is_internal();
-      Handle name = VmIds::toString<Handle>(fs.name(), Thread::current());
+      Handle name = java_lang_String::create_from_symbol(fs.name(), Thread::current());
       Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, Thread::current());
       fields.append(field());
     }
@@ -599,6 +594,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
 #define set_int(name, value) do { env->SetIntField(config, getFieldID(env, config, name, "I"), value); } while (0)
 #define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
+#define set_stub(name, value) do { set_long(name, (jlong) value); } while (0)
 #define set_object(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "Ljava/lang/Object;"), value); } while (0)
 #define set_int_array(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "[I"), value); } while (0)
 
@@ -617,7 +613,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("useTLAB", UseTLAB);
   set_boolean("useG1GC", UseG1GC);
   set_int("codeEntryAlignment", CodeEntryAlignment);
-  set_int("vmPageSize", os::vm_page_size());
   set_int("stackShadowPages", StackShadowPages);
   set_int("hubOffset", oopDesc::klass_offset_in_bytes());
   set_int("markOffset", oopDesc::mark_offset_in_bytes());
@@ -669,6 +664,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   assert((Klass::_lh_array_tag_obj_value & Klass::_lh_array_tag_type_value & 0x80000000) != 0, "obj_array and type_array must have first bit set");
   set_int("arrayKlassComponentMirrorOffset", in_bytes(ArrayKlass::component_mirror_offset()));
   
+
+  set_int("pendingDeoptimizationOffset", in_bytes(ThreadShadow::pending_deoptimization_offset()));
+
   set_int("metaspaceArrayLengthOffset", Array<Klass*>::length_offset_in_bytes());
   set_int("metaspaceArrayBaseOffset", Array<Klass*>::base_offset_in_bytes());
   set_int("methodDataOopDataOffset", in_bytes(MethodData::data_offset()));
@@ -709,44 +707,42 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
   set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
 
-  set_long("debugStub", VmIds::addStub((address)warning));
-  set_long("instanceofStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_slow_subtype_check_id)));
-  set_long("newInstanceStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_instance_id)));
-  set_long("newArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_array_id)));
-  set_long("newMultiArrayStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_new_multi_array_id)));
-  set_long("identityHashCodeStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_identity_hash_code_id)));
-  set_long("threadIsInterruptedStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_thread_is_interrupted_id)));
-  set_long("inlineCacheMissStub", VmIds::addStub(SharedRuntime::get_ic_miss_stub()));
-  set_long("handleExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_handle_exception_nofpu_id)));
-  set_long("handleDeoptStub", VmIds::addStub(SharedRuntime::deopt_blob()->unpack()));
-  set_long("monitorEnterStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorenter_id)));
-  set_long("monitorExitStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_monitorexit_id)));
-  set_long("wbPreCallStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_wb_pre_call_id)));
-  set_long("wbPostCallStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_wb_post_call_id)));
 
-  set_long("verifyOopStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_verify_oop_id)));
-  set_long("vmErrorStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_vm_error_id)));
-  set_long("deoptimizeStub", VmIds::addStub(SharedRuntime::deopt_blob()->uncommon_trap()));
-  set_long("unwindExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_unwind_exception_call_id)));
-  set_long("osrMigrationEndStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_OSR_migration_end_id)));
-  set_long("registerFinalizerStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_register_finalizer_id)));
-  set_long("setDeoptInfoStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_set_deopt_info_id)));
-  set_long("createNullPointerExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_create_null_pointer_exception_id)));
-  set_long("createOutOfBoundsExceptionStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_create_out_of_bounds_exception_id)));
-  set_long("javaTimeMillisStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeMillis)));
-  set_long("javaTimeNanosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, os::javaTimeNanos)));
-  set_long("arithmeticFremStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_frem_id)));
-  set_long("arithmeticDremStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_arithmetic_drem_id)));
-  set_long("arithmeticSinStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dsin)));
-  set_long("arithmeticCosStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dcos)));
-  set_long("arithmeticTanStub", VmIds::addStub(CAST_FROM_FN_PTR(address, SharedRuntime::dtan)));
-  set_long("logPrimitiveStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_primitive_id)));
-  set_long("logObjectStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_object_id)));
-  set_long("logPrintfStub", VmIds::addStub(GraalRuntime::entry_for(GraalRuntime::graal_log_printf_id)));
-  set_long("aescryptEncryptBlockStub", VmIds::addStub(StubRoutines::aescrypt_encryptBlock()));
-  set_long("aescryptDecryptBlockStub", VmIds::addStub(StubRoutines::aescrypt_decryptBlock()));
-  set_long("cipherBlockChainingEncryptAESCryptStub", VmIds::addStub(StubRoutines::cipherBlockChaining_encryptAESCrypt()));
-  set_long("cipherBlockChainingDecryptAESCryptStub", VmIds::addStub(StubRoutines::cipherBlockChaining_decryptAESCrypt()));
+  set_stub("wbPreCallStub", GraalRuntime::entry_for(GraalRuntime::wb_pre_call_id));
+  set_stub("wbPostCallStub", GraalRuntime::entry_for(GraalRuntime::wb_post_call_id));
+
+  set_stub("newInstanceStub", GraalRuntime::entry_for(GraalRuntime::new_instance_id));
+  set_stub("newArrayStub", GraalRuntime::entry_for(GraalRuntime::new_array_id));
+  set_stub("newMultiArrayStub", GraalRuntime::entry_for(GraalRuntime::new_multi_array_id));
+  set_stub("identityHashCodeStub", GraalRuntime::entry_for(GraalRuntime::identity_hash_code_id));
+  set_stub("threadIsInterruptedStub", GraalRuntime::entry_for(GraalRuntime::thread_is_interrupted_id));
+  set_stub("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
+  set_stub("handleExceptionStub", GraalRuntime::entry_for(GraalRuntime::handle_exception_nofpu_id));
+  set_stub("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
+  set_stub("monitorEnterStub", GraalRuntime::entry_for(GraalRuntime::monitorenter_id));
+  set_stub("monitorExitStub", GraalRuntime::entry_for(GraalRuntime::monitorexit_id));
+  set_stub("verifyOopStub", GraalRuntime::entry_for(GraalRuntime::verify_oop_id));
+  set_stub("vmErrorStub", GraalRuntime::entry_for(GraalRuntime::vm_error_id));
+  set_stub("deoptimizeStub", SharedRuntime::deopt_blob()->uncommon_trap());
+  set_stub("unwindExceptionStub", GraalRuntime::entry_for(GraalRuntime::unwind_exception_call_id));
+  set_stub("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::OSR_migration_end_id));
+  set_stub("registerFinalizerStub", GraalRuntime::entry_for(GraalRuntime::register_finalizer_id));
+  set_stub("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));
+  set_stub("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
+  set_stub("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
+  set_stub("javaTimeNanosStub", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
+  set_stub("arithmeticFremStub", GraalRuntime::entry_for(GraalRuntime::arithmetic_frem_id));
+  set_stub("arithmeticDremStub", GraalRuntime::entry_for(GraalRuntime::arithmetic_drem_id));
+  set_stub("arithmeticSinStub", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
+  set_stub("arithmeticCosStub", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
+  set_stub("arithmeticTanStub", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
+  set_stub("logPrimitiveStub", GraalRuntime::entry_for(GraalRuntime::log_primitive_id));
+  set_stub("logObjectStub", GraalRuntime::entry_for(GraalRuntime::log_object_id));
+  set_stub("logPrintfStub", GraalRuntime::entry_for(GraalRuntime::log_printf_id));
+  set_stub("aescryptEncryptBlockStub", StubRoutines::aescrypt_encryptBlock());
+  set_stub("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
+  set_stub("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
+  set_stub("cipherBlockChainingDecryptAESCryptStub", StubRoutines::cipherBlockChaining_decryptAESCrypt());
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
@@ -807,49 +803,43 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 C2V_END
 
-C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject info))
+C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject triggered_deoptimizations))
   ResourceMark rm;
   HandleMark hm;
   Handle compResultHandle = JNIHandles::resolve(compResult);
   nmethod* nm = NULL;
   methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(compResult));
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
+  Handle triggered_deoptimizations_handle = JNIHandles::resolve(triggered_deoptimizations);
   GraalEnv::CodeInstallResult result;
-  CodeInstaller installer(compResultHandle, method, result, nm, installed_code_handle);
+  CodeInstaller installer(compResultHandle, method, result, nm, installed_code_handle, triggered_deoptimizations_handle);
 
   if (result != GraalEnv::ok) {
     assert(nm == NULL, "should be");
   } else {
-    if (info != NULL) {
-      arrayOop codeCopy = oopFactory::new_byteArray(nm->code_size(), CHECK_0);
-      memcpy(codeCopy->base(T_BYTE), nm->code_begin(), nm->code_size());
-      HotSpotCodeInfo::set_code(info, codeCopy);
-      HotSpotCodeInfo::set_start(info, (jlong) nm->code_begin());
-    }
-
     if (!installed_code_handle.is_null()) {
       assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
       HotSpotInstalledCode::set_nmethod(installed_code_handle, (jlong) nm);
       HotSpotInstalledCode::set_method(installed_code_handle, HotSpotCompilationResult::method(compResult));
+      HotSpotInstalledCode::set_start(installed_code_handle, (jlong) nm->code_begin());
       assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
     }
   }
   return result;
 C2V_END
 
-C2V_VMENTRY(jobject, disassembleNative, (JNIEnv *jniEnv, jobject, jbyteArray code, jlong start_address))
+C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong metaspace_nmethod))
   ResourceMark rm;
   HandleMark hm;
 
-  stringStream(st);
-  arrayOop code_oop = (arrayOop) JNIHandles::resolve(code);
-  int len = code_oop->length();
-  address begin = (address) code_oop->base(T_BYTE);
-  address end = begin + len;
-  Disassembler::decode(begin, end, &st);
-
-  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
-  return JNIHandles::make_local(result());
+  nmethod* nm = (nmethod*) (address) metaspace_nmethod;
+  if (nm == NULL || !nm->is_alive()) {
+    return NULL;
+  }
+  int length = nm->code_size();
+  arrayOop codeCopy = oopFactory::new_byteArray(length, CHECK_0);
+  memcpy(codeCopy->base(T_BYTE), nm->code_begin(), length);
+  return JNIHandles::make_local(codeCopy);
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleNMethod, (JNIEnv *jniEnv, jobject, jlong metaspace_nmethod))
@@ -893,7 +883,8 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jlong 
     THROW_0(vmSymbols::MethodInvalidatedException());
   }
 
-  JavaCalls::call(&result, mh, nm, &jca, CHECK_NULL);
+  jca.set_alternative_target(nm);
+  JavaCalls::call(&result, mh, &jca, CHECK_NULL);
 
   if (jap.get_ret_type() == T_VOID) {
     return NULL;
@@ -922,7 +913,8 @@ C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jlong metaspa
     THROW_0(vmSymbols::MethodInvalidatedException());
   }
 
-  JavaCalls::call(&result, method, nm, &args, CHECK_NULL);
+  args.set_alternative_target(nm);
+  JavaCalls::call(&result, method, &args, CHECK_NULL);
 
   return JNIHandles::make_local((oop) result.get_jobject());
 C2V_END
@@ -952,30 +944,9 @@ C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
   return JNIHandles::make_local(array);
 C2V_END
 
-C2V_VMENTRY(jobject, decodePC, (JNIEnv *, jobject, jlong pc))
-  stringStream(st);
-  CodeBlob* blob = CodeCache::find_blob_unsafe((void*) pc);
-  if (blob == NULL) {
-    st.print("[unidentified pc]");
-  } else {
-    st.print(blob->name());
-
-    nmethod* nm = blob->as_nmethod_or_null();
-    if (nm != NULL && nm->method() != NULL) {
-      st.print(" %s.", nm->method()->method_holder()->external_name());
-      nm->method()->name()->print_symbol_on(&st);
-      st.print("  @ %d", pc - (jlong) nm->entry_point());
-    }
-  }
-  Handle result = java_lang_String::create_from_platform_dependent_str(st.as_string(), CHECK_NULL);
-  return JNIHandles::make_local(result());
-C2V_END
-
 C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jobject hotspot_method))
-// XXX: Attention: it seEms that the line number table of a method just contains lines that are important, means that
-// empty lines are left out or lines that can't have a breakpoint on it; eg int a; or try {
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
-  if(!method->has_linenumber_table()) {
+  if (!method->has_linenumber_table()) {
     return NULL;
   }
   u2 num_entries = 0;
@@ -1004,7 +975,7 @@ C2V_VMENTRY(jobject, getLocalVariableTable, (JNIEnv *, jobject, jobject hotspot_
   ResourceMark rm;
 
   Method* method = getMethodFromHotSpotMethod(JNIHandles::resolve(hotspot_method));
-  if(!method->has_localvariable_table()) {
+  if (!method->has_localvariable_table()) {
     return NULL;
   }
   int localvariable_table_length = method->localvariable_table_length();
@@ -1074,7 +1045,6 @@ C2V_END
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
-#define HS_CODE_INFO          "Lcom/oracle/graal/hotspot/meta/HotSpotCodeInfo;"
 #define METHOD_DATA           "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
@@ -1110,13 +1080,12 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE HS_CODE_INFO")I",           FN_PTR(installCode0)},
-  {CC"disassembleNative",             CC"([BJ)"STRING,                                                  FN_PTR(disassembleNative)},
+  {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE"[Z)I",                      FN_PTR(installCode0)},
+  {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleNMethod",            CC"(J)"STRING,                                                    FN_PTR(disassembleNMethod)},
   {CC"executeCompiledMethod",         CC"("METASPACE_METHOD NMETHOD OBJECT OBJECT OBJECT")"OBJECT,      FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",  CC"("METASPACE_METHOD NMETHOD "["OBJECT")"OBJECT,                 FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
-  {CC"decodePC",                      CC"(J)"STRING,                                                    FN_PTR(decodePC)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},

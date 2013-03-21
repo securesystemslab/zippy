@@ -37,11 +37,6 @@ public abstract class ArithmeticNode extends BinaryNode {
         super(node);
     }
 
-    @Generic
-    public Object doGeneric(Object left, Object right) {
-        throw new RuntimeException("Arithmetic not defined for types " + left.getClass().getSimpleName() + ", " + right.getClass().getSimpleName());
-    }
-
     public abstract static class AddNode extends ArithmeticNode {
 
         public AddNode(TypedNode left, TypedNode right) {
@@ -52,9 +47,8 @@ public abstract class ArithmeticNode extends BinaryNode {
             super(node);
         }
 
-        @Specialization
-        @SpecializationThrows(javaClass = ArithmeticException.class, transitionTo = "doBigInteger")
-        int doInteger(int left, int right) {
+        @Specialization(rewriteOn = ArithmeticException.class)
+        int doInt(int left, int right) {
             return ExactMath.addExact(left, right);
         }
 
@@ -64,13 +58,12 @@ public abstract class ArithmeticNode extends BinaryNode {
         }
 
         @Specialization
-        String doStringDirect(String left, String right) {
+        String doString(String left, String right) {
             return left + right;
         }
 
-        @Specialization
-        @SpecializationGuard(methodName = "isString")
-        String doString(Object left, Object right) {
+        @Specialization(guards = "isString")
+        String add(Object left, Object right) {
             return left.toString() + right.toString();
         }
     }
@@ -85,16 +78,16 @@ public abstract class ArithmeticNode extends BinaryNode {
             super(node);
         }
 
-        @Specialization
-        @SpecializationThrows(javaClass = ArithmeticException.class, transitionTo = "doBigInteger")
-        int doInteger(int left, int right) {
+        @Specialization(rewriteOn = ArithmeticException.class)
+        int sub(int left, int right) {
             return ExactMath.subtractExact(left, right);
         }
 
         @Specialization
-        BigInteger doBigInteger(BigInteger left, BigInteger right) {
+        BigInteger sub(BigInteger left, BigInteger right) {
             return left.subtract(right);
         }
+
     }
 
     public abstract static class DivNode extends ArithmeticNode {
@@ -107,14 +100,13 @@ public abstract class ArithmeticNode extends BinaryNode {
             super(node);
         }
 
-        @Specialization
-        @SpecializationThrows(javaClass = ArithmeticException.class, transitionTo = "doBigInteger")
-        int doInteger(int left, int right) {
+        @Specialization(rewriteOn = ArithmeticException.class)
+        int div(int left, int right) {
             return left / right;
         }
 
         @Specialization
-        BigInteger doBigInteger(BigInteger left, BigInteger right) {
+        BigInteger div(BigInteger left, BigInteger right) {
             return left.divide(right);
         }
     }
@@ -129,16 +121,16 @@ public abstract class ArithmeticNode extends BinaryNode {
             super(node);
         }
 
-        @Specialization
-        @SpecializationThrows(javaClass = ArithmeticException.class, transitionTo = "doBigInteger")
-        int doInteger(int left, int right) {
+        @Specialization(rewriteOn = ArithmeticException.class)
+        int mul(int left, int right) {
             return ExactMath.multiplyExact(left, right);
         }
 
         @Specialization
-        BigInteger doBigInteger(BigInteger left, BigInteger right) {
+        BigInteger mul(BigInteger left, BigInteger right) {
             return left.multiply(right);
         }
+
     }
 
 }

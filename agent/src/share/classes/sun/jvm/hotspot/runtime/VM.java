@@ -90,10 +90,6 @@ public class VM {
   /** Flags indicating whether we are attached to a core, C1, or C2 build */
   private boolean      usingClientCompiler;
   private boolean      usingServerCompiler;
-  /** Flag indicating whether UseTLAB is turned on */
-  private boolean      useTLAB;
-  /** Flag indicating whether invokedynamic support is on */
-  private boolean      enableInvokeDynamic;
   /** alignment constants */
   private boolean      isLP64;
   private int          bytesPerLong;
@@ -114,6 +110,7 @@ public class VM {
   private int          invalidOSREntryBCI;
   private ReversePtrs  revPtrs;
   private VMRegImpl    vmregImpl;
+  private int          reserveForAllocationPrefetch;
 
   // System.getProperties from debuggee VM
   private Properties   sysProps;
@@ -293,6 +290,10 @@ public class VM {
        vmRelease = CStringUtilities.getString(releaseAddr);
        Address vmInternalInfoAddr = vmVersion.getAddressField("_s_internal_vm_info_string").getValue();
        vmInternalInfo = CStringUtilities.getString(vmInternalInfoAddr);
+
+       CIntegerType intType = (CIntegerType) db.lookupType("int");
+       CIntegerField reserveForAllocationPrefetchField = vmVersion.getCIntegerField("_reserve_for_allocation_prefetch");
+       reserveForAllocationPrefetch = (int)reserveForAllocationPrefetchField.getCInteger(intType);
     } catch (Exception exp) {
        throw new RuntimeException("can't determine target's VM version : " + exp.getMessage());
     }
@@ -320,9 +321,6 @@ public class VM {
         }
       }
     }
-
-    useTLAB = (db.lookupIntConstant("UseTLAB").intValue() != 0);
-    enableInvokeDynamic = (db.lookupIntConstant("EnableInvokeDynamic").intValue() != 0);
 
     if (debugger != null) {
       isLP64 = debugger.getMachineDescription().isLP64();
@@ -574,15 +572,6 @@ public class VM {
     }
   }
 
-  /** Indicates whether Thread-Local Allocation Buffers are used */
-  public boolean getUseTLAB() {
-    return useTLAB;
-  }
-
-  public boolean getEnableInvokeDynamic() {
-    return enableInvokeDynamic;
-  }
-
   public TypeDataBase getTypeDataBase() {
     return db;
   }
@@ -778,6 +767,10 @@ public class VM {
     return vmInternalInfo;
   }
 
+  public int getReserveForAllocationPrefetch() {
+    return reserveForAllocationPrefetch;
+  }
+
   public boolean isSharingEnabled() {
     if (sharingEnabled == null) {
       Flag flag = getCommandLineFlag("UseSharedSpaces");
@@ -811,6 +804,12 @@ public class VM {
         objectAlignmentInBytes = (flag == null) ? 8 : (int)flag.getIntx();
     }
     return objectAlignmentInBytes;
+  }
+
+  /** Indicates whether Thread-Local Allocation Buffers are used */
+  public boolean getUseTLAB() {
+      Flag flag = getCommandLineFlag("UseTLAB");
+      return (flag == null) ? false: flag.getBool();
   }
 
   // returns null, if not available.

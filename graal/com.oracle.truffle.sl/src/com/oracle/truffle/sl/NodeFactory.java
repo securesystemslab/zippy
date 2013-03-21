@@ -27,8 +27,11 @@ import java.math.*;
 import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.sl.nodes.ArithmeticNodeFactory.AddNodeFactory;
+import com.oracle.truffle.sl.nodes.ArithmeticNodeFactory.DivNodeFactory;
+import com.oracle.truffle.sl.nodes.ArithmeticNodeFactory.MulNodeFactory;
+import com.oracle.truffle.sl.nodes.ArithmeticNodeFactory.SubNodeFactory;
 import com.oracle.truffle.sl.nodes.*;
-import com.oracle.truffle.sl.nodes.ArithmeticNodeFactory.*;
 
 public class NodeFactory {
 
@@ -126,5 +129,9 @@ public class NodeFactory {
         }
         StatementNode write = WriteLocalNodeFactory.create(slot, value);
         return new ReturnNode(write);
+    }
+
+    public TypedNode createTernary(TypedNode condition, TypedNode thenPart, TypedNode elsePart) {
+        return TernaryNodeFactory.create(condition, thenPart, elsePart);
     }
 }

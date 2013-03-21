@@ -63,8 +63,9 @@ void InterpreterCodelet::verify() {
 
 void InterpreterCodelet::print_on(outputStream* st) const {
   ttyLocker ttyl;
-  if (PrintInterpreter || PrintMachineCodeToFile) {
 
+  if (PrintInterpreter) {
+    st->cr();
     st->print_cr("----------------------------------------------------------------------");
   }
 
@@ -73,7 +74,8 @@ void InterpreterCodelet::print_on(outputStream* st) const {
   st->print_cr("[" INTPTR_FORMAT ", " INTPTR_FORMAT "]  %d bytes",
                 code_begin(), code_end(), code_size());
 
-  if (PrintInterpreter || PrintMachineCodeToFile) {
+  if (PrintInterpreter) {
+    st->cr();
     Disassembler::decode(code_begin(), code_end(), st, DEBUG_ONLY(_comments) NOT_DEBUG(CodeComments()));
   }
 }
@@ -388,7 +390,6 @@ address AbstractInterpreter::deopt_reexecute_entry(Method* method, address bcp) 
   assert(method->contains(bcp), "just checkin'");
   Bytecodes::Code code   = Bytecodes::java_code_at(method, bcp);
 #if defined(COMPILER1) || defined(GRAAL)
-
   if(code == Bytecodes::_athrow ) {
     return Interpreter::rethrow_exception_entry();
   }
@@ -434,8 +435,7 @@ bool AbstractInterpreter::bytecode_should_reexecute(Bytecodes::Code code) {
     case Bytecodes::_getstatic :
     case Bytecodes::_putstatic :
     case Bytecodes::_aastore   :
-#if defined(COMPILER1)
-
+#ifdef COMPILER1
     //special case of reexecution
     case Bytecodes::_athrow    :
 #endif

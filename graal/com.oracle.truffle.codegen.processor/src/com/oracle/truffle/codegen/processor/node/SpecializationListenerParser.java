@@ -30,18 +30,15 @@ import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.*;
 
-public class SpecializationListenerParser extends MethodParser<TemplateMethod> {
-
-    private final MethodSpec specification;
+public class SpecializationListenerParser extends MethodParser<SpecializationListenerData> {
 
     public SpecializationListenerParser(ProcessorContext context, NodeData node) {
         super(context, node);
-        this.specification = createDefaultMethodSpec(null);
     }
 
     @Override
     public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
-        return specification;
+        return createDefaultMethodSpec(method, mirror, null);
     }
 
     @Override
@@ -50,8 +47,8 @@ public class SpecializationListenerParser extends MethodParser<TemplateMethod> {
     }
 
     @Override
-    public TemplateMethod create(TemplateMethod method) {
-        return method;
+    public SpecializationListenerData create(TemplateMethod method) {
+        return new SpecializationListenerData(method);
     }
 
     @Override

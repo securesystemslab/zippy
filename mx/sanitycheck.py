@@ -49,7 +49,7 @@ dacapoSanityWarmup = {
 dacapoScalaSanityWarmup = {
     'actors':     [0, 0, 2,  8, 10],
 # (lstadler) apparat was disabled due to a deadlock which I think is the benchmarks fault.
-#    'apparat':    [0, 0, 1,  2,  3],
+    'apparat':    [0, 0, 0,  0,  0],
     'factorie':   [0, 0, 2,  5,  5],
     'kiama':      [0, 0, 3, 13, 15],
     'scalac':     [0, 0, 5, 15, 20],
@@ -58,7 +58,8 @@ dacapoScalaSanityWarmup = {
     'scalariform':[0, 0, 6, 15, 20],
     'scalatest':  [0, 0, 2, 10, 12],
     'scalaxb':    [0, 0, 5, 15, 25],
-    'specs':      [0, 0, 3, 13, 18],
+#(gdub) specs sometimes returns a non-zero value event though there is no apparent failure
+    'specs':      [0, 0, 0,  0,  0],
     'tmt':        [0, 0, 3, 10, 12]
 }
 
@@ -121,7 +122,7 @@ def getSPECjbb2013(benchArgs = []):
     success = re.compile(r"org.spec.jbb.controller: Run finished", re.MULTILINE)
     matcherMax = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'max', 'score' : '<max>'})
     matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
-    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xms7g', '-XX:+'+gc, '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
+    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xmx6g', '-Xms6g', '-Xmn3g', '-XX:+UseParallelOldGC', '-XX:-UseAdaptiveSizePolicy', '-XX:-UseBiasedLocking', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
     
 def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
     
@@ -272,9 +273,12 @@ class Test:
         if len(valueMaps) == 0:
             return False
         
-        assert len(valueMaps) == 1, 'Test matchers should not return more than one record'
-        
-        record = valueMaps[0]
+        record = {}
+        for valueMap in valueMaps:
+            for key, value in valueMap.items():
+                if record.has_key(key) and record[key] != value:
+                    mx.abort('Inconsistant values returned by test machers : ' + str(valueMaps))
+                record[key] = value
         
         jvmErrorFile = record.get('jvmError')
         if jvmErrorFile:

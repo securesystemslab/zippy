@@ -26,8 +26,10 @@ import java.util.*;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
+import javax.tools.Diagnostic.*;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.intrinsics.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.nodes.Node.Children;
@@ -44,6 +46,7 @@ public final class TruffleTypes {
     private final TypeMirror stableAnnotation;
     private final TypeMirror contentStableAnnotation;
     private final TypeMirror typeConversion;
+    private final TypeMirror truffleIntrinsics;
 
     private final List<String> errors = new ArrayList<>();
 
@@ -55,6 +58,7 @@ public final class TruffleTypes {
         stableAnnotation = getRequired(context, Child.class);
         contentStableAnnotation = getRequired(context, Children.class);
         typeConversion = getRequired(context, TypeConversion.class);
+        truffleIntrinsics = getRequired(context, TruffleIntrinsics.class);
     }
 
     public boolean verify(ProcessorContext context, Element element, AnnotationMirror mirror) {
@@ -63,7 +67,7 @@ public final class TruffleTypes {
         }
 
         for (String error : errors) {
-            context.getLog().error(element, mirror, error);
+            context.getLog().message(Kind.ERROR, element, mirror, null, error);
         }
 
         return false;
@@ -75,6 +79,10 @@ public final class TruffleTypes {
             errors.add(String.format("Could not find required type: %s", clazz.getSimpleName()));
         }
         return type;
+    }
+
+    public TypeMirror getTruffleIntrinsics() {
+        return truffleIntrinsics;
     }
 
     public TypeMirror getTypeConversion() {

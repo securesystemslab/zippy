@@ -41,15 +41,15 @@ public class TypeSystemCodeGenerator extends CompilationUnitFactory<TypeSystemDa
     }
 
     public static String isTypeMethodName(TypeData type) {
-        return "is" + Utils.getSimpleName(type.getBoxedType());
+        return "is" + Utils.getTypeId(type.getBoxedType());
     }
 
     public static String asTypeMethodName(TypeData type) {
-        return "as" + Utils.getSimpleName(type.getBoxedType());
+        return "as" + Utils.getTypeId(type.getBoxedType());
     }
 
     public static String expectTypeMethodName(TypeData type) {
-        return "expect" + Utils.getSimpleName(type.getBoxedType());
+        return "expect" + Utils.getTypeId(type.getBoxedType());
     }
 
     /**
@@ -167,8 +167,8 @@ public class TypeSystemCodeGenerator extends CompilationUnitFactory<TypeSystemDa
 
             CodeTreeBuilder builder = method.createBuilder();
             builder.startReturn();
-            if (typeSystem.getTypes().length > 0) {
-                builder.typeLiteral(typeSystem.getTypes()[0].getBoxedType());
+            if (!typeSystem.getTypes().isEmpty()) {
+                builder.typeLiteral(typeSystem.getTypes().get(0).getBoxedType());
             } else {
                 builder.null_();
             }

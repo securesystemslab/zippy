@@ -1865,7 +1865,7 @@ void os::abort(bool dump_core) {
 
 // Die immediately, no exit hook, no abort hook, no cleanup.
 void os::die() {
-  _exit(-1);
+  ::abort(); // dump core (for debugging)
 }
 
 // unused
@@ -4280,8 +4280,8 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
 
 // This does not do anything on Solaris. This is basically a hook for being
 // able to use structured exception handling (thread-local exception filters) on, e.g., Win32.
-void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, nmethod* nm, JavaCallArguments* args, Thread* thread) {
-  f(value, method, nm, args, thread);
+void os::os_exception_wrapper(java_call_t f, JavaValue* value, methodHandle* method, JavaCallArguments* args, Thread* thread) {
+  f(value, method, args, thread);
 }
 
 // This routine may be used by user applications as a "hook" to catch signals.
@@ -4317,7 +4317,9 @@ JVM_handle_solaris_signal(int signo, siginfo_t* siginfo, void* ucontext,
 
 
 void signalHandler(int sig, siginfo_t* info, void* ucVoid) {
+  int orig_errno = errno;  // Preserve errno value over signal handler.
   JVM_handle_solaris_signal(sig, info, ucVoid, true);
+  errno = orig_errno;
 }
 
 /* Do not delete - if guarantee is ever removed,  a signal handler (even empty)

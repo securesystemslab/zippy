@@ -36,9 +36,16 @@ import com.oracle.truffle.codegen.processor.ast.*;
 
 public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> {
 
+    private static final int LINE_LENGTH = 200;
+    private static final int LINE_WRAP_INDENTS = 3;
+    private static final String IDENT_STRING = "    ";
+    private static final String LN = "\n"; /* unix style */
+
     protected Writer writer;
     private int indent;
     private boolean newLine;
+    private int lineLength;
+    private boolean lineWrapping = false;
 
     private OrganizedImports imports;
 
@@ -56,8 +63,7 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
             Writer w = null;
             try {
                 imports = OrganizedImports.organize(e);
-
-                w = createWriter(e);
+                w = new TrimTrailingSpaceWriter(createWriter(e));
                 writer = w;
                 writeRootClass(e);
             } catch (IOException ex) {
@@ -117,6 +123,14 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
         writeClassImpl(e);
     }
 
+    private String useImport(TypeMirror type) {
+        if (imports != null) {
+            return imports.useImport(type);
+        } else {
+            return Utils.getSimpleName(type);
+        }
+    }
+
     private void writeClassImpl(CodeTypeElement e) {
         for (AnnotationMirror annotation : e.getAnnotationMirrors()) {
             visitAnnotation(annotation);
@@ -131,12 +145,12 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
         }
         write(e.getSimpleName());
         if (e.getSuperclass() != null && !getQualifiedName(e.getSuperclass()).equals("java.lang.Object")) {
-            write(" extends ").write(typeSimpleName(e.getSuperclass()));
+            write(" extends ").write(useImport(e.getSuperclass()));
         }
         if (e.getImplements().size() > 0) {
             write(" implements ");
             for (int i = 0; i < e.getImplements().size(); i++) {
-                write(typeSimpleName(e.getImplements().get(i)));
+                write(useImport(e.getImplements().get(i)));
                 if (i < e.getImplements().size() - 1) {
                     write(", ");
                 }
@@ -145,7 +159,7 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
 
         write(" {").writeLn();
         writeEmptyLn();
-        indent();
+        indent(1);
 
         List<VariableElement> staticFields = getStaticFields(e);
         List<VariableElement> instanceFields = getInstanceFields(e);
@@ -191,7 +205,7 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
             clazz.accept(this, null);
         }
 
-        dedent();
+        dedent(1);
         write("}");
         writeEmptyLn();
     }
@@ -261,7 +275,15 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
             }
         } else {
             writeModifiers(f.getModifiers());
-            write(typeSimpleName(f.asType()));
+            write(useImport(f.asType()));
+
+            if (f.getEnclosingElement().getKind() == ElementKind.METHOD) {
+                ExecutableElement method = (ExecutableElement) f.getEnclosingElement();
+                if (method.isVarArgs() && method.getParameters().indexOf(f) == method.getParameters().size() - 1) {
+                    write("...");
+                }
+            }
+
             write(" ");
             write(f.getSimpleName());
             if (init != null) {
@@ -273,7 +295,7 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
     }
 
     public void visitAnnotation(AnnotationMirror e) {
-        write("@").write(typeSimpleName(e.getAnnotationType()));
+        write("@").write(useImport(e.getAnnotationType()));
 
         if (!e.getElementValues().isEmpty()) {
             write("(");
@@ -381,14 +403,14 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
 
         @Override
         public Void visitType(TypeMirror t, Void p) {
-            write(typeSimpleName(t));
+            write(useImport(t));
             write(".class");
             return null;
         }
 
         @Override
         public Void visitEnumConstant(VariableElement c, Void p) {
-            write(typeSimpleName(c.asType()));
+            write(useImport(c.asType()));
             write(".");
             write(c.getSimpleName().toString());
             return null;
@@ -444,7 +466,7 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
         writeModifiers(e.getModifiers());
 
         if (e.getReturnType() != null) {
-            write(typeSimpleName(e.getReturnType()));
+            write(useImport(e.getReturnType()));
             write(" ");
         }
         write(e.getSimpleName());
@@ -463,7 +485,7 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
         if (throwables.size() > 0) {
             write(" throws ");
             for (int i = 0; i < throwables.size(); i++) {
-                write(typeSimpleName(throwables.get(i)));
+                write(useImport(throwables.get(i)));
                 if (i < throwables.size() - 1) {
                     write(", ");
                 }
@@ -474,9 +496,9 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
             writeLn(";");
         } else if (e.getBodyTree() != null) {
             writeLn(" {");
-            indent();
+            indent(1);
             e.getBodyTree().acceptCodeElementScanner(this, p);
-            dedent();
+            dedent(1);
             writeLn("}");
         } else if (e.getBody() != null) {
             write(" {");
@@ -509,11 +531,11 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
                 }
                 break;
             case INDENT:
-                indent();
+                indent(1);
                 for (CodeTree tree : e.getEnclosedElements()) {
                     tree.acceptCodeElementScanner(this, p);
                 }
-                dedent();
+                dedent(1);
                 break;
             case NEW_LINE:
                 writeLn();
@@ -540,16 +562,12 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
                 }
                 break;
             case TYPE:
-                write(imports.useImport(e.getType()));
+                write(useImport(e.getType()));
                 break;
             default:
                 assert false;
                 return;
         }
-    }
-
-    private static String typeSimpleName(TypeMirror type) {
-        return Utils.getSimpleName(type);
     }
 
     protected void writeHeader() {
@@ -565,25 +583,28 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
         }
     }
 
-    private static final String LN = "\n";
-
-    protected void indent() {
-        indent++;
+    protected void indent(int count) {
+        indent += count;
     }
 
-    protected void dedent() {
-        indent--;
+    protected void dedent(int count) {
+        indent -= count;
     }
 
     protected void writeLn() {
-        write(LN);
-        newLine = true;
+        writeLn("");
     }
 
     protected void writeLn(String text) {
         write(text);
         write(LN);
+        lineLength = 0;
         newLine = true;
+        if (lineWrapping) {
+            dedent(LINE_WRAP_INDENTS);
+            lineWrapping = false;
+        }
+        lineWrapping = false;
     }
 
     protected void writeEmptyLn() {
@@ -596,9 +617,22 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
 
     private AbstractCodeWriter write(String m) {
         try {
+            lineLength += m.length();
             if (newLine && m != LN) {
                 writeIndent();
                 newLine = false;
+            }
+            if (lineLength > LINE_LENGTH && m.length() > 0) {
+                char firstChar = m.charAt(0);
+                if (Character.isAlphabetic(firstChar)) {
+                    if (!lineWrapping) {
+                        indent(LINE_WRAP_INDENTS);
+                    }
+                    lineWrapping = true;
+                    lineLength = 0;
+                    write(LN);
+                    writeIndent();
+                }
             }
             writer.write(m);
         } catch (IOException e) {
@@ -609,7 +643,57 @@ public abstract class AbstractCodeWriter extends CodeElementScanner<Void, Void> 
 
     private void writeIndent() throws IOException {
         for (int i = 0; i < indent; i++) {
-            writer.write("    ");
+            lineLength += IDENT_STRING.length();
+            writer.write(IDENT_STRING);
         }
     }
+
+    private static class TrimTrailingSpaceWriter extends Writer {
+
+        private final Writer delegate;
+        private final StringBuilder buffer = new StringBuilder();
+
+        public TrimTrailingSpaceWriter(Writer delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void close() throws IOException {
+            this.delegate.close();
+        }
+
+        @Override
+        public void flush() throws IOException {
+            this.delegate.flush();
+        }
+
+        @Override
+        public void write(char[] cbuf, int off, int len) throws IOException {
+            buffer.append(cbuf, off, len);
+            int newLinePoint = buffer.indexOf(LN);
+
+            if (newLinePoint != -1) {
+                String lhs = trimTrailing(buffer.substring(0, newLinePoint));
+                delegate.write(lhs);
+                delegate.write(LN);
+                buffer.delete(0, newLinePoint + 1);
+            }
+        }
+
+        private static String trimTrailing(String s) {
+            int cut = 0;
+            for (int i = s.length() - 1; i >= 0; i--) {
+                if (Character.isWhitespace(s.charAt(i))) {
+                    cut++;
+                } else {
+                    break;
+                }
+            }
+            if (cut > 0) {
+                return s.substring(0, s.length() - cut);
+            }
+            return s;
+        }
+    }
+
 }

@@ -46,12 +46,6 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
   assert(!(oop_result1->is_valid() || metadata_result->is_valid()) || oop_result1 != metadata_result, "registers must be different");
   assert(oop_result1 != thread && metadata_result != thread, "registers must be different");
   assert(args_size >= 0, "illegal args_size");
-  bool align_stack = false;
-#ifdef _LP64
-  // At a method handle call, the stack may not be properly aligned
-  // when returning with an exception.
-  align_stack = (stub_id() == false /*GraalRuntime::handle_exception_from_callee_id*/);
-#endif
 
 #ifdef _LP64
   mov(c_rarg0, thread);
@@ -65,20 +59,11 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
 #endif // _LP64
 
   int call_offset;
-  if (!align_stack) {
-    set_last_Java_frame(thread, noreg, rbp, NULL);
-  } else {
-    address the_pc = pc();
-    call_offset = offset();
-    set_last_Java_frame(thread, noreg, rbp, the_pc);
-    andptr(rsp, -(StackAlignmentInBytes));    // Align stack
-  }
+  set_last_Java_frame(thread, rsp, noreg, NULL);
 
   // do the call
   call(RuntimeAddress(entry));
-  if (!align_stack) {
-    call_offset = offset();
-  }
+  call_offset = offset();
   // verify callee-saved register
 #ifdef ASSERT
   guarantee(thread != rax, "change this code");
@@ -93,7 +78,7 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
   }
   pop(rax);
 #endif
-  reset_last_Java_frame(thread, true, align_stack);
+  reset_last_Java_frame(thread, true, false);
 
   // discard thread and arguments
   NOT_LP64(addptr(rsp, num_rt_args()*BytesPerWord));
@@ -115,7 +100,7 @@ int GraalStubAssembler::call_RT(Register oop_result1, Register metadata_result, 
     restore_live_registers(this, false);
     movptr(Address(thread, Thread::pending_exception_offset()), NULL_WORD);
     leave();
-    movl(rscratch1, Deoptimization::make_trap_request(Deoptimization::Reason_constraint, Deoptimization::Action_reinterpret));
+    movl(Address(thread, ThreadShadow::pending_deoptimization_offset()), Deoptimization::make_trap_request(Deoptimization::Reason_constraint, Deoptimization::Action_reinterpret));
     jump(RuntimeAddress(SharedRuntime::deopt_blob()->uncommon_trap()));
     bind(L);
   }
@@ -356,6 +341,7 @@ static OopMap* generate_oop_map(GraalStubAssembler* sasm, int num_rt_args,
   map->set_callee_saved(VMRegImpl::stack2reg(rcx_off + num_rt_args), rcx->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rdx_off + num_rt_args), rdx->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rbx_off + num_rt_args), rbx->as_VMReg());
+  map->set_callee_saved(VMRegImpl::stack2reg(rbp_off + num_rt_args), rbp->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rsi_off + num_rt_args), rsi->as_VMReg());
   map->set_callee_saved(VMRegImpl::stack2reg(rdi_off + num_rt_args), rdi->as_VMReg());
 #ifdef _LP64
@@ -373,6 +359,7 @@ static OopMap* generate_oop_map(GraalStubAssembler* sasm, int num_rt_args,
   map->set_callee_saved(VMRegImpl::stack2reg(rcxH_off + num_rt_args), rcx->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rdxH_off + num_rt_args), rdx->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rbxH_off + num_rt_args), rbx->as_VMReg()->next());
+  map->set_callee_saved(VMRegImpl::stack2reg(rbpH_off + num_rt_args), rbp->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rsiH_off + num_rt_args), rsi->as_VMReg()->next());
   map->set_callee_saved(VMRegImpl::stack2reg(rdiH_off + num_rt_args), rdi->as_VMReg()->next());
 
@@ -638,9 +625,9 @@ OopMapSet* GraalRuntime::generate_handle_exception(StubID id, GraalStubAssembler
   OopMapSet* oop_maps = new OopMapSet();
   OopMap* oop_map = NULL;
   switch (id) {
-    case graal_handle_exception_nofpu_id:
+    case handle_exception_nofpu_id:
       // At this point all registers MAY be live.
-      oop_map = save_live_registers(sasm, 1 /*thread*/, id == graal_handle_exception_nofpu_id);
+      oop_map = save_live_registers(sasm, 1 /*thread*/, id == handle_exception_nofpu_id);
       break;
     default:  ShouldNotReachHere();
   }
@@ -712,9 +699,9 @@ OopMapSet* GraalRuntime::generate_handle_exception(StubID id, GraalStubAssembler
   __ movptr(Address(rbp, 1*BytesPerWord), rax);
 
   switch (id) {
-    case graal_handle_exception_nofpu_id:
+    case handle_exception_nofpu_id:
       // Restore the registers that were saved at the beginning.
-      restore_live_registers(sasm, id == graal_handle_exception_nofpu_id);
+      restore_live_registers(sasm, id == handle_exception_nofpu_id);
       break;
     default:  ShouldNotReachHere();
   }
@@ -824,7 +811,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case graal_new_instance_id:
+    case new_instance_id:
       {
         Register klass = rdx; // Incoming
         Register obj   = rax; // Result
@@ -844,7 +831,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
 
       break;
 
-    case graal_new_array_id:
+    case new_array_id:
       {
         Register length   = rbx; // Incoming
         Register klass    = rdx; // Incoming
@@ -869,7 +856,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       }
       break;
 
-    case graal_new_multi_array_id:
+    case new_multi_array_id:
       { GraalStubFrame f(sasm, "new_multi_array", dont_gc_arguments);
         // rax,: klass
         // rbx,: rank
@@ -886,7 +873,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       }
       break;
 
-    case graal_register_finalizer_id:
+    case register_finalizer_id:
       {
         __ set_info("register_finalizer", dont_gc_arguments);
 
@@ -927,88 +914,16 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       }
       break;
 
-    case graal_handle_exception_nofpu_id:
+    case handle_exception_nofpu_id:
       { GraalStubFrame f(sasm, "handle_exception", dont_gc_arguments);
         oop_maps = generate_handle_exception(id, sasm);
       }
       break;
 
-    case graal_slow_subtype_check_id:
-      {
-        // Typical calling sequence:
-        // __ push(klass_RInfo);  // object klass or other subclass
-        // __ push(sup_k_RInfo);  // array element klass or other superclass
-        // __ call(slow_subtype_check);
-        // Note that the subclass is pushed first, and is therefore deepest.
-        // Previous versions of this code reversed the names 'sub' and 'super'.
-        // This was operationally harmless but made the code unreadable.
-        enum layout {
-          rax_off, SLOT2(raxH_off)
-          rcx_off, SLOT2(rcxH_off)
-          rsi_off, SLOT2(rsiH_off)
-          rdi_off, SLOT2(rdiH_off)
-          // saved_rbp_off, SLOT2(saved_rbpH_off)
-          return_off, SLOT2(returnH_off)
-          sup_k_off, SLOT2(sup_kH_off)
-          klass_off, SLOT2(superH_off)
-          framesize,
-          result_off = klass_off  // deepest argument is also the return value
-        };
-
-        __ set_info("slow_subtype_check", dont_gc_arguments);
-        __ push(rdi);
-        __ push(rsi);
-        __ push(rcx);
-        __ push(rax);
-
-        // This is called by pushing args and not with C abi
-        __ movptr(rsi, Address(rsp, (klass_off) * VMRegImpl::stack_slot_size)); // subclass
-        __ movptr(rax, Address(rsp, (sup_k_off) * VMRegImpl::stack_slot_size)); // superclass
-
-        Label miss;
-        Label success;
-        __ check_klass_subtype_fast_path(rsi, rax, rcx, &success, &miss, NULL);
-
-        __ check_klass_subtype_slow_path(rsi, rax, rcx, rdi, NULL, &miss);
-
-        // fallthrough on success:
-        __ bind(success);
-        __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), 1); // result
-        __ pop(rax);
-        __ pop(rcx);
-        __ pop(rsi);
-        __ pop(rdi);
-        __ ret(0);
-
-        __ bind(miss);
-        __ movptr(Address(rsp, (result_off) * VMRegImpl::stack_slot_size), NULL_WORD); // result
-        __ pop(rax);
-        __ pop(rcx);
-        __ pop(rsi);
-        __ pop(rdi);
-        __ ret(0);
-      }
-      break;
-
-    case graal_unwind_exception_call_id: {
+    case unwind_exception_call_id: {
       // remove the frame from the stack
       __ movptr(rsp, rbp);
       __ pop(rbp);
-      // exception_oop is passed using ordinary java calling conventions
-      __ movptr(rax, j_rarg0);
-
-      Label nonNullExceptionOop;
-      __ testptr(rax, rax);
-      __ jcc(Assembler::notZero, nonNullExceptionOop);
-      {
-        __ enter();
-        oop_maps = new OopMapSet();
-        OopMap* oop_map = save_live_registers(sasm, 0);
-        int call_offset = __ call_RT(rax, noreg, (address)graal_create_null_exception, 0);
-        oop_maps->add_gc_map(call_offset, oop_map);
-        __ leave();
-      }
-      __ bind(nonNullExceptionOop);
 
       __ set_info("unwind_exception", dont_gc_arguments);
       // note: no stubframe since we are about to leave the current
@@ -1018,7 +933,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_OSR_migration_end_id: {
+    case OSR_migration_end_id: {
     __ enter();
     save_live_registers(sasm, 0);
     __ movptr(c_rarg0, j_rarg0);
@@ -1029,39 +944,33 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_set_deopt_info_id: {
-    __ movptr(Address(r15_thread, JavaThread::graal_deopt_info_offset()), rscratch1);
-    __ ret(0);
-      break;
-    }
-
-    case graal_create_null_pointer_exception_id: {
+    case create_null_pointer_exception_id: {
 		__ enter();
 		oop_maps = new OopMapSet();
 		OopMap* oop_map = save_live_registers(sasm, 0);
-		int call_offset = __ call_RT(rax, noreg, (address)graal_create_null_exception, 0);
+		int call_offset = __ call_RT(rax, noreg, (address)create_null_exception, 0);
 		oop_maps->add_gc_map(call_offset, oop_map);
 		__ leave();
 		__ ret(0);
       break;
     }
 
-    case graal_create_out_of_bounds_exception_id: {
+    case create_out_of_bounds_exception_id: {
 		__ enter();
 		oop_maps = new OopMapSet();
 		OopMap* oop_map = save_live_registers(sasm, 0);
-		int call_offset = __ call_RT(rax, noreg, (address)graal_create_out_of_bounds_exception, j_rarg0);
+		int call_offset = __ call_RT(rax, noreg, (address)create_out_of_bounds_exception, j_rarg0);
 		oop_maps->add_gc_map(call_offset, oop_map);
 		__ leave();
 		__ ret(0);
       break;
     }
 
-    case graal_vm_error_id: {
+    case vm_error_id: {
       __ enter();
       oop_maps = new OopMapSet();
       OopMap* oop_map = save_live_registers(sasm, 0);
-      int call_offset = __ call_RT(noreg, noreg, (address)graal_vm_error, j_rarg0, j_rarg1, j_rarg2);
+      int call_offset = __ call_RT(noreg, noreg, (address)vm_error, j_rarg0, j_rarg1, j_rarg2);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
       __ leave();
@@ -1069,11 +978,11 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_log_printf_id: {
+    case log_printf_id: {
       __ enter();
       oop_maps = new OopMapSet();
       OopMap* oop_map = save_live_registers(sasm, 0);
-      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_printf, j_rarg0, j_rarg1, j_rarg2, j_rarg3);
+      int call_offset = __ call_RT(noreg, noreg, (address)log_printf, j_rarg0, j_rarg1, j_rarg2, j_rarg3);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
       __ leave();
@@ -1081,11 +990,11 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_log_primitive_id: {
+    case log_primitive_id: {
       __ enter();
       oop_maps = new OopMapSet();
       OopMap* oop_map = save_live_registers(sasm, 0);
-      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_primitive, j_rarg0, j_rarg1, j_rarg2);
+      int call_offset = __ call_RT(noreg, noreg, (address)log_primitive, j_rarg0, j_rarg1, j_rarg2);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
       __ leave();
@@ -1093,11 +1002,11 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_log_object_id: {
+    case log_object_id: {
       __ enter();
       oop_maps = new OopMapSet();
       OopMap* oop_map = save_live_registers(sasm, 0);
-      int call_offset = __ call_RT(noreg, noreg, (address)graal_log_object, j_rarg0, j_rarg1);
+      int call_offset = __ call_RT(noreg, noreg, (address)log_object, j_rarg0, j_rarg1);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
       __ leave();
@@ -1105,7 +1014,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_verify_oop_id: {
+    case verify_oop_id: {
       // We use enter & leave so that a better stack trace is produced in the hs_err file
       __ enter();
       __ verify_oop(r13, "Graal verify oop");
@@ -1114,7 +1023,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case graal_arithmetic_frem_id: {
+    case arithmetic_frem_id: {
       __ subptr(rsp, 8);
       __ movflt(Address(rsp, 0), xmm1);
       __ fld_s(Address(rsp, 0));
@@ -1135,7 +1044,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ ret(0);
       break;
     }
-    case graal_arithmetic_drem_id: {
+    case arithmetic_drem_id: {
       __ subptr(rsp, 8);
       __ movdbl(Address(rsp, 0), xmm1);
       __ fld_d(Address(rsp, 0));
@@ -1156,15 +1065,15 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ ret(0);
       break;
     }
-    case graal_monitorenter_id: {
+    case monitorenter_id: {
       Register obj = j_rarg0;
       Register lock = j_rarg1;
       {
-        GraalStubFrame f(sasm, "graal_monitorenter", dont_gc_arguments);
+        GraalStubFrame f(sasm, "monitorenter", dont_gc_arguments);
         OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
         // Called with store_parameter and not C abi
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_monitorenter), obj, lock);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorenter), obj, lock);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
@@ -1173,17 +1082,17 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ ret(0);
       break;
     }
-    case graal_monitorexit_id: {
+    case monitorexit_id: {
       Register obj = j_rarg0;
       Register lock = j_rarg1;
       {
-        GraalStubFrame f(sasm, "graal_monitorexit", dont_gc_arguments);
+        GraalStubFrame f(sasm, "monitorexit", dont_gc_arguments);
         OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
 
         // note: really a leaf routine but must setup last java sp
         //       => use call_RT for now (speed can be improved by
         //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_monitorexit), obj, lock);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorexit), obj, lock);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
@@ -1192,7 +1101,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ ret(0);
       break;
    }
-   case graal_wb_pre_call_id: {
+   case wb_pre_call_id: {
       Register obj = j_rarg0;
       {
         GraalStubFrame f(sasm, "graal_wb_pre_call", dont_gc_arguments);
@@ -1201,7 +1110,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
         // note: really a leaf routine but must setup last java sp
         //       => use call_RT for now (speed can be improved by
         //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_wb_pre_call), obj);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, wb_pre_call), obj);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
@@ -1210,7 +1119,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ ret(0);
       break;
    }
-   case graal_wb_post_call_id: {
+   case wb_post_call_id: {
       Register obj = j_rarg0;
       Register caddr = j_rarg1;
       {
@@ -1220,7 +1129,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
         // note: really a leaf routine but must setup last java sp
         //       => use call_RT for now (speed can be improved by
         //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_wb_post_call), obj, caddr);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, wb_post_call), obj, caddr);
 
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, map);
@@ -1230,12 +1139,13 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
    }
 
-   case graal_identity_hash_code_id: {
+
+    case identity_hash_code_id: {
       Register obj = j_rarg0; // Incoming
       __ set_info("identity_hash_code", dont_gc_arguments);
       __ enter();
       OopMap* map = save_live_registers(sasm, 1);
-      int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_identity_hash_code), obj);
+      int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, identity_hash_code), obj);
       oop_maps = new OopMapSet();
       oop_maps->add_gc_map(call_offset, map);
       restore_live_registers_except_rax(sasm);
@@ -1243,14 +1153,14 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       __ ret(0);
       break;
     }
-    case graal_thread_is_interrupted_id: {
+    case thread_is_interrupted_id: {
       Register thread = j_rarg0;
       Register clear_interrupted = j_rarg1;
 
       __ set_info("identity_hash_code", dont_gc_arguments);
       __ enter();
       OopMap* map = save_live_registers(sasm, 1);
-      int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, graal_thread_is_interrupted), thread, clear_interrupted);
+      int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, thread_is_interrupted), thread, clear_interrupted);
       oop_maps = new OopMapSet();
       oop_maps->add_gc_map(call_offset, map);
       restore_live_registers_except_rax(sasm);
