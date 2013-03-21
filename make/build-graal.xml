@@ -38,6 +38,7 @@
       <src path="${src.dir}/com.oracle.graal.debug"/>
       <src path="${src.dir}/com.oracle.graal.nodes"/>
       <src path="${src.dir}/com.oracle.graal.phases"/>
+      <src path="${src.dir}/com.oracle.graal.api.replacements"/>
       <src path="${src.dir}/com.oracle.graal.phases.common"/>
       <src path="${src.dir}/com.oracle.graal.virtual"/>
       <src path="${src.dir}/com.oracle.graal.loop"/>

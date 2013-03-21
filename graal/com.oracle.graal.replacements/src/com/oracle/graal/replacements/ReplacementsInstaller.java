@@ -32,6 +32,7 @@ import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
@@ -41,8 +42,8 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
-import com.oracle.graal.replacements.ClassSubstitution.*;
-import com.oracle.graal.replacements.Snippet.*;
+import com.oracle.graal.replacements.Snippet.DefaultSnippetInliningPolicy;
+import com.oracle.graal.replacements.Snippet.SnippetInliningPolicy;
 import com.oracle.graal.word.phases.*;
 
 /**
@@ -87,10 +88,10 @@ public class ReplacementsInstaller {
                     throw new RuntimeException("Snippet must not be abstract or native");
                 }
                 ResolvedJavaMethod snippet = runtime.lookupJavaMethod(method);
-                assert snippet.getCompilerStorage().get(Graph.class) == null : method;
+                assert snippet.getCompilerStorage().get(Snippet.class) == null : method;
                 StructuredGraph graph = makeGraph(snippet, inliningPolicy(snippet));
                 // System.out.println("snippet: " + graph);
-                snippet.getCompilerStorage().put(Graph.class, graph);
+                snippet.getCompilerStorage().put(Snippet.class, graph);
             }
         }
     }
@@ -163,7 +164,7 @@ public class ReplacementsInstaller {
         try {
             Debug.log("substitution: " + MetaUtil.format("%H.%n(%p)", original) + " --> " + MetaUtil.format("%H.%n(%p)", substitute));
             StructuredGraph graph = makeGraph(substitute, inliningPolicy(substitute));
-            Object oldValue = original.getCompilerStorage().put(Graph.class, graph);
+            Object oldValue = original.getCompilerStorage().put(MethodSubstitution.class, graph);
             assert oldValue == null;
         } finally {
             substitute = null;
@@ -212,10 +213,13 @@ public class ReplacementsInstaller {
         new NodeIntrinsificationPhase(runtime, pool).apply(graph);
         assert SnippetTemplate.hasConstantParameter(method) || NodeIntrinsificationVerificationPhase.verify(graph);
 
-        new SnippetFrameStateCleanupPhase().apply(graph);
-        new DeadCodeEliminationPhase().apply(graph);
-
-        new InsertStateAfterPlaceholderPhase().apply(graph);
+        if (substitute == null) {
+            new SnippetFrameStateCleanupPhase().apply(graph);
+            new DeadCodeEliminationPhase().apply(graph);
+            new InsertStateAfterPlaceholderPhase().apply(graph);
+        } else {
+            new DeadCodeEliminationPhase().apply(graph);
+        }
     }
 
     public StructuredGraph makeGraph(final ResolvedJavaMethod method, final SnippetInliningPolicy policy) {

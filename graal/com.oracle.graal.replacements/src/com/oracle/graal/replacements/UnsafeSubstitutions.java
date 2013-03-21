@@ -24,9 +24,9 @@ package com.oracle.graal.replacements;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.replacements.ClassSubstitution.*;
 import com.oracle.graal.replacements.nodes.*;
 
 /**

@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.replacements;
 
-import com.oracle.graal.replacements.ClassSubstitution.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.replacements.nodes.*;
 
 @ClassSubstitution(Long.class)

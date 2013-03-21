@@ -23,10 +23,10 @@
 package com.oracle.graal.replacements;
 
 import com.oracle.graal.api.code.RuntimeCallTarget.Descriptor;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.replacements.ClassSubstitution.*;
 import com.oracle.graal.replacements.nodes.*;
 import com.oracle.graal.replacements.nodes.MathIntrinsicNode.*;
 

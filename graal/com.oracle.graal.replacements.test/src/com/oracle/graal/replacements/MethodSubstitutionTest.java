@@ -31,6 +31,7 @@ import org.junit.*;
 import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
@@ -38,7 +39,6 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
-import com.oracle.graal.replacements.ClassSubstitution.*;
 import com.oracle.graal.replacements.nodes.*;
 
 /**

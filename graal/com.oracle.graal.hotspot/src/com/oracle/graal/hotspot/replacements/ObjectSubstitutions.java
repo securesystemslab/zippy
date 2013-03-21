@@ -25,9 +25,9 @@ package com.oracle.graal.hotspot.replacements;
 import static com.oracle.graal.hotspot.replacements.HotSpotSnippetUtils.*;
 import static com.oracle.graal.nodes.extended.UnsafeCastNode.*;
 
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.replacements.*;
-import com.oracle.graal.replacements.ClassSubstitution.*;
 import com.oracle.graal.word.*;
 
 /**
