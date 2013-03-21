@@ -192,7 +192,7 @@ project@com.oracle.graal.word@javaCompliance=1.7
 # graal.replacements
 project@com.oracle.graal.replacements@subDir=graal
 project@com.oracle.graal.replacements@sourceDirs=src
-project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word,com.oracle.graal.api.replacements
+project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word
 project@com.oracle.graal.replacements@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements@javaCompliance=1.7
 
@@ -227,7 +227,7 @@ project@com.oracle.graal.phases@javaCompliance=1.7
 # graal.phases.common
 project@com.oracle.graal.phases.common@subDir=graal
 project@com.oracle.graal.phases.common@sourceDirs=src
-project@com.oracle.graal.phases.common@dependencies=com.oracle.graal.phases
+project@com.oracle.graal.phases.common@dependencies=com.oracle.graal.phases,com.oracle.graal.api.replacements
 project@com.oracle.graal.phases.common@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.phases.common@javaCompliance=1.7
 
