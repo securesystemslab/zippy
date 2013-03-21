@@ -27,7 +27,7 @@ from outputparser import OutputParser, ValuesMatcher
 import re, mx, commands, os, sys, StringIO, subprocess
 from os.path import isfile, join, exists
 
-gc='UseG1GC'
+gc='UseSerialGC'
 
 dacapoSanityWarmup = {
     'avrora':     [0, 0,  3,  6, 13],
