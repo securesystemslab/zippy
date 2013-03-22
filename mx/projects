@@ -195,6 +195,7 @@ project@com.oracle.graal.replacements@sourceDirs=src
 project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word
 project@com.oracle.graal.replacements@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements@javaCompliance=1.7
+project@com.oracle.graal.replacements@annotationProcessors=com.oracle.graal.replacements.verifier
 
 # graal.replacements.amd64
 project@com.oracle.graal.replacements.amd64@subDir=graal
@@ -209,6 +210,13 @@ project@com.oracle.graal.replacements.test@sourceDirs=src
 project@com.oracle.graal.replacements.test@dependencies=com.oracle.graal.replacements,com.oracle.graal.compiler.test
 project@com.oracle.graal.replacements.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements.test@javaCompliance=1.7
+
+# graal.replacements.verifier
+project@com.oracle.graal.replacements.verifier@subDir=graal
+project@com.oracle.graal.replacements.verifier@sourceDirs=src
+project@com.oracle.graal.replacements.verifier@dependencies=com.oracle.graal.api.replacements
+project@com.oracle.graal.replacements.verifier@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.replacements.verifier@javaCompliance=1.7
 
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
