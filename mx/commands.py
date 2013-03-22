@@ -758,7 +758,10 @@ def _unittest(args, annotations):
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
+        if _vm == 'server0':
+            prefixArgs = ['-esa', '-ea']
+        else:
+            prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
         vm(prefixArgs + vmArgs + ['-cp', projectscp + ':' + mxdir, name] + [testfile])
 
     try:
