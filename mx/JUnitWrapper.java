@@ -67,7 +67,7 @@ public class JUnitWrapper {
         }
 
         String[] strargs = tests.toArray(new String[tests.size()]);
-        System.out.printf("executing junit tests now... (%d testclasses)\n", strargs.length);
+        System.out.printf("executing junit tests now... (%d test classes)\n", strargs.length);
         JUnitCore.main(strargs);
     }
 }

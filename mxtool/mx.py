@@ -350,6 +350,7 @@ class Project(Dependency):
     def _init_packages_and_imports(self):
         if not hasattr(self, '_defined_java_packages'):
             packages = set()
+            extendedPackages = set()
             depPackages = set()
             for d in self.all_deps([], includeLibs=False, includeSelf=False):
                 depPackages.update(d.defined_java_packages())
@@ -363,7 +364,8 @@ class Project(Dependency):
                         if not pkg in depPackages:
                             packages.add(pkg)
                         else:
-                            # A project imports a package already defined by one of it dependencies
+                            # A project extends a package already defined by one of it dependencies
+                            extendedPackages.add(pkg)
                             imports.add(pkg)
                         
                         for n in javaSources:
@@ -371,6 +373,7 @@ class Project(Dependency):
                                 content = fp.read()
                                 imports.update(importRe.findall(content))
             self._defined_java_packages = frozenset(packages)
+            self._extended_java_packages = frozenset(extendedPackages)
             
             importedPackages = set()
             for imp in imports:
@@ -390,6 +393,11 @@ class Project(Dependency):
         self._init_packages_and_imports()
         return self._defined_java_packages
     
+    def extended_java_packages(self):
+        """Get the immutable set of Java packages extended by the Java sources of this project"""
+        self._init_packages_and_imports()
+        return self._extended_java_packages
+
     def imported_java_packages(self):
         """Get the immutable set of Java packages defined by other Java projects that are
            imported by the Java sources of this project."""
@@ -1719,6 +1727,8 @@ def canonicalizeprojects(args):
                                 ignoredDeps.discard(name)
                             else:
                                 if pkg in dep.defined_java_packages():
+                                    ignoredDeps.discard(name)
+                                if pkg in dep.extended_java_packages():
                                     ignoredDeps.discard(name)
                     if len(ignoredDeps) != 0:
                         candidates = set();

@@ -628,7 +628,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int("threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
   set_int("threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
-  set_int("osThreadOffset", in_bytes(JavaThread::osthread_offset()));
   set_int("osThreadInterruptedOffset", in_bytes(OSThread::interrupted_offset()));
   set_int("unlockedMask", (int) markOopDesc::unlocked_value);
   set_int("biasedLockMaskInPlace", (int) markOopDesc::biased_lock_mask_in_place);
