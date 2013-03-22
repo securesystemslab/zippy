@@ -91,6 +91,7 @@ project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
 project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.api.runtime,com.oracle.graal.printer
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
 # graal.hotspot.amd64
