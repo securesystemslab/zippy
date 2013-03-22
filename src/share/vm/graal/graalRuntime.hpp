@@ -153,7 +153,7 @@ class GraalRuntime: public AllStatic {
   static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
   static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
 
-  // Note: Must be kept in sync with constants in com.oracle.graal.snippets.Log
+  // Note: Must be kept in sync with constants in com.oracle.graal.replacements.Log
   enum {
     LOG_OBJECT_NEWLINE = 0x01,
     LOG_OBJECT_STRING  = 0x02,
