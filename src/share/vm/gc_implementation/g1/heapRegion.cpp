@@ -119,8 +119,6 @@ public:
           gclog_or_tty->print_cr("points to obj "PTR_FORMAT" not in the heap",
                                  (void*) obj);
         } else {
-          printf("Paok VO %d\n", _vo);
-
           HeapRegion* from = _g1h->heap_region_containing((HeapWord*)p);
           HeapRegion* to   = _g1h->heap_region_containing((HeapWord*)obj);
           gclog_or_tty->print_cr("Field "PTR_FORMAT
