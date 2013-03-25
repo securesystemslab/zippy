@@ -187,7 +187,8 @@ $(MINIMAL1_VM_TARGETS):
 
 $(GRAAL_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
-	$(MAKE) VM_TARGET=$@ generic_buildgraal $(ALT_OUT)
+	$(MAKE) BUILD_FLAVOR=$@ VM_TARGET=$@ \
+	  generic_buildgraal $(ALT_OUT)
 
 # Build compiler1 (client) rule, different for platforms
 generic_build1: buildshared
