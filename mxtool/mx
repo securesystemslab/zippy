@@ -37,14 +37,27 @@ if [ ! -f "$dir/mx.py" ]; then
     exit 1
 fi
 
-python <<END
+# Not all systems (e.g. Mac OS X) have 'python2' on the path.
+type python2.7 >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    python_exe=python2.7
+else
+    type python2 > /dev/null 2>&1
+    if [ $? -eq 0]; then
+        python_exe=python2
+    else
+        python_exe=python
+    fi
+fi
+
+$python_exe <<END
 import sys
 major, minor, micro, _, _ = sys.version_info
 if major != 2 or minor != 7:
     raise SystemExit('The mx.py script requires Python 2.7, not {0}.{1}.{2}'.format(major, minor, micro))
 END
 if [ $? -eq 0 ]; then
-    exec python -u "$dir/mx.py" "$@"
+    exec $python_exe -u "$dir/mx.py" "$@"
 fi
 
 #end of file
