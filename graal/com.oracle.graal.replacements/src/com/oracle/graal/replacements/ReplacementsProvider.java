@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.test;
+package com.oracle.graal.replacements;
 
-import org.junit.*;
+/**
+ * Interface for service providers that install replacements into the compiler.
+ */
+public interface ReplacementsProvider {
 
-// @formatter:off
-public class LoopTest extends AbstractTest {
-
-    private static String[] INPUT = new String[] {
-"function main {  ",
-"  i = 0;  ",
-"  while (i < 1000) {  ",
-"    i = i + 1;  ",
-"  }  ",
-"  return i;  ",
-"}  ",
-    };
-
-    private static String[] OUTPUT = new String[] {
-"1000",
-    };
-
-    @Test
-    public void test() {
-        executeSL(INPUT, OUTPUT, false);
-    }
+    void installReplacements(ReplacementsInstaller installer);
 }
