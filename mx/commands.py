@@ -1025,6 +1025,8 @@ def bench(args):
     vm = _vm
     if len(args) is 0:
         args = ['all']
+        
+    vmArgs = [arg for arg in args if arg.startswith('-')]
 
     def benchmarks_in_group(group):
         prefix = group + ':'
@@ -1069,7 +1071,7 @@ def bench(args):
         benchmarks += [sanitycheck.getSPECjbb2013()]
 
     for test in benchmarks:
-        for (groupName, res) in test.bench(vm).items():
+        for (groupName, res) in test.bench(vm, opts=vmArgs).items():
             group = results.setdefault(groupName, {})
             group.update(res)
     mx.log(json.dumps(results))
