@@ -212,10 +212,14 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
   nmethod* nm = (nmethod*) deoptee.cb();
   GraalCompiler* compiler = (GraalCompiler*) nm->compiler();
   for (jlong* p = nm->leaf_graph_ids_begin(); p != nm->leaf_graph_ids_end(); p++) {
-    if (PrintDeoptimizationDetails) {
-      tty->print_cr("leaf graph id: %d", *p);
-    }
     compiler->deopt_leaf_graph(*p);
+  }
+  if (PrintDeoptimizationDetails) {
+    tty->print("leaf graph ids: ");
+    for (jlong* p = nm->leaf_graph_ids_begin(); p != nm->leaf_graph_ids_end(); p++) {
+      tty->print("%d ", *p);
+    }
+    tty->cr();
   }
 #endif
 
