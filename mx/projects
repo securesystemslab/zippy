@@ -96,7 +96,7 @@ project@com.oracle.graal.sparc@javaCompliance=1.7
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.api.runtime,com.oracle.graal.printer
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.printer
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier
 project@com.oracle.graal.hotspot@javaCompliance=1.7
@@ -200,10 +200,10 @@ project@com.oracle.graal.word@javaCompliance=1.7
 # graal.replacements
 project@com.oracle.graal.replacements@subDir=graal
 project@com.oracle.graal.replacements@sourceDirs=src
-project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word
+project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word,com.oracle.graal.api.runtime
 project@com.oracle.graal.replacements@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements@javaCompliance=1.7
-project@com.oracle.graal.replacements@annotationProcessors=com.oracle.graal.replacements.verifier
+project@com.oracle.graal.replacements@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 
 # graal.replacements.amd64
 project@com.oracle.graal.replacements.amd64@subDir=graal
