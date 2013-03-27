@@ -814,6 +814,17 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
   GraalEnv::CodeInstallResult result;
   CodeInstaller installer(compResultHandle, method, result, nm, installed_code_handle, triggered_deoptimizations_handle);
 
+  if (PrintCodeCacheOnCompilation) {
+    stringStream s;
+    // Dump code cache  into a buffer before locking the tty,
+    {
+      MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+      CodeCache::print_summary(&s, false);
+    }
+    ttyLocker ttyl;
+    tty->print_cr(s.as_string());
+  }
+
   if (result != GraalEnv::ok) {
     assert(nm == NULL, "should be");
   } else {
