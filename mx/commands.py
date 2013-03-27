@@ -1065,7 +1065,9 @@ def bench(args):
         for dacapo in dacapos:
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
                 mx.abort('Unknown DaCapo : ' + dacapo)
-            benchmarks += [sanitycheck.getDacapo(dacapo, sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+            iterations = sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark]
+            if (iterations > 0):
+                benchmarks += [sanitycheck.getDacapo(dacapo, iterations)]
 
     if ('scaladacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
@@ -1074,7 +1076,9 @@ def bench(args):
         for scaladacapo in scaladacapos:
             if scaladacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
                 mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
-            benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+            iterations = sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark]
+            if (iterations > 0):
+                benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, iterations)]
 
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):
