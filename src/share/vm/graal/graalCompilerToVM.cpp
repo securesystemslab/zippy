@@ -839,6 +839,11 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
   return result;
 C2V_END
 
+C2V_VMENTRY(void, clearQueuedForCompilation, (JNIEnv *jniEnv, jobject, jobject resolvedMethod))
+  methodHandle method = getMethodFromHotSpotMethod(JNIHandles::resolve(resolvedMethod));
+  method->clear_queued_for_compilation();
+C2V_END
+
 C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong metaspace_nmethod))
   ResourceMark rm;
   HandleMark hm;
@@ -1100,6 +1105,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
+  {CC"clearQueuedForCompilation",     CC"("HS_RESOLVED_METHOD")V",                                      FN_PTR(clearQueuedForCompilation)},
 };
 
 int CompilerToVM_methods_count() {
