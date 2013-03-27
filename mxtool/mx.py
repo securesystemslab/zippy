@@ -2307,7 +2307,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS',    'value': 'auto,full,incremental'})
     launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS',     'value': mxCommand})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED','value': 'true'})
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',  'value': baseDir})
+    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',  'value': p.suite.dir})
     
     
     launchOut.close('launchConfiguration')
