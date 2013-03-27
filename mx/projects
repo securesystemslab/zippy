@@ -65,6 +65,13 @@ project@com.oracle.graal.api.replacements@dependencies=com.oracle.graal.api.meta
 project@com.oracle.graal.api.replacements@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api.replacements@javaCompliance=1.7
 
+# graal.service.processor
+project@com.oracle.graal.service.processor@subDir=graal
+project@com.oracle.graal.service.processor@sourceDirs=src
+project@com.oracle.graal.service.processor@dependencies=com.oracle.graal.api.runtime
+project@com.oracle.graal.service.processor@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.service.processor@javaCompliance=1.7
+
 # graal.amd64
 project@com.oracle.graal.amd64@subDir=graal
 project@com.oracle.graal.amd64@sourceDirs=src
