@@ -1178,6 +1178,7 @@ public:
   MethodData() {}; // For ciMethodData
 
   bool is_methodData() const volatile { return true; }
+  void initialize();
 
   // Whole-method sticky bits and flags
   enum {
@@ -1295,10 +1296,7 @@ public:
   static bool bytecode_has_profile(Bytecodes::Code code) {
     return bytecode_cell_count(code) != no_profile_data;
   }
-
-  // Perform initialization of a new MethodData*
-  void initialize(methodHandle method);
-
+  
   // My size
   int size_in_bytes() const { return _size; }
   int size() const    { return align_object_size(align_size_up(_size, BytesPerWord)/BytesPerWord); }

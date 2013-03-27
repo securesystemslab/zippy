@@ -1940,3 +1940,15 @@ void Method::verify_on(outputStream* st) {
   guarantee(md == NULL ||
       md->is_methodData(), "should be method data");
 }
+
+#ifdef GRAAL
+void Method::reset_counters() {
+  invocation_counter()->reset();
+  backedge_counter()->reset();
+  _interpreter_invocation_count = 0;
+  _interpreter_throwout_count = 0;
+#ifndef PRODUCT
+  _compiled_invocation_count = 0;
+#endif
+}
+#endif
