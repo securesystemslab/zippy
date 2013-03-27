@@ -345,8 +345,6 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
     GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
-
-  method->clear_queued_for_compilation();
 }
 
 // constructor used to create a stub
