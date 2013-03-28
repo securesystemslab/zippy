@@ -173,8 +173,17 @@ public:
   // Should be called when we want to release the active region which
   // is returned after it's been retired.
   HeapRegion* release();
+#ifdef GRAAL
+  HeapWord** top_addr()  const {
+    return _alloc_region->top_addr();
+  }
 
-#if G1_ALLOC_REGION_TRACING
+  HeapWord** end_addr()  const {
+    return _alloc_region->end_addr();
+  }
+#endif
+
+  #if G1_ALLOC_REGION_TRACING
   void trace(const char* str, size_t word_size = 0, HeapWord* result = NULL);
 #else // G1_ALLOC_REGION_TRACING
   void trace(const char* str, size_t word_size = 0, HeapWord* result = NULL) { }

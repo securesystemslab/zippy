@@ -29,7 +29,7 @@
 #include "prims/jvm.h"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/interfaceSupport.hpp"
-
+#include "utilities/debug.hpp"
 // Implementation of GraalStubAssembler
 
 GraalStubAssembler::GraalStubAssembler(CodeBuffer* code, const char * name, int stub_id) : MacroAssembler(code) {
@@ -136,7 +136,6 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case arithmetic_frem_id:
     case arithmetic_drem_id:
       break;
-
     // All other stubs should have oopmaps
     default:
       assert(oop_maps != NULL, "must have an oopmap");
@@ -263,7 +262,8 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
   if (DeoptimizeALot) {
     deopt_caller();
   }
-JRT_END
+ JRT_END
+
 
 
 JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims))
@@ -481,6 +481,13 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::monitorenter(JavaThread* thread, oopDesc*
   }
 JRT_END
 
+JRT_LEAF(void, GraalRuntime::wb_pre_call(JavaThread* thread, oopDesc* obj))
+    thread->satb_mark_queue().enqueue(obj);
+JRT_END
+
+JRT_LEAF(void, GraalRuntime::wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
+    thread->dirty_card_queue().enqueue(card_addr);
+JRT_END
 
 JRT_LEAF(void, GraalRuntime::monitorexit(JavaThread* thread, oopDesc* obj, BasicLock* lock))
   assert(thread == JavaThread::current(), "threads must correspond");
@@ -550,7 +557,8 @@ JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format
   report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
+
+JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   assert(format != NULL && java_lang_String::is_instance(format), "must be");
   char *buf = java_lang_String::as_utf8_string(format);

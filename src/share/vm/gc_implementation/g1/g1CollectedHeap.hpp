@@ -676,6 +676,12 @@ public:
   virtual void gc_prologue(bool full);
   virtual void gc_epilogue(bool full);
 
+  #ifdef GRAAL
+    HeapWord** top_addr() const;
+    HeapWord** end_addr() const;
+
+  #endif
+
   // We register a region with the fast "in collection set" test. We
   // simply set to true the array slot corresponding to this region.
   void register_region_with_in_cset_fast_test(HeapRegion* r) {

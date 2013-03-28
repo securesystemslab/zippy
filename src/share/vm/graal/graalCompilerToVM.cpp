@@ -37,6 +37,7 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalVMToCompiler.hpp"
+#include "gc_implementation/g1/heapRegion.hpp"
 
 
 Method* getMethodFromHotSpotMethod(oop hotspot_method) {
@@ -610,6 +611,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("usePopCountInstruction", UsePopCountInstruction);
   set_boolean("useAESIntrinsics", UseAESIntrinsics);
   set_boolean("useTLAB", UseTLAB);
+  set_boolean("useG1GC", UseG1GC);
   set_int("codeEntryAlignment", CodeEntryAlignment);
   set_int("stackShadowPages", StackShadowPages);
   set_int("hubOffset", oopDesc::klass_offset_in_bytes());
@@ -705,6 +707,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("layoutHelperHeaderSizeMask", Klass::_lh_header_size_mask);
   set_int("layoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
 
+
+  set_stub("wbPreCallStub", GraalRuntime::entry_for(GraalRuntime::wb_pre_call_id));
+  set_stub("wbPostCallStub", GraalRuntime::entry_for(GraalRuntime::wb_post_call_id));
+
   set_stub("newInstanceStub", GraalRuntime::entry_for(GraalRuntime::new_instance_id));
   set_stub("newArrayStub", GraalRuntime::entry_for(GraalRuntime::new_array_id));
   set_stub("newMultiArrayStub", GraalRuntime::entry_for(GraalRuntime::new_multi_array_id));
@@ -757,12 +763,19 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("deoptActionReinterpret", Deoptimization::Action_reinterpret);
   set_int("deoptActionMakeNotEntrant", Deoptimization::Action_make_not_entrant);
   set_int("deoptActionMakeNotCompilable", Deoptimization::Action_make_not_compilable);
-
+  set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
+  set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
+  set_int("logOfHRGrainBytes", HeapRegion::LogOfHRGrainBytes);
+  set_int("g1SATBQueueMarkingOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_active()));
+  set_int("g1SATBQueueIndexOffset", in_bytes(JavaThread::satb_mark_queue_offset() +  PtrQueue::byte_offset_of_index()));
+  set_int("g1SATBQueueBufferOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_buf()));
 
   BarrierSet* bs = Universe::heap()->barrier_set();
   switch (bs->kind()) {
     case BarrierSet::CardTableModRef:
-    case BarrierSet::CardTableExtension: {
+    case BarrierSet::CardTableExtension:
+    case BarrierSet::G1SATBCT:
+    case BarrierSet::G1SATBCTLogging:{
       jlong base = (jlong)((CardTableModRefBS*)bs)->byte_map_base;
       assert(base != 0, "unexpected byte_map_base");
       set_long("cardtableStartAddress", base);
@@ -775,10 +788,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
       set_int("cardtableShift", 0);
       // No post barriers
       break;
-#ifndef SERIALGC
-    case BarrierSet::G1SATBCT:
-    case BarrierSet::G1SATBCTLogging:
-#endif // SERIALGC
     default:
       ShouldNotReachHere();
       break;
@@ -805,6 +814,17 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
   GraalEnv::CodeInstallResult result;
   CodeInstaller installer(compResultHandle, method, result, nm, installed_code_handle, triggered_deoptimizations_handle);
 
+  if (PrintCodeCacheOnCompilation) {
+    stringStream s;
+    // Dump code cache  into a buffer before locking the tty,
+    {
+      MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+      CodeCache::print_summary(&s, false);
+    }
+    ttyLocker ttyl;
+    tty->print_cr(s.as_string());
+  }
+
   if (result != GraalEnv::ok) {
     assert(nm == NULL, "should be");
   } else {
@@ -817,6 +837,11 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
     }
   }
   return result;
+C2V_END
+
+C2V_VMENTRY(void, clearQueuedForCompilation, (JNIEnv *jniEnv, jobject, jobject resolvedMethod))
+  methodHandle method = getMethodFromHotSpotMethod(JNIHandles::resolve(resolvedMethod));
+  method->clear_queued_for_compilation();
 C2V_END
 
 C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong metaspace_nmethod))
@@ -1102,6 +1127,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
+  {CC"clearQueuedForCompilation",     CC"("HS_RESOLVED_METHOD")V",                                      FN_PTR(clearQueuedForCompilation)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
 };
 

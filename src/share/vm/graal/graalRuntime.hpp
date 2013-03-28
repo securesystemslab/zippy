@@ -101,7 +101,9 @@ class GraalStubAssembler: public MacroAssembler {
   stub(log_primitive)           \
   stub(identity_hash_code)      \
   stub(thread_is_interrupted)   \
-  last_entry(number_of_ids)
+  stub(wb_pre_call)             \
+  stub(wb_post_call)             \
+ last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
 #define DECLARE_LAST_STUB_ID(x)  x
@@ -145,7 +147,9 @@ class GraalRuntime: public AllStatic {
   static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
   static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
   static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
-  
+  static void wb_pre_call(JavaThread* thread, oopDesc* obj);
+  static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
+
   static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
   static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
 
