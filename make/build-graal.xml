@@ -64,6 +64,7 @@
       <src path="${src.dir}/com.oracle.graal.lir.sparc"/>
       <src path="${src.dir}/com.oracle.graal.compiler.sparc"/>
       <src path="${src.dir}/com.oracle.graal.hotspot.sparc"/>
+      <src path="${src.dir}/com.oracle.graal.rawnativecall"/>
       <compilerarg value="-XDignore.symbol.file"/>
       <classpath>
         <fileset dir="${java.home}/../lib">
