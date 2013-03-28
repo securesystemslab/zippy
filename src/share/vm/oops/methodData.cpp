@@ -717,7 +717,7 @@ void MethodData::initialize() {
   // the code for traps cells works.
   DataLayout *dp = data_layout_at(data_size + extra_size);
 
-  int arg_size = method->size_of_parameters();
+  int arg_size = method()->size_of_parameters();
   dp->initialize(DataLayout::arg_info_data_tag, 0, arg_size+1);
 
   object_size += DataLayout::compute_size_in_bytes(arg_size+1);
