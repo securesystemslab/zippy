@@ -67,5 +67,6 @@ syntax: glob
 *.bgv
 core.*
 *.jar
+*.jar.*
 eclipse-build.xml
 rebuild-launch.out
