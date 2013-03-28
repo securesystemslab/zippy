@@ -456,7 +456,7 @@ int MethodData::compute_data_size(BytecodeStream* stream) {
   return DataLayout::compute_size_in_bytes(cell_count);
 }
 
-#ifdef GRAALVM
+#ifdef GRAAL
 int MethodData::compute_extra_data_count(int data_size, int empty_bc_count) {
   if (!ProfileTraps) return 0;
 
@@ -735,7 +735,7 @@ void MethodData::initialize() {
 }
 
 bool MethodData::is_empty_data(int size_in_bytes, Bytecodes::Code code) {
-#ifdef GRAALVM
+#ifdef GRAAL
   return size_in_bytes == 0 && Bytecodes::can_trap(code);
 #else
   return size_in_bytes == 0;

@@ -461,7 +461,11 @@ protected:
   enum {
     // null_seen:
     //  saw a null operand (cast/aastore/instanceof)
-    null_seen_flag              = DataLayout::first_flag + 0
+      null_seen_flag              = DataLayout::first_flag + 0
+#ifdef GRAAL
+    // bytecode threw any exception
+    , exception_seen_flag         = null_seen_flag + 1
+#endif
   };
   enum { bit_cell_count = 0 };  // no additional data fields needed.
 public:
@@ -484,7 +488,11 @@ public:
   // Consulting it allows the compiler to avoid setting up null_check traps.
   bool null_seen()     { return flag_at(null_seen_flag); }
   void set_null_seen()    { set_flag_at(null_seen_flag); }
-
+#ifdef GRAAL
+  // true if an exception was thrown at the specific BCI
+  bool exception_seen() { return flag_at(exception_seen_flag); }
+  void set_exception_seen() { set_flag_at(exception_seen_flag); }
+#endif
 
   // Code generation support
   static int null_seen_byte_constant() {
