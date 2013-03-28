@@ -34,7 +34,7 @@
   // Run with +PrintInterpreter to get the VM to print out the size.
   // Max size with JVMTI
 #ifdef AMD64
-  const static int InterpreterCodeSize = 220 * 1024;
+  const static int InterpreterCodeSize = 224 * 1024;
 #else
   const static int InterpreterCodeSize = 168 * 1024;
 #endif // AMD64
