@@ -303,6 +303,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,   "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaField")        \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
+  template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
   template(com_oracle_graal_hotspot_debug_LocalImpl,                 "com/oracle/graal/hotspot/debug/LocalImpl")                      \
   AMD64_ONLY(template(com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/amd64/AMD64HotSpotGraalRuntime"))\
   /* graal.api.meta */                                                                                                                \
@@ -329,7 +330,6 @@
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
   template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo")                           \
-  template(com_oracle_graal_api_code_MonitorValue,                   "com/oracle/graal/api/code/MonitorValue")                        \
   template(com_oracle_graal_api_code_Register,                       "com/oracle/graal/api/code/Register")                            \
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \
