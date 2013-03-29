@@ -1659,46 +1659,56 @@ def archive(args):
             d = distribution(dname)
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
             services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
-            zf = zipfile.ZipFile(tmp, 'w')
-            for p in sorted_deps(d.deps):
-                outputDir = p.output_dir()
-                for root, _, files in os.walk(outputDir):
-                    relpath = root[len(outputDir) + 1:]
-                    if relpath == join('META-INF', 'services'):
-                        for f in files:
-                            with open(join(services, f), 'a') as outfile:
-                                with open(join(root, f), 'r') as infile:
-                                    for line in infile:
-                                        outfile.write(line)
-                    else:
-                        for f in files:
-                            arcname = join(relpath, f).replace(os.sep, '/')
-                            zf.write(join(root, f), arcname)
-            for f in os.listdir(services):
-                arcname = join('META-INF', 'services', f).replace(os.sep, '/')
-                zf.write(join(services, f), arcname)
-            zf.close()
-            os.close(fd)
-            shutil.rmtree(services)
-            # Atomic on Unix
-            shutil.move(tmp, d.path)
-            #print time.time(), 'move:', tmp, '->', d.path
-            d.notify_updated()
+            try:
+                zf = zipfile.ZipFile(tmp, 'w')
+                for p in sorted_deps(d.deps):
+                    outputDir = p.output_dir()
+                    for root, _, files in os.walk(outputDir):
+                        relpath = root[len(outputDir) + 1:]
+                        if relpath == join('META-INF', 'services'):
+                            for f in files:
+                                with open(join(services, f), 'a') as outfile:
+                                    with open(join(root, f), 'r') as infile:
+                                        for line in infile:
+                                            outfile.write(line)
+                        else:
+                            for f in files:
+                                arcname = join(relpath, f).replace(os.sep, '/')
+                                zf.write(join(root, f), arcname)
+                for f in os.listdir(services):
+                    arcname = join('META-INF', 'services', f).replace(os.sep, '/')
+                    zf.write(join(services, f), arcname)
+                zf.close()
+                os.close(fd)
+                shutil.rmtree(services)
+                # Atomic on Unix
+                shutil.move(tmp, d.path)
+                #print time.time(), 'move:', tmp, '->', d.path
+                d.notify_updated()
+            finally:
+                if exists(tmp):
+                    os.remove(tmp)
+                if exists(services):
+                    shutil.rmtree(services)
 
         else:
             p = project(name)
             outputDir = p.output_dir()
             fd, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
-            zf = zipfile.ZipFile(tmp, 'w')
-            for root, _, files in os.walk(outputDir):
-                for f in files:
-                    relpath = root[len(outputDir) + 1:]
-                    arcname = join(relpath, f).replace(os.sep, '/')
-                    zf.write(join(root, f), arcname)
-            zf.close()
-            os.close(fd)
-            # Atomic on Unix
-            shutil.move(tmp, join(p.dir, p.name + '.jar'))
+            try:
+                zf = zipfile.ZipFile(tmp, 'w')
+                for root, _, files in os.walk(outputDir):
+                    for f in files:
+                        relpath = root[len(outputDir) + 1:]
+                        arcname = join(relpath, f).replace(os.sep, '/')
+                        zf.write(join(root, f), arcname)
+                zf.close()
+                os.close(fd)
+                # Atomic on Unix
+                shutil.move(tmp, join(p.dir, p.name + '.jar'))
+            finally:
+                if exists(tmp):
+                    os.remove(tmp)
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies
