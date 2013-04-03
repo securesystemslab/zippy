@@ -370,6 +370,8 @@ class Method : public Metadata {
 
   void set_graal_priority(int prio)      { _graal_priority = prio; }
   int graal_priority()                   { return _graal_priority; }
+
+  void reset_counters();
 #endif // GRAAL
 
   bool was_executed_more_than(int n);
@@ -386,7 +388,7 @@ class Method : public Metadata {
     if (TieredCompilation) ShouldNotReachHere();
     return ++_interpreter_invocation_count;
   }
-
+  
 #ifndef PRODUCT
   int  compiled_invocation_count() const         { return _compiled_invocation_count;  }
   void set_compiled_invocation_count(int count)  { _compiled_invocation_count = count; }

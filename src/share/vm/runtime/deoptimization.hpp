@@ -275,13 +275,8 @@ class Deoptimization : AllStatic {
       return (DeoptReason)
         ((~(trap_request) >> _reason_shift) & right_n_bits(_reason_bits));
     } else {
-#ifdef GRAALVM
-      ShouldNotReachHere();
-      return Reason_none;
-#else
       // standard reason for unloaded CP entry
       return Reason_unloaded;
-#endif // GRAAL
     }
   }
   static DeoptAction trap_request_action(int trap_request) {
@@ -289,25 +284,15 @@ class Deoptimization : AllStatic {
       return (DeoptAction)
         ((~(trap_request) >> _action_shift) & right_n_bits(_action_bits));
     } else {
-#ifdef GRAALVM
-      ShouldNotReachHere();
-      return Action_make_not_compilable;
-#else
       // standard action for unloaded CP entry
       return _unloaded_action;
-#endif // GRAAL
     }
   }
   static int trap_request_index(int trap_request) {
     if (trap_request < 0) {
       return -1;
     } else {
-#ifdef GRAALVM
-      ShouldNotReachHere();
-      return -1;
-#else
       return trap_request;
-#endif // GRAAL
     }
   }
   static int make_trap_request(DeoptReason reason, DeoptAction action,

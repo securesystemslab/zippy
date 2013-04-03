@@ -1032,6 +1032,28 @@ C2V_VMENTRY(jobject, getFileName, (JNIEnv *, jobject, jobject klass))
 
 C2V_END
 
+
+C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
+  Method* method = asMethod(metaspace_method);
+  method->reset_counters();
+
+  nmethod* code = method->code();
+  if (code != NULL) {
+    code->make_not_entrant();
+  }
+
+  MethodData* method_data = method->method_data();
+  if (method_data == NULL) {
+    ClassLoaderData* loader_data = method->method_holder()->class_loader_data();
+    method_data = MethodData::allocate(loader_data, method, CHECK);
+    method->set_method_data(method_data);
+  } else {
+    method_data->initialize();
+  }
+C2V_END
+
+
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -1106,6 +1128,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
   {CC"clearQueuedForCompilation",     CC"("HS_RESOLVED_METHOD")V",                                      FN_PTR(clearQueuedForCompilation)},
+  {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
 };
 
 int CompilerToVM_methods_count() {
