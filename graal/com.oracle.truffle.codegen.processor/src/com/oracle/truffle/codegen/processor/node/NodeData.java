@@ -187,20 +187,9 @@ public class NodeData extends Template {
 
         methods.addAll(getSpecializationListeners());
         methods.addAll(getExecutableTypes());
-        methods.addAll(getGuards());
         methods.addAll(getShortCircuits());
 
         return methods;
-    }
-
-    public List<GuardData> findGuards(String name) {
-        List<GuardData> foundGuards = new ArrayList<>();
-        for (GuardData guardData : getGuards()) {
-            if (guardData.getMethodName().equals(name)) {
-                foundGuards.add(guardData);
-            }
-        }
-        return foundGuards;
     }
 
     public ExecutableTypeData findGenericExecutableType(ProcessorContext context, TypeData type) {
@@ -312,6 +301,7 @@ public class NodeData extends Template {
         return null;
     }
 
+    @Override
     public TypeSystemData getTypeSystem() {
         return typeSystem;
     }
@@ -323,7 +313,7 @@ public class NodeData extends Template {
     private String dump(int level) {
         String indent = "";
         for (int i = 0; i < level; i++) {
-            indent += "  ";
+            indent += "    ";
         }
         StringBuilder builder = new StringBuilder();
 
@@ -334,7 +324,6 @@ public class NodeData extends Template {
         dumpProperty(builder, indent, "fields", getFields());
         dumpProperty(builder, indent, "executableTypes", getExecutableTypes());
         dumpProperty(builder, indent, "specializations", getSpecializations());
-        dumpProperty(builder, indent, "guards", getGuards());
         dumpProperty(builder, indent, "messages", collectMessages());
         if (getDeclaredChildren().size() > 0) {
             builder.append(String.format("\n%s  children = [", indent));
@@ -352,7 +341,7 @@ public class NodeData extends Template {
         if (value instanceof List) {
             List<?> list = (List<?>) value;
             if (!list.isEmpty()) {
-                b.append(String.format("\n%s  %s = %s", indent, propertyName, dumpList((List<?>) value)));
+                b.append(String.format("\n%s  %s = %s", indent, propertyName, dumpList(indent, (List<?>) value)));
             }
         } else {
             if (value != null) {
@@ -361,7 +350,7 @@ public class NodeData extends Template {
         }
     }
 
-    private static String dumpList(List<?> array) {
+    private static String dumpList(String indent, List<?> array) {
         if (array == null) {
             return "null";
         }
@@ -375,12 +364,12 @@ public class NodeData extends Template {
         StringBuilder b = new StringBuilder();
         b.append("[");
         for (Object object : array) {
-            b.append("\n");
-            b.append("    ");
+            b.append("\n        ");
+            b.append(indent);
             b.append(object);
             b.append(", ");
         }
-        b.append("\n  ]");
+        b.append("\n    ").append(indent).append("]");
         return b.toString();
     }
 

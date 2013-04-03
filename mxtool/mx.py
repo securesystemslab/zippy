@@ -311,10 +311,10 @@ class Project(Dependency):
     def find_classes_with_matching_source_line(self, pkgRoot, function, includeInnerClasses=False):
         """
         Scan the sources of this project for Java source files containing a line for which
-        'function' returns true. The fully qualified class name of each existing class
-        corresponding to a matched source file is returned in a list.
+        'function' returns true. A map from class name to source file path for each existing class
+        corresponding to a matched source file is returned.
         """
-        classes = []
+        result = dict()
         pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
         for srcDir in self.source_dirs():
             outputDir = self.output_dir()
@@ -322,7 +322,8 @@ class Project(Dependency):
                 for name in files:
                     if name.endswith('.java') and name != 'package-info.java':
                         matchFound = False
-                        with open(join(root, name)) as f:
+                        source = join(root, name)
+                        with open(source) as f:
                             pkg = None
                             for line in f:
                                 if line.startswith("package "):
@@ -342,10 +343,12 @@ class Project(Dependency):
                                 for e in os.listdir(pkgOutputDir):
                                     if includeInnerClasses:
                                         if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
-                                            classes.append(pkg + '.' + e[:-len('.class')])
+                                            className = pkg + '.' + e[:-len('.class')]
+                                            result[className] = source 
                                     elif e == basename + '.class':
-                                        classes.append(pkg + '.' + basename)
-        return classes
+                                        className = pkg + '.' + basename
+                                        result[className] = source 
+        return result
     
     def _init_packages_and_imports(self):
         if not hasattr(self, '_defined_java_packages'):
@@ -1659,46 +1662,56 @@ def archive(args):
             d = distribution(dname)
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
             services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
-            zf = zipfile.ZipFile(tmp, 'w')
-            for p in sorted_deps(d.deps):
-                outputDir = p.output_dir()
-                for root, _, files in os.walk(outputDir):
-                    relpath = root[len(outputDir) + 1:]
-                    if relpath == join('META-INF', 'services'):
-                        for f in files:
-                            with open(join(services, f), 'a') as outfile:
-                                with open(join(root, f), 'r') as infile:
-                                    for line in infile:
-                                        outfile.write(line)
-                    else:
-                        for f in files:
-                            arcname = join(relpath, f).replace(os.sep, '/')
-                            zf.write(join(root, f), arcname)
-            for f in os.listdir(services):
-                arcname = join('META-INF', 'services', f).replace(os.sep, '/')
-                zf.write(join(services, f), arcname)
-            zf.close()
-            os.close(fd)
-            shutil.rmtree(services)
-            # Atomic on Unix
-            shutil.move(tmp, d.path)
-            #print time.time(), 'move:', tmp, '->', d.path
-            d.notify_updated()
+            try:
+                zf = zipfile.ZipFile(tmp, 'w')
+                for p in sorted_deps(d.deps):
+                    outputDir = p.output_dir()
+                    for root, _, files in os.walk(outputDir):
+                        relpath = root[len(outputDir) + 1:]
+                        if relpath == join('META-INF', 'services'):
+                            for f in files:
+                                with open(join(services, f), 'a') as outfile:
+                                    with open(join(root, f), 'r') as infile:
+                                        for line in infile:
+                                            outfile.write(line)
+                        else:
+                            for f in files:
+                                arcname = join(relpath, f).replace(os.sep, '/')
+                                zf.write(join(root, f), arcname)
+                for f in os.listdir(services):
+                    arcname = join('META-INF', 'services', f).replace(os.sep, '/')
+                    zf.write(join(services, f), arcname)
+                zf.close()
+                os.close(fd)
+                shutil.rmtree(services)
+                # Atomic on Unix
+                shutil.move(tmp, d.path)
+                #print time.time(), 'move:', tmp, '->', d.path
+                d.notify_updated()
+            finally:
+                if exists(tmp):
+                    os.remove(tmp)
+                if exists(services):
+                    shutil.rmtree(services)
 
         else:
             p = project(name)
             outputDir = p.output_dir()
             fd, tmp = tempfile.mkstemp(suffix='', prefix=p.name, dir=p.dir)
-            zf = zipfile.ZipFile(tmp, 'w')
-            for root, _, files in os.walk(outputDir):
-                for f in files:
-                    relpath = root[len(outputDir) + 1:]
-                    arcname = join(relpath, f).replace(os.sep, '/')
-                    zf.write(join(root, f), arcname)
-            zf.close()
-            os.close(fd)
-            # Atomic on Unix
-            shutil.move(tmp, join(p.dir, p.name + '.jar'))
+            try:
+                zf = zipfile.ZipFile(tmp, 'w')
+                for root, _, files in os.walk(outputDir):
+                    for f in files:
+                        relpath = root[len(outputDir) + 1:]
+                        arcname = join(relpath, f).replace(os.sep, '/')
+                        zf.write(join(root, f), arcname)
+                zf.close()
+                os.close(fd)
+                # Atomic on Unix
+                shutil.move(tmp, join(p.dir, p.name + '.jar'))
+            finally:
+                if exists(tmp):
+                    os.remove(tmp)
 
 def canonicalizeprojects(args):
     """process all project files to canonicalize the dependencies

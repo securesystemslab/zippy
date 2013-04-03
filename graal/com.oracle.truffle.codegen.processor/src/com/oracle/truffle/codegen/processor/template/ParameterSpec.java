@@ -27,8 +27,7 @@ import java.util.*;
 import javax.lang.model.type.*;
 
 import com.oracle.truffle.codegen.processor.*;
-import com.oracle.truffle.codegen.processor.node.*;
-import com.oracle.truffle.codegen.processor.typesystem.*;
+import com.oracle.truffle.codegen.processor.template.MethodSpec.TypeDef;
 
 public class ParameterSpec {
 
@@ -38,35 +37,45 @@ public class ParameterSpec {
 
     private final String name;
     private final List<TypeMirror> allowedTypes;
-    private final boolean optional;
-    private Cardinality cardinality;
+
+    /** Cardinality one or multiple. */
+    private Cardinality cardinality = Cardinality.ONE;
+    /** Type is part of the method signature. Relevant for comparisons. */
+    private boolean signature;
+    /** Type must be indexed when parsing. */
     private boolean indexed;
+    /** Type is bound to local final variable. */
     private boolean local;
 
-    public ParameterSpec(String name, List<TypeMirror> allowedTypes, boolean optional, Cardinality cardinality) {
-        this.allowedTypes = allowedTypes;
+    private TypeDef typeDefinition;
+
+    public ParameterSpec(String name, TypeMirror... allowedTypes) {
+        this(name, Arrays.asList(allowedTypes));
+    }
+
+    public ParameterSpec(String name, List<TypeMirror> allowedTypes) {
         this.name = name;
-        this.optional = optional;
-        this.cardinality = cardinality;
+        this.allowedTypes = allowedTypes;
     }
 
-    /** Type constructor. */
-    public ParameterSpec(String name, TypeMirror singleFixedType, boolean optional) {
-        this(name, Arrays.asList(singleFixedType), optional, Cardinality.ONE);
+    void setTypeDefinition(TypeDef typeDefinition) {
+        this.typeDefinition = typeDefinition;
     }
 
-    /** Type system value constructor. */
-    public ParameterSpec(String name, TypeSystemData typeSystem, boolean optional, Cardinality cardinality) {
-        this(name, typeSystem.getPrimitiveTypeMirrors(), optional, cardinality);
+    TypeDef getTypeDefinition() {
+        return typeDefinition;
     }
 
-    /** Node value constructor. */
-    public ParameterSpec(String name, NodeData nodeData, boolean optional, Cardinality cardinality) {
-        this(name, nodeTypeMirrors(nodeData), optional, cardinality);
+    public void setSignature(boolean signature) {
+        this.signature = signature;
     }
 
     public void setLocal(boolean local) {
         this.local = local;
+    }
+
+    public boolean isSignature() {
+        return signature;
     }
 
     public boolean isLocal() {
@@ -85,27 +94,11 @@ public class ParameterSpec {
         this.cardinality = cardinality;
     }
 
-    private static List<TypeMirror> nodeTypeMirrors(NodeData nodeData) {
-        Set<TypeMirror> typeMirrors = new LinkedHashSet<>();
-
-        for (ExecutableTypeData typeData : nodeData.getExecutableTypes()) {
-            typeMirrors.add(typeData.getType().getPrimitiveType());
-        }
-
-        typeMirrors.add(nodeData.getTypeSystem().getGenericType());
-
-        return new ArrayList<>(typeMirrors);
-    }
-
-    public final String getName() {
+    public String getName() {
         return name;
     }
 
-    public final boolean isOptional() {
-        return optional;
-    }
-
-    public final Cardinality getCardinality() {
+    public Cardinality getCardinality() {
         return cardinality;
     }
 
@@ -120,6 +113,27 @@ public class ParameterSpec {
             }
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return toSignatureString(false);
+    }
+
+    public String toSignatureString(boolean typeOnly) {
+        StringBuilder builder = new StringBuilder();
+        if (typeDefinition != null) {
+            builder.append("<" + typeDefinition.getName() + ">");
+        } else if (getAllowedTypes().size() >= 1) {
+            builder.append(Utils.getSimpleName(getAllowedTypes().get(0)));
+        } else {
+            builder.append("void");
+        }
+        if (!typeOnly) {
+            builder.append(" ");
+            builder.append(getName());
+        }
+        return builder.toString();
     }
 
 }

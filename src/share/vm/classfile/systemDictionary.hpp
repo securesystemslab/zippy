@@ -192,6 +192,7 @@ class SymbolPropertyTable;
   do_klass(HotSpotResolvedJavaField_klass,        com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,       Opt) \
   do_klass(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Opt) \
   do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Opt) \
+  do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Opt) \
   do_klass(LocalImpl_klass,                       com_oracle_graal_hotspot_debug_LocalImpl,                     Opt) \
   /* graal.api.code */                                                                                               \
   do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
@@ -208,7 +209,6 @@ class SymbolPropertyTable;
   do_klass(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Opt) \
   do_klass(CompilationResult_Safepoint_klass,     com_oracle_graal_api_code_CompilationResult_Safepoint,        Opt) \
   do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
-  do_klass(code_MonitorValue_klass,               com_oracle_graal_api_code_MonitorValue,                       Opt) \
   do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
   do_klass(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Opt) \

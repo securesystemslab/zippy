@@ -197,10 +197,10 @@ void graal_compute_offsets();
     oop_field(VirtualObject, type, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                                             \
     oop_field(VirtualObject, values, "[Lcom/oracle/graal/api/meta/Value;")                                                                                     \
   end_class                                                                                                                                                    \
-  start_class(code_MonitorValue)                                                                                                                               \
-    oop_field(code_MonitorValue, owner, "Lcom/oracle/graal/api/meta/Value;")                                                                                   \
-    oop_field(code_MonitorValue, lockData, "Lcom/oracle/graal/api/meta/Value;")                                                                                \
-    boolean_field(code_MonitorValue, eliminated)                                                                                                               \
+  start_class(HotSpotMonitorValue)                                                                                                                               \
+    oop_field(HotSpotMonitorValue, owner, "Lcom/oracle/graal/api/meta/Value;")                                                                                   \
+    oop_field(HotSpotMonitorValue, slot, "Lcom/oracle/graal/api/code/StackSlot;")                                                                                \
+    boolean_field(HotSpotMonitorValue, eliminated)                                                                                                               \
   end_class                                                                                                                                                    \
   /* end*/
 

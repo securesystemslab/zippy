@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot;
 
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.hotspot.nodes.*;
@@ -42,4 +43,9 @@ public interface HotSpotLIRGenerator {
     void emitTailcall(Value[] args, Value address);
 
     void visitDirectCompareAndSwap(DirectCompareAndSwapNode x);
+
+    /**
+     * Gets a stack slot for a lock at a given lock nesting depth.
+     */
+    StackSlot getLockSlot(int lockDepth);
 }

@@ -30,10 +30,9 @@ import javax.lang.model.type.*;
 
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.*;
-import com.oracle.truffle.codegen.processor.template.ParameterSpec.Cardinality;
 import com.oracle.truffle.codegen.processor.typesystem.*;
 
-public class ExecutableTypeMethodParser extends MethodParser<ExecutableTypeData> {
+public class ExecutableTypeMethodParser extends NodeMethodParser<ExecutableTypeData> {
 
     public ExecutableTypeMethodParser(ProcessorContext context, NodeData node) {
         super(context, node);
@@ -43,15 +42,16 @@ public class ExecutableTypeMethodParser extends MethodParser<ExecutableTypeData>
 
     @Override
     public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
+
         List<TypeMirror> types = new ArrayList<>();
         types.addAll(getNode().getTypeSystem().getPrimitiveTypeMirrors());
         types.add(getContext().getType(void.class));
 
-        ParameterSpec returnTypeSpec = new ParameterSpec("executedValue", types, false, Cardinality.ONE);
-
-        List<ParameterSpec> parameters = new ArrayList<>();
-        parameters.add(new ParameterSpec("frame", getContext().getTruffleTypes().getFrame(), true));
-        return new MethodSpec(new ArrayList<TypeMirror>(), returnTypeSpec, parameters);
+        ParameterSpec returnTypeSpec = new ParameterSpec("executedValue", types);
+        returnTypeSpec.setSignature(true);
+        MethodSpec spec = new MethodSpec(returnTypeSpec);
+        spec.addOptional(new ParameterSpec("frame", getContext().getTruffleTypes().getFrame()));
+        return spec;
     }
 
     @Override

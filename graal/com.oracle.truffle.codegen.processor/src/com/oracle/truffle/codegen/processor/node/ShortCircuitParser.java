@@ -32,7 +32,7 @@ import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.node.NodeFieldData.ExecutionKind;
 import com.oracle.truffle.codegen.processor.template.*;
 
-public class ShortCircuitParser extends MethodParser<ShortCircuitData> {
+public class ShortCircuitParser extends NodeMethodParser<ShortCircuitData> {
 
     private final Set<String> shortCircuitValues;
 
@@ -54,7 +54,7 @@ public class ShortCircuitParser extends MethodParser<ShortCircuitData> {
 
     @Override
     protected ParameterSpec createReturnParameterSpec() {
-        return new ParameterSpec("has", getContext().getType(boolean.class), false);
+        return new ParameterSpec("has", getContext().getType(boolean.class));
     }
 
     @Override

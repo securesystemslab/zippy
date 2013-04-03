@@ -31,9 +31,8 @@ import javax.lang.model.type.*;
 import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.codegen.processor.*;
 import com.oracle.truffle.codegen.processor.template.*;
-import com.oracle.truffle.codegen.processor.template.ParameterSpec.*;
 
-public class GenericParser extends MethodParser<SpecializationData> {
+public class GenericParser extends NodeMethodParser<SpecializationData> {
 
     public GenericParser(ProcessorContext context, NodeData node) {
         super(context, node);
@@ -45,18 +44,20 @@ public class GenericParser extends MethodParser<SpecializationData> {
     }
 
     @Override
-    protected ParameterSpec createValueParameterSpec(String valueName, NodeData nodeData, boolean optional) {
+    protected ParameterSpec createValueParameterSpec(String valueName, NodeData nodeData) {
         List<ExecutableTypeData> execTypes = nodeData.findGenericExecutableTypes(getContext());
         List<TypeMirror> types = new ArrayList<>();
         for (ExecutableTypeData type : execTypes) {
             types.add(type.getType().getPrimitiveType());
         }
-        return new ParameterSpec(valueName, types, false, Cardinality.ONE);
+        ParameterSpec spec = new ParameterSpec(valueName, types);
+        spec.setSignature(true);
+        return spec;
     }
 
     @Override
     protected ParameterSpec createReturnParameterSpec() {
-        return super.createValueParameterSpec("returnValue", getNode(), false);
+        return super.createValueParameterSpec("returnValue", getNode());
     }
 
     @Override
