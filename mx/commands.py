@@ -690,8 +690,8 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         # Exclude all compiler tests and snippets
         excludes = ['com.oracle.graal.compiler.tests.*', 'com.oracle.graal.jtt.*']
         for p in mx.projects():
-            excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True)
-            excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True)
+            excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True).keys()
+            excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True).keys()
             
         includes = ['com.oracle.graal.*', 'com.oracle.max.*']
         agentOptions = {
@@ -732,7 +732,7 @@ def _run_tests(args, harness, annotations, testfile):
 
     classes = []
     for p in mx.projects():
-        classes += _find_classes_with_annotations(p, None, annotations)
+        classes += _find_classes_with_annotations(p, None, annotations).keys()
 
         if len(pos) != 0:
             classes = [c for c in classes if containsAny(c, pos)]

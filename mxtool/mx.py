@@ -311,10 +311,10 @@ class Project(Dependency):
     def find_classes_with_matching_source_line(self, pkgRoot, function, includeInnerClasses=False):
         """
         Scan the sources of this project for Java source files containing a line for which
-        'function' returns true. The fully qualified class name of each existing class
-        corresponding to a matched source file is returned in a list.
+        'function' returns true. A map from class name to source file path for each existing class
+        corresponding to a matched source file is returned.
         """
-        classes = []
+        result = dict()
         pkgDecl = re.compile(r"^package\s+([a-zA-Z_][\w\.]*)\s*;$")
         for srcDir in self.source_dirs():
             outputDir = self.output_dir()
@@ -322,7 +322,8 @@ class Project(Dependency):
                 for name in files:
                     if name.endswith('.java') and name != 'package-info.java':
                         matchFound = False
-                        with open(join(root, name)) as f:
+                        source = join(root, name)
+                        with open(source) as f:
                             pkg = None
                             for line in f:
                                 if line.startswith("package "):
@@ -342,10 +343,12 @@ class Project(Dependency):
                                 for e in os.listdir(pkgOutputDir):
                                     if includeInnerClasses:
                                         if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
-                                            classes.append(pkg + '.' + e[:-len('.class')])
+                                            className = pkg + '.' + e[:-len('.class')]
+                                            result[className] = source 
                                     elif e == basename + '.class':
-                                        classes.append(pkg + '.' + basename)
-        return classes
+                                        className = pkg + '.' + basename
+                                        result[className] = source 
+        return result
     
     def _init_packages_and_imports(self):
         if not hasattr(self, '_defined_java_packages'):
