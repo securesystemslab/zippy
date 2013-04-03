@@ -762,7 +762,7 @@ def _unittest(args, annotations):
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
-        vm(prefixArgs + vmArgs + ['-cp', projectscp + ':' + mxdir, name] + [testfile])
+        vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
         _run_tests(args, harness, annotations, testfile)
