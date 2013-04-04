@@ -39,6 +39,7 @@
       <src path="${src.dir}/com.oracle.graal.nodes"/>
       <src path="${src.dir}/com.oracle.graal.phases"/>
       <src path="${src.dir}/com.oracle.graal.api.replacements"/>
+      <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.phases.common"/>
       <src path="${src.dir}/com.oracle.graal.virtual"/>
       <src path="${src.dir}/com.oracle.graal.loop"/>
@@ -49,7 +50,6 @@
       <src path="${src.dir}/com.oracle.graal.bytecode"/>
       <src path="${src.dir}/com.oracle.graal.java"/>
       <src path="${src.dir}/com.oracle.graal.word"/>
-      <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.replacements"/>
       <src path="${src.dir}/com.oracle.graal.printer"/>
       <src path="${src.dir}/com.oracle.graal.hotspot"/>

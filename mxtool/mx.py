@@ -663,12 +663,14 @@ class XMLDoc(xml.dom.minidom.Document):
     def element(self, tag, attributes={}, data=None):
         return self.open(tag, attributes, data).close(tag)
 
-    def xml(self, indent='', newl='', escape=False):
+    def xml(self, indent='', newl='', escape=False, standalone=None):
         assert self.current == self
         result = self.toprettyxml(indent, newl, encoding="UTF-8")
         if escape:
             entities = { '"':  "&quot;", "'":  "&apos;", '\n': '&#10;' }
             result = xml.sax.saxutils.escape(result, entities)
+        if standalone is not None:
+            result = result.replace('encoding="UTF-8"?>', 'encoding="UTF-8" standalone="' + str(standalone) + '"?>')
         return result
 
 def get_os():
@@ -1977,16 +1979,16 @@ def _source_locator_memento(deps):
     slm.open('sourceContainers', {'duplicates' : 'false'})
 
     # Every Java program depends on the JRE
-    memento = XMLDoc().element('classpathContainer', {'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'}).xml()
+    memento = XMLDoc().element('classpathContainer', {'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'}).xml(standalone='no')
     slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
 
     for dep in deps:
         if dep.isLibrary():
             if hasattr(dep, 'eclipse.container'):
-                memento = XMLDoc().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml()
+                memento = XMLDoc().element('classpathContainer', {'path' : getattr(dep, 'eclipse.container')}).xml(standalone='no')
                 slm.element('classpathContainer', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.classpathContainer'})
         else:
-            memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml()
+            memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml(standalone='no')
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
 
     slm.close('sourceContainers')
@@ -2010,7 +2012,7 @@ def make_eclipse_attach(hostname, port, name=None, deps=[]):
     launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.PROJECT_ATTR', 'value' : ''})
     launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.VM_CONNECTOR_ID', 'value' : 'org.eclipse.jdt.launching.socketAttachConnector'})
     launch.close('launchConfiguration')
-    launch = launch.xml(newl='\n') % slm.xml(escape=True)
+    launch = launch.xml(newl='\n', standalone='no') % slm.xml(escape=True, standalone='no')
 
     if name is None:
         name = 'attach-' + hostname + '-' + port
@@ -2077,7 +2079,7 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
     launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.PROJECT_ATTR', 'value' : ''})
     launch.element('stringAttribute', {'key' : 'org.eclipse.jdt.launching.VM_ARGUMENTS', 'value' : ' '.join(vmArgs)})
     launch.close('launchConfiguration')
-    launch = launch.xml(newl='\n') % slm.xml(escape=True)
+    launch = launch.xml(newl='\n', standalone='no') % slm.xml(escape=True, standalone='no')
 
     eclipseLaunches = join('mx', 'eclipse-launches')
     if not exists(eclipseLaunches):
@@ -2214,7 +2216,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 out.close('buildCommand')
 
         if _isAnnotationProcessorDependency(p):
-            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh = False, async = False)
+            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh = False, async = False, xmlIndent='', xmlStandalone='no')
             _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh = True, async = True)
                        
         if projToDist.has_key(p.name):
@@ -2296,10 +2298,11 @@ def _isAnnotationProcessorDependency(p):
     
     return False
 
-def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False):
+def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
     launchOut = XMLDoc();
     consoleOn = 'true' if logToConsole else 'false'
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': consoleOn})
     launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
     launchOut.element('mapEntry', {'key' : 'JAVA_HOME',	'value' : java().jdk})
     launchOut.close('mapAttribute')
@@ -2307,9 +2310,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     if refresh:
         launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
     launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': consoleOn})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': consoleOn})
-    if async:
-        launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true' if async else 'false'})
     
     baseDir = dirname(dirname(os.path.abspath(__file__)))
     
@@ -2329,7 +2330,7 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     
     if not exists(externalToolDir):
         os.makedirs(externalToolDir)
-    update_file(join(externalToolDir, name), launchOut.xml(indent='\t', newl='\n'))
+    update_file(join(externalToolDir, name), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
     
     dotProjectDoc.open('buildCommand')
     dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
