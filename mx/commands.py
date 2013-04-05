@@ -297,9 +297,9 @@ def _jdk(build='product', vmToCheck=None, create=False):
     """
     jdk = join(_graal_home, 'jdk' + str(mx.java().version), build)
     jdkContents = ['bin', 'include', 'jre', 'lib']
-    if (exists(join(jdk, 'db'))):
+    if exists(join(jdk, 'db')):
         jdkContents.append('db')
-    if mx.get_os() != 'windows':
+    if mx.get_os() != 'windows' and exists(join(jdk, 'man')):
         jdkContents.append('man')
     if create:
         if not exists(jdk):
