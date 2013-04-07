@@ -618,11 +618,12 @@ def build(args, vm=None):
             if build == 'debug':
                 build = 'jvmg'
             runCmd.append(build + buildSuffix) 
-            env = os.environ
+            env = os.environ.copy()
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
-            env['ALT_BOOTDIR'] = jdk
+            env['ALT_BOOTDIR'] = mx.java().jdk
+            env['JAVA_HOME'] = jdk
             if not env.has_key('OMIT_GRAAL'):
                 env['GRAAL'] = join(_graal_home, 'graal') # needed for TEST_IN_BUILD
             env.setdefault('INSTALL', 'y')
@@ -648,7 +649,7 @@ def build(args, vm=None):
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
 
-            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage)
+            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage, env=env)
 
         jvmCfg = _vmCfgInJdk(jdk)
         found = False
