@@ -540,7 +540,6 @@ def build(args, vm=None):
         buildSuffix = ''
     elif vm == 'client':
         buildSuffix = '1'
-        return
     else:
         assert vm == 'graal', vm
         buildSuffix = 'graal'
