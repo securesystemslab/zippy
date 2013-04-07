@@ -1371,7 +1371,7 @@ JRT_ENTRY(void, Runtime1::predicate_failed_trap(JavaThread* thread))
   }
 
 
-  Deoptimization::deoptimize_frame(thread, caller_frame.id());
+  Deoptimization::deoptimize_frame(thread, caller_frame.id(), Deoptimization::Reason_none);
 
 JRT_END
 
