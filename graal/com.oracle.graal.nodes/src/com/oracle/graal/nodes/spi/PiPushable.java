@@ -20,19 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.replacements;
+package com.oracle.graal.nodes.spi;
 
-import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.phases.*;
+import com.oracle.graal.nodes.*;
 
-@ServiceProvider(ReplacementsProvider.class)
-public class HotSpotInstalledCodeIntrinsics implements ReplacementsProvider {
+/**
+ * This interface marks nodes, which are able to be pushed through a PiNode.
+ */
+public interface PiPushable {
 
-    @Override
-    public void registerReplacements(Replacements replacements) {
-        if (GraalOptions.IntrinsifyInstalledCodeMethods) {
-            replacements.registerSubstitutions(HotSpotInstalledCodeSubstitutions.class);
-        }
-    }
+    /**
+     * 
+     * @param parent PiNode
+     * @return true if node was moved
+     */
+    boolean push(PiNode parent);
 }

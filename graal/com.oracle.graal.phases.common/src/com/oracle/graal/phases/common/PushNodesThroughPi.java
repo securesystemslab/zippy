@@ -20,14 +20,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.replacements;
+package com.oracle.graal.phases.common;
 
+import com.oracle.graal.debug.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.phases.*;
 
-/**
- * Interface for service providers that register replacements with the compiler.
- */
-public interface ReplacementsProvider {
+public class PushNodesThroughPi extends Phase {
 
-    void registerReplacements(Replacements replacements);
+    public static final DebugMetric PUSHED_NODES = Debug.metric("NodesPushedThroughPi");
+
+    @Override
+    protected void run(StructuredGraph graph) {
+        for (PiNode pi : graph.getNodes(PiNode.class)) {
+            for (Node n : pi.usages().snapshot()) {
+                if (n instanceof PiPushable) {
+                    PiPushable pip = (PiPushable) n;
+                    if (pip.push(pi)) {
+                        PUSHED_NODES.add(1);
+                    }
+                }
+            }
+        }
+    }
 }

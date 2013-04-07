@@ -20,19 +20,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.replacements;
+package com.oracle.graal.nodes.spi;
 
-import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.phases.*;
+/**
+ * Interface for service providers that register replacements with the compiler.
+ */
+public interface ReplacementsProvider {
 
-@ServiceProvider(ReplacementsProvider.class)
-public class HotSpotInstalledCodeIntrinsics implements ReplacementsProvider {
-
-    @Override
-    public void registerReplacements(Replacements replacements) {
-        if (GraalOptions.IntrinsifyInstalledCodeMethods) {
-            replacements.registerSubstitutions(HotSpotInstalledCodeSubstitutions.class);
-        }
-    }
+    void registerReplacements(Replacements replacements);
 }
