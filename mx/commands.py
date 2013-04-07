@@ -651,23 +651,31 @@ def build(args, vm=None):
             mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage, env=env)
 
         jvmCfg = _vmCfgInJdk(jdk)
-        found = False
         if not exists(jvmCfg):
             mx.abort(jvmCfg + ' does not exist')
 
         prefix = '-' + vm
-        vmKnown = prefix + ' KNOWN'
+        vmKnown = prefix + ' KNOWN\n'
+        lines = []
+        found = False
         with open(jvmCfg) as f:
             for line in f:
-                if vmKnown == line.strip():
+                if line.strip() == vmKnown.strip():
                     found = True
-                    break
+                lines.append(line)
+                
         if not found:
             mx.log('Appending "' + prefix + ' KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
                 os.chmod(jvmCfg, 0755)
-            with open(jvmCfg, 'a') as f:
-                print >> f, vmKnown
+            with open(jvmCfg, 'w') as f:
+                for line in lines:
+                    if line.startswith(prefix):
+                        line = vmKnown
+                        found = True
+                    f.write(line)
+                if not found:
+                    f.write(vmKnown)
 
         if exists(timestampFile):
             os.utime(timestampFile, None)
