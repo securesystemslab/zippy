@@ -296,14 +296,14 @@ def _jdk(build='product', vmToCheck=None, create=False):
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
     jdk = join(_graal_home, 'jdk' + str(mx.java().version), build)
+    srcJdk = mx.java().jdk
     jdkContents = ['bin', 'include', 'jre', 'lib']
-    if exists(join(jdk, 'db')):
+    if exists(join(srcJdk, 'db')):
         jdkContents.append('db')
-    if mx.get_os() != 'windows' and exists(join(jdk, 'man')):
+    if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
         jdkContents.append('man')
     if create:
         if not exists(jdk):
-            srcJdk = mx.java().jdk
             mx.log('Creating ' + jdk + ' from ' + srcJdk)
             os.makedirs(jdk)
             for d in jdkContents:
