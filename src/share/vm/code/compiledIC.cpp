@@ -567,7 +567,7 @@ void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) 
     return;
   }
 #endif
-  assert(stub!=NULL, "stub not found");
+  guarantee(stub != NULL, "stub not found");
 
   if (TraceICs) {
     ResourceMark rm;

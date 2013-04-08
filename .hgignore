@@ -30,6 +30,7 @@
 \.dot$
 \.pyc$
 \.hprof$
+\javafilelist.txt$
 \.hprof\.txt$
 ^graal/.*/build.xml
 ^graal/.*/nbproject/

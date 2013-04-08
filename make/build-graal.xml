@@ -29,17 +29,16 @@
   <property name="jar.dir" value="${shared.dir}"/>
   <property name="jar.file" value="${jar.dir}/graal.jar"/>
   <target depends="jar" name="main"/>
-  <target name="compile">
+  <target depends="cleanclasses" name="compile">
     <mkdir dir="${classes.dir}"/>
     <javac debug="on" destdir="${classes.dir}" includeantruntime="false">
       <src path="${src.dir}/com.oracle.graal.api.meta"/>
       <src path="${src.dir}/com.oracle.graal.api.code"/>
       <src path="${src.dir}/com.oracle.graal.graph"/>
       <src path="${src.dir}/com.oracle.graal.debug"/>
+      <src path="${src.dir}/com.oracle.graal.api.replacements"/>
       <src path="${src.dir}/com.oracle.graal.nodes"/>
       <src path="${src.dir}/com.oracle.graal.phases"/>
-      <src path="${src.dir}/com.oracle.graal.api.replacements"/>
-      <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.phases.common"/>
       <src path="${src.dir}/com.oracle.graal.virtual"/>
       <src path="${src.dir}/com.oracle.graal.loop"/>
@@ -50,6 +49,7 @@
       <src path="${src.dir}/com.oracle.graal.bytecode"/>
       <src path="${src.dir}/com.oracle.graal.java"/>
       <src path="${src.dir}/com.oracle.graal.word"/>
+      <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.replacements"/>
       <src path="${src.dir}/com.oracle.graal.printer"/>
       <src path="${src.dir}/com.oracle.graal.hotspot"/>
@@ -76,8 +76,10 @@
     <mkdir dir="${jar.dir}"/>
     <jar basedir="${classes.dir}" destfile="${jar.file}"/>
   </target>
-  <target name="clean">
+  <target name="cleanclasses">
     <delete dir="${classes.dir}"/>
-    <delete file="${jar.filr}"/>
+  </target>
+  <target depends="cleanclasses" name="clean">
+    <delete file="${jar.file}"/>
   </target>
 </project>

@@ -19,26 +19,27 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-/*
- * @test
- * @bug 8007736
- * @summary Test static interface method.
- * @run main/othervm -Xverify:all TestStaticIF
+/* @test TestVerifyBeforeGCDuringStartup.java
+ * @key gc
+ * @bug 8010463
+ * @summary Simple test run with -XX:+VerifyBeforeGC -XX:-UseTLAB to verify 8010463
+ * @library /testlibrary
  */
 
-public class TestStaticIF implements StaticMethodInInterface {
+import com.oracle.java.testlibrary.OutputAnalyzer;
+import com.oracle.java.testlibrary.ProcessTools;
 
-    public static void main(String[] args) {
-        System.out.printf("main: %s%n", StaticMethodInInterface.get());
-    }
-}
-
-interface StaticMethodInInterface {
-
-    public static String get() {
-        return "Hello from StaticMethodInInterface.get()";
-    }
+public class TestVerifyBeforeGCDuringStartup {
+  public static void main(String args[]) throws Exception {
+    ProcessBuilder pb =
+      ProcessTools.createJavaProcessBuilder(System.getProperty("test.vm.opts"),
+                                            "-XX:-UseTLAB",
+                                            "-XX:+UnlockDiagnosticVMOptions",
+                                            "-XX:+VerifyBeforeGC", "-version");
+    OutputAnalyzer output = new OutputAnalyzer(pb.start());
+    output.shouldContain("[Verifying");
+    output.shouldHaveExitValue(0);
+  }
 }

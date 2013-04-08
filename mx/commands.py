@@ -66,8 +66,9 @@ def clean(args):
     """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
     if opts.native:
-        os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
-        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
+        env = os.environ.copy()
+        env.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
+        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'), env=env)
         jdks = join(_graal_home, 'jdk' + str(mx.java().version))
         if exists(jdks):
             shutil.rmtree(jdks)
@@ -296,14 +297,14 @@ def _jdk(build='product', vmToCheck=None, create=False):
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
     jdk = join(_graal_home, 'jdk' + str(mx.java().version), build)
+    srcJdk = mx.java().jdk
     jdkContents = ['bin', 'include', 'jre', 'lib']
-    if (exists(join(jdk, 'db'))):
+    if exists(join(srcJdk, 'db')):
         jdkContents.append('db')
-    if mx.get_os() != 'windows':
+    if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
         jdkContents.append('man')
     if create:
         if not exists(jdk):
-            srcJdk = mx.java().jdk
             mx.log('Creating ' + jdk + ' from ' + srcJdk)
             os.makedirs(jdk)
             for d in jdkContents:
@@ -320,6 +321,7 @@ def _jdk(build='product', vmToCheck=None, create=False):
                 mx.abort(jvmCfg + ' does not exist')
 
             defaultVM = None
+            jvmCfgLines = []
             with open(jvmCfg) as f:
                 for line in f:
                     if line.startswith('-') and defaultVM is None:
@@ -327,14 +329,19 @@ def _jdk(build='product', vmToCheck=None, create=False):
                         assert len(parts) == 2, parts
                         assert parts[1] == 'KNOWN', parts[1]
                         defaultVM = parts[0][1:]
+                        jvmCfgLines += ['-' + defaultVM + '0 KNOWN\n']
+                    else:
+                        jvmCfgLines += [line]
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, 0755)
-            shutil.copytree(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), defaultVM + '0'))
+            shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), defaultVM + '0'))
+            
 
             with open(jvmCfg, 'w') as fp:
-                print >> fp, '-' + defaultVM + '0 KNOWN'
+                for line in jvmCfgLines:
+                    fp.write(line)
 
             # Install a copy of the disassembler library
             try:
@@ -479,7 +486,7 @@ def initantbuild(args):
     
     out.element('target', {'name' : 'main', 'depends' : 'jar'})
 
-    out.open('target', {'name' : 'compile'})
+    out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
     out.element('mkdir', {'dir' : '${classes.dir}'})
     out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', })
     for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
@@ -500,9 +507,12 @@ def initantbuild(args):
     out.element('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
     out.close('target')
     
-    out.open('target', {'name' : 'clean'})
+    out.open('target', {'name' : 'cleanclasses'})
     out.element('delete', {'dir' : '${classes.dir}'})
-    out.element('delete', {'file' : '${jar.filr}'})
+    out.close('target')
+
+    out.open('target', {'name' : 'clean', 'depends' : 'cleanclasses'})
+    out.element('delete', {'file' : '${jar.file}'})
     out.close('target')
 
     out.close('project')
@@ -530,12 +540,10 @@ def build(args, vm=None):
     if vm is None:
         vm = _vm
 
-    if vm == 'server':
+    if vm == 'server' or vm == 'server0':
         buildSuffix = ''
     elif vm == 'client':
         buildSuffix = '1'
-    elif vm == 'server0':
-        return
     else:
         assert vm == 'graal', vm
         buildSuffix = 'graal'
@@ -548,6 +556,9 @@ def build(args, vm=None):
             if len(build) == 0:
                 mx.log('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
                 continue
+
+        if vm == 'server0':
+            assert build == 'product', 'can not "build" a non-product server0'
 
         jdk = _jdk(build, create=True)
 
@@ -564,7 +575,9 @@ def build(args, vm=None):
 
         # Check if a build really needs to be done
         timestampFile = join(vmDir, '.build-timestamp')
-        if opts2.force or not exists(timestampFile):
+        if vm == 'server0':
+            mustBuild = False
+        elif opts2.force or not exists(timestampFile):
             mustBuild = True
         else:
             mustBuild = False
@@ -608,11 +621,12 @@ def build(args, vm=None):
             if build == 'debug':
                 build = 'jvmg'
             runCmd.append(build + buildSuffix) 
-            env = os.environ
+            env = os.environ.copy()
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
-            env['ALT_BOOTDIR'] = jdk
+            env['ALT_BOOTDIR'] = mx.java().jdk
+            env['JAVA_HOME'] = jdk
             if not env.has_key('OMIT_GRAAL'):
                 env['GRAAL'] = join(_graal_home, 'graal') # needed for TEST_IN_BUILD
             env.setdefault('INSTALL', 'y')
@@ -638,26 +652,34 @@ def build(args, vm=None):
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
 
-            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage)
+            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage, env=env)
 
         jvmCfg = _vmCfgInJdk(jdk)
-        found = False
         if not exists(jvmCfg):
             mx.abort(jvmCfg + ' does not exist')
 
-        prefix = '-' + vm
-        vmKnown = prefix + ' KNOWN'
+        prefix = '-' + vm + ' '
+        vmKnown = prefix + 'KNOWN\n'
+        lines = []
+        found = False
         with open(jvmCfg) as f:
             for line in f:
-                if vmKnown == line.strip():
+                if line.strip() == vmKnown.strip():
                     found = True
-                    break
+                lines.append(line)
+                
         if not found:
-            mx.log('Appending "' + prefix + ' KNOWN" to ' + jvmCfg)
+            mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
                 os.chmod(jvmCfg, 0755)
-            with open(jvmCfg, 'a') as f:
-                print >> f, vmKnown
+            with open(jvmCfg, 'w') as f:
+                for line in lines:
+                    if line.startswith(prefix):
+                        line = vmKnown
+                        found = True
+                    f.write(line)
+                if not found:
+                    f.write(vmKnown)
 
         if exists(timestampFile):
             os.utime(timestampFile, None)
@@ -1044,7 +1066,9 @@ def bench(args):
         for dacapo in dacapos:
             if dacapo not in sanitycheck.dacapoSanityWarmup.keys():
                 mx.abort('Unknown DaCapo : ' + dacapo)
-            benchmarks += [sanitycheck.getDacapo(dacapo, sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+            iterations = sanitycheck.dacapoSanityWarmup[dacapo][sanitycheck.SanityCheckLevel.Benchmark]
+            if (iterations > 0):
+                benchmarks += [sanitycheck.getDacapo(dacapo, iterations)]
 
     if ('scaladacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
@@ -1053,7 +1077,9 @@ def bench(args):
         for scaladacapo in scaladacapos:
             if scaladacapo not in sanitycheck.dacapoScalaSanityWarmup.keys():
                 mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
-            benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark])]
+            iterations = sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark]
+            if (iterations > 0):
+                benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, iterations)]
 
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):

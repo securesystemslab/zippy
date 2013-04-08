@@ -37,10 +37,10 @@ REM Note: Running this batch file from the Windows command shell requires
 REM that "grep" be accessible on the PATH. An MKS install does this.
 REM 
 
-rem cl 2>NUL >NUL
-rem if %errorlevel% == 0 goto nexttest
-rem echo Make sure cl.exe is in your PATH before running this script.
-rem goto end
+cl 2>NUL >NUL
+if %errorlevel% == 0 goto nexttest
+echo Make sure cl.exe is in your PATH before running this script.
+goto end
 
 :nexttest
 grep -V 2>NUL >NUL
@@ -50,8 +50,6 @@ goto end
 
 
 :testit
-cl 2>&1 | grep "x64" >NUL
-if %errorlevel% == 0 goto amd64
 cl 2>&1 | grep "x64" >NUL
 if %errorlevel% == 0 goto amd64
 set ARCH=x86
@@ -150,7 +148,7 @@ echo   HotSpotJDKDist=%HotSpotJDKDist%
 
 REM This is now safe to do.
 :copyfiles
-for /D %%i in (graal, compiler1, compiler2, tiered, core, kernel) do (
+for /D %%i in (graal, compiler1, compiler2, tiered, core) do (
 if NOT EXIST %HotSpotBuildSpace%\%%i\generated mkdir %HotSpotBuildSpace%\%%i\generated
 copy %HotSpotWorkSpace%\make\windows\projectfiles\%%i\* %HotSpotBuildSpace%\%%i\generated > NUL
 )
@@ -158,7 +156,7 @@ copy %HotSpotWorkSpace%\make\windows\projectfiles\%%i\* %HotSpotBuildSpace%\%%i\
 REM force regneration of ProjectFile
 if exist %ProjectFile% del %ProjectFile%
 
-for /D %%i in (graal, compiler1, compiler2, tiered, core, kernel) do (
+for /D %%i in (graal, compiler1, compiler2, tiered, core) do (
 echo -- %%i --
 echo # Generated file!                                                        >    %HotSpotBuildSpace%\%%i\local.make
 echo # Changing a variable below and then deleting %ProjectFile% will cause  >>    %HotSpotBuildSpace%\%%i\local.make
