@@ -22,11 +22,12 @@
  */
 package com.oracle.graal.nodes.extended;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
-public class NullCheckNode extends FixedWithNextNode implements LIRLowerable {
+public class NullCheckNode extends DeoptimizingFixedWithNextNode implements LIRLowerable {
 
     @Input public ValueNode object;
 
@@ -41,6 +42,16 @@ public class NullCheckNode extends FixedWithNextNode implements LIRLowerable {
 
     @Override
     public void generate(LIRGeneratorTool generator) {
-        generator.emitNullCheck(object);
+        generator.emitNullCheck(object, this);
+    }
+
+    @Override
+    public boolean canDeoptimize() {
+        return true;
+    }
+
+    @Override
+    public DeoptimizationReason getDeoptimizationReason() {
+        return DeoptimizationReason.NullCheckException;
     }
 }
