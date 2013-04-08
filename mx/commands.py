@@ -66,8 +66,9 @@ def clean(args):
     """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
     if opts.native:
-        os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
-        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
+        env = os.environ.copy()
+        env.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
+        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'), env=env)
         jdks = join(_graal_home, 'jdk' + str(mx.java().version))
         if exists(jdks):
             shutil.rmtree(jdks)
@@ -657,8 +658,8 @@ def build(args, vm=None):
         if not exists(jvmCfg):
             mx.abort(jvmCfg + ' does not exist')
 
-        prefix = '-' + vm
-        vmKnown = prefix + ' KNOWN\n'
+        prefix = '-' + vm + ' '
+        vmKnown = prefix + 'KNOWN\n'
         lines = []
         found = False
         with open(jvmCfg) as f:
@@ -668,7 +669,7 @@ def build(args, vm=None):
                 lines.append(line)
                 
         if not found:
-            mx.log('Appending "' + prefix + ' KNOWN" to ' + jvmCfg)
+            mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
                 os.chmod(jvmCfg, 0755)
             with open(jvmCfg, 'w') as f:
