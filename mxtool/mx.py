@@ -946,7 +946,7 @@ def waitOn(p):
         retcode = p.wait()
     return retcode
 
-def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
+def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, env=None):
     """
     Run a command in a subprocess, wait for it to complete and return the exit status of the process.
     If the exit status is non-zero and `nonZeroIsFatal` is true, then mx is exited with
@@ -983,7 +983,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
 
         if not callable(out) and not callable(err) and timeout is None:
             # The preexec_fn=os.setsid
-            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn, creationflags=creationflags)
+            p = subprocess.Popen(args, cwd=cwd, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
             _currentSubprocess = (p, args)
             retcode = waitOn(p)
         else:
@@ -993,7 +993,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None):
                 stream.close()
             stdout=out if not callable(out) else subprocess.PIPE
             stderr=err if not callable(err) else subprocess.PIPE
-            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags)
+            p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
             _currentSubprocess = (p, args)
             if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
