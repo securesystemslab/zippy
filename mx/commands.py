@@ -66,8 +66,9 @@ def clean(args):
     """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
     if opts.native:
-        os.environ.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
-        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'))
+        env = os.environ.copy()
+        env.update(ARCH_DATA_MODEL='64', LANG='C', HOTSPOT_BUILD_JOBS='16')
+        mx.run([mx.gmake_cmd(), 'clean'], cwd=join(_graal_home, 'make'), env=env)
         jdks = join(_graal_home, 'jdk' + str(mx.java().version))
         if exists(jdks):
             shutil.rmtree(jdks)
