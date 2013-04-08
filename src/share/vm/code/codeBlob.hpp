@@ -358,10 +358,11 @@ class DeoptimizationBlob: public SingletonBlob {
 
   int _unpack_with_exception_in_tls;
 
+#ifdef GRAAL
   // (thomaswue) Offset when Graal calls uncommon_trap.
   int _uncommon_trap_offset;
   int _implicit_exception_uncommon_trap_offset;
-
+#endif
 
   // Creation support
   DeoptimizationBlob(
@@ -416,6 +417,7 @@ class DeoptimizationBlob: public SingletonBlob {
   }
   address unpack_with_exception_in_tls() const   { return code_begin() + _unpack_with_exception_in_tls; }
 
+#ifdef GRAAL
   // (thomaswue) Offset when Graal calls uncommon_trap.
   void set_uncommon_trap_offset(int offset) {
     _uncommon_trap_offset = offset;
@@ -427,7 +429,7 @@ class DeoptimizationBlob: public SingletonBlob {
     assert(contains(code_begin() + _implicit_exception_uncommon_trap_offset), "must be PC inside codeblob");
   }
   address implicit_exception_uncommon_trap() const                  { return code_begin() + _implicit_exception_uncommon_trap_offset;     }
-
+#endif
 };
 
 
