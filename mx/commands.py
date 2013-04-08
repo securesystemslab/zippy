@@ -485,7 +485,7 @@ def initantbuild(args):
     
     out.element('target', {'name' : 'main', 'depends' : 'jar'})
 
-    out.open('target', {'name' : 'compile'})
+    out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
     out.element('mkdir', {'dir' : '${classes.dir}'})
     out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', })
     for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
@@ -506,9 +506,12 @@ def initantbuild(args):
     out.element('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
     out.close('target')
     
-    out.open('target', {'name' : 'clean'})
+    out.open('target', {'name' : 'cleanclasses'})
     out.element('delete', {'dir' : '${classes.dir}'})
-    out.element('delete', {'file' : '${jar.filr}'})
+    out.close('target')
+
+    out.open('target', {'name' : 'clean', 'depends' : 'cleanclasses'})
+    out.element('delete', {'file' : '${jar.file}'})
     out.close('target')
 
     out.close('project')
