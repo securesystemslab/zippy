@@ -201,6 +201,7 @@ class SymbolPropertyTable;
   do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
   do_klass(Assumptions_ConcreteSubtype_klass,     com_oracle_graal_api_code_Assumptions_ConcreteSubtype,        Opt) \
   do_klass(Assumptions_MethodContents_klass,      com_oracle_graal_api_code_Assumptions_MethodContents,         Opt) \
+  do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Opt) \
   do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
   do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
   do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
