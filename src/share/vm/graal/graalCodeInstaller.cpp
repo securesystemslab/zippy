@@ -236,7 +236,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
       ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second, oop_recorder);
-      
+
       if (isLongArray && cur_second == NULL) {
         // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
         // add an int 0 constant
@@ -298,6 +298,8 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
           assumption_ConcreteSubtype(assumption);
         } else if (assumption->klass() == Assumptions_ConcreteMethod::klass()) {
           assumption_ConcreteMethod(assumption);
+        } else if (assumption->klass() == Assumptions_CallSiteTargetValue::klass()) {
+          assumption_CallSiteTargetValue(assumption);
         } else {
           assumption->print();
           fatal("unexpected Assumption subclass");
@@ -350,7 +352,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
 // constructor used to create a stub
 CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id) {
   No_Safepoint_Verifier no_safepoint;
-  
+
   _oop_recorder = new OopRecorder(&_arena);
   initialize_fields(target_method(), NULL);
   assert(_name != NULL, "installMethod needs NON-NULL name");
@@ -398,7 +400,7 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
   _debug_recorder = new DebugInformationRecorder(_oop_recorder);
   _debug_recorder->set_oopmaps(new OopMapSet());
-  
+
   buffer.initialize_oop_recorder(_oop_recorder);
 
   _instructions = buffer.insts();
@@ -458,6 +460,13 @@ void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
 
   _dependencies->assert_unique_concrete_method(context, impl());
+}
+
+void CodeInstaller::assumption_CallSiteTargetValue(Handle assumption) {
+  Handle callSite = Assumptions_CallSiteTargetValue::callSite(assumption());
+  Handle methodHandle = Assumptions_CallSiteTargetValue::methodHandle(assumption());
+
+  _dependencies->assert_call_site_target_value(callSite(), methodHandle());
 }
 
 void CodeInstaller::process_exception_handlers() {
