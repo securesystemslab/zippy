@@ -1813,11 +1813,6 @@ def checkstyle(args):
                 log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
                 continue
 
-            if exists(timestampFile):
-                os.utime(timestampFile, None)
-            else:
-                file(timestampFile, 'a')
-
             dotCheckstyleXML = xml.dom.minidom.parse(dotCheckstyle)
             localCheckConfig = dotCheckstyleXML.getElementsByTagName('local-check-config')[0]
             configLocation = localCheckConfig.getAttribute('location')
@@ -1883,6 +1878,11 @@ def checkstyle(args):
                                 if len(warnings) != 0:
                                     map(log, warnings)
                                     return 1
+                                else:
+                                    if exists(timestampFile):
+                                        os.utime(timestampFile, None)
+                                    else:
+                                        file(timestampFile, 'a')
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
