@@ -720,6 +720,7 @@ public class VMToCompilerImpl implements VMToCompiler {
         if (onStackReplacement) {
             phasePlan.addPhase(PhasePosition.AFTER_PARSING, new OnStackReplacementPhase());
         }
+        phasePlan.addPhase(PhasePosition.LOW_LEVEL, new WriteBarrierAdditionPhase());
         return phasePlan;
     }
 
