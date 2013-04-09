@@ -37,10 +37,14 @@ REM Note: Running this batch file from the Windows command shell requires
 REM that "grep" be accessible on the PATH. An MKS install does this.
 REM 
 
-cl 2>NUL >NUL
-if %errorlevel% == 0 goto nexttest
-echo Make sure cl.exe is in your PATH before running this script.
-goto end
+
+
+REM (cwirth) does not return a proper error code, so build fails all the time
+REM
+REM cl 2>NUL >NUL
+REM if %errorlevel% == 0 goto nexttest
+REM echo Make sure cl.exe is in your PATH before running this script.
+REM goto end
 
 :nexttest
 grep -V 2>NUL >NUL

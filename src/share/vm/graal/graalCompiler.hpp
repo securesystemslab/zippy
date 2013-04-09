@@ -68,7 +68,7 @@ public:
 
   // Print compilation timers and statistics
   virtual void print_timers();
-  
+
   static Handle get_JavaTypeFromSignature(Symbol* signature, KlassHandle accessor, TRAPS);
   static Handle get_JavaType(constantPoolHandle cp, int index, KlassHandle accessor, TRAPS);
   static Handle get_JavaType(Symbol* klass_name, TRAPS);
@@ -91,6 +91,11 @@ public:
   static int to_index_u2(int index) {
     // Swap.
     return ((index & 0xFF) << 8) | (index >> 8);
+  }
+
+  static int to_index_u4(int index) {
+    // Swap.
+    return ((index & 0xFF) << 24) | ((index & 0xFF00) << 8) | ((index & 0xFF0000) >> 8) | ((index & 0xFF000000) >> 24);
   }
 
   static void initialize_buffer_blob();
