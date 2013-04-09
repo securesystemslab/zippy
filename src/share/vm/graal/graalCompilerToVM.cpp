@@ -463,7 +463,7 @@ C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jobject typ
   if (opcode != Bytecodes::_checkcast && opcode != Bytecodes::_instanceof && opcode != Bytecodes::_new && opcode != Bytecodes::_anewarray
       && opcode != Bytecodes::_multianewarray && opcode != Bytecodes::_ldc && opcode != Bytecodes::_ldc_w && opcode != Bytecodes::_ldc2_w)
   {
-    index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index_u2(index));
+    index = cp->remap_instruction_operand_from_cache((opcode == Bytecodes::_invokedynamic) ? GraalCompiler::to_index_u4(index) : GraalCompiler::to_cp_index_u2(index));
   }
   constantTag tag = cp->tag_at(index);
   if (tag.is_field_or_method()) {

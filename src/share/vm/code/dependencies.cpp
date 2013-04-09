@@ -171,8 +171,8 @@ void Dependencies::assert_unique_concrete_method(Klass* ctxk, Method* uniqm) {
   assert_common_2(unique_concrete_method, DepValue(_oop_recorder, ctxk), DepValue(_oop_recorder, uniqm));
 }
 
-void Dependencies::assert_call_site_target_value(oop cs, oop mh) {
-  assert_common_2(call_site_target_value, DepValue(_oop_recorder, JNIHandles::make_local(cs)), DepValue(_oop_recorder, JNIHandles::make_local(mh)));
+void Dependencies::assert_call_site_target_value(oop call_site, oop method_handle) {
+  assert_common_2(call_site_target_value, DepValue(_oop_recorder, JNIHandles::make_local(call_site)), DepValue(_oop_recorder, JNIHandles::make_local(method_handle)));
 }
 #endif // GRAAL
 
