@@ -879,30 +879,10 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
 
         // This is called via call_runtime so the arguments
         // will be place in C abi locations
-
-#ifdef _LP64
         __ verify_oop(j_rarg0);
-        __ mov(rax, j_rarg0);
-#else
-        // The object is passed on the stack and we haven't pushed a
-        // frame yet so it's one work away from top of stack.
-        __ movptr(rax, Address(rsp, 1 * BytesPerWord));
-        __ verify_oop(rax);
-#endif // _LP64
-
-        // load the klass and check the has finalizer flag
-        Label register_finalizer;
-        Register t = rsi;
-        __ load_klass(t, rax);
-        __ movl(t, Address(t, Klass::access_flags_offset()));
-        __ testl(t, JVM_ACC_HAS_FINALIZER);
-        __ jcc(Assembler::notZero, register_finalizer);
-        __ ret(0);
-
-        __ bind(register_finalizer);
         __ enter();
         OopMap* oop_map = save_live_registers(sasm, 2 /*num_rt_args */);
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, SharedRuntime::register_finalizer), rax);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, SharedRuntime::register_finalizer), j_rarg0);
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, oop_map);
 
