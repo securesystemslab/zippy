@@ -1561,6 +1561,13 @@ def eclipseformat(args):
         args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
     if args.eclipse_exe is None:
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
+        
+    # Maybe an Eclipse installation dir was specified - look for the executable in it
+    if join(args.eclipse_exe, exe_suffix('eclipse')):
+        args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        
+    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+        abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
 
