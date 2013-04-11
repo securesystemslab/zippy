@@ -1344,7 +1344,7 @@ def build(args, parser=None):
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
-    parser.add_argument('--source', dest='compliance', help='Java compliance level', default=str(javaCompliance))
+    parser.add_argument('--source', dest='compliance', help='Java compliance level for projects without an explicit one', default=str(javaCompliance))
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--projects', action='store', help='comma separated projects to build (omit to build all projects)')
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
@@ -1502,16 +1502,17 @@ def build(args, parser=None):
 
         toBeDeleted = [argfileName]
         try:
+            compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
                 jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
-                         '-' + args.compliance,
+                         '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir] + javacArgs
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
