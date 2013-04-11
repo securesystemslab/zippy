@@ -1022,10 +1022,10 @@ C2V_VMENTRY(jobject, getLocalVariableTable, (JNIEnv *, jobject, jobject hotspot_
     u2 typeCPIdx = table[i].descriptor_cp_index;
     u2 slot = table[i].slot;
 
-    char* name = method->constants()->string_at_noresolve(nameCPIdx);
+    char* name = method->constants()->symbol_at(nameCPIdx)->as_C_string();
     Handle nameHandle = java_lang_String::create_from_str(name, CHECK_NULL);
 
-    char* typeInfo = method->constants()->string_at_noresolve(typeCPIdx);
+    char* typeInfo = method->constants()->symbol_at(typeCPIdx)->as_C_string();
     Handle typeHandle = java_lang_String::create_from_str(typeInfo, CHECK_NULL);
 
     Handle holderHandle = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK_0);
