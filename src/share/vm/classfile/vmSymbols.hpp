@@ -299,6 +299,7 @@
   template(com_oracle_graal_hotspot_HotSpotCompilationResult,        "com/oracle/graal/hotspot/HotSpotCompilationResult")             \
   template(com_oracle_graal_hotspot_HotSpotRuntimeCallTarget,        "com/oracle/graal/hotspot/HotSpotRuntimeCallTarget")             \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
+  template(com_oracle_graal_hotspot_bridge_CompilerToVMImpl,         "com/oracle/graal/hotspot/bridge/CompilerToVMImpl")              \
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotInstalledCode,       "com/oracle/graal/hotspot/meta/HotSpotInstalledCode")            \
   template(com_oracle_graal_hotspot_meta_HotSpotJavaType,            "com/oracle/graal/hotspot/meta/HotSpotJavaType")                 \
@@ -1127,6 +1128,9 @@
   do_intrinsic(_Double_valueOf,           java_lang_Double,       valueOf_name, Double_valueOf_signature, F_S)          \
    do_name(     Double_valueOf_signature,                        "(D)Ljava/lang/Double;")                               \
                                                                                                                         \
+  do_intrinsic(_CompilerToVMImpl_executeCompiledMethod,           com_oracle_graal_hotspot_bridge_CompilerToVMImpl, executeCompiledMethod_name, CompilerToVMImpl_executeCompiledMethod_signature, F_SN)\
+   do_name(     CompilerToVMImpl_executeCompiledMethod_signature, "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;J)Ljava/lang/Object;")                               \
+   do_name(     executeCompiledMethod_name,                       "executeCompiledMethodIntrinsic")                     \
     /*end*/
 
 

@@ -1014,8 +1014,8 @@ bool Method::is_compiled_lambda_form() const {
 // Test if this method is an internal MH primitive method.
 bool Method::is_method_handle_intrinsic() const {
   vmIntrinsics::ID iid = intrinsic_id();
-  return (MethodHandles::is_signature_polymorphic(iid) &&
-          MethodHandles::is_signature_polymorphic_intrinsic(iid));
+  return ((MethodHandles::is_signature_polymorphic(iid) &&
+          MethodHandles::is_signature_polymorphic_intrinsic(iid))) || iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod;
 }
 
 bool Method::has_member_arg() const {

@@ -1355,7 +1355,8 @@ JRT_END
 // Installed code has been deoptimized
 JRT_BLOCK_ENTRY(address, SharedRuntime::handle_deoptimized_installed_code(JavaThread* thread))
   JavaThread* THREAD = thread;
-  THROW_(vmSymbols::java_lang_NullPointerException(), NULL);
+  ThreadInVMfromJava tiv(THREAD);
+  THROW_(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
 JRT_END
 
 // Handle call site that has been made non-entrant

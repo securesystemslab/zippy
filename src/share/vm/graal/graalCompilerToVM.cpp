@@ -898,11 +898,9 @@ C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(element);
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject args, jlong nativeMethod))
+C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jlong nativeMethod))
   ResourceMark rm;
   HandleMark hm;
-
-  assert(metaspace_method != 0, "just checking");
 
   nmethod* nm = (nmethod*) (address) nativeMethod;
   methodHandle mh = nm->method();
@@ -922,24 +920,6 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject args, j
     oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
     return JNIHandles::make_local(o);
   }
-C2V_END
-
-C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jobject arg1, jobject arg2, jobject arg3, jlong nativeMethod))
-  ResourceMark rm;
-  HandleMark hm;
-
-  nmethod* nm = (nmethod*) (address) nativeMethod;
-  methodHandle method = nm->method();
-  JavaValue result(T_OBJECT);
-  JavaCallArguments args;
-  args.push_oop(JNIHandles::resolve(arg1));
-  args.push_oop(JNIHandles::resolve(arg2));
-  args.push_oop(JNIHandles::resolve(arg3));
-
-  args.set_alternative_target(nm);
-  JavaCalls::call(&result, method, &args, CHECK_NULL);
-
-  return JNIHandles::make_local((oop) result.get_jobject());
 C2V_END
 
 C2V_VMENTRY(jint, getVtableEntryOffset, (JNIEnv *, jobject, jlong metaspace_method))
@@ -1062,15 +1042,17 @@ C2V_END
 
 C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jlong nativeMethod))
   nmethod* m = (nmethod*)nativeMethod;
-  m->mark_for_deoptimization();
-  VM_Deoptimize op;
-  VMThread::execute(&op);
+  if (!m->is_not_entrant()) {
+    m->mark_for_deoptimization();
+    VM_Deoptimize op;
+    VMThread::execute(&op);
+  }
 C2V_END
 
 
 C2V_VMENTRY(jboolean, isInstalledCodeValid, (JNIEnv *env, jobject, jlong nativeMethod))
   nmethod* m = (nmethod*)nativeMethod;
-  return m->is_alive();
+  return m->is_alive() && !m->is_not_entrant();
 C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
@@ -1141,7 +1123,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE"[Z)I",                      FN_PTR(installCode0)},
   {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleNMethod",            CC"(J)"STRING,                                                    FN_PTR(disassembleNMethod)},
-  {CC"executeCompiledMethod",         CC"("OBJECT OBJECT OBJECT NMETHOD")"OBJECT,                       FN_PTR(executeCompiledMethod)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT NMETHOD")"OBJECT,                                    FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
