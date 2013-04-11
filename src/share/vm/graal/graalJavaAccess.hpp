@@ -131,8 +131,18 @@ void graal_compute_offsets();
     int_field(CompilationResult_DataPatch, alignment)                                                                                                          \
     boolean_field(CompilationResult_DataPatch, inlined)                                                                                                        \
   end_class                                                                                                                                                    \
-  start_class(CompilationResult_Safepoint)                                                                                                                     \
-    oop_field(CompilationResult_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")                                                                 \
+  start_class(InfopointReason)                                                                                                                                 \
+    static_oop_field(InfopointReason, UNKNOWN, "Lcom/oracle/graal/api/code/InfopointReason;")                                                                  \
+    static_oop_field(InfopointReason, SAFEPOINT, "Lcom/oracle/graal/api/code/InfopointReason;")                                                                \
+    static_oop_field(InfopointReason, CALL, "Lcom/oracle/graal/api/code/InfopointReason;")                                                                     \
+    static_oop_field(InfopointReason, IMPLICIT_EXCEPTION, "Lcom/oracle/graal/api/code/InfopointReason;")                                                       \
+    static_oop_field(InfopointReason, METHOD_START, "Lcom/oracle/graal/api/code/InfopointReason;")                                                             \
+    static_oop_field(InfopointReason, METHOD_END, "Lcom/oracle/graal/api/code/InfopointReason;")                                                               \
+    static_oop_field(InfopointReason, LINE_NUMBER, "Lcom/oracle/graal/api/code/InfopointReason;")                                                              \
+  end_class                                                                                                                                                    \
+  start_class(CompilationResult_Infopoint)                                                                                                                     \
+    oop_field(CompilationResult_Infopoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")                                                                 \
+    oop_field(CompilationResult_Infopoint, reason, "Lcom/oracle/graal/api/code/InfopointReason;")                                                              \
   end_class                                                                                                                                                    \
   start_class(CompilationResult_ExceptionHandler)                                                                                                              \
     int_field(CompilationResult_ExceptionHandler, handlerPos)                                                                                                  \
