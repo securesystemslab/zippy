@@ -62,7 +62,7 @@ Method* getMethodFromHotSpotMethod(oop hotspot_method) {
 C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace_method, jbyteArray result))
   methodHandle method = asMethod(metaspace_method);
   ResourceMark rm;
-  
+
   int code_size = method->code_size();
   jbyte* reconstituted_code = NULL;
 
@@ -416,12 +416,21 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jobject type, jint index))
+  assert(GraalCompiler::to_index_u4(index) < 0, "not an invokedynamic constant pool index");
+  constantPoolHandle cpool(InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants());
+  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cpool, GraalCompiler::to_index_u4(index));
+
+  return JNIHandles::make_local(THREAD, appendix_oop);
+C2V_END
+
 C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte opcode))
-  index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
   instanceKlassHandle pool_holder(cp->pool_holder());
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
+  index = (bc == Bytecodes::_invokedynamic) ? GraalCompiler::to_index_u4(index) : GraalCompiler::to_cp_index_u2(index);
+
   methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
   if (!method.is_null()) {
     Handle holder = GraalCompiler::get_JavaType(method->method_holder(), CHECK_NULL);
@@ -430,8 +439,13 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
     // Get the method's name and signature.
     Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
     Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
-    int holder_index = cp->klass_ref_index_at(index);
-    Handle type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
+    Handle type;
+    if (bc != Bytecodes::_invokedynamic) {
+      int holder_index = cp->klass_ref_index_at(index);
+      type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
+    } else {
+      type = Handle(SystemDictionary::MethodHandle_klass()->java_mirror());
+    }
     return JNIHandles::make_local(THREAD, VMToCompiler::createUnresolvedJavaMethod(name, signature, type, THREAD));
   }
 C2V_END
@@ -449,7 +463,7 @@ C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jobject typ
   if (opcode != Bytecodes::_checkcast && opcode != Bytecodes::_instanceof && opcode != Bytecodes::_new && opcode != Bytecodes::_anewarray
       && opcode != Bytecodes::_multianewarray && opcode != Bytecodes::_ldc && opcode != Bytecodes::_ldc_w && opcode != Bytecodes::_ldc2_w)
   {
-    index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index_u2(index));
+    index = cp->remap_instruction_operand_from_cache((opcode == Bytecodes::_invokedynamic) ? GraalCompiler::to_index_u4(index) : GraalCompiler::to_cp_index_u2(index));
   }
   constantTag tag = cp->tag_at(index);
   if (tag.is_field_or_method()) {
@@ -479,7 +493,7 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jobject constantP
   int holder_index = cp->klass_ref_index_at(index);
   Handle holder = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
   instanceKlassHandle holder_klass;
-  
+
   Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
   int offset = -1;
   AccessFlags flags;
@@ -499,7 +513,7 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jobject constantP
       holder = GraalCompiler::get_JavaType(holder_klass, CHECK_NULL);
     }
   }
-  
+
   Handle type = GraalCompiler::get_JavaTypeFromSignature(signature, cp->pool_holder(), CHECK_NULL);
   Handle field_handle = GraalCompiler::get_JavaField(offset, flags.as_int(), name, holder, type, THREAD);
 
@@ -606,6 +620,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #endif
   set_boolean("verifyOops", VerifyOops);
   set_boolean("ciTime", CITime);
+  set_boolean("printCompilation", PrintCompilation);
+  set_boolean("printInlining", PrintInlining);
   set_boolean("useFastLocking", GraalUseFastLocking);
   set_boolean("useBiasedLocking", UseBiasedLocking);
   set_boolean("usePopCountInstruction", UsePopCountInstruction);
@@ -663,7 +679,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("arrayKlassLayoutHelperIdentifier", 0x80000000);
   assert((Klass::_lh_array_tag_obj_value & Klass::_lh_array_tag_type_value & 0x80000000) != 0, "obj_array and type_array must have first bit set");
   set_int("arrayKlassComponentMirrorOffset", in_bytes(ArrayKlass::component_mirror_offset()));
-  
+
 
   set_int("pendingDeoptimizationOffset", in_bytes(ThreadShadow::pending_deoptimization_offset()));
 
@@ -1104,6 +1120,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getVtableEntryOffset",          CC"("METASPACE_METHOD")I",                                        FN_PTR(getVtableEntryOffset)},
   {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupConstantInPool)},
+  {CC"lookupAppendixInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupAppendixInPool)},
   {CC"lookupMethodInPool",            CC"("HS_RESOLVED_TYPE"IB)"METHOD,                                 FN_PTR(lookupMethodInPool)},
   {CC"lookupTypeInPool",              CC"("HS_RESOLVED_TYPE"I)"TYPE,                                    FN_PTR(lookupTypeInPool)},
   {CC"lookupReferencedTypeInPool",    CC"("HS_RESOLVED_TYPE"IB)V",                                      FN_PTR(lookupReferencedTypeInPool)},

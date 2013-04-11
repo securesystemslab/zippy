@@ -1561,6 +1561,13 @@ def eclipseformat(args):
         args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
     if args.eclipse_exe is None:
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
+        
+    # Maybe an Eclipse installation dir was specified - look for the executable in it
+    if join(args.eclipse_exe, exe_suffix('eclipse')):
+        args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        
+    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+        abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
 
@@ -1813,11 +1820,6 @@ def checkstyle(args):
                 log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
                 continue
 
-            if exists(timestampFile):
-                os.utime(timestampFile, None)
-            else:
-                file(timestampFile, 'a')
-
             dotCheckstyleXML = xml.dom.minidom.parse(dotCheckstyle)
             localCheckConfig = dotCheckstyleXML.getElementsByTagName('local-check-config')[0]
             configLocation = localCheckConfig.getAttribute('location')
@@ -1883,6 +1885,11 @@ def checkstyle(args):
                                 if len(warnings) != 0:
                                     map(log, warnings)
                                     return 1
+                                else:
+                                    if exists(timestampFile):
+                                        os.utime(timestampFile, None)
+                                    else:
+                                        file(timestampFile, 'a')
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)

@@ -119,6 +119,10 @@ void graal_compute_offsets();
     oop_field(Assumptions_ConcreteMethod, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                             \
     oop_field(Assumptions_ConcreteMethod, impl, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")                                                              \
   end_class                                                                                                                                                    \
+  start_class(Assumptions_CallSiteTargetValue)                                                                                                                 \
+    oop_field(Assumptions_CallSiteTargetValue, callSite, "Ljava/lang/invoke/CallSite;")                                                                        \
+    oop_field(Assumptions_CallSiteTargetValue, methodHandle, "Ljava/lang/invoke/MethodHandle;")                                                                \
+  end_class                                                                                                                                                    \
   start_class(CompilationResult_Site)                                                                                                                          \
     int_field(CompilationResult_Site, pcOffset)                                                                                                                \
   end_class                                                                                                                                                    \

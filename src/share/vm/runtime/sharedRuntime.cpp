@@ -969,6 +969,11 @@ JRT_END
 
 
 JRT_ENTRY_NO_ASYNC(void, SharedRuntime::register_finalizer(JavaThread* thread, oopDesc* obj))
+#ifdef GRAAL
+  if (!obj->klass()->has_finalizer()) {
+    return;
+  }
+#endif
   assert(obj->is_oop(), "must be a valid oop");
   assert(obj->klass()->has_finalizer(), "shouldn't be here otherwise");
   InstanceKlass::register_finalizer(instanceOop(obj), CHECK);
