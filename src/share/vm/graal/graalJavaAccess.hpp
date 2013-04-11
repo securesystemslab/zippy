@@ -110,6 +110,9 @@ void graal_compute_offsets();
   start_class(Assumptions_MethodContents)                                                                                                                      \
     oop_field(Assumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")                                                            \
   end_class                                                                                                                                                    \
+  start_class(Assumptions_NoFinalizableSubclass)                                                                                                               \
+    oop_field(Assumptions_NoFinalizableSubclass, receiverType, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                 \
+  end_class                                                                                                                                                    \
   start_class(Assumptions_ConcreteSubtype)                                                                                                                     \
     oop_field(Assumptions_ConcreteSubtype, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                            \
     oop_field(Assumptions_ConcreteSubtype, subtype, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                            \
