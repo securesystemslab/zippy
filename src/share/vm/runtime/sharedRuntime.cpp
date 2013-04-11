@@ -83,6 +83,7 @@
 #endif
 
 // Shared stub locations
+RuntimeStub*        SharedRuntime::_deoptimized_installed_code_blob;
 RuntimeStub*        SharedRuntime::_wrong_method_blob;
 RuntimeStub*        SharedRuntime::_ic_miss_blob;
 RuntimeStub*        SharedRuntime::_resolve_opt_virtual_call_blob;
@@ -101,6 +102,7 @@ UncommonTrapBlob*   SharedRuntime::_uncommon_trap_blob;
 
 //----------------------------generate_stubs-----------------------------------
 void SharedRuntime::generate_stubs() {
+  _deoptimized_installed_code_blob     = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_deoptimized_installed_code), "deoptimized_installed_code");
   _wrong_method_blob                   = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method),         "wrong_method_stub");
   _ic_miss_blob                        = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method_ic_miss), "ic_miss_stub");
   _resolve_opt_virtual_call_blob       = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_opt_virtual_call_C),  "resolve_opt_virtual_call");
@@ -1350,6 +1352,11 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method_ic_miss(JavaThread* 
   return callee_method->verified_code_entry();
 JRT_END
 
+// Installed code has been deoptimized
+JRT_BLOCK_ENTRY(address, SharedRuntime::handle_deoptimized_installed_code(JavaThread* thread))
+  JavaThread* THREAD = thread;
+  THROW_(vmSymbols::java_lang_NullPointerException(), NULL);
+JRT_END
 
 // Handle call site that has been made non-entrant
 JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method(JavaThread* thread))

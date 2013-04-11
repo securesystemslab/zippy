@@ -338,6 +338,7 @@
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \
   template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject")                       \
+  template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
   template(startCompiler_name,                    "startCompiler")                                                                    \
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
@@ -378,7 +379,6 @@
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \
   template(callback_signature,                    "(Ljava/lang/Object;)Ljava/lang/Object;")                                           \
-  template(MethodInvalidatedException,            "com/oracle/graal/api/code/InstalledCode$MethodInvalidatedException")               \
   /* graal.api.interpreter */                                                                                                         \
   template(com_oracle_graal_api_interpreter_Interpreter,             "com/oracle/graal/api/interpreter/Interpreter")                  \
   template(interpreter_execute_name,              "execute")                                                                          \

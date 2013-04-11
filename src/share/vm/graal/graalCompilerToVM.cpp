@@ -911,10 +911,6 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jlong 
   JavaValue result(jap.get_ret_type());
 
   nmethod* nm = (nmethod*) (address) metaspace_nmethod;
-  if (nm == NULL || !nm->is_alive()) {
-    THROW_0(vmSymbols::MethodInvalidatedException());
-  }
-
   jca.set_alternative_target(nm);
   JavaCalls::call(&result, mh, &jca, CHECK_NULL);
 
@@ -941,10 +937,6 @@ C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jlong metaspa
   args.push_oop(JNIHandles::resolve(arg3));
 
   nmethod* nm = (nmethod*) (address) metaspace_nmethod;
-  if (nm == NULL || !nm->is_alive()) {
-    THROW_0(vmSymbols::MethodInvalidatedException());
-  }
-
   args.set_alternative_target(nm);
   JavaCalls::call(&result, method, &args, CHECK_NULL);
 
@@ -1069,6 +1061,18 @@ C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
 C2V_END
 
 
+C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jlong nativeMethod))
+  nmethod* m = (nmethod*)nativeMethod;
+  m->mark_for_deoptimization();
+  VM_Deoptimize op;
+  VMThread::execute(&op);
+C2V_END
+
+
+C2V_VMENTRY(jboolean, isInstalledCodeValid, (JNIEnv *env, jobject, jlong nativeMethod))
+  nmethod* m = (nmethod*)nativeMethod;
+  return m->is_alive();
+C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
@@ -1146,6 +1150,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
   {CC"clearQueuedForCompilation",     CC"("HS_RESOLVED_METHOD")V",                                      FN_PTR(clearQueuedForCompilation)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
+  {CC"invalidateInstalledCode",       CC"(J)V",                                                         FN_PTR(invalidateInstalledCode)},
+  {CC"isInstalledCodeValid",          CC"(J)Z",                                                         FN_PTR(isInstalledCodeValid)},
 };
 
 int CompilerToVM_methods_count() {
