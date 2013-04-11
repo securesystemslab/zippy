@@ -416,10 +416,11 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jobject type, jint index))
-  assert(GraalCompiler::to_index_u4(index) < 0, "not an invokedynamic constant pool index");
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte opcode))
+  Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
+  index = GraalCompiler::to_cp_index(index, bc);
   constantPoolHandle cpool(InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants());
-  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cpool, GraalCompiler::to_index_u4(index));
+  oop appendix_oop = ConstantPool::appendix_at_if_loaded(cpool, index);
 
   return JNIHandles::make_local(THREAD, appendix_oop);
 C2V_END
@@ -429,7 +430,7 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
   instanceKlassHandle pool_holder(cp->pool_holder());
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
-  index = (bc == Bytecodes::_invokedynamic) ? GraalCompiler::to_index_u4(index) : GraalCompiler::to_cp_index_u2(index);
+  index = GraalCompiler::to_cp_index(index, bc);
 
   methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
   if (!method.is_null()) {
@@ -459,11 +460,11 @@ C2V_END
 
 C2V_VMENTRY(void, lookupReferencedTypeInPool, (JNIEnv *env, jobject, jobject type, jint index, jbyte op))
   ConstantPool* cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(type)))->constants();
-  int opcode = (op & 0xFF);
-  if (opcode != Bytecodes::_checkcast && opcode != Bytecodes::_instanceof && opcode != Bytecodes::_new && opcode != Bytecodes::_anewarray
-      && opcode != Bytecodes::_multianewarray && opcode != Bytecodes::_ldc && opcode != Bytecodes::_ldc_w && opcode != Bytecodes::_ldc2_w)
+  Bytecodes::Code bc = (Bytecodes::Code) (((int) op) & 0xFF);
+  if (bc != Bytecodes::_checkcast && bc != Bytecodes::_instanceof && bc != Bytecodes::_new && bc != Bytecodes::_anewarray
+      && bc != Bytecodes::_multianewarray && bc != Bytecodes::_ldc && bc != Bytecodes::_ldc_w && bc != Bytecodes::_ldc2_w)
   {
-    index = cp->remap_instruction_operand_from_cache((opcode == Bytecodes::_invokedynamic) ? GraalCompiler::to_index_u4(index) : GraalCompiler::to_cp_index_u2(index));
+    index = cp->remap_instruction_operand_from_cache(GraalCompiler::to_cp_index(index, bc));
   }
   constantTag tag = cp->tag_at(index);
   if (tag.is_field_or_method()) {
@@ -1120,7 +1121,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getVtableEntryOffset",          CC"("METASPACE_METHOD")I",                                        FN_PTR(getVtableEntryOffset)},
   {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupConstantInPool)},
-  {CC"lookupAppendixInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupAppendixInPool)},
+  {CC"lookupAppendixInPool",          CC"("HS_RESOLVED_TYPE"IB)"OBJECT,                                 FN_PTR(lookupAppendixInPool)},
   {CC"lookupMethodInPool",            CC"("HS_RESOLVED_TYPE"IB)"METHOD,                                 FN_PTR(lookupMethodInPool)},
   {CC"lookupTypeInPool",              CC"("HS_RESOLVED_TYPE"I)"TYPE,                                    FN_PTR(lookupTypeInPool)},
   {CC"lookupReferencedTypeInPool",    CC"("HS_RESOLVED_TYPE"IB)V",                                      FN_PTR(lookupReferencedTypeInPool)},
