@@ -322,6 +322,7 @@
   template(com_oracle_graal_api_code_Assumptions,                    "com/oracle/graal/api/code/Assumptions")                         \
   template(com_oracle_graal_api_code_Assumptions_MethodContents,     "com/oracle/graal/api/code/Assumptions$MethodContents")          \
   template(com_oracle_graal_api_code_Assumptions_ConcreteSubtype,    "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")         \
+  template(com_oracle_graal_api_code_Assumptions_NoFinalizableSubclass, "com/oracle/graal/api/code/Assumptions$NoFinalizableSubclass") \
   template(com_oracle_graal_api_code_Assumptions_ConcreteMethod,     "com/oracle/graal/api/code/Assumptions$ConcreteMethod")          \
   template(com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,"com/oracle/graal/api/code/Assumptions$CallSiteTargetValue")     \
   template(com_oracle_graal_api_code_CompilationResult,              "com/oracle/graal/api/code/CompilationResult")                   \
