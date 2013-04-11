@@ -898,19 +898,19 @@ C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(element);
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jlong metaspace_method, jlong metaspace_nmethod, jobject args))
+C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject args, jlong nativeMethod))
   ResourceMark rm;
   HandleMark hm;
 
   assert(metaspace_method != 0, "just checking");
-  methodHandle mh = asMethod(metaspace_method);
+
+  nmethod* nm = (nmethod*) (address) nativeMethod;
+  methodHandle mh = nm->method();
   Symbol* signature = mh->signature();
   JavaCallArguments jca(mh->size_of_parameters());
 
   JavaArgumentUnboxer jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
   JavaValue result(jap.get_ret_type());
-
-  nmethod* nm = (nmethod*) (address) metaspace_nmethod;
   jca.set_alternative_target(nm);
   JavaCalls::call(&result, mh, &jca, CHECK_NULL);
 
@@ -924,19 +924,18 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jlong 
   }
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jlong metaspace_method, jlong metaspace_nmethod, jobject arg1, jobject arg2, jobject arg3))
+C2V_VMENTRY(jobject, executeCompiledMethod, (JNIEnv *env, jobject, jobject arg1, jobject arg2, jobject arg3, jlong nativeMethod))
   ResourceMark rm;
   HandleMark hm;
 
-  methodHandle method = asMethod(metaspace_method);
-  assert(!method.is_null(), "just checking");
+  nmethod* nm = (nmethod*) (address) nativeMethod;
+  methodHandle method = nm->method();
   JavaValue result(T_OBJECT);
   JavaCallArguments args;
   args.push_oop(JNIHandles::resolve(arg1));
   args.push_oop(JNIHandles::resolve(arg2));
   args.push_oop(JNIHandles::resolve(arg3));
 
-  nmethod* nm = (nmethod*) (address) metaspace_nmethod;
   args.set_alternative_target(nm);
   JavaCalls::call(&result, method, &args, CHECK_NULL);
 
@@ -1142,8 +1141,8 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE"[Z)I",                      FN_PTR(installCode0)},
   {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleNMethod",            CC"(J)"STRING,                                                    FN_PTR(disassembleNMethod)},
-  {CC"executeCompiledMethod",         CC"("METASPACE_METHOD NMETHOD OBJECT OBJECT OBJECT")"OBJECT,      FN_PTR(executeCompiledMethod)},
-  {CC"executeCompiledMethodVarargs",  CC"("METASPACE_METHOD NMETHOD "["OBJECT")"OBJECT,                 FN_PTR(executeCompiledMethodVarargs)},
+  {CC"executeCompiledMethod",         CC"("OBJECT OBJECT OBJECT NMETHOD")"OBJECT,                       FN_PTR(executeCompiledMethod)},
+  {CC"executeCompiledMethodVarargs",  CC"(["OBJECT NMETHOD")"OBJECT,                                    FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
