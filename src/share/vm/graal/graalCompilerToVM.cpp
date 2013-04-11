@@ -657,6 +657,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("constMethodMaxStackOffset", in_bytes(ConstMethod::max_stack_offset()));
   set_int("extraStackEntries", Method::extra_stack_entries());
   set_int("methodAccessFlagsOffset", in_bytes(Method::access_flags_offset()));
+  set_int("methodIntrinsicIdOffset", Method::intrinsic_id_offset_in_bytes());
   set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
   set_int("threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int("threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
@@ -780,6 +781,13 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("deoptActionReinterpret", Deoptimization::Action_reinterpret);
   set_int("deoptActionMakeNotEntrant", Deoptimization::Action_make_not_entrant);
   set_int("deoptActionMakeNotCompilable", Deoptimization::Action_make_not_compilable);
+
+  set_int("vmIntrinsicInvokeBasic", vmIntrinsics::_invokeBasic);
+  set_int("vmIntrinsicLinkToVirtual", vmIntrinsics::_linkToVirtual);
+  set_int("vmIntrinsicLinkToStatic", vmIntrinsics::_linkToStatic);
+  set_int("vmIntrinsicLinkToSpecial", vmIntrinsics::_linkToSpecial);
+  set_int("vmIntrinsicLinkToInterface", vmIntrinsics::_linkToInterface);
+
   set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
   set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
   set_int("logOfHRGrainBytes", HeapRegion::LogOfHRGrainBytes);
