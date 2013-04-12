@@ -32,4 +32,6 @@ CFLAGS += -DCOMPILER1
 
 ifndef OMIT_GRAAL
   CFLAGS += -DGRAAL
+else
+  VM_SUBDIR = client-nograal
 endif
