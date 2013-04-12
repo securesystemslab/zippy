@@ -850,10 +850,15 @@ void Method::link_method(methodHandle h_method, TRAPS) {
   (void) make_adapters(h_method, CHECK);
 
   // ONLY USE the h_method now as make_adapter may have blocked
+
+#ifdef GRAAL
+  // Check for special intrinsic that executes a compiled method.
   if (h_method->intrinsic_id() == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
+    // Actively install the stub for calling the intrinsic from compiled code.
     CompileBroker::compile_method(h_method, InvocationEntryBci, CompLevel_highest_tier,
                                   methodHandle(), CompileThreshold, "executeCompiledMethod", CHECK);
   }
+#endif
 }
 
 address Method::make_adapters(methodHandle mh, TRAPS) {

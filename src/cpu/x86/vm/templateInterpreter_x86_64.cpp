@@ -873,6 +873,8 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
   return generate_accessor_entry();
 }
 
+#ifdef GRAAL
+
 // Interpreter stub for calling a compiled method with 3 object arguments
 address InterpreterGenerator::generate_execute_compiled_method_entry() {
   address entry_point = __ pc();
@@ -891,13 +893,26 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
   // as far as the placement of the call instruction
   __ push(rax);
 
+  // Move first object argument from interpreter calling convention to compiled
+  // code calling convention.
   __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*5));
+
+  // Move second object argument.
   __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*4));
+
+  // Move third object argument.
   __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*3));
+
+  // Load the raw pointer to the nmethod.
   __ movq(j_rarg3, Address(r11, Interpreter::stackElementSize));
+
+  // Perform a tail call to the verified entry point of the nmethod.
   __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+
   return entry_point;
 }
+
+#endif
 
 // Interpreter stub for calling a native method. (asm interpreter)
 // This sets up a somewhat different looking stack for calling the
@@ -1586,7 +1601,9 @@ address AbstractInterpreterGenerator::generate_method_entry(
   switch (kind) {
   case Interpreter::zerolocals             :                                                                             break;
   case Interpreter::zerolocals_synchronized: synchronized = true;                                                        break;
+#ifdef GRAAL
   case Interpreter::execute_compiled_method: entry_point = ((InterpreterGenerator*)this)->generate_execute_compiled_method_entry(); break;
+#endif
   case Interpreter::native                 : entry_point = ((InterpreterGenerator*)this)->generate_native_entry(false); break;
   case Interpreter::native_synchronized    : entry_point = ((InterpreterGenerator*)this)->generate_native_entry(true);  break;
   case Interpreter::empty                  : entry_point = ((InterpreterGenerator*)this)->generate_empty_entry();       break;
