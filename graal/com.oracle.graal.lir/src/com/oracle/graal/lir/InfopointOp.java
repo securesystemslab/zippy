@@ -20,26 +20,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package com.oracle.graal.lir;
 
-/* @test TestVerifyBeforeGCDuringStartup.java
- * @key gc
- * @bug 8010463
- * @summary Simple test run with -XX:+VerifyBeforeGC -XX:-UseTLAB to verify 8010463
- * @library /testlibrary
+import static com.oracle.graal.lir.LIRInstruction.Opcode;
+
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.lir.asm.*;
+
+/**
+ * Emits an infopoint (only mark the position).
  */
+@Opcode("INFOPOINT")
+public class InfopointOp extends LIRInstruction {
 
-import com.oracle.java.testlibrary.OutputAnalyzer;
-import com.oracle.java.testlibrary.ProcessTools;
+    @State protected LIRFrameState state;
 
-public class TestVerifyBeforeGCDuringStartup {
-  public static void main(String args[]) throws Exception {
-    ProcessBuilder pb =
-      ProcessTools.createJavaProcessBuilder(System.getProperty("test.vm.opts"),
-                                            "-XX:-UseTLAB",
-                                            "-XX:+UnlockDiagnosticVMOptions",
-                                            "-XX:+VerifyBeforeGC", "-version");
-    OutputAnalyzer output = new OutputAnalyzer(pb.start());
-    output.shouldContain("[Verifying");
-    output.shouldHaveExitValue(0);
-  }
+    private final InfopointReason reason;
+
+    public InfopointOp(LIRFrameState state, InfopointReason reason) {
+        this.state = state;
+        this.reason = reason;
+    }
+
+    @Override
+    public void emitCode(TargetMethodAssembler tasm) {
+        tasm.recordInfopoint(tasm.asm.codeBuffer.position(), state, reason);
+    }
 }

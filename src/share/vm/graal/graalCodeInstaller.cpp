@@ -294,6 +294,8 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
       if (!assumption.is_null()) {
         if (assumption->klass() == Assumptions_MethodContents::klass()) {
           assumption_MethodContents(assumption);
+        } else if (assumption->klass() == Assumptions_NoFinalizableSubclass::klass()) {
+          assumption_NoFinalizableSubclass(assumption);
         } else if (assumption->klass() == Assumptions_ConcreteSubtype::klass()) {
           assumption_ConcreteSubtype(assumption);
         } else if (assumption->klass() == Assumptions_ConcreteMethod::klass()) {
@@ -418,9 +420,17 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     if (site->is_a(CompilationResult_Call::klass())) {
       TRACE_graal_4("call at %i", pc_offset);
       site_Call(buffer, pc_offset, site);
-    } else if (site->is_a(CompilationResult_Safepoint::klass())) {
-      TRACE_graal_4("safepoint at %i", pc_offset);
-      site_Safepoint(buffer, pc_offset, site);
+    } else if (site->is_a(CompilationResult_Infopoint::klass())) {
+      // three reasons for infopoints denote actual safepoints
+      oop reason = CompilationResult_Infopoint::reason(site);
+      if (InfopointReason::SAFEPOINT() == reason || InfopointReason::CALL() == reason || InfopointReason::IMPLICIT_EXCEPTION() == reason) {
+        TRACE_graal_4("safepoint at %i", pc_offset);
+        site_Safepoint(buffer, pc_offset, site);
+      } else {
+        // if the infopoint is not an actual safepoint, it must have one of the other reasons
+        // (safeguard against new safepoint types that require handling above)
+        assert(InfopointReason::METHOD_START() == reason || InfopointReason::METHOD_END() == reason || InfopointReason::LINE_NUMBER() == reason, "");
+      }
     } else if (site->is_a(CompilationResult_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
       site_DataPatch(buffer, pc_offset, site);
@@ -437,6 +447,12 @@ void CodeInstaller::assumption_MethodContents(Handle assumption) {
   Handle method_handle = Assumptions_MethodContents::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
   _dependencies->assert_evol_method(method());
+}
+
+void CodeInstaller::assumption_NoFinalizableSubclass(Handle assumption) {
+  Handle receiverType_handle = Assumptions_NoFinalizableSubclass::receiverType(assumption());
+  Klass* receiverType = asKlass(HotSpotResolvedObjectType::metaspaceKlass(receiverType_handle));
+  _dependencies->assert_has_no_finalizable_subclasses(receiverType);
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
@@ -587,7 +603,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop debug_info = CompilationResult_Safepoint::debugInfo(site);
+  oop debug_info = CompilationResult_Infopoint::debugInfo(site);
   assert(debug_info != NULL, "debug info expected");
 
   // address instruction = _instructions->start() + pc_offset;

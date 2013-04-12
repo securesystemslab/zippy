@@ -1344,7 +1344,7 @@ def build(args, parser=None):
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
-    parser.add_argument('--source', dest='compliance', help='Java compliance level', default=str(javaCompliance))
+    parser.add_argument('--source', dest='compliance', help='Java compliance level for projects without an explicit one', default=str(javaCompliance))
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--projects', action='store', help='comma separated projects to build (omit to build all projects)')
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
@@ -1502,16 +1502,17 @@ def build(args, parser=None):
 
         toBeDeleted = [argfileName]
         try:
+            compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
                 jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
-                         '-' + args.compliance,
+                         '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir] + javacArgs
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
@@ -1561,6 +1562,13 @@ def eclipseformat(args):
         args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
     if args.eclipse_exe is None:
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
+        
+    # Maybe an Eclipse installation dir was specified - look for the executable in it
+    if join(args.eclipse_exe, exe_suffix('eclipse')):
+        args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        
+    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+        abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
 
@@ -3010,9 +3018,10 @@ def site(args):
         if exists(tmpbase):
             shutil.rmtree(tmpbase)
 
-def findclass(args):
+def findclass(args, logToConsole=True):
     """find all classes matching a given substring"""
 
+    matches = []
     for entry, filename in classpath_walk(includeBootClasspath=True):
         if filename.endswith('.class'):
             if isinstance(entry, zipfile.ZipFile):
@@ -3022,20 +3031,19 @@ def findclass(args):
             classname = classname[:-len('.class')]
             for a in args:
                 if a in classname:
-                    log(classname)
+                    matches.append(classname)
+                    if logToConsole:
+                        log(classname)
+    return matches
 
 def javap(args):
-    """launch javap with a -classpath option denoting all available classes
-
-    Run the JDK javap class file disassembler with the following prepended options:
-
-        -private -verbose -classpath <path to project classes>"""
+    """disassemble classes matching given pattern with javap"""
 
     javap = java().javap
     if not exists(javap):
         abort('The javap executable does not exists: ' + javap)
     else:
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + args)
+        run([javap, '-private', '-verbose', '-classpath', classpath()] + findclass(args, logToConsole=False))
 
 def show_projects(args):
     """show all loaded projects"""
@@ -3073,7 +3081,7 @@ commands = {
     'ideinit': [ideinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
-    'javap': [javap, ''],
+    'javap': [javap, '<class name patterns>'],
     'javadoc': [javadoc, '[options]'],
     'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],

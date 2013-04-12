@@ -340,6 +340,27 @@ methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle& cpool,
   Symbol* name_sym = cpool->name_ref_at(index);
   Symbol* sig_sym  = cpool->signature_ref_at(index);
 
+  if (cpool->has_preresolution()
+      || (holder() == SystemDictionary::MethodHandle_klass() &&
+          MethodHandles::is_signature_polymorphic_name(holder(), name_sym))) {
+    // Short-circuit lookups for JSR 292-related call sites.
+    // That is, do not rely only on name-based lookups, because they may fail
+    // if the names are not resolvable in the boot class loader (7056328).
+    switch (bc) {
+    case Bytecodes::_invokevirtual:
+    case Bytecodes::_invokeinterface:
+    case Bytecodes::_invokespecial:
+    case Bytecodes::_invokestatic:
+      {
+        Method* m = ConstantPool::method_at_if_loaded(cpool, index);
+        if (m != NULL) {
+          return m;
+        }
+      }
+      break;
+    }
+  }
+
   if (holder_is_accessible) { // Our declared holder is loaded.
     instanceKlassHandle lookup = get_instance_klass_for_declared_method_holder(holder);
     methodHandle m = lookup_method(accessor, lookup, name_sym, sig_sym, bc);
