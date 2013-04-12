@@ -846,6 +846,7 @@ def buildvms(args):
     parser.add_argument('--vms', help='a comma separated list of VMs to build (default: ' + vmsDefault + ')', metavar='<args>', default=vmsDefault)
     parser.add_argument('--builds', help='a comma separated list of build types (default: ' + vmbuildsDefault + ')', metavar='<args>', default=vmbuildsDefault)
     parser.add_argument('-n', '--no-check', action='store_true', help='omit running "java -version" after each build')
+    parser.add_argument('-c', '--console', action='store_true', help='send build output to console instead of log file')
 
     args = parser.parse_args(args)
     vms = args.vms.split(',')
@@ -856,19 +857,24 @@ def buildvms(args):
         for vmbuild in builds:
             if v == 'server0' and vmbuild != 'product':
                 continue
-            logFile = join(v + '-' + vmbuild + '.log')
-            log = open(join(_graal_home, logFile), 'wb')
-            start = time.time()
-            mx.log('BEGIN: ' + v + '-' + vmbuild + '\t(see: ' + logFile + ')')
-            # Run as subprocess so that output can be directed to a file
-            subprocess.check_call([sys.executable, '-u', join('mxtool', 'mx.py'), '--vm', v, 'build', vmbuild], cwd=_graal_home, stdout=log, stderr=subprocess.STDOUT)
-            duration = datetime.timedelta(seconds=time.time() - start)
+            if not args.console:
+                logFile = join(v + '-' + vmbuild + '.log')
+                log = open(join(_graal_home, logFile), 'wb')
+                start = time.time()
+                mx.log('BEGIN: ' + v + '-' + vmbuild + '\t(see: ' + logFile + ')')
+                # Run as subprocess so that output can be directed to a file
+                subprocess.check_call([sys.executable, '-u', join('mxtool', 'mx.py'), '--vm', v, 'build', vmbuild], cwd=_graal_home, stdout=log, stderr=subprocess.STDOUT)
+                duration = datetime.timedelta(seconds=time.time() - start)
+                mx.log('END:   ' + v + '-' + vmbuild + '\t[' + str(duration) + ']')
+            else:
+                global _vm
+                _vm = v
+                build([vmbuild])
             if not args.no_check:
                 vmargs = ['-version']
                 if v == 'graal':
                     vmargs.insert(0, '-XX:-BootstrapGraal')
                 vm(vmargs, vm=v, vmbuild=vmbuild)
-            mx.log('END:   ' + v + '-' + vmbuild + '\t[' + str(duration) + ']')
     allDuration = datetime.timedelta(seconds=time.time() - allStart)
     mx.log('TOTAL TIME:   ' + '[' + str(allDuration) + ']')
 
