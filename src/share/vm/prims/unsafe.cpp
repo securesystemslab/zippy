@@ -118,7 +118,9 @@ inline void* index_oop_from_field_offset_long(oop p, jlong field_offset) {
   // Don't allow unsafe to be used to read or write the header word of oops
   // unless running GRAAL which wants to read the misc word for example when
   // interpreting computeHashCode().
-  assert(p == NULL || field_offset >= oopDesc::header_size() || GRAAL, "offset must be outside of header");
+#ifndef GRAAL
+  assert(p == NULL || field_offset >= oopDesc::header_size(), "offset must be outside of header");
+#endif
 #ifdef ASSERT
   if (p != NULL) {
     assert(byte_offset >= 0 && byte_offset <= (jlong)MAX_OBJECT_SIZE, "sane offset");
