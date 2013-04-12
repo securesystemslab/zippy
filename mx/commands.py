@@ -845,6 +845,7 @@ def buildvms(args):
     parser = ArgumentParser(prog='mx buildvms');
     parser.add_argument('--vms', help='a comma separated list of VMs to build (default: ' + vmsDefault + ')', metavar='<args>', default=vmsDefault)
     parser.add_argument('--builds', help='a comma separated list of build types (default: ' + vmbuildsDefault + ')', metavar='<args>', default=vmbuildsDefault)
+    parser.add_argument('-n', '--no-check', action='store_true', help='omit running "java -version" after each build')
 
     args = parser.parse_args(args)
     vms = args.vms.split(',')
@@ -862,6 +863,11 @@ def buildvms(args):
             # Run as subprocess so that output can be directed to a file
             subprocess.check_call([sys.executable, '-u', join('mxtool', 'mx.py'), '--vm', v, 'build', vmbuild], cwd=_graal_home, stdout=log, stderr=subprocess.STDOUT)
             duration = datetime.timedelta(seconds=time.time() - start)
+            if not args.no_check:
+                vmargs = ['-version']
+                if v == 'graal':
+                    vmargs.insert(0, '-XX:-BootstrapGraal')
+                vm(vmargs, vm=v, vmbuild=vmbuild)
             mx.log('END:   ' + v + '-' + vmbuild + '\t[' + str(duration) + ']')
     allDuration = datetime.timedelta(seconds=time.time() - allStart)
     mx.log('TOTAL TIME:   ' + '[' + str(allDuration) + ']')
