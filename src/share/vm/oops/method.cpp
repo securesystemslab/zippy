@@ -722,7 +722,7 @@ bool Method::is_not_compilable(int comp_level) const {
   if (number_of_breakpoints() > 0)
     return true;
   if (is_method_handle_intrinsic())
-    return !is_synthetic();  // the generated adapters must be compiled
+    return !is_synthetic() && intrinsic_id() != vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod;  // the generated adapters must be compiled
   if (comp_level == CompLevel_any)
     return is_not_c1_compilable() || is_not_c2_compilable();
   if (is_c1_compile(comp_level))
@@ -850,7 +850,10 @@ void Method::link_method(methodHandle h_method, TRAPS) {
   (void) make_adapters(h_method, CHECK);
 
   // ONLY USE the h_method now as make_adapter may have blocked
-
+  if (h_method->intrinsic_id() == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
+    CompileBroker::compile_method(h_method, InvocationEntryBci, CompLevel_highest_tier,
+                                  methodHandle(), CompileThreshold, "executeCompiledMethod", CHECK);
+  }
 }
 
 address Method::make_adapters(methodHandle mh, TRAPS) {
