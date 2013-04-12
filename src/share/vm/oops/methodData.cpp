@@ -676,28 +676,8 @@ void MethodData::initialize() {
   No_Safepoint_Verifier no_safepoint;  // init function atomic wrt GC
   ResourceMark rm;
 
-  _invocation_counter.init();
-  _backedge_counter.init();
-  _invocation_counter_start = 0;
-  _backedge_counter_start = 0;
-  _num_loops = 0;
-  _num_blocks = 0;
-  _highest_comp_level = 0;
-  _highest_osr_comp_level = 0;
-  _would_profile = true;
+  init();
   set_creation_mileage(mileage_of(method()));
-
-  // Initialize flags and trap history.
-  _nof_decompiles = 0;
-  _nof_overflow_recompiles = 0;
-  _nof_overflow_traps = 0;
-  _eflags = 0;
-  _arg_local = 0;
-  _arg_stack = 0;
-  _arg_returned = 0;
-  assert(sizeof(_trap_hist) % sizeof(HeapWord) == 0, "align");
-  Copy::zero_to_words((HeapWord*) &_trap_hist,
-                      sizeof(_trap_hist) / sizeof(HeapWord));
 
   // Go through the bytecodes and allocate and initialize the
   // corresponding data cells.
@@ -743,7 +723,27 @@ void MethodData::initialize() {
   post_initialize(&stream);
 
   set_size(object_size);
+}
 
+void MethodData::init() {
+  _invocation_counter.init();
+  _backedge_counter.init();
+  _invocation_counter_start = 0;
+  _backedge_counter_start = 0;
+  _num_loops = 0;
+  _num_blocks = 0;
+  _highest_comp_level = 0;
+  _highest_osr_comp_level = 0;
+  _would_profile = true;
+
+  // Initialize flags and trap history.
+  _nof_decompiles = 0;
+  _nof_overflow_recompiles = 0;
+  _nof_overflow_traps = 0;
+  clear_escape_info();
+  assert(sizeof(_trap_hist) % sizeof(HeapWord) == 0, "align");
+  Copy::zero_to_words((HeapWord*) &_trap_hist,
+                      sizeof(_trap_hist) / sizeof(HeapWord));
 }
 
 bool MethodData::is_empty_data(int size_in_bytes, Bytecodes::Code code) {
