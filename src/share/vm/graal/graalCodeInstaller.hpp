@@ -93,6 +93,7 @@ private:
   void initialize_buffer(CodeBuffer& buffer);
 
   void assumption_MethodContents(Handle assumption);
+  void assumption_NoFinalizableSubclass(Handle assumption);
   void assumption_ConcreteSubtype(Handle assumption);
   void assumption_ConcreteMethod(Handle assumption);
   void assumption_CallSiteTargetValue(Handle assumption);
