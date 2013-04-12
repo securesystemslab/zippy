@@ -39,7 +39,7 @@ _graal_home = dirname(dirname(__file__))
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src'))
 
 """ The VMs that can be built and run - default is first in list """
-_vmChoices = ['graal', 'server', 'client', 'server-nograal', 'client-nograal', 'server0']
+_vmChoices = ['graal', 'server', 'client', 'server-nograal', 'client-nograal', 'boot']
 
 """ The VM that will be run by the 'vm' command and built by default by the 'build' command.
     This can be set via the global '--vm' option. """
@@ -339,14 +339,15 @@ def _jdk(build='product', vmToCheck=None, create=False):
                         assert len(parts) == 2, parts
                         assert parts[1] == 'KNOWN', parts[1]
                         defaultVM = parts[0][1:]
-                        jvmCfgLines += ['-' + defaultVM + '0 KNOWN\n']
+                        jvmCfgLines += ['# boot VM is a copy of the unmodified ' + defaultVM + ' VM\n']
+                        jvmCfgLines += ['-boot KNOWN\n']
                     else:
                         jvmCfgLines += [line]
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, 0755)
-            shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), defaultVM + '0'))
+            shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), 'boot'))
             
 
             with open(jvmCfg, 'w') as fp:
@@ -550,7 +551,7 @@ def build(args, vm=None):
     if vm is None:
         vm = _vm
 
-    if vm.startswith('server'):
+    if vm.startswith('server') or vm == 'boot':
         buildSuffix = ''
     elif vm.startswith('client'):
         buildSuffix = '1'
@@ -567,10 +568,12 @@ def build(args, vm=None):
                 mx.log('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
                 continue
 
-        if vm == 'server0':
-            assert build == 'product', 'can not "build" a non-product server0'
-
         jdk = _jdk(build, create=True)
+
+        if vm == 'boot':
+            if build != 'product':
+                mx.log('only product build of boot VM exists')
+            continue
 
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
@@ -585,9 +588,7 @@ def build(args, vm=None):
 
         # Check if a build really needs to be done
         timestampFile = join(vmDir, '.build-timestamp')
-        if vm == 'server0':
-            mustBuild = False
-        elif opts2.force or not exists(timestampFile):
+        if opts2.force or not exists(timestampFile):
             mustBuild = True
         else:
             mustBuild = False
@@ -797,7 +798,7 @@ def _unittest(args, annotations):
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        if _vm == 'server0':
+        if _vm == 'boot' or _vm.endswith('nograal'):
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
@@ -855,7 +856,7 @@ def buildvms(args):
     allStart = time.time()
     for v in vms:
         for vmbuild in builds:
-            if v == 'server0' and vmbuild != 'product':
+            if v == 'boot' and vmbuild != 'product':
                 continue
             if not args.console:
                 logFile = join(v + '-' + vmbuild + '.log')
