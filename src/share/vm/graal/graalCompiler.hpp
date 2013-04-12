@@ -102,7 +102,7 @@ public:
     int cp_index;
     if (bc == Bytecodes::_invokedynamic) {
       cp_index = to_index_u4(raw_index);
-      assert(ConstantPool::is_invokedynamic_index(raw_index), "not an invokedynamic constant pool index");
+      assert(ConstantPool::is_invokedynamic_index(cp_index), "not an invokedynamic constant pool index");
     } else {
       assert(bc == Bytecodes::_getfield        || bc == Bytecodes::_putfield  ||
              bc == Bytecodes::_getstatic       || bc == Bytecodes::_putstatic ||
