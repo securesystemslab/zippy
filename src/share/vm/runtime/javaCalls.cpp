@@ -412,7 +412,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
       ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->verified_entry_point());
       entry_point = method->adapter()->get_i2c_entry();
     } else {
-      THROW(vmSymbols::MethodInvalidatedException());
+      THROW(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException());
     }
   }
 #endif

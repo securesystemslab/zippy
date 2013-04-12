@@ -873,6 +873,31 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
   return generate_accessor_entry();
 }
 
+// Interpreter stub for calling a compiled method with 3 object arguments
+address InterpreterGenerator::generate_execute_compiled_method_entry() {
+  address entry_point = __ pc();
+
+  // Pick up the return address
+  __ movptr(rax, Address(rsp, 0));
+
+  // Must preserve original SP for loading incoming arguments because
+  // we need to align the outgoing SP for compiled code.
+  __ movptr(r11, rsp);
+
+  // Ensure compiled code always sees stack at proper alignment
+  __ andptr(rsp, -16);
+
+  // push the return address and misalign the stack that youngest frame always sees
+  // as far as the placement of the call instruction
+  __ push(rax);
+
+  __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*5));
+  __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*4));
+  __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*3));
+  __ movq(j_rarg3, Address(r11, Interpreter::stackElementSize));
+  __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+  return entry_point;
+}
 
 // Interpreter stub for calling a native method. (asm interpreter)
 // This sets up a somewhat different looking stack for calling the
@@ -1561,6 +1586,7 @@ address AbstractInterpreterGenerator::generate_method_entry(
   switch (kind) {
   case Interpreter::zerolocals             :                                                                             break;
   case Interpreter::zerolocals_synchronized: synchronized = true;                                                        break;
+  case Interpreter::execute_compiled_method: entry_point = ((InterpreterGenerator*)this)->generate_execute_compiled_method_entry(); break;
   case Interpreter::native                 : entry_point = ((InterpreterGenerator*)this)->generate_native_entry(false); break;
   case Interpreter::native_synchronized    : entry_point = ((InterpreterGenerator*)this)->generate_native_entry(true);  break;
   case Interpreter::empty                  : entry_point = ((InterpreterGenerator*)this)->generate_empty_entry();       break;

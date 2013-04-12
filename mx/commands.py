@@ -777,7 +777,9 @@ def _unittest(args, annotations):
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
     javaClass = join(mxdir, name + '.class')
-    (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
+    testfile = os.environ.get('MX_TESTFILE', None)
+    if testfile is None:
+        (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
 
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
@@ -791,7 +793,8 @@ def _unittest(args, annotations):
     try:
         _run_tests(args, harness, annotations, testfile)
     finally:
-        os.remove(testfile)
+        if os.environ.get('MX_TESTFILE') is None:
+            os.remove(testfile)
 
 def unittest(args):
     """run the JUnit tests (all testcases)

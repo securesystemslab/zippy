@@ -299,6 +299,7 @@
   template(com_oracle_graal_hotspot_HotSpotCompilationResult,        "com/oracle/graal/hotspot/HotSpotCompilationResult")             \
   template(com_oracle_graal_hotspot_HotSpotRuntimeCallTarget,        "com/oracle/graal/hotspot/HotSpotRuntimeCallTarget")             \
   template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
+  template(com_oracle_graal_hotspot_bridge_CompilerToVMImpl,         "com/oracle/graal/hotspot/bridge/CompilerToVMImpl")              \
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotInstalledCode,       "com/oracle/graal/hotspot/meta/HotSpotInstalledCode")            \
   template(com_oracle_graal_hotspot_meta_HotSpotJavaType,            "com/oracle/graal/hotspot/meta/HotSpotJavaType")                 \
@@ -322,6 +323,7 @@
   template(com_oracle_graal_api_code_Assumptions,                    "com/oracle/graal/api/code/Assumptions")                         \
   template(com_oracle_graal_api_code_Assumptions_MethodContents,     "com/oracle/graal/api/code/Assumptions$MethodContents")          \
   template(com_oracle_graal_api_code_Assumptions_ConcreteSubtype,    "com/oracle/graal/api/code/Assumptions$ConcreteSubtype")         \
+  template(com_oracle_graal_api_code_Assumptions_NoFinalizableSubclass, "com/oracle/graal/api/code/Assumptions$NoFinalizableSubclass") \
   template(com_oracle_graal_api_code_Assumptions_ConcreteMethod,     "com/oracle/graal/api/code/Assumptions$ConcreteMethod")          \
   template(com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,"com/oracle/graal/api/code/Assumptions$CallSiteTargetValue")     \
   template(com_oracle_graal_api_code_CompilationResult,              "com/oracle/graal/api/code/CompilationResult")                   \
@@ -339,6 +341,7 @@
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \
   template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject")                       \
+  template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
   template(startCompiler_name,                    "startCompiler")                                                                    \
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
@@ -379,7 +382,6 @@
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \
   template(callback_signature,                    "(Ljava/lang/Object;)Ljava/lang/Object;")                                           \
-  template(MethodInvalidatedException,            "com/oracle/graal/api/code/InstalledCode$MethodInvalidatedException")               \
   /* graal.api.interpreter */                                                                                                         \
   template(com_oracle_graal_api_interpreter_Interpreter,             "com/oracle/graal/api/interpreter/Interpreter")                  \
   template(interpreter_execute_name,              "execute")                                                                          \
@@ -1128,6 +1130,9 @@
   do_intrinsic(_Double_valueOf,           java_lang_Double,       valueOf_name, Double_valueOf_signature, F_S)          \
    do_name(     Double_valueOf_signature,                        "(D)Ljava/lang/Double;")                               \
                                                                                                                         \
+  do_intrinsic(_CompilerToVMImpl_executeCompiledMethod,           com_oracle_graal_hotspot_bridge_CompilerToVMImpl, executeCompiledMethod_name, CompilerToVMImpl_executeCompiledMethod_signature, F_SN)\
+   do_name(     CompilerToVMImpl_executeCompiledMethod_signature, "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;J)Ljava/lang/Object;")                               \
+   do_name(     executeCompiledMethod_name,                       "executeCompiledMethodIntrinsic")                     \
     /*end*/
 
 

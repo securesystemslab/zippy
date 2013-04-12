@@ -1308,7 +1308,6 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
 
 #ifdef GRAAL
     if (_graal_installed_code != NULL) {
-      HotSpotInstalledCode::set_nmethod(_graal_installed_code, 0);
       _graal_installed_code = NULL;
     }
 #endif
@@ -1394,18 +1393,17 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
       return false;
     }
 
-#ifdef GRAAL
-    if (_graal_installed_code != NULL) {
-      HotSpotInstalledCode::set_nmethod(_graal_installed_code, 0);
-      _graal_installed_code = NULL;
-    }
-#endif
-
     // The caller can be calling the method statically or through an inline
     // cache call.
     if (!is_osr_method() && !is_not_entrant()) {
-      NativeJump::patch_verified_entry(entry_point(), verified_entry_point(),
-                  SharedRuntime::get_handle_wrong_method_stub());
+      if (_graal_installed_code != NULL && !HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+        // This was manually installed machine code. Patch entry with stub that throws an exception.
+        NativeJump::patch_verified_entry(entry_point(), verified_entry_point(),
+                    SharedRuntime::get_deoptimized_installed_code_stub());
+      } else {
+        NativeJump::patch_verified_entry(entry_point(), verified_entry_point(),
+                    SharedRuntime::get_handle_wrong_method_stub());
+      }
     }
 
     if (is_in_use()) {

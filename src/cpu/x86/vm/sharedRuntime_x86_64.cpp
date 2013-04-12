@@ -1670,6 +1670,11 @@ static void gen_special_dispatch(MacroAssembler* masm,
   verify_oop_args(masm, method, sig_bt, regs);
   vmIntrinsics::ID iid = method->intrinsic_id();
 
+  if (iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
+    __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+    return;
+  }
+
   // Now write the args into the outgoing interpreter space
   bool     has_receiver   = false;
   Register receiver_reg   = noreg;

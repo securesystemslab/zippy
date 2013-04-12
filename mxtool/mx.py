@@ -3018,9 +3018,10 @@ def site(args):
         if exists(tmpbase):
             shutil.rmtree(tmpbase)
 
-def findclass(args):
+def findclass(args, logToConsole=True):
     """find all classes matching a given substring"""
 
+    matches = []
     for entry, filename in classpath_walk(includeBootClasspath=True):
         if filename.endswith('.class'):
             if isinstance(entry, zipfile.ZipFile):
@@ -3030,20 +3031,19 @@ def findclass(args):
             classname = classname[:-len('.class')]
             for a in args:
                 if a in classname:
-                    log(classname)
+                    matches.append(classname)
+                    if logToConsole:
+                        log(classname)
+    return matches
 
 def javap(args):
-    """launch javap with a -classpath option denoting all available classes
-
-    Run the JDK javap class file disassembler with the following prepended options:
-
-        -private -verbose -classpath <path to project classes>"""
+    """disassemble classes matching given pattern with javap"""
 
     javap = java().javap
     if not exists(javap):
         abort('The javap executable does not exists: ' + javap)
     else:
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + args)
+        run([javap, '-private', '-verbose', '-classpath', classpath()] + findclass(args, logToConsole=False))
 
 def show_projects(args):
     """show all loaded projects"""
@@ -3081,7 +3081,7 @@ commands = {
     'ideinit': [ideinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
-    'javap': [javap, ''],
+    'javap': [javap, '<class name patterns>'],
     'javadoc': [javadoc, '[options]'],
     'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],

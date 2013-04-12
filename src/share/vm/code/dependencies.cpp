@@ -144,6 +144,11 @@ void Dependencies::assert_evol_method(Method* m) {
   assert_common_1(evol_method, DepValue(_oop_recorder, m));
 }
 
+void Dependencies::assert_has_no_finalizable_subclasses(Klass* ctxk) {
+  check_ctxk(ctxk);
+  assert_common_1(no_finalizable_subclasses, DepValue(_oop_recorder, ctxk));
+}
+
 void Dependencies::assert_leaf_type(Klass* ctxk) {
   if (ctxk->oop_is_array()) {
     // As a special case, support this assertion on an array type,
