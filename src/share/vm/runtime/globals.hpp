@@ -3337,10 +3337,10 @@ class CommandLineFlags {
           "ConcurrentMarkSweep thread runs at critical scheduling priority")\
                                                                             \
   /* compiler debugging */                                                  \
-  notproduct(intx, CompileTheWorldStartAt,     1,                           \
+  develop(intx, CompileTheWorldStartAt, 1,                                  \
           "First class to consider when using +CompileTheWorld")            \
                                                                             \
-  notproduct(intx, CompileTheWorldStopAt, max_jint,                         \
+  develop(intx, CompileTheWorldStopAt, max_jint,                            \
           "Last class to consider when using +CompileTheWorld")             \
                                                                             \
   develop(intx, NewCodeParameter,      0,                                   \
