@@ -1028,6 +1028,7 @@ def gate(args):
         if args.buildNonGraal:
             t = Task('BuildHotSpotVarieties')
             buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
+            buildvms(['--vms', 'server-nograal', '--builds', 'product'])
             tasks.append(t.stop())
 
             for vmbuild in ['product', 'fastdebug']:
