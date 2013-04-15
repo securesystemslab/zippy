@@ -186,13 +186,13 @@ public class TypeSystemTest extends GraalCompilerTest {
         StructuredGraph graph = parse(snippet);
         Debug.dump(graph, "Graph");
         Assumptions assumptions = new Assumptions(false);
-        new CanonicalizerPhase(runtime(), assumptions).apply(graph);
+        new CanonicalizerPhase.Instance(runtime(), assumptions).apply(graph);
         new ConditionalEliminationPhase(runtime()).apply(graph);
-        new CanonicalizerPhase(runtime(), assumptions).apply(graph);
+        new CanonicalizerPhase.Instance(runtime(), assumptions).apply(graph);
         // a second canonicalizer is needed to process nested MaterializeNodes
-        new CanonicalizerPhase(runtime(), assumptions).apply(graph);
+        new CanonicalizerPhase.Instance(runtime(), assumptions).apply(graph);
         StructuredGraph referenceGraph = parse(referenceSnippet);
-        new CanonicalizerPhase(runtime(), assumptions).apply(referenceGraph);
+        new CanonicalizerPhase.Instance(runtime(), assumptions).apply(referenceGraph);
         assertEquals(referenceGraph, graph);
     }
 
@@ -206,19 +206,19 @@ public class TypeSystemTest extends GraalCompilerTest {
     }
 
     public static void outputGraph(StructuredGraph graph, String message) {
-        System.out.println("========================= " + message);
+        TTY.println("========================= " + message);
         SchedulePhase schedule = new SchedulePhase();
         schedule.apply(graph);
         for (Block block : schedule.getCFG().getBlocks()) {
-            System.out.print("Block " + block + " ");
+            TTY.print("Block " + block + " ");
             if (block == schedule.getCFG().getStartBlock()) {
-                System.out.print("* ");
+                TTY.print("* ");
             }
-            System.out.print("-> ");
+            TTY.print("-> ");
             for (Block succ : block.getSuccessors()) {
-                System.out.print(succ + " ");
+                TTY.print(succ + " ");
             }
-            System.out.println();
+            TTY.println();
             for (Node node : schedule.getBlockToNodesMap().get(block)) {
                 outputNode(node);
             }
@@ -226,11 +226,11 @@ public class TypeSystemTest extends GraalCompilerTest {
     }
 
     private static void outputNode(Node node) {
-        System.out.print("  " + node + "    (usage count: " + node.usages().count() + ") (inputs:");
+        TTY.print("  " + node + "    (usage count: " + node.usages().count() + ") (inputs:");
         for (Node input : node.inputs()) {
-            System.out.print(" " + input.toString(Verbosity.Id));
+            TTY.print(" " + input.toString(Verbosity.Id));
         }
-        System.out.println(")");
+        TTY.println(")");
         if (node instanceof MergeNode) {
             for (PhiNode phi : ((MergeNode) node).phis()) {
                 outputNode(phi);
@@ -242,9 +242,9 @@ public class TypeSystemTest extends GraalCompilerTest {
         StructuredGraph graph = parse(snippet);
         Debug.dump(graph, "Graph");
         Assumptions assumptions = new Assumptions(false);
-        new CanonicalizerPhase(runtime(), assumptions).apply(graph);
+        new CanonicalizerPhase.Instance(runtime(), assumptions).apply(graph);
         new ConditionalEliminationPhase(runtime()).apply(graph);
-        new CanonicalizerPhase(runtime(), assumptions).apply(graph);
+        new CanonicalizerPhase.Instance(runtime(), assumptions).apply(graph);
         Debug.dump(graph, "Graph");
         Assert.assertFalse("shouldn't have nodes of type " + clazz, graph.getNodes(clazz).iterator().hasNext());
     }

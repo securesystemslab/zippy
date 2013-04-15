@@ -128,6 +128,8 @@ public interface CompilerToVM {
      */
     JavaType lookupType(String name, HotSpotResolvedObjectType accessingClass, boolean eagerResolve);
 
+    int constantPoolLength(HotSpotResolvedObjectType pool);
+
     Object lookupConstantInPool(HotSpotResolvedObjectType pool, int cpi);
 
     JavaMethod lookupMethodInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
@@ -137,6 +139,8 @@ public interface CompilerToVM {
     JavaField lookupFieldInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
 
     void lookupReferencedTypeInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
+
+    Object lookupAppendixInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
 
     // Must be kept in sync with enum in graalEnv.hpp
     public enum CodeInstallResult {
@@ -199,9 +203,9 @@ public interface CompilerToVM {
 
     StackTraceElement getStackTraceElement(long metaspaceMethod, int bci);
 
-    Object executeCompiledMethod(long metaspaceMethod, long nmethod, Object arg1, Object arg2, Object arg3);
+    Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, long nativeMethod) throws InvalidInstalledCodeException;
 
-    Object executeCompiledMethodVarargs(long metaspaceMethod, long nmethod, Object... args);
+    Object executeCompiledMethodVarargs(Object[] args, long nativeMethod) throws InvalidInstalledCodeException;
 
     int getVtableEntryOffset(long metaspaceMethod);
 
@@ -221,4 +225,8 @@ public interface CompilerToVM {
      * @param metaspaceMethod the metaspace Method object
      */
     void reprofile(long metaspaceMethod);
+
+    void invalidateInstalledCode(long nativeMethod);
+
+    boolean isInstalledCodeValid(long nativeMethod);
 }

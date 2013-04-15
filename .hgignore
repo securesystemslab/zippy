@@ -4,6 +4,7 @@
 ^mx/ecj.jar
 ^mx/includes
 ^build/
+^build-nograal/
 ^dist/
 ^java/
 ^lib/

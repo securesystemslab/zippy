@@ -88,6 +88,9 @@ public final class GraalOptions {
     public static int     SlowQueueCutoff                    = 100000;
     public static boolean SlowCompileThreads                 = ____;
     public static boolean DynamicCompilePriority             = ____;
+    public static String  CompileTheWorld                    = null;
+    public static int     CompileTheWorldStartAt             = 1;
+    public static int     CompileTheWorldStopAt              = Integer.MAX_VALUE;
 
     // graph caching
     public static boolean CacheGraphs                        = true;
@@ -116,6 +119,7 @@ public final class GraalOptions {
     // Debug settings:
     public static boolean Debug                              = true;
     public static boolean DebugReplacements                  = ____;
+    public static boolean BootstrapReplacements              = ____;
     public static boolean PerThreadDebugValues               = ____;
     public static boolean SummarizeDebugValues               = ____;
     public static boolean SummarizePerPhase                  = ____;
@@ -127,7 +131,7 @@ public final class GraalOptions {
     public static String  MethodFilter                       = null;
     public static boolean DumpOnError                        = ____;
     public static boolean GenericDynamicCounters             = ____;
-    public static boolean BenchmarkDynamicCounters           = ____;
+    public static String  BenchmarkDynamicCounters           = null;
 
     // Ideal graph visualizer output settings
     public static boolean PrintBinaryGraphs                  = true;
@@ -150,6 +154,10 @@ public final class GraalOptions {
     public static int     TraceBytecodeParserLevel           = 0;
     public static boolean ExitVMOnBailout                    = ____;
     public static boolean ExitVMOnException                  = true;
+
+    // HotSpot command line options
+    public static boolean HotSpotPrintCompilation            = ____;
+    public static boolean HotSpotPrintInlining               = ____;
 
     // Register allocator debugging
     public static String  RegisterPressure                   = null;
@@ -217,6 +225,7 @@ public final class GraalOptions {
     public static boolean IntrinsifyMathMethods              = true;
     public static boolean IntrinsifyAESMethods               = true;
     public static boolean IntrinsifyInstalledCodeMethods     = true;
+    public static boolean IntrinsifyCallSiteTarget           = true;
     /**
      * Counts the various paths taken through snippets.
      */

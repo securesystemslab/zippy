@@ -25,6 +25,7 @@ package com.oracle.graal.api.code;
 import static com.oracle.graal.api.meta.MetaUtil.*;
 
 import java.io.*;
+import java.lang.invoke.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
@@ -42,6 +43,40 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
     public abstract static class Assumption implements Serializable {
 
         private static final long serialVersionUID = -1936652569665112915L;
+    }
+
+    public static final class NoFinalizableSubclass extends Assumption {
+
+        private static final long serialVersionUID = 6451169735564055081L;
+
+        private ResolvedJavaType receiverType;
+
+        public NoFinalizableSubclass(ResolvedJavaType receiverType) {
+            this.receiverType = receiverType;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + receiverType.hashCode();
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof NoFinalizableSubclass) {
+                NoFinalizableSubclass other = (NoFinalizableSubclass) obj;
+                return other.receiverType == receiverType;
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "NoFinalizableSubclass[receiverType=" + toJavaName(receiverType) + "]";
+        }
+
     }
 
     /**
@@ -182,6 +217,45 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
     }
 
     /**
+     * Assumption that a call site's method handle did not change.
+     */
+    public static final class CallSiteTargetValue extends Assumption {
+
+        private static final long serialVersionUID = 1732459941784550371L;
+
+        public final CallSite callSite;
+        public final MethodHandle methodHandle;
+
+        public CallSiteTargetValue(CallSite callSite, MethodHandle methodHandle) {
+            this.callSite = callSite;
+            this.methodHandle = methodHandle;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + callSite.hashCode();
+            result = prime * result + methodHandle.hashCode();
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof CallSiteTargetValue) {
+                CallSiteTargetValue other = (CallSiteTargetValue) obj;
+                return other.callSite == callSite && other.methodHandle == methodHandle;
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "CallSiteTargetValue[callSite=" + callSite + ", methodHandle=" + methodHandle + "]";
+        }
+    }
+
+    /**
      * Array with the assumptions. This field is directly accessed from C++ code in the
      * Graal/HotSpot implementation.
      */
@@ -233,12 +307,10 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
      * Records an assumption that the specified type has no finalizable subclasses.
      * 
      * @param receiverType the type that is assumed to have no finalizable subclasses
-     * @return {@code true} if the assumption was recorded and can be assumed; {@code false}
-     *         otherwise
      */
-    public boolean recordNoFinalizableSubclassAssumption(ResolvedJavaType receiverType) {
+    public void recordNoFinalizableSubclassAssumption(ResolvedJavaType receiverType) {
         assert useOptimisticAssumptions;
-        return false;
+        record(new NoFinalizableSubclass(receiverType));
     }
 
     /**

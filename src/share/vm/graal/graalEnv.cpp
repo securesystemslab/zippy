@@ -319,6 +319,19 @@ methodHandle GraalEnv::lookup_method(instanceKlassHandle& h_accessor,
 methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle& cpool,
                                           int index, Bytecodes::Code bc,
                                           instanceKlassHandle& accessor) {
+  if (bc == Bytecodes::_invokedynamic) {
+    ConstantPoolCacheEntry* cpce = cpool->invokedynamic_cp_cache_entry_at(index);
+    bool is_resolved = !cpce->is_f1_null();
+    if (is_resolved) {
+      // Get the invoker Method* from the constant pool.
+      // (The appendix argument, if any, will be noted in the method's signature.)
+      Method* adapter = cpce->f1_as_method();
+      return methodHandle(adapter);
+    }
+
+    return NULL;
+  }
+
   int holder_index = cpool->klass_ref_index_at(index);
   bool holder_is_accessible;
   KlassHandle holder = get_klass_by_index_impl(cpool, holder_index, holder_is_accessible, accessor);
@@ -326,6 +339,27 @@ methodHandle GraalEnv::get_method_by_index_impl(constantPoolHandle& cpool,
   // Get the method's name and signature.
   Symbol* name_sym = cpool->name_ref_at(index);
   Symbol* sig_sym  = cpool->signature_ref_at(index);
+
+  if (cpool->has_preresolution()
+      || (holder() == SystemDictionary::MethodHandle_klass() &&
+          MethodHandles::is_signature_polymorphic_name(holder(), name_sym))) {
+    // Short-circuit lookups for JSR 292-related call sites.
+    // That is, do not rely only on name-based lookups, because they may fail
+    // if the names are not resolvable in the boot class loader (7056328).
+    switch (bc) {
+    case Bytecodes::_invokevirtual:
+    case Bytecodes::_invokeinterface:
+    case Bytecodes::_invokespecial:
+    case Bytecodes::_invokestatic:
+      {
+        Method* m = ConstantPool::method_at_if_loaded(cpool, index);
+        if (m != NULL) {
+          return m;
+        }
+      }
+      break;
+    }
+  }
 
   if (holder_is_accessible) { // Our declared holder is loaded.
     instanceKlassHandle lookup = get_instance_klass_for_declared_method_holder(holder);
@@ -369,7 +403,6 @@ methodHandle GraalEnv::get_method_by_index(constantPoolHandle& cpool,
                                      int index, Bytecodes::Code bc,
                                      instanceKlassHandle& accessor) {
   ResourceMark rm;
-  assert(bc != Bytecodes::_invokedynamic, "invokedynamic not yet supported");
   return get_method_by_index_impl(cpool, index, bc, accessor);
 }
 

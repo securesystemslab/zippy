@@ -68,7 +68,8 @@ public class InliningPhase extends Phase implements InliningCallback {
     private static final DebugMetric metricInliningStoppedByMaxDesiredSize = Debug.metric("InliningStoppedByMaxDesiredSize");
     private static final DebugMetric metricInliningRuns = Debug.metric("Runs");
 
-    public InliningPhase(MetaAccessProvider runtime, Map<Invoke, Double> hints, Replacements replacements, Assumptions assumptions, GraphCache cache, PhasePlan plan, OptimisticOptimizations optimisticOpts) {
+    public InliningPhase(MetaAccessProvider runtime, Map<Invoke, Double> hints, Replacements replacements, Assumptions assumptions, GraphCache cache, PhasePlan plan,
+                    OptimisticOptimizations optimisticOpts) {
         this(runtime, replacements, assumptions, cache, plan, createInliningPolicy(runtime, replacements, assumptions, optimisticOpts, hints), optimisticOpts);
     }
 
@@ -110,13 +111,13 @@ public class InliningPhase extends Phase implements InliningCallback {
                 if (isWorthInlining) {
                     int mark = graph.getMark();
                     try {
-                        List<Node> invokeUsages = candidate.invoke().node().usages().snapshot();
+                        List<Node> invokeUsages = candidate.invoke().asNode().usages().snapshot();
                         candidate.inline(graph, runtime, replacements, this, assumptions);
                         Debug.dump(graph, "after %s", candidate);
                         Iterable<Node> newNodes = graph.getNewNodes(mark);
                         inliningPolicy.scanInvokes(newNodes);
                         if (GraalOptions.OptCanonicalizer) {
-                            new CanonicalizerPhase(runtime, assumptions, invokeUsages, mark, customCanonicalizer).apply(graph);
+                            new CanonicalizerPhase.Instance(runtime, assumptions, invokeUsages, mark, customCanonicalizer).apply(graph);
                         }
                         inliningCount++;
                         metricInliningPerformed.increment();
@@ -160,7 +161,7 @@ public class InliningPhase extends Phase implements InliningCallback {
                     new ComputeProbabilityPhase().apply(newGraph);
                 }
                 if (GraalOptions.OptCanonicalizer) {
-                    new CanonicalizerPhase(runtime, assumptions).apply(newGraph);
+                    new CanonicalizerPhase.Instance(runtime, assumptions).apply(newGraph);
                 }
                 if (GraalOptions.CullFrameStates) {
                     new CullFrameStatesPhase().apply(newGraph);
@@ -200,8 +201,14 @@ public class InliningPhase extends Phase implements InliningCallback {
              * also getting queued in the compilation queue concurrently)
              */
 
-            if (GraalOptions.AlwaysInlineIntrinsics && onlyIntrinsics(replacements, info)) {
-                return InliningUtil.logInlinedMethod(info, "intrinsic");
+            if (GraalOptions.AlwaysInlineIntrinsics) {
+                if (onlyIntrinsics(replacements, info)) {
+                    return InliningUtil.logInlinedMethod(info, "intrinsic");
+                }
+            } else {
+                if (onlyForcedIntrinsics(replacements, info)) {
+                    return InliningUtil.logInlinedMethod(info, "intrinsic");
+                }
             }
 
             double bonus = 1;
@@ -271,7 +278,7 @@ public class InliningPhase extends Phase implements InliningCallback {
         private static int countInvokeUsages(InlineInfo info) {
             // inlining calls with lots of usages simplifies the caller
             int usages = 0;
-            for (Node n : info.invoke().node().usages()) {
+            for (Node n : info.invoke().asNode().usages()) {
                 if (!(n instanceof FrameState)) {
                     usages++;
                 }
@@ -342,6 +349,18 @@ public class InliningPhase extends Phase implements InliningCallback {
         private static boolean onlyIntrinsics(Replacements replacements, InlineInfo info) {
             for (int i = 0; i < info.numberOfMethods(); i++) {
                 if (!InliningUtil.canIntrinsify(replacements, info.methodAt(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static boolean onlyForcedIntrinsics(Replacements replacements, InlineInfo info) {
+            for (int i = 0; i < info.numberOfMethods(); i++) {
+                if (!InliningUtil.canIntrinsify(replacements, info.methodAt(i))) {
+                    return false;
+                }
+                if (!replacements.isForcedSubstitution(info.methodAt(i))) {
                     return false;
                 }
             }

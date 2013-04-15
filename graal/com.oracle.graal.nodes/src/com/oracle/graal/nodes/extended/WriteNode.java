@@ -25,14 +25,34 @@ package com.oracle.graal.nodes.extended;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.graph.*;
 
 /**
  * Writes a given {@linkplain #value() value} a {@linkplain AccessNode memory location}.
  */
-public final class WriteNode extends AccessNode implements StateSplit, LIRLowerable, MemoryCheckpoint {
+public final class WriteNode extends AccessNode implements StateSplit, LIRLowerable, MemoryCheckpoint, Node.IterableNodeType {
 
     @Input private ValueNode value;
     @Input(notDataflow = true) private FrameState stateAfter;
+    private final WriteBarrierType barrierType;
+
+    /*
+     * The types of write barriers attached to stores.
+     */
+    public enum WriteBarrierType {
+        /*
+         * Primitive stores which do not necessitate write barriers.
+         */
+        NONE,
+        /*
+         * Array object stores which necessitate precise write barriers.
+         */
+        PRECISE,
+        /*
+         * Field object stores which necessitate imprecise write barriers.
+         */
+        IMPRECISE
+    }
 
     public FrameState stateAfter() {
         return stateAfter;
@@ -52,9 +72,14 @@ public final class WriteNode extends AccessNode implements StateSplit, LIRLowera
         return value;
     }
 
-    public WriteNode(ValueNode object, ValueNode value, ValueNode location) {
+    public WriteBarrierType getWriteBarrierType() {
+        return barrierType;
+    }
+
+    public WriteNode(ValueNode object, ValueNode value, ValueNode location, WriteBarrierType barrierType) {
         super(object, location, StampFactory.forVoid());
         this.value = value;
+        this.barrierType = barrierType;
     }
 
     @Override
@@ -63,7 +88,7 @@ public final class WriteNode extends AccessNode implements StateSplit, LIRLowera
     }
 
     @NodeIntrinsic
-    public static native void writeMemory(Object object, Object value, Object location);
+    public static native void writeMemory(Object object, Object value, Object location, @ConstantNodeParameter boolean usePreciseWriteBarriers);
 
     @Override
     public Object[] getLocationIdentities() {

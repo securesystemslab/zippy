@@ -360,9 +360,11 @@ class Dependencies: public ResourceObj {
 
  public:
   void assert_evol_method(Method* m);
+  void assert_has_no_finalizable_subclasses(Klass* ctxk);
   void assert_leaf_type(Klass* ctxk);
   void assert_unique_concrete_method(Klass* ctxk, Method* uniqm);
   void assert_abstract_with_unique_concrete_subtype(Klass* ctxk, Klass* conck);
+  void assert_call_site_target_value(oop callSite, oop methodHandle);
 #endif // GRAAL
 
   // Define whether a given method or type is concrete.

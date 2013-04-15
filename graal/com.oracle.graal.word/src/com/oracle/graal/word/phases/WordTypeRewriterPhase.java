@@ -29,6 +29,7 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.extended.WriteNode.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
@@ -183,7 +184,7 @@ public class WordTypeRewriterPhase extends Phase {
 
                     case TO_OBJECT:
                         assert arguments.size() == 1;
-                        replace(invoke, graph.unique(new UnsafeCastNode(arguments.get(0), invoke.node().stamp())));
+                        replace(invoke, graph.unique(new UnsafeCastNode(arguments.get(0), invoke.asNode().stamp())));
                         break;
 
                     default:
@@ -227,7 +228,7 @@ public class WordTypeRewriterPhase extends Phase {
             Constructor<? extends ValueNode> constructor = nodeClass.getConstructor(Kind.class, ValueNode.class, ValueNode.class);
             ValueNode result = graph.add(constructor.newInstance(wordKind, left, right));
             if (result instanceof FixedWithNextNode) {
-                graph.addBeforeFixed(invoke.node(), (FixedWithNextNode) result);
+                graph.addBeforeFixed(invoke.asNode(), (FixedWithNextNode) result);
             }
             return result;
         } catch (Throwable ex) {
@@ -267,28 +268,28 @@ public class WordTypeRewriterPhase extends Phase {
 
     private static ValueNode readOp(StructuredGraph graph, ValueNode base, ValueNode offset, Invoke invoke, Kind readKind, Object locationIdentity) {
         IndexedLocationNode location = IndexedLocationNode.create(locationIdentity, readKind, 0, offset, graph, 1);
-        ReadNode read = graph.add(new ReadNode(base, location, invoke.node().stamp()));
-        graph.addBeforeFixed(invoke.node(), read);
+        ReadNode read = graph.add(new ReadNode(base, location, invoke.asNode().stamp()));
+        graph.addBeforeFixed(invoke.asNode(), read);
         // The read must not float outside its block otherwise it may float above an explicit zero
         // check on its base address
-        read.dependencies().add(BeginNode.prevBegin(invoke.node()));
+        read.dependencies().add(BeginNode.prevBegin(invoke.asNode()));
         return read;
     }
 
     private static ValueNode writeOp(StructuredGraph graph, ValueNode base, ValueNode offset, ValueNode value, Invoke invoke, Kind writeKind, Object locationIdentity) {
         IndexedLocationNode location = IndexedLocationNode.create(locationIdentity, writeKind, 0, offset, graph, 1);
-        WriteNode write = graph.add(new WriteNode(base, value, location));
+        WriteNode write = graph.add(new WriteNode(base, value, location, WriteBarrierType.NONE));
         write.setStateAfter(invoke.stateAfter());
-        graph.addBeforeFixed(invoke.node(), write);
+        graph.addBeforeFixed(invoke.asNode(), write);
         return write;
     }
 
     private static void replace(Invoke invoke, ValueNode value) {
         FixedNode next = invoke.next();
         invoke.setNext(null);
-        invoke.node().replaceAtPredecessor(next);
-        invoke.node().replaceAtUsages(value);
-        GraphUtil.killCFG(invoke.node());
+        invoke.asNode().replaceAtPredecessor(next);
+        invoke.asNode().replaceAtUsages(value);
+        GraphUtil.killCFG(invoke.asNode());
     }
 
     public boolean isWord(ValueNode node) {

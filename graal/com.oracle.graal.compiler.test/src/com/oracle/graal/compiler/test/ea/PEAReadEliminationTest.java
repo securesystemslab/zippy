@@ -34,6 +34,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.virtual.phases.ea.*;
 
 public class PEAReadEliminationTest extends GraalCompilerTest {
@@ -143,10 +144,11 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
     }
 
     @SuppressWarnings("all")
-    public static int testBadLoopSnippet(TestObject obj, int a, int b) {
+    public static int testBadLoopSnippet(TestObject obj, TestObject obj2, int a, int b) {
         obj.x = a;
         for (int i = 0; i < 10; i++) {
             staticField = obj;
+            obj2.x = 10;
             obj.x = 0;
         }
         return obj.x;
@@ -155,6 +157,24 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
     @Test
     public void testBadLoop() {
         ValueNode result = getReturn("testBadLoopSnippet").result();
+        assertEquals(0, graph.getNodes(LoadFieldNode.class).count());
+        assertTrue(result instanceof ProxyNode);
+        assertTrue(((ProxyNode) result).value() instanceof PhiNode);
+    }
+
+    @SuppressWarnings("all")
+    public static int testBadLoop2Snippet(TestObject obj, TestObject obj2, int a, int b) {
+        obj.x = a;
+        for (int i = 0; i < 10; i++) {
+            obj.x = 0;
+            obj2.x = 10;
+        }
+        return obj.x;
+    }
+
+    @Test
+    public void testBadLoop2() {
+        ValueNode result = getReturn("testBadLoop2Snippet").result();
         assertEquals(1, graph.getNodes(LoadFieldNode.class).count());
         assertTrue(result instanceof LoadFieldNode);
     }
@@ -203,7 +223,8 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
         graph = parse(snippet);
         new ComputeProbabilityPhase().apply(graph);
         Assumptions assumptions = new Assumptions(false);
+        HighTierContext context = new HighTierContext(runtime(), assumptions);
         new InliningPhase(runtime(), null, replacements, assumptions, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL).apply(graph);
-        new PartialEscapeAnalysisPhase(runtime(), assumptions, false, true).apply(graph);
+        new PartialEscapeAnalysisPhase(false, true).apply(graph, context);
     }
 }
