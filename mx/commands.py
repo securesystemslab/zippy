@@ -31,7 +31,7 @@ from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
-import json
+import json, textwrap
 
 _graal_home = dirname(dirname(__file__))
 
@@ -530,6 +530,24 @@ def initantbuild(args):
     
     mx.update_file(args.buildfile, out.xml(indent='  ', newl='\n'))
 
+def buildvars(args):
+    """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
+
+    buildVars = {
+        'ALT_BOOTDIR' : 'The location of the bootstrap JDK installation (default: ' + mx.java().jdk + ')',
+        'ALT_OUTPUTDIR' : 'Build directory',
+        'HOTSPOT_BUILD_JOBS' : 'Number of CPUs used by make (default: ' + str(multiprocessing.cpu_count()) + ')',
+        'INSTALL' : 'Install the built VM into the JDK? (default: y)',
+        'ZIP_DEBUGINFO_FILES' : 'Install zipped debug symbols file? (default: 0)',
+        'TEST_IN_BUILD' : 'Run the Queens test as part of build (default: false)'
+    }
+    
+    mx.log('HotSpot build variables that can be set by the -D option to "mx build":')
+    mx.log('')
+    for n in sorted(buildVars.iterkeys()):
+        mx.log(n)
+        mx.log(textwrap.fill(buildVars[n], initial_indent='    ', subsequent_indent='    ', width=200))
+    
 def build(args, vm=None):
     """build the VM binary
 
@@ -539,7 +557,9 @@ def build(args, vm=None):
     for the VM binary."""
 
     # Call mx.build to compile the Java sources
-    opts2 = mx.build(['--source', '1.7'] + args, parser=ArgumentParser(prog='mx build'))
+    parser=ArgumentParser(prog='mx build')
+    parser.add_argument('-D', action='append', help='set a HotSpot build variable (run \'mx buildvars\' to list variables)', metavar='name=value')
+    opts2 = mx.build(['--source', '1.7'] + args, parser=parser)
 
     if not _vmSourcesAvailable or not opts2.native:
         return
@@ -633,10 +653,16 @@ def build(args, vm=None):
                 build = 'jvmg'
             runCmd.append(build + buildSuffix) 
             env = os.environ.copy()
+            
+            if opts2.D:
+                for nv in opts2.D:
+                    name, value = nv.split('=', 1)
+                    env[name.strip()] = value
+            
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
-            env['ALT_BOOTDIR'] = mx.java().jdk
+            env.setdefault('ALT_BOOTDIR', mx.java().jdk)
             env['JAVA_HOME'] = jdk
             if vm.endswith('nograal'):
                 env['OMIT_GRAAL'] = 'true'
@@ -1292,6 +1318,7 @@ def mx_init():
     _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
+        'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
         'hsdis': [hsdis, '[att]'],
