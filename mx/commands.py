@@ -80,7 +80,7 @@ def clean(args):
                 
         rmIfExists(join(_graal_home, 'build'))
         rmIfExists(join(_graal_home, 'build-nograal'))
-        rmIfExists(join(_graal_home, 'jdk' + str(mx.java().version)))
+        rmIfExists(_jdksDir())
         rmIfExists(mx.distribution('GRAAL').path)
 
 def export(args):
@@ -302,11 +302,14 @@ def _vmCfgInJdk(jdk):
         return join(jdk, 'jre', 'lib', _arch(), 'jvm.cfg')
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
+def _jdksDir():
+    return join(_graal_home, 'jdk' + str(mx.java().version))
+
 def _jdk(build='product', vmToCheck=None, create=False):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
-    jdk = join(_graal_home, 'jdk' + str(mx.java().version), build)
+    jdk = join(_jdksDir(), build)
     srcJdk = mx.java().jdk
     jdkContents = ['bin', 'include', 'jre', 'lib']
     if exists(join(srcJdk, 'db')):
