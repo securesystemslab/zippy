@@ -550,6 +550,9 @@ def buildvars(args):
     for n in sorted(buildVars.iterkeys()):
         mx.log(n)
         mx.log(textwrap.fill(buildVars[n], initial_indent='    ', subsequent_indent='    ', width=200))
+        
+    mx.log('')
+    mx.log('Note that these variables can be given persistent values in the file ' + join(_graal_home, 'mx', 'env') + ' (see \'mx about\').')
     
 def build(args, vm=None):
     """build the VM binary
