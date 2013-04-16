@@ -364,7 +364,8 @@ def _jdk(build='product', vmToCheck=None, create=False):
                 pass
     else:
         if not exists(jdk):
-            mx.abort('The ' + build + ' VM has not been created - run "mx build ' + build + '"')
+            vmOption = ' --vm ' + vmToCheck if vmToCheck else ''
+            mx.abort('The ' + build + ' VM has not been created - run "mx' + vmOption + ' build ' + build + '"')
             
     _installGraalJarInJdks(mx.distribution('GRAAL'))
     
@@ -502,7 +503,7 @@ def initantbuild(args):
 
     out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
     out.element('mkdir', {'dir' : '${classes.dir}'})
-    out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', })
+    out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', 'encoding' : 'UTF-8'})
     for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
         out.element('src', {'path' : '${src.dir}/' + p.name})
     out.element('compilerarg', {'value' : '-XDignore.symbol.file'})
