@@ -31,7 +31,7 @@
   <target depends="jar" name="main"/>
   <target depends="cleanclasses" name="compile">
     <mkdir dir="${classes.dir}"/>
-    <javac debug="on" destdir="${classes.dir}" includeantruntime="false">
+    <javac debug="on" destdir="${classes.dir}" encoding="UTF-8" includeantruntime="false">
       <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.api.meta"/>
       <src path="${src.dir}/com.oracle.graal.api.code"/>

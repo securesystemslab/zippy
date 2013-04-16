@@ -208,7 +208,7 @@ oop VMToCompiler::createUnresolvedJavaType(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jboolean hasFinalizableSubclass, jint sizeOrSpecies, TRAPS) {
+oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jint sizeOrSpecies, TRAPS) {
   assert(!name.is_null(), "just checking");
   assert(!simpleName.is_null(), "just checking");
   JavaValue result(T_OBJECT);
@@ -218,7 +218,6 @@ oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpl
   args.push_oop(name);
   args.push_oop(simpleName);
   args.push_oop(java_mirror);
-  args.push_int(hasFinalizableSubclass);
   args.push_int(sizeOrSpecies);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createResolvedJavaType_name(), vmSymbols::createResolvedJavaType_signature(), &args, THREAD);
   check_pending_exception("Error while calling createResolvedJavaType");
