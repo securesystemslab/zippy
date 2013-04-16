@@ -127,47 +127,6 @@ def export(args):
 
     mx.log('Created distribution in ' + zfName)
 
-def example(args):
-    """run some or all Graal examples"""
-    examples = {
-        'safeadd': ['com.oracle.graal.examples.safeadd', 'com.oracle.graal.examples.safeadd.Main'],
-        'vectorlib': ['com.oracle.graal.examples.vectorlib', 'com.oracle.graal.examples.vectorlib.Main'],
-    }
-
-    def run_example(verbose, project, mainClass):
-        cp = mx.classpath(project)
-        sharedArgs = ['-Xcomp', '-XX:CompileOnly=Main', mainClass]
-
-        res = []
-        mx.log("=== Server VM ===")
-        printArg = '-XX:+PrintCompilation' if verbose else '-XX:-PrintCompilation'
-        res.append(vm(['-cp', cp, printArg] + sharedArgs, vm='server'))
-        mx.log("=== Graal VM ===")
-        printArg = '-G:+PrintCompilation' if verbose else '-G:-PrintCompilation'
-        res.append(vm(['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
-        mx.log("=== Graal VM with extensions ===")
-        res.append(vm(['-cp', cp, printArg, '-G:+Extend', '-G:-Inline'] + sharedArgs))
-
-        if len([x for x in res if x != 0]) != 0:
-            return 1
-        return 0
-
-    verbose = False
-    if '-v' in args:
-        verbose = True
-        args = [a for a in args if a != '-v']
-
-    if len(args) == 0:
-        args = examples.keys()
-    for a in args:
-        config = examples.get(a)
-        if config is None:
-            mx.log('unknown example: ' + a + '  {available examples = ' + str(examples.keys()) + '}')
-        else:
-            mx.log('--------- ' + a + ' ------------')
-            project, mainClass = config
-            run_example(verbose, project, mainClass)
-
 def dacapo(args):
     """run one or all DaCapo benchmarks
 
@@ -1377,7 +1336,6 @@ def mx_init():
         'specjvm2008': [specjvm2008, '[VM options|specjvm2008 options (-v, -ikv, -ict, -wt, -it)]'],
         'specjbb2013': [specjbb2013, '[VM options]'],
         'specjbb2005': [specjbb2005, '[VM options]'],
-        #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
