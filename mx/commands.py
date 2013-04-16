@@ -702,9 +702,10 @@ def build(args, vm=None):
                 runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
             if vm.endswith('nograal'):
-                env['OMIT_GRAAL'] = 'true'
+                env['INCLUDE_GRAAL'] = 'false'
                 env.setdefault('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()))
             else:
+                env['INCLUDE_GRAAL'] = 'true'
                 env['GRAAL'] = join(_graal_home, 'graal') # needed for TEST_IN_BUILD
             env.setdefault('INSTALL', 'y')
             if mx.get_os() == 'solaris' :

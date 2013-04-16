@@ -30,7 +30,7 @@ VM_SUBDIR = client
 
 CFLAGS += -DCOMPILER1
 
-ifndef OMIT_GRAAL
+ifeq ($(INCLUDE_GRAAL), true)
   CFLAGS += -DGRAAL
 else
   VM_SUBDIR = client-nograal
