@@ -86,6 +86,7 @@ endif
 
 # Directory for shared code (e.g. graal.jar)
 SHARED_DIR=$(OUTPUTDIR)/shared
+BUILD_GRAAL_JAR ?= true
 
 # Typical C1/C2 targets made available with this Makefile
 C1_VM_TARGETS=product1 fastdebug1 optimized1 debug1
@@ -267,9 +268,12 @@ generic_buildgraal: buildshared
 		$(MAKE) -f $(ABS_OS_MAKEFILE) \
 			$(MAKE_ARGS) $(VM_TARGET) 
 
+
 # Builds code that can be shared among different build flavors
 buildshared:
+ifeq ($(BUILD_GRAAL_JAR),true)
 	$(REMOTE) $(ANT) -f $(GAMMADIR)/make/build-graal.xml -Dgamma.dir=$(GAMMADIR) -Dshared.dir=$(SHARED_DIR)
+endif
 
 # Export file rule
 generic_export: $(EXPORT_LIST)
