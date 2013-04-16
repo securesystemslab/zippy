@@ -1684,6 +1684,12 @@ def archive(args):
                                     with open(join(root, f), 'r') as infile:
                                         for line in infile:
                                             outfile.write(line)
+                        elif relpath == join('META-INF', 'providers'):
+                            for f in files:
+                                with open(join(root, f), 'r') as infile:
+                                    for line in infile:
+                                        with open(join(services, line.strip()), 'a') as outfile:
+                                            outfile.write(f + '\n')
                         else:
                             for f in files:
                                 arcname = join(relpath, f).replace(os.sep, '/')
