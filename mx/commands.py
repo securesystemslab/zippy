@@ -501,11 +501,31 @@ def initantbuild(args):
     
     out.element('target', {'name' : 'main', 'depends' : 'jar'})
 
+    serviceMap = {};
+    def addService(service, provider):
+        if service not in serviceMap:
+            serviceMap[service] = set();
+        serviceMap[service].add(provider)
+
     out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
     out.element('mkdir', {'dir' : '${classes.dir}'})
     out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', 'encoding' : 'UTF-8'})
+
     for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
         out.element('src', {'path' : '${src.dir}/' + p.name})
+        servicesDir = join(p.output_dir(), 'META-INF', 'services')
+        if exists(servicesDir):
+            for service in os.listdir(servicesDir):
+                with open(join(servicesDir, service), 'r') as serviceFile:
+                    for line in serviceFile:
+                        addService(service, line.strip())
+        providersDir = join(p.output_dir(), 'META-INF', 'providers')
+        if exists(providersDir):
+            for provider in os.listdir(providersDir):
+                with open(join(providersDir, provider), 'r') as providerFile:
+                    for line in providerFile:
+                        addService(line.strip(), provider)
+
     out.element('compilerarg', {'value' : '-XDignore.symbol.file'})
     
     out.open('classpath')
@@ -519,7 +539,15 @@ def initantbuild(args):
 
     out.open('target', {'name' : 'jar', 'depends' : 'compile'})
     out.element('mkdir', {'dir' : '${jar.dir}'})
-    out.element('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
+    out.open('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
+
+    for service, providers in serviceMap.iteritems():
+        out.open('service', {'type' : service})
+        for provider in providers:
+            out.element('provider', {'classname' : provider})
+        out.close('service')
+
+    out.close('jar');
     out.close('target')
     
     out.open('target', {'name' : 'cleanclasses'})
