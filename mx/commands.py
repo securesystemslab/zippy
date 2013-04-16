@@ -502,7 +502,7 @@ def initantbuild(args):
 
     out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
     out.element('mkdir', {'dir' : '${classes.dir}'})
-    out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', })
+    out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', 'encoding' : 'UTF-8'})
     for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
         out.element('src', {'path' : '${src.dir}/' + p.name})
     out.element('compilerarg', {'value' : '-XDignore.symbol.file'})
