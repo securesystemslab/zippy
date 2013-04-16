@@ -364,7 +364,8 @@ def _jdk(build='product', vmToCheck=None, create=False):
                 pass
     else:
         if not exists(jdk):
-            mx.abort('The ' + build + ' VM has not been created - run "mx build ' + build + '"')
+            vmOption = ' --vm ' + vmToCheck if vmToCheck else ''
+            mx.abort('The ' + build + ' VM has not been created - run "mx' + vmOption + ' build ' + build + '"')
             
     _installGraalJarInJdks(mx.distribution('GRAAL'))
     
