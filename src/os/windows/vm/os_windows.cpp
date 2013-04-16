@@ -4254,9 +4254,6 @@ char * os::native_path(char *path) {
           path[3] = '\0';
   }
 
-  #ifdef DEBUG
-    jio_fprintf(stderr, "sysNativePath: %s\n", path);
-  #endif DEBUG
   return path;
 }
 

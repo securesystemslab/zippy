@@ -658,8 +658,6 @@ def build(args, vm=None):
         else:
             cpus = multiprocessing.cpu_count()
             runCmd = [mx.gmake_cmd()]
-            if build == 'debug':
-                build = 'jvmg'
             runCmd.append(build + buildSuffix) 
             env = os.environ.copy()
             
