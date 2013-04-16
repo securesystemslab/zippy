@@ -75,13 +75,13 @@
   <target depends="compile" name="jar">
     <mkdir dir="${jar.dir}"/>
     <jar basedir="${classes.dir}" destfile="${jar.file}">
+      <service type="com.oracle.graal.nodes.spi.ReplacementsProvider">
+        <provider classname="com.oracle.graal.hotspot.replacements.CallSiteSubstitutions"/>
+        <provider classname="com.oracle.graal.hotspot.replacements.HotSpotInstalledCodeIntrinsics"/>
+        <provider classname="com.oracle.graal.replacements.GraalMethodSubstitutions"/>
+      </service>
       <service type="com.oracle.graal.phases.tiers.CompilerConfiguration">
         <provider classname="com.oracle.graal.compiler.phases.BasicConfiguration"/>
-      </service>
-      <service type="com.oracle.graal.nodes.spi.ReplacementsProvider">
-        <provider classname="com.oracle.graal.hotspot.replacements.HotSpotInstalledCodeIntrinsics"/>
-        <provider classname="com.oracle.graal.hotspot.replacements.CallSiteSubstitutions"/>
-        <provider classname="com.oracle.graal.replacements.GraalMethodSubstitutions"/>
       </service>
     </jar>
   </target>

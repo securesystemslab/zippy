@@ -500,9 +500,9 @@ def initantbuild(args):
     out.element('mkdir', {'dir' : '${jar.dir}'})
     out.open('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
 
-    for service, providers in serviceMap.iteritems():
+    for service in sorted(serviceMap.iterkeys()):
         out.open('service', {'type' : service})
-        for provider in providers:
+        for provider in sorted(serviceMap[service]):
             out.element('provider', {'classname' : provider})
         out.close('service')
 
