@@ -224,8 +224,19 @@ class CTWMode:
     Full, NoInline, NoComplex = range(3)
 
 def getCTW(vm,mode):
+    
+    modeString = ''
+    if mode == CTWMode.Full:
+        modeString = 'Full'
+    elif mode == CTWMode.NoInline:
+        modeString = 'NoInline'
+    elif mode == CTWMode.NoComplex:
+        modeString = 'NoComplex'
+    else:
+        mx.abort("Unknown CTW mode")
+    
     time = re.compile(r"CompileTheWorld : Done \([0-9]+ classes, [0-9]+ methods, (?P<time>[0-9]+) ms\)")
-    scoreMatcher = ValuesMatcher(time, {'group' : 'CompileTheWorld', 'name' : 'CompileTime', 'score' : '<time>'})
+    scoreMatcher = ValuesMatcher(time, {'group' : 'CompileTheWorld', 'name' : modeString + '-CompileTime', 'score' : '<time>'})
     
     jre = os.environ.get('JAVA_HOME')
     if exists(join(jre, 'jre')):
@@ -245,7 +256,7 @@ def getCTW(vm,mode):
         if not vm.endswith('-nograal'):
             args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling']
         
-    return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
+    return Test("CompileTheWorld-" + mode, args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
     
 
 class Tee:
