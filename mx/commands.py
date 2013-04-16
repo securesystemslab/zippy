@@ -670,6 +670,8 @@ def build(args, vm=None):
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
+            if not mx._opts.verbose:
+                runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
             if vm.endswith('nograal'):
                 env['OMIT_GRAAL'] = 'true'
