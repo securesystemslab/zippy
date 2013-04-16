@@ -530,7 +530,6 @@ def buildvars(args):
         'HOTSPOT_BUILD_JOBS' : 'Number of CPUs used by make (default: ' + str(multiprocessing.cpu_count()) + ')',
         'INSTALL' : 'Install the built VM into the JDK? (default: y)',
         'ZIP_DEBUGINFO_FILES' : 'Install zipped debug symbols file? (default: 0)',
-        'TEST_IN_BUILD' : 'Run the Queens test as part of build (default: false)'
     }
     
     mx.log('HotSpot build variables that can be set by the -D option to "mx build":')
@@ -665,7 +664,6 @@ def build(args, vm=None):
                 env.setdefault('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()))
             else:
                 env['INCLUDE_GRAAL'] = 'true'
-                env['GRAAL'] = join(_graal_home, 'graal') # needed for TEST_IN_BUILD
             env.setdefault('INSTALL', 'y')
             if mx.get_os() == 'solaris' :
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
@@ -681,9 +679,6 @@ def build(args, vm=None):
                         runCmd.append('STRIP_POLICY=no_strip')
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
-
-            # We don't need to run the Queens test (i.e. test_gamma)
-            env.setdefault('TEST_IN_BUILD', 'false')
 
             # Clear these 2 variables as having them set can cause very confusing build problems
             env.pop('LD_LIBRARY_PATH', None)
