@@ -519,7 +519,7 @@ def initantbuild(args):
 
     out.close('project')
     
-    mx.update_file(args.buildfile, out.xml(indent='  ', newl='\n'))
+    return mx.update_file(args.buildfile, out.xml(indent='  ', newl='\n'))
 
 def buildvars(args):
     """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
@@ -962,6 +962,12 @@ def gate(args):
         
         t = Task('BuildJava')
         build(['--no-native', '--jdt-warning-as-error'])
+        tasks.append(t.stop())
+
+        t = Task('Check build-graal.xml')
+        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring make/build-graal.xml file is up to date...'))
+        if initantbuild([]):
+            t.abort('Rerun "mx build" and check-in the modified make/build-graal.xml file.')
         tasks.append(t.stop())
         
         t = Task('Checkstyle')
