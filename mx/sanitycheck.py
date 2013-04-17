@@ -246,7 +246,7 @@ def getCTW(vm,mode):
     
     args = ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
     if not vm.endswith('-nograal'):
-        args.append('-G:-Debug')
+        args += ['-XX:+BootstrapGraal', '-G:-Debug']
     if mode >= CTWMode.NoInline:
         if vm.endswith('-nograal'):
             args.append('-XX:-Inline')
