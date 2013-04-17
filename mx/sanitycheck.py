@@ -256,7 +256,7 @@ def getCTW(vm,mode):
         if not vm.endswith('-nograal'):
             args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling']
         
-    return Test("CompileTheWorld-" + mode, args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
+    return Test("CompileTheWorld-" + modeString, args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
     
 
 class Tee:
