@@ -81,7 +81,7 @@
         <provider classname="com.oracle.graal.replacements.GraalMethodSubstitutions"/>
       </service>
       <service type="com.oracle.graal.phases.tiers.CompilerConfiguration">
-        <provider classname="com.oracle.graal.compiler.phases.BasicConfiguration"/>
+        <provider classname="com.oracle.graal.compiler.phases.BasicCompilerConfiguration"/>
       </service>
     </jar>
   </target>
