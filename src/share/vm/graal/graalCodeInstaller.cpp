@@ -351,25 +351,6 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
     GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
 }
 
-// constructor used to create a stub
-CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id) {
-  No_Safepoint_Verifier no_safepoint;
-
-  _oop_recorder = new OopRecorder(&_arena);
-  initialize_fields(target_method(), NULL);
-  assert(_name != NULL, "installMethod needs NON-NULL name");
-
-  // (very) conservative estimate: each site needs a relocation
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  initialize_buffer(buffer);
-
-  const char* cname = java_lang_String::as_utf8_string(_name);
-  blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
-  IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
-  id = (jlong)blob->code_begin();
-}
-
 void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
   _comp_result = HotSpotCompilationResult::comp(comp_result);
   if (!method.is_null()) {
