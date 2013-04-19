@@ -348,7 +348,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
+    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
 }
 
 // constructor used to create a stub
