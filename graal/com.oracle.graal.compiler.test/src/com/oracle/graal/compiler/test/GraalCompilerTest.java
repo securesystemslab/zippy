@@ -40,11 +40,13 @@ import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
 import com.oracle.graal.phases.schedule.*;
 import com.oracle.graal.printer.*;
 import com.oracle.graal.test.*;
+import com.oracle.graal.hotspot.phases.WriteBarrierAdditionPhase;
 
 /**
  * Base class for Graal compiler unit tests.
@@ -83,11 +85,15 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected void assertEquals(StructuredGraph expected, StructuredGraph graph) {
-        String expectedString = getCanonicalGraphString(expected);
-        String actualString = getCanonicalGraphString(graph);
+        assertEquals(expected, graph, false);
+    }
+
+    protected void assertEquals(StructuredGraph expected, StructuredGraph graph, boolean excludeVirtual) {
+        String expectedString = getCanonicalGraphString(expected, excludeVirtual);
+        String actualString = getCanonicalGraphString(graph, excludeVirtual);
         String mismatchString = "mismatch in graphs:\n========= expected =========\n" + expectedString + "\n\n========= actual =========\n" + actualString;
 
-        if (expected.getNodeCount() != graph.getNodeCount()) {
+        if (!excludeVirtual && expected.getNodeCount() != graph.getNodeCount()) {
             Debug.dump(expected, "Node count not matching - expected");
             Debug.dump(graph, "Node count not matching - actual");
             Assert.fail("Graphs do not have the same number of nodes: " + expected.getNodeCount() + " vs. " + graph.getNodeCount() + "\n" + mismatchString);
@@ -100,7 +106,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected void assertConstantReturn(StructuredGraph graph, int value) {
-        String graphString = getCanonicalGraphString(graph);
+        String graphString = getCanonicalGraphString(graph, false);
         Assert.assertEquals("unexpected number of ReturnNodes: " + graphString, graph.getNodes(ReturnNode.class).count(), 1);
         ValueNode result = graph.getNodes(ReturnNode.class).first().result();
         Assert.assertTrue("unexpected ReturnNode result node: " + graphString, result.isConstant());
@@ -108,7 +114,7 @@ public abstract class GraalCompilerTest extends GraalTest {
         Assert.assertEquals("unexpected ReturnNode result: " + graphString, result.asConstant().asInt(), value);
     }
 
-    protected static String getCanonicalGraphString(StructuredGraph graph) {
+    protected static String getCanonicalGraphString(StructuredGraph graph, boolean excludeVirtual) {
         SchedulePhase schedule = new SchedulePhase();
         schedule.apply(graph);
 
@@ -127,15 +133,17 @@ public abstract class GraalCompilerTest extends GraalTest {
             }
             result.append("\n");
             for (Node node : schedule.getBlockToNodesMap().get(block)) {
-                int id;
-                if (canonicalId.get(node) != null) {
-                    id = canonicalId.get(node);
-                } else {
-                    id = nextId++;
-                    canonicalId.set(node, id);
+                if (!excludeVirtual || !(node instanceof VirtualObjectNode || node instanceof ProxyNode)) {
+                    int id;
+                    if (canonicalId.get(node) != null) {
+                        id = canonicalId.get(node);
+                    } else {
+                        id = nextId++;
+                        canonicalId.set(node, id);
+                    }
+                    String name = node instanceof ConstantNode ? node.toString(Verbosity.Name) : node.getClass().getSimpleName();
+                    result.append("  " + id + "|" + name + (excludeVirtual ? "\n" : "    (" + node.usages().count() + ")\n"));
                 }
-                String name = node instanceof ConstantNode ? node.toString(Verbosity.Name) : node.getClass().getSimpleName();
-                result.append("  " + id + "|" + name + "    (" + node.usages().count() + ")\n");
             }
         }
         return result.toString();
@@ -397,14 +405,17 @@ public abstract class GraalCompilerTest extends GraalTest {
                 }
                 long start = System.currentTimeMillis();
                 PhasePlan phasePlan = new PhasePlan();
+                StructuredGraph graphCopy = graph.copy();
                 GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
                 phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
+                phasePlan.addPhase(PhasePosition.LOW_LEVEL, new WriteBarrierAdditionPhase());
                 editPhasePlan(method, graph, phasePlan);
-                CompilationResult compResult = GraalCompiler.compileMethod(runtime(), replacements, backend, runtime().getTarget(), method, graph, null, phasePlan, OptimisticOptimizations.ALL, new SpeculationLog());
+                CompilationResult compResult = GraalCompiler.compileMethod(runtime(), replacements, backend, runtime().getTarget(), method, graph, null, phasePlan, OptimisticOptimizations.ALL,
+                                new SpeculationLog());
                 if (printCompilation) {
                     TTY.println(String.format("@%-6d Graal %-70s %-45s %-50s | %4dms %5dB", id, "", "", "", System.currentTimeMillis() - start, compResult.getTargetCodeSize()));
                 }
-                return addMethod(method, compResult);
+                return addMethod(method, compResult, graphCopy);
             }
         });
 
@@ -414,12 +425,12 @@ public abstract class GraalCompilerTest extends GraalTest {
         return installedCode;
     }
 
-    protected InstalledCode addMethod(final ResolvedJavaMethod method, final CompilationResult compResult) {
+    protected InstalledCode addMethod(final ResolvedJavaMethod method, final CompilationResult compResult, final StructuredGraph graph) {
         return Debug.scope("CodeInstall", new Object[]{runtime, method}, new Callable<InstalledCode>() {
 
             @Override
             public InstalledCode call() throws Exception {
-                InstalledCode installedCode = runtime.addMethod(method, compResult);
+                InstalledCode installedCode = runtime.addMethod(method, compResult, graph);
                 if (Debug.isDumpEnabled()) {
                     Debug.dump(new Object[]{compResult, installedCode}, "After code installation");
                 }
@@ -442,25 +453,41 @@ public abstract class GraalCompilerTest extends GraalTest {
      * Parses a Java method to produce a graph.
      */
     protected StructuredGraph parse(Method m) {
-        ResolvedJavaMethod javaMethod = runtime.lookupJavaMethod(m);
-        StructuredGraph graph = new StructuredGraph(javaMethod);
-        new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getEagerDefault(), OptimisticOptimizations.ALL).apply(graph);
-        return graph;
+        return parse0(m, GraphBuilderConfiguration.getEagerDefault());
     }
 
     /**
      * Parses a Java method to produce a graph.
      */
     protected StructuredGraph parseProfiled(Method m) {
+        return parse0(m, GraphBuilderConfiguration.getDefault());
+    }
+
+    /**
+     * Parses a Java method in debug mode to produce a graph with extra infopoints.
+     */
+    protected StructuredGraph parseDebug(Method m) {
+        GraphBuilderConfiguration gbConf = GraphBuilderConfiguration.getEagerDefault();
+        gbConf.setEagerInfopointMode(true);
+        return parse0(m, gbConf);
+    }
+
+    private StructuredGraph parse0(Method m, GraphBuilderConfiguration conf) {
         ResolvedJavaMethod javaMethod = runtime.lookupJavaMethod(m);
         StructuredGraph graph = new StructuredGraph(javaMethod);
-        new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL).apply(graph);
+        new GraphBuilderPhase(runtime, conf, OptimisticOptimizations.ALL).apply(graph);
         return graph;
     }
 
     protected PhasePlan getDefaultPhasePlan() {
+        return getDefaultPhasePlan(false);
+    }
+
+    protected PhasePlan getDefaultPhasePlan(boolean eagerInfopointMode) {
         PhasePlan plan = new PhasePlan();
-        plan.addPhase(PhasePosition.AFTER_PARSING, new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getEagerDefault(), OptimisticOptimizations.ALL));
+        GraphBuilderConfiguration gbConf = GraphBuilderConfiguration.getEagerDefault();
+        gbConf.setEagerInfopointMode(eagerInfopointMode);
+        plan.addPhase(PhasePosition.AFTER_PARSING, new GraphBuilderPhase(runtime, gbConf, OptimisticOptimizations.ALL));
         return plan;
     }
 }

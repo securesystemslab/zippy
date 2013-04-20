@@ -75,11 +75,20 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
                 // checkcast.
                 return object();
             }
+
+            // remove checkcast if the only usage is a more specific checkcast
+            if (usages().count() == 1) {
+                CheckCastNode ccn = usages().filter(CheckCastNode.class).first();
+                if (ccn != null && ccn.type() != null && type.isAssignableFrom(ccn.type())) {
+                    return object();
+                }
+            }
         }
 
         if (object().objectStamp().alwaysNull()) {
             return object();
         }
+
         return this;
     }
 
@@ -102,7 +111,9 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
     public void virtualize(VirtualizerTool tool) {
         State state = tool.getObjectState(object);
         if (state != null && state.getState() == EscapeState.Virtual) {
-            tool.replaceWithVirtual(state.getVirtualObject());
+            if (type.isAssignableFrom(state.getVirtualObject().type())) {
+                tool.replaceWithVirtual(state.getVirtualObject());
+            }
         }
     }
 }

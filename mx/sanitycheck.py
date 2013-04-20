@@ -220,6 +220,34 @@ def getBootstraps():
     tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     return tests
 
+class CTWMode:
+    Full, NoInline, NoComplex = range(3)
+
+def getCTW(vm,mode):
+    time = re.compile(r"CompileTheWorld : Done \([0-9]+ classes, [0-9]+ methods, (?P<time>[0-9]+) ms\)")
+    scoreMatcher = ValuesMatcher(time, {'group' : 'CompileTheWorld', 'name' : 'CompileTime', 'score' : '<time>'})
+    
+    jre = os.environ.get('JAVA_HOME')
+    if exists(join(jre, 'jre')):
+        jre = join(jre, 'jre')
+    rtjar = join(jre, 'lib', 'rt.jar')
+
+    
+    args = ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
+    if not vm.endswith('-nograal'):
+        args += ['-XX:+BootstrapGraal', '-G:-Debug']
+    if mode >= CTWMode.NoInline:
+        if vm.endswith('-nograal'):
+            args.append('-XX:-Inline')
+        else:
+            args.append('-G:-Inline')
+    if mode >= CTWMode.NoComplex:
+        if not vm.endswith('-nograal'):
+            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+        
+    return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
+    
+
 class Tee:
     def __init__(self):
         self.output = StringIO.StringIO()

@@ -236,7 +236,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
       ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second, oop_recorder);
-      
+
       if (isLongArray && cur_second == NULL) {
         // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
         // add an int 0 constant
@@ -294,10 +294,14 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
       if (!assumption.is_null()) {
         if (assumption->klass() == Assumptions_MethodContents::klass()) {
           assumption_MethodContents(assumption);
+        } else if (assumption->klass() == Assumptions_NoFinalizableSubclass::klass()) {
+          assumption_NoFinalizableSubclass(assumption);
         } else if (assumption->klass() == Assumptions_ConcreteSubtype::klass()) {
           assumption_ConcreteSubtype(assumption);
         } else if (assumption->klass() == Assumptions_ConcreteMethod::klass()) {
           assumption_ConcreteMethod(assumption);
+        } else if (assumption->klass() == Assumptions_CallSiteTargetValue::klass()) {
+          assumption_CallSiteTargetValue(assumption);
         } else {
           assumption->print();
           fatal("unexpected Assumption subclass");
@@ -344,26 +348,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
   result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
-}
-
-// constructor used to create a stub
-CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id) {
-  No_Safepoint_Verifier no_safepoint;
-  
-  _oop_recorder = new OopRecorder(&_arena);
-  initialize_fields(target_method(), NULL);
-  assert(_name != NULL, "installMethod needs NON-NULL name");
-
-  // (very) conservative estimate: each site needs a relocation
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  initialize_buffer(buffer);
-
-  const char* cname = java_lang_String::as_utf8_string(_name);
-  blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
-  IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
-  id = (jlong)blob->code_begin();
+    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
 }
 
 void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
@@ -398,7 +383,7 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
   _debug_recorder = new DebugInformationRecorder(_oop_recorder);
   _debug_recorder->set_oopmaps(new OopMapSet());
-  
+
   buffer.initialize_oop_recorder(_oop_recorder);
 
   _instructions = buffer.insts();
@@ -416,9 +401,17 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     if (site->is_a(CompilationResult_Call::klass())) {
       TRACE_graal_4("call at %i", pc_offset);
       site_Call(buffer, pc_offset, site);
-    } else if (site->is_a(CompilationResult_Safepoint::klass())) {
-      TRACE_graal_4("safepoint at %i", pc_offset);
-      site_Safepoint(buffer, pc_offset, site);
+    } else if (site->is_a(CompilationResult_Infopoint::klass())) {
+      // three reasons for infopoints denote actual safepoints
+      oop reason = CompilationResult_Infopoint::reason(site);
+      if (InfopointReason::SAFEPOINT() == reason || InfopointReason::CALL() == reason || InfopointReason::IMPLICIT_EXCEPTION() == reason) {
+        TRACE_graal_4("safepoint at %i", pc_offset);
+        site_Safepoint(buffer, pc_offset, site);
+      } else {
+        // if the infopoint is not an actual safepoint, it must have one of the other reasons
+        // (safeguard against new safepoint types that require handling above)
+        assert(InfopointReason::METHOD_START() == reason || InfopointReason::METHOD_END() == reason || InfopointReason::LINE_NUMBER() == reason, "");
+      }
     } else if (site->is_a(CompilationResult_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
       site_DataPatch(buffer, pc_offset, site);
@@ -435,6 +428,12 @@ void CodeInstaller::assumption_MethodContents(Handle assumption) {
   Handle method_handle = Assumptions_MethodContents::method(assumption());
   methodHandle method = getMethodFromHotSpotMethod(method_handle());
   _dependencies->assert_evol_method(method());
+}
+
+void CodeInstaller::assumption_NoFinalizableSubclass(Handle assumption) {
+  Handle receiverType_handle = Assumptions_NoFinalizableSubclass::receiverType(assumption());
+  Klass* receiverType = asKlass(HotSpotResolvedObjectType::metaspaceKlass(receiverType_handle));
+  _dependencies->assert_has_no_finalizable_subclasses(receiverType);
 }
 
 void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
@@ -458,6 +457,13 @@ void CodeInstaller::assumption_ConcreteMethod(Handle assumption) {
   Klass* context = asKlass(HotSpotResolvedObjectType::metaspaceKlass(context_handle));
 
   _dependencies->assert_unique_concrete_method(context, impl());
+}
+
+void CodeInstaller::assumption_CallSiteTargetValue(Handle assumption) {
+  Handle callSite = Assumptions_CallSiteTargetValue::callSite(assumption());
+  Handle methodHandle = Assumptions_CallSiteTargetValue::methodHandle(assumption());
+
+  _dependencies->assert_call_site_target_value(callSite(), methodHandle());
 }
 
 void CodeInstaller::process_exception_handlers() {
@@ -578,7 +584,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
 }
 
 void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site) {
-  oop debug_info = CompilationResult_Safepoint::debugInfo(site);
+  oop debug_info = CompilationResult_Infopoint::debugInfo(site);
   assert(debug_info != NULL, "debug info expected");
 
   // address instruction = _instructions->start() + pc_offset;

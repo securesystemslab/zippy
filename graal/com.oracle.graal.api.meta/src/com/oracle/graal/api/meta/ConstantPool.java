@@ -30,6 +30,13 @@ package com.oracle.graal.api.meta;
 public interface ConstantPool {
 
     /**
+     * Returns the number of entries the constant pool.
+     * 
+     * @return number of entries in the constant pool
+     */
+    int length();
+
+    /**
      * Ensures that the type referenced by the specified constant pool entry is loaded and
      * initialized. This can be used to compile time resolve a type. It works for field, method, or
      * type constant pool entries.
@@ -93,4 +100,14 @@ public interface ConstantPool {
      *         entry
      */
     Object lookupConstant(int cpi);
+
+    /**
+     * Looks up the appendix at the specified index.
+     * 
+     * @param cpi the constant pool index
+     * @param opcode the opcode of the instruction for which the lookup is being performed or
+     *            {@code -1}
+     * @return the appendix if it exists and is resolved or {@code null}
+     */
+    Object lookupAppendix(int cpi, int opcode);
 }

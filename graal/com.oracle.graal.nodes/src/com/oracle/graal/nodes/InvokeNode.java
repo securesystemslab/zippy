@@ -27,7 +27,6 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
 
@@ -38,6 +37,7 @@ import com.oracle.graal.nodes.util.*;
 public final class InvokeNode extends AbstractStateSplit implements StateSplit, Node.IterableNodeType, Invoke, LIRLowerable, MemoryCheckpoint {
 
     @Input private final CallTargetNode callTarget;
+    @Input private FrameState deoptState;
     private final int bci;
     private boolean polymorphic;
     private boolean useForInlining;
@@ -61,11 +61,6 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     @Override
     public CallTargetNode callTarget() {
         return callTarget;
-    }
-
-    @Override
-    public MethodCallTargetNode methodCallTarget() {
-        return (MethodCallTargetNode) callTarget;
     }
 
     @Override
@@ -100,11 +95,7 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     @Override
     public Map<Object, Object> getDebugProperties(Map<Object, Object> map) {
         Map<Object, Object> debugProperties = super.getDebugProperties(map);
-        if (callTarget instanceof MethodCallTargetNode && methodCallTarget().targetMethod() != null) {
-            debugProperties.put("targetMethod", methodCallTarget().targetMethod());
-        } else if (callTarget instanceof AbstractCallTargetNode) {
-            debugProperties.put("targetMethod", ((AbstractCallTargetNode) callTarget).target());
-        }
+        debugProperties.put("targetMethod", callTarget.targetName());
         return debugProperties;
     }
 
@@ -139,13 +130,16 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     }
 
     @Override
-    public FixedNode node() {
+    public FixedNode asNode() {
         return this;
     }
 
     @Override
     public FrameState stateDuring() {
         FrameState stateAfter = stateAfter();
+        if (stateAfter == null) {
+            return null;
+        }
         FrameState stateDuring = stateAfter.duplicateModified(bci(), stateAfter.rethrowException(), kind());
         stateDuring.setDuringCall(true);
         return stateDuring;
@@ -188,7 +182,12 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
 
     @Override
     public FrameState getDeoptimizationState() {
-        return stateDuring();
+        if (deoptState == null) {
+            FrameState stateDuring = stateDuring();
+            updateUsages(deoptState, stateDuring);
+            deoptState = stateDuring;
+        }
+        return deoptState;
     }
 
     @Override

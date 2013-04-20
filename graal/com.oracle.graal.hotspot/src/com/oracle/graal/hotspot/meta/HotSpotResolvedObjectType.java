@@ -23,7 +23,7 @@
 package com.oracle.graal.hotspot.meta;
 
 import static com.oracle.graal.api.meta.MetaUtil.*;
-import static com.oracle.graal.graph.FieldIntrospection.*;
+import static com.oracle.graal.graph.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static java.lang.reflect.Modifier.*;
 
@@ -63,7 +63,6 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
 
     private final Class<?> javaMirror; // this could be read directly from 'metaspaceKlass'...
     private final String simpleName;
-    private final boolean hasFinalizableSubclass;
 
     /**
      * The instance size (in bytes) for an instance type,
@@ -120,22 +119,19 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     }
 
     /**
-     * @param hasFinalizableSubclass
      * @param sizeOrSpecies the size of an instance of the type, or
      *            {@link HotSpotResolvedObjectType#INTERFACE_SPECIES_VALUE} or
      *            {@link HotSpotResolvedObjectType#ARRAY_SPECIES_VALUE}
      */
-    public HotSpotResolvedObjectType(long metaspaceKlass, String name, String simpleName, Class javaMirror, boolean hasFinalizableSubclass, int sizeOrSpecies) {
+    public HotSpotResolvedObjectType(long metaspaceKlass, String name, String simpleName, Class javaMirror, int sizeOrSpecies) {
         super(name);
         this.metaspaceKlass = metaspaceKlass;
         this.javaMirror = javaMirror;
         this.simpleName = simpleName;
-        this.hasFinalizableSubclass = hasFinalizableSubclass;
         this.sizeOrSpecies = sizeOrSpecies;
         assert name.charAt(0) != '[' || sizeOrSpecies == ARRAY_SPECIES_VALUE : name + " " + Long.toHexString(sizeOrSpecies);
         assert javaMirror.isArray() == isArray();
         assert javaMirror.isInterface() == isInterface();
-        // System.out.println("0x" + Long.toHexString(metaspaceKlass) + ": " + name);
     }
 
     @Override
@@ -261,7 +257,8 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
 
     @Override
     public boolean hasFinalizableSubclass() {
-        return hasFinalizableSubclass;
+        assert !isArray();
+        return HotSpotGraalRuntime.getInstance().getCompilerToVM().hasFinalizableSubclass(this);
     }
 
     @Override
@@ -519,5 +516,32 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     public ResolvedJavaType getEnclosingType() {
         final Class<?> encl = mirror().getEnclosingClass();
         return encl == null ? null : fromClass(encl);
+    }
+
+    @Override
+    public ResolvedJavaMethod[] getDeclaredConstructors() {
+        Constructor[] constructors = javaMirror.getDeclaredConstructors();
+        ResolvedJavaMethod[] result = new ResolvedJavaMethod[constructors.length];
+        for (int i = 0; i < constructors.length; i++) {
+            result[i] = HotSpotGraalRuntime.getInstance().getRuntime().lookupJavaConstructor(constructors[i]);
+            assert result[i].isConstructor();
+        }
+        return result;
+    }
+
+    @Override
+    public ResolvedJavaMethod[] getDeclaredMethods() {
+        Method[] methods = javaMirror.getDeclaredMethods();
+        ResolvedJavaMethod[] result = new ResolvedJavaMethod[methods.length];
+        for (int i = 0; i < methods.length; i++) {
+            result[i] = HotSpotGraalRuntime.getInstance().getRuntime().lookupJavaMethod(methods[i]);
+            assert !result[i].isConstructor();
+        }
+        return result;
+    }
+
+    @Override
+    public Constant newArray(int length) {
+        return Constant.forObject(Array.newInstance(javaMirror, length));
     }
 }

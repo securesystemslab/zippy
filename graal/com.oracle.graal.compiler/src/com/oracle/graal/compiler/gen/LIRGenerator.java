@@ -225,6 +225,13 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         return stateFor(deopt.getDeoptimizationState(), deopt.getDeoptimizationReason());
     }
 
+    public LIRFrameState stateWithExceptionEdge(DeoptimizingNode deopt, LabelRef exceptionEdge) {
+        if (!deopt.canDeoptimize()) {
+            return null;
+        }
+        return stateForWithExceptionEdge(deopt.getDeoptimizationState(), deopt.getDeoptimizationReason(), exceptionEdge);
+    }
+
     public LIRFrameState stateFor(FrameState state, DeoptimizationReason reason) {
         return stateForWithExceptionEdge(state, reason, null);
     }
@@ -233,6 +240,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         if (needOnlyOopMaps()) {
             return new LIRFrameState(null, null, null, (short) -1);
         }
+        assert state != null;
         return debugInfoBuilder.build(state, lir.getDeoptimizationReasons().addSpeculation(reason), exceptionEdge);
     }
 
@@ -327,17 +335,10 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
                 TTY.println("LIRGen for " + instr);
             }
             FrameState stateAfter = null;
-            if (instr instanceof StateSplit) {
+            if (instr instanceof StateSplit && !(instr instanceof InfopointNode)) {
                 stateAfter = ((StateSplit) instr).stateAfter();
             }
-            if (instr instanceof DeoptimizingNode) {
-                DeoptimizingNode deopt = (DeoptimizingNode) instr;
-                if (deopt.canDeoptimize() && deopt.getDeoptimizationState() == null) {
-                    deopt.setDeoptimizationState(lastState);
-                }
-            }
             if (instr instanceof ValueNode) {
-
                 ValueNode valueNode = (ValueNode) instr;
                 if (operand(valueNode) == null) {
                     if (!peephole(valueNode)) {
@@ -597,19 +598,19 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
 
     @Override
     public void emitInvoke(Invoke x) {
-        AbstractCallTargetNode callTarget = (AbstractCallTargetNode) x.callTarget();
-        CallingConvention cc = frameMap.registerConfig.getCallingConvention(callTarget.callType(), x.node().stamp().javaType(runtime), callTarget.signature(), target(), false);
+        LoweredCallTargetNode callTarget = (LoweredCallTargetNode) x.callTarget();
+        CallingConvention cc = frameMap.registerConfig.getCallingConvention(callTarget.callType(), x.asNode().stamp().javaType(runtime), callTarget.signature(), target(), false);
         frameMap.callsMethod(cc);
 
         Value[] parameters = visitInvokeArguments(cc, callTarget.arguments());
 
-        LIRFrameState callState = null;
-        if (x.stateAfter() != null) {
-            callState = stateForWithExceptionEdge(x.stateDuring(), null, x instanceof InvokeWithExceptionNode ? getLIRBlock(((InvokeWithExceptionNode) x).exceptionEdge()) : null);
+        LabelRef exceptionEdge = null;
+        if (x instanceof InvokeWithExceptionNode) {
+            exceptionEdge = getLIRBlock(((InvokeWithExceptionNode) x).exceptionEdge());
         }
+        LIRFrameState callState = stateWithExceptionEdge(x, exceptionEdge);
 
         Value result = cc.getReturn();
-
         if (callTarget instanceof DirectCallTargetNode) {
             emitDirectCall((DirectCallTargetNode) callTarget, result, parameters, cc.getTemporaries(), callState);
         } else if (callTarget instanceof IndirectCallTargetNode) {
@@ -619,7 +620,7 @@ public abstract class LIRGenerator extends LIRGeneratorTool {
         }
 
         if (isLegal(result)) {
-            setResult(x.node(), emitMove(result));
+            setResult(x.asNode(), emitMove(result));
         }
     }
 

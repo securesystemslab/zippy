@@ -93,8 +93,10 @@ private:
   void initialize_buffer(CodeBuffer& buffer);
 
   void assumption_MethodContents(Handle assumption);
+  void assumption_NoFinalizableSubclass(Handle assumption);
   void assumption_ConcreteSubtype(Handle assumption);
   void assumption_ConcreteMethod(Handle assumption);
+  void assumption_CallSiteTargetValue(Handle assumption);
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);

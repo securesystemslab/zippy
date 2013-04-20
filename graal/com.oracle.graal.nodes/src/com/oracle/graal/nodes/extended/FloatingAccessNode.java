@@ -76,7 +76,7 @@ public abstract class FloatingAccessNode extends FloatingNode implements Access 
     }
 
     @Override
-    public Node node() {
+    public Node asNode() {
         return this;
     }
 
@@ -97,6 +97,7 @@ public abstract class FloatingAccessNode extends FloatingNode implements Access 
 
     @Override
     public void setDeoptimizationState(FrameState f) {
+        updateUsages(deoptState, f);
         deoptState = f;
     }
 

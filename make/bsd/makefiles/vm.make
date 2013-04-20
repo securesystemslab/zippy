@@ -196,7 +196,7 @@ COMPILER1_SPECIFIC_FILES := c1_\*
 SHARK_SPECIFIC_FILES     := shark
 ZERO_SPECIFIC_FILES      := zero
 
-ifdef OMIT_GRAAL
+ifneq ($(INCLUDE_GRAAL), true)
   GRAAL_SPECIFIC_FILES   := graal\*
 else
   GRAAL_SPECIFIC_FILES   :=

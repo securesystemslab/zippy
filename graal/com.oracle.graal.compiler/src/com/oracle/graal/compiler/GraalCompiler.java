@@ -35,7 +35,6 @@ import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
-import com.oracle.graal.loop.phases.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.spi.*;
@@ -43,6 +42,7 @@ import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.schedule.*;
+import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.virtual.phases.ea.*;
 
 public class GraalCompiler {
@@ -118,112 +118,48 @@ public class GraalCompiler {
         }
 
         if (GraalOptions.OptCanonicalizer) {
-            new CanonicalizerPhase(runtime, assumptions).apply(graph);
+            new CanonicalizerPhase.Instance(runtime, assumptions).apply(graph);
         }
+
+        HighTierContext highTierContext = new HighTierContext(runtime, assumptions);
 
         if (GraalOptions.Inline && !plan.isPhaseDisabled(InliningPhase.class)) {
             if (GraalOptions.IterativeInlining) {
-                new IterativeInliningPhase(runtime, replacements, assumptions, cache, plan, optimisticOpts, GraalOptions.OptEarlyReadElimination).apply(graph);
+                new IterativeInliningPhase(replacements, cache, plan, optimisticOpts, GraalOptions.OptEarlyReadElimination).apply(graph, highTierContext);
             } else {
                 new InliningPhase(runtime, null, replacements, assumptions, cache, plan, optimisticOpts).apply(graph);
                 new DeadCodeEliminationPhase().apply(graph);
 
                 if (GraalOptions.ConditionalElimination && GraalOptions.OptCanonicalizer) {
-                    new CanonicalizerPhase(runtime, assumptions).apply(graph);
-                    new IterativeConditionalEliminationPhase(runtime, assumptions).apply(graph);
+                    new CanonicalizerPhase.Instance(runtime, assumptions).apply(graph);
+                    new IterativeConditionalEliminationPhase().apply(graph, highTierContext);
                 }
             }
         }
 
-        // new ConvertUnreachedToGuardPhase(optimisticOpts).apply(graph);
-
         plan.runPhases(PhasePosition.HIGH_LEVEL, graph);
 
-        if (GraalOptions.FullUnroll) {
-            new LoopFullUnrollPhase(runtime, assumptions).apply(graph);
-            if (GraalOptions.OptCanonicalizer) {
-                new CanonicalizerPhase(runtime, assumptions).apply(graph);
-            }
-        }
-
-        if (GraalOptions.OptTailDuplication) {
-            new TailDuplicationPhase().apply(graph);
-            if (GraalOptions.OptCanonicalizer) {
-                new CanonicalizerPhase(runtime, assumptions).apply(graph);
-            }
-        }
-
-        if (GraalOptions.PartialEscapeAnalysis && !plan.isPhaseDisabled(PartialEscapeAnalysisPhase.class)) {
-            new PartialEscapeAnalysisPhase(runtime, assumptions, true, GraalOptions.OptEarlyReadElimination).apply(graph);
-        }
-
-        if (GraalOptions.OptConvertDeoptsToGuards) {
-            new ConvertDeoptimizeToGuardPhase().apply(graph);
-        }
-
-        new LockEliminationPhase().apply(graph);
-
-        if (GraalOptions.OptLoopTransform) {
-            new LoopTransformHighPhase().apply(graph);
-            new LoopTransformLowPhase().apply(graph);
-        }
-        new RemoveValueProxyPhase().apply(graph);
-
-        if (GraalOptions.CullFrameStates) {
-            new CullFrameStatesPhase().apply(graph);
-        }
-
-        if (GraalOptions.OptCanonicalizer) {
-            new CanonicalizerPhase(runtime, assumptions).apply(graph);
-        }
+        Suites.DEFAULT.getHighTier().apply(graph, highTierContext);
 
         new LoweringPhase(target, runtime, replacements, assumptions).apply(graph);
 
-        if (GraalOptions.OptPushThroughPi) {
-            new PushNodesThroughPi().apply(graph);
-            if (GraalOptions.OptCanonicalizer) {
-                new CanonicalizerPhase(runtime, assumptions).apply(graph);
-            }
-        }
-
-        if (GraalOptions.OptFloatingReads) {
-            int mark = graph.getMark();
-            new FloatingReadPhase().apply(graph);
-            new CanonicalizerPhase(runtime, assumptions, mark, null).apply(graph);
-            if (GraalOptions.OptReadElimination) {
-                new ReadEliminationPhase().apply(graph);
-            }
-        }
-        new RemoveValueProxyPhase().apply(graph);
-
-        if (GraalOptions.OptCanonicalizer) {
-            new CanonicalizerPhase(runtime, assumptions).apply(graph);
-        }
-
-        if (GraalOptions.OptEliminatePartiallyRedundantGuards) {
-            new EliminatePartiallyRedundantGuardsPhase(false, true).apply(graph);
-        }
-
-        if (GraalOptions.ConditionalElimination && GraalOptions.OptCanonicalizer) {
-            new IterativeConditionalEliminationPhase(runtime, assumptions).apply(graph);
-        }
-
-        if (GraalOptions.OptEliminatePartiallyRedundantGuards) {
-            new EliminatePartiallyRedundantGuardsPhase(true, true).apply(graph);
-        }
-
-        if (GraalOptions.OptCanonicalizer) {
-            new CanonicalizerPhase(runtime, assumptions).apply(graph);
-        }
+        MidTierContext midTierContext = new MidTierContext(runtime, assumptions, replacements);
+        Suites.DEFAULT.getMidTier().apply(graph, midTierContext);
 
         plan.runPhases(PhasePosition.MID_LEVEL, graph);
-
-        plan.runPhases(PhasePosition.LOW_LEVEL, graph);
 
         // Add safepoints to loops
         new SafepointInsertionPhase().apply(graph);
 
         new GuardLoweringPhase(target).apply(graph);
+
+        plan.runPhases(PhasePosition.LOW_LEVEL, graph);
+
+        new LoweringPhase(target, runtime, replacements, assumptions).apply(graph);
+
+        new FrameStateAssignmentPhase().apply(graph);
+
+        new DeadCodeEliminationPhase().apply(graph);
 
         final SchedulePhase schedule = new SchedulePhase();
         schedule.apply(graph);

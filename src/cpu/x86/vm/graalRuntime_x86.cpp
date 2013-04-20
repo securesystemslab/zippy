@@ -879,30 +879,10 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
 
         // This is called via call_runtime so the arguments
         // will be place in C abi locations
-
-#ifdef _LP64
         __ verify_oop(j_rarg0);
-        __ mov(rax, j_rarg0);
-#else
-        // The object is passed on the stack and we haven't pushed a
-        // frame yet so it's one work away from top of stack.
-        __ movptr(rax, Address(rsp, 1 * BytesPerWord));
-        __ verify_oop(rax);
-#endif // _LP64
-
-        // load the klass and check the has finalizer flag
-        Label register_finalizer;
-        Register t = rsi;
-        __ load_klass(t, rax);
-        __ movl(t, Address(t, Klass::access_flags_offset()));
-        __ testl(t, JVM_ACC_HAS_FINALIZER);
-        __ jcc(Assembler::notZero, register_finalizer);
-        __ ret(0);
-
-        __ bind(register_finalizer);
         __ enter();
         OopMap* oop_map = save_live_registers(sasm, 2 /*num_rt_args */);
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, SharedRuntime::register_finalizer), rax);
+        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, SharedRuntime::register_finalizer), j_rarg0);
         oop_maps = new OopMapSet();
         oop_maps->add_gc_map(call_offset, oop_map);
 
@@ -950,6 +930,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
 		OopMap* oop_map = save_live_registers(sasm, 0);
 		int call_offset = __ call_RT(rax, noreg, (address)create_null_exception, 0);
 		oop_maps->add_gc_map(call_offset, oop_map);
+		restore_live_registers_except_rax(sasm);
 		__ leave();
 		__ ret(0);
       break;
@@ -958,9 +939,10 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
     case create_out_of_bounds_exception_id: {
 		__ enter();
 		oop_maps = new OopMapSet();
-		OopMap* oop_map = save_live_registers(sasm, 0);
+		OopMap* oop_map = save_live_registers(sasm, 1);
 		int call_offset = __ call_RT(rax, noreg, (address)create_out_of_bounds_exception, j_rarg0);
 		oop_maps->add_gc_map(call_offset, oop_map);
+		restore_live_registers_except_rax(sasm);
 		__ leave();
 		__ ret(0);
       break;
@@ -969,7 +951,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
     case vm_error_id: {
       __ enter();
       oop_maps = new OopMapSet();
-      OopMap* oop_map = save_live_registers(sasm, 0);
+      OopMap* oop_map = save_live_registers(sasm, 3);
       int call_offset = __ call_RT(noreg, noreg, (address)vm_error, j_rarg0, j_rarg1, j_rarg2);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
@@ -981,7 +963,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
     case log_printf_id: {
       __ enter();
       oop_maps = new OopMapSet();
-      OopMap* oop_map = save_live_registers(sasm, 0);
+      OopMap* oop_map = save_live_registers(sasm, 4);
       int call_offset = __ call_RT(noreg, noreg, (address)log_printf, j_rarg0, j_rarg1, j_rarg2, j_rarg3);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
@@ -993,7 +975,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
     case log_primitive_id: {
       __ enter();
       oop_maps = new OopMapSet();
-      OopMap* oop_map = save_live_registers(sasm, 0);
+      OopMap* oop_map = save_live_registers(sasm, 3);
       int call_offset = __ call_RT(noreg, noreg, (address)log_primitive, j_rarg0, j_rarg1, j_rarg2);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);
@@ -1005,7 +987,7 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
     case log_object_id: {
       __ enter();
       oop_maps = new OopMapSet();
-      OopMap* oop_map = save_live_registers(sasm, 0);
+      OopMap* oop_map = save_live_registers(sasm, 2);
       int call_offset = __ call_RT(noreg, noreg, (address)log_object, j_rarg0, j_rarg1);
       oop_maps->add_gc_map(call_offset, oop_map);
       restore_live_registers(sasm);

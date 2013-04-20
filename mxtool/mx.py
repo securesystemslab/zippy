@@ -459,7 +459,11 @@ class Suite:
         self._load_env(mxDir)
         self._load_commands(mxDir)
         self._load_includes(mxDir)
+        self.name = d # re-initialized in _load_projects
 
+    def __str__(self):
+        return self.name
+    
     def _load_projects(self, mxDir):
         libsMap = dict()
         projsMap = dict()
@@ -475,8 +479,11 @@ class Suite:
 
                     parts = key.split('@')
 
-                    if len(parts) == 2:
-                        pass
+                    if len(parts) == 1:
+                        if parts[0] != 'suite':
+                            abort('Single part property must be "suite": ' + key)
+                        self.name = value
+                        continue
                     if len(parts) != 3:
                         abort('Property name does not have 3 parts separated by "@": ' + key)
                     kind, name, attr = parts
@@ -539,6 +546,9 @@ class Suite:
             d = Distribution(self, name, path, deps)
             d.__dict__.update(attrs)
             self.dists.append(d)
+            
+        if self.name is None:
+            abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _load_commands(self, mxDir):
         commands = join(mxDir, 'commands.py')
@@ -547,7 +557,8 @@ class Suite:
             sys.path.insert(0, mxDir)
             mod = __import__('commands')
             
-            sys.modules[join(mxDir, 'commands')] = sys.modules.pop('commands')
+            self.commands = sys.modules.pop('commands')
+            sys.modules[join(mxDir, 'commands')] = self.commands
 
             # revert the Python path
             del sys.path[0]
@@ -582,6 +593,7 @@ class Suite:
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
+        _suites[self.name] = self
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -702,6 +714,15 @@ def suites():
     Get the list of all loaded suites.
     """
     return _suites.values()
+
+def suite(name, fatalIfMissing=True):
+    """
+    Get the suite for a given name.
+    """
+    s = _suites.get(name)
+    if s is None and fatalIfMissing:
+        abort('suite named ' + name + ' not found')
+    return s
 
 def projects():
     """
@@ -1344,7 +1365,7 @@ def build(args, parser=None):
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
-    parser.add_argument('--source', dest='compliance', help='Java compliance level', default=str(javaCompliance))
+    parser.add_argument('--source', dest='compliance', help='Java compliance level for projects without an explicit one', default=str(javaCompliance))
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--projects', action='store', help='comma separated projects to build (omit to build all projects)')
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
@@ -1502,16 +1523,17 @@ def build(args, parser=None):
 
         toBeDeleted = [argfileName]
         try:
+            compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', args.compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
                 jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
-                         '-' + args.compliance,
+                         '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir] + javacArgs
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
@@ -1561,6 +1583,13 @@ def eclipseformat(args):
         args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
     if args.eclipse_exe is None:
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
+        
+    # Maybe an Eclipse installation dir was specified - look for the executable in it
+    if join(args.eclipse_exe, exe_suffix('eclipse')):
+        args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
+        
+    if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
+        abort('Not an executable file: ' + args.eclipse_exe)
 
     eclipseinit([], buildProcessorJars=False)
 
@@ -1676,6 +1705,12 @@ def archive(args):
                                     with open(join(root, f), 'r') as infile:
                                         for line in infile:
                                             outfile.write(line)
+                        elif relpath == join('META-INF', 'providers'):
+                            for f in files:
+                                with open(join(root, f), 'r') as infile:
+                                    for line in infile:
+                                        with open(join(services, line.strip()), 'a') as outfile:
+                                            outfile.write(f + '\n')
                         else:
                             for f in files:
                                 arcname = join(relpath, f).replace(os.sep, '/')
@@ -1813,11 +1848,6 @@ def checkstyle(args):
                 log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
                 continue
 
-            if exists(timestampFile):
-                os.utime(timestampFile, None)
-            else:
-                file(timestampFile, 'a')
-
             dotCheckstyleXML = xml.dom.minidom.parse(dotCheckstyle)
             localCheckConfig = dotCheckstyleXML.getElementsByTagName('local-check-config')[0]
             configLocation = localCheckConfig.getAttribute('location')
@@ -1883,6 +1913,11 @@ def checkstyle(args):
                                 if len(warnings) != 0:
                                     map(log, warnings)
                                     return 1
+                                else:
+                                    if exists(timestampFile):
+                                        os.utime(timestampFile, None)
+                                    else:
+                                        file(timestampFile, 'a')
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
@@ -3010,9 +3045,10 @@ def site(args):
         if exists(tmpbase):
             shutil.rmtree(tmpbase)
 
-def findclass(args):
+def findclass(args, logToConsole=True):
     """find all classes matching a given substring"""
 
+    matches = []
     for entry, filename in classpath_walk(includeBootClasspath=True):
         if filename.endswith('.class'):
             if isinstance(entry, zipfile.ZipFile):
@@ -3022,20 +3058,19 @@ def findclass(args):
             classname = classname[:-len('.class')]
             for a in args:
                 if a in classname:
-                    log(classname)
+                    matches.append(classname)
+                    if logToConsole:
+                        log(classname)
+    return matches
 
 def javap(args):
-    """launch javap with a -classpath option denoting all available classes
-
-    Run the JDK javap class file disassembler with the following prepended options:
-
-        -private -verbose -classpath <path to project classes>"""
+    """disassemble classes matching given pattern with javap"""
 
     javap = java().javap
     if not exists(javap):
         abort('The javap executable does not exists: ' + javap)
     else:
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + args)
+        run([javap, '-private', '-verbose', '-classpath', classpath()] + findclass(args, logToConsole=False))
 
 def show_projects(args):
     """show all loaded projects"""
@@ -3073,7 +3108,7 @@ commands = {
     'ideinit': [ideinit, ''],
     'archive': [archive, '[options]'],
     'projectgraph': [projectgraph, ''],
-    'javap': [javap, ''],
+    'javap': [javap, '<class name patterns>'],
     'javadoc': [javadoc, '[options]'],
     'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],

@@ -37,7 +37,6 @@ import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.replacements.*;
-import com.oracle.graal.replacements.Snippet.*;
 import com.oracle.graal.replacements.nodes.*;
 import com.oracle.graal.word.*;
 
@@ -75,7 +74,7 @@ public class ArrayCopySnippets implements Snippets {
     private static final Kind VECTOR_KIND = Kind.Long;
     private static final long VECTOR_SIZE = arrayIndexScale(Kind.Long);
 
-    public static void vectorizedCopy(Object src, int srcPos, Object dest, int destPos, int length, @ConstantParameter("baseKind") Kind baseKind) {
+    private static void vectorizedCopy(Object src, int srcPos, Object dest, int destPos, int length, Kind baseKind) {
         checkNonNull(src);
         checkNonNull(dest);
         checkLimits(src, srcPos, dest, destPos, length);
@@ -236,9 +235,14 @@ public class ArrayCopySnippets implements Snippets {
         }
     }
 
-    // Does NOT perform store checks
     @Snippet
     public static void arraycopy(Object[] src, int srcPos, Object[] dest, int destPos, int length) {
+        arrayObjectCopy(src, srcPos, dest, destPos, length);
+    }
+
+    // Does NOT perform store checks
+    @Snippet
+    public static void arrayObjectCopy(Object src, int srcPos, Object dest, int destPos, int length) {
         objectCounter.inc();
         checkNonNull(src);
         checkNonNull(dest);
@@ -260,15 +264,7 @@ public class ArrayCopySnippets implements Snippets {
             }
         }
         if (length > 0) {
-            int cardShift = cardTableShift();
-            long cardStart = cardTableStart();
-            long dstAddr = GetObjectAddressNode.get(dest);
-            long start = (dstAddr + header + (long) destPos * scale) >>> cardShift;
-            long end = (dstAddr + header + ((long) destPos + length - 1) * scale) >>> cardShift;
-            long count = end - start + 1;
-            while (count-- > 0) {
-                DirectStoreNode.store((start + cardStart) + count, false, Kind.Boolean);
-            }
+            GenericArrayRangeWriteBarrier.insertWriteBarrier(dest, destPos, length);
         }
     }
 
@@ -278,14 +274,22 @@ public class ArrayCopySnippets implements Snippets {
         // loading the hubs also checks for nullness
         Word srcHub = loadHub(src);
         Word destHub = loadHub(dest);
-
         int layoutHelper = checkArrayType(srcHub);
+        int log2ElementSize = (layoutHelper >> layoutHelperLog2ElementSizeShift()) & layoutHelperLog2ElementSizeMask();
+        final boolean isObjectArray = ((layoutHelper & layoutHelperElementTypePrimitiveInPlace()) == 0);
+
         if (srcHub.equal(destHub) && src != dest) {
             probability(FAST_PATH_PROBABILITY);
 
             checkLimits(src, srcPos, dest, destPos, length);
-
-            arraycopyInnerloop(src, srcPos, dest, destPos, length, layoutHelper);
+            if (isObjectArray) {
+                genericObjectExactCallCounter.inc();
+                probability(FAST_PATH_PROBABILITY);
+                arrayObjectCopy(src, srcPos, dest, destPos, length);
+            } else {
+                genericPrimitiveCallCounter.inc();
+                arraycopyInnerloop(src, srcPos, dest, destPos, length, layoutHelper);
+            }
         } else {
             genericObjectCallCounter.inc();
             System.arraycopy(src, srcPos, dest, destPos, length);
@@ -316,25 +320,6 @@ public class ArrayCopySnippets implements Snippets {
             destOffset.writeWord(0, srcOffset.readWord(0, ANY_LOCATION), ANY_LOCATION);
             destOffset = destOffset.add(wordSize());
             srcOffset = srcOffset.add(wordSize());
-        }
-
-        if ((layoutHelper & layoutHelperElementTypePrimitiveInPlace()) != 0) {
-            genericPrimitiveCallCounter.inc();
-
-        } else {
-            probability(LIKELY_PROBABILITY);
-            genericObjectExactCallCounter.inc();
-
-            if (length > 0) {
-                int cardShift = cardTableShift();
-                long cardStart = cardTableStart();
-                Word destCardOffset = destStart.unsignedShiftRight(cardShift).add(Word.unsigned(cardStart));
-                Word destCardEnd = destEnd.subtract(1).unsignedShiftRight(cardShift).add(Word.unsigned(cardStart));
-                while (destCardOffset.belowOrEqual(destCardEnd)) {
-                    DirectStoreNode.store(destCardOffset.rawValue(), false, Kind.Boolean);
-                    destCardOffset = destCardOffset.add(1);
-                }
-            }
         }
     }
 

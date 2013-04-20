@@ -27,6 +27,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
+import com.oracle.graal.debug.*;
+
 /**
  * A java.lang.reflect proxy that hierarchically logs all method invocations along with their
  * parameters and return values.
@@ -41,7 +43,7 @@ public class CountingProxy<T> implements InvocationHandler {
 
     public CountingProxy(T delegate) {
         assert ENABLED;
-        System.out.println("Counting proxy for " + delegate.getClass().getSimpleName() + " created");
+        TTY.println("Counting proxy for " + delegate.getClass().getSimpleName() + " created");
         this.delegate = delegate;
         proxies.add(this);
     }
@@ -92,6 +94,7 @@ public class CountingProxy<T> implements InvocationHandler {
         }
     }
 
+    // CheckStyle: stop system..print check
     protected void print() {
         long sum = 0;
         for (Map.Entry<Method, AtomicLong> entry : calls.entrySet()) {
@@ -102,4 +105,5 @@ public class CountingProxy<T> implements InvocationHandler {
         }
         System.out.println(delegate.getClass().getSimpleName() + " calls: " + sum);
     }
+    // CheckStyle: resume system..print check
 }

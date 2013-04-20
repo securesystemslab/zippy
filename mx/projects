@@ -1,5 +1,7 @@
 # The format of this file is described in the documentation for my.py.
 
+suite=graal
+
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
 library@JDK_TOOLS@optional=true
 
@@ -125,7 +127,7 @@ project@com.oracle.graal.hotspot.server@javaCompliance=1.7
 # graal.hotspot.test
 project@com.oracle.graal.hotspot.test@subDir=graal
 project@com.oracle.graal.hotspot.test@sourceDirs=src
-project@com.oracle.graal.hotspot.test@dependencies=com.oracle.graal.replacements.test,com.oracle.graal.hotspot
+project@com.oracle.graal.hotspot.test@dependencies=com.oracle.graal.replacements.test
 project@com.oracle.graal.hotspot.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.test@javaCompliance=1.7
 
@@ -154,6 +156,13 @@ project@com.oracle.graal.debug@subDir=graal
 project@com.oracle.graal.debug@sourceDirs=src
 project@com.oracle.graal.debug@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.debug@javaCompliance=1.7
+
+# graal.debug.test
+project@com.oracle.graal.debug.test@subDir=graal
+project@com.oracle.graal.debug.test@sourceDirs=src
+project@com.oracle.graal.debug.test@dependencies=JUNIT,com.oracle.graal.debug
+project@com.oracle.graal.debug.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.debug.test@javaCompliance=1.7
 
 # graal.lir
 project@com.oracle.graal.lir@subDir=graal
@@ -200,7 +209,7 @@ project@com.oracle.graal.word@javaCompliance=1.7
 # graal.replacements
 project@com.oracle.graal.replacements@subDir=graal
 project@com.oracle.graal.replacements@sourceDirs=src
-project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word,com.oracle.graal.api.runtime
+project@com.oracle.graal.replacements@dependencies=com.oracle.graal.compiler,com.oracle.graal.java,com.oracle.graal.word
 project@com.oracle.graal.replacements@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements@javaCompliance=1.7
 project@com.oracle.graal.replacements@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
@@ -215,7 +224,7 @@ project@com.oracle.graal.replacements.amd64@javaCompliance=1.7
 # graal.replacements.test
 project@com.oracle.graal.replacements.test@subDir=graal
 project@com.oracle.graal.replacements.test@sourceDirs=src
-project@com.oracle.graal.replacements.test@dependencies=com.oracle.graal.replacements,com.oracle.graal.compiler.test
+project@com.oracle.graal.replacements.test@dependencies=com.oracle.graal.compiler.test
 project@com.oracle.graal.replacements.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.replacements.test@javaCompliance=1.7
 
@@ -264,9 +273,10 @@ project@com.oracle.graal.loop@javaCompliance=1.7
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.7
+project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
 
 # graal.compiler.amd64
 project@com.oracle.graal.compiler.amd64@subDir=graal
@@ -333,7 +343,7 @@ project@com.oracle.graal.test@javaCompliance=1.7
 # graal.compiler.test
 project@com.oracle.graal.compiler.test@subDir=graal
 project@com.oracle.graal.compiler.test@sourceDirs=src
-project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.printer,com.oracle.graal.test
+project@com.oracle.graal.compiler.test@dependencies=com.oracle.graal.test,com.oracle.graal.hotspot
 project@com.oracle.graal.compiler.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.test@javaCompliance=1.7
 

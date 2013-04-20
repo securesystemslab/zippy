@@ -34,7 +34,22 @@ import com.oracle.graal.hotspot.meta.*;
  */
 public interface VMToCompiler {
 
+    /**
+     * Compiles a method to machine code. This method is called from the VM
+     * (VMToCompiler::compileMethod).
+     * 
+     * @return true if the method is in the queue (either added to the queue or already in the
+     *         queue)
+     */
     boolean compileMethod(long metaspaceMethod, HotSpotResolvedObjectType holder, int entryBCI, boolean blocking, int priority) throws Throwable;
+
+    /**
+     * Compiles a method to machine code.
+     * 
+     * @return true if the method is in the queue (either added to the queue or already in the
+     *         queue)
+     */
+    boolean compileMethod(HotSpotResolvedJavaMethod method, int entryBCI, boolean blocking, int priority) throws Throwable;
 
     void shutdownCompiler() throws Throwable;
 
@@ -61,7 +76,6 @@ public interface VMToCompiler {
      * @param name the {@linkplain JavaType#getName() name} of the type
      * @param simpleName a simple, unqualified name for the type
      * @param javaMirror the {@link Class} mirror
-     * @param hasFinalizableSubclass specifies if the type has a finalizable subtype
      * @param sizeOrSpecies the size of an instance of the type, or
      *            {@link HotSpotResolvedObjectType#INTERFACE_SPECIES_VALUE} or
      *            {@link HotSpotResolvedObjectType#ARRAY_SPECIES_VALUE}
@@ -69,7 +83,7 @@ public interface VMToCompiler {
      *         instantiated by this call in the case of another thread racing to create the same
      *         type
      */
-    ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, boolean hasFinalizableSubclass, int sizeOrSpecies);
+    ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, int sizeOrSpecies);
 
     Constant createConstant(Kind kind, long value);
 

@@ -25,8 +25,10 @@ package com.oracle.graal.nodes.java;
 import static com.oracle.graal.graph.UnsafeAccess.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.extended.WriteNode.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -34,13 +36,15 @@ import com.oracle.graal.nodes.type.*;
  * Represents an atomic compare-and-swap operation The result is a boolean that contains whether the
  * value matched the expected value.
  */
-public class CompareAndSwapNode extends AbstractStateSplit implements StateSplit, LIRLowerable, Lowerable, MemoryCheckpoint {
+public class CompareAndSwapNode extends AbstractStateSplit implements StateSplit, LIRLowerable, Lowerable, MemoryCheckpoint, Node.IterableNodeType {
 
     @Input private ValueNode object;
     @Input private ValueNode offset;
     @Input private ValueNode expected;
     @Input private ValueNode newValue;
+    @Input private LocationNode location;
     private final int displacement;
+    private WriteBarrierType barrierType;
 
     public ValueNode object() {
         return object;
@@ -62,6 +66,23 @@ public class CompareAndSwapNode extends AbstractStateSplit implements StateSplit
         return displacement;
     }
 
+    public LocationNode getLocation() {
+        return location;
+    }
+
+    public void setLocation(LocationNode location) {
+        updateUsages(this.location, location);
+        this.location = location;
+    }
+
+    public WriteBarrierType getWriteBarrierType() {
+        return barrierType;
+    }
+
+    public void setWriteBarrierType(WriteBarrierType type) {
+        this.barrierType = type;
+    }
+
     public CompareAndSwapNode(ValueNode object, int displacement, ValueNode offset, ValueNode expected, ValueNode newValue) {
         super(StampFactory.forKind(Kind.Boolean.getStackKind()));
         assert expected.kind() == newValue.kind();
@@ -70,6 +91,7 @@ public class CompareAndSwapNode extends AbstractStateSplit implements StateSplit
         this.expected = expected;
         this.newValue = newValue;
         this.displacement = displacement;
+        this.barrierType = WriteBarrierType.NONE;
     }
 
     @Override

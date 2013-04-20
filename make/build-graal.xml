@@ -32,6 +32,7 @@
   <target depends="cleanclasses" name="compile">
     <mkdir dir="${classes.dir}"/>
     <javac debug="on" destdir="${classes.dir}" includeantruntime="false">
+      <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.api.meta"/>
       <src path="${src.dir}/com.oracle.graal.api.code"/>
       <src path="${src.dir}/com.oracle.graal.graph"/>
@@ -49,7 +50,6 @@
       <src path="${src.dir}/com.oracle.graal.bytecode"/>
       <src path="${src.dir}/com.oracle.graal.java"/>
       <src path="${src.dir}/com.oracle.graal.word"/>
-      <src path="${src.dir}/com.oracle.graal.api.runtime"/>
       <src path="${src.dir}/com.oracle.graal.replacements"/>
       <src path="${src.dir}/com.oracle.graal.printer"/>
       <src path="${src.dir}/com.oracle.graal.hotspot"/>
@@ -74,7 +74,16 @@
   </target>
   <target depends="compile" name="jar">
     <mkdir dir="${jar.dir}"/>
-    <jar basedir="${classes.dir}" destfile="${jar.file}"/>
+    <jar basedir="${classes.dir}" destfile="${jar.file}">
+      <service type="com.oracle.graal.nodes.spi.ReplacementsProvider">
+        <provider classname="com.oracle.graal.hotspot.replacements.CallSiteSubstitutions"/>
+        <provider classname="com.oracle.graal.hotspot.replacements.HotSpotInstalledCodeIntrinsics"/>
+        <provider classname="com.oracle.graal.replacements.GraalMethodSubstitutions"/>
+      </service>
+      <service type="com.oracle.graal.phases.tiers.CompilerConfiguration">
+        <provider classname="com.oracle.graal.compiler.phases.BasicCompilerConfiguration"/>
+      </service>
+    </jar>
   </target>
   <target name="cleanclasses">
     <delete dir="${classes.dir}"/>

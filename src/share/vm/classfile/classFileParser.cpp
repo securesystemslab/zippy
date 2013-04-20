@@ -1723,9 +1723,6 @@ void ClassFileParser::parse_annotations(u1* buffer, int limit,
       } else {
         coll->set_contended_group(0); // default contended group
       }
-      coll->set_contended(true);
-    } else {
-      coll->set_contended(false);
     }
   }
 }
@@ -3044,7 +3041,7 @@ AnnotationArray* ClassFileParser::assemble_annotations(u1* runtime_visible_annot
 }
 
 
-#ifndef PRODUCT
+#ifdef ASSERT
 static void parseAndPrintGenericSignatures(
     instanceKlassHandle this_klass, TRAPS) {
   assert(ParseAllGenericSignatures == true, "Shouldn't call otherwise");
@@ -3069,7 +3066,7 @@ static void parseAndPrintGenericSignatures(
     }
   }
 }
-#endif // ndef PRODUCT
+#endif // ASSERT
 
 
 instanceKlassHandle ClassFileParser::parse_super_class(int super_class_index,

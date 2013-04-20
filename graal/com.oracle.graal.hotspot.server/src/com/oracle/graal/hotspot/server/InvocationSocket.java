@@ -26,6 +26,7 @@ import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
 
+import com.oracle.graal.debug.*;
 import com.oracle.graal.hotspot.logging.*;
 
 /**
@@ -73,7 +74,7 @@ public class InvocationSocket {
                         sorted.put(entry.getValue(), entry.getKey());
                     }
                     for (Map.Entry<Integer, String> entry : sorted.entrySet()) {
-                        System.out.println(entry.getKey() + ": " + entry.getValue());
+                        TTY.println(entry.getKey() + ": " + entry.getValue());
                     }
                 }
             });
@@ -246,15 +247,15 @@ public class InvocationSocket {
                     }
                     result = new Result(result);
                 } catch (IllegalArgumentException e) {
-                    System.out.println("error while invoking " + invoke.methodName);
+                    TTY.println("error while invoking " + invoke.methodName);
                     e.getCause().printStackTrace();
                     result = e.getCause();
                 } catch (InvocationTargetException e) {
-                    System.out.println("error while invoking " + invoke.methodName);
+                    TTY.println("error while invoking " + invoke.methodName);
                     e.getCause().printStackTrace();
                     result = e.getCause();
                 } catch (IllegalAccessException e) {
-                    System.out.println("error while invoking " + invoke.methodName);
+                    TTY.println("error while invoking " + invoke.methodName);
                     e.getCause().printStackTrace();
                     result = e.getCause();
                 } finally {
@@ -279,4 +280,5 @@ public class InvocationSocket {
         output.writeObject(new Result(obj));
         output.flush();
     }
+    // CheckStyle: resume system..print check
 }

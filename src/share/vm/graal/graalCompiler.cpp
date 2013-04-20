@@ -91,6 +91,10 @@ void GraalCompiler::initialize() {
       VMToCompiler::startCompiler();
       _initialized = true;
       if (BootstrapGraal) {
+        // We turn off CompileTheWorld and complete the VM startup so that
+        // Graal can be compiled by C1/C2 when we do a CTW.
+        NOT_PRODUCT(CompileTheWorld = false);
+        CompilationPolicy::completed_vm_startup();
         VMToCompiler::bootstrap();
       }
     }
@@ -289,9 +293,6 @@ Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle 
     name = java_lang_String::create_from_str(ik->signature_name(), CHECK_NULL);
   }
 
-  // TODO replace this with the correct value
-  bool hasFinalizableSubclass = false;
-
   int sizeOrSpecies;
   if (klass->is_interface()) {
     sizeOrSpecies = (int) 0x80000000; // see HotSpotResolvedObjectType.INTERFACE_SPECIES_VALUE
@@ -304,7 +305,7 @@ Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle 
     }
   }
 
-  return VMToCompiler::createResolvedJavaType(klass(), name, simpleName, java_class, hasFinalizableSubclass, sizeOrSpecies, CHECK_NULL);
+  return VMToCompiler::createResolvedJavaType(klass(), name, simpleName, java_class, sizeOrSpecies, CHECK_NULL);
 }
 
 BasicType GraalCompiler::kindToBasicType(jchar ch) {

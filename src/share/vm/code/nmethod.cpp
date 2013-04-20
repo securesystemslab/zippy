@@ -1307,10 +1307,12 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
   }
 
 #ifdef GRAAL
-    if (_graal_installed_code != NULL) {
-      HotSpotInstalledCode::set_nmethod(_graal_installed_code, 0);
-      _graal_installed_code = NULL;
-    }
+  // The method can only be unloaded after the pointer to the installed code
+  // Java wrapper is no longer alive. Here we need to clear out this weak
+  // reference to the dead object.
+  if (_graal_installed_code != NULL) {
+    _graal_installed_code = NULL;
+  }
 #endif
 
   // Make the class unloaded - i.e., change state and notify sweeper
@@ -1394,18 +1396,17 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
       return false;
     }
 
-#ifdef GRAAL
-    if (_graal_installed_code != NULL) {
-      HotSpotInstalledCode::set_nmethod(_graal_installed_code, 0);
-      _graal_installed_code = NULL;
-    }
-#endif
-
     // The caller can be calling the method statically or through an inline
     // cache call.
     if (!is_osr_method() && !is_not_entrant()) {
-      NativeJump::patch_verified_entry(entry_point(), verified_entry_point(),
-                  SharedRuntime::get_handle_wrong_method_stub());
+      address stub = SharedRuntime::get_handle_wrong_method_stub();
+#ifdef GRAAL
+      if (_graal_installed_code != NULL && !HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+        // This was manually installed machine code. Patch entry with stub that throws an exception.
+        stub = SharedRuntime::get_deoptimized_installed_code_stub();
+      }
+#endif
+      NativeJump::patch_verified_entry(entry_point(), verified_entry_point(), stub);
     }
 
     if (is_in_use()) {

@@ -34,7 +34,9 @@ import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
-import com.oracle.graal.replacements.SnippetTemplate.*;
+import com.oracle.graal.replacements.SnippetTemplate.AbstractTemplates;
+import com.oracle.graal.replacements.SnippetTemplate.Arguments;
+import com.oracle.graal.replacements.SnippetTemplate.UsageReplacer;
 
 /**
  * Helper class for lowering {@link InstanceOfNode}s with snippets. The majority of the complexity
@@ -49,31 +51,16 @@ import com.oracle.graal.replacements.SnippetTemplate.*;
  * {@link IfNode}. This avoids materializing the instanceof test as a boolean which is then retested
  * by the {@link IfNode}.
  */
-public abstract class InstanceOfSnippetsTemplates<T extends Snippets> extends AbstractTemplates<T> {
+public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
 
-    public InstanceOfSnippetsTemplates(MetaAccessProvider runtime, Replacements replacements, TargetDescription target, Class<T> snippetsClass) {
-        super(runtime, replacements, target, snippetsClass);
+    public InstanceOfSnippetsTemplates(MetaAccessProvider runtime, Replacements replacements, TargetDescription target) {
+        super(runtime, replacements, target);
     }
 
     /**
-     * The key and arguments used to retrieve and instantiate an instanceof snippet template.
+     * Gets the arguments used to retrieve and instantiate an instanceof snippet template.
      */
-    public static class KeyAndArguments {
-
-        public final Key key;
-        public final Arguments arguments;
-
-        public KeyAndArguments(Key key, Arguments arguments) {
-            this.key = key;
-            this.arguments = arguments;
-        }
-
-    }
-
-    /**
-     * Gets the key and arguments used to retrieve and instantiate an instanceof snippet template.
-     */
-    protected abstract KeyAndArguments getKeyAndArguments(InstanceOfUsageReplacer replacer, LoweringTool tool);
+    protected abstract Arguments makeArguments(InstanceOfUsageReplacer replacer, LoweringTool tool);
 
     public void lower(FloatingNode instanceOf, LoweringTool tool) {
         assert instanceOf instanceof InstanceOfNode || instanceOf instanceof InstanceOfDynamicNode;
@@ -90,9 +77,8 @@ public abstract class InstanceOfSnippetsTemplates<T extends Snippets> extends Ab
                 // No need to re-instantiate the snippet - just re-use its result
                 replacer.replaceUsingInstantiation();
             } else {
-                KeyAndArguments keyAndArguments = getKeyAndArguments(replacer, tool);
-                SnippetTemplate template = cache.get(keyAndArguments.key);
-                template.instantiate(runtime, instanceOf, replacer, tool, keyAndArguments.arguments);
+                Arguments args = makeArguments(replacer, tool);
+                template(args).instantiate(runtime, instanceOf, replacer, tool, args);
             }
         }
 
@@ -105,11 +91,14 @@ public abstract class InstanceOfSnippetsTemplates<T extends Snippets> extends Ab
     /**
      * Gets the specific replacer object used to replace the usage of an instanceof node with the
      * result of an instantiated instanceof snippet.
+     * 
+     * @param nUsages
+     * @param tool
      */
     protected InstanceOfUsageReplacer createReplacer(FloatingNode instanceOf, LoweringTool tool, int nUsages, Instantiation instantiation, Node usage, final StructuredGraph graph) {
         InstanceOfUsageReplacer replacer;
         if (usage instanceof IfNode) {
-            replacer = new IfUsageReplacer(instantiation, ConstantNode.forInt(1, graph), ConstantNode.forInt(0, graph), instanceOf, (IfNode) usage, nUsages == 1, tool);
+            replacer = new IfUsageReplacer(instantiation, ConstantNode.forInt(1, graph), ConstantNode.forInt(0, graph), instanceOf, (IfNode) usage);
         } else {
             assert usage instanceof ConditionalNode : "unexpected usage of " + instanceOf + ": " + usage;
             ConditionalNode c = (ConditionalNode) usage;
@@ -204,14 +193,10 @@ public abstract class InstanceOfSnippetsTemplates<T extends Snippets> extends Ab
      */
     public static class IfUsageReplacer extends InstanceOfUsageReplacer {
 
-        private final boolean solitaryUsage;
         private final IfNode usage;
-        private final boolean sameBlock;
 
-        public IfUsageReplacer(Instantiation instantiation, ValueNode trueValue, ValueNode falseValue, FloatingNode instanceOf, IfNode usage, boolean solitaryUsage, LoweringTool tool) {
+        public IfUsageReplacer(Instantiation instantiation, ValueNode trueValue, ValueNode falseValue, FloatingNode instanceOf, IfNode usage) {
             super(instantiation, instanceOf, trueValue, falseValue);
-            this.sameBlock = tool.getBlockFor(usage) == tool.getBlockFor(instanceOf);
-            this.solitaryUsage = solitaryUsage;
             this.usage = usage;
         }
 
@@ -220,84 +205,13 @@ public abstract class InstanceOfSnippetsTemplates<T extends Snippets> extends Ab
             usage.replaceFirstInput(instanceOf, instantiation.asCondition(trueValue));
         }
 
-        private boolean usageFollowsInstantiation() {
-            return instantiation.result != null && instantiation.result.merge().next() == usage;
-        }
-
         @Override
         public void replace(ValueNode oldNode, ValueNode newNode) {
             assert newNode instanceof PhiNode;
             assert oldNode == instanceOf;
-            if (sameBlock && solitaryUsage && usageFollowsInstantiation()) {
-                removeIntermediateMaterialization(newNode);
-            } else {
-                newNode.inferStamp();
-                instantiation.initialize((PhiNode) newNode, trueValue, falseValue);
-                usage.replaceFirstInput(oldNode, instantiation.asCondition(trueValue));
-            }
-        }
-
-        /**
-         * Directly wires the incoming edges of the merge at the end of the snippet to the outgoing
-         * edges of the IfNode that uses the materialized result.
-         */
-        private void removeIntermediateMaterialization(ValueNode newNode) {
-            IfNode ifNode = usage;
-            PhiNode phi = (PhiNode) newNode;
-            MergeNode merge = phi.merge();
-            assert merge.stateAfter() == null;
-
-            List<EndNode> mergePredecessors = merge.cfgPredecessors().snapshot();
-            assert phi.valueCount() == mergePredecessors.size();
-
-            List<EndNode> falseEnds = new ArrayList<>(mergePredecessors.size());
-            List<EndNode> trueEnds = new ArrayList<>(mergePredecessors.size());
-
-            int endIndex = 0;
-            for (EndNode end : mergePredecessors) {
-                ValueNode endValue = phi.valueAt(endIndex++);
-                if (endValue == trueValue) {
-                    trueEnds.add(end);
-                } else {
-                    assert endValue == falseValue;
-                    falseEnds.add(end);
-                }
-            }
-
-            BeginNode trueSuccessor = ifNode.trueSuccessor();
-            BeginNode falseSuccessor = ifNode.falseSuccessor();
-            ifNode.setTrueSuccessor(null);
-            ifNode.setFalseSuccessor(null);
-
-            connectEnds(merge, trueEnds, trueSuccessor);
-            connectEnds(merge, falseEnds, falseSuccessor);
-
-            GraphUtil.killCFG(merge);
-            GraphUtil.killCFG(ifNode);
-
-            assert !merge.isAlive() : merge;
-            assert !phi.isAlive() : phi;
-        }
-
-        private static void connectEnds(MergeNode merge, List<EndNode> ends, BeginNode successor) {
-            if (ends.size() == 0) {
-                // InstanceOf has been lowered to always true or always false - this successor is
-                // therefore unreachable.
-                GraphUtil.killCFG(successor);
-            } else if (ends.size() == 1) {
-                EndNode end = ends.get(0);
-                ((FixedWithNextNode) end.predecessor()).setNext(successor);
-                merge.removeEnd(end);
-                GraphUtil.killCFG(end);
-            } else {
-                assert ends.size() > 1;
-                MergeNode newMerge = merge.graph().add(new MergeNode());
-
-                for (EndNode end : ends) {
-                    newMerge.addForwardEnd(end);
-                }
-                newMerge.setNext(successor);
-            }
+            newNode.inferStamp();
+            instantiation.initialize((PhiNode) newNode, trueValue, falseValue);
+            usage.replaceFirstInput(oldNode, instantiation.asCondition(trueValue));
         }
     }
 

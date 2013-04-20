@@ -38,38 +38,7 @@ import com.oracle.graal.api.runtime.*;
 @SupportedAnnotationTypes("com.oracle.graal.api.runtime.ServiceProvider")
 public class ServiceProviderProcessor extends AbstractProcessor {
 
-    private Map<String, Set<TypeElement>> serviceMap;
-
-    public ServiceProviderProcessor() {
-        serviceMap = new HashMap<>();
-    }
-
-    private void addProvider(String serviceName, TypeElement serviceProvider) {
-        Set<TypeElement> providers = serviceMap.get(serviceName);
-        if (providers == null) {
-            providers = new HashSet<>();
-            serviceMap.put(serviceName, providers);
-        }
-        providers.add(serviceProvider);
-    }
-
-    private void generateServicesFiles() {
-        Filer filer = processingEnv.getFiler();
-        for (Map.Entry<String, Set<TypeElement>> entry : serviceMap.entrySet()) {
-            String filename = "META-INF/services/" + entry.getKey();
-            TypeElement[] providers = entry.getValue().toArray(new TypeElement[0]);
-            try {
-                FileObject servicesFile = filer.createResource(StandardLocation.CLASS_OUTPUT, "", filename, providers);
-                PrintWriter writer = new PrintWriter(new OutputStreamWriter(servicesFile.openOutputStream(), "UTF-8"));
-                for (TypeElement provider : providers) {
-                    writer.println(provider.getQualifiedName());
-                }
-                writer.close();
-            } catch (IOException e) {
-                processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage());
-            }
-        }
-    }
+    private final Set<TypeElement> processed = new HashSet<>();
 
     private boolean verifyAnnotation(TypeMirror serviceInterface, TypeElement serviceProvider) {
         if (!processingEnv.getTypeUtils().isSubtype(serviceProvider.asType(), serviceInterface)) {
@@ -81,27 +50,49 @@ public class ServiceProviderProcessor extends AbstractProcessor {
         return true;
     }
 
+    private void processElement(TypeElement serviceProvider) {
+        if (processed.contains(serviceProvider)) {
+            return;
+        }
+
+        processed.add(serviceProvider);
+        ServiceProvider annotation = serviceProvider.getAnnotation(ServiceProvider.class);
+        if (annotation != null) {
+            try {
+                annotation.value();
+            } catch (MirroredTypeException ex) {
+                TypeMirror serviceInterface = ex.getTypeMirror();
+                if (verifyAnnotation(serviceInterface, serviceProvider)) {
+                    String interfaceName = ex.getTypeMirror().toString();
+                    createProviderFile(serviceProvider, interfaceName);
+                }
+            }
+        }
+    }
+
+    private void createProviderFile(TypeElement serviceProvider, String interfaceName) {
+        String filename = "META-INF/providers/" + serviceProvider.getQualifiedName();
+        try {
+            FileObject file = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "", filename, serviceProvider);
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(file.openOutputStream(), "UTF-8"));
+            writer.println(interfaceName);
+            writer.close();
+        } catch (IOException e) {
+            processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage(), serviceProvider);
+        }
+    }
+
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (roundEnv.processingOver()) {
-            generateServicesFiles();
             return true;
         }
 
         for (Element element : roundEnv.getElementsAnnotatedWith(ServiceProvider.class)) {
             assert element.getKind().isClass();
-            ServiceProvider annotation = element.getAnnotation(ServiceProvider.class);
-            try {
-                annotation.value();
-            } catch (MirroredTypeException ex) {
-                TypeMirror serviceInterface = ex.getTypeMirror();
-                TypeElement serviceProvider = (TypeElement) element;
-                if (verifyAnnotation(serviceInterface, serviceProvider)) {
-                    String interfaceName = ex.getTypeMirror().toString();
-                    addProvider(interfaceName, serviceProvider);
-                }
-            }
+            processElement((TypeElement) element);
         }
+
         return true;
     }
 }

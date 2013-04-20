@@ -110,6 +110,9 @@ void graal_compute_offsets();
   start_class(Assumptions_MethodContents)                                                                                                                      \
     oop_field(Assumptions_MethodContents, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")                                                            \
   end_class                                                                                                                                                    \
+  start_class(Assumptions_NoFinalizableSubclass)                                                                                                               \
+    oop_field(Assumptions_NoFinalizableSubclass, receiverType, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                 \
+  end_class                                                                                                                                                    \
   start_class(Assumptions_ConcreteSubtype)                                                                                                                     \
     oop_field(Assumptions_ConcreteSubtype, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                            \
     oop_field(Assumptions_ConcreteSubtype, subtype, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                            \
@@ -118,6 +121,10 @@ void graal_compute_offsets();
     oop_field(Assumptions_ConcreteMethod, method, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")                                                            \
     oop_field(Assumptions_ConcreteMethod, context, "Lcom/oracle/graal/api/meta/ResolvedJavaType;")                                                             \
     oop_field(Assumptions_ConcreteMethod, impl, "Lcom/oracle/graal/api/meta/ResolvedJavaMethod;")                                                              \
+  end_class                                                                                                                                                    \
+  start_class(Assumptions_CallSiteTargetValue)                                                                                                                 \
+    oop_field(Assumptions_CallSiteTargetValue, callSite, "Ljava/lang/invoke/CallSite;")                                                                        \
+    oop_field(Assumptions_CallSiteTargetValue, methodHandle, "Ljava/lang/invoke/MethodHandle;")                                                                \
   end_class                                                                                                                                                    \
   start_class(CompilationResult_Site)                                                                                                                          \
     int_field(CompilationResult_Site, pcOffset)                                                                                                                \
@@ -131,8 +138,18 @@ void graal_compute_offsets();
     int_field(CompilationResult_DataPatch, alignment)                                                                                                          \
     boolean_field(CompilationResult_DataPatch, inlined)                                                                                                        \
   end_class                                                                                                                                                    \
-  start_class(CompilationResult_Safepoint)                                                                                                                     \
-    oop_field(CompilationResult_Safepoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")                                                                 \
+  start_class(InfopointReason)                                                                                                                                 \
+    static_oop_field(InfopointReason, UNKNOWN, "Lcom/oracle/graal/api/code/InfopointReason;")                                                                  \
+    static_oop_field(InfopointReason, SAFEPOINT, "Lcom/oracle/graal/api/code/InfopointReason;")                                                                \
+    static_oop_field(InfopointReason, CALL, "Lcom/oracle/graal/api/code/InfopointReason;")                                                                     \
+    static_oop_field(InfopointReason, IMPLICIT_EXCEPTION, "Lcom/oracle/graal/api/code/InfopointReason;")                                                       \
+    static_oop_field(InfopointReason, METHOD_START, "Lcom/oracle/graal/api/code/InfopointReason;")                                                             \
+    static_oop_field(InfopointReason, METHOD_END, "Lcom/oracle/graal/api/code/InfopointReason;")                                                               \
+    static_oop_field(InfopointReason, LINE_NUMBER, "Lcom/oracle/graal/api/code/InfopointReason;")                                                              \
+  end_class                                                                                                                                                    \
+  start_class(CompilationResult_Infopoint)                                                                                                                     \
+    oop_field(CompilationResult_Infopoint, debugInfo, "Lcom/oracle/graal/api/code/DebugInfo;")                                                                 \
+    oop_field(CompilationResult_Infopoint, reason, "Lcom/oracle/graal/api/code/InfopointReason;")                                                              \
   end_class                                                                                                                                                    \
   start_class(CompilationResult_ExceptionHandler)                                                                                                              \
     int_field(CompilationResult_ExceptionHandler, handlerPos)                                                                                                  \
