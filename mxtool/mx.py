@@ -459,7 +459,11 @@ class Suite:
         self._load_env(mxDir)
         self._load_commands(mxDir)
         self._load_includes(mxDir)
+        self.name = d # re-initialized in _load_projects
 
+    def __str__(self):
+        return self.name
+    
     def _load_projects(self, mxDir):
         libsMap = dict()
         projsMap = dict()
@@ -475,8 +479,11 @@ class Suite:
 
                     parts = key.split('@')
 
-                    if len(parts) == 2:
-                        pass
+                    if len(parts) == 1:
+                        if parts[0] != 'suite':
+                            abort('Single part property must be "suite": ' + key)
+                        self.name = value
+                        continue
                     if len(parts) != 3:
                         abort('Property name does not have 3 parts separated by "@": ' + key)
                     kind, name, attr = parts
@@ -539,6 +546,9 @@ class Suite:
             d = Distribution(self, name, path, deps)
             d.__dict__.update(attrs)
             self.dists.append(d)
+            
+        if self.name is None:
+            abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _load_commands(self, mxDir):
         commands = join(mxDir, 'commands.py')
@@ -547,7 +557,8 @@ class Suite:
             sys.path.insert(0, mxDir)
             mod = __import__('commands')
             
-            sys.modules[join(mxDir, 'commands')] = sys.modules.pop('commands')
+            self.commands = sys.modules.pop('commands')
+            sys.modules[join(mxDir, 'commands')] = self.commands
 
             # revert the Python path
             del sys.path[0]
@@ -582,6 +593,7 @@ class Suite:
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
+        _suites[self.name] = self
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -702,6 +714,15 @@ def suites():
     Get the list of all loaded suites.
     """
     return _suites.values()
+
+def suite(name, fatalIfMissing=True):
+    """
+    Get the suite for a given name.
+    """
+    s = _suites.get(name)
+    if s is None and fatalIfMissing:
+        abort('suite named ' + name + ' not found')
+    return s
 
 def projects():
     """

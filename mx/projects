@@ -1,5 +1,7 @@
 # The format of this file is described in the documentation for my.py.
 
+suite=graal
+
 library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
 library@JDK_TOOLS@optional=true
 

@@ -143,7 +143,6 @@ public:
                        Dependencies*             dependencies,
                        CompileTask*              task,
                        int                       compile_id,
-                       bool                      has_debug_info,
                        bool                      has_unsafe_access,
                        GrowableArray<jlong>*     leaf_graph_ids,
                        Handle                    installed_code,
