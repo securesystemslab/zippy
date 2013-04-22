@@ -972,6 +972,18 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
+    case stub_printf_id: {
+      __ enter();
+      oop_maps = new OopMapSet();
+      OopMap* oop_map = save_live_registers(sasm, 4);
+      int call_offset = __ call_RT(noreg, noreg, (address)stub_printf, j_rarg0, j_rarg1, j_rarg2, j_rarg3);
+      oop_maps->add_gc_map(call_offset, oop_map);
+      restore_live_registers(sasm);
+      __ leave();
+      __ ret(0);
+      break;
+    }
+
     case log_primitive_id: {
       __ enter();
       oop_maps = new OopMapSet();
