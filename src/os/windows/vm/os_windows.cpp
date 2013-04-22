@@ -2179,7 +2179,7 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
       ctx->Rax = (DWORD64)min_jlong;     // result
     } else {
       ctx->Rip = (DWORD64)pc + 2;        // idiv reg, reg  is 2 bytes
-      ctx->Rax = (DWORD64)min_jint;      // result
+      ctx->Rax = (DWORD64)min_jlong;     // result
     }
     ctx->Rdx = (DWORD64)0;             // remainder
     // Continue the execution
