@@ -75,7 +75,7 @@ public abstract class ClassElementFactory<M> extends CodeElementFactory<M> {
             builder.string("this.");
             builder.string(fieldName);
             builder.string(" = ");
-            if (isAssignable(field.asType(), getContext().getTruffleTypes().getNode())) {
+            if (isAssignable(getContext(), field.asType(), getContext().getTruffleTypes().getNode())) {
                 builder.string("adoptChild(").string(fieldName).string(")");
             } else {
                 builder.string(fieldName);
@@ -99,7 +99,6 @@ public abstract class ClassElementFactory<M> extends CodeElementFactory<M> {
         if (element.getModifiers().contains(Modifier.PRIVATE)) {
             return null;
         }
-
         CodeExecutableElement executable = CodeExecutableElement.clone(getContext().getEnvironment(), element);
         executable.setReturnType(null);
         executable.setSimpleName(CodeNames.of(type.getSimpleName().toString()));

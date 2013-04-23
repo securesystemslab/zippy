@@ -29,88 +29,27 @@ import com.oracle.truffle.codegen.processor.template.*;
 
 public class NodeFieldData extends MessageContainer {
 
-    public enum FieldKind {
-        CHILD, CHILDREN, FIELD
-    }
+    private VariableElement variable;
 
-    public enum ExecutionKind {
-        DEFAULT, IGNORE, SHORT_CIRCUIT
-    }
-
-    private final VariableElement fieldElement;
-    private final Element accessElement;
-    private final AnnotationMirror childAnnotationMirror;
-
-    private final FieldKind fieldKind;
-    private final ExecutionKind executionKind;
-    private NodeData nodeData;
-
-    public NodeFieldData(VariableElement fieldElement, Element accessElement, AnnotationMirror childAnnotationMirror, FieldKind fieldKind, ExecutionKind executionKind) {
-        this.fieldElement = fieldElement;
-        this.accessElement = accessElement;
-        this.childAnnotationMirror = childAnnotationMirror;
-        this.fieldKind = fieldKind;
-        this.executionKind = executionKind;
-    }
-
-    NodeFieldData(NodeFieldData field) {
-        this.fieldElement = field.fieldElement;
-        this.accessElement = field.accessElement;
-        this.childAnnotationMirror = field.childAnnotationMirror;
-        this.fieldKind = field.fieldKind;
-        this.executionKind = field.executionKind;
-        this.nodeData = field.nodeData;
+    public NodeFieldData(VariableElement var) {
+        this.variable = var;
     }
 
     @Override
     public Element getMessageElement() {
-        return fieldElement;
-    }
-
-    public boolean isShortCircuit() {
-        return executionKind == ExecutionKind.SHORT_CIRCUIT;
-    }
-
-    void setNode(NodeData nodeData) {
-        this.nodeData = nodeData;
-        getMessages().addAll(nodeData.collectMessages());
-    }
-
-    public VariableElement getFieldElement() {
-        return fieldElement;
-    }
-
-    public Element getAccessElement() {
-        return accessElement;
-    }
-
-    public AnnotationMirror getChildAnnotationMirror() {
-        return childAnnotationMirror;
-    }
-
-    public TypeMirror getType() {
-        return fieldElement.asType();
-    }
-
-    public FieldKind getKind() {
-        return fieldKind;
-    }
-
-    public ExecutionKind getExecutionKind() {
-        return executionKind;
-    }
-
-    public NodeData getNodeData() {
-        return nodeData;
+        return variable;
     }
 
     public String getName() {
-        return fieldElement.getSimpleName().toString();
+        return variable.getSimpleName().toString();
     }
 
-    @Override
-    public String toString() {
-        return "NodeFieldData[name=" + getName() + ", kind=" + fieldKind + ", execution=" + executionKind + ", node=" + getNodeData() + "]";
+    public TypeMirror getType() {
+        return variable.asType();
+    }
+
+    public VariableElement getVariable() {
+        return variable;
     }
 
 }

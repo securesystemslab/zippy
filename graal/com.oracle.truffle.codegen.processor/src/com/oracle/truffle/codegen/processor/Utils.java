@@ -32,6 +32,7 @@ import javax.lang.model.type.*;
 import javax.lang.model.util.*;
 
 import com.oracle.truffle.codegen.processor.ast.*;
+import com.oracle.truffle.codegen.processor.ast.CodeTypeMirror.DeclaredCodeTypeMirror;
 import com.oracle.truffle.codegen.processor.compiler.*;
 
 /**
@@ -63,16 +64,19 @@ public class Utils {
         return types;
     }
 
+    public static DeclaredType getDeclaredType(TypeElement typeElem, TypeMirror... typeArgs) {
+        return new DeclaredCodeTypeMirror(typeElem, Arrays.asList(typeArgs));
+    }
+
     public static List<AnnotationMirror> collectAnnotations(ProcessorContext context, AnnotationMirror markerAnnotation, String elementName, Element element,
                     Class<? extends Annotation> annotationClass) {
-        List<AnnotationMirror> result = Utils.getAnnotationValueList(AnnotationMirror.class, markerAnnotation, elementName);
+        List<AnnotationMirror> result = new ArrayList<>();
+        if (markerAnnotation != null) {
+            result.addAll(Utils.getAnnotationValueList(AnnotationMirror.class, markerAnnotation, elementName));
+        }
         AnnotationMirror explicit = Utils.findAnnotationMirror(context.getEnvironment(), element, annotationClass);
         if (explicit != null) {
             result.add(explicit);
-        }
-
-        for (AnnotationMirror mirror : result) {
-            assert Utils.typeEquals(mirror.getAnnotationType(), context.getType(annotationClass));
         }
         return result;
     }
@@ -141,33 +145,100 @@ public class Utils {
         }
     }
 
-    /**
-     * True if t1 is assignable to t2.
-     */
-    public static boolean isAssignable(TypeMirror t1, TypeMirror t2) {
-        if (typeEquals(t1, t2)) {
+    public static boolean isAssignable(ProcessorContext context, TypeMirror from, TypeMirror to) {
+        if (!(from instanceof CodeTypeMirror) && !(to instanceof CodeTypeMirror)) {
+            return context.getEnvironment().getTypeUtils().isAssignable(context.reloadType(from), context.reloadType(to));
+        } else {
+            return isAssignableImpl(context, from, to);
+        }
+    }
+
+    private static boolean isAssignableImpl(ProcessorContext context, TypeMirror from, TypeMirror to) {
+        // JLS 5.1.1 identity conversion
+        if (Utils.typeEquals(from, to)) {
             return true;
         }
-        if (isPrimitive(t1) || isPrimitive(t2)) {
-            // non-equal primitive types
+
+        // JLS 5.1.2 widening primitives
+        if (Utils.isPrimitive(from) && Utils.isPrimitive(to)) {
+            TypeKind fromKind = from.getKind();
+            TypeKind toKind = to.getKind();
+            switch (fromKind) {
+                case BYTE:
+                    switch (toKind) {
+                        case SHORT:
+                        case INT:
+                        case LONG:
+                        case FLOAT:
+                        case DOUBLE:
+                            return true;
+                    }
+                    break;
+                case SHORT:
+                    switch (toKind) {
+                        case INT:
+                        case LONG:
+                        case FLOAT:
+                        case DOUBLE:
+                            return true;
+                    }
+                    break;
+                case CHAR:
+                    switch (toKind) {
+                        case INT:
+                        case LONG:
+                        case FLOAT:
+                        case DOUBLE:
+                            return true;
+                    }
+                    break;
+                case INT:
+                    switch (toKind) {
+                        case LONG:
+                        case FLOAT:
+                        case DOUBLE:
+                            return true;
+                    }
+                    break;
+                case LONG:
+                    switch (toKind) {
+                        case FLOAT:
+                        case DOUBLE:
+                            return true;
+                    }
+                    break;
+                case FLOAT:
+                    switch (toKind) {
+                        case DOUBLE:
+                            return true;
+                    }
+                    break;
+
+            }
+            return false;
+        } else if (Utils.isPrimitive(from) || Utils.isPrimitive(to)) {
             return false;
         }
-        if (t1 instanceof ArrayType && t2 instanceof ArrayType) {
-            return isAssignable(((ArrayType) t1).getComponentType(), ((ArrayType) t2).getComponentType());
+
+        if (from instanceof ArrayType && to instanceof ArrayType) {
+            return isAssignable(context, ((ArrayType) from).getComponentType(), ((ArrayType) to).getComponentType());
         }
 
-        TypeElement e1 = fromTypeMirror(t1);
-        TypeElement e2 = fromTypeMirror(t2);
-        if (e1 == null || e2 == null) {
+        TypeElement fromType = Utils.fromTypeMirror(from);
+        TypeElement toType = Utils.fromTypeMirror(to);
+        if (fromType == null || toType == null) {
             return false;
         }
+        // JLS 5.1.6 narrowing reference conversion
 
-        List<TypeElement> superTypes = getSuperTypes(e1);
+        List<TypeElement> superTypes = Utils.getSuperTypes(fromType);
         for (TypeElement superType : superTypes) {
-            if (typeEquals(superType.asType(), t2)) {
+            if (Utils.typeEquals(superType.asType(), to)) {
                 return true;
             }
         }
+
+        // TODO more spec
         return false;
     }
 
@@ -210,6 +281,8 @@ public class Utils {
                 return b.toString();
             case TYPEVAR:
                 return "Any";
+            case ERROR:
+                throw new CompileErrorException("Type error " + mirror);
             default:
                 throw new RuntimeException("Unknown type specified " + mirror.getKind() + " mirror: " + mirror);
         }
@@ -247,6 +320,8 @@ public class Utils {
                 return getWildcardName((WildcardType) mirror);
             case TYPEVAR:
                 return "?";
+            case ERROR:
+                throw new CompileErrorException("Type error " + mirror);
             default:
                 throw new RuntimeException("Unknown type specified " + mirror.getKind() + " mirror: " + mirror);
         }
@@ -313,6 +388,10 @@ public class Utils {
                 return "void";
             case TYPEVAR:
                 return getSimpleName(mirror);
+            case ERROR:
+                throw new CompileErrorException("Type error " + mirror);
+            case NONE:
+                return "$none";
             default:
                 throw new RuntimeException("Unknown type specified " + mirror + " mirror: " + mirror);
         }
@@ -324,6 +403,10 @@ public class Utils {
 
     public static boolean isPrimitive(TypeMirror mirror) {
         return mirror.getKind().isPrimitive();
+    }
+
+    public static boolean isPrimitiveOrVoid(TypeMirror mirror) {
+        return isPrimitive(mirror) || isVoid(mirror);
     }
 
     public static List<String> getQualifiedSuperTypeNames(TypeElement element) {
@@ -361,7 +444,7 @@ public class Utils {
         return null;
     }
 
-    private static List<Element> getElementHierarchy(Element e) {
+    public static List<Element> getElementHierarchy(Element e) {
         List<Element> elements = new ArrayList<>();
         elements.add(e);
 
@@ -579,7 +662,7 @@ public class Utils {
 
         @Override
         public Object visitEnumConstant(VariableElement c, Void p) {
-            return c.getConstantValue();
+            return c;
         }
 
         @Override
@@ -762,11 +845,7 @@ public class Utils {
 
     public static Modifier getVisibility(Set<Modifier> modifier) {
         for (Modifier mod : modifier) {
-            if (mod == Modifier.PUBLIC) {
-                return mod;
-            } else if (mod == Modifier.PRIVATE) {
-                return mod;
-            } else if (mod == Modifier.PROTECTED) {
+            if (mod == Modifier.PUBLIC || mod == Modifier.PRIVATE || mod == Modifier.PROTECTED) {
                 return mod;
             }
         }
@@ -803,4 +882,20 @@ public class Utils {
         return getQualifiedName(actualType).equals("java.lang.Object");
     }
 
+    public static boolean isFieldAccessible(Element element, VariableElement variable) {
+        TypeElement type = Utils.findNearestEnclosingType(element);
+        TypeElement varType = Utils.findNearestEnclosingType(variable);
+
+        while (type != null) {
+            if (typeEquals(type.asType(), varType.asType())) {
+                return true;
+            }
+            if (type.getSuperclass() != null) {
+                type = Utils.fromTypeMirror(type.getSuperclass());
+            } else {
+                type = null;
+            }
+        }
+        return false;
+    }
 }

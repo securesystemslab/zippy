@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,11 +20,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes;
+package com.oracle.truffle.codegen.processor;
 
-import com.oracle.truffle.api.codegen.*;
+public class CompileErrorException extends RuntimeException {
 
-@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
-public abstract class BinaryNode extends TypedNode {
+    private static final long serialVersionUID = 1L;
+
+    public CompileErrorException(String message) {
+        super(message);
+    }
 
 }

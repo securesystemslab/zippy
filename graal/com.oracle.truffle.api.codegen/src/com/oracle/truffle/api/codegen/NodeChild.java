@@ -20,11 +20,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes;
+package com.oracle.truffle.api.codegen;
 
-import com.oracle.truffle.api.codegen.*;
+import java.lang.annotation.*;
 
-@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
-public abstract class BinaryNode extends TypedNode {
+@Retention(RetentionPolicy.CLASS)
+@Target({ElementType.TYPE})
+public @interface NodeChild {
 
+    String value() default "";
+
+    Class<?> type() default NodeClass.InheritNode.class;
+
+    String[] executeWith() default {};
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,11 +20,41 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes;
+package com.oracle.truffle.codegen.processor.ast;
 
-import com.oracle.truffle.api.codegen.*;
+public class CodeTreeVariable extends CodeTree {
 
-@NodeChildren({@NodeChild("leftNode"), @NodeChild("rightNode")})
-public abstract class BinaryNode extends TypedNode {
+    private final String name;
+
+    private CodeTree value;
+
+    public CodeTreeVariable() {
+        super(CodeTreeKind.GROUP, null, null);
+        this.name = "";
+    }
+
+    public CodeTreeVariable(String name) {
+        super(CodeTreeKind.GROUP, null, null);
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void set(CodeTree tree) {
+        if (value == tree) {
+            return;
+        }
+        if (this.value != null) {
+            remove(this.value);
+        }
+        this.value = tree;
+        add(tree);
+    }
+
+    public CodeTree get() {
+        return value;
+    }
 
 }

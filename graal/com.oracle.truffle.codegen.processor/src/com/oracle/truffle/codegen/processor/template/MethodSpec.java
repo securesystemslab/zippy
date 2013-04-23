@@ -27,7 +27,7 @@ import java.util.*;
 import javax.lang.model.type.*;
 
 import com.oracle.truffle.codegen.processor.*;
-import com.oracle.truffle.codegen.processor.template.ParameterSpec.Cardinality;
+import com.oracle.truffle.codegen.processor.node.NodeChildData.Cardinality;
 
 public class MethodSpec {
 
@@ -60,8 +60,9 @@ public class MethodSpec {
         optional.add(spec);
     }
 
-    public void addRequired(ParameterSpec spec) {
+    public ParameterSpec addRequired(ParameterSpec spec) {
         required.add(spec);
+        return spec;
     }
 
     public List<TypeMirror> getImplicitRequiredTypes() {
@@ -78,10 +79,6 @@ public class MethodSpec {
 
     public List<ParameterSpec> getOptional() {
         return optional;
-    }
-
-    public void makeTypeDefinitions() {
-
     }
 
     public List<ParameterSpec> getAll() {
@@ -154,11 +151,11 @@ public class MethodSpec {
 
         for (ParameterSpec requiredSpec : getRequired()) {
             b.append(sep);
-            if (requiredSpec.getCardinality() == Cardinality.MULTIPLE) {
+            if (requiredSpec.getCardinality() == Cardinality.MANY) {
                 b.append("{");
             }
             b.append(createTypeSignature(requiredSpec, false));
-            if (requiredSpec.getCardinality() == Cardinality.MULTIPLE) {
+            if (requiredSpec.getCardinality() == Cardinality.MANY) {
                 b.append("}");
             }
             sep = ", ";
