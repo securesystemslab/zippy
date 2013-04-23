@@ -20,40 +20,27 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes;
+package com.oracle.graal.nodes.util;
 
-import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import java.util.*;
 
-public final class SerialWriteBarrier extends FixedWithNextNode implements Lowerable, Node.IterableNodeType {
+import com.oracle.graal.nodes.*;
 
-    @Input private ValueNode object;
-    @Input private LocationNode location;
-    private final boolean precise;
+public class NodesToDoubles {
 
-    public ValueNode getObject() {
-        return object;
+    private final IdentityHashMap<FixedNode, Double> nodeProbabilities;
+
+    public NodesToDoubles(int numberOfNodes) {
+        this.nodeProbabilities = new IdentityHashMap<>(numberOfNodes);
     }
 
-    public LocationNode getLocation() {
-        return location;
+    public void put(FixedNode n, double value) {
+        nodeProbabilities.put(n, value);
     }
 
-    public boolean usePrecise() {
-        return precise;
-    }
-
-    public SerialWriteBarrier(ValueNode object, LocationNode location, boolean precise) {
-        super(StampFactory.forVoid());
-        this.object = object;
-        this.location = location;
-        this.precise = precise;
-    }
-
-    @Override
-    public void lower(LoweringTool generator) {
-        generator.getRuntime().lower(this, generator);
+    public double get(FixedNode n) {
+        Double value = nodeProbabilities.get(n);
+        assert value != null;
+        return value;
     }
 }
