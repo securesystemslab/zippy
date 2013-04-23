@@ -20,33 +20,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.phases.tiers;
+package com.oracle.graal.compiler.phases;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
+import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 
-public class PhaseContext {
+public class LowTier extends PhaseSuite<LowTierContext> {
 
-    private final MetaAccessProvider runtime;
-    private final Assumptions assumptions;
-    private final Replacements replacements;
+    public LowTier() {
+        addPhase(new LoweringPhase(LoweringType.AFTER_GUARDS));
 
-    public PhaseContext(MetaAccessProvider runtime, Assumptions assumptions, Replacements replacements) {
-        this.runtime = runtime;
-        this.assumptions = assumptions;
-        this.replacements = replacements;
-    }
+        addPhase(new FrameStateAssignmentPhase());
 
-    public MetaAccessProvider getRuntime() {
-        return runtime;
-    }
-
-    public Assumptions getAssumptions() {
-        return assumptions;
-    }
-
-    public Replacements getReplacements() {
-        return replacements;
+        addPhase(new DeadCodeEliminationPhase());
     }
 }

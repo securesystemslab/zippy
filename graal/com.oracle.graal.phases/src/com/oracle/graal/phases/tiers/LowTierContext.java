@@ -26,27 +26,16 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.spi.*;
 
-public class PhaseContext {
+public class LowTierContext extends PhaseContext {
 
-    private final MetaAccessProvider runtime;
-    private final Assumptions assumptions;
-    private final Replacements replacements;
+    private final TargetDescription target;
 
-    public PhaseContext(MetaAccessProvider runtime, Assumptions assumptions, Replacements replacements) {
-        this.runtime = runtime;
-        this.assumptions = assumptions;
-        this.replacements = replacements;
+    public LowTierContext(MetaAccessProvider runtime, Assumptions assumptions, Replacements replacements, TargetDescription target) {
+        super(runtime, assumptions, replacements);
+        this.target = target;
     }
 
-    public MetaAccessProvider getRuntime() {
-        return runtime;
-    }
-
-    public Assumptions getAssumptions() {
-        return assumptions;
-    }
-
-    public Replacements getReplacements() {
-        return replacements;
+    public TargetDescription getTarget() {
+        return target;
     }
 }

@@ -980,11 +980,14 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     for arg in args:
         assert isinstance(arg, types.StringTypes), 'argument is not a string: ' + str(arg)
 
+    if env is None:
+        env = os.environ
+        
     if _opts.verbose:
         if _opts.very_verbose:
             log('Environment variables:')
-            for key in sorted(os.environ.keys()):
-                log('    ' + key + '=' + os.environ[key])
+            for key in sorted(env.keys()):
+                log('    ' + key + '=' + env[key])
         log(' '.join(args))
 
     if timeout is None and _opts.ptimeout != 0:
