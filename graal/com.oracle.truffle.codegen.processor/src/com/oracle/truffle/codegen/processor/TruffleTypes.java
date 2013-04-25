@@ -28,8 +28,8 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 import javax.tools.Diagnostic.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.intrinsics.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.nodes.Node.Children;
@@ -43,10 +43,11 @@ public final class TruffleTypes {
     private final TypeMirror nodeArray;
     private final TypeMirror unexpectedValueException;
     private final TypeMirror frame;
+    private final TypeMirror assumption;
+    private final TypeMirror invalidAssumption;
     private final DeclaredType childAnnotation;
     private final DeclaredType childrenAnnotation;
-    private final TypeMirror typeConversion;
-    private final TypeMirror truffleIntrinsics;
+    private final TypeMirror compilerDirectives;
 
     private final List<String> errors = new ArrayList<>();
 
@@ -57,8 +58,9 @@ public final class TruffleTypes {
         frame = getRequired(context, VirtualFrame.class);
         childAnnotation = getRequired(context, Child.class);
         childrenAnnotation = getRequired(context, Children.class);
-        typeConversion = getRequired(context, TypeConversion.class);
-        truffleIntrinsics = getRequired(context, TruffleIntrinsics.class);
+        compilerDirectives = getRequired(context, CompilerDirectives.class);
+        assumption = getRequired(context, Assumption.class);
+        invalidAssumption = getRequired(context, InvalidAssumptionException.class);
     }
 
     public boolean verify(ProcessorContext context, Element element, AnnotationMirror mirror) {
@@ -81,12 +83,16 @@ public final class TruffleTypes {
         return (DeclaredType) type;
     }
 
-    public TypeMirror getTruffleIntrinsics() {
-        return truffleIntrinsics;
+    public TypeMirror getInvalidAssumption() {
+        return invalidAssumption;
     }
 
-    public TypeMirror getTypeConversion() {
-        return typeConversion;
+    public TypeMirror getAssumption() {
+        return assumption;
+    }
+
+    public TypeMirror getCompilerDirectives() {
+        return compilerDirectives;
     }
 
     public TypeMirror getNode() {

@@ -310,7 +310,7 @@ public class NodeParser extends TemplateParser<NodeData> {
             GenericParser parser = new GenericParser(context, node);
             MethodSpec specification = parser.createDefaultMethodSpec(specialization.getMethod(), null, true, null);
 
-            ExecutableTypeData anyGenericReturnType = node.findAnyGenericExecutableType(context);
+            ExecutableTypeData anyGenericReturnType = node.findAnyGenericExecutableType(context, 0);
             assert anyGenericReturnType != null;
 
             ActualParameter returnType = new ActualParameter(specification.getReturnType(), anyGenericReturnType.getType(), 0, false);
@@ -322,7 +322,7 @@ public class NodeParser extends TemplateParser<NodeData> {
                 if (child == null) {
                     actualType = specializationParameter.getTypeSystemType();
                 } else {
-                    ExecutableTypeData paramType = child.getNodeData().findAnyGenericExecutableType(context);
+                    ExecutableTypeData paramType = child.findAnyGenericExecutableType(context);
                     assert paramType != null;
                     actualType = paramType.getType();
                 }
@@ -562,15 +562,30 @@ public class NodeParser extends TemplateParser<NodeData> {
             splitByMethodName = Utils.getAnnotationValue(Boolean.class, nodeClass, "splitByMethodName");
         }
 
+        List<String> assumptionsList = new ArrayList<>();
+
+        for (int i = lookupTypes.size() - 1; i >= 0; i--) {
+            TypeElement type = lookupTypes.get(i);
+            AnnotationMirror assumptions = Utils.findAnnotationMirror(context.getEnvironment(), type, NodeAssumptions.class);
+            if (assumptions != null) {
+                List<String> assumptionStrings = Utils.getAnnotationValueList(String.class, assumptions, "value");
+                for (String string : assumptionStrings) {
+                    if (assumptionsList.contains(string)) {
+                        assumptionsList.remove(string);
+                    }
+                    assumptionsList.add(string);
+                }
+            }
+        }
+        nodeData.setAssumptions(new ArrayList<>(assumptionsList));
         nodeData.setNodeType(nodeType);
         nodeData.setSplitByMethodName(splitByMethodName);
         nodeData.setTypeSystem(typeSystem);
         nodeData.setFields(parseFields(elements));
-        nodeData.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, nodeData).parse(elements)));
         parsedNodes.put(Utils.getQualifiedName(templateType), nodeData);
-
         // parseChildren invokes cyclic parsing.
-        nodeData.setChildren(parseChildren(templateType, elements, lookupTypes));
+        nodeData.setChildren(parseChildren(elements, lookupTypes));
+        nodeData.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, nodeData).parse(elements)));
 
         return nodeData;
     }
@@ -707,7 +722,7 @@ public class NodeParser extends TemplateParser<NodeData> {
         return fields;
     }
 
-    private List<NodeChildData> parseChildren(TypeElement templateType, List<? extends Element> elements, final List<TypeElement> typeHierarchy) {
+    private List<NodeChildData> parseChildren(List<? extends Element> elements, final List<TypeElement> typeHierarchy) {
         Set<String> shortCircuits = new HashSet<>();
         for (ExecutableElement method : ElementFilter.methodsIn(elements)) {
             AnnotationMirror mirror = Utils.findAnnotationMirror(processingEnv, method, ShortCircuit.class);
@@ -750,7 +765,7 @@ public class NodeParser extends TemplateParser<NodeData> {
                     kind = ExecutionKind.SHORT_CIRCUIT;
                 }
 
-                NodeChildData nodeChild = new NodeChildData(templateType, childMirror, name, childType, getter, cardinality, kind);
+                NodeChildData nodeChild = new NodeChildData(type, childMirror, name, childType, getter, cardinality, kind);
 
                 parsedChildren.add(nodeChild);
 
@@ -763,8 +778,6 @@ public class NodeParser extends TemplateParser<NodeData> {
                 nodeChild.setNode(fieldNodeData);
                 if (fieldNodeData == null) {
                     nodeChild.addError("Node type '%s' is invalid or not a valid Node.", Utils.getQualifiedName(childType));
-                } else if (fieldNodeData.findGenericExecutableTypes(context).isEmpty()) {
-                    nodeChild.addError("No executable generic types found for node '%s'.", Utils.getQualifiedName(type));
                 }
             }
         }
@@ -778,6 +791,53 @@ public class NodeParser extends TemplateParser<NodeData> {
                 encounteredNames.add(child.getName());
             }
         }
+
+        for (NodeChildData child : filteredChildren) {
+            List<String> executeWithStrings = Utils.getAnnotationValueList(String.class, child.getMessageAnnotation(), "executeWith");
+            AnnotationValue executeWithValue = Utils.getAnnotationValue(child.getMessageAnnotation(), "executeWith");
+            List<NodeChildData> executeWith = new ArrayList<>();
+            for (String executeWithString : executeWithStrings) {
+
+                if (child.getName().equals(executeWithString)) {
+                    child.addError(executeWithValue, "The child node '%s' cannot be executed with itself.", executeWithString);
+                    continue;
+                }
+
+                NodeChildData found = null;
+                boolean before = true;
+                for (NodeChildData resolveChild : filteredChildren) {
+                    if (resolveChild == child) {
+                        before = false;
+                        continue;
+                    }
+                    if (resolveChild.getName().equals(executeWithString)) {
+                        found = resolveChild;
+                        break;
+                    }
+                }
+
+                if (found == null) {
+                    child.addError(executeWithValue, "The child node '%s' cannot be executed with '%s'. The child node was not found.", child.getName(), executeWithString);
+                    continue;
+                } else if (!before) {
+                    child.addError(executeWithValue, "The child node '%s' cannot be executed with '%s'. The node %s is executed after the current node.", child.getName(), executeWithString,
+                                    executeWithString);
+                    continue;
+                }
+                executeWith.add(found);
+            }
+            child.setExecuteWith(executeWith);
+            if (child.getNodeData() == null) {
+                continue;
+            }
+
+            List<ExecutableTypeData> types = child.findGenericExecutableTypes(context);
+            if (types.isEmpty()) {
+                child.addError(executeWithValue, "No generic execute method found with %s evaluated arguments for node type %s.", executeWith.size(), Utils.getSimpleName(child.getNodeType()));
+                continue;
+            }
+        }
+
         return filteredChildren;
     }
 
@@ -915,7 +975,7 @@ public class NodeParser extends TemplateParser<NodeData> {
                 continue;
             }
             ExecutableTypeData found = null;
-            List<ExecutableTypeData> executableElements = field.getNodeData().findGenericExecutableTypes(context);
+            List<ExecutableTypeData> executableElements = field.findGenericExecutableTypes(context);
             for (ExecutableTypeData executable : executableElements) {
                 if (executable.getType().equalsType(parameter.getTypeSystemType())) {
                     found = executable;

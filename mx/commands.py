@@ -812,6 +812,7 @@ def _unittest(args, annotations):
     testfile = os.environ.get('MX_TESTFILE', None)
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
+        os.close(_)
 
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):

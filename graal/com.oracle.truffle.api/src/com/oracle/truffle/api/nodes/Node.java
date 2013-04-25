@@ -25,6 +25,8 @@ package com.oracle.truffle.api.nodes;
 import java.lang.annotation.*;
 import java.util.*;
 
+import com.oracle.truffle.api.*;
+
 /**
  * Abstract base class for all Truffle nodes.
  */
@@ -36,6 +38,8 @@ public abstract class Node implements Cloneable {
     public static final Node[] EMPTY_ARRAY = new Node[0];
 
     private Node parent;
+
+    private SourceSection sourceSection;
 
     /**
      * Marks array fields that are children of this node.
@@ -51,6 +55,34 @@ public abstract class Node implements Cloneable {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.FIELD})
     public @interface Child {
+    }
+
+    /**
+     * Assigns a link to a guest language source section to this node.
+     * 
+     * @param section the object representing a section in guest language source code
+     */
+    public final void assignSourceSection(SourceSection section) {
+        if (sourceSection != null) {
+            throw new IllegalStateException("Source section is already assigned.");
+        }
+        this.sourceSection = section;
+    }
+
+    /**
+     * Clears any previously assigned guest language source code from this node.
+     */
+    public final void clearSourceSection() {
+        this.sourceSection = null;
+    }
+
+    /**
+     * Retrieves the guest language source code section that is currently assigned to this node.
+     * 
+     * @return the assigned source code section
+     */
+    public final SourceSection getSourceSection() {
+        return sourceSection;
     }
 
     /**
@@ -103,38 +135,37 @@ public abstract class Node implements Cloneable {
     }
 
     /**
-     * Replaces one child of this node with another node.
-     * 
-     * @param oldChild the old child
-     * @param newChild the new child that should replace the old child
-     * @return the new child
-     */
-    public final <T extends Node> T replaceChild(T oldChild, T newChild) {
-        NodeUtil.replaceChild(this, oldChild, newChild);
-        adoptChild(newChild);
-        return newChild;
-    }
-
-    /**
-     * Replaces this node with another node.
+     * Replaces this node with another node. If there is a source section (see
+     * {@link #getSourceSection()}) associated with this node, it is transferred to the new node.
      * 
      * @param newNode the new node that is the replacement
      * @param reason a description of the reason for the replacement
      * @return the new node
      */
     @SuppressWarnings({"unchecked"})
-    public <T extends Node> T replace(T newNode, String reason) {
+    public final <T extends Node> T replace(T newNode, String reason) {
         assert this.getParent() != null;
+        if (sourceSection != null) {
+            // Pass on the source section to the new node.
+            newNode.assignSourceSection(sourceSection);
+        }
         return (T) this.getParent().replaceChild(this, newNode);
     }
 
+    private <T extends Node> T replaceChild(T oldChild, T newChild) {
+        NodeUtil.replaceChild(this, oldChild, newChild);
+        adoptChild(newChild);
+        return newChild;
+    }
+
     /**
-     * Replaces this node with another node.
+     * Replaces this node with another node. If there is a source section (see
+     * {@link #getSourceSection()}) associated with this node, it is transferred to the new node.
      * 
      * @param newNode the new node that is the replacement
      * @return the new node
      */
-    public <T extends Node> T replace(T newNode) {
+    public final <T extends Node> T replace(T newNode) {
         return replace(newNode, "");
     }
 

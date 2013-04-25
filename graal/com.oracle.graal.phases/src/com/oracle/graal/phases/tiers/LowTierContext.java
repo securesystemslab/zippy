@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.frame;
+package com.oracle.graal.phases.tiers;
 
-/**
- * Default type conversion semantics where a conversion is without changing any data.
- */
-public final class DefaultTypeConversion implements TypeConversion {
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.nodes.spi.*;
 
-    private static DefaultTypeConversion instance = new DefaultTypeConversion();
+public class LowTierContext extends PhaseContext {
 
-    public static TypeConversion getInstance() {
-        return instance;
+    private final TargetDescription target;
+
+    public LowTierContext(MetaAccessProvider runtime, Assumptions assumptions, Replacements replacements, TargetDescription target) {
+        super(runtime, assumptions, replacements);
+        this.target = target;
     }
 
-    private DefaultTypeConversion() {
-
-    }
-
-    @Override
-    public Class<?> getTopType() {
-        return Object.class;
-    }
-
-    @Override
-    public Object convertTo(Class<?> targetType, Object value) {
-        return value;
+    public TargetDescription getTarget() {
+        return target;
     }
 }

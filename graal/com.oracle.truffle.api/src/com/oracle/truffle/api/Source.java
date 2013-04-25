@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,22 +20,25 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.frame;
+package com.oracle.truffle.api;
 
 /**
- * Represents a specific version of a frame.
+ * Represents the source code of a guest language program.
  */
-public interface FrameVersion {
+public interface Source {
 
-    FrameVersion getNext();
+    /**
+     * Returns the name of this resource holding a guest language program. An example would be the
+     * name of a guest language source code file.
+     * 
+     * @return the name of the guest language program
+     */
+    String getName();
 
-    public interface Resize {
-
-        int getNewSize();
-    }
-
-    public interface TypeChange {
-
-        void applyTransformation(Frame frame);
-    }
+    /**
+     * Returns the guest language source code represented by this source object.
+     * 
+     * @return the source code as a String object
+     */
+    String getCode();
 }

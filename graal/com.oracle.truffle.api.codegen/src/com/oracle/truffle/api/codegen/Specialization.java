@@ -36,4 +36,11 @@ public @interface Specialization {
 
     String[] guards() default {};
 
+    /**
+     * Defines the assumptions to check for this specialization. When the specialization method is
+     * invoked it is guaranteed that the assigned assumptions still hold. To declare assumptions use
+     * the {@link NodeAssumptions} annotation at class level.
+     */
+    String[] assumptions() default {};
+
 }

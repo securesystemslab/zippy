@@ -49,6 +49,7 @@ public class NodeData extends Template {
     private List<SpecializationListenerData> specializationListeners;
     private Map<Integer, List<ExecutableTypeData>> executableTypes;
     private List<ShortCircuitData> shortCircuits;
+    private List<String> assumptions;
 
     public NodeData(TypeElement type, String id) {
         super(type, null, null);
@@ -68,6 +69,7 @@ public class NodeData extends Template {
         this.shortCircuits = splitSource.shortCircuits;
         this.fields = splitSource.fields;
         this.children = splitSource.children;
+        this.assumptions = splitSource.assumptions;
     }
 
     public boolean isSplitByMethodName() {
@@ -143,6 +145,14 @@ public class NodeData extends Template {
         return getTemplateType().asType();
     }
 
+    void setAssumptions(List<String> assumptions) {
+        this.assumptions = assumptions;
+    }
+
+    public List<String> getAssumptions() {
+        return assumptions;
+    }
+
     public boolean needsFactory() {
         if (specializations == null) {
             return false;
@@ -214,8 +224,8 @@ public class NodeData extends Template {
         return methods;
     }
 
-    public ExecutableTypeData findGenericExecutableType(ProcessorContext context, TypeData type) {
-        List<ExecutableTypeData> types = findGenericExecutableTypes(context);
+    public ExecutableTypeData findGenericExecutableType(ProcessorContext context, TypeData type, int evaluatedCount) {
+        List<ExecutableTypeData> types = findGenericExecutableTypes(context, evaluatedCount);
         for (ExecutableTypeData availableType : types) {
             if (Utils.typeEquals(availableType.getType().getBoxedType(), type.getBoxedType())) {
                 return availableType;
@@ -224,8 +234,8 @@ public class NodeData extends Template {
         return null;
     }
 
-    public ExecutableTypeData findAnyGenericExecutableType(ProcessorContext context) {
-        List<ExecutableTypeData> types = findGenericExecutableTypes(context);
+    public ExecutableTypeData findAnyGenericExecutableType(ProcessorContext context, int evaluatedCount) {
+        List<ExecutableTypeData> types = findGenericExecutableTypes(context, evaluatedCount);
         for (ExecutableTypeData type : types) {
             if (type.getType().isGeneric()) {
                 return type;
@@ -241,6 +251,9 @@ public class NodeData extends Template {
     }
 
     public List<ExecutableTypeData> getExecutableTypes(int evaluatedCount) {
+        if (executableTypes == null) {
+            return Collections.emptyList();
+        }
         if (evaluatedCount == -1) {
             List<ExecutableTypeData> typeData = new ArrayList<>();
             for (int currentEvaluationCount : executableTypes.keySet()) {
@@ -248,13 +261,17 @@ public class NodeData extends Template {
             }
             return typeData;
         } else {
-            return executableTypes.get(evaluatedCount);
+            List<ExecutableTypeData> types = executableTypes.get(evaluatedCount);
+            if (types == null) {
+                return Collections.emptyList();
+            }
+            return types;
         }
     }
 
-    public List<ExecutableTypeData> findGenericExecutableTypes(ProcessorContext context) {
+    public List<ExecutableTypeData> findGenericExecutableTypes(ProcessorContext context, int evaluatedCount) {
         List<ExecutableTypeData> types = new ArrayList<>();
-        for (ExecutableTypeData type : getExecutableTypes(0)) {
+        for (ExecutableTypeData type : getExecutableTypes(evaluatedCount)) {
             if (!type.hasUnexpectedValue(context)) {
                 types.add(type);
             }
@@ -262,8 +279,8 @@ public class NodeData extends Template {
         return types;
     }
 
-    public ExecutableTypeData findExecutableType(TypeData prmitiveType) {
-        for (ExecutableTypeData type : getExecutableTypes(0)) {
+    public ExecutableTypeData findExecutableType(TypeData prmitiveType, int evaluatedCount) {
+        for (ExecutableTypeData type : getExecutableTypes(evaluatedCount)) {
             if (Utils.typeEquals(type.getType().getPrimitiveType(), prmitiveType.getPrimitiveType())) {
                 return type;
             }
@@ -304,7 +321,7 @@ public class NodeData extends Template {
                 break;
             }
         }
-        return needsRewrites;
+        return needsRewrites || getSpecializations().size() > 1;
     }
 
     public SpecializationData getGenericSpecialization() {
@@ -339,6 +356,7 @@ public class NodeData extends Template {
         dumpProperty(builder, indent, "fields", getChildren());
         dumpProperty(builder, indent, "executableTypes", getExecutableTypes());
         dumpProperty(builder, indent, "specializations", getSpecializations());
+        dumpProperty(builder, indent, "assumptions", getAssumptions());
         dumpProperty(builder, indent, "messages", collectMessages());
         if (getDeclaredNodes().size() > 0) {
             builder.append(String.format("\n%s  children = [", indent));

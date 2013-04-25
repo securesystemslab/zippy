@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,12 +20,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.frame;
+package com.oracle.graal.compiler.phases;
 
-/**
- * Listener for the event of a type change of a frame slot.
- */
-public interface FrameSlotTypeListener {
+import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
+import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 
-    void typeChanged(FrameSlot slot, Class<?> oldType);
+public class LowTier extends PhaseSuite<LowTierContext> {
+
+    public LowTier() {
+        addPhase(new LoweringPhase(LoweringType.AFTER_GUARDS));
+
+        addPhase(new FrameStateAssignmentPhase());
+
+        addPhase(new DeadCodeEliminationPhase());
+    }
 }
