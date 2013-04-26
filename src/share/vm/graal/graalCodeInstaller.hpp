@@ -51,7 +51,7 @@ private:
   Arena         _arena;
 
   oop           _comp_result;
-  oop           _name;
+  oop           _stubName;
   arrayOop      _sites;
   arrayOop      _exception_handlers;
   CodeOffsets   _offsets;
@@ -76,11 +76,7 @@ private:
 
 public:
 
-  // constructor used to create a method
-  CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations);
-
-  // constructor used to create a stub
-  CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id);
+  CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
 
   static address runtime_call_target_address(oop runtime_call);
 

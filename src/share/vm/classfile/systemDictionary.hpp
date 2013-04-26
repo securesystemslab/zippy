@@ -183,7 +183,7 @@ class SymbolPropertyTable;
   do_klass(Long_klass,                                  java_lang_Long,                            Pre                 ) \
                                                                                                                          \
   /* Support for Graal */                                                                                                \
-  do_klass(GraalBitMap_klass,                     java_util_BitSet,                                             Opt) \
+  do_klass(BitSet_klass,                          java_util_BitSet,                                             Opt) \
   /* graal.hotspot */                                                                                                \
   do_klass(HotSpotCompilationResult_klass,        com_oracle_graal_hotspot_HotSpotCompilationResult,            Opt) \
   do_klass(HotSpotRuntimeCallTarget_klass,        com_oracle_graal_hotspot_HotSpotRuntimeCallTarget,            Opt) \
@@ -205,6 +205,7 @@ class SymbolPropertyTable;
   do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Opt) \
   do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
   do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
+  do_klass(RegisterSaveLayout_klass,              com_oracle_graal_api_code_RegisterSaveLayout,                 Opt) \
   do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
   do_klass(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Opt) \
   do_klass(CompilationResult_Call_klass,          com_oracle_graal_api_code_CompilationResult_Call,             Opt) \
