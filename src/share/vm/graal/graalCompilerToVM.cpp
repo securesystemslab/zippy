@@ -750,8 +750,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("wbPreCallStub", GraalRuntime::entry_for(GraalRuntime::wb_pre_call_id));
   set_address("wbPostCallStub", GraalRuntime::entry_for(GraalRuntime::wb_post_call_id));
 
-  set_address("newInstanceStub", GraalRuntime::entry_for(GraalRuntime::new_instance_id));
-  set_address("newArrayStub", GraalRuntime::entry_for(GraalRuntime::new_array_id));
   set_address("newMultiArrayStub", GraalRuntime::entry_for(GraalRuntime::new_multi_array_id));
   set_address("identityHashCodeStub", GraalRuntime::entry_for(GraalRuntime::identity_hash_code_id));
   set_address("threadIsInterruptedStub", GraalRuntime::entry_for(GraalRuntime::thread_is_interrupted_id));
@@ -784,6 +782,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
   set_address("cipherBlockChainingDecryptAESCryptStub", StubRoutines::cipherBlockChaining_decryptAESCrypt());
 
+  set_address("newInstanceAddress", GraalRuntime::new_instance);
   set_address("newArrayAddress", GraalRuntime::new_array);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
