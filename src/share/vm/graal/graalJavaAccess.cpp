@@ -32,7 +32,7 @@ void compute_offset(int &dest_offset, Klass* klass, const char* name, const char
   Symbol* name_symbol = SymbolTable::probe(name, (int)strlen(name));
   Symbol* signature_symbol = SymbolTable::probe(signature, (int)strlen(signature));
 #ifndef PRODUCT
-  if (name_symbol == NULL) {
+  if (name_symbol == NULL || signature_symbol == NULL) {
     tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass->name()->as_C_string());
   }
 #endif

@@ -68,45 +68,72 @@ VMReg get_hotspot_reg(jint graal_reg) {
 
 const int MapWordBits = 64;
 
-static bool is_bit_set(oop bit_map, int i) {
-  jint extra_idx = i / MapWordBits;
-  arrayOop extra = (arrayOop) GraalBitMap::words(bit_map);
-  assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
-  jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
+static bool is_bit_set(oop bitset, int i) {
+  jint words_idx = i / MapWordBits;
+  arrayOop words = (arrayOop) BitSet::words(bitset);
+  assert(words_idx >= 0 && words_idx < words->length(), "unexpected index");
+  jlong word = ((jlong*) words->base(T_LONG))[words_idx];
   return (word & (1LL << (i % MapWordBits))) != 0;
 }
 
-static int bitmap_size(oop bit_map) {
-  arrayOop arr = (arrayOop) GraalBitMap::words(bit_map);
+static int bitset_size(oop bitset) {
+  arrayOop arr = (arrayOop) BitSet::words(bitset);
   return arr->length() * MapWordBits;
 }
+
+#ifdef _LP64
+  #define SLOTS_PER_WORD 2
+#else
+  #define SLOTS_PER_WORD 1
+#endif // _LP64
 
 // creates a HotSpot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop register_map = (oop) DebugInfo::registerRefMap(debug_info);
   oop frame_map = (oop) DebugInfo::frameRefMap(debug_info);
+  oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {
     for (jint i = 0; i < RegisterImpl::number_of_registers; i++) {
       bool is_oop = is_bit_set(register_map, i);
-      VMReg reg = get_hotspot_reg(i);
+      VMReg hotspot_reg = get_hotspot_reg(i);
       if (is_oop) {
-        map->set_oop(reg);
+        map->set_oop(hotspot_reg);
       } else {
-        map->set_value(reg);
+        map->set_value(hotspot_reg);
       }
     }
   }
 
-  for (jint i = 0; i < bitmap_size(frame_map); i++) {
+  for (jint i = 0; i < bitset_size(frame_map); i++) {
     bool is_oop = is_bit_set(frame_map, i);
     // HotSpot stack slots are 4 bytes
-    VMReg reg = VMRegImpl::stack2reg(i * 2);
+    VMReg reg = VMRegImpl::stack2reg(i * SLOTS_PER_WORD);
     if (is_oop) {
       map->set_oop(reg);
     } else {
       map->set_value(reg);
+    }
+  }
+
+  if (callee_save_info != NULL) {
+    objArrayOop registers = (objArrayOop) RegisterSaveLayout::registers(callee_save_info);
+    arrayOop slots = (arrayOop) RegisterSaveLayout::slots(callee_save_info);
+    for (jint i = 0; i < slots->length(); i++) {
+      oop graal_reg = registers->obj_at(i);
+      jint graal_reg_number = code_Register::number(graal_reg);
+      VMReg hotspot_reg = get_hotspot_reg(graal_reg_number);
+      // HotSpot stack slots are 4 bytes
+      jint graal_slot = ((jint*) slots->base(T_INT))[i];
+      jint hotspot_slot = graal_slot * SLOTS_PER_WORD;
+      VMReg hotspot_slot_as_reg = VMRegImpl::stack2reg(hotspot_slot);
+      map->set_callee_saved(hotspot_slot_as_reg, hotspot_reg);
+#ifdef _LP64
+      // (copied from generate_oop_map() in c1_Runtime1_x86.cpp)
+      VMReg hotspot_slot_hi_as_reg = VMRegImpl::stack2reg(hotspot_slot + 1);
+      map->set_callee_saved(hotspot_slot_hi_as_reg, hotspot_reg->next());
+#endif
     }
   }
 
@@ -330,7 +357,7 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations) {
+CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
@@ -347,8 +374,21 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
   GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
 
-  result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
+  if (_stubName != NULL) {
+    char* name = strdup(java_lang_String::as_utf8_string(_stubName));
+    cb = RuntimeStub::new_runtime_stub(name,
+                                       &buffer,
+                                       CodeOffsets::frame_never_safe,
+                                       stack_slots,
+                                       _debug_recorder->_oopmaps,
+                                       false);
+    result = GraalEnv::ok;
+  } else {
+    nmethod* nm = NULL;
+    result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
+    cb = nm;
+  }
 }
 
 void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
@@ -357,7 +397,7 @@ void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
     _parameter_count = method->size_of_parameters();
     TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
   }
-  _name = HotSpotCompilationResult::name(comp_result);
+  _stubName = HotSpotCompilationResult::stubName(comp_result);
   _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
   _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(comp_result);
 
@@ -640,8 +680,14 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   if (target->is_a(SystemDictionary::HotSpotInstalledCode_klass())) {
     assert(inst->is_jump(), "jump expected");
 
-    nmethod* nm = (nmethod*) HotSpotInstalledCode::nmethod(target);
-    nativeJump_at((address)inst)->set_jump_destination(nm->verified_entry_point());
+    CodeBlob* cb = (CodeBlob*) (address) HotSpotInstalledCode::codeBlob(target);
+    assert(cb != NULL, "npe");
+    if (cb->is_nmethod()) {
+      nmethod* nm = (nmethod*) cb;
+      nativeJump_at((address)inst)->set_jump_destination(nm->verified_entry_point());
+    } else {
+      nativeJump_at((address)inst)->set_jump_destination(cb->code_begin());
+    }
     _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
 
     return;

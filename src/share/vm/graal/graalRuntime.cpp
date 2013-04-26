@@ -260,11 +260,16 @@ JRT_ENTRY(void, GraalRuntime::new_array(JavaThread* thread, Klass* array_klass, 
   // This is pretty rare but this runtime patch is stressful to deoptimization
   // if we deoptimize here so force a deopt to stress the path.
   if (DeoptimizeALot) {
-    deopt_caller();
+    static int deopts = 0;
+    // Alternate between deoptimizing and raising an error (which will also cause a deopt)
+    if (deopts++ % 2 == 0) {
+      ResourceMark rm(THREAD);
+      THROW(vmSymbols::java_lang_OutOfMemoryError());
+    } else {
+      deopt_caller();
+    }
   }
- JRT_END
-
-
+JRT_END
 
 JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims))
   assert(klass->is_klass(), "not a class");
