@@ -42,6 +42,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.tiers.*;
 
 public class InliningUtil {
 
@@ -254,6 +255,10 @@ public class InliningUtil {
             Class<? extends FixedWithNextNode> macroNodeClass = getMacroNodeClass(replacements, concrete);
             StructuredGraph graph = (StructuredGraph) invoke.asNode().graph();
             if (macroNodeClass != null) {
+                if (((MethodCallTargetNode) invoke.callTarget()).targetMethod() != concrete) {
+                    assert ((MethodCallTargetNode) invoke.callTarget()).invokeKind() != InvokeKind.Static;
+                    InliningUtil.replaceInvokeCallTarget(invoke, graph, InvokeKind.Special, concrete);
+                }
                 FixedWithNextNode macroNode;
                 try {
                     macroNode = macroNodeClass.getConstructor(Invoke.class).newInstance(invoke);
@@ -294,12 +299,12 @@ public class InliningUtil {
                 }
             });
         }
+    }
 
-        protected void replaceInvokeCallTarget(StructuredGraph graph, InvokeKind invokeKind, ResolvedJavaMethod targetMethod) {
-            MethodCallTargetNode oldCallTarget = (MethodCallTargetNode) invoke.callTarget();
-            MethodCallTargetNode newCallTarget = graph.add(new MethodCallTargetNode(invokeKind, targetMethod, oldCallTarget.arguments().toArray(new ValueNode[0]), oldCallTarget.returnType()));
-            invoke.asNode().replaceFirstInput(oldCallTarget, newCallTarget);
-        }
+    public static void replaceInvokeCallTarget(Invoke invoke, StructuredGraph graph, InvokeKind invokeKind, ResolvedJavaMethod targetMethod) {
+        MethodCallTargetNode oldCallTarget = (MethodCallTargetNode) invoke.callTarget();
+        MethodCallTargetNode newCallTarget = graph.add(new MethodCallTargetNode(invokeKind, targetMethod, oldCallTarget.arguments().toArray(new ValueNode[0]), oldCallTarget.returnType()));
+        invoke.asNode().replaceFirstInput(oldCallTarget, newCallTarget);
     }
 
     /**
@@ -378,7 +383,7 @@ public class InliningUtil {
         @Override
         public void tryToDevirtualizeInvoke(StructuredGraph graph, MetaAccessProvider runtime, Assumptions assumptions) {
             createGuard(graph, runtime);
-            replaceInvokeCallTarget(graph, InvokeKind.Special, concrete);
+            replaceInvokeCallTarget(invoke, graph, InvokeKind.Special, concrete);
         }
 
         private void createGuard(StructuredGraph graph, MetaAccessProvider runtime) {
@@ -446,7 +451,7 @@ public class InliningUtil {
             if (hasSingleMethod()) {
                 inlineSingleMethod(graph, callback, replacements, assumptions);
             } else {
-                inlineMultipleMethods(graph, callback, replacements, assumptions);
+                inlineMultipleMethods(graph, callback, replacements, assumptions, runtime);
             }
         }
 
@@ -458,7 +463,7 @@ public class InliningUtil {
             return notRecordedTypeProbability > 0;
         }
 
-        private void inlineMultipleMethods(StructuredGraph graph, InliningCallback callback, Replacements replacements, Assumptions assumptions) {
+        private void inlineMultipleMethods(StructuredGraph graph, InliningCallback callback, Replacements replacements, Assumptions assumptions, MetaAccessProvider runtime) {
             int numberOfMethods = concretes.size();
             FixedNode continuation = invoke.next();
 
@@ -560,7 +565,7 @@ public class InliningUtil {
                 if (opportunities > 0) {
                     metricInliningTailDuplication.increment();
                     Debug.log("MultiTypeGuardInlineInfo starting tail duplication (%d opportunities)", opportunities);
-                    TailDuplicationPhase.tailDuplicate(returnMerge, TailDuplicationPhase.TRUE_DECISION, replacementNodes);
+                    TailDuplicationPhase.tailDuplicate(returnMerge, TailDuplicationPhase.TRUE_DECISION, replacementNodes, new HighTierContext(runtime, assumptions, replacements));
                 }
             }
         }
@@ -730,7 +735,7 @@ public class InliningUtil {
             ValueNode receiver = ((MethodCallTargetNode) invoke.callTarget()).receiver();
             PiNode anchoredReceiver = createAnchoredReceiver(graph, invocationEntry, target.getDeclaringClass(), receiver, false);
             invoke.callTarget().replaceFirstInput(receiver, anchoredReceiver);
-            replaceInvokeCallTarget(graph, kind, target);
+            replaceInvokeCallTarget(invoke, graph, kind, target);
         }
 
         private static BeginNode createUnknownTypeSuccessor(StructuredGraph graph) {
@@ -775,15 +780,13 @@ public class InliningUtil {
         @Override
         public void inline(StructuredGraph graph, MetaAccessProvider runtime, Replacements replacements, InliningCallback callback, Assumptions assumptions) {
             assumptions.record(takenAssumption);
-            Debug.log("recording assumption: %s", takenAssumption);
-
             super.inline(graph, runtime, replacements, callback, assumptions);
         }
 
         @Override
         public void tryToDevirtualizeInvoke(StructuredGraph graph, MetaAccessProvider runtime, Assumptions assumptions) {
             assumptions.record(takenAssumption);
-            replaceInvokeCallTarget(graph, InvokeKind.Special, concrete);
+            replaceInvokeCallTarget(invoke, graph, InvokeKind.Special, concrete);
         }
 
         @Override

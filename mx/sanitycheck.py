@@ -47,7 +47,8 @@ dacapoSanityWarmup = {
 }
 
 dacapoScalaSanityWarmup = {
-    'actors':     [0, 0, 2,  8, 10],
+# (tw) actors sometimes fails verification; hardly reproducible
+    'actors':     [0, 0, 0,  0,  0],
 # (lstadler) apparat was disabled due to a deadlock which I think is the benchmarks fault.
     'apparat':    [0, 0, 0,  0,  0],
     'factorie':   [0, 0, 2,  5,  5],
