@@ -82,8 +82,6 @@ class GraalStubAssembler: public MacroAssembler {
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
   stub(register_finalizer)      \
-  stub(new_instance)            \
-  stub(new_array)               \
   stub(new_multi_array)         \
   stub(handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
   stub(unwind_exception_call)   \
@@ -133,7 +131,6 @@ class GraalRuntime: public AllStatic {
                                        Register arg1 = noreg, Register arg2 = noreg, Register arg3 = noreg);
 
   // runtime entry points
-  static void new_instance(JavaThread* thread, Klass* klass);
   static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
 
   static void unimplemented_entry(JavaThread* thread, StubID id);
@@ -163,6 +160,7 @@ class GraalRuntime: public AllStatic {
   static void log_object(JavaThread* thread, oop msg, jint flags);
 
  public:
+  static void new_instance(JavaThread* thread, Klass* klass);
   static void new_array(JavaThread* thread, Klass* klass, jint length);
   // initialization
   static void initialize(BufferBlob* blob);
