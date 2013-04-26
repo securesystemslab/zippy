@@ -82,8 +82,6 @@ class GraalStubAssembler: public MacroAssembler {
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
   stub(register_finalizer)      \
-  stub(new_instance)            \
-  stub(new_array)               \
   stub(new_multi_array)         \
   stub(handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
   stub(unwind_exception_call)   \

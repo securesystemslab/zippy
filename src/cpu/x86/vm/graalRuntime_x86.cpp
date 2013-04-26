@@ -811,51 +811,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case new_instance_id:
-      {
-        Register klass = rdx; // Incoming
-        Register obj   = rax; // Result
-        __ set_info("new_instance", dont_gc_arguments);
-        __ enter();
-        OopMap* map = save_live_registers(sasm, 2);
-        int call_offset = __ call_RT(obj, noreg, CAST_FROM_FN_PTR(address, new_instance), klass);
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers_except_rax(sasm);
-        __ verify_oop(obj);
-        __ leave();
-        __ ret(0);
-
-        // rax,: new instance
-      }
-
-      break;
-
-    case new_array_id:
-      {
-        Register length   = rbx; // Incoming
-        Register klass    = rdx; // Incoming
-        Register obj      = rax; // Result
-
-        __ set_info("new_array", dont_gc_arguments);
-
-        __ enter();
-        OopMap* map = save_live_registers(sasm, 3);
-        int call_offset;
-        call_offset = __ call_RT(obj, noreg, CAST_FROM_FN_PTR(address, new_array), klass, length);
-
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers_except_rax(sasm);
-
-        __ verify_oop(obj);
-        __ leave();
-        __ ret(0);
-
-        // rax,: new array
-      }
-      break;
-
     case new_multi_array_id:
       { GraalStubFrame f(sasm, "new_multi_array", dont_gc_arguments);
         // rax,: klass
