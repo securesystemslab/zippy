@@ -811,23 +811,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case new_multi_array_id:
-      { GraalStubFrame f(sasm, "new_multi_array", dont_gc_arguments);
-        // rax,: klass
-        // rbx,: rank
-        // rcx: address of 1st dimension
-        OopMap* map = save_live_registers(sasm, 4);
-        int call_offset = __ call_RT(rax, noreg, CAST_FROM_FN_PTR(address, new_multi_array), rax, rbx, rcx);
-
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers_except_rax(sasm);
-
-        // rax,: new multi array
-        __ verify_oop(rax);
-      }
-      break;
-
     case register_finalizer_id:
       {
         __ set_info("register_finalizer", dont_gc_arguments);

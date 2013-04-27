@@ -81,12 +81,6 @@ static int bitset_size(oop bitset) {
   return arr->length() * MapWordBits;
 }
 
-#ifdef _LP64
-  #define SLOTS_PER_WORD 2
-#else
-  #define SLOTS_PER_WORD 1
-#endif // _LP64
-
 // creates a HotSpot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
@@ -109,7 +103,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   for (jint i = 0; i < bitset_size(frame_map); i++) {
     bool is_oop = is_bit_set(frame_map, i);
     // HotSpot stack slots are 4 bytes
-    VMReg reg = VMRegImpl::stack2reg(i * SLOTS_PER_WORD);
+    VMReg reg = VMRegImpl::stack2reg(i * VMRegImpl::slots_per_word);
     if (is_oop) {
       map->set_oop(reg);
     } else {
@@ -126,7 +120,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
       VMReg hotspot_reg = get_hotspot_reg(graal_reg_number);
       // HotSpot stack slots are 4 bytes
       jint graal_slot = ((jint*) slots->base(T_INT))[i];
-      jint hotspot_slot = graal_slot * SLOTS_PER_WORD;
+      jint hotspot_slot = graal_slot * VMRegImpl::slots_per_word;
       VMReg hotspot_slot_as_reg = VMRegImpl::stack2reg(hotspot_slot);
       map->set_callee_saved(hotspot_slot_as_reg, hotspot_reg);
 #ifdef _LP64
