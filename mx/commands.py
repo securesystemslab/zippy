@@ -749,7 +749,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
             excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True).keys()
             excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True).keys()
             
-        includes = ['com.oracle.graal.*', 'com.oracle.max.*']
+        includes = ['com.oracle.graal.*']
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
@@ -1361,7 +1361,7 @@ def mx_init():
             mx.add_argument('--' + c, action='store_const', dest='vmbuild', const=c, help='select the ' + c + ' build of the VM')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
         mx.add_argument('--native-dbg', action='store', dest='native_dbg', help='Start the vm inside a debugger', metavar='<debugger>')
-        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb -- args')
+        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb --args')
 
         commands.update({
             'export': [export, '[-options] [zipfile]'],

@@ -31,9 +31,9 @@ public interface FrameSlot extends Cloneable {
 
     int getIndex();
 
-    Class<?> getType();
+    FrameSlotKind getKind();
 
-    void setType(Class<?> type);
+    void setKind(FrameSlotKind kind);
 
     FrameDescriptor getFrameDescriptor();
 }

@@ -101,15 +101,21 @@ public class TypeSystemTest {
 
     public static class ArgumentNode extends ValueNode {
 
+        private int invocationCount;
         final int index;
 
         public ArgumentNode(int index) {
             this.index = index;
         }
 
+        public int getInvocationCount() {
+            return invocationCount;
+        }
+
         @Override
         public Object execute(VirtualFrame frame) {
-            return ((TestArguments) frame.getArguments()).get(index);
+            invocationCount++;
+            return frame.getArguments(TestArguments.class).get(index);
         }
 
     }

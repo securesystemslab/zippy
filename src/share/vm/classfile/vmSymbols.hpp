@@ -341,6 +341,7 @@
   template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue")                       \
   template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot")                           \
   template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject")                       \
+  template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout")                  \
   template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
   template(startCompiler_name,                    "startCompiler")                                                                    \
   template(bootstrap_name,                        "bootstrap")                                                                        \
