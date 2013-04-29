@@ -751,7 +751,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("wbPostCallStub", GraalRuntime::entry_for(GraalRuntime::wb_post_call_id));
 
   set_address("identityHashCodeStub", GraalRuntime::entry_for(GraalRuntime::identity_hash_code_id));
-  set_address("threadIsInterruptedStub", GraalRuntime::entry_for(GraalRuntime::thread_is_interrupted_id));
   set_address("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
   set_address("handleExceptionStub", GraalRuntime::entry_for(GraalRuntime::handle_exception_nofpu_id));
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
@@ -784,6 +783,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("newArrayAddress", GraalRuntime::new_array);
   set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
+  set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
