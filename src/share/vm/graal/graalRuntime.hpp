@@ -81,7 +81,6 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(register_finalizer)      \
   stub(handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
   stub(unwind_exception_call)   \
   stub(OSR_migration_end)       \

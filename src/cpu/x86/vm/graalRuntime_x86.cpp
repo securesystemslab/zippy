@@ -811,27 +811,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case register_finalizer_id:
-      {
-        __ set_info("register_finalizer", dont_gc_arguments);
-
-        // This is called via call_runtime so the arguments
-        // will be place in C abi locations
-        __ verify_oop(j_rarg0);
-        __ enter();
-        OopMap* oop_map = save_live_registers(sasm, 2 /*num_rt_args */);
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, SharedRuntime::register_finalizer), j_rarg0);
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, oop_map);
-
-        // Now restore all the live registers
-        restore_live_registers(sasm);
-
-        __ leave();
-        __ ret(0);
-      }
-      break;
-
     case handle_exception_nofpu_id:
       { GraalStubFrame f(sasm, "handle_exception", dont_gc_arguments);
         oop_maps = generate_handle_exception(id, sasm);

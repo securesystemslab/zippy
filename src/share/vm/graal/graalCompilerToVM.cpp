@@ -762,7 +762,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("deoptimizeStub", SharedRuntime::deopt_blob()->uncommon_trap());
   set_address("unwindExceptionStub", GraalRuntime::entry_for(GraalRuntime::unwind_exception_call_id));
   set_address("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::OSR_migration_end_id));
-  set_address("registerFinalizerStub", GraalRuntime::entry_for(GraalRuntime::register_finalizer_id));
   set_address("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));
   set_address("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
   set_address("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
@@ -784,6 +783,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("newInstanceAddress", GraalRuntime::new_instance);
   set_address("newArrayAddress", GraalRuntime::new_array);
   set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
+  set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
