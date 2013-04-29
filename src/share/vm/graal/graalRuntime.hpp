@@ -96,7 +96,6 @@ class GraalStubAssembler: public MacroAssembler {
   stub(log_printf)              \
   stub(stub_printf)             \
   stub(log_primitive)           \
-  stub(identity_hash_code)      \
   stub(wb_pre_call)             \
   stub(wb_post_call)             \
  last_entry(number_of_ids)
@@ -143,7 +142,6 @@ class GraalRuntime: public AllStatic {
   static void wb_pre_call(JavaThread* thread, oopDesc* obj);
   static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
 
-  static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
 
   // Note: Must be kept in sync with constants in com.oracle.graal.replacements.Log
   enum {
@@ -158,6 +156,7 @@ class GraalRuntime: public AllStatic {
   static void new_array(JavaThread* thread, Klass* klass, jint length);
   static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
   static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
+  static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
   // initialization
   static void initialize(BufferBlob* blob);
 
