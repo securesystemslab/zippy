@@ -58,6 +58,10 @@ void graal_compute_offsets();
     long_field(HotSpotResolvedJavaMethod, metaspaceMethod)                                                                                                     \
     int_field(HotSpotResolvedJavaMethod, codeSize)                                                                                                             \
     int_field(HotSpotResolvedJavaMethod, exceptionHandlerCount)                                                                                                \
+    boolean_field(HotSpotResolvedJavaMethod, callerSensitive)                                                                                                  \
+    boolean_field(HotSpotResolvedJavaMethod, forceInline)                                                                                                      \
+    boolean_field(HotSpotResolvedJavaMethod, dontInline)                                                                                                       \
+    boolean_field(HotSpotResolvedJavaMethod, ignoredBySecurityStackWalk)                                                                                       \
   end_class                                                                                                                                                    \
   start_class(HotSpotMethodData)                                                                                                                               \
     long_field(HotSpotMethodData, metaspaceMethodData)                                                                                                         \

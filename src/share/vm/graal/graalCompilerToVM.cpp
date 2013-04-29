@@ -276,6 +276,10 @@ C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, j
   HotSpotResolvedJavaMethod::set_name(hotspot_method, name());
   HotSpotResolvedJavaMethod::set_codeSize(hotspot_method, method->code_size());
   HotSpotResolvedJavaMethod::set_exceptionHandlerCount(hotspot_method, method->exception_table_length());
+  HotSpotResolvedJavaMethod::set_callerSensitive(hotspot_method, method->caller_sensitive());
+  HotSpotResolvedJavaMethod::set_forceInline(hotspot_method, method->force_inline());
+  HotSpotResolvedJavaMethod::set_dontInline(hotspot_method, method->dont_inline());
+  HotSpotResolvedJavaMethod::set_ignoredBySecurityStackWalk(hotspot_method, method->is_ignored_by_security_stack_walk());
 C2V_END
 
 C2V_VMENTRY(jboolean, isMethodCompilable,(JNIEnv *, jobject, jlong metaspace_method))
