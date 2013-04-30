@@ -157,6 +157,7 @@ SOURCE_PATHS+=$(HS_COMMON_SRC)/os/$(Platform_os_family)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os/posix/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/cpu/$(Platform_arch)/vm
 SOURCE_PATHS+=$(HS_COMMON_SRC)/os_cpu/$(Platform_os_arch)/vm
+SOURCE_PATHS+=$(HS_COMMON_SRC)/gpu/ptx
 
 ifndef JAVASE_EMBEDDED 
 ifneq (${ARCH},arm)
@@ -181,7 +182,9 @@ COMPILER2_PATHS += $(GENERATED)/adfiles
 SHARK_PATHS := $(GAMMADIR)/src/share/vm/shark
 
 GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/share/vm/graal)
+GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/gpu/ptx)
 GRAAL_PATHS += $(HS_COMMON_SRC)/share/vm/graal
+GRAAL_PATHS += $(HS_COMMON_SRC)/gpu/ptx
 
 # Include dirs per type.
 Src_Dirs/CORE      := $(CORE_PATHS)

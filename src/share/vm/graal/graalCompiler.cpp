@@ -28,6 +28,7 @@
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalVMToCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
+#include "graal/graalCompilerToGPU.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalRuntime.hpp"
 #include "runtime/arguments.hpp"
@@ -65,6 +66,13 @@ void GraalCompiler::initialize() {
     vm_abort(false);
   }
   env->RegisterNatives(klass, CompilerToVM_methods, CompilerToVM_methods_count());
+  
+  klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToGPUImpl");
+  if (klass == NULL) {
+    tty->print_cr("graal CompilerToGPUImpl class not found");
+    vm_abort(false);
+  }
+  env->RegisterNatives(klass, CompilerToGPU_methods, CompilerToGPU_methods_count());
 
   ResourceMark rm;
   HandleMark hm;
