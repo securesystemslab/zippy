@@ -94,7 +94,6 @@ class GraalStubAssembler: public MacroAssembler {
   stub(create_out_of_bounds_exception) \
   stub(log_object)              \
   stub(log_printf)              \
-  stub(stub_printf)             \
   stub(log_primitive)           \
   stub(wb_pre_call)             \
   stub(wb_post_call)             \
@@ -137,7 +136,6 @@ class GraalRuntime: public AllStatic {
   static void monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
   static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
-  static void stub_printf(JavaThread* thread, jlong format, jlong v1, jlong v2, jlong v3);
   static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
   static void wb_pre_call(JavaThread* thread, oopDesc* obj);
   static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
@@ -156,6 +154,7 @@ class GraalRuntime: public AllStatic {
   static void new_array(JavaThread* thread, Klass* klass, jint length);
   static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
   static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
+  static void stub_printf(jlong format, jlong v1, jlong v2, jlong v3);
   static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
   // initialization
   static void initialize(BufferBlob* blob);

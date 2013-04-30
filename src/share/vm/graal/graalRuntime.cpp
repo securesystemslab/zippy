@@ -570,7 +570,7 @@ JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1
   tty->print(buf, v1, v2, v3);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::stub_printf(JavaThread* thread, jlong format, jlong v1, jlong v2, jlong v3))
+JRT_LEAF(void, GraalRuntime::stub_printf(jlong format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   char *buf = (char*) (address) format;
   tty->print(buf, v1, v2, v3);

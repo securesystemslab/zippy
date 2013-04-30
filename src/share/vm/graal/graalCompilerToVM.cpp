@@ -761,7 +761,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("monitorExitStub", GraalRuntime::entry_for(GraalRuntime::monitorexit_id));
   set_address("verifyOopStub", GraalRuntime::entry_for(GraalRuntime::verify_oop_id));
   set_address("vmErrorStub", GraalRuntime::entry_for(GraalRuntime::vm_error_id));
-  set_address("deoptimizeStub", SharedRuntime::deopt_blob()->uncommon_trap());
   set_address("unwindExceptionStub", GraalRuntime::entry_for(GraalRuntime::unwind_exception_call_id));
   set_address("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::OSR_migration_end_id));
   set_address("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));
@@ -776,7 +775,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("logPrimitiveStub", GraalRuntime::entry_for(GraalRuntime::log_primitive_id));
   set_address("logObjectStub", GraalRuntime::entry_for(GraalRuntime::log_object_id));
   set_address("logPrintfStub", GraalRuntime::entry_for(GraalRuntime::log_printf_id));
-  set_address("stubPrintfStub", GraalRuntime::entry_for(GraalRuntime::stub_printf_id));
   set_address("aescryptEncryptBlockStub", StubRoutines::aescrypt_encryptBlock());
   set_address("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
   set_address("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
@@ -787,6 +785,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
+  set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
+  set_address("stubPrintfAddress", GraalRuntime::stub_printf);
   set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
