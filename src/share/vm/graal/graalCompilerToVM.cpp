@@ -802,6 +802,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("deoptReasonJsrMismatch", Deoptimization::Reason_jsr_mismatch);
   set_int("deoptReasonDiv0Check", Deoptimization::Reason_div0_check);
   set_int("deoptReasonConstraint", Deoptimization::Reason_constraint);
+  set_int("deoptReasonLoopLimitCheck", Deoptimization::Reason_loop_limit_check);
 
   set_int("deoptActionNone", Deoptimization::Action_none);
   set_int("deoptActionMaybeRecompile", Deoptimization::Action_maybe_recompile);

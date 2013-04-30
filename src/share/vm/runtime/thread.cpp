@@ -54,6 +54,7 @@
 #include "runtime/deoptimization.hpp"
 #include "runtime/fprofiler.hpp"
 #include "runtime/frame.inline.hpp"
+#include "runtime/gpu.hpp"
 #include "runtime/init.hpp"
 #include "runtime/interfaceSupport.hpp"
 #include "runtime/java.hpp"
@@ -3306,6 +3307,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 
   // Initialize the os module before using TLS
   os::init();
+
+  // probe for warp capability
+  gpu::init();
 
   // Initialize system properties.
   Arguments::init_system_properties();
