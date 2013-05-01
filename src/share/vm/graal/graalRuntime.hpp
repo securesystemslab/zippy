@@ -81,7 +81,6 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(handle_exception_nofpu) /* optimized version that does not preserve fpu registers */ \
   stub(unwind_exception_call)   \
   stub(OSR_migration_end)       \
   stub(arithmetic_frem)         \
@@ -119,7 +118,6 @@ class GraalRuntime: public AllStatic {
   // stub generation
   static void       generate_blob_for(BufferBlob* blob, StubID id);
   static OopMapSet* generate_code_for(StubID id, GraalStubAssembler* sasm);
-  static OopMapSet* generate_handle_exception(StubID id, GraalStubAssembler* sasm);
   static void       generate_unwind_exception(GraalStubAssembler *sasm);
 
   static OopMapSet* generate_stub_call(GraalStubAssembler* sasm, Register result, address entry,
@@ -127,8 +125,6 @@ class GraalRuntime: public AllStatic {
 
   // runtime entry points
   static void unimplemented_entry(JavaThread* thread, StubID id);
-
-  static address exception_handler_for_pc(JavaThread* thread);
 
   static void create_null_exception(JavaThread* thread);
   static void create_out_of_bounds_exception(JavaThread* thread, jint index);
@@ -154,8 +150,10 @@ class GraalRuntime: public AllStatic {
   static void new_array(JavaThread* thread, Klass* klass, jint length);
   static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
   static jboolean thread_is_interrupted(JavaThread* thread, oopDesc* obj, jboolean clear_interrupte);
-  static void stub_printf(jlong format, jlong v1, jlong v2, jlong v3);
+  static void vm_message(jboolean vmError, jlong format, jlong v1, jlong v2, jlong v3);
   static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
+  static address exception_handler_for_pc(JavaThread* thread);
+
   // initialization
   static void initialize(BufferBlob* blob);
 

@@ -612,103 +612,6 @@ static void restore_live_registers_except_rax(GraalStubAssembler* sasm, bool res
 #endif // _LP64
 }
 
-OopMapSet* GraalRuntime::generate_handle_exception(StubID id, GraalStubAssembler *sasm) {
-  __ block_comment("generate_handle_exception");
-
-  // incoming parameters
-  const Register exception_oop = rax;
-  const Register exception_pc  = rdx;
-  // other registers used in this stub
-  const Register thread = NOT_LP64(rdi) LP64_ONLY(r15_thread);
-
-  // Save registers, if required.
-  OopMapSet* oop_maps = new OopMapSet();
-  OopMap* oop_map = NULL;
-  switch (id) {
-    case handle_exception_nofpu_id:
-      // At this point all registers MAY be live.
-      oop_map = save_live_registers(sasm, 1 /*thread*/, id == handle_exception_nofpu_id);
-      break;
-    default:  ShouldNotReachHere();
-  }
-
-#ifdef TIERED
-  // C2 can leave the fpu stack dirty
-  if (UseSSE < 2) {
-    __ empty_FPU_stack();
-  }
-#endif // TIERED
-
-  // verify that only rax, and rdx is valid at this time
-#ifdef ASSERT
-  __ movptr(rbx, 0xDEAD);
-  __ movptr(rcx, 0xDEAD);
-  __ movptr(rsi, 0xDEAD);
-  __ movptr(rdi, 0xDEAD);
-#endif
-
-  // verify that rax, contains a valid exception
-  __ verify_not_null_oop(exception_oop);
-
-  // load address of JavaThread object for thread-local data
-  NOT_LP64(__ get_thread(thread);)
-
-#ifdef ASSERT
-  // check that fields in JavaThread for exception oop and issuing pc are
-  // empty before writing to them
-  Label oop_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), (int32_t) NULL_WORD);
-  __ jcc(Assembler::equal, oop_empty);
-  __ stop("exception oop already set");
-  __ bind(oop_empty);
-
-  Label pc_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_pc_offset()), 0);
-  __ jcc(Assembler::equal, pc_empty);
-  __ stop("exception pc already set");
-  __ bind(pc_empty);
-#endif
-
-  // save exception oop and issuing pc into JavaThread
-  // (exception handler will load it from here)
-  __ movptr(Address(thread, JavaThread::exception_oop_offset()), exception_oop);
-  __ movptr(Address(thread, JavaThread::exception_pc_offset()),  exception_pc);
-
-  // patch throwing pc into return address (has bci & oop map)
-  __ movptr(Address(rbp, 1*BytesPerWord), exception_pc);
-
-  // compute the exception handler.
-  // the exception oop and the throwing pc are read from the fields in JavaThread
-  int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, exception_handler_for_pc));
-  oop_maps->add_gc_map(call_offset, oop_map);
-
-  // rax: handler address
-  //      will be the deopt blob if nmethod was deoptimized while we looked up
-  //      handler regardless of whether handler existed in the nmethod.
-
-  // only rax, is valid at this time, all other registers have been destroyed by the runtime call
-#ifdef ASSERT
-  __ movptr(rbx, 0xDEAD);
-  __ movptr(rcx, 0xDEAD);
-  __ movptr(rdx, 0xDEAD);
-  __ movptr(rsi, 0xDEAD);
-  __ movptr(rdi, 0xDEAD);
-#endif
-
-  // patch the return address, this stub will directly return to the exception handler
-  __ movptr(Address(rbp, 1*BytesPerWord), rax);
-
-  switch (id) {
-    case handle_exception_nofpu_id:
-      // Restore the registers that were saved at the beginning.
-      restore_live_registers(sasm, id == handle_exception_nofpu_id);
-      break;
-    default:  ShouldNotReachHere();
-  }
-
-  return oop_maps;
-}
-
 void GraalRuntime::generate_unwind_exception(GraalStubAssembler *sasm) {
   // incoming parameters
   const Register exception_oop = rax;
@@ -810,12 +713,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   // stub code & info for the different stubs
   OopMapSet* oop_maps = NULL;
   switch (id) {
-
-    case handle_exception_nofpu_id:
-      { GraalStubFrame f(sasm, "handle_exception", dont_gc_arguments);
-        oop_maps = generate_handle_exception(id, sasm);
-      }
-      break;
 
     case unwind_exception_call_id: {
       // remove the frame from the stack
