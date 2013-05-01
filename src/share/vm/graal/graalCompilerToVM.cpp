@@ -755,7 +755,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("wbPostCallStub", GraalRuntime::entry_for(GraalRuntime::wb_post_call_id));
 
   set_address("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
-  set_address("handleExceptionStub", GraalRuntime::entry_for(GraalRuntime::handle_exception_nofpu_id));
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
   set_address("monitorEnterStub", GraalRuntime::entry_for(GraalRuntime::monitorenter_id));
   set_address("monitorExitStub", GraalRuntime::entry_for(GraalRuntime::monitorexit_id));
@@ -786,8 +785,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
   set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
-  set_address("stubPrintfAddress", GraalRuntime::stub_printf);
+  set_address("vmMessageAddress", GraalRuntime::vm_message);
   set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
+  set_address("handleExceptionForPcAddress", GraalRuntime::exception_handler_for_pc);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);

@@ -402,7 +402,6 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* t
     }
   }
 
-  thread->set_vm_result(exception());
   // Set flag if return address is a method handle call site.
   thread->set_is_method_handle_return(nm->is_method_handle_return(pc));
 
@@ -570,10 +569,14 @@ JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1
   tty->print(buf, v1, v2, v3);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::stub_printf(jlong format, jlong v1, jlong v2, jlong v3))
+JRT_LEAF(void, GraalRuntime::vm_message(jboolean vmError, jlong format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   char *buf = (char*) (address) format;
-  tty->print(buf, v1, v2, v3);
+  if (vmError) {
+    fatal(err_msg(buf, v1, v2, v3));
+  } else {
+    tty->print(buf, v1, v2, v3);
+  }
 JRT_END
 
 JRT_ENTRY(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
