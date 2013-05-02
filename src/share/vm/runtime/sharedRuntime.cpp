@@ -493,6 +493,10 @@ address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thre
     // native nmethods don't have exception handlers
     assert(!nm->is_native_method(), "no exception handler");
     assert(nm->header_begin() != nm->exception_begin(), "no exception handler");
+#ifdef GRAAL
+    // Graal's ExceptionHandlerStub expects the exception PC stored in the thread to be 0
+    thread->set_exception_pc(NULL);
+#endif
     if (nm->is_deopt_pc(return_address)) {
       return SharedRuntime::deopt_blob()->unpack_with_exception();
     } else {
