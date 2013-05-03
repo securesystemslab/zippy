@@ -634,6 +634,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #else
   set_boolean("windowsOs", false);
 #endif
+  set_boolean("cAssertions", DEBUG_ONLY(true) NOT_DEBUG(false));
   set_boolean("verifyOops", VerifyOops);
   set_boolean("ciTime", CITime);
   set_boolean("compileTheWorld", CompileTheWorld);
