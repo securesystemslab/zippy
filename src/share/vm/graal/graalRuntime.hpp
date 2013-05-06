@@ -81,7 +81,6 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(unwind_exception_call)   \
   stub(OSR_migration_end)       \
   stub(arithmetic_frem)         \
   stub(arithmetic_drem)         \

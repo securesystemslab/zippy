@@ -131,7 +131,6 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
     case handle_exception_nofpu_id:  // Unused on sparc
 #endif
     case verify_oop_id:
-    case unwind_exception_call_id:
     case OSR_migration_end_id:
     case arithmetic_frem_id:
     case arithmetic_drem_id:

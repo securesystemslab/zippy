@@ -666,6 +666,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("threadTlabTopOffset", in_bytes(JavaThread::tlab_top_offset()));
   set_int("threadTlabEndOffset", in_bytes(JavaThread::tlab_end_offset()));
   set_int("threadObjectOffset", in_bytes(JavaThread::threadObj_offset()));
+  set_int("threadIsMethodHandleReturnOffset", in_bytes(JavaThread::is_method_handle_return_offset()));
   set_int("osThreadOffset", in_bytes(JavaThread::osthread_offset()));
   set_int("osThreadInterruptedOffset", in_bytes(OSThread::interrupted_offset()));
   set_int("unlockedMask", (int) markOopDesc::unlocked_value);
@@ -761,7 +762,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("monitorExitStub", GraalRuntime::entry_for(GraalRuntime::monitorexit_id));
   set_address("verifyOopStub", GraalRuntime::entry_for(GraalRuntime::verify_oop_id));
   set_address("vmErrorStub", GraalRuntime::entry_for(GraalRuntime::vm_error_id));
-  set_address("unwindExceptionStub", GraalRuntime::entry_for(GraalRuntime::unwind_exception_call_id));
   set_address("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::OSR_migration_end_id));
   set_address("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));
   set_address("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
@@ -788,7 +788,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
   set_address("vmMessageAddress", GraalRuntime::vm_message);
   set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
-  set_address("handleExceptionForPcAddress", GraalRuntime::exception_handler_for_pc);
+  set_address("exceptionHandlerForPcAddress", GraalRuntime::exception_handler_for_pc);
+  set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);

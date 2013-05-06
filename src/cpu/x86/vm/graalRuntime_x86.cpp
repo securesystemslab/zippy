@@ -612,95 +612,6 @@ static void restore_live_registers_except_rax(GraalStubAssembler* sasm, bool res
 #endif // _LP64
 }
 
-void GraalRuntime::generate_unwind_exception(GraalStubAssembler *sasm) {
-  // incoming parameters
-  const Register exception_oop = rax;
-  // callee-saved copy of exception_oop during runtime call
-  const Register exception_oop_callee_saved = NOT_LP64(rsi) LP64_ONLY(r14);
-  // other registers used in this stub
-  const Register exception_pc = rdx;
-  const Register handler_addr = rbx;
-  const Register thread = NOT_LP64(rdi) LP64_ONLY(r15_thread);
-
-  // verify that only rax is valid at this time
-#ifdef ASSERT
-  __ movptr(rbx, 0xDEAD);
-  __ movptr(rcx, 0xDEAD);
-  __ movptr(rdx, 0xDEAD);
-  __ movptr(rsi, 0xDEAD);
-  __ movptr(rdi, 0xDEAD);
-#endif
-
-#ifdef ASSERT
-  // check that fields in JavaThread for exception oop and issuing pc are empty
-  NOT_LP64(__ get_thread(thread);)
-  Label oop_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_oop_offset()), 0);
-  __ jcc(Assembler::equal, oop_empty);
-  __ stop("exception oop must be empty");
-  __ bind(oop_empty);
-
-  Label pc_empty;
-  __ cmpptr(Address(thread, JavaThread::exception_pc_offset()), 0);
-  __ jcc(Assembler::equal, pc_empty);
-  __ stop("exception pc must be empty");
-  __ bind(pc_empty);
-#endif
-
-  // clear the FPU stack in case any FPU results are left behind
-  __ empty_FPU_stack();
-
-  // save exception_oop in callee-saved register to preserve it during runtime calls
-  __ verify_not_null_oop(exception_oop);
-  __ movptr(exception_oop_callee_saved, exception_oop);
-
-  NOT_LP64(__ get_thread(thread);)
-  // Get return address (is on top of stack after leave).
-  __ movptr(exception_pc, Address(rsp, 0));
-
-  // search the exception handler address of the caller (using the return address)
-  __ call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::exception_handler_for_return_address), thread, exception_pc);
-  // rax: exception handler address of the caller
-
-  // Only RAX and RSI are valid at this time, all other registers have been destroyed by the call.
-#ifdef ASSERT
-  __ movptr(rbx, 0xDEAD);
-  __ movptr(rcx, 0xDEAD);
-  __ movptr(rdx, 0xDEAD);
-  __ movptr(rdi, 0xDEAD);
-#endif
-
-  // move result of call into correct register
-  __ movptr(handler_addr, rax);
-
-  // Restore exception oop to RAX (required convention of exception handler).
-  __ movptr(exception_oop, exception_oop_callee_saved);
-
-  // verify that there is really a valid exception in rax
-  __ verify_not_null_oop(exception_oop);
-
-  // get throwing pc (= return address).
-  // rdx has been destroyed by the call, so it must be set again
-  // the pop is also necessary to simulate the effect of a ret(0)
-  __ pop(exception_pc);
-
-  // Restore SP from BP if the exception PC is a method handle call site.
-  NOT_LP64(__ get_thread(thread);)
-  __ cmpl(Address(thread, JavaThread::is_method_handle_return_offset()), 0);
-  __ cmovptr(Assembler::notEqual, rsp, rbp_mh_SP_save);
-
-  // continue at exception handler (return address removed)
-  // note: do *not* remove arguments when unwinding the
-  //       activation since the caller assumes having
-  //       all arguments on the stack when entering the
-  //       runtime to determine the exception handler
-  //       (GC happens at call site with arguments!)
-  // rax: exception oop
-  // rdx: throwing pc
-  // rbx: exception handler
-  __ jmp(handler_addr);
-}
-
 OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) {
 
   // for better readability
@@ -713,19 +624,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   // stub code & info for the different stubs
   OopMapSet* oop_maps = NULL;
   switch (id) {
-
-    case unwind_exception_call_id: {
-      // remove the frame from the stack
-      __ movptr(rsp, rbp);
-      __ pop(rbp);
-
-      __ set_info("unwind_exception", dont_gc_arguments);
-      // note: no stubframe since we are about to leave the current
-      //       activation and we are calling a leaf VM function only.
-      generate_unwind_exception(sasm);
-      __ should_not_reach_here();
-      break;
-    }
 
     case OSR_migration_end_id: {
     __ enter();
