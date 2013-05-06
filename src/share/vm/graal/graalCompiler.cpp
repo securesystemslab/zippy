@@ -57,7 +57,6 @@ void GraalCompiler::initialize() {
   _deopted_leaf_graph_count = 0;
 
   initialize_buffer_blob();
-  GraalRuntime::initialize(THREAD->get_buffer_blob());
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");

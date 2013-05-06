@@ -30,44 +30,6 @@
 #include "runtime/biasedLocking.hpp"
 #include "runtime/interfaceSupport.hpp"
 #include "utilities/debug.hpp"
-// Implementation of GraalStubAssembler
-
-GraalStubAssembler::GraalStubAssembler(CodeBuffer* code, const char * name, int stub_id) : MacroAssembler(code) {
-  _name = name;
-  _must_gc_arguments = false;
-  _frame_size = no_frame_size;
-  _num_rt_args = 0;
-  _stub_id = stub_id;
-}
-
-
-void GraalStubAssembler::set_info(const char* name, bool must_gc_arguments) {
-  _name = name;
-  _must_gc_arguments = must_gc_arguments;
-}
-
-
-void GraalStubAssembler::set_frame_size(int size) {
-  if (_frame_size == no_frame_size) {
-    _frame_size = size;
-  }
-  assert(_frame_size == size, "can't change the frame size");
-}
-
-
-void GraalStubAssembler::set_num_rt_args(int args) {
-  if (_num_rt_args == 0) {
-    _num_rt_args = args;
-  }
-  assert(_num_rt_args == args, "can't change the number of args");
-}
-
-// Implementation of GraalRuntime
-
-CodeBlob* GraalRuntime::_blobs[GraalRuntime::number_of_ids];
-const char *GraalRuntime::_blob_names[] = {
-  GRAAL_STUBS(STUB_NAME, LAST_STUB_NAME)
-};
 
 // Simple helper to see if the caller of a runtime stub which
 // entered the VM has been deoptimized
@@ -92,131 +54,6 @@ static void deopt_caller() {
     assert(caller_is_deopted(), "Must be deoptimized");
   }
 }
-
-static bool setup_code_buffer(CodeBuffer* code) {
-  // Preinitialize the consts section to some large size:
-  int locs_buffer_size = 1 * (relocInfo::length_limit + sizeof(relocInfo));
-  char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
-  code->insts()->initialize_shared_locs((relocInfo*)locs_buffer,
-                                        locs_buffer_size / sizeof(relocInfo));
-
-  // Global stubs have neither constants nor local stubs
-  code->initialize_consts_size(0);
-  code->initialize_stubs_size(0);
-
-  return true;
-}
-
-void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
-  assert(0 <= id && id < number_of_ids, "illegal stub id");
-  ResourceMark rm;
-  // create code buffer for code storage
-  CodeBuffer code(buffer_blob);
-
-  setup_code_buffer(&code);
-
-  // create assembler for code generation
-  GraalStubAssembler* sasm = new GraalStubAssembler(&code, name_for(id), id);
-  // generate code for runtime stub
-  OopMapSet* oop_maps;
-  oop_maps = generate_code_for(id, sasm);
-  assert(oop_maps == NULL || sasm->frame_size() != GraalStubAssembler::no_frame_size,
-         "if stub has an oop map it must have a valid frame size");
-
-#ifdef ASSERT
-  // Make sure that stubs that need oopmaps have them
-  assert(oop_maps != NULL, "must have an oopmap");
-#endif
-
-  // align so printing shows nop's instead of random code at the end (SimpleStubs are aligned)
-  sasm->align(BytesPerWord);
-  // make sure all code is in code buffer
-  sasm->flush();
-  // create blob - distinguish a few special cases
-  CodeBlob* blob = RuntimeStub::new_runtime_stub(name_for(id),
-                                                 &code,
-                                                 CodeOffsets::frame_never_safe,
-                                                 sasm->frame_size(),
-                                                 oop_maps,
-                                                 sasm->must_gc_arguments());
-  // install blob
-  assert(blob != NULL, "blob must exist");
-  _blobs[id] = blob;
-}
-
-
-void GraalRuntime::initialize(BufferBlob* blob) {
-  // generate stubs
-  for (int id = 0; id < number_of_ids; id++) generate_blob_for(blob, (StubID)id);
-  // printing
-#ifndef PRODUCT
-  if (GraalPrintSimpleStubs) {
-    ResourceMark rm;
-    for (int id = 0; id < number_of_ids; id++) {
-      _blobs[id]->print();
-      if (_blobs[id]->oop_maps() != NULL) {
-        _blobs[id]->oop_maps()->print();
-      }
-    }
-  }
-#endif
-}
-
-
-CodeBlob* GraalRuntime::blob_for(StubID id) {
-  assert(0 <= id && id < number_of_ids, "illegal stub id");
-  return _blobs[id];
-}
-
-
-const char* GraalRuntime::name_for(StubID id) {
-  assert(0 <= id && id < number_of_ids, "illegal stub id");
-  return _blob_names[id];
-}
-
-const char* GraalRuntime::name_for_address(address entry) {
-  for (int id = 0; id < number_of_ids; id++) {
-    if (entry == entry_for((StubID)id)) return name_for((StubID)id);
-  }
-
-#define FUNCTION_CASE(a, f) \
-  if ((intptr_t)a == CAST_FROM_FN_PTR(intptr_t, f))  return #f
-
-  FUNCTION_CASE(entry, os::javaTimeMillis);
-  FUNCTION_CASE(entry, os::javaTimeNanos);
-  FUNCTION_CASE(entry, SharedRuntime::OSR_migration_end);
-  FUNCTION_CASE(entry, SharedRuntime::d2f);
-  FUNCTION_CASE(entry, SharedRuntime::d2i);
-  FUNCTION_CASE(entry, SharedRuntime::d2l);
-  FUNCTION_CASE(entry, SharedRuntime::dcos);
-  FUNCTION_CASE(entry, SharedRuntime::dexp);
-  FUNCTION_CASE(entry, SharedRuntime::dlog);
-  FUNCTION_CASE(entry, SharedRuntime::dlog10);
-  FUNCTION_CASE(entry, SharedRuntime::dpow);
-  FUNCTION_CASE(entry, SharedRuntime::drem);
-  FUNCTION_CASE(entry, SharedRuntime::dsin);
-  FUNCTION_CASE(entry, SharedRuntime::dtan);
-  FUNCTION_CASE(entry, SharedRuntime::f2i);
-  FUNCTION_CASE(entry, SharedRuntime::f2l);
-  FUNCTION_CASE(entry, SharedRuntime::frem);
-  FUNCTION_CASE(entry, SharedRuntime::l2d);
-  FUNCTION_CASE(entry, SharedRuntime::l2f);
-  FUNCTION_CASE(entry, SharedRuntime::ldiv);
-  FUNCTION_CASE(entry, SharedRuntime::lmul);
-  FUNCTION_CASE(entry, SharedRuntime::lrem);
-  FUNCTION_CASE(entry, SharedRuntime::lrem);
-  FUNCTION_CASE(entry, SharedRuntime::dtrace_method_entry);
-  FUNCTION_CASE(entry, SharedRuntime::dtrace_method_exit);
-#ifdef TRACE_HAVE_INTRINSICS
-  FUNCTION_CASE(entry, TRACE_TIME_METHOD);
-#endif
-
-  ShouldNotReachHere();
-  return NULL;
-
-#undef FUNCTION_CASE
-}
-
 
 JRT_ENTRY(void, GraalRuntime::new_instance(JavaThread* thread, Klass* klass))
   assert(klass->is_klass(), "not a class");
@@ -262,10 +99,6 @@ JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, 
   assert(rank >= 1, "rank must be nonzero");
   oop obj = ArrayKlass::cast(klass)->multi_allocate(rank, dims, CHECK);
   thread->set_vm_result(obj);
-JRT_END
-
-JRT_ENTRY(void, GraalRuntime::unimplemented_entry(JavaThread* thread, StubID id))
-  tty->print_cr("GraalRuntime::entry_for(%d) returned unimplemented entry point", id);
 JRT_END
 
 extern void vm_exit(int code);

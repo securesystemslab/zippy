@@ -24,90 +24,11 @@
 #ifndef SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
 #define SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
 
-#include "code/stubs.hpp"
 #include "interpreter/interpreter.hpp"
 #include "memory/allocation.hpp"
 #include "runtime/deoptimization.hpp"
 
-// A GraalStubAssembler is a MacroAssembler w/ extra functionality for runtime
-// stubs. Currently it 'knows' some stub info. Eventually, the information
-// may be set automatically or can be asserted when using specialised
-// GraalStubAssembler functions.
-
-class GraalStubAssembler: public MacroAssembler {
- private:
-  const char* _name;
-  bool        _must_gc_arguments;
-  int         _frame_size;
-  int         _num_rt_args;
-  int         _stub_id;
-
- public:
-
-  enum {
-    no_frame_size            = -1
-  };
-
-  // creation
-  GraalStubAssembler(CodeBuffer* code, const char * name, int stub_id);
-  void set_info(const char* name, bool must_gc_arguments);
-
-  void set_frame_size(int size);
-  void set_num_rt_args(int args);
-
-  // accessors
-  const char* name() const                       { return _name; }
-  bool  must_gc_arguments() const                { return _must_gc_arguments; }
-  int frame_size() const                         { return _frame_size; }
-  int num_rt_args() const                        { return _num_rt_args; }
-  int stub_id() const                            { return _stub_id; }
-
-  // runtime calls (return offset of call to be used by GC map)
-  int call_RT(Register oop_result1, Register metadata_result, address entry, int args_size = 0);
-  int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1);
-  int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2);
-  int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2, Register arg3);
-  int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1, Register arg2, Register arg3, Register arg4);
-};
-
-// set frame size and return address offset to these values in blobs
-// (if the compiled frame uses ebp as link pointer on IA; otherwise,
-// the frame size must be fixed)
-
-// Holds all assembly stubs and VM
-// runtime routines needed by code code generated
-// by Graal.
-#define GRAAL_STUBS(stub, last_entry) \
- last_entry(number_of_ids)
-
-#define DECLARE_STUB_ID(x)       x ## _id ,
-#define DECLARE_LAST_STUB_ID(x)  x
-#define STUB_NAME(x)             #x " GraalRuntime stub",
-#define LAST_STUB_NAME(x)        #x " GraalRuntime stub"
-
 class GraalRuntime: public AllStatic {
-  friend class VMStructs;
-
- public:
-  enum StubID {
-    GRAAL_STUBS(DECLARE_STUB_ID, DECLARE_LAST_STUB_ID)
-  };
-
- private:
-  static CodeBlob* _blobs[number_of_ids];
-  static const char* _blob_names[];
-
-  // stub generation
-  static void       generate_blob_for(BufferBlob* blob, StubID id);
-  static OopMapSet* generate_code_for(StubID id, GraalStubAssembler* sasm);
-  static void       generate_unwind_exception(GraalStubAssembler *sasm);
-
-  static OopMapSet* generate_stub_call(GraalStubAssembler* sasm, Register result, address entry,
-                                       Register arg1 = noreg, Register arg2 = noreg, Register arg3 = noreg);
-
-  // runtime entry points
-  static void unimplemented_entry(JavaThread* thread, StubID id);
-
  public:
   static void new_instance(JavaThread* thread, Klass* klass);
   static void new_array(JavaThread* thread, Klass* klass, jint length);
@@ -132,15 +53,6 @@ class GraalRuntime: public AllStatic {
   static void log_object(JavaThread* thread, oop msg, jint flags);
   static void write_barrier_pre(JavaThread* thread, oopDesc* obj);
   static void write_barrier_post(JavaThread* thread, oopDesc* obj, void* card);
-
-  // initialization
-  static void initialize(BufferBlob* blob);
-
-  // stubs
-  static CodeBlob* blob_for (StubID id);
-  static address   entry_for(StubID id)          { return blob_for(id)->code_begin(); }
-  static const char* name_for (StubID id);
-  static const char* name_for_address(address entry);
 };
 
 #endif // SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
