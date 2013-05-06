@@ -127,7 +127,6 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
   // Make sure that stubs that need oopmaps have them
   switch (id) {
     // These stubs don't need to have an oopmap
-    case OSR_migration_end_id:
     case arithmetic_frem_id:
     case arithmetic_drem_id:
       break;

@@ -625,17 +625,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case OSR_migration_end_id: {
-    __ enter();
-    save_live_registers(sasm, 0);
-    __ movptr(c_rarg0, j_rarg0);
-    __ call(RuntimeAddress(CAST_FROM_FN_PTR(address, SharedRuntime::OSR_migration_end)));
-    restore_live_registers(sasm);
-    __ leave();
-    __ ret(0);
-      break;
-    }
-
     case create_null_pointer_exception_id: {
 		__ enter();
 		oop_maps = new OopMapSet();
