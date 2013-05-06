@@ -1345,8 +1345,12 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     bool create_if_missing = ProfileTraps;
 
     methodHandle profiled_method;
-#ifdef GRAALVM
-    profiled_method = nm->method();
+#ifdef GRAAL
+    if (nm->is_compiled_by_graal()) {
+      profiled_method = nm->method();
+    } else {
+      profiled_method = trap_method;
+    }
 #else
     profiled_method = trap_method;
 #endif
