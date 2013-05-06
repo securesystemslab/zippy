@@ -697,42 +697,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case monitorenter_id: {
-      Register obj = j_rarg0;
-      Register lock = j_rarg1;
-      {
-        GraalStubFrame f(sasm, "monitorenter", dont_gc_arguments);
-        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
-
-        // Called with store_parameter and not C abi
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorenter), obj, lock);
-
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers(sasm, save_fpu_registers);
-      }
-      __ ret(0);
-      break;
-    }
-    case monitorexit_id: {
-      Register obj = j_rarg0;
-      Register lock = j_rarg1;
-      {
-        GraalStubFrame f(sasm, "monitorexit", dont_gc_arguments);
-        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
-
-        // note: really a leaf routine but must setup last java sp
-        //       => use call_RT for now (speed can be improved by
-        //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, monitorexit), obj, lock);
-
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers(sasm, save_fpu_registers);
-      }
-      __ ret(0);
-      break;
-   }
    case wb_pre_call_id: {
       Register obj = j_rarg0;
       {

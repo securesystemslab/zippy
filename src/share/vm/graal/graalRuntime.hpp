@@ -78,8 +78,6 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(monitorenter)            \
-  stub(monitorexit)             \
   stub(vm_error)                \
   stub(create_null_pointer_exception) \
   stub(create_out_of_bounds_exception) \
@@ -120,8 +118,6 @@ class GraalRuntime: public AllStatic {
 
   static void create_null_exception(JavaThread* thread);
   static void create_out_of_bounds_exception(JavaThread* thread, jint index);
-  static void monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
-  static void monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
   static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
   static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
@@ -145,6 +141,8 @@ class GraalRuntime: public AllStatic {
   static void vm_message(jboolean vmError, jlong format, jlong v1, jlong v2, jlong v3);
   static jint identity_hash_code(JavaThread* thread, oopDesc* objd);
   static address exception_handler_for_pc(JavaThread* thread);
+  static void monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
+  static void monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
 
   // initialization
   static void initialize(BufferBlob* blob);
