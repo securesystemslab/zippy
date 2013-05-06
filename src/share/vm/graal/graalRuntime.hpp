@@ -79,9 +79,6 @@ class GraalStubAssembler: public MacroAssembler {
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
   stub(vm_error)                \
-  stub(log_object)              \
-  stub(log_printf)              \
-  stub(log_primitive)           \
   stub(wb_pre_call)             \
   stub(wb_post_call)             \
  last_entry(number_of_ids)
@@ -114,14 +111,6 @@ class GraalRuntime: public AllStatic {
   // runtime entry points
   static void unimplemented_entry(JavaThread* thread, StubID id);
 
-  // Note: Must be kept in sync with constants in com.oracle.graal.replacements.Log
-  enum {
-    LOG_OBJECT_NEWLINE = 0x01,
-    LOG_OBJECT_STRING  = 0x02,
-    LOG_OBJECT_ADDRESS = 0x04
-  };
-  static void log_object(JavaThread* thread, oop msg, jint flags);
-
  public:
   static void new_instance(JavaThread* thread, Klass* klass);
   static void new_array(JavaThread* thread, Klass* klass, jint length);
@@ -137,6 +126,13 @@ class GraalRuntime: public AllStatic {
   static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
   static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
   static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
+  // Note: Must be kept in sync with constants in com.oracle.graal.replacements.Log
+  enum {
+    LOG_OBJECT_NEWLINE = 0x01,
+    LOG_OBJECT_STRING  = 0x02,
+    LOG_OBJECT_ADDRESS = 0x04
+  };
+  static void log_object(JavaThread* thread, oop msg, jint flags);
   static void wb_pre_call(JavaThread* thread, oopDesc* obj);
   static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
 

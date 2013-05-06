@@ -768,9 +768,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("arithmeticSinStub", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
   set_address("arithmeticCosStub", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
   set_address("arithmeticTanStub", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
-  set_address("logPrimitiveStub", GraalRuntime::entry_for(GraalRuntime::log_primitive_id));
-  set_address("logObjectStub", GraalRuntime::entry_for(GraalRuntime::log_object_id));
-  set_address("logPrintfStub", GraalRuntime::entry_for(GraalRuntime::log_printf_id));
   set_address("aescryptEncryptBlockStub", StubRoutines::aescrypt_encryptBlock());
   set_address("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
   set_address("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
@@ -791,6 +788,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("monitorexitAddress", GraalRuntime::monitorexit);
   set_address("createNullPointerExceptionAddress", GraalRuntime::create_null_exception);
   set_address("createOutOfBoundsExceptionAddress", GraalRuntime::create_out_of_bounds_exception);
+  set_address("logPrimitiveAddress", GraalRuntime::log_primitive);
+  set_address("logObjectAddress", GraalRuntime::log_object);
+  set_address("logPrintfAddress", GraalRuntime::log_printf);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
