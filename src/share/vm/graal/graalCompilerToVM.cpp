@@ -616,9 +616,6 @@ jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig)
   return id;
 }
 
-BasicType basicTypes[] = { T_BOOLEAN, T_BYTE, T_SHORT, T_CHAR, T_INT, T_FLOAT, T_LONG, T_DOUBLE, T_OBJECT };
-int basicTypeCount = sizeof(basicTypes) / sizeof(BasicType);
-
 C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 #define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
