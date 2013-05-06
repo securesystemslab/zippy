@@ -417,7 +417,7 @@ static OopMap* generate_oop_map(GraalStubAssembler* sasm, int num_rt_args,
 
 #define __ sasm->
 
-static OopMap* save_live_registers(GraalStubAssembler* sasm, int num_rt_args,
+OopMap* save_live_registers(GraalStubAssembler* sasm, int num_rt_args,
                                    bool save_fpu_registers = true) {
   __ block_comment("save_live_registers");
 
@@ -587,44 +587,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   // stub code & info for the different stubs
   OopMapSet* oop_maps = NULL;
   switch (id) {
-
-   case wb_pre_call_id: {
-      Register obj = j_rarg0;
-      {
-        GraalStubFrame f(sasm, "graal_wb_pre_call", dont_gc_arguments);
-        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
-
-        // note: really a leaf routine but must setup last java sp
-        //       => use call_RT for now (speed can be improved by
-        //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, wb_pre_call), obj);
-
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers(sasm);
-      }
-      __ ret(0);
-      break;
-   }
-   case wb_post_call_id: {
-      Register obj = j_rarg0;
-      Register caddr = j_rarg1;
-      {
-        GraalStubFrame f(sasm, "graal_wb_post_call", dont_gc_arguments);
-        OopMap* map = save_live_registers(sasm, 2, save_fpu_registers);
-
-        // note: really a leaf routine but must setup last java sp
-        //       => use call_RT for now (speed can be improved by
-        //       doing last java sp setup manually)
-        int call_offset = __ call_RT(noreg, noreg, CAST_FROM_FN_PTR(address, wb_post_call), obj, caddr);
-
-        oop_maps = new OopMapSet();
-        oop_maps->add_gc_map(call_offset, map);
-        restore_live_registers(sasm);
-      }
-      __ ret(0);
-      break;
-    }
 
     default:
       { GraalStubFrame f(sasm, "unimplemented entry", dont_gc_arguments);

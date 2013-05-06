@@ -78,8 +78,6 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(wb_pre_call)             \
-  stub(wb_post_call)             \
  last_entry(number_of_ids)
 
 #define DECLARE_STUB_ID(x)       x ## _id ,
@@ -132,8 +130,8 @@ class GraalRuntime: public AllStatic {
     LOG_OBJECT_ADDRESS = 0x04
   };
   static void log_object(JavaThread* thread, oop msg, jint flags);
-  static void wb_pre_call(JavaThread* thread, oopDesc* obj);
-  static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
+  static void write_barrier_pre(JavaThread* thread, oopDesc* obj);
+  static void write_barrier_post(JavaThread* thread, oopDesc* obj, void* card);
 
   // initialization
   static void initialize(BufferBlob* blob);

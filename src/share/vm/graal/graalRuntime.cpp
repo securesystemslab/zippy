@@ -471,11 +471,11 @@ JRT_ENTRY_NO_ASYNC(void, GraalRuntime::monitorenter(JavaThread* thread, oopDesc*
   }
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::wb_pre_call(JavaThread* thread, oopDesc* obj))
+JRT_LEAF(void, GraalRuntime::write_barrier_pre(JavaThread* thread, oopDesc* obj))
     thread->satb_mark_queue().enqueue(obj);
 JRT_END
 
-JRT_LEAF(void, GraalRuntime::wb_post_call(JavaThread* thread, oopDesc* obj, void* card_addr))
+JRT_LEAF(void, GraalRuntime::write_barrier_post(JavaThread* thread, oopDesc* obj, void* card_addr))
     thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
