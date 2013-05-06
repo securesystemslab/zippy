@@ -575,43 +575,6 @@ static void restore_live_registers(GraalStubAssembler* sasm, bool restore_fpu_re
   __ popa();
 }
 
-
-static void restore_live_registers_except_rax(GraalStubAssembler* sasm, bool restore_fpu_registers = true) {
-  __ block_comment("restore_live_registers_except_rax");
-
-  restore_fpu(sasm, restore_fpu_registers);
-
-#ifdef _LP64
-  __ movptr(r15, Address(rsp, 0));
-  __ movptr(r14, Address(rsp, wordSize));
-  __ movptr(r13, Address(rsp, 2 * wordSize));
-  __ movptr(r12, Address(rsp, 3 * wordSize));
-  __ movptr(r11, Address(rsp, 4 * wordSize));
-  __ movptr(r10, Address(rsp, 5 * wordSize));
-  __ movptr(r9,  Address(rsp, 6 * wordSize));
-  __ movptr(r8,  Address(rsp, 7 * wordSize));
-  __ movptr(rdi, Address(rsp, 8 * wordSize));
-  __ movptr(rsi, Address(rsp, 9 * wordSize));
-  __ movptr(rbp, Address(rsp, 10 * wordSize));
-  // skip rsp
-  __ movptr(rbx, Address(rsp, 12 * wordSize));
-  __ movptr(rdx, Address(rsp, 13 * wordSize));
-  __ movptr(rcx, Address(rsp, 14 * wordSize));
-
-  __ addptr(rsp, 16 * wordSize);
-#else
-
-  __ pop(rdi);
-  __ pop(rsi);
-  __ pop(rbp);
-  __ pop(rbx); // skip this value
-  __ pop(rbx);
-  __ pop(rdx);
-  __ pop(rcx);
-  __ addptr(rsp, BytesPerWord);
-#endif // _LP64
-}
-
 OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) {
 
   // for better readability
@@ -624,18 +587,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   // stub code & info for the different stubs
   OopMapSet* oop_maps = NULL;
   switch (id) {
-
-    case create_out_of_bounds_exception_id: {
-		__ enter();
-		oop_maps = new OopMapSet();
-		OopMap* oop_map = save_live_registers(sasm, 1);
-		int call_offset = __ call_RT(rax, noreg, (address)create_out_of_bounds_exception, j_rarg0);
-		oop_maps->add_gc_map(call_offset, oop_map);
-		restore_live_registers_except_rax(sasm);
-		__ leave();
-		__ ret(0);
-      break;
-    }
 
     case vm_error_id: {
       __ enter();

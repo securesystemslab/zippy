@@ -79,7 +79,6 @@ class GraalStubAssembler: public MacroAssembler {
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
   stub(vm_error)                \
-  stub(create_out_of_bounds_exception) \
   stub(log_object)              \
   stub(log_printf)              \
   stub(log_primitive)           \
@@ -115,14 +114,6 @@ class GraalRuntime: public AllStatic {
   // runtime entry points
   static void unimplemented_entry(JavaThread* thread, StubID id);
 
-  static void create_out_of_bounds_exception(JavaThread* thread, jint index);
-  static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
-  static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
-  static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
-  static void wb_pre_call(JavaThread* thread, oopDesc* obj);
-  static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
-
-
   // Note: Must be kept in sync with constants in com.oracle.graal.replacements.Log
   enum {
     LOG_OBJECT_NEWLINE = 0x01,
@@ -142,6 +133,12 @@ class GraalRuntime: public AllStatic {
   static void monitorenter(JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void monitorexit (JavaThread* thread, oopDesc* obj, BasicLock* lock);
   static void create_null_exception(JavaThread* thread);
+  static void create_out_of_bounds_exception(JavaThread* thread, jint index);
+  static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
+  static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
+  static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
+  static void wb_pre_call(JavaThread* thread, oopDesc* obj);
+  static void wb_post_call(JavaThread* thread, oopDesc* obj, void* card);
 
   // initialization
   static void initialize(BufferBlob* blob);
