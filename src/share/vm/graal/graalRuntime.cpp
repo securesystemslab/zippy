@@ -568,13 +568,43 @@ JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1
   tty->print(buf, v1, v2, v3);
 JRT_END
 
+static void decipher(jlong v, bool ignoreZero) {
+  if (v != 0 || !ignoreZero) {
+    void* p = (void *)(address) v;
+    CodeBlob* cb = CodeCache::find_blob(p);
+    if (cb) {
+      if (cb->is_nmethod()) {
+        char buf[O_BUFLEN];
+        tty->print("%s [%p+%d]", cb->as_nmethod_or_null()->method()->name_and_sig_as_C_string(buf, O_BUFLEN), cb->code_begin(), (address)v - cb->code_begin());
+        return;
+      }
+      cb->print_value_on(tty);
+      return;
+    }
+    if (Universe::heap()->is_in(p)) {
+      oop obj = oop(p);
+      obj->print_value_on(tty);
+      return;
+    }
+    tty->print("%p [long: %d, double %f, char %c]", v, v, v, v);
+  }
+}
+
 JRT_LEAF(void, GraalRuntime::vm_message(jboolean vmError, jlong format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;
   char *buf = (char*) (address) format;
   if (vmError) {
-    fatal(err_msg(buf, v1, v2, v3));
-  } else {
+    if (buf != NULL) {
+      fatal(err_msg(buf, v1, v2, v3));
+    } else {
+      fatal("<anonymous error>");
+    }
+  } else if (buf != NULL) {
     tty->print(buf, v1, v2, v3);
+  } else {
+    assert(v2 == 0, "v2 != 0");
+    assert(v3 == 0, "v3 != 0");
+    decipher(v1, false);
   }
 JRT_END
 
