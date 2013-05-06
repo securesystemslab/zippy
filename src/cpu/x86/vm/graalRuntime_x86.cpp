@@ -625,18 +625,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case create_null_pointer_exception_id: {
-		__ enter();
-		oop_maps = new OopMapSet();
-		OopMap* oop_map = save_live_registers(sasm, 0);
-		int call_offset = __ call_RT(rax, noreg, (address)create_null_exception, 0);
-		oop_maps->add_gc_map(call_offset, oop_map);
-		restore_live_registers_except_rax(sasm);
-		__ leave();
-		__ ret(0);
-      break;
-    }
-
     case create_out_of_bounds_exception_id: {
 		__ enter();
 		oop_maps = new OopMapSet();

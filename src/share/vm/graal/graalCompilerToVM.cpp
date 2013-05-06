@@ -763,7 +763,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
   set_address("vmErrorStub", GraalRuntime::entry_for(GraalRuntime::vm_error_id));
-  set_address("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));
   set_address("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
   set_address("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
   set_address("javaTimeNanosStub", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
@@ -791,6 +790,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);
   set_address("monitorenterAddress", GraalRuntime::monitorenter);
   set_address("monitorexitAddress", GraalRuntime::monitorexit);
+  set_address("createNullPointerExceptionAddress", GraalRuntime::create_null_exception);
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
