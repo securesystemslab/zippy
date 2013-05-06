@@ -741,6 +741,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("tlabStats", TLABStats);
   set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
 
+  set_long("verifyOopCounterAddress", (jlong)(address) StubRoutines::verify_oop_count_addr);
+  set_long("verifyOopMask", Universe::verify_oop_mask());
+  set_long("verifyOopBits", Universe::verify_oop_bits());
+
   set_long("arrayPrototypeMarkWord", (intptr_t)markOopDesc::prototype());
   set_int("layoutHelperLog2ElementSizeShift", Klass::_lh_log2_element_size_shift);
   set_int("layoutHelperLog2ElementSizeMask", Klass::_lh_log2_element_size_mask);
@@ -760,7 +764,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
   set_address("monitorEnterStub", GraalRuntime::entry_for(GraalRuntime::monitorenter_id));
   set_address("monitorExitStub", GraalRuntime::entry_for(GraalRuntime::monitorexit_id));
-  set_address("verifyOopStub", GraalRuntime::entry_for(GraalRuntime::verify_oop_id));
   set_address("vmErrorStub", GraalRuntime::entry_for(GraalRuntime::vm_error_id));
   set_address("osrMigrationEndStub", GraalRuntime::entry_for(GraalRuntime::OSR_migration_end_id));
   set_address("createNullPointerExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_null_pointer_exception_id));

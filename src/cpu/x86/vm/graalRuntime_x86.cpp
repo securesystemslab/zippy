@@ -708,15 +708,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case verify_oop_id: {
-      // We use enter & leave so that a better stack trace is produced in the hs_err file
-      __ enter();
-      __ verify_oop(r13, "Graal verify oop");
-      __ leave();
-      __ ret(0);
-      break;
-    }
-
     case arithmetic_frem_id: {
       __ subptr(rsp, 8);
       __ movflt(Address(rsp, 0), xmm1);
