@@ -588,18 +588,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
   OopMapSet* oop_maps = NULL;
   switch (id) {
 
-    case vm_error_id: {
-      __ enter();
-      oop_maps = new OopMapSet();
-      OopMap* oop_map = save_live_registers(sasm, 3);
-      int call_offset = __ call_RT(noreg, noreg, (address)vm_error, j_rarg0, j_rarg1, j_rarg2);
-      oop_maps->add_gc_map(call_offset, oop_map);
-      restore_live_registers(sasm);
-      __ leave();
-      __ ret(0);
-      break;
-    }
-
    case wb_pre_call_id: {
       Register obj = j_rarg0;
       {
