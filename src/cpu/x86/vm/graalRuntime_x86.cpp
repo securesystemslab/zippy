@@ -697,48 +697,6 @@ OopMapSet* GraalRuntime::generate_code_for(StubID id, GraalStubAssembler* sasm) 
       break;
     }
 
-    case arithmetic_frem_id: {
-      __ subptr(rsp, 8);
-      __ movflt(Address(rsp, 0), xmm1);
-      __ fld_s(Address(rsp, 0));
-      __ movflt(Address(rsp, 0), xmm0);
-      __ fld_s(Address(rsp, 0));
-      Label L;
-      __ bind(L);
-      __ fprem();
-      __ fwait();
-      __ fnstsw_ax();
-      __ testl(rax, 0x400);
-      __ jcc(Assembler::notZero, L);
-      __ fxch(1);
-      __ fpop();
-      __ fstp_s(Address(rsp, 0));
-      __ movflt(xmm0, Address(rsp, 0));
-      __ addptr(rsp, 8);
-      __ ret(0);
-      break;
-    }
-    case arithmetic_drem_id: {
-      __ subptr(rsp, 8);
-      __ movdbl(Address(rsp, 0), xmm1);
-      __ fld_d(Address(rsp, 0));
-      __ movdbl(Address(rsp, 0), xmm0);
-      __ fld_d(Address(rsp, 0));
-      Label L;
-      __ bind(L);
-      __ fprem();
-      __ fwait();
-      __ fnstsw_ax();
-      __ testl(rax, 0x400);
-      __ jcc(Assembler::notZero, L);
-      __ fxch(1);
-      __ fpop();
-      __ fstp_d(Address(rsp, 0));
-      __ movdbl(xmm0, Address(rsp, 0));
-      __ addptr(rsp, 8);
-      __ ret(0);
-      break;
-    }
     case monitorenter_id: {
       Register obj = j_rarg0;
       Register lock = j_rarg1;

@@ -125,15 +125,7 @@ void GraalRuntime::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
 
 #ifdef ASSERT
   // Make sure that stubs that need oopmaps have them
-  switch (id) {
-    // These stubs don't need to have an oopmap
-    case arithmetic_frem_id:
-    case arithmetic_drem_id:
-      break;
-    // All other stubs should have oopmaps
-    default:
-      assert(oop_maps != NULL, "must have an oopmap");
-  }
+  assert(oop_maps != NULL, "must have an oopmap");
 #endif
 
   // align so printing shows nop's instead of random code at the end (SimpleStubs are aligned)

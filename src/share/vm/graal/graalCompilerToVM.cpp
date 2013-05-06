@@ -769,8 +769,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
   set_address("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
   set_address("javaTimeNanosStub", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-  set_address("arithmeticFremStub", GraalRuntime::entry_for(GraalRuntime::arithmetic_frem_id));
-  set_address("arithmeticDremStub", GraalRuntime::entry_for(GraalRuntime::arithmetic_drem_id));
   set_address("arithmeticSinStub", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
   set_address("arithmeticCosStub", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
   set_address("arithmeticTanStub", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
