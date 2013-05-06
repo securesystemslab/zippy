@@ -1344,8 +1344,15 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     // Ensure that we can record deopt. history:
     bool create_if_missing = ProfileTraps;
 
+    methodHandle profiled_method;
+#ifdef GRAALVM
+    profiled_method = nm->method();
+#else
+    profiled_method = trap_method;
+#endif
+
     MethodData* trap_mdo =
-      get_method_data(thread, trap_method, create_if_missing);
+      get_method_data(thread, profiled_method, create_if_missing);
 
     // Log a message
     Events::log_deopt_message(thread, "Uncommon trap: reason=%s action=%s pc=" INTPTR_FORMAT " method=%s @ %d",
@@ -1538,7 +1545,6 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     bool inc_recompile_count = false;
     ProfileData* pdata = NULL;
     if (ProfileTraps && update_trap_state && trap_mdo != NULL) {
-      assert(trap_mdo == get_method_data(thread, trap_method, false), "sanity");
       uint this_trap_count = 0;
       bool maybe_prior_trap = false;
       bool maybe_prior_recompile = false;
