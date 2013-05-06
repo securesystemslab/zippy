@@ -62,9 +62,6 @@ class GraalStubAssembler: public MacroAssembler {
   int num_rt_args() const                        { return _num_rt_args; }
   int stub_id() const                            { return _stub_id; }
 
-  void verify_stack_oop(int offset) PRODUCT_RETURN;
-  void verify_not_null_oop(Register r)  PRODUCT_RETURN;
-
   // runtime calls (return offset of call to be used by GC map)
   int call_RT(Register oop_result1, Register metadata_result, address entry, int args_size = 0);
   int call_RT(Register oop_result1, Register metadata_result, address entry, Register arg1);
@@ -81,12 +78,10 @@ class GraalStubAssembler: public MacroAssembler {
 // runtime routines needed by code code generated
 // by Graal.
 #define GRAAL_STUBS(stub, last_entry) \
-  stub(OSR_migration_end)       \
   stub(arithmetic_frem)         \
   stub(arithmetic_drem)         \
   stub(monitorenter)            \
   stub(monitorexit)             \
-  stub(verify_oop)              \
   stub(vm_error)                \
   stub(create_null_pointer_exception) \
   stub(create_out_of_bounds_exception) \

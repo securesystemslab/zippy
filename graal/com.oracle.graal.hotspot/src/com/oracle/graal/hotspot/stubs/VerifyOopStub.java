@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,36 +19,27 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
+package com.oracle.graal.hotspot.stubs;
 
-#include "precompiled.hpp"
-#include "graal/graalRuntime.hpp"
-#include "classfile/systemDictionary.hpp"
-#include "gc_interface/collectedHeap.hpp"
-#include "interpreter/interpreter.hpp"
-#include "oops/arrayOop.hpp"
-#include "oops/markOop.hpp"
-#include "runtime/basicLock.hpp"
-#include "runtime/biasedLocking.hpp"
-#include "runtime/os.hpp"
-#include "runtime/stubRoutines.hpp"
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.hotspot.nodes.*;
+import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.replacements.*;
 
-#ifndef PRODUCT
+/**
+ * Stub called from {@link VerifyOopStubCall}.
+ */
+public class VerifyOopStub extends CRuntimeStub {
 
-void GraalStubAssembler::verify_stack_oop(int stack_offset) {
-  if (!VerifyOops) return;
-  verify_oop_addr(Address(rsp, stack_offset));
+    public VerifyOopStub(final HotSpotRuntime runtime, Replacements replacements, TargetDescription target, HotSpotRuntimeCallTarget linkage) {
+        super(runtime, replacements, target, linkage);
+    }
+
+    @Snippet
+    private static Object verifyOop(Object object) {
+        return verifyObject(object);
+    }
 }
-
-void GraalStubAssembler::verify_not_null_oop(Register r) {
-  if (!VerifyOops) return;
-  Label not_null;
-  testptr(r, r);
-  jcc(Assembler::notZero, not_null);
-  stop("non-null oop required");
-  bind(not_null);
-  verify_oop(r);
-}
-
-#endif // ifndef PRODUCT
