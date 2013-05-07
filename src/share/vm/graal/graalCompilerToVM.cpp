@@ -643,11 +643,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #define set_int_array(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "[I"), value); } while (0)
 
   guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
-#ifdef _WIN64
-  set_boolean("windowsOs", true);
-#else
-  set_boolean("windowsOs", false);
-#endif
+
   set_boolean("cAssertions", DEBUG_ONLY(true) NOT_DEBUG(false));
   set_boolean("verifyOops", VerifyOops);
   set_boolean("ciTime", CITime);
