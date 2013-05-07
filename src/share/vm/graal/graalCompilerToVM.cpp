@@ -391,35 +391,52 @@ C2V_VMENTRY(jobject, lookupConstantInPool, (JNIEnv *env, jobject, jobject type, 
 
   oop result = NULL;
   constantTag tag = cp->tag_at(index);
-  if (tag.is_int()) {
-    result = VMToCompiler::createConstant(Kind::Int(), cp->int_at(index), CHECK_0);
-  } else if (tag.is_long()) {
-    result = VMToCompiler::createConstant(Kind::Long(), cp->long_at(index), CHECK_0);
-  } else if (tag.is_float()) {
-    result = VMToCompiler::createConstantFloat(cp->float_at(index), CHECK_0);
-  } else if (tag.is_double()) {
-    result = VMToCompiler::createConstantDouble(cp->double_at(index), CHECK_0);
-  } else if (tag.is_string()) {
-    oop string = NULL;
-    if (cp->is_pseudo_string_at(index)) {
-      int obj_index = cp->cp_to_object_index(index);
-      string = cp->pseudo_string_at(index, obj_index);
-    } else {
-      string = cp->string_at(index, THREAD);
-      if (HAS_PENDING_EXCEPTION) {
-        CLEAR_PENDING_EXCEPTION;
-        // TODO: Gracefully exit compilation.
-        fatal("out of memory during compilation!");
-        return NULL;
-      }
+
+  switch (tag.value()) {
+  case JVM_CONSTANT_Integer:
+    result = VMToCompiler::createConstant(Kind::Int(), cp->int_at(index), CHECK_NULL);
+    break;
+
+  case JVM_CONSTANT_Long:
+    result = VMToCompiler::createConstant(Kind::Long(), cp->long_at(index), CHECK_NULL);
+    break;
+
+  case JVM_CONSTANT_Float:
+    result = VMToCompiler::createConstantFloat(cp->float_at(index), CHECK_NULL);
+    break;
+
+  case JVM_CONSTANT_Double:
+    result = VMToCompiler::createConstantDouble(cp->double_at(index), CHECK_NULL);
+    break;
+
+  case JVM_CONSTANT_Class:
+  case JVM_CONSTANT_UnresolvedClass:
+  case JVM_CONSTANT_UnresolvedClassInError:
+    {
+      Handle type = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
+      result = type();
+      break;
     }
-    result = VMToCompiler::createConstantObject(string, CHECK_0);
-  } else if (tag.is_klass() || tag.is_unresolved_klass()) {
-    Handle type = GraalCompiler::get_JavaType(cp, index, cp->pool_holder(), CHECK_NULL);
-    result = type();
-  } else {
-    tty->print("unknown constant pool tag (%s) at cpi %d in %s: ", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string());
-    ShouldNotReachHere();
+
+  case JVM_CONSTANT_String:
+    {
+      oop result_oop = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
+      result = VMToCompiler::createConstantObject(result_oop, CHECK_NULL);
+      break;
+    }
+
+  case JVM_CONSTANT_MethodHandle:
+  case JVM_CONSTANT_MethodHandleInError:
+  case JVM_CONSTANT_MethodType:
+  case JVM_CONSTANT_MethodTypeInError:
+    {
+      oop result_oop = cp->resolve_constant_at(index, CHECK_NULL);
+      result = VMToCompiler::createConstantObject(result_oop, CHECK_NULL);
+      break;
+    }
+
+  default:
+    fatal(err_msg_res("unknown constant pool tag %s at cpi %d in %s", tag.internal_name(), index, cp->pool_holder()->name()->as_C_string()));
   }
 
   return JNIHandles::make_local(THREAD, result);
@@ -616,9 +633,6 @@ jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig)
   return id;
 }
 
-BasicType basicTypes[] = { T_BOOLEAN, T_BYTE, T_SHORT, T_CHAR, T_INT, T_FLOAT, T_LONG, T_DOUBLE, T_OBJECT };
-int basicTypeCount = sizeof(basicTypes) / sizeof(BasicType);
-
 C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 #define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
@@ -629,11 +643,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #define set_int_array(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "[I"), value); } while (0)
 
   guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
-#ifdef _WIN64
-  set_boolean("windowsOs", true);
-#else
-  set_boolean("windowsOs", false);
-#endif
+
   set_boolean("cAssertions", DEBUG_ONLY(true) NOT_DEBUG(false));
   set_boolean("verifyOops", VerifyOops);
   set_boolean("ciTime", CITime);
@@ -741,7 +751,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("tlabStats", TLABStats);
   set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
 
-  set_long("verifyOopCounterAddress", (jlong)(address) StubRoutines::verify_oop_count_addr);
+  set_long("verifyOopCounterAddress", (jlong)(address) StubRoutines::verify_oop_count_addr());
   set_long("verifyOopMask", Universe::verify_oop_mask());
   set_long("verifyOopBits", Universe::verify_oop_bits());
 
@@ -769,8 +779,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("createOutOfBoundsExceptionStub", GraalRuntime::entry_for(GraalRuntime::create_out_of_bounds_exception_id));
   set_address("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
   set_address("javaTimeNanosStub", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-  set_address("arithmeticFremStub", GraalRuntime::entry_for(GraalRuntime::arithmetic_frem_id));
-  set_address("arithmeticDremStub", GraalRuntime::entry_for(GraalRuntime::arithmetic_drem_id));
   set_address("arithmeticSinStub", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
   set_address("arithmeticCosStub", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
   set_address("arithmeticTanStub", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
