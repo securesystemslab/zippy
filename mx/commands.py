@@ -829,30 +829,47 @@ def _unittest(args, annotations):
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
 
-def unittest(args):
-    """run the JUnit tests (all testcases)
+_unittestHelpSuffix = """
 
     If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
+    includes a filter as a substring are run. Negative filters are
+    those with a '-' prefix.
+    
+    Options with a '@' prefix are passed to the VM.
+    
+    For example, this command line:
+    
+       mx unittest BC_aload @-G:Dump= @-G:MethodFilter=BC_aload.* @-G:+PrintCFG
+    
+    will run all JUnit test classes that contain 'BC_aload' in their
+    fully qualified name and will pass these options to the VM: 
+    
+        -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG
+
+    To get around command line length limitations on some OSes, the
+    JUnit class names to be executed are written to a file that a
+    custom JUnit wrapper reads and passes onto JUnit proper. The
+    MX_TESTFILE environment variable can be set to specify a
+    file which will not be deleted once the unittests are done
+    (unlike the temporary file otherwise used).
+
+    As with all other commands, using the global '-v' before 'unittest'
+    command will cause mx to show the complete shell command line
+    it uses to run the VM.
+""" 
+
+def unittest(args):
+    """run the JUnit tests (all testcases){0}"""
 
     _unittest(args, ['@Test', '@LongTest'])
 
 def shortunittest(args):
-    """run the JUnit tests (short testcases only)
-
-    If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
+    """run the JUnit tests (short testcases only){0}"""
 
     _unittest(args, ['@Test'])
 
 def longunittest(args):
-    """run the JUnit tests (long testcases only)
-
-    If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
+    """run the JUnit tests (long testcases only){0}"""
 
     _unittest(args, ['@LongTest'])
 
@@ -1341,9 +1358,9 @@ def mx_init():
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
-        'unittest' : [unittest, '[filters...]'],
-        'longunittest' : [longunittest, '[filters...]'],
-        'shortunittest' : [shortunittest, '[filters...]'],
+        'unittest' : [unittest, '[filters...|@VM options]', _unittestHelpSuffix],
+        'longunittest' : [longunittest, '[filters...|@VM options]', _unittestHelpSuffix],
+        'shortunittest' : [shortunittest, '[filters...|@VM options]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
