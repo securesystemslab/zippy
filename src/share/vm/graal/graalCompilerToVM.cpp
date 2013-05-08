@@ -1001,6 +1001,7 @@ C2V_VMENTRY(jint, getVtableEntryOffset, (JNIEnv *, jobject, jlong metaspace_meth
   Method* method = asMethod(metaspace_method);
   assert(!InstanceKlass::cast(method->method_holder())->is_interface(), "vtableEntryOffset cannot be called for interface methods");
   assert(InstanceKlass::cast(method->method_holder())->is_linked(), "vtableEntryOffset cannot be called is holder is not linked");
+  assert(method->vtable_index() >= 0, "vtable entry offset should not be used");
 
   // get entry offset in words
   int vtable_entry_offset = InstanceKlass::vtable_start_offset() + method->vtable_index() * vtableEntry::size();
@@ -1008,6 +1009,11 @@ C2V_VMENTRY(jint, getVtableEntryOffset, (JNIEnv *, jobject, jlong metaspace_meth
   vtable_entry_offset = vtable_entry_offset * wordSize + vtableEntry::method_offset_in_bytes();
 
   return vtable_entry_offset;
+C2V_END
+
+C2V_VMENTRY(jboolean, hasVtableEntry, (JNIEnv *, jobject, jlong metaspace_method))
+  Method* method = asMethod(metaspace_method);
+  return method->vtable_index() >= 0;
 C2V_END
 
 C2V_VMENTRY(jobject, getDeoptedLeafGraphIds, (JNIEnv *, jobject))
@@ -1177,6 +1183,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getInvocationCount",            CC"("METASPACE_METHOD")I",                                        FN_PTR(getInvocationCount)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"getVtableEntryOffset",          CC"("METASPACE_METHOD")I",                                        FN_PTR(getVtableEntryOffset)},
+  {CC"hasVtableEntry",                CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasVtableEntry)},
   {CC"constantPoolLength",            CC"("HS_RESOLVED_TYPE")I",                                        FN_PTR(constantPoolLength)},
   {CC"lookupType",                    CC"("STRING HS_RESOLVED_TYPE"Z)"TYPE,                             FN_PTR(lookupType)},
   {CC"lookupConstantInPool",          CC"("HS_RESOLVED_TYPE"I)"OBJECT,                                  FN_PTR(lookupConstantInPool)},
