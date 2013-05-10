@@ -3691,7 +3691,7 @@ class CommandLineFlags {
   product(bool , AllowNonVirtualCalls, false,                               \
           "Obey the ACC_SUPER flag and allow invokenonvirtual calls")       \
                                                                             \
-  develop(bool, TraceWarpLoading, false,                                    \
+  product(bool, TraceWarpLoading, false,                                    \
           "trace external GPU warp loading")                                \
                                                                             \
   experimental(uintx, ArrayAllocatorMallocLimit,                            \

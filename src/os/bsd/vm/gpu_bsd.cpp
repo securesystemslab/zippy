@@ -26,7 +26,7 @@
 #include "utilities/ostream.hpp"
 
 #ifdef __APPLE__
-#include <CoreGraphics/CoreGraphics.h>
+#include <ApplicationServices/ApplicationServices.h>
 #include <IOKit/IOKitLib.h>
 #endif
 
