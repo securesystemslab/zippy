@@ -788,6 +788,8 @@ def _run_tests(args, harness, annotations, testfile):
 
     classes = []
     for p in mx.projects():
+        if mx.java().javaCompliance < p.javaCompliance:
+            continue
         classes += _find_classes_with_annotations(p, None, annotations).keys()
 
         if len(pos) != 0:
@@ -795,7 +797,7 @@ def _run_tests(args, harness, annotations, testfile):
         if len(neg) != 0:
             classes = [c for c in classes if not containsAny(c, neg)]
 
-    projectscp = mx.classpath([pcp.name for pcp in mx.projects()])
+    projectscp = mx.classpath([pcp.name for pcp in mx.projects() if pcp.javaCompliance <= mx.java().javaCompliance])
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
