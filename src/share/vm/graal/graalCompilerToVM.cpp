@@ -867,16 +867,16 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
 C2V_END
 
-C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jobject installed_code, jobject triggered_deoptimizations))
+C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code, jobject installed_code, jobject triggered_deoptimizations))
   ResourceMark rm;
   HandleMark hm;
-  Handle compResultHandle = JNIHandles::resolve(compResult);
+  Handle compiled_code_handle = JNIHandles::resolve(compiled_code);
   CodeBlob* cb = NULL;
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
   Handle triggered_deoptimizations_handle = JNIHandles::resolve(triggered_deoptimizations);
   GraalEnv::CodeInstallResult result;
 
-  CodeInstaller installer(compResultHandle, result, cb, installed_code_handle, triggered_deoptimizations_handle);
+  CodeInstaller installer(compiled_code_handle, result, cb, installed_code_handle, triggered_deoptimizations_handle);
 
   if (PrintCodeCacheOnCompilation) {
     stringStream s;
@@ -895,7 +895,6 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compResult, jo
     if (!installed_code_handle.is_null()) {
       assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
       HotSpotInstalledCode::set_codeBlob(installed_code_handle, (jlong) cb);
-      HotSpotInstalledCode::set_method(installed_code_handle, HotSpotCompilationResult::method(compResult));
       HotSpotInstalledCode::set_start(installed_code_handle, (jlong) cb->code_begin());
       nmethod* nm = cb->as_nmethod_or_null();
       assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
@@ -1158,7 +1157,7 @@ C2V_END
 #define HS_RESOLVED_JAVA_TYPE "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
 #define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
-#define HS_COMP_RESULT        "Lcom/oracle/graal/hotspot/HotSpotCompilationResult;"
+#define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
@@ -1201,7 +1200,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getMetaspaceConstructor",       CC"("REFLECT_CONSTRUCTOR"["HS_RESOLVED_TYPE")"METASPACE_METHOD,   FN_PTR(getMetaspaceConstructor)},
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                  CC"("HS_COMP_RESULT HS_INSTALLED_CODE"[Z)I",                      FN_PTR(installCode0)},
+  {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT NMETHOD")"OBJECT,                                    FN_PTR(executeCompiledMethodVarargs)},
