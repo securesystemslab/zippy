@@ -189,6 +189,7 @@ class SymbolPropertyTable;
   do_klass(HotSpotRuntimeCallTarget_klass,        com_oracle_graal_hotspot_HotSpotRuntimeCallTarget,            Opt) \
   do_klass(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
   do_klass(HotSpotInstalledCode_klass,            com_oracle_graal_hotspot_meta_HotSpotInstalledCode,           Opt) \
+  do_klass(HotSpotNmethod_klass,                  com_oracle_graal_hotspot_meta_HotSpotNmethod,                 Opt) \
   do_klass(HotSpotJavaType_klass,                 com_oracle_graal_hotspot_meta_HotSpotJavaType,                Opt) \
   do_klass(HotSpotMethodData_klass,               com_oracle_graal_hotspot_meta_HotSpotMethodData,              Opt) \
   do_klass(HotSpotResolvedJavaField_klass,        com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,       Opt) \

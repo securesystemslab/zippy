@@ -78,9 +78,10 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
-    oop_field(HotSpotInstalledCode, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;")                                                       \
     long_field(HotSpotInstalledCode, start)                                                                                                                    \
-    boolean_field(HotSpotInstalledCode, isDefault)                                                                                                             \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotNmethod)                                                                                                                            \
+    boolean_field(HotSpotNmethod, isDefault)                                                                                                             \
   end_class                                                                                                                                                    \
   start_class(HotSpotCompilationResult)                                                                                                                        \
     oop_field(HotSpotCompilationResult, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                 \
