@@ -484,6 +484,12 @@ address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thre
   // Reset method handle flag.
   thread->set_is_method_handle_return(false);
 
+#ifdef GRAAL
+  // Graal's ExceptionHandlerStub expects the thread local exception PC to be clear
+  // and other exception handler continuations do not read it
+  thread->set_exception_pc(NULL);
+#endif
+
   // The fastest case first
   CodeBlob* blob = CodeCache::find_blob(return_address);
   nmethod* nm = (blob != NULL) ? blob->as_nmethod_or_null() : NULL;

@@ -55,6 +55,7 @@ ProjectCreatorIncludesPRIVATE=\
         -relativeInclude src\os\windows\vm \
         -relativeInclude src\os_cpu\windows_$(Platform_arch)\vm \
         -relativeInclude src\cpu\$(Platform_arch)\vm \
+        -relativeInclude src\gpu \
         -absoluteInclude $(HOTSPOTBUILDSPACE)/%f/generated \
         -relativeSrcInclude src \
         -absoluteSrcInclude $(HOTSPOTBUILDSPACE) \

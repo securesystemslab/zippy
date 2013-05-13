@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,54 +20,39 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.jtt.reflect;
+package com.oracle.graal.nodes;
 
-import com.oracle.graal.jtt.*;
-import org.junit.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.type.*;
 
-import sun.reflect.*;
+public abstract class FloatingGuardedNode extends FloatingNode implements GuardedNode {
 
-/*
- */
-public final class Reflection_getCallerClass01 extends JTTTest {
+    @Input private GuardingNode guard;
 
-    public static final class Caller1 {
-
-        private Caller1() {
-        }
-
-        static String caller1(int depth) {
-            return Reflection.getCallerClass(depth).getName();
-        }
+    public FloatingGuardedNode(Stamp stamp) {
+        super(stamp);
     }
 
-    public static final class Caller2 {
-
-        private Caller2() {
-        }
-
-        static String caller2(int depth) {
-            return Caller1.caller1(depth);
-        }
+    public FloatingGuardedNode(Stamp stamp, GuardingNode guard) {
+        super(stamp);
+        this.guard = guard;
     }
 
-    public static String test(int depth) {
-        return Caller2.caller2(depth);
+    @Override
+    public GuardingNode getGuard() {
+        return guard;
     }
 
-    @Test
-    public void run0() throws Throwable {
-        runTest("test", 0);
+    @Override
+    public void setGuard(GuardingNode guard) {
+        updateUsages(this.guard == null ? null : this.guard.asNode(), guard == null ? null : guard.asNode());
+        this.guard = guard;
     }
 
-    @Test
-    public void run1() throws Throwable {
-        runTest("test", 1);
-    }
-
-    @Test
-    public void run2() throws Throwable {
-        runTest("test", 2);
+    @Override
+    public FloatingNode asNode() {
+        return this;
     }
 
 }

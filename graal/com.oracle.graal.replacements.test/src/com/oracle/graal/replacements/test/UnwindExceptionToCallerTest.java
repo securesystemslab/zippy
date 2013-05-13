@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,36 +19,29 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
+package com.oracle.graal.replacements.test;
 
-#include "precompiled.hpp"
-#include "graal/graalRuntime.hpp"
-#include "classfile/systemDictionary.hpp"
-#include "gc_interface/collectedHeap.hpp"
-#include "interpreter/interpreter.hpp"
-#include "oops/arrayOop.hpp"
-#include "oops/markOop.hpp"
-#include "runtime/basicLock.hpp"
-#include "runtime/biasedLocking.hpp"
-#include "runtime/os.hpp"
-#include "runtime/stubRoutines.hpp"
+import org.junit.*;
 
-#ifndef PRODUCT
+import com.oracle.graal.compiler.test.*;
 
-void GraalStubAssembler::verify_stack_oop(int stack_offset) {
-  if (!VerifyOops) return;
-  verify_oop_addr(Address(rsp, stack_offset));
+/**
+ * Tests exception throwing from Graal compiled code.
+ */
+public class UnwindExceptionToCallerTest extends GraalCompilerTest {
+
+    @Test
+    public void test1() {
+        NullPointerException npe = new NullPointerException();
+        test("test1Snippet", "a string", npe);
+        test("test1Snippet", (String) null, npe);
+    }
+
+    public static String test1Snippet(String message, NullPointerException npe) {
+        if (message == null) {
+            throw npe;
+        }
+        return message;
+    }
 }
-
-void GraalStubAssembler::verify_not_null_oop(Register r) {
-  if (!VerifyOops) return;
-  Label not_null;
-  testptr(r, r);
-  jcc(Assembler::notZero, not_null);
-  stop("non-null oop required");
-  bind(not_null);
-  verify_oop(r);
-}
-
-#endif // ifndef PRODUCT

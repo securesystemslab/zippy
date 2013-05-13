@@ -3691,6 +3691,9 @@ class CommandLineFlags {
   product(bool , AllowNonVirtualCalls, false,                               \
           "Obey the ACC_SUPER flag and allow invokenonvirtual calls")       \
                                                                             \
+  product(bool, TraceWarpLoading, false,                                    \
+          "trace external GPU warp loading")                                \
+                                                                            \
   experimental(uintx, ArrayAllocatorMallocLimit,                            \
           SOLARIS_ONLY(64*K) NOT_SOLARIS(max_uintx),                        \
           "Allocation less than this value will be allocated "              \

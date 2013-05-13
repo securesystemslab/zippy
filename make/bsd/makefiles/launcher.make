@@ -67,7 +67,7 @@ else
   # framework libraries.
 
   ifeq ($(OS_VENDOR),Darwin)
-    LFLAGS_LAUNCHER         += -framework CoreFoundation
+    LFLAGS_LAUNCHER         += -framework CoreFoundation -framework ApplicationServices
   endif
 
   LIBS_LAUNCHER             += -l$(JVM) $(LIBS)

@@ -31,13 +31,8 @@
 void compute_offset(int &dest_offset, Klass* klass, const char* name, const char* signature, bool static_field) {
   Symbol* name_symbol = SymbolTable::probe(name, (int)strlen(name));
   Symbol* signature_symbol = SymbolTable::probe(signature, (int)strlen(signature));
-#ifndef PRODUCT
-  if (name_symbol == NULL) {
-    tty->print_cr("symbol with name %s was not found in symbol table (klass=%s)", name, klass->name()->as_C_string());
-  }
-#endif
   if (name_symbol == NULL || signature_symbol == NULL) {
-    guarantee(false, err_msg("symbol not found - class layout of %s changed?", klass->name()->as_C_string()));
+    guarantee(false, err_msg("symbol with name %s and signature %s was not found in symbol table (klass=%s)", name, signature, klass->name()->as_C_string()));
   }
 
   InstanceKlass* ik = InstanceKlass::cast(klass);
