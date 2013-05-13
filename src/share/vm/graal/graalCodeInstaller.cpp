@@ -351,7 +351,7 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
+CodeInstaller::CodeInstaller(Handle& comp_result, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
   jobject comp_result_obj = JNIHandles::make_local(comp_result());
@@ -360,7 +360,7 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(JNIHandles::resolve(comp_result_obj), method);
+    initialize_fields(JNIHandles::resolve(comp_result_obj));
     initialize_buffer(buffer);
     process_exception_handlers();
   }
@@ -379,17 +379,23 @@ CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv:
     result = GraalEnv::ok;
   } else {
     nmethod* nm = NULL;
+    methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(comp_result));
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
         GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
     cb = nm;
   }
 }
 
-void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
+void CodeInstaller::initialize_fields(oop comp_result) {
   _comp_result = HotSpotCompilationResult::comp(comp_result);
-  if (!method.is_null()) {
+  oop hotspotJavaMethod = HotSpotCompilationResult::method(comp_result);
+  if (hotspotJavaMethod != NULL) {
+    methodHandle method = getMethodFromHotSpotMethod(hotspotJavaMethod);
     _parameter_count = method->size_of_parameters();
     TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
+  } else {
+    // TODO (ds) not sure if this is correct - only used in OopMap constructor for non-product builds
+    _parameter_count = 0;
   }
   _stubName = HotSpotCompilationResult::stubName(comp_result);
   _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
