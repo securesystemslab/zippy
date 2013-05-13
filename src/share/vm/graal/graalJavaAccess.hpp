@@ -80,16 +80,20 @@ void graal_compute_offsets();
     long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
     long_field(HotSpotInstalledCode, start)                                                                                                                    \
   end_class                                                                                                                                                    \
-  start_class(HotSpotNmethod)                                                                                                                            \
-    boolean_field(HotSpotNmethod, isDefault)                                                                                                             \
+  start_class(HotSpotNmethod)                                                                                                                                  \
+    boolean_field(HotSpotNmethod, isDefault)                                                                                                                   \
   end_class                                                                                                                                                    \
-  start_class(HotSpotCompilationResult)                                                                                                                        \
-    oop_field(HotSpotCompilationResult, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                 \
-    oop_field(HotSpotCompilationResult, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;")                                                   \
-    oop_field(HotSpotCompilationResult, stubName, "Ljava/lang/String;")                                                                                        \
-    int_field(HotSpotCompilationResult, entryBCI)                                                                                                              \
-    oop_field(HotSpotCompilationResult, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;")                                                          \
-    oop_field(HotSpotCompilationResult, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;")                                  \
+  start_class(HotSpotCompiledCode)                                                                                                                             \
+    oop_field(HotSpotCompiledCode, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                      \
+    oop_field(HotSpotCompiledCode, sites, "[Lcom/oracle/graal/api/code/CompilationResult$Site;")                                                               \
+    oop_field(HotSpotCompiledCode, exceptionHandlers, "[Lcom/oracle/graal/api/code/CompilationResult$ExceptionHandler;")                                       \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotCompiledNmethod)                                                                                                                          \
+    oop_field(HotSpotCompiledNmethod, method, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;")                                                     \
+    int_field(HotSpotCompiledNmethod, entryBCI)                                                                                                                \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotCompiledRuntimeStub)                                                                                                                      \
+    oop_field(HotSpotCompiledRuntimeStub, stubName, "Ljava/lang/String;")                                                                                      \
   end_class                                                                                                                                                    \
   start_class(HotSpotRuntimeCallTarget)                                                                                                                        \
     long_field(HotSpotRuntimeCallTarget, address)                                                                                                              \

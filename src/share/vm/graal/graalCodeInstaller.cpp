@@ -303,10 +303,10 @@ static MonitorValue* get_monitor_value(oop value, int total_frame_size, Growable
   return new MonitorValue(owner_value, lock_data_loc, eliminated);
 }
 
-void CodeInstaller::initialize_assumptions(oop target_method) {
+void CodeInstaller::initialize_assumptions(oop compiled_code) {
   _oop_recorder = new OopRecorder(&_arena);
   _dependencies = new Dependencies(&_arena, _oop_recorder);
-  Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompilationResult::comp(target_method));
+  Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompiledCode::comp(compiled_code));
   if (!assumptions_handle.is_null()) {
     objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
     int length = assumptions->length();
@@ -332,8 +332,8 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   }
 }
 
-GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
-  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompilationResult::comp(comp_result));
+GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
+  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompiledCode::comp(compiled_code));
 
   jint length;
   if (leafGraphArray == NULL) {
@@ -351,25 +351,25 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
+CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  jobject comp_result_obj = JNIHandles::make_local(comp_result());
-  jint entry_bci = HotSpotCompilationResult::entryBCI(comp_result);
-  initialize_assumptions(JNIHandles::resolve(comp_result_obj));
+  jobject compiled_code_obj = JNIHandles::make_local(compiled_code());
+  initialize_assumptions(JNIHandles::resolve(compiled_code_obj));
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(JNIHandles::resolve(comp_result_obj));
+    initialize_fields(JNIHandles::resolve(compiled_code_obj));
     initialize_buffer(buffer);
     process_exception_handlers();
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
+  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(compiled_code);
 
-  if (_stubName != NULL) {
-    char* name = strdup(java_lang_String::as_utf8_string(_stubName));
+  if (compiled_code->is_a(HotSpotCompiledRuntimeStub::klass())) {
+    oop stubName = HotSpotCompiledRuntimeStub::stubName(compiled_code);
+    char* name = strdup(java_lang_String::as_utf8_string(stubName));
     cb = RuntimeStub::new_runtime_stub(name,
                                        &buffer,
                                        CodeOffsets::frame_never_safe,
@@ -379,33 +379,34 @@ CodeInstaller::CodeInstaller(Handle& comp_result, GraalEnv::CodeInstallResult& r
     result = GraalEnv::ok;
   } else {
     nmethod* nm = NULL;
-    methodHandle method = getMethodFromHotSpotMethod(HotSpotCompilationResult::method(comp_result));
+    methodHandle method = getMethodFromHotSpotMethod(HotSpotCompiledNmethod::method(compiled_code));
+    jint entry_bci = HotSpotCompiledNmethod::entryBCI(compiled_code);
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
         GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
     cb = nm;
   }
 }
 
-void CodeInstaller::initialize_fields(oop comp_result) {
-  _comp_result = HotSpotCompilationResult::comp(comp_result);
-  oop hotspotJavaMethod = HotSpotCompilationResult::method(comp_result);
-  if (hotspotJavaMethod != NULL) {
+void CodeInstaller::initialize_fields(oop compiled_code) {
+  oop comp_result = HotSpotCompiledCode::comp(compiled_code);
+  if (compiled_code->is_a(HotSpotCompiledNmethod::klass())) {
+    oop hotspotJavaMethod = HotSpotCompiledNmethod::method(compiled_code);
     methodHandle method = getMethodFromHotSpotMethod(hotspotJavaMethod);
     _parameter_count = method->size_of_parameters();
     TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
   } else {
+    assert(compiled_code->is_a(HotSpotCompiledRuntimeStub::klass()), "CCE");
     // TODO (ds) not sure if this is correct - only used in OopMap constructor for non-product builds
     _parameter_count = 0;
   }
-  _stubName = HotSpotCompilationResult::stubName(comp_result);
-  _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
-  _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(comp_result);
+  _sites = (arrayOop) HotSpotCompiledCode::sites(compiled_code);
+  _exception_handlers = (arrayOop) HotSpotCompiledCode::exceptionHandlers(compiled_code);
 
-  _code = (arrayOop) CompilationResult::targetCode(_comp_result);
-  _code_size = CompilationResult::targetCodeSize(_comp_result);
+  _code = (arrayOop) CompilationResult::targetCode(comp_result);
+  _code_size = CompilationResult::targetCodeSize(comp_result);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CompilationResult::frameSize(_comp_result) + HeapWordSize;
-  _custom_stack_area_offset = CompilationResult::customStackAreaOffset(_comp_result);
+  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;
+  _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * (BytesPerLong*2);

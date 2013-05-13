@@ -39,8 +39,7 @@ void compute_offset(int &dest_offset, Klass* klass, const char* name, const char
   fieldDescriptor fd;
   if (!ik->find_field(name_symbol, signature_symbol, &fd)) {
     ResourceMark rm;
-    tty->print_cr("Invalid layout of %s at %s", name_symbol->as_C_string(), ik->external_name());
-    fatal("Invalid layout of preloaded class");
+    fatal(err_msg("Invalid layout of %s at %s", name_symbol->as_C_string(), ik->external_name()));
   }
   guarantee(fd.is_static() == static_field, "static/instance mismatch");
   dest_offset = fd.offset();

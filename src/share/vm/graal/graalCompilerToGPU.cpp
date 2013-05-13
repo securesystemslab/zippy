@@ -102,7 +102,7 @@ C2V_END
 #define HS_RESOLVED_JAVA_TYPE "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaType;"
 #define HS_RESOLVED_METHOD    "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod;"
 #define HS_RESOLVED_FIELD     "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedJavaField;"
-#define HS_COMP_RESULT        "Lcom/oracle/graal/hotspot/HotSpotCompilationResult;"
+#define HS_COMPILED_CODE      "Lcom/oracle/graal/hotspot/HotSpotCompiledCode;"
 #define HS_CONFIG             "Lcom/oracle/graal/hotspot/HotSpotVMConfig;"
 #define HS_METHOD             "Lcom/oracle/graal/hotspot/meta/HotSpotMethod;"
 #define HS_INSTALLED_CODE     "Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;"
