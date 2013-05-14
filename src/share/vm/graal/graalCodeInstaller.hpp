@@ -50,8 +50,6 @@ private:
 
   Arena         _arena;
 
-  oop           _comp_result;
-  oop           _stubName;
   arrayOop      _sites;
   arrayOop      _exception_handlers;
   CodeOffsets   _offsets;

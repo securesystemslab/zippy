@@ -526,7 +526,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
       // (Put nm into the task handle *before* publishing to the Java heap.)
       if (task != NULL)  task->set_code(nm);
 
-      if (HotSpotInstalledCode::isDefault(installed_code())) {
+      if (HotSpotNmethod::isDefault(installed_code())) {
         if (entry_bci == InvocationEntryBci) {
           if (TieredCompilation) {
             // If there is an old version we're done with it

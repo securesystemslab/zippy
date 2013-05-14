@@ -1399,7 +1399,7 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
     if (!is_osr_method() && !is_not_entrant()) {
       address stub = SharedRuntime::get_handle_wrong_method_stub();
 #ifdef GRAAL
-      if (_graal_installed_code != NULL && !HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+      if (_graal_installed_code != NULL && !HotSpotNmethod::isDefault(_graal_installed_code)) {
         // This was manually installed machine code. Patch entry with stub that throws an exception.
         stub = SharedRuntime::get_deoptimized_installed_code_stub();
       }
@@ -1696,7 +1696,7 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
 #ifdef GRAAL
   // Follow Graal method
   if (_graal_installed_code != NULL) {
-    if (HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+    if (HotSpotNmethod::isDefault(_graal_installed_code)) {
       if (!is_alive->do_object_b(_graal_installed_code)) {
         _graal_installed_code = NULL;
       }
