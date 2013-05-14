@@ -2172,16 +2172,17 @@ LONG Handle_IDiv_Exception(struct _EXCEPTION_POINTERS* exceptionInfo) {
   #ifdef GRAAL
     PCONTEXT ctx = exceptionInfo->ContextRecord;
     address pc = (address)ctx->Rip;
-    assert(pc[0] == 0x48 && pc[1] == 0xF7 || pc[0] == 0xF7, "not an idiv opcode");
-    if (pc[0] == 0x48) {
+    assert(pc[0] >= Assembler::REX && pc[0] <= Assembler::REX_WRXB && pc[1] == 0xF7 || pc[0] == 0xF7, "not an idiv opcode");
+    if (pc[0] == 0xF7) {
       // set correct result values and continue after idiv instruction
-      ctx->Rip = (DWORD64)pc + 3;        // REX idiv reg, reg  is 3 bytes
-      ctx->Rax = (DWORD64)min_jlong;     // result
-    } else {
       ctx->Rip = (DWORD64)pc + 2;        // idiv reg, reg  is 2 bytes
-      ctx->Rax = (DWORD64)min_jlong;     // result
+    } else {
+      ctx->Rip = (DWORD64)pc + 3;        // REX idiv reg, reg  is 3 bytes
     }
-    ctx->Rdx = (DWORD64)0;             // remainder
+    // do not set ctx->Rax as it already contains the correct value (either 32 or 64 bit, depending on the operation)
+    // this is the case because the exception only happens for -MinValue/-1 and -MinValue is always in rax because of the
+    // idiv opcode (0xF7)
+    ctx->Rdx = (DWORD64)0;               // remainder
     // Continue the execution
   #else
     PCONTEXT ctx = exceptionInfo->ContextRecord;
