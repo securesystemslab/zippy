@@ -768,11 +768,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 
   set_address("inlineCacheMissStub", SharedRuntime::get_ic_miss_stub());
   set_address("handleDeoptStub", SharedRuntime::deopt_blob()->unpack());
-  set_address("javaTimeMillisStub", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
-  set_address("javaTimeNanosStub", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-  set_address("arithmeticSinStub", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
-  set_address("arithmeticCosStub", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
-  set_address("arithmeticTanStub", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
   set_address("aescryptEncryptBlockStub", StubRoutines::aescrypt_encryptBlock());
   set_address("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
   set_address("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
@@ -799,6 +794,11 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("vmErrorAddress", GraalRuntime::vm_error);
   set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
   set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
+  set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
+  set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
+  set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
+  set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
+  set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
