@@ -249,7 +249,6 @@ void print_statistics() {
     Runtime1::print_statistics();
     Deoptimization::print_statistics();
     SharedRuntime::print_statistics();
-    nmethod::print_statistics();
   }
 #endif /* COMPILER1 */
 
@@ -259,12 +258,11 @@ void print_statistics() {
     Compile::print_statistics();
 #ifndef COMPILER1
     Deoptimization::print_statistics();
-    nmethod::print_statistics();
     SharedRuntime::print_statistics();
 #endif //COMPILER1
     os::print_statistics();
   }
-
+  
   if (PrintLockStatistics || PrintPreciseBiasedLockingStatistics) {
     OptoRuntime::print_named_counters();
   }
@@ -278,6 +276,10 @@ void print_statistics() {
   }
 #endif // ASSERT
 #endif // COMPILER2
+
+  if (PrintNMethodStatistics) {
+    nmethod::print_statistics();
+  }
   if (CountCompiledCalls) {
     print_method_invocation_histogram();
   }
@@ -385,6 +387,9 @@ void print_statistics() {
 #endif
   if (PrintBiasedLockingStatistics) {
     BiasedLocking::print_counters();
+  }
+  if (PrintNMethodStatistics) {
+    nmethod::print_statistics();
   }
 
   // Native memory tracking data
