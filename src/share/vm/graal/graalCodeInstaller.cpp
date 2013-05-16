@@ -647,17 +647,17 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   InstanceKlass* target_klass = InstanceKlass::cast(target->klass());
 
   oop hotspot_method = NULL; // JavaMethod
-  oop global_stub = NULL;
+  oop foreign_call = NULL;
 
-  if (target_klass->is_subclass_of(SystemDictionary::HotSpotRuntimeCallTarget_klass())) {
-    global_stub = target;
+  if (target_klass->is_subclass_of(SystemDictionary::HotSpotForeignCallLinkage_klass())) {
+    foreign_call = target;
   } else {
     hotspot_method = target;
   }
 
   oop debug_info = CompilationResult_Call::debugInfo(site);
 
-  assert((hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
+  assert((hotspot_method ? 1 : 0) + (foreign_call ? 1 : 0) == 1, "Call site needs exactly one type");
 
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = 0x0;
@@ -704,24 +704,24 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     }
   }
 
-  if (global_stub != NULL) {
-    jlong global_stub_destination = HotSpotRuntimeCallTarget::address(global_stub);
+  if (foreign_call != NULL) {
+    jlong foreign_call_destination = HotSpotForeignCallLinkage::address(foreign_call);
     if (inst->is_call()) {
       // NOTE: for call without a mov, the offset must fit a 32-bit immediate
       //       see also CompilerToVM.getMaxCallTargetOffset()
       NativeCall* call = nativeCall_at((address) (inst));
-      call->set_destination((address) global_stub_destination);
+      call->set_destination((address) foreign_call_destination);
       _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
     } else if (inst->is_mov_literal64()) {
       NativeMovConstReg* mov = nativeMovConstReg_at((address) (inst));
-      mov->set_data((intptr_t) global_stub_destination);
+      mov->set_data((intptr_t) foreign_call_destination);
       _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
     } else {
       NativeJump* jump = nativeJump_at((address) (inst));
-      jump->set_jump_destination((address) global_stub_destination);
+      jump->set_jump_destination((address) foreign_call_destination);
       _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
     }
-    TRACE_graal_3("relocating (stub)  at %p", inst);
+    TRACE_graal_3("relocating (foreign call)  at %p", inst);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");
 #ifdef ASSERT

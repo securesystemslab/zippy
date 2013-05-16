@@ -95,8 +95,8 @@ void graal_compute_offsets();
   start_class(HotSpotCompiledRuntimeStub)                                                                                                                      \
     oop_field(HotSpotCompiledRuntimeStub, stubName, "Ljava/lang/String;")                                                                                      \
   end_class                                                                                                                                                    \
-  start_class(HotSpotRuntimeCallTarget)                                                                                                                        \
-    long_field(HotSpotRuntimeCallTarget, address)                                                                                                              \
+  start_class(HotSpotForeignCallLinkage)                                                                                                                        \
+    long_field(HotSpotForeignCallLinkage, address)                                                                                                              \
   end_class                                                                                                                                                    \
   start_class(ExceptionHandler)                                                                                                                                \
     int_field(ExceptionHandler, startBCI)                                                                                                                      \
