@@ -95,7 +95,7 @@ void GraalCompiler::initialize() {
       }
     }
     if (UseCompiler) {
-      VMToCompiler::startCompiler();
+      VMToCompiler::startCompiler(BootstrapGraal);
       _initialized = true;
       if (BootstrapGraal) {
         // We turn off CompileTheWorld and complete the VM startup so that
