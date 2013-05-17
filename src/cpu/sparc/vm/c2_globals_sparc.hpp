@@ -38,6 +38,7 @@ define_pd_global(bool, PreferInterpreterNativeStubs, false);
 define_pd_global(bool, ProfileTraps,                 true);
 define_pd_global(bool, UseOnStackReplacement,        true);
 define_pd_global(intx, TypeProfileWidth,             2   );
+define_pd_global(intx, MethodProfileWidth,           0   );
 #ifdef CC_INTERP
 define_pd_global(bool, ProfileInterpreter,           false);
 #else

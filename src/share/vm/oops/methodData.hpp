@@ -759,12 +759,27 @@ public:
   static int static_cell_count() {
     // At this point we could add more profile state, e.g., for arguments.
     // But for now it's the same size as the base record type.
-    return ReceiverTypeData::static_cell_count();
+    return ReceiverTypeData::static_cell_count() GRAAL_ONLY(+ (uint) MethodProfileWidth * receiver_type_row_cell_count);
   }
 
   virtual int cell_count() {
     return static_cell_count();
   }
+
+#ifdef GRAAL
+  static ByteSize method_offset(uint row) {
+    return cell_offset(method_cell_index(row));
+  }
+  static ByteSize method_count_offset(uint row) {
+    return cell_offset(method_count_cell_index(row));
+  }
+  static int method_cell_index(uint row) {
+    return receiver0_offset + (row + TypeProfileWidth) * receiver_type_row_cell_count;
+  }
+  static int method_count_cell_index(uint row) {
+    return count0_offset + (row + TypeProfileWidth) * receiver_type_row_cell_count;
+  }
+#endif
 
   // Direct accessors
   static ByteSize virtual_call_data_size() {
