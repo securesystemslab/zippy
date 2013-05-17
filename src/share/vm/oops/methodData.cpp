@@ -198,6 +198,18 @@ void VirtualCallData::print_data_on(outputStream* st) {
   print_shared(st, "VirtualCallData");
   print_receiver_data_on(st);
 }
+
+#ifdef GRAAL
+void VirtualCallData::clean_weak_klass_links(BoolObjectClosure* is_alive_cl) {
+  ReceiverTypeData::clean_weak_klass_links(is_alive_cl);
+  for (uint row = 0; row < method_row_limit(); row++) {
+    Method* p = method(row);
+    if (p != NULL && !p->method_holder()->is_loader_alive(is_alive_cl)) {
+      clear_method_row(row);
+    }
+  }
+}
+#endif // GRAAL
 #endif // !PRODUCT
 
 // ==================================================================
