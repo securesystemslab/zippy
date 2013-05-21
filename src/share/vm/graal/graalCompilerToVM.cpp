@@ -687,6 +687,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("methodMaxLocalsOffset", in_bytes(ConstMethod::size_of_locals_offset()));
   set_int("methodConstMethodOffset", in_bytes(Method::const_offset()));
   set_int("constMethodMaxStackOffset", in_bytes(ConstMethod::max_stack_offset()));
+  set_int("constMethodConstantsOffset", in_bytes(ConstMethod::constants_offset()));
+  set_int("constantPoolHolderOffset", ConstantPool::pool_holder_offset_in_bytes());
   set_int("extraStackEntries", Method::extra_stack_entries());
   set_int("methodAccessFlagsOffset", in_bytes(Method::access_flags_offset()));
   set_int("methodIntrinsicIdOffset", Method::intrinsic_id_offset_in_bytes());
@@ -730,6 +732,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("dataLayoutCellSize", DataLayout::cell_size);
   set_int("bciProfileWidth", BciProfileWidth);
   set_int("typeProfileWidth", TypeProfileWidth);
+  set_int("methodProfileWidth", MethodProfileWidth);
 
   set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
   set_long("tlabIntArrayMarkWord", (intptr_t)markOopDesc::prototype()->copy_set_hash(0x2));

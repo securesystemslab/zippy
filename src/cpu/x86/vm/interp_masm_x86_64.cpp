@@ -1085,6 +1085,7 @@ void InterpreterMacroAssembler::profile_final_call(Register mdp) {
     update_mdp_by_constant(mdp,
                            in_bytes(VirtualCallData::
                                     virtual_call_data_size()));
+
     bind(profile_continue);
   }
 }
@@ -1116,12 +1117,37 @@ void InterpreterMacroAssembler::profile_virtual_call(Register receiver,
     bind(skip_receiver_profile);
 
     // The method data pointer needs to be updated to reflect the new target.
-    update_mdp_by_constant(mdp,
-                           in_bytes(VirtualCallData::
-                                    virtual_call_data_size()));
+#ifdef GRAAL
+    if (MethodProfileWidth == 0) {
+      update_mdp_by_constant(mdp, in_bytes(VirtualCallData::virtual_call_data_size()));
+    }
+#else
+    update_mdp_by_constant(mdp, in_bytes(VirtualCallData::virtual_call_data_size()));
+#endif
     bind(profile_continue);
   }
 }
+
+#ifdef GRAAL
+void InterpreterMacroAssembler::profile_called_method(Register method, Register mdp, Register reg2) {
+  assert_different_registers(method, mdp, reg2);
+  if (ProfileInterpreter && MethodProfileWidth > 0) {
+    Label profile_continue;
+
+    // If no method data exists, go to profile_continue.
+    test_method_data_pointer(mdp, profile_continue);
+    
+    Label done;
+    record_item_in_profile_helper(method, mdp, reg2, 0, done, MethodProfileWidth,
+      &VirtualCallData::method_offset, &VirtualCallData::method_count_offset, in_bytes(VirtualCallData::nonprofiled_receiver_count_offset()));
+    bind (done);
+
+    update_mdp_by_constant(mdp, in_bytes(VirtualCallData::virtual_call_data_size()));
+    bind(profile_continue);
+  }
+}
+
+#endif
 
 // This routine creates a state machine for updating the multi-row
 // type profile at a virtual call site (or other type-sensitive bytecode).
@@ -1136,8 +1162,7 @@ void InterpreterMacroAssembler::profile_virtual_call(Register receiver,
 // See below for example code.
 void InterpreterMacroAssembler::record_klass_in_profile_helper(
                                         Register receiver, Register mdp,
-                                        Register reg2, int start_row,
-                                        Label& done, bool is_virtual_call) {
+                                        Register reg2, Label& done, bool is_virtual_call) {
   if (TypeProfileWidth == 0) {
     if (is_virtual_call) {
       increment_mdp_data_at(mdp, in_bytes(CounterData::count_offset()));
@@ -1147,14 +1172,33 @@ void InterpreterMacroAssembler::record_klass_in_profile_helper(
       increment_mdp_data_at(mdp, in_bytes(ReceiverTypeData::nonprofiled_receiver_count_offset()));
     }
 #endif
-    return;
-  }
+  } else {                                      
+    bool use_non_profiled_counter = !is_virtual_call || IS_GRAAL_DEFINED;
+    int non_profiled_offset = -1;
+    if (use_non_profiled_counter) {
+       non_profiled_offset = in_bytes(CounterData::count_offset());
+    #ifdef GRAAL
+      if (!is_virtual_call) {
+        non_profiled_offset = in_bytes(ReceiverTypeData::nonprofiled_receiver_count_offset());
+      }
+    #endif
+      assert(non_profiled_offset >= 0, "must be");
+    }
 
-  int last_row = VirtualCallData::row_limit() - 1;
+    record_item_in_profile_helper(receiver, mdp, reg2, 0, done, TypeProfileWidth,
+      &VirtualCallData::receiver_offset, &VirtualCallData::receiver_count_offset, non_profiled_offset);
+  }
+}
+
+void InterpreterMacroAssembler::record_item_in_profile_helper(Register item, Register mdp,
+                                        Register reg2, int start_row, Label& done, int total_rows,
+                                        OffsetFunction item_offset_fn, OffsetFunction item_count_offset_fn,
+                                        int non_profiled_offset) {
+  int last_row = total_rows - 1;
   assert(start_row <= last_row, "must be work left to do");
-  // Test this row for both the receiver and for null.
+  // Test this row for both the item and for null.
   // Take any of three different outcomes:
-  //   1. found receiver => increment count and goto done
+  //   1. found item => increment count and goto done
   //   2. found null => keep looking for case 1, maybe allocate this cell
   //   3. found something else => keep looking for cases 1 and 2
   // Case 3 is handled by a recursive call.
@@ -1162,36 +1206,30 @@ void InterpreterMacroAssembler::record_klass_in_profile_helper(
     Label next_test;
     bool test_for_null_also = (row == start_row);
 
-    // See if the receiver is receiver[n].
-    int recvr_offset = in_bytes(VirtualCallData::receiver_offset(row));
-    test_mdp_data_at(mdp, recvr_offset, receiver,
+    // See if the item is item[n].
+    int item_offset = in_bytes(item_offset_fn(row));
+    test_mdp_data_at(mdp, item_offset, item,
                      (test_for_null_also ? reg2 : noreg),
                      next_test);
-    // (Reg2 now contains the receiver from the CallData.)
+    // (Reg2 now contains the item from the CallData.)
 
-    // The receiver is receiver[n].  Increment count[n].
-    int count_offset = in_bytes(VirtualCallData::receiver_count_offset(row));
+    // The item is item[n].  Increment count[n].
+    int count_offset = in_bytes(item_count_offset_fn(row));
     increment_mdp_data_at(mdp, count_offset);
     jmp(done);
     bind(next_test);
 
     if (test_for_null_also) {
       Label found_null;
-      // Failed the equality check on receiver[n]...  Test for null.
+      // Failed the equality check on item[n]...  Test for null.
       testptr(reg2, reg2);
       if (start_row == last_row) {
         // The only thing left to do is handle the null case.
-        if (is_virtual_call GRAAL_ONLY(|| true)) {
+        if (non_profiled_offset >= 0) {
           jccb(Assembler::zero, found_null);
-          // Receiver did not match any saved receiver and there is no empty row for it.
+          // Item did not match any saved item and there is no empty row for it.
           // Increment total counter to indicate polymorphic case.
-          int offset = in_bytes(CounterData::count_offset());
-#ifdef GRAAL
-          if (!is_virtual_call) {
-            offset = in_bytes(ReceiverTypeData::nonprofiled_receiver_count_offset());
-          }
-#endif
-          increment_mdp_data_at(mdp, offset);
+          increment_mdp_data_at(mdp, non_profiled_offset);
           jmp(done);
           bind(found_null);
         } else {
@@ -1203,21 +1241,22 @@ void InterpreterMacroAssembler::record_klass_in_profile_helper(
       jcc(Assembler::zero, found_null);
 
       // Put all the "Case 3" tests here.
-      record_klass_in_profile_helper(receiver, mdp, reg2, start_row + 1, done, is_virtual_call);
+      record_item_in_profile_helper(item, mdp, reg2, start_row + 1, done, total_rows,
+        item_offset_fn, item_count_offset_fn, non_profiled_offset);
 
-      // Found a null.  Keep searching for a matching receiver,
+      // Found a null.  Keep searching for a matching item,
       // but remember that this is an empty (unused) slot.
       bind(found_null);
     }
   }
 
-  // In the fall-through case, we found no matching receiver, but we
-  // observed the receiver[start_row] is NULL.
+  // In the fall-through case, we found no matching item, but we
+  // observed the item[start_row] is NULL.
 
-  // Fill in the receiver field and increment the count.
-  int recvr_offset = in_bytes(VirtualCallData::receiver_offset(start_row));
-  set_mdp_data_at(mdp, recvr_offset, receiver);
-  int count_offset = in_bytes(VirtualCallData::receiver_count_offset(start_row));
+  // Fill in the item field and increment the count.
+  int item_offset = in_bytes(item_offset_fn(start_row));
+  set_mdp_data_at(mdp, item_offset, item);
+  int count_offset = in_bytes(item_count_offset_fn(start_row));
   movl(reg2, DataLayout::counter_increment);
   set_mdp_data_at(mdp, count_offset, reg2);
   if (start_row > 0) {
@@ -1255,7 +1294,7 @@ void InterpreterMacroAssembler::record_klass_in_profile(Register receiver,
   assert(ProfileInterpreter, "must be profiling");
   Label done;
 
-  record_klass_in_profile_helper(receiver, mdp, reg2, 0, done, is_virtual_call);
+  record_klass_in_profile_helper(receiver, mdp, reg2, done, is_virtual_call);
 
   bind (done);
 }
@@ -1310,7 +1349,7 @@ void InterpreterMacroAssembler::profile_null_seen(Register mdp) {
     // The method data pointer needs to be updated.
     int mdp_delta = in_bytes(BitData::bit_data_size());
     if (TypeProfileCasts) {
-      mdp_delta = in_bytes(VirtualCallData::virtual_call_data_size());
+      mdp_delta = in_bytes(ReceiverTypeData::receiver_type_data_size());
     }
     update_mdp_by_constant(mdp, mdp_delta);
 
@@ -1328,7 +1367,7 @@ void InterpreterMacroAssembler::profile_typecheck_failed(Register mdp) {
 
     int count_offset = in_bytes(CounterData::count_offset());
     // Back up the address, since we have already bumped the mdp.
-    count_offset -= in_bytes(VirtualCallData::virtual_call_data_size());
+    count_offset -= in_bytes(ReceiverTypeData::receiver_type_data_size());
 
     // *Decrement* the counter.  We expect to see zero or small negatives.
     increment_mdp_data_at(mdp, count_offset, true);
@@ -1348,7 +1387,7 @@ void InterpreterMacroAssembler::profile_typecheck(Register mdp, Register klass, 
     // The method data pointer needs to be updated.
     int mdp_delta = in_bytes(BitData::bit_data_size());
     if (TypeProfileCasts) {
-      mdp_delta = in_bytes(VirtualCallData::virtual_call_data_size());
+      mdp_delta = in_bytes(ReceiverTypeData::receiver_type_data_size());
 
       // Record the object type.
       record_klass_in_profile(klass, mdp, reg2, false);

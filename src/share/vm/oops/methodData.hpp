@@ -635,9 +635,17 @@ class ReceiverTypeData : public CounterData {
 protected:
   enum {
 #ifdef GRAAL
-    // Graal is interested in knowing the percentage of type checks
-    // involving a type not explicitly in the profile
-    nonprofiled_receiver_count_off_set = counter_cell_count,
+    // Description of the different counters
+    // ReceiverTypeData for instanceof/checkcast/aastore:
+    //   C1/C2: count is incremented on type overflow and decremented for failed type checks
+    //   Graal: count decremented for failed type checks and nonprofiled_count is incremented on type overflow
+    //          TODO (chaeubl): in fact, Graal should also increment the count for failed type checks to mimic the C1/C2 behavior
+    // VirtualCallData for invokevirtual/invokeinterface:
+    //   C1/C2: count is incremented on type overflow
+    //   Graal: count is incremented on type overflow, nonprofiled_count is increment on method overflow
+
+    // Graal is interested in knowing the percentage of type checks involving a type not explicitly in the profile
+    nonprofiled_count_off_set = counter_cell_count,
     receiver0_offset,
 #else
     receiver0_offset = counter_cell_count,
@@ -717,6 +725,13 @@ public:
     set_count(0);
     set_receiver(row, NULL);
     set_receiver_count(row, 0);
+#ifdef GRAAL
+    if (!this->is_VirtualCallData()) {
+      // if this is a ReceiverTypeData for Graal, the nonprofiled_count
+      // must also be reset (see "Description of the different counters" above)
+      set_nonprofiled_count(0);
+    }
+#endif
   }
 
   // Code generation support
@@ -728,7 +743,10 @@ public:
   }
 #ifdef GRAAL
   static ByteSize nonprofiled_receiver_count_offset() {
-    return cell_offset(nonprofiled_receiver_count_off_set);
+    return cell_offset(nonprofiled_count_off_set);
+  }
+  void set_nonprofiled_count(uint count) {
+    set_uint_at(nonprofiled_count_off_set, count);
   }
 #endif
   static ByteSize receiver_type_data_size() {
@@ -759,7 +777,7 @@ public:
   static int static_cell_count() {
     // At this point we could add more profile state, e.g., for arguments.
     // But for now it's the same size as the base record type.
-    return ReceiverTypeData::static_cell_count();
+    return ReceiverTypeData::static_cell_count() GRAAL_ONLY(+ (uint) MethodProfileWidth * receiver_type_row_cell_count);
   }
 
   virtual int cell_count() {
@@ -770,6 +788,53 @@ public:
   static ByteSize virtual_call_data_size() {
     return cell_offset(static_cell_count());
   }
+
+#ifdef GRAAL
+  static ByteSize method_offset(uint row) {
+    return cell_offset(method_cell_index(row));
+  }
+  static ByteSize method_count_offset(uint row) {
+    return cell_offset(method_count_cell_index(row));
+  }
+  static int method_cell_index(uint row) {
+    return receiver0_offset + (row + TypeProfileWidth) * receiver_type_row_cell_count;
+  }
+  static int method_count_cell_index(uint row) {
+    return count0_offset + (row + TypeProfileWidth) * receiver_type_row_cell_count;
+  }
+  static uint method_row_limit() {
+    return MethodProfileWidth;
+  }
+
+  Method* method(uint row) {
+    assert(row < method_row_limit(), "oob");
+
+    Method* method = (Method*)intptr_at(method_cell_index(row));
+    assert(method == NULL || method->is_method(), "must be");
+    return method;
+  }
+
+  void set_method(uint row, Method* m) {
+    assert((uint)row < method_row_limit(), "oob");
+    set_intptr_at(method_cell_index(row), (uintptr_t)m);
+  }
+
+  void set_method_count(uint row, uint count) {
+    assert(row < method_row_limit(), "oob");
+    set_uint_at(method_count_cell_index(row), count);
+  }
+
+  void clear_method_row(uint row) {
+    assert(row < method_row_limit(), "oob");
+    // Clear total count - indicator of polymorphic call site (see comment for clear_row() in ReceiverTypeData).
+    set_nonprofiled_count(0);
+    set_method(row, NULL);
+    set_method_count(row, 0);
+  }
+
+  // GC support
+  virtual void clean_weak_klass_links(BoolObjectClosure* is_alive_closure);
+#endif
 
 #ifndef PRODUCT
   void print_data_on(outputStream* st);

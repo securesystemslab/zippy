@@ -23,17 +23,16 @@
 package com.oracle.graal.hotspot.replacements;
 
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+import static com.oracle.graal.hotspot.meta.HotSpotRuntime.*;
 import static com.oracle.graal.replacements.nodes.BranchProbabilityNode.*;
 import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.code.RuntimeCallTarget.Descriptor;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
-import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.extended.LocationNode.LocationIdentity;
 import com.oracle.graal.replacements.Snippet.Fold;
@@ -450,10 +449,13 @@ public class HotSpotReplacementsUtil {
 
     public static Object verifyOop(Object object) {
         if (verifyOops()) {
-            VerifyOopStubCall.call(object);
+            verifyOopStub(VERIFY_OOP, object);
         }
         return object;
     }
+
+    @NodeIntrinsic(ForeignCallNode.class)
+    private static native Object verifyOopStub(@ConstantNodeParameter ForeignCallDescriptor descriptor, Object object);
 
     /**
      * Gets the value of the stack pointer register as a Word.
@@ -672,11 +674,9 @@ public class HotSpotReplacementsUtil {
         return identityHashCode(IDENTITY_HASHCODE, x);
     }
 
-    public static final Descriptor IDENTITY_HASHCODE = new Descriptor("identity_hashcode", false, int.class, Object.class);
-
     @SuppressWarnings("unused")
-    @NodeIntrinsic(RuntimeCallNode.class)
-    public static int identityHashCode(@ConstantNodeParameter Descriptor descriptor, Object object) {
+    @NodeIntrinsic(ForeignCallNode.class)
+    public static int identityHashCode(@ConstantNodeParameter ForeignCallDescriptor descriptor, Object object) {
         return System.identityHashCode(object);
     }
 
