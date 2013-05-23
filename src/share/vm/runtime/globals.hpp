@@ -2949,6 +2949,9 @@ class CommandLineFlags {
   product_pd(intx, TypeProfileWidth,                                        \
           "number of receiver types to record in call/cast profile")        \
                                                                             \
+  product_pd(intx, MethodProfileWidth,                                      \
+          "number of methods to record in call profile")                    \
+                                                                            \
   develop(intx, BciProfileWidth,      2,                                    \
           "number of return bci's to record in ret profile")                \
                                                                             \
