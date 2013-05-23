@@ -825,7 +825,7 @@ def _unittest(args, annotations):
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        if _vm == 'original' or _vm.endswith('nograal'):
+        if not isGraalEnabled(_vm):
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
@@ -1332,6 +1332,9 @@ def jacocoreport(args):
     elif len(args) > 1:
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
+
+def isGraalEnabled(vm):
+    return vm != 'original' and not vm.endswith('nograal')
 
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
