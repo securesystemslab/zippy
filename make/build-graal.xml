@@ -59,7 +59,6 @@
       <src path="${src.dir}/com.oracle.graal.compiler.amd64"/>
       <src path="${src.dir}/com.oracle.graal.replacements.amd64"/>
       <src path="${src.dir}/com.oracle.graal.hotspot.amd64"/>
-      <src path="${src.dir}/com.oracle.graal.sparc"/>
       <src path="${src.dir}/com.oracle.graal.asm.sparc"/>
       <src path="${src.dir}/com.oracle.graal.lir.sparc"/>
       <src path="${src.dir}/com.oracle.graal.compiler.sparc"/>

@@ -113,7 +113,7 @@ project@com.oracle.graal.hotspot.amd64@javaCompliance=1.7
 # graal.hotspot.sparc
 project@com.oracle.graal.hotspot.sparc@subDir=graal
 project@com.oracle.graal.hotspot.sparc@sourceDirs=src
-project@com.oracle.graal.hotspot.sparc@dependencies=com.oracle.graal.hotspot,com.oracle.graal.compiler.sparc
+project@com.oracle.graal.hotspot.sparc@dependencies=com.oracle.graal.compiler.sparc
 project@com.oracle.graal.hotspot.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.sparc@javaCompliance=1.7
 
@@ -188,7 +188,7 @@ project@com.oracle.graal.lir.ptx@javaCompliance=1.7
 # graal.lir.sparc
 project@com.oracle.graal.lir.sparc@subDir=graal
 project@com.oracle.graal.lir.sparc@sourceDirs=src
-project@com.oracle.graal.lir.sparc@dependencies=com.oracle.graal.lir,com.oracle.graal.asm.sparc
+project@com.oracle.graal.lir.sparc@dependencies=com.oracle.graal.asm.sparc
 project@com.oracle.graal.lir.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir.sparc@javaCompliance=1.7
 
@@ -309,7 +309,7 @@ project@com.oracle.graal.compiler.ptx.test@javaCompliance=1.7
 # graal.compiler.sparc
 project@com.oracle.graal.compiler.sparc@subDir=graal
 project@com.oracle.graal.compiler.sparc@sourceDirs=src
-project@com.oracle.graal.compiler.sparc@dependencies=com.oracle.graal.compiler,com.oracle.graal.lir.sparc
+project@com.oracle.graal.compiler.sparc@dependencies=com.oracle.graal.lir.sparc
 project@com.oracle.graal.compiler.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.sparc@javaCompliance=1.7
 
@@ -392,7 +392,7 @@ project@com.oracle.graal.asm.ptx@javaCompliance=1.7
 # graal.asm.sparc
 project@com.oracle.graal.asm.sparc@subDir=graal
 project@com.oracle.graal.asm.sparc@sourceDirs=src
-project@com.oracle.graal.asm.sparc@dependencies=com.oracle.graal.asm,com.oracle.graal.sparc
+project@com.oracle.graal.asm.sparc@dependencies=com.oracle.graal.hotspot
 project@com.oracle.graal.asm.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.sparc@javaCompliance=1.7
 
