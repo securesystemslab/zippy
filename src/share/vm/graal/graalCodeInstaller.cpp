@@ -410,6 +410,9 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 
   // (very) conservative estimate: each site needs a constant section entry
   _constants_size = _sites->length() * (BytesPerLong*2);
+#ifndef PRODUCT
+  _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
+#endif
 
   _next_call_type = MARK_INVOKE_INVALID;
 }
@@ -463,6 +466,19 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       fatal("unexpected Site subclass");
     }
   }
+
+#ifndef PRODUCT
+  if (_comments != NULL) {
+    oop* comments = (oop*) _comments->base(T_OBJECT);
+    for (int i = 0; i < _comments->length(); i++) {
+      oop comment = comments[i];
+      assert(comment->is_a(HotSpotCompiledCode_Comment::klass()), "cce");
+      jint offset = HotSpotCompiledCode_Comment::pcOffset(comment);
+      char* text = java_lang_String::as_utf8_string(HotSpotCompiledCode_Comment::text(comment));
+      buffer.block_comment(offset, text);
+    }
+  }
+#endif
 }
 
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
