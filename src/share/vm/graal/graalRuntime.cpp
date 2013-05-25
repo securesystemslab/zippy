@@ -380,6 +380,13 @@ JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format
   report_vm_error(__FILE__, __LINE__, error_msg, detail_msg);
 JRT_END
 
+JRT_LEAF(oop, GraalRuntime::load_and_clear_exception(JavaThread* thread))
+  oop exception = thread->exception_oop();
+  assert(exception != NULL, "npe");
+  thread->set_exception_oop(NULL);
+  thread->set_exception_pc(0);
+  return exception;
+JRT_END
 
 JRT_LEAF(void, GraalRuntime::log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3))
   ResourceMark rm;

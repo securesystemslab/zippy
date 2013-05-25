@@ -42,6 +42,7 @@ class GraalRuntime: public AllStatic {
   static void create_null_exception(JavaThread* thread);
   static void create_out_of_bounds_exception(JavaThread* thread, jint index);
   static void vm_error(JavaThread* thread, oop where, oop format, jlong value);
+  static oop load_and_clear_exception(JavaThread* thread);
   static void log_printf(JavaThread* thread, oop format, jlong v1, jlong v2, jlong v3);
   static void log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline);
   // Note: Must be kept in sync with constants in com.oracle.graal.replacements.Log
