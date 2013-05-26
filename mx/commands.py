@@ -973,6 +973,11 @@ def gate(args):
         clean(cleanArgs)
         tasks.append(t.stop())
 
+        t = Task('IDEConfigCheck')
+        mx.ideclean([])
+        mx.ideinit([])
+        tasks.append(t.stop())
+
         eclipse_exe = os.environ.get('ECLIPSE_EXE')
         if eclipse_exe is not None:
             t = Task('CodeFormatCheck')
