@@ -133,6 +133,7 @@ Property values can use environment variables with Bash syntax (e.g. ${HOME}).
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile
+import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
@@ -1908,19 +1909,30 @@ def checkstyle(args):
                     batch = javafilelist[:i]
                     javafilelist = javafilelist[i:]
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-c', config, '-o', auditfileName] + batch)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch)
                     finally:
                         if exists(auditfileName):
-                            with open(auditfileName) as f:
-                                warnings = [line.strip() for line in f if 'warning:' in line]
-                                if len(warnings) != 0:
-                                    map(log, warnings)
-                                    return 1
+                            errors = []
+                            source = None
+                            def start_element(name, attrs):
+                                if name == 'file':
+                                    global source
+                                    source = attrs['name']
+                                elif name == 'error':
+                                    errors.append('{}:{}: {}'.format(source, attrs['line'], attrs['message']))
+
+                            p = xml.parsers.expat.ParserCreate()
+                            p.StartElementHandler = start_element
+                            with open(auditfileName) as fp:
+                                p.ParseFile(fp)
+                            if len(errors) != 0:
+                                map(log, errors)
+                                return len(errors)
+                            else:
+                                if exists(timestampFile):
+                                    os.utime(timestampFile, None)
                                 else:
-                                    if exists(timestampFile):
-                                        os.utime(timestampFile, None)
-                                    else:
-                                        file(timestampFile, 'a')
+                                    file(timestampFile, 'a')
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
