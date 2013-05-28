@@ -188,7 +188,7 @@ project@com.oracle.graal.lir.ptx@javaCompliance=1.7
 # graal.lir.sparc
 project@com.oracle.graal.lir.sparc@subDir=graal
 project@com.oracle.graal.lir.sparc@sourceDirs=src
-project@com.oracle.graal.lir.sparc@dependencies=com.oracle.graal.asm.sparc,com.oracle.graal.sparc
+project@com.oracle.graal.lir.sparc@dependencies=com.oracle.graal.asm.sparc
 project@com.oracle.graal.lir.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir.sparc@javaCompliance=1.7
 
@@ -399,7 +399,7 @@ project@com.oracle.graal.asm.ptx@javaCompliance=1.7
 # graal.asm.sparc
 project@com.oracle.graal.asm.sparc@subDir=graal
 project@com.oracle.graal.asm.sparc@sourceDirs=src
-project@com.oracle.graal.asm.sparc@dependencies=com.oracle.graal.hotspot
+project@com.oracle.graal.asm.sparc@dependencies=com.oracle.graal.hotspot,com.oracle.graal.sparc
 project@com.oracle.graal.asm.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.sparc@javaCompliance=1.7
 
