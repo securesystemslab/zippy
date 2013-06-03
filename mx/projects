@@ -100,7 +100,7 @@ project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
 project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.printer
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier, com.oracle.graal.service.processor
+project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor,com.oracle.graal.options
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
 # graal.hotspot.amd64
@@ -137,6 +137,12 @@ project@com.oracle.graal.hotspot.amd64.test@sourceDirs=src
 project@com.oracle.graal.hotspot.amd64.test@dependencies=com.oracle.graal.asm.amd64,com.oracle.graal.compiler.test
 project@com.oracle.graal.hotspot.amd64.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64.test@javaCompliance=1.7
+
+# graal.options
+project@com.oracle.graal.options@subDir=graal
+project@com.oracle.graal.options@sourceDirs=src
+project@com.oracle.graal.options@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.options@javaCompliance=1.7
 
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
@@ -273,10 +279,10 @@ project@com.oracle.graal.loop@javaCompliance=1.7
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.options,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.7
-project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor,com.oracle.graal.options
 
 # graal.compiler.amd64
 project@com.oracle.graal.compiler.amd64@subDir=graal
