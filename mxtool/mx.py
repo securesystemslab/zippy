@@ -1700,6 +1700,11 @@ def archive(args):
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
                 for p in sorted_deps(d.deps):
+                    # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                    if java().javaCompliance < p.javaCompliance:
+                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
+                        continue
+
                     outputDir = p.output_dir()
                     for root, _, files in os.walk(outputDir):
                         relpath = root[len(outputDir) + 1:]
