@@ -831,6 +831,12 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("vmIntrinsicLinkToSpecial", vmIntrinsics::_linkToSpecial);
   set_int("vmIntrinsicLinkToInterface", vmIntrinsics::_linkToInterface);
 
+  set_boolean("useCompressedOops", UseCompressedOops);
+  set_boolean("useCompressedKlassPointers", UseCompressedKlassPointers);
+  set_address("narrowOopBase", Universe::narrow_oop_base());
+  set_int("narrowOopShift", Universe::narrow_oop_shift());
+  set_int("logMinObjAlignment", LogMinObjAlignmentInBytes);
+
   set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
   set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
   set_int("logOfHRGrainBytes", HeapRegion::LogOfHRGrainBytes);

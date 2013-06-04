@@ -93,15 +93,6 @@
         <provider classname="com.oracle.graal.compiler.GraalDebugConfig_SummarizeDebugValues"/>
         <provider classname="com.oracle.graal.compiler.GraalDebugConfig_SummarizePerPhase"/>
         <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Time"/>
-        <provider classname="com.oracle.graal.hotspot.CompilationTask_SlowQueueCutoff"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_BenchmarkDynamicCounters"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_GenericDynamicCounters"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_LogFile"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_PrintQueue"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_PriorityCompileQueue"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_SlowCompileThreads"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_Threads"/>
-        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_TimedBootstrap"/>
       </service>
       <service type="com.oracle.graal.phases.tiers.CompilerConfiguration">
         <provider classname="com.oracle.graal.compiler.phases.BasicCompilerConfiguration"/>
