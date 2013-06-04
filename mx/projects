@@ -100,7 +100,7 @@ project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
 project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.printer
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier
+project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.7
 
 # graal.hotspot.amd64
@@ -143,6 +143,7 @@ project@com.oracle.graal.options@subDir=graal
 project@com.oracle.graal.options@sourceDirs=src
 project@com.oracle.graal.options@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.options@javaCompliance=1.7
+project@com.oracle.graal.options@annotationProcessorForDependents=true
 
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
@@ -254,7 +255,6 @@ project@com.oracle.graal.phases@sourceDirs=src
 project@com.oracle.graal.phases@dependencies=com.oracle.graal.nodes,com.oracle.graal.options
 project@com.oracle.graal.phases@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.phases@javaCompliance=1.7
-project@com.oracle.graal.phases@annotationProcessors=com.oracle.graal.options
 
 # graal.phases.common
 project@com.oracle.graal.phases.common@subDir=graal

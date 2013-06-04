@@ -146,6 +146,7 @@ _projects = dict()
 _libs = dict()
 _dists = dict()
 _suites = dict()
+_annotationProcessors = None
 _mainSuite = None
 _opts = None
 _java = None
@@ -409,16 +410,18 @@ class Project(Dependency):
         return self._imported_java_packages
 
     def annotation_processors(self):
-        if not hasattr(self, '_transitiveAnnotationProcessors'):
+        if not hasattr(self, '_annotationProcessors'):
             ap = set()
-            if hasattr(self, '_annotationProcessors'):
-                ap = set(self._annotationProcessors)
-            for name in self.deps:
-                dep = _projects.get(name, None)
-                if dep is not None:
-                    ap.update(dep.annotation_processors())
-            self._transitiveAnnotationProcessors = list(ap)
-        return self._transitiveAnnotationProcessors
+            if hasattr(self, '_declaredAnnotationProcessors'):
+                ap = set(self._declaredAnnotationProcessors)
+
+            # find dependencies that auto-inject themselves as annotation processors to all dependents                
+            allDeps = self.all_deps([], includeLibs=False, includeSelf=False, includeAnnotationProcessors=False)
+            for p in allDeps:
+                if hasattr(p, 'annotationProcessorForDependents') and p.annotationProcessorForDependents.lower() == 'true':
+                    ap.add(p.name)
+            self._annotationProcessors = list(ap)
+        return self._annotationProcessors
 
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
@@ -538,7 +541,7 @@ class Suite:
             if not p.native and p.javaCompliance is None:
                 abort('javaCompliance property required for non-native project ' + name)
             if len(ap) > 0:
-                p._annotationProcessors = ap
+                p._declaredAnnotationProcessors = ap
             p.__dict__.update(attrs)
             self.projects.append(p)
 
@@ -741,6 +744,18 @@ def projects():
     Get the list of all loaded projects.
     """
     return _projects.values()
+
+def annotation_processors():
+    """
+    Get the list of all loaded projects that define an annotation processor.
+    """
+    global _annotationProcessors
+    if _annotationProcessors is None:
+        ap = set()
+        for p in projects():
+            ap.update(p.annotation_processors())
+        _annotationProcessors = list(ap)
+    return _annotationProcessors
 
 def distribution(name, fatalIfMissing=True):
     """
@@ -1684,16 +1699,16 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
-    projects = set()
     
+    projs = set()
     for p in sorted_deps():
         if _isAnnotationProcessorDependency(p):
-            projects.add(p)
+            projs.add(p)
             
-    if len(projects) <= 0:
+    if len(projs) < 0:
         return
     
-    pnames = [p.name for p in projects]
+    pnames = [p.name for p in projs]
     build(['--projects', ",".join(pnames)])
     archive(pnames)
 
@@ -2348,22 +2363,7 @@ def _isAnnotationProcessorDependency(p):
     """
     Determines if a given project is part of an annotation processor.
     """
-    processors = set()
-    
-    for otherProject in projects():
-        if len(p.annotation_processors()) > 0:
-            for processorName in otherProject.annotation_processors():
-                processors.add(project(processorName, fatalIfMissing=True))
-                 
-    if p in processors:
-        return True
-    
-    for otherProject in processors:
-        deps = otherProject.all_deps([], True)
-        if p in deps:
-            return True
-    
-    return False
+    return p in sorted_deps(annotation_processors())
 
 def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
     launchOut = XMLDoc();
