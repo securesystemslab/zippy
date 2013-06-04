@@ -42,6 +42,7 @@
       <src path="${src.dir}/com.oracle.graal.phases"/>
       <src path="${src.dir}/com.oracle.graal.phases.common"/>
       <src path="${src.dir}/com.oracle.graal.virtual"/>
+      <src path="${src.dir}/com.oracle.graal.options"/>
       <src path="${src.dir}/com.oracle.graal.loop"/>
       <src path="${src.dir}/com.oracle.graal.alloc"/>
       <src path="${src.dir}/com.oracle.graal.asm"/>
@@ -59,8 +60,8 @@
       <src path="${src.dir}/com.oracle.graal.compiler.amd64"/>
       <src path="${src.dir}/com.oracle.graal.replacements.amd64"/>
       <src path="${src.dir}/com.oracle.graal.hotspot.amd64"/>
-      <src path="${src.dir}/com.oracle.graal.asm.sparc"/>
       <src path="${src.dir}/com.oracle.graal.sparc"/>
+      <src path="${src.dir}/com.oracle.graal.asm.sparc"/>
       <src path="${src.dir}/com.oracle.graal.lir.sparc"/>
       <src path="${src.dir}/com.oracle.graal.compiler.sparc"/>
       <src path="${src.dir}/com.oracle.graal.hotspot.sparc"/>
@@ -80,8 +81,33 @@
         <provider classname="com.oracle.graal.hotspot.replacements.HotSpotNmethodIntrinsics"/>
         <provider classname="com.oracle.graal.replacements.GraalMethodSubstitutions"/>
       </service>
+      <service type="com.oracle.graal.options.OptionProvider">
+        <provider classname="com.oracle.graal.compiler.GraalCompiler_VerifyUsageWithEquals"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_DebugEnabled"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Dump"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_DumpOnError"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Log"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Meter"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_MethodFilter"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_PerThreadDebugValues"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_SummarizeDebugValues"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_SummarizePerPhase"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Time"/>
+        <provider classname="com.oracle.graal.hotspot.CompilationTask_SlowQueueCutoff"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_BenchmarkDynamicCounters"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_GenericDynamicCounters"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_LogFile"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_PrintQueue"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_PriorityCompileQueue"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_SlowCompileThreads"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_Threads"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_TimedBootstrap"/>
+      </service>
       <service type="com.oracle.graal.phases.tiers.CompilerConfiguration">
         <provider classname="com.oracle.graal.compiler.phases.BasicCompilerConfiguration"/>
+      </service>
+      <service type="javax.annotation.processing.Processor">
+        <provider classname="com.oracle.graal.options.OptionProcessor"/>
       </service>
     </jar>
   </target>
