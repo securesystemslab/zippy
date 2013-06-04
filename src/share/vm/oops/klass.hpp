@@ -255,7 +255,7 @@ class Klass : public Metadata {
 #ifdef GRAAL
   // Graal mirror
   oop graal_mirror() const               { return _graal_mirror; }
-  void set_graal_mirror(oop m)           { oop_store((oop*) &_graal_mirror, m); }
+  void set_graal_mirror(oop m)           { klass_oop_store((oop*) &_graal_mirror, m); }
 #endif
 
   // modifier flags

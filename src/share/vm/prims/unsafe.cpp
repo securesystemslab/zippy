@@ -174,17 +174,27 @@ jint Unsafe_invocation_key_to_method_slot(jint key) {
   OrderAccess::release_store_fence((volatile type_name*)index_oop_from_field_offset_long(p, offset), x);
 
 // Macros for oops that check UseCompressedOops
-
+#ifndef GRAAL
 #define GET_OOP_FIELD(obj, offset, v) \
-  oop p = JNIHandles::resolve(obj);   \
-  oop v;                              \
-  if (UseCompressedOops) {            \
+  oop p = JNIHandles::resolve(obj); \
+  oop v; \
+  if (UseCompressedOops) { \
     narrowOop n = *(narrowOop*)index_oop_from_field_offset_long(p, offset); \
-    v = oopDesc::decode_heap_oop(n);                                \
-  } else {                            \
-    v = *(oop*)index_oop_from_field_offset_long(p, offset);                 \
+    v = oopDesc::decode_heap_oop(n); \
+  } else { \
+    v = *(oop*)index_oop_from_field_offset_long(p, offset); \
   }
-
+#else
+#define GET_OOP_FIELD(obj, offset, v) \
+   oop p = JNIHandles::resolve(obj); \
+   oop v; \
+   if (UseCompressedOops && p!=NULL && offset>=oopDesc::header_size()) { \
+     narrowOop n = *(narrowOop*)index_oop_from_field_offset_long(p, offset); \
+     v = oopDesc::decode_heap_oop(n); \
+   } else { \
+     v = *(oop*)index_oop_from_field_offset_long(p, offset); \
+   }
+#endif
 
 // Get/SetObject must be special-cased, since it works with handles.
 
