@@ -479,9 +479,13 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
 #ifndef PRODUCT
   if (_comments != NULL) {
-    oop* comments = (oop*) _comments->base(T_OBJECT);
+    oop comment;
     for (int i = 0; i < _comments->length(); i++) {
-      oop comment = comments[i];
+      if(UseCompressedOops) {
+        comment=oopDesc::decode_heap_oop(((narrowOop*) _comments->base(T_OBJECT))[i]);
+      } else {
+        comment=((oop*) (_comments->base(T_OBJECT)))[i];
+      }
       assert(comment->is_a(HotSpotCompiledCode_Comment::klass()), "cce");
       jint offset = HotSpotCompiledCode_Comment::pcOffset(comment);
       char* text = java_lang_String::as_utf8_string(HotSpotCompiledCode_Comment::text(comment));
