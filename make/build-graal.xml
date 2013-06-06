@@ -176,6 +176,7 @@
         <provider classname="com.oracle.graal.phases.GraalOptions_MinimumPeelProbability"/>
         <provider classname="com.oracle.graal.phases.GraalOptions_OmitHotExceptionStacktrace"/>
         <provider classname="com.oracle.graal.phases.GraalOptions_OptAssumptions"/>
+        <provider classname="com.oracle.graal.phases.GraalOptions_OptCanonicalizeReads"/>
         <provider classname="com.oracle.graal.phases.GraalOptions_OptCanonicalizer"/>
         <provider classname="com.oracle.graal.phases.GraalOptions_OptConvertDeoptsToGuards"/>
         <provider classname="com.oracle.graal.phases.GraalOptions_OptDevirtualizeInvokesOptimistically"/>
