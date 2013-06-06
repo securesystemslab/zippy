@@ -85,6 +85,7 @@ void GraalCompiler::initialize() {
   {
     GRAAL_VM_ENTRY_MARK;
     HandleMark hm;
+    VMToCompiler::initOptions();
     for (int i = 0; i < Arguments::num_graal_args(); ++i) {
       const char* arg = Arguments::graal_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);

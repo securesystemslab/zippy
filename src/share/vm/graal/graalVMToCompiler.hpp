@@ -50,6 +50,9 @@ public:
     return _graalRuntimePermObject;
   }
 
+  // public static boolean HotSpotOptions.<clinit>();
+  static void initOptions();
+
   // public static boolean HotSpotOptions.setOption(String option);
   static jboolean setOption(Handle option);
 
