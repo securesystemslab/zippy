@@ -464,7 +464,7 @@ def initantbuild(args):
     out.element('property', {'name' : 'jar.dir', 'value' : '${shared.dir}'})
     out.element('property', {'name' : 'jar.file', 'value' : '${jar.dir}/graal.jar'})
     
-    out.element('target', {'name' : 'main', 'depends' : 'jar,options'})
+    out.element('target', {'name' : 'main', 'depends' : 'options,jar'})
 
     serviceMap = {};
     def addService(service, provider):
@@ -519,12 +519,16 @@ def initantbuild(args):
     out.element('delete', {'dir' : '${classes.dir}'})
     out.close('target')
 
-    out.open('target', {'name' : 'options'})
+    out.open('target', {'name' : 'options', 'if' : 'graal.options.exists'})
     out.open('copy', {'todir' : '${jar.dir}'})
     out.element('filelist', {'dir' : '${gamma.dir}', 'files' : 'graal.options'})
     out.close('copy')
     out.close('target')
 
+    out.open('target', {'name' : 'check-graal-options-exists'})
+    out.element('available', {'property' : 'graal.options.exists', 'file' : '${gamma.dir}/graal.options'})
+    out.close('target')
+    
     out.open('target', {'name' : 'clean', 'depends' : 'cleanclasses'})
     out.element('delete', {'file' : '${jar.file}'})
     out.close('target')
