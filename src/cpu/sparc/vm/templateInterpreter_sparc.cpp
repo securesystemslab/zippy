@@ -213,7 +213,7 @@ address TemplateInterpreterGenerator::generate_return_entry_for(TosState state, 
 }
 
 
-address TemplateInterpreterGenerator::generate_deopt_entry_for(TosState state, int step) {
+address InterpreterGenerator::generate_deopt_entry_for(TosState state, int step) {
   address entry = __ pc();
   __ get_constant_pool_cache(LcpoolCache); // load LcpoolCache
   { Label L;
@@ -812,6 +812,19 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
   // Reference.get is an accessor
   return generate_accessor_entry();
 }
+
+#ifdef GRAAL
+
+// Interpreter stub for calling a compiled method with 3 object arguments
+address InterpreterGenerator::generate_execute_compiled_method_entry() {
+  address entry_point = __ pc();
+
+  __ stop("graal-sparc unimp");
+
+  return entry_point;
+}
+
+#endif
 
 //
 // Interpreter stub for calling a native method. (asm interpreter)

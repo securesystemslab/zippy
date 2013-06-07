@@ -232,6 +232,8 @@ def _arch():
     machine = platform.uname()[4]
     if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
         return 'amd64'
+    if machine in ['sun4v']:
+        return 'sparc'
     if machine == 'i386' and mx.get_os() == 'darwin':
         try:
             # Support for Snow Leopard and earlier version of MacOSX
