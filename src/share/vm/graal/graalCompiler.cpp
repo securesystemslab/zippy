@@ -51,7 +51,7 @@ void GraalCompiler::initialize() {
 
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
   uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
-  guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)");
+  AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
   _deopted_leaf_graph_count = 0;

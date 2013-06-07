@@ -51,6 +51,9 @@ Handle VMToCompiler::graalRuntime() {
 #ifdef AMD64
     Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
 #endif
+#ifdef SPARC
+    Symbol* name = vmSymbols::com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime();
+#endif
     KlassHandle klass = loadClass(name);
 
     JavaValue result(T_OBJECT);
