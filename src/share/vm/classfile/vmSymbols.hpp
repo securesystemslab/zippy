@@ -297,6 +297,7 @@
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
   template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode,             "com/oracle/graal/hotspot/HotSpotCompiledCode")                  \
+  template(com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,     "com/oracle/graal/hotspot/HotSpotCompiledCode$Comment")          \
   template(com_oracle_graal_hotspot_HotSpotCompiledNmethod,          "com/oracle/graal/hotspot/HotSpotCompiledNmethod")               \
   template(com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,      "com/oracle/graal/hotspot/HotSpotCompiledRuntimeStub")           \
   template(com_oracle_graal_hotspot_HotSpotForeignCallLinkage,       "com/oracle/graal/hotspot/HotSpotForeignCallLinkage")            \

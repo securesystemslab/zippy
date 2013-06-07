@@ -75,6 +75,13 @@ Handle VMToCompiler::instance() {
   return Handle(JNIHandles::resolve_non_null(_vmToCompilerPermObject));
 }
 
+void VMToCompiler::initOptions() {
+  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
+  Thread* THREAD = Thread::current();
+  compilerKlass->initialize(THREAD);
+  check_pending_exception("Error while calling initOptions");
+}
+
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
   KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());

@@ -186,6 +186,7 @@ class SymbolPropertyTable;
   do_klass(BitSet_klass,                          java_util_BitSet,                                             Opt) \
   /* graal.hotspot */                                                                                                \
   do_klass(HotSpotCompiledCode_klass,             com_oracle_graal_hotspot_HotSpotCompiledCode,                 Opt) \
+  do_klass(HotSpotCompiledCode_Comment_klass,     com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,         Opt) \
   do_klass(HotSpotCompiledNmethod_klass,          com_oracle_graal_hotspot_HotSpotCompiledNmethod,              Opt) \
   do_klass(HotSpotCompiledRuntimeStub_klass,      com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,          Opt) \
   do_klass(HotSpotForeignCallLinkage_klass,       com_oracle_graal_hotspot_HotSpotForeignCallLinkage,           Opt) \

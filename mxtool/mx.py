@@ -133,6 +133,7 @@ Property values can use environment variables with Bash syntax (e.g. ${HOME}).
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile
+import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
@@ -145,6 +146,7 @@ _projects = dict()
 _libs = dict()
 _dists = dict()
 _suites = dict()
+_annotationProcessors = None
 _mainSuite = None
 _opts = None
 _java = None
@@ -218,8 +220,8 @@ class Project(Dependency):
         libraries if 'includeLibs' is true, to the 'deps' list.
         """
         childDeps = list(self.deps)
-        if includeAnnotationProcessors and hasattr(self, 'annotationProcessors') and len(self.annotationProcessors) > 0:
-            childDeps = self.annotationProcessors + childDeps
+        if includeAnnotationProcessors and len(self.annotation_processors()) > 0:
+            childDeps = self.annotation_processors() + childDeps
         if self in deps:
             return deps
         for name in childDeps:
@@ -407,6 +409,19 @@ class Project(Dependency):
         self._init_packages_and_imports()
         return self._imported_java_packages
 
+    def annotation_processors(self):
+        if not hasattr(self, '_annotationProcessors'):
+            ap = set()
+            if hasattr(self, '_declaredAnnotationProcessors'):
+                ap = set(self._declaredAnnotationProcessors)
+
+            # find dependencies that auto-inject themselves as annotation processors to all dependents                
+            allDeps = self.all_deps([], includeLibs=False, includeSelf=False, includeAnnotationProcessors=False)
+            for p in allDeps:
+                if hasattr(p, 'annotationProcessorForDependents') and p.annotationProcessorForDependents.lower() == 'true':
+                    ap.add(p.name)
+            self._annotationProcessors = list(ap)
+        return self._annotationProcessors
 
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
@@ -526,7 +541,7 @@ class Suite:
             if not p.native and p.javaCompliance is None:
                 abort('javaCompliance property required for non-native project ' + name)
             if len(ap) > 0:
-                p.annotationProcessors = ap
+                p._declaredAnnotationProcessors = ap
             p.__dict__.update(attrs)
             self.projects.append(p)
 
@@ -729,6 +744,18 @@ def projects():
     Get the list of all loaded projects.
     """
     return _projects.values()
+
+def annotation_processors():
+    """
+    Get the list of all loaded projects that define an annotation processor.
+    """
+    global _annotationProcessors
+    if _annotationProcessors is None:
+        ap = set()
+        for p in projects():
+            ap.update(p.annotation_processors())
+        _annotationProcessors = list(ap)
+    return _annotationProcessors
 
 def distribution(name, fatalIfMissing=True):
     """
@@ -1514,8 +1541,9 @@ def build(args, parser=None):
         if java().debug_port is not None:
             javacArgs += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
 
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
-            processorPath = classpath(p.annotationProcessors, resolve=True)
+        ap = p.annotation_processors()
+        if len(ap) > 0:
+            processorPath = classpath(ap, resolve=True)
             genDir = p.source_gen_dir();
             if exists(genDir):
                 shutil.rmtree(genDir)
@@ -1671,16 +1699,16 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
-    projects = set()
     
+    projs = set()
     for p in sorted_deps():
         if _isAnnotationProcessorDependency(p):
-            projects.add(p)
+            projs.add(p)
             
-    if len(projects) <= 0:
+    if len(projs) < 0:
         return
     
-    pnames = [p.name for p in projects]
+    pnames = [p.name for p in projs]
     build(['--projects', ",".join(pnames)])
     archive(pnames)
 
@@ -1699,6 +1727,11 @@ def archive(args):
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
                 for p in sorted_deps(d.deps):
+                    # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                    if java().javaCompliance < p.javaCompliance:
+                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
+                        continue
+
                     outputDir = p.output_dir()
                     for root, _, files in os.walk(outputDir):
                         relpath = root[len(outputDir) + 1:]
@@ -1908,19 +1941,30 @@ def checkstyle(args):
                     batch = javafilelist[:i]
                     javafilelist = javafilelist[i:]
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-c', config, '-o', auditfileName] + batch)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch)
                     finally:
                         if exists(auditfileName):
-                            with open(auditfileName) as f:
-                                warnings = [line.strip() for line in f if 'warning:' in line]
-                                if len(warnings) != 0:
-                                    map(log, warnings)
-                                    return 1
+                            errors = []
+                            source = None
+                            def start_element(name, attrs):
+                                if name == 'file':
+                                    global source
+                                    source = attrs['name']
+                                elif name == 'error':
+                                    errors.append('{}:{}: {}'.format(source, attrs['line'], attrs['message']))
+
+                            p = xml.parsers.expat.ParserCreate()
+                            p.StartElementHandler = start_element
+                            with open(auditfileName) as fp:
+                                p.ParseFile(fp)
+                            if len(errors) != 0:
+                                map(log, errors)
+                                return len(errors)
+                            else:
+                                if exists(timestampFile):
+                                    os.utime(timestampFile, None)
                                 else:
-                                    if exists(timestampFile):
-                                        os.utime(timestampFile, None)
-                                    else:
-                                        file(timestampFile, 'a')
+                                    file(timestampFile, 'a')
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
@@ -2155,7 +2199,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 os.mkdir(srcDir)
             out.element('classpathentry', {'kind' : 'src', 'path' : src})
 
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             genDir = p.source_gen_dir();
             if not exists(genDir):
                 os.mkdir(genDir)
@@ -2279,22 +2323,22 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
         eclipseSettingsDir = join(suite.dir, 'mx', 'eclipse-settings')
         if exists(eclipseSettingsDir):
             for name in os.listdir(eclipseSettingsDir):
-                if name == "org.eclipse.jdt.apt.core.prefs" and not (hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0):
+                if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
                     continue
                 path = join(eclipseSettingsDir, name)
                 if isfile(path):
                     with open(join(eclipseSettingsDir, name)) as f:
                         content = f.read()
                     content = content.replace('${javaCompliance}', str(p.javaCompliance))
-                    if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+                    if len(p.annotation_processors()) > 0:
                         content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
                     update_file(join(settingsDir, name), content)
         
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             out = XMLDoc()
             out.open('factorypath')
             out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
-            for ap in p.annotationProcessors:
+            for ap in p.annotation_processors():
                 apProject = project(ap)
                 for dep in apProject.all_deps([], True):
                     if dep.isLibrary():
@@ -2319,22 +2363,7 @@ def _isAnnotationProcessorDependency(p):
     """
     Determines if a given project is part of an annotation processor.
     """
-    processors = set()
-    
-    for otherProject in projects():
-        if hasattr(otherProject, 'annotationProcessors') and len(otherProject.annotationProcessors) > 0:
-            for processorName in otherProject.annotationProcessors:
-                processors.add(project(processorName, fatalIfMissing=True))
-                 
-    if p in processors:
-        return True
-    
-    for otherProject in processors:
-        deps = otherProject.all_deps([], True)
-        if p in deps:
-            return True
-    
-    return False
+    return p in sorted_deps(annotation_processors())
 
 def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
     launchOut = XMLDoc();
@@ -2429,7 +2458,7 @@ def netbeansinit(args, suite=None):
         out.element('explicit-platform', {'explicit-source-supported' : 'true'})
         out.open('source-roots')
         out.element('root', {'id' : 'src.dir'})
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             out.element('root', {'id' : 'src.ap-source-output.dir'})
         out.close('source-roots')
         out.open('test-roots')
@@ -2469,7 +2498,7 @@ def netbeansinit(args, suite=None):
         annotationProcessorEnabled = "false"
         annotationProcessorReferences = ""
         annotationProcessorSrcFolder = ""
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             annotationProcessorEnabled = "true"
             annotationProcessorSrcFolder = "src.ap-source-output.dir=${build.generated.sources.dir}/ap-source-output"
 
@@ -2561,8 +2590,8 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         
         deps = p.all_deps([], True)
         annotationProcessorOnlyDeps = []
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
-            for ap in p.annotationProcessors:
+        if len(p.annotation_processors()) > 0:
+            for ap in p.annotation_processors():
                 apProject = project(ap)
                 if not apProject in deps:
                     deps.append(apProject)

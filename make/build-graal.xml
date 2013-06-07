@@ -39,6 +39,7 @@
       <src path="${src.dir}/com.oracle.graal.debug"/>
       <src path="${src.dir}/com.oracle.graal.api.replacements"/>
       <src path="${src.dir}/com.oracle.graal.nodes"/>
+      <src path="${src.dir}/com.oracle.graal.options"/>
       <src path="${src.dir}/com.oracle.graal.phases"/>
       <src path="${src.dir}/com.oracle.graal.phases.common"/>
       <src path="${src.dir}/com.oracle.graal.virtual"/>
@@ -80,8 +81,20 @@
         <provider classname="com.oracle.graal.hotspot.replacements.HotSpotNmethodIntrinsics"/>
         <provider classname="com.oracle.graal.replacements.GraalMethodSubstitutions"/>
       </service>
+      <service type="com.oracle.graal.options.Options">
+        <provider classname="com.oracle.graal.compiler.GraalCompiler_Options"/>
+        <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Options"/>
+        <provider classname="com.oracle.graal.hotspot.HotSpotGraalRuntime_Options"/>
+        <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_Options"/>
+        <provider classname="com.oracle.graal.phases.GraalOptions_Options"/>
+        <provider classname="com.oracle.graal.phases.common.InliningPhase_Options"/>
+        <provider classname="com.oracle.graal.phases.tiers.Suites_Options"/>
+      </service>
       <service type="com.oracle.graal.phases.tiers.CompilerConfiguration">
         <provider classname="com.oracle.graal.compiler.phases.BasicCompilerConfiguration"/>
+      </service>
+      <service type="javax.annotation.processing.Processor">
+        <provider classname="com.oracle.graal.options.OptionProcessor"/>
       </service>
     </jar>
   </target>

@@ -54,7 +54,12 @@ class JavaArgumentUnboxer : public SignatureIterator {
 
   oop next_arg(BasicType expectedType) {
     assert(_index < _args->length(), "out of bounds");
-    oop arg = ((oop*) _args->base(T_OBJECT))[_index++];
+    oop arg;
+    if(UseCompressedOops) {
+      arg = oopDesc::decode_heap_oop(((narrowOop*) _args->base(T_OBJECT))[_index++]);
+    } else {
+      arg = ((oop*) _args->base(T_OBJECT))[_index++];
+    }
     assert(expectedType == T_OBJECT || java_lang_boxing_object::is_instance(arg, expectedType), "arg type mismatch");
     return arg;
   }

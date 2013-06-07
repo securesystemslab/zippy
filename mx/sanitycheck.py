@@ -235,15 +235,15 @@ def getCTW(vm,mode):
 
     
     args = ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
-    if not vm.endswith('-nograal'):
+    if commands.isGraalEnabled(vm):
         args += ['-XX:+BootstrapGraal', '-G:-Debug']
     if mode >= CTWMode.NoInline:
-        if vm.endswith('-nograal'):
+        if not commands.isGraalEnabled(vm):
             args.append('-XX:-Inline')
         else:
             args.append('-G:-Inline')
     if mode >= CTWMode.NoComplex:
-        if not vm.endswith('-nograal'):
+        if commands.isGraalEnabled(vm):
             args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
         
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
