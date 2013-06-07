@@ -84,7 +84,6 @@
       <service type="com.oracle.graal.options.Options">
         <provider classname="com.oracle.graal.compiler.GraalCompiler_Options"/>
         <provider classname="com.oracle.graal.compiler.GraalDebugConfig_Options"/>
-        <provider classname="com.oracle.graal.hotspot.CompilationTask_Options"/>
         <provider classname="com.oracle.graal.hotspot.HotSpotGraalRuntime_Options"/>
         <provider classname="com.oracle.graal.hotspot.bridge.VMToCompilerImpl_Options"/>
         <provider classname="com.oracle.graal.phases.GraalOptions_Options"/>
