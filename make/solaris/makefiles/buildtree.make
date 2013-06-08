@@ -229,7 +229,9 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/posix/vm) \\"; \
-	echo "$(call gamma-path,commonsrc,os/posix/vm)"; \
+	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \
+	echo "$(call gamma-path,altsrc,gpu/ptx) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu/ptx)"; \
 	echo; \
 	echo "Src_Dirs_I = \\"; \
 	echo "$(call gamma-path,altsrc,share/vm/prims) \\"; \
@@ -244,8 +246,9 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,commonsrc,os_cpu/$(OS_FAMILY)_$(ARCH)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
-	echo "$(call gamma-path,altsrc,os/posix/vm) \\"; \
-	echo "$(call gamma-path,commonsrc,os/posix/vm)"; \
+	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \
+	echo "$(call gamma-path,altsrc,gpu) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu)"; \
 	[ -n "$(CFLAGS_BROWSE)" ] && \
 	    echo && echo "CFLAGS_BROWSE = $(CFLAGS_BROWSE)"; \
 	[ -n "$(ENABLE_FULL_DEBUG_SYMBOLS)" ] && \

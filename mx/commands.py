@@ -232,6 +232,8 @@ def _arch():
     machine = platform.uname()[4]
     if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
         return 'amd64'
+    if machine in ['sun4v']:
+        return 'sparc'
     if machine == 'i386' and mx.get_os() == 'darwin':
         try:
             # Support for Snow Leopard and earlier version of MacOSX
@@ -343,6 +345,7 @@ def _jdk(build='product', vmToCheck=None, create=False):
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
+    graalOptions = join(_graal_home, 'graal.options')
     jdks = join(_graal_home, 'jdk' + str(mx.java().version))
     if exists(jdks):
         for e in os.listdir(jdks):
@@ -353,6 +356,9 @@ def _installGraalJarInJdks(graalDist):
                 shutil.copyfile(graalJar, tmp)
                 os.close(fd)
                 shutil.move(tmp, join(jreLibDir, 'graal.jar'))
+                
+                if exists(graalOptions):
+                    shutil.copy(graalOptions, join(jreLibDir, 'graal.options'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
@@ -458,7 +464,7 @@ def initantbuild(args):
     out.element('property', {'name' : 'jar.dir', 'value' : '${shared.dir}'})
     out.element('property', {'name' : 'jar.file', 'value' : '${jar.dir}/graal.jar'})
     
-    out.element('target', {'name' : 'main', 'depends' : 'jar'})
+    out.element('target', {'name' : 'main', 'depends' : 'options,jar'})
 
     serviceMap = {};
     def addService(service, provider):
@@ -513,6 +519,16 @@ def initantbuild(args):
     out.element('delete', {'dir' : '${classes.dir}'})
     out.close('target')
 
+    out.open('target', {'name' : 'options', 'if' : 'graal.options.exists'})
+    out.open('copy', {'todir' : '${jar.dir}'})
+    out.element('filelist', {'dir' : '${gamma.dir}', 'files' : 'graal.options'})
+    out.close('copy')
+    out.close('target')
+
+    out.open('target', {'name' : 'check-graal-options-exists'})
+    out.element('available', {'property' : 'graal.options.exists', 'file' : '${gamma.dir}/graal.options'})
+    out.close('target')
+    
     out.open('target', {'name' : 'clean', 'depends' : 'cleanclasses'})
     out.element('delete', {'file' : '${jar.file}'})
     out.close('target')

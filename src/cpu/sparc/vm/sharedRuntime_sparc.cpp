@@ -1826,6 +1826,20 @@ static void gen_special_dispatch(MacroAssembler* masm,
   verify_oop_args(masm, method, sig_bt, regs);
   vmIntrinsics::ID iid = method->intrinsic_id();
 
+
+#ifdef GRAAL
+  if (iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
+    // We are called from compiled code here. The three object arguments
+    // are already in the correct registers (j_rarg0, jrarg1, jrarg2). The
+    // fourth argument (j_rarg3) is a raw pointer to the nmethod. Make a tail
+    // call to its verified entry point.
+    __ set(nmethod::verified_entry_point_offset(), O0);
+    __ JMP(O0, 0);
+    __ delayed()->nop();
+    return;
+  }
+#endif
+
   // Now write the args into the outgoing interpreter space
   bool     has_receiver   = false;
   Register receiver_reg   = noreg;

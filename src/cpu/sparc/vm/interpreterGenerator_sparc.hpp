@@ -27,11 +27,16 @@
 
  friend class AbstractInterpreterGenerator;
 
+  address generate_deopt_entry_for(TosState state, int step);
+
  private:
 
   address generate_normal_entry(bool synchronized);
   address generate_native_entry(bool synchronized);
-  address generate_abstract_entry(void);
+#ifdef GRAAL
+  address generate_execute_compiled_method_entry();
+#endif
+ address generate_abstract_entry(void);
   address generate_math_entry(AbstractInterpreter::MethodKind kind);
   address generate_empty_entry(void);
   address generate_accessor_entry(void);
