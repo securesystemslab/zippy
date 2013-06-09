@@ -52,6 +52,7 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
     return (pc_offset + ((NativeCallReg *) inst)->next_instruction_offset());
   } else {
     fatal("unsupported type of instruction for call site");
+    return 0;
   }
 }
 
