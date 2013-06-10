@@ -738,8 +738,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("typeProfileWidth", TypeProfileWidth);
   set_int("methodProfileWidth", MethodProfileWidth);
 
-  set_int("interpreterProfilingThreshold", InvocationCounter::get_ProfileLimit());
-
   set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
   set_long("tlabIntArrayMarkWord", (intptr_t)markOopDesc::prototype()->copy_set_hash(0x2));
   set_long("heapTopAddress", (jlong)(address) Universe::heap()->top_addr());

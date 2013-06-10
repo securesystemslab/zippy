@@ -95,9 +95,9 @@ class InvocationCounter VALUE_OBJ_CLASS_SPEC {
   Action action() const                          { return _action[state()]; }
   int    count() const                           { return _counter >> number_of_noncount_bits; }
 
-  static int   get_InvocationLimit()             { return InterpreterInvocationLimit >> number_of_noncount_bits; }
-  static int   get_BackwardBranchLimit()         { return InterpreterBackwardBranchLimit >> number_of_noncount_bits; }
-  static int   get_ProfileLimit()                { return InterpreterProfileLimit >> number_of_noncount_bits; }
+  int   get_InvocationLimit() const              { return InterpreterInvocationLimit >> number_of_noncount_bits; }
+  int   get_BackwardBranchLimit() const          { return InterpreterBackwardBranchLimit >> number_of_noncount_bits; }
+  int   get_ProfileLimit() const                 { return InterpreterProfileLimit >> number_of_noncount_bits; }
 
   // Test counter using scaled limits like the asm interpreter would do rather than doing
   // the shifts to normalize the counter.
