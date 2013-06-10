@@ -591,11 +591,11 @@ C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
 
   for (AllFieldStream fs(k()); !fs.done(); fs.next()) {
     if (!fs.access_flags().is_static()) {
-      Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, Thread::current());
+      Handle type = GraalCompiler::get_JavaTypeFromSignature(fs.signature(), k, THREAD);
       int flags = fs.access_flags().as_int();
       bool internal = fs.access_flags().is_internal();
-      Handle name = java_lang_String::create_from_symbol(fs.name(), Thread::current());
-      Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, Thread::current());
+      Handle name = java_lang_String::create_from_symbol(fs.name(), THREAD);
+      Handle field = VMToCompiler::createJavaField(JNIHandles::resolve(klass), name, type, fs.offset(), flags, internal, THREAD);
       fields.append(field());
     }
   }
@@ -603,7 +603,28 @@ C2V_VMENTRY(jobject, getInstanceFields, (JNIEnv *, jobject, jobject klass))
   for (int i = 0; i < fields.length(); ++i) {
     field_array->obj_at_put(i, fields.at(i)());
   }
-  return JNIHandles::make_local(field_array());
+  return JNIHandles::make_local(THREAD, field_array());
+C2V_END
+
+C2V_VMENTRY(jobject, getMethods, (JNIEnv *, jobject, jobject klass))
+  ResourceMark rm;
+
+  instanceKlassHandle k(THREAD, java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(klass)));
+  Array<Method*>* methods = k->methods();
+  int methods_length = methods->length();
+
+  // Allocate result
+  objArrayOop r = oopFactory::new_objArray(SystemDictionary::HotSpotResolvedJavaMethod_klass(), methods_length, CHECK_NULL);
+  objArrayHandle result (THREAD, r);
+
+  for (int i = 0; i < methods_length; i++) {
+    methodHandle method(THREAD, methods->at(i));
+    Handle holder = JNIHandles::resolve(klass);
+    oop m = VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD);
+    result->obj_at_put(i, m);
+  }
+
+  return JNIHandles::make_local(THREAD, result());
 C2V_END
 
 C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
@@ -1209,6 +1230,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupFieldInPool",             CC"("HS_RESOLVED_TYPE"IB)"FIELD,                                  FN_PTR(lookupFieldInPool)},
   {CC"resolveMethod",                 CC"("HS_RESOLVED_TYPE STRING STRING")"METHOD,                     FN_PTR(resolveMethod)},
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
+  {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
   {CC"isTypeInitialized",             CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeInitialized)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"initializeType",                CC"("HS_RESOLVED_TYPE")V",                                        FN_PTR(initializeType)},
