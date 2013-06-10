@@ -28,7 +28,7 @@
   <property name="classes.dir" value="${shared.dir}/graal"/>
   <property name="jar.dir" value="${shared.dir}"/>
   <property name="jar.file" value="${jar.dir}/graal.jar"/>
-  <target depends="jar" name="main"/>
+  <target depends="options,jar" name="main"/>
   <target depends="cleanclasses" name="compile">
     <mkdir dir="${classes.dir}"/>
     <javac debug="on" destdir="${classes.dir}" includeantruntime="false">
@@ -100,6 +100,14 @@
   </target>
   <target name="cleanclasses">
     <delete dir="${classes.dir}"/>
+  </target>
+  <target if="graal.options.exists" name="options">
+    <copy todir="${jar.dir}">
+      <filelist dir="${gamma.dir}" files="graal.options"/>
+    </copy>
+  </target>
+  <target name="check-graal-options-exists">
+    <available file="${gamma.dir}/graal.options" property="graal.options.exists"/>
   </target>
   <target depends="cleanclasses" name="clean">
     <delete file="${jar.file}"/>

@@ -516,6 +516,10 @@ $(EXPORT_LIB_DIR)/%.jar: $(GEN_DIR)/%.jar
 $(EXPORT_JRE_LIB_DIR)/%.jar: $(SHARED_DIR)/%.jar
 	$(install-file)
 
+# Shared options files
+$(EXPORT_JRE_LIB_DIR)/%.options: $(SHARED_DIR)/%.options
+	$(install-file)
+	
 # Include files (jvmti.h, jvmticmlr.h, jni.h, $(JDK_INCLUDE_SUBDIR)/jni_md.h, jmm.h, jfr.h)
 $(EXPORT_INCLUDE_DIR)/%: $(GEN_DIR)/jvmtifiles/%
 	$(install-file)
