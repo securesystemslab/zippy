@@ -269,12 +269,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     arrayOop values = (arrayOop) VirtualObject::values(value);
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
-      oop object;
-      if(UseCompressedOops) {
-        object=oopDesc::decode_heap_oop(((narrowOop*) values->base(T_OBJECT))[i]);
-      } else {
-        object=((oop*) (values->base(T_OBJECT)))[i];
-      }
+      oop object = ((objArrayOop) (values))->obj_at(i);
       ScopeValue* value = get_hotspot_value(object, total_frame_size, objects, cur_second, oop_recorder);
 
       if (isLongArray && cur_second == NULL) {
@@ -456,13 +451,8 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   memcpy(_instructions->start(), _code->base(T_BYTE), _code_size);
   _instructions->set_end(_instructions->start() + _code_size);
 
-  oop site;
   for (int i = 0; i < _sites->length(); i++) {
-    if(UseCompressedOops) {
-      site=oopDesc::decode_heap_oop(((narrowOop*) _sites->base(T_OBJECT))[i]);
-    } else {
-      site=((oop*) (_sites->base(T_OBJECT)))[i];
-    }
+    oop site=((objArrayOop) (_sites))->obj_at(i);
     jint pc_offset = CompilationResult_Site::pcOffset(site);
 
     if (site->is_a(CompilationResult_Call::klass())) {
@@ -492,13 +482,8 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
 #ifndef PRODUCT
   if (_comments != NULL) {
-    oop comment;
     for (int i = 0; i < _comments->length(); i++) {
-      if(UseCompressedOops) {
-        comment=oopDesc::decode_heap_oop(((narrowOop*) _comments->base(T_OBJECT))[i]);
-      } else {
-        comment=((oop*) (_comments->base(T_OBJECT)))[i];
-      }
+      oop comment=((objArrayOop) (_comments))->obj_at(i);
       assert(comment->is_a(HotSpotCompiledCode_Comment::klass()), "cce");
       jint offset = HotSpotCompiledCode_Comment::pcOffset(comment);
       char* text = java_lang_String::as_utf8_string(HotSpotCompiledCode_Comment::text(comment));
@@ -558,14 +543,8 @@ void CodeInstaller::process_exception_handlers() {
   GrowableArray<intptr_t>* pcos = new GrowableArray<intptr_t> (num_handlers);
 
   if (_exception_handlers != NULL) {
-    oop* exception_handlers = (oop*) _exception_handlers->base(T_OBJECT);
     for (int i = 0; i < _exception_handlers->length(); i++) {
-      oop exc;
-      if(UseCompressedOops) {
-        exc=oopDesc::decode_heap_oop(((narrowOop*) _exception_handlers->base(T_OBJECT))[i]);
-      } else {
-        exc=((oop*) (_exception_handlers->base(T_OBJECT)))[i];
-      }
+      oop exc=((objArrayOop) (_exception_handlers))->obj_at(i);
       jint pc_offset = CompilationResult_Site::pcOffset(exc);
       jint handler_offset = CompilationResult_ExceptionHandler::handlerPos(exc);
 
@@ -637,12 +616,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
 
   for (jint i = 0; i < values->length(); i++) {
     ScopeValue* second = NULL;
-    oop value;
-    if(UseCompressedOops) {
-      value=oopDesc::decode_heap_oop(((narrowOop*) values->base(T_OBJECT))[i]);
-    } else {
-      value = ((oop*) values->base(T_OBJECT))[i];
-    }
+    oop value=((objArrayOop) (values))->obj_at(i);
     if (i < local_count) {
       ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second, _oop_recorder);
       if (second != NULL) {
@@ -661,11 +635,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     if (second != NULL) {
       i++;
       assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
-      if(UseCompressedOops) {
-        assert(oopDesc::decode_heap_oop(((narrowOop*) values->base(T_OBJECT))[i]) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
-      } else {
-        assert(((oop*) values->base(T_OBJECT))[i] == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
-      }
+      assert(((objArrayOop) (values))->obj_at(i) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
     }
   }
 
