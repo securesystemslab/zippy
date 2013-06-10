@@ -75,6 +75,13 @@ private:
   Dependencies*             _dependencies;
   ExceptionHandlerTable     _exception_handler_table;
 
+  jint pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method);
+  void pd_site_DataPatch(oop constant, oop kind, bool inlined, address instruction, int alignment, char typeChar);
+  void pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst);
+  void pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination);
+  void pd_relocate_JavaMethod(oop method, jint pc_offset);
+  int32_t* pd_locate_operand(address instruction);
+
 public:
 
   CodeInstaller(Handle& comp_result, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
@@ -105,5 +112,21 @@ private:
   void process_exception_handlers();
 
 };
+
+#ifdef TARGET_ARCH_x86
+# include "codeInstaller_x86.hpp"
+#endif
+#ifdef TARGET_ARCH_sparc
+# include "codeInstaller_sparc.hpp"
+#endif
+#ifdef TARGET_ARCH_zero
+# error
+#endif
+#ifdef TARGET_ARCH_arm
+# error
+#endif
+#ifdef TARGET_ARCH_ppc
+# error
+#endif
 
 #endif // SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP

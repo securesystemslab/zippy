@@ -658,8 +658,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("useAESIntrinsics", UseAESIntrinsics);
   set_boolean("useTLAB", UseTLAB);
   set_boolean("useG1GC", UseG1GC);
+#ifdef TARGET_ARCH_x86
   set_int("useSSE", UseSSE);
   set_int("useAVX", UseAVX);
+#endif
   set_int("codeEntryAlignment", CodeEntryAlignment);
   set_int("stackShadowPages", StackShadowPages);
   set_int("hubOffset", oopDesc::klass_offset_in_bytes());
@@ -695,9 +697,11 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
   set_int("threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int("threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
+#ifdef TARGET_ARCH_x86
   set_boolean("isPollingPageFar", Assembler::is_polling_page_far());
-  set_int("classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   set_int("runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
+#endif
+  set_int("classMirrorOffset", in_bytes(Klass::java_mirror_offset()));
   set_int("klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
   set_int("klassAccessFlagsOffset", in_bytes(Klass::access_flags_offset()));
   set_int("klassOffset", java_lang_Class::klass_offset_in_bytes());
@@ -744,7 +748,9 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("threadTlabSizeOffset", in_bytes(JavaThread::tlab_size_offset()));
   set_int("threadAllocatedBytesOffset", in_bytes(JavaThread::allocated_bytes_offset()));
   set_int("threadLastJavaSpOffset", in_bytes(JavaThread::last_Java_sp_offset()));
+#ifdef TARGET_ARCH_x86
   set_int("threadLastJavaFpOffset", in_bytes(JavaThread::last_Java_fp_offset()));
+#endif
   set_int("threadLastJavaPcOffset", in_bytes(JavaThread::last_Java_pc_offset()));
   set_int("threadObjectResultOffset", in_bytes(JavaThread::vm_result_offset()));
   set_int("tlabSlowAllocationsOffset", in_bytes(JavaThread::tlab_slow_allocations_offset()));
