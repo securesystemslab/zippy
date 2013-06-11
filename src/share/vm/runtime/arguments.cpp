@@ -2102,9 +2102,8 @@ bool Arguments::check_vm_args_consistency() {
       warning("UseCompressedOops is disabled, because it is not supported by Graal");
       FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
     } else {
-      jio_fprintf(defaultStream::error_stream(),
-                    "CompressedOops are not supported in Graal at the moment\n");
-      status = false;
+      status = true;
+      FLAG_SET_CMDLINE(bool, UseCompressedOops, true);
     }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
