@@ -81,7 +81,12 @@ class CodeCache : AllStatic {
   static void blobs_do(CodeBlobClosure* f);         // iterates over all CodeBlobs
   static void nmethods_do(void f(nmethod* nm));     // iterates over all nmethods
   static void alive_nmethods_do(void f(nmethod* nm)); // iterates over all alive nmethods
-
+#ifdef GRAAL
+  //Special method iterating and adding to the mark stack all HotSpotNMethods which are weakly referenced by nmethods.
+  //This has to be done since the HotSpotNMethods are only referenced from within the nmethods and the GC
+  //believes they are dead since they are not marked.
+  static void alive_nmethods_do_graal_methods(OopClosure* closure);
+#endif
   // Lookup
   static CodeBlob* find_blob(void* start);
   static nmethod*  find_nmethod(void* start);

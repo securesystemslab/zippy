@@ -293,6 +293,10 @@ class ReferenceProcessor : public CHeapObj<mtGC> {
   void process_phaseJNI(BoolObjectClosure* is_alive,
                         OopClosure*        keep_alive,
                         VoidClosure*       complete_gc);
+#ifdef GRAAL
+  void process_phaseGraalNMethods(OopClosure*        keep_alive,
+                        VoidClosure*       complete_gc);
+#endif
 
   // Work methods used by the method process_discovered_reflist
   // Phase1: keep alive all those referents that are otherwise
