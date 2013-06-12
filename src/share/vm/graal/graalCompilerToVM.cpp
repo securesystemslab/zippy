@@ -726,6 +726,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("klassModifierFlagsOffset", in_bytes(Klass::modifier_flags_offset()));
   set_int("klassAccessFlagsOffset", in_bytes(Klass::access_flags_offset()));
   set_int("klassOffset", java_lang_Class::klass_offset_in_bytes());
+  set_int("arrayKlassOffset", java_lang_Class::array_klass_offset_in_bytes());
   set_int("graalMirrorInClassOffset", java_lang_Class::graal_mirror_offset_in_bytes());
   set_int("klassLayoutHelperOffset", in_bytes(Klass::layout_helper_offset()));
   set_int("klassSuperKlassOffset", in_bytes(Klass::super_offset()));
