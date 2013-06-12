@@ -1044,6 +1044,11 @@ def gate(args):
         vm(['-G:RegisterPressure=rbx,r11,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
+        _vmbuild = 'product'
+        t = Task('BootstrapWithAOTConfiguration:product')
+        vm(['-G:+AOTCompilation', '-esa', '-version'])
+        tasks.append(t.stop())
+
         originalVm = _vm
         _vm = 'server' # hosted mode
         t = Task('UnitTests:hosted-product')
