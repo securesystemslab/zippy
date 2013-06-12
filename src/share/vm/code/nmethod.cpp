@@ -1868,6 +1868,7 @@ void nmethod::mark_graal_reference(OopClosure* f) {
   }
 }
 #endif
+
 // Iterate over metadata calling this function.   Used by RedefineClasses
 void nmethod::metadata_do(void f(Metadata*)) {
   address low_boundary = verified_entry_point();

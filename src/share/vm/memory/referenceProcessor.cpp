@@ -292,8 +292,8 @@ void ReferenceProcessor::process_phaseJNI(BoolObjectClosure* is_alive,
 }
 
 #ifdef GRAAL
-void ReferenceProcessor::process_phaseGraalNMethods(OopClosure*        keep_alive,
-                                          VoidClosure*       complete_gc) {
+void ReferenceProcessor::process_phaseGraalNMethods(OopClosure*  keep_alive,
+                                                    VoidClosure* complete_gc) {
   CodeCache::alive_nmethods_do_graal_methods(keep_alive);
   complete_gc->do_void();
 }
