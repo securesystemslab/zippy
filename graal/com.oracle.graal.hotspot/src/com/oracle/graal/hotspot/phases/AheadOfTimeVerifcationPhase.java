@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,27 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.spi;
+package com.oracle.graal.hotspot.phases;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.phases.*;
 
-/**
- * Graal-specific extensions for the code cache provider interface.
- */
-public interface GraalCodeCacheProvider extends CodeCacheProvider {
+public class AheadOfTimeVerifcationPhase extends VerifyPhase {
 
-    /**
-     * Adds the given compilation result as an implementation of the given method without making it
-     * the default implementation. The graph might be inlined later on.
-     * 
-     * @param method a method to which the executable code is begin added
-     * @param compResult the compilation result to be added
-     * @return a reference to the compiled and ready-to-run code or null if the code installation
-     *         failed
-     */
-    InstalledCode addMethod(ResolvedJavaMethod method, CompilationResult compResult);
+    @Override
+    protected boolean verify(StructuredGraph graph) {
+        for (ConstantNode node : graph.getNodes().filter(ConstantNode.class)) {
+            assert !isOop(node) || isNullReference(node) || isString(node) : "embedded oop: " + node;
+        }
+        return true;
+    }
 
-    void lower(Node n, LoweringTool tool);
+    private static boolean isOop(ConstantNode node) {
+        return node.kind() == Kind.Object;
+    }
+
+    private static boolean isNullReference(ConstantNode node) {
+        return isOop(node) && node.asConstant().asObject() == null;
+    }
+
+    private static boolean isString(ConstantNode node) {
+        return isOop(node) && node.asConstant().asObject() instanceof String;
+    }
 }
