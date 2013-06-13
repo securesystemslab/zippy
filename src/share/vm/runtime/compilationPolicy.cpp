@@ -422,6 +422,11 @@ void SimpleCompPolicy::method_invocation_event(methodHandle m, JavaThread* threa
 
   if (is_compilation_enabled() && can_be_compiled(m)) {
     nmethod* nm = m->code();
+#ifdef GRAALVM
+    if (m->queued_for_compilation()) {
+      delay_compilation(m());
+    } else
+#endif
     if (nm == NULL ) {
       CompileBroker::compile_method(m, InvocationEntryBci, comp_level, m, hot_count, comment, thread);
     }
