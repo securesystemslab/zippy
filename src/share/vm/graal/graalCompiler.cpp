@@ -163,9 +163,7 @@ void GraalCompiler::initialize_buffer_blob() {
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
   GRAAL_EXCEPTION_CONTEXT
   if (!_initialized) {
-    method->clear_queued_for_compilation();
-    method->invocation_counter()->reset();
-    method->backedge_counter()->reset();
+    CompilationPolicy::policy()->delay_compilation(method());
     return;
   }
 
@@ -173,12 +171,8 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   ResourceMark rm;
   JavaThread::current()->set_is_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
-  jboolean success = VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
+  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
   JavaThread::current()->set_is_compiling(false);
-  if (success != JNI_TRUE) {
-    method->clear_queued_for_compilation();
-    CompilationPolicy::policy()->delay_compilation(method());
-  }
 }
 
 // Compilation entry point for methods

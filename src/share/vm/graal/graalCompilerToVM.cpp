@@ -714,6 +714,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("constantPoolHolderOffset", ConstantPool::pool_holder_offset_in_bytes());
   set_int("extraStackEntries", Method::extra_stack_entries());
   set_int("methodAccessFlagsOffset", in_bytes(Method::access_flags_offset()));
+  set_int("methodQueuedForCompilationBit", (int) JVM_ACC_QUEUED);
   set_int("methodIntrinsicIdOffset", Method::intrinsic_id_offset_in_bytes());
   set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
   set_int("threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
@@ -939,11 +940,6 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
     }
   }
   return result;
-C2V_END
-
-C2V_VMENTRY(void, clearQueuedForCompilation, (JNIEnv *jniEnv, jobject, jobject resolvedMethod))
-  methodHandle method = getMethodFromHotSpotMethod(JNIHandles::resolve(resolvedMethod));
-  method->clear_queued_for_compilation();
 C2V_END
 
 C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong codeBlob))
@@ -1247,7 +1243,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
-  {CC"clearQueuedForCompilation",     CC"("HS_RESOLVED_METHOD")V",                                      FN_PTR(clearQueuedForCompilation)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",       CC"(J)V",                                                         FN_PTR(invalidateInstalledCode)},
   {CC"isInstalledCodeValid",          CC"(J)Z",                                                         FN_PTR(isInstalledCodeValid)},
