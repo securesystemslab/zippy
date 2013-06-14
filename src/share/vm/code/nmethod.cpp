@@ -1861,6 +1861,13 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
 #endif
 }
 
+#ifdef GRAAL
+void nmethod::mark_graal_reference(OopClosure* f) {
+  if (_graal_installed_code != NULL) {
+    f->do_oop((oop*) &_graal_installed_code);
+  }
+}
+#endif
 
 // Iterate over metadata calling this function.   Used by RedefineClasses
 void nmethod::metadata_do(void f(Metadata*)) {
