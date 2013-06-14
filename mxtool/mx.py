@@ -2652,6 +2652,7 @@ def ideclean(args, suite=None):
         shutil.rmtree(join(p.dir, 'nbproject'), ignore_errors=True)
         rm(join(p.dir, '.classpath'))
         rm(join(p.dir, '.project'))
+        rm(join(p.dir, '.factorypath'))
         rm(join(p.dir, 'build.xml'))
         rm(join(p.dir, 'eclipse-build.xml'))
         try:
