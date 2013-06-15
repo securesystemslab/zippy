@@ -1449,7 +1449,6 @@ def build(args, parser=None):
             log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
             continue
 
-
         outputDir = p.output_dir()
         if exists(outputDir):
             if args.clean:
@@ -1849,6 +1848,12 @@ def checkstyle(args):
    Run Checkstyle over the Java sources. Any errors or warnings
    produced by Checkstyle result in a non-zero exit code."""
 
+    parser = ArgumentParser(prog='mx checkstyle')
+
+    parser.add_argument('-f', action='store_true', dest='force', help='force checking (disables timestamp checking)')
+    args = parser.parse_args(args)
+    
+    totalErrors = 0
     for p in sorted_deps():
         if p.native:
             continue
@@ -1870,7 +1875,7 @@ def checkstyle(args):
             if not exists(dirname(timestampFile)):
                 os.makedirs(dirname(timestampFile))
             mustCheck = False
-            if exists(timestampFile):
+            if not args.force and exists(timestampFile):
                 timestamp = os.path.getmtime(timestampFile)
                 for f in javafilelist:
                     if os.path.getmtime(f) > timestamp:
@@ -1880,7 +1885,8 @@ def checkstyle(args):
                 mustCheck = True
 
             if not mustCheck:
-                log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
+                if _opts.verbose:
+                    log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
                 continue
 
             dotCheckstyleXML = xml.dom.minidom.parse(dotCheckstyle)
@@ -1940,7 +1946,7 @@ def checkstyle(args):
                     batch = javafilelist[:i]
                     javafilelist = javafilelist[i:]
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch, nonZeroIsFatal=False)
                     finally:
                         if exists(auditfileName):
                             errors = []
@@ -1958,7 +1964,7 @@ def checkstyle(args):
                                 p.ParseFile(fp)
                             if len(errors) != 0:
                                 map(log, errors)
-                                return len(errors)
+                                totalErrors = totalErrors + len(errors)
                             else:
                                 if exists(timestampFile):
                                     os.utime(timestampFile, None)
@@ -1967,7 +1973,7 @@ def checkstyle(args):
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
-    return 0
+    return totalErrors
 
 def clean(args, parser=None):
     """remove all class files, images, and executables
