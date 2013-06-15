@@ -608,7 +608,6 @@ class Suite:
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
-        _suites[self.name] = self
         for p in self.projects:
             existing = _projects.get(p.name)
             if existing is not None:
@@ -719,10 +718,10 @@ def _loadSuite(d, primary=False):
     mxDir = join(d, 'mx')
     if not exists(mxDir) or not isdir(mxDir):
         return None
-    if not _suites.has_key(d):
-        suite = Suite(d, primary)
-        _suites[d] = suite
-        return suite
+    if len([s for s in _suites.itervalues() if s.dir == d]) == 0:
+        s = Suite(d, primary)
+        _suites[s.name] = s
+        return s
 
 def suites():
     """
