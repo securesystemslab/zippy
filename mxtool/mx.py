@@ -1862,6 +1862,11 @@ def checkstyle(args):
 
         if not exists(dotCheckstyle):
             continue
+        
+        # skip checking this Java project if its Java compliance level is "higher" than the configured JDK
+        if java().javaCompliance < p.javaCompliance:
+            log('Excluding {0} from checking (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
+            continue
 
         for sourceDir in sourceDirs:
             javafilelist = []
