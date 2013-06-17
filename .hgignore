@@ -74,3 +74,4 @@ eclipse-build.xml
 rebuild-launch.out
 coverage
 jacoco.exec
+workingsets.xml
