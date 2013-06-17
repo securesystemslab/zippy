@@ -668,6 +668,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("cAssertions", DEBUG_ONLY(true) NOT_DEBUG(false));
   set_boolean("verifyOops", VerifyOops);
   set_boolean("ciTime", CITime);
+  set_int("compileThreshold", CompileThreshold);
   set_boolean("compileTheWorld", CompileTheWorld);
   set_int("compileTheWorldStartAt", CompileTheWorldStartAt);
   set_int("compileTheWorldStopAt", CompileTheWorldStopAt);
