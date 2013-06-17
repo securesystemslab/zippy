@@ -125,6 +125,11 @@ Built-in project properties (* = required):
     javaCompliance
         The minimum JDK version (format: x.y) to which the project's
         sources comply (required for non-native projects).
+    
+    workingSets
+        A comma separated list of working set names. The project belongs
+        to the given working sets, for which the eclipseinit command
+        will generate Eclipse configurations.
 
 Other properties can be specified for projects and libraries for use
 by extension commands.
@@ -198,13 +203,14 @@ class Dependency:
         return isinstance(self, Library)
 
 class Project(Dependency):
-    def __init__(self, suite, name, srcDirs, deps, javaCompliance, d):
+    def __init__(self, suite, name, srcDirs, deps, javaCompliance, workingSets, d):
         Dependency.__init__(self, suite, name)
         self.srcDirs = srcDirs
         self.deps = deps
         self.checkstyleProj = name
         self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance is not None else None
         self.native = False
+        self.workingSets = workingSets
         self.dir = d
         
         # Create directories for projects that don't yet exist
@@ -530,12 +536,13 @@ class Suite:
             ap = pop_list(attrs, 'annotationProcessors')
             #deps += ap
             javaCompliance = attrs.pop('javaCompliance', None)
-            subDir = attrs.pop('subDir', None);
+            subDir = attrs.pop('subDir', None)
             if subDir is None:
                 d = join(self.dir, name)
             else:
                 d = join(self.dir, subDir, name)
-            p = Project(self, name, srcDirs, deps, javaCompliance, d)
+            workingSets = attrs.pop('workingSets', None)
+            p = Project(self, name, srcDirs, deps, javaCompliance, workingSets, d)
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             if not p.native and p.javaCompliance is None:
@@ -2179,7 +2186,7 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
 def eclipseinit(args, suite=None, buildProcessorJars=True):
-    """(re)generate Eclipse project configurations"""
+    """(re)generate Eclipse project configurations and working sets"""
 
     if suite is None:
         suite = _mainSuite
@@ -2367,6 +2374,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
 
     make_eclipse_attach('localhost', '8000', deps=projects())
+    generate_eclipse_workingsets(suite)
 
 
 def _isAnnotationProcessorDependency(p):
@@ -2423,6 +2431,124 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     dotProjectDoc.close('dictionary')
     dotProjectDoc.close('arguments')
     dotProjectDoc.close('buildCommand')
+
+def generate_eclipse_workingsets(suite):
+    """
+    Populate the workspace's working set configuration with working sets generated from project data.
+    If the workspace already contains working set definitions, the existing ones will be retained and extended.
+    In case mx/env does not contain a WORKSPACE definition pointing to the workspace root directory, the Graal project root directory will be assumed.
+    If no workspace root directory can be identified, the Graal project root directory is used and the user has to place the workingsets.xml file by hand. 
+    """
+    
+    # identify the location where to look for workingsets.xml
+    wsfilename = 'workingsets.xml'
+    wsroot = suite.dir
+    if os.environ.has_key('WORKSPACE'):
+        wsroot = os.environ['WORKSPACE']
+    wsdir = join(wsroot, '.metadata/.plugins/org.eclipse.ui.workbench')
+    if not exists(wsdir):
+        wsdir = wsroot
+    wspath = join(wsdir, wsfilename)
+    
+    # gather working set info from project data
+    workingSets = dict()
+    for p in projects():
+        if p.workingSets is None:
+            continue
+        for w in p.workingSets.split(","):
+            if not workingSets.has_key(w):
+                workingSets[w] = [p.name]
+            else:
+                workingSets[w].append(p.name)
+    
+    if exists(wspath):
+        wsdoc = _copy_workingset_xml(wspath, workingSets)
+    else:
+        wsdoc = _make_workingset_xml(workingSets)
+    
+    update_file(wspath, wsdoc.xml(newl='\n'))
+
+def _make_workingset_xml(workingSets):
+    wsdoc = XMLDoc()
+    wsdoc.open('workingSetManager')
+    
+    for w in sorted(workingSets.keys()):
+        _workingset_open(wsdoc, w)
+        for p in workingSets[w]:
+            _workingset_element(wsdoc, p)
+        wsdoc.close('workingSet')
+    
+    wsdoc.close('workingSetManager')
+    return wsdoc
+
+def _copy_workingset_xml(wspath, workingSets):
+    target = XMLDoc()
+    target.open('workingSetManager')
+
+    parser = xml.parsers.expat.ParserCreate()
+    
+    class ParserState(object):
+        def __init__(self):
+            self.current_ws_name = 'none yet'
+            self.current_ws = None
+            self.seen_ws = list()
+            self.seen_projects = list()
+    
+    ps = ParserState()
+    
+    # parsing logic
+    def _ws_start(name, attributes):
+        if name == 'workingSet':
+            ps.current_ws_name = attributes['name']
+            if workingSets.has_key(ps.current_ws_name):
+                ps.current_ws = workingSets[ps.current_ws_name]
+                ps.seen_ws.append(ps.current_ws_name)
+                ps.seen_projects = list()
+            else:
+                ps.current_ws = None
+            target.open(name, attributes)
+            parser.StartElementHandler = _ws_item
+    
+    def _ws_end(name):
+        if name == 'workingSet':
+            if not ps.current_ws is None:
+                for p in ps.current_ws:
+                    if not p in ps.seen_projects:
+                        _workingset_element(target, p)
+            target.close('workingSet')
+            parser.StartElementHandler = _ws_start
+        elif name == 'workingSetManager':
+            # process all working sets that are new to the file
+            for w in sorted(workingSets.keys()):
+                if not w in ps.seen_ws:
+                    _workingset_open(target, w)
+                    for p in workingSets[w]:
+                        _workingset_element(target, p)
+                    target.close('workingSet')
+    
+    def _ws_item(name, attributes):
+        if name == 'item':
+            if ps.current_ws is None:
+                target.element(name, attributes)
+            else:
+                p_name = attributes['elementID'][1:] # strip off the leading '='
+                _workingset_element(target, p_name)
+                ps.seen_projects.append(p_name)
+    
+    # process document
+    parser.StartElementHandler = _ws_start
+    parser.EndElementHandler = _ws_end
+    with open(wspath, 'r') as wsfile:
+        parser.ParseFile(wsfile)
+    
+    target.close('workingSetManager')
+    return target
+
+def _workingset_open(wsdoc, ws):
+    wsdoc.open('workingSet', {'editPageID': 'org.eclipse.jdt.ui.JavaWorkingSetPage', 'factoryID': 'org.eclipse.ui.internal.WorkingSetFactory', 'id': 'wsid_' + ws, 'label': ws, 'name': ws})
+
+def _workingset_element(wsdoc, p):
+    wsdoc.element('item', {'elementID': '=' + p, 'factoryID': 'org.eclipse.jdt.ui.PersistableJavaElementFactory'})
     
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
