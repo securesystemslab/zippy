@@ -1046,7 +1046,7 @@ def gate(args):
 
         _vmbuild = 'product'
         t = Task('BootstrapWithAOTConfiguration:product')
-        vm(['-G:+AOTCompilation', '-esa', '-version'])
+        vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
         originalVm = _vm
