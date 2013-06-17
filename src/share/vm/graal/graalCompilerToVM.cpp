@@ -826,8 +826,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("logPrintfAddress", GraalRuntime::log_printf);
   set_address("vmErrorAddress", GraalRuntime::vm_error);
   set_address("loadAndClearExceptionAddress", GraalRuntime::load_and_clear_exception);
-  set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
-  set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
   set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
   set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
   set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
