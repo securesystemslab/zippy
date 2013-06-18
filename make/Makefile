@@ -86,7 +86,6 @@ endif
 
 # Directory for shared code (e.g. graal.jar)
 SHARED_DIR=$(OUTPUTDIR)/shared
-BUILD_GRAAL_JAR ?= true
 
 # Typical C1/C2 targets made available with this Makefile
 C1_VM_TARGETS=product1 fastdebug1 optimized1 debug1
@@ -271,18 +270,7 @@ generic_buildgraal: buildshared
 
 # Builds code that can be shared among different build flavors
 buildshared:
-	if type -p python2.7 >/dev/null 2>&1 ; then \
-	    PYTHON_EXE=$$(type -p python2.7); \
-	elif type -p python >/dev/null 2>&1 ; then \
-	    PYTHON_EXE=$$(type -p python); \
-	    echo "WARNING: Assuming $$PYTHON_EXE is version 2.7"; \
-	    echo "To avoid this warning, ensure a 'python2.7' executable is on your PATH"; \
-	else \
-	    echo "ERROR: Could not find Python 2.7"; \
-	    echo "Ensure that a Python 2.7 executable is on your PATH as 'python2.7' or 'python'"; \
-	    exit 1; \
-	fi; \
-	$$PYTHON_EXE -u $(GAMMADIR)/mxtool/mx.py build --no-native --export-dir $(SHARED_DIR)
+	python2.7 -u $(GAMMADIR)/mxtool/mx.py build --no-native --export-dir $(SHARED_DIR)
 
 # Export file rule
 generic_export: $(EXPORT_LIST)
