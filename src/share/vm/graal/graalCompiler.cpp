@@ -51,7 +51,7 @@ void GraalCompiler::initialize() {
 
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
   uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
-  guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)");
+  AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
   _deopted_leaf_graph_count = 0;
@@ -85,6 +85,7 @@ void GraalCompiler::initialize() {
   {
     GRAAL_VM_ENTRY_MARK;
     HandleMark hm;
+    VMToCompiler::initOptions();
     for (int i = 0; i < Arguments::num_graal_args(); ++i) {
       const char* arg = Arguments::graal_args_array()[i];
       Handle option = java_lang_String::create_from_str(arg, THREAD);
@@ -162,9 +163,7 @@ void GraalCompiler::initialize_buffer_blob() {
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
   GRAAL_EXCEPTION_CONTEXT
   if (!_initialized) {
-    method->clear_queued_for_compilation();
-    method->invocation_counter()->reset();
-    method->backedge_counter()->reset();
+    CompilationPolicy::policy()->delay_compilation(method());
     return;
   }
 
@@ -172,12 +171,8 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   ResourceMark rm;
   JavaThread::current()->set_is_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
-  jboolean success = VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
+  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
   JavaThread::current()->set_is_compiling(false);
-  if (success != JNI_TRUE) {
-    method->clear_queued_for_compilation();
-    CompilationPolicy::policy()->delay_compilation(method());
-  }
 }
 
 // Compilation entry point for methods

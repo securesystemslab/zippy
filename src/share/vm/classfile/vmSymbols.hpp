@@ -314,6 +314,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
   template(com_oracle_graal_hotspot_debug_LocalImpl,                 "com/oracle/graal/hotspot/debug/LocalImpl")                      \
   AMD64_ONLY(template(com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/amd64/AMD64HotSpotGraalRuntime"))\
+  SPARC_ONLY(template(com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime,"com/oracle/graal/hotspot/sparc/SPARCHotSpotGraalRuntime"))\
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
@@ -351,7 +352,7 @@
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
   template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;IZI)Z")                 \
+  template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;IZI)V")                 \
   template(setOption_name,                        "setOption")                                                                        \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
   template(createUnresolvedJavaMethod_name,       "createUnresolvedJavaMethod")                                                       \

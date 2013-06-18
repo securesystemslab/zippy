@@ -51,6 +51,9 @@ Handle VMToCompiler::graalRuntime() {
 #ifdef AMD64
     Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
 #endif
+#ifdef SPARC
+    Symbol* name = vmSymbols::com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime();
+#endif
     KlassHandle klass = loadClass(name);
 
     JavaValue result(T_OBJECT);
@@ -75,6 +78,13 @@ Handle VMToCompiler::instance() {
   return Handle(JNIHandles::resolve_non_null(_vmToCompilerPermObject));
 }
 
+void VMToCompiler::initOptions() {
+  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
+  Thread* THREAD = Thread::current();
+  compilerKlass->initialize(THREAD);
+  check_pending_exception("Error while calling initOptions");
+}
+
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
   KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
@@ -86,11 +96,11 @@ jboolean VMToCompiler::setOption(Handle option) {
   return result.get_jboolean();
 }
 
-jboolean VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority) {
+void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority) {
   assert(method != NULL, "just checking");
   assert(!holder.is_null(), "just checking");
   Thread* THREAD = Thread::current();
-  JavaValue result(T_BOOLEAN);
+  JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_long((jlong) (address) method);
@@ -100,7 +110,6 @@ jboolean VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bc
   args.push_int(priority);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
-  return result.get_jboolean();
 }
 
 void VMToCompiler::shutdownCompiler() {

@@ -743,6 +743,10 @@ public:
     nm->metadata_do(Metadata::mark_on_stack);
   }
   void metadata_do(void f(Metadata*));
+
+#ifdef GRAAL
+  void mark_graal_reference(OopClosure* f);
+#endif
 };
 
 // Locks an nmethod so its code will not get removed and it will not
