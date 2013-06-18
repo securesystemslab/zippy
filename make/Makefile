@@ -271,9 +271,18 @@ generic_buildgraal: buildshared
 
 # Builds code that can be shared among different build flavors
 buildshared:
-ifeq ($(BUILD_GRAAL_JAR),true)
-	$(REMOTE) $(ANT) -f $(GAMMADIR)/make/build-graal.xml -Dgamma.dir=$(GAMMADIR) -Dshared.dir=$(SHARED_DIR)
-endif
+	if type -p python2.7 >/dev/null 2>&1 ; then \
+	    PYTHON_EXE=$$(type -p python2.7); \
+	elif type -p python >/dev/null 2>&1 ; then \
+	    PYTHON_EXE=$$(type -p python); \
+	    echo "WARNING: Assuming $$PYTHON_EXE is version 2.7"; \
+	    echo "To avoid this warning, ensure a 'python2.7' executable is on your PATH"; \
+	else \
+	    echo "ERROR: Could not find Python 2.7"; \
+	    echo "Ensure that a Python 2.7 executable is on your PATH as 'python2.7' or 'python'"; \
+	    exit 1; \
+	fi; \
+	$$PYTHON_EXE -u $(GAMMADIR)/mxtool/mx.py build --no-native --export-dir $(SHARED_DIR)
 
 # Export file rule
 generic_export: $(EXPORT_LIST)
