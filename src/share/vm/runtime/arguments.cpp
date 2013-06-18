@@ -2097,19 +2097,6 @@ bool Arguments::check_vm_args_consistency() {
 #endif
   }
 #ifdef GRAAL
-  if (UseCompressedOops) {
-    if (IgnoreUnrecognizedVMOptions) {
-      warning("UseCompressedOops is disabled, because it is not supported by Graal");
-      FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
-    } else {
-      status = true;
-      FLAG_SET_CMDLINE(bool, UseCompressedOops, true);
-    }
-  } else {
-    // This prevents the flag being set to true by set_ergonomics_flags()
-    FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
-  }
-
   if (UseCompressedKlassPointers) {
     if (IgnoreUnrecognizedVMOptions) {
       warning("UseCompressedKlassPointers is disabled, because it is not supported by Graal");
