@@ -1132,7 +1132,11 @@ C2V_END
 
 C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
-  method->reset_counters();
+  MethodCounters* mcs = method->method_counters();
+  if (mcs != NULL) {
+    mcs->clear_counters();
+  }
+  NOT_PRODUCT(method->set_compiled_invocation_count(0));
 
   nmethod* code = method->code();
   if (code != NULL) {

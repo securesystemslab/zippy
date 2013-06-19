@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,8 @@
 
 class ReferenceProcessor;
 class DataLayout;
+class SerialOldTracer;
+class STWGCTimer;
 
 // MarkSweep takes care of global mark-compact garbage collection for a
 // GenCollectedHeap using a four-phase pointer forwarding algorithm.  All
@@ -80,10 +82,7 @@ class MarkSweep : AllStatic {
   };
 
   class AdjustPointerClosure: public OopsInGenClosure {
-   private:
-    bool _is_root;
    public:
-    AdjustPointerClosure(bool is_root) : _is_root(is_root) {}
     virtual void do_oop(oop* p);
     virtual void do_oop(narrowOop* p);
   };
@@ -91,7 +90,6 @@ class MarkSweep : AllStatic {
   // Used for java/lang/ref handling
   class IsAliveClosure: public BoolObjectClosure {
    public:
-    virtual void do_object(oop p);
     virtual bool do_object_b(oop p);
   };
 
@@ -116,7 +114,7 @@ class MarkSweep : AllStatic {
   //
  protected:
   // Total invocations of a MarkSweep collection
-  static unsigned int _total_invocations;
+  static uint _total_invocations;
 
   // Traversal stacks used during phase1
   static Stack<oop, mtGC>                      _marking_stack;
@@ -132,6 +130,9 @@ class MarkSweep : AllStatic {
   // Reference processing (used in ...follow_contents)
   static ReferenceProcessor*             _ref_processor;
 
+  static STWGCTimer*                     _gc_timer;
+  static SerialOldTracer*                _gc_tracer;
+
   // Non public closures
   static KeepAliveClosure keep_alive;
 
@@ -146,15 +147,17 @@ class MarkSweep : AllStatic {
   static MarkAndPushClosure   mark_and_push_closure;
   static FollowKlassClosure   follow_klass_closure;
   static FollowStackClosure   follow_stack_closure;
-  static AdjustPointerClosure adjust_root_pointer_closure;
   static AdjustPointerClosure adjust_pointer_closure;
   static AdjustKlassClosure   adjust_klass_closure;
 
   // Accessors
-  static unsigned int total_invocations() { return _total_invocations; }
+  static uint total_invocations() { return _total_invocations; }
 
   // Reference Processing
   static ReferenceProcessor* const ref_processor() { return _ref_processor; }
+
+  static STWGCTimer* gc_timer() { return _gc_timer; }
+  static SerialOldTracer* gc_tracer() { return _gc_tracer; }
 
   // Call backs for marking
   static void mark_object(oop obj);
@@ -179,12 +182,7 @@ class MarkSweep : AllStatic {
   static void adjust_marks();   // Adjust the pointers in the preserved marks table
   static void restore_marks();  // Restore the marks that we saved in preserve_mark
 
-  template <class T> static inline void adjust_pointer(T* p, bool isroot);
-
-  static void adjust_root_pointer(oop* p)  { adjust_pointer(p, true); }
-  static void adjust_pointer(oop* p)       { adjust_pointer(p, false); }
-  static void adjust_pointer(narrowOop* p) { adjust_pointer(p, false); }
-
+  template <class T> static inline void adjust_pointer(T* p);
 };
 
 class PreservedMark VALUE_OBJ_CLASS_SPEC {

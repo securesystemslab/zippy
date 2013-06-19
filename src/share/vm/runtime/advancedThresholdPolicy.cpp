@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,16 +68,17 @@ void AdvancedThresholdPolicy::initialize() {
   }
 #endif
 
-
+  set_increase_threshold_at_ratio();
   set_start_time(os::javaTimeMillis());
 }
 
 // update_rate() is called from select_task() while holding a compile queue lock.
 void AdvancedThresholdPolicy::update_rate(jlong t, Method* m) {
+  JavaThread* THREAD = JavaThread::current();
   if (is_old(m)) {
     // We don't remove old methods from the queue,
     // so we can just zero the rate.
-    m->set_rate(0);
+    m->set_rate(0, THREAD);
     return;
   }
 
@@ -93,13 +94,13 @@ void AdvancedThresholdPolicy::update_rate(jlong t, Method* m) {
   if (delta_s >= TieredRateUpdateMinTime) {
     // And we must've taken the previous point at least 1ms before.
     if (delta_t >= TieredRateUpdateMinTime && delta_e > 0) {
-      m->set_prev_time(t);
-      m->set_prev_event_count(event_count);
-      m->set_rate((float)delta_e / (float)delta_t); // Rate is events per millisecond
+      m->set_prev_time(t, THREAD);
+      m->set_prev_event_count(event_count, THREAD);
+      m->set_rate((float)delta_e / (float)delta_t, THREAD); // Rate is events per millisecond
     } else
       if (delta_t > TieredRateUpdateMaxTime && delta_e == 0) {
         // If nothing happened for 25ms, zero the rate. Don't modify prev values.
-        m->set_rate(0);
+        m->set_rate(0, THREAD);
       }
   }
 }
@@ -204,6 +205,17 @@ double AdvancedThresholdPolicy::threshold_scale(CompLevel level, int feedback_k)
   double queue_size = CompileBroker::queue_size(level);
   int comp_count = compiler_count(level);
   double k = queue_size / (feedback_k * comp_count) + 1;
+
+  // Increase C1 compile threshold when the code cache is filled more
+  // than specified by IncreaseFirstTierCompileThresholdAt percentage.
+  // The main intention is to keep enough free space for C2 compiled code
+  // to achieve peak performance if the code cache is under stress.
+  if ((TieredStopAtLevel == CompLevel_full_optimization) && (level != CompLevel_full_optimization))  {
+    double current_reverse_free_ratio = CodeCache::reverse_free_ratio();
+    if (current_reverse_free_ratio > _increase_threshold_at_ratio) {
+      k *= exp(current_reverse_free_ratio - _increase_threshold_at_ratio);
+    }
+  }
   return k;
 }
 

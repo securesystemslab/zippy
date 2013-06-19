@@ -153,7 +153,7 @@ class java_lang_String : AllStatic {
   static char*  as_utf8_string(oop java_string, char* buf, int buflen);
   static char*  as_utf8_string(oop java_string, int start, int len);
   static char*  as_platform_dependent_str(Handle java_string, TRAPS);
-  static jchar* as_unicode_string(oop java_string, int& length);
+  static jchar* as_unicode_string(oop java_string, int& length, TRAPS);
   // produce an ascii string with all other values quoted using \u####
   static char*  as_quoted_ascii(oop java_string);
 
@@ -209,7 +209,10 @@ class java_lang_String : AllStatic {
   GRAAL_ONLY(macro(java_lang_Class, graal_mirror, object_signature, false))\
   macro(java_lang_Class, array_klass,            intptr_signature,  false) \
   macro(java_lang_Class, oop_size,               int_signature,     false) \
-  macro(java_lang_Class, static_oop_field_count, int_signature,     false)
+  macro(java_lang_Class, static_oop_field_count, int_signature,     false) \
+  macro(java_lang_Class, protection_domain,      object_signature,  false) \
+  macro(java_lang_Class, init_lock,              object_signature,  false) \
+  macro(java_lang_Class, signers,                object_signature,  false)
 
 class java_lang_Class : AllStatic {
   friend class VMStructs;
@@ -226,15 +229,20 @@ class java_lang_Class : AllStatic {
   static int _graal_mirror_offset;
 #endif
 
+  static int _protection_domain_offset;
+  static int _init_lock_offset;
+  static int _signers_offset;
+
   static bool offsets_computed;
   static int classRedefinedCount_offset;
   static GrowableArray<Klass*>* _fixup_mirror_list;
 
+  static void set_init_lock(oop java_class, oop init_lock);
  public:
   static void compute_offsets();
 
   // Instance creation
-  static oop  create_mirror(KlassHandle k, TRAPS);
+  static oop  create_mirror(KlassHandle k, Handle protection_domain, TRAPS);
   static void fixup_mirror(KlassHandle k, TRAPS);
   static oop  create_basic_type_mirror(const char* basic_type_name, BasicType type, TRAPS);
   // Conversion
@@ -265,6 +273,13 @@ class java_lang_Class : AllStatic {
   // Support for classRedefinedCount field
   static int classRedefinedCount(oop the_class_mirror);
   static void set_classRedefinedCount(oop the_class_mirror, int value);
+
+  // Support for embedded per-class oops
+  static oop  protection_domain(oop java_class);
+  static void set_protection_domain(oop java_class, oop protection_domain);
+  static oop  init_lock(oop java_class);
+  static objArrayOop  signers(oop java_class);
+  static void set_signers(oop java_class, objArrayOop signers);
 
   static int oop_size(oop java_class);
   static void set_oop_size(oop java_class, int size);
@@ -1046,6 +1061,9 @@ class java_lang_invoke_MemberName: AllStatic {
 
   static Metadata*      vmtarget(oop mname);
   static void       set_vmtarget(oop mname, Metadata* target);
+#if INCLUDE_JVMTI
+  static void       adjust_vmtarget(oop mname, Metadata* target);
+#endif // INCLUDE_JVMTI
 
   static intptr_t       vmindex(oop mname);
   static void       set_vmindex(oop mname, intptr_t index);

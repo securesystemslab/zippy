@@ -36,6 +36,9 @@
 #include "gc_implementation/g1/heapRegionRemSet.hpp"
 #include "gc_implementation/g1/heapRegionSeq.inline.hpp"
 #include "gc_implementation/shared/vmGCOperations.hpp"
+#include "gc_implementation/shared/gcTimer.hpp"
+#include "gc_implementation/shared/gcTrace.hpp"
+#include "gc_implementation/shared/gcTraceTime.hpp"
 #include "memory/genOopClosures.inline.hpp"
 #include "memory/referencePolicy.hpp"
 #include "memory/resourceArea.hpp"
@@ -1273,10 +1276,9 @@ void ConcurrentMark::checkpointRootsFinal(bool clear_all_soft_refs) {
 
   if (VerifyDuringGC) {
     HandleMark hm;  // handle scope
-    gclog_or_tty->print(" VerifyDuringGC:(before)");
     Universe::heap()->prepare_for_verify();
-    Universe::verify(/* silent */ false,
-                     /* option */ VerifyOption_G1UsePrevMarking);
+    Universe::verify(VerifyOption_G1UsePrevMarking,
+                     " VerifyDuringGC:(before)");
   }
 
   G1CollectorPolicy* g1p = g1h->g1_policy();
@@ -1300,10 +1302,9 @@ void ConcurrentMark::checkpointRootsFinal(bool clear_all_soft_refs) {
     // Verify the heap w.r.t. the previous marking bitmap.
     if (VerifyDuringGC) {
       HandleMark hm;  // handle scope
-      gclog_or_tty->print(" VerifyDuringGC:(overflow)");
       Universe::heap()->prepare_for_verify();
-      Universe::verify(/* silent */ false,
-                       /* option */ VerifyOption_G1UsePrevMarking);
+      Universe::verify(VerifyOption_G1UsePrevMarking,
+                       " VerifyDuringGC:(overflow)");
     }
 
     // Clear the marking state because we will be restarting
@@ -1323,10 +1324,9 @@ void ConcurrentMark::checkpointRootsFinal(bool clear_all_soft_refs) {
 
     if (VerifyDuringGC) {
       HandleMark hm;  // handle scope
-      gclog_or_tty->print(" VerifyDuringGC:(after)");
       Universe::heap()->prepare_for_verify();
-      Universe::verify(/* silent */ false,
-                       /* option */ VerifyOption_G1UseNextMarking);
+      Universe::verify(VerifyOption_G1UseNextMarking,
+                       " VerifyDuringGC:(after)");
     }
     assert(!restart_for_overflow(), "sanity");
     // Completely reset the marking state since marking completed
@@ -1345,6 +1345,9 @@ void ConcurrentMark::checkpointRootsFinal(bool clear_all_soft_refs) {
   _remark_times.add((now - start) * 1000.0);
 
   g1p->record_concurrent_mark_remark_end();
+
+  G1CMIsAliveClosure is_alive(g1h);
+  g1h->gc_tracer_cm()->report_object_count_after_gc(&is_alive);
 }
 
 // Base class of the closures that finalize and verify the
@@ -1972,10 +1975,9 @@ void ConcurrentMark::cleanup() {
 
   if (VerifyDuringGC) {
     HandleMark hm;  // handle scope
-    gclog_or_tty->print(" VerifyDuringGC:(before)");
     Universe::heap()->prepare_for_verify();
-    Universe::verify(/* silent */ false,
-                     /* option */ VerifyOption_G1UsePrevMarking);
+    Universe::verify(VerifyOption_G1UsePrevMarking,
+                     " VerifyDuringGC:(before)");
   }
 
   G1CollectorPolicy* g1p = G1CollectedHeap::heap()->g1_policy();
@@ -2127,13 +2129,13 @@ void ConcurrentMark::cleanup() {
 
   if (VerifyDuringGC) {
     HandleMark hm;  // handle scope
-    gclog_or_tty->print(" VerifyDuringGC:(after)");
     Universe::heap()->prepare_for_verify();
-    Universe::verify(/* silent */ false,
-                     /* option */ VerifyOption_G1UsePrevMarking);
+    Universe::verify(VerifyOption_G1UsePrevMarking,
+                     " VerifyDuringGC:(after)");
   }
 
   g1h->verify_region_sets_optional();
+  g1h->trace_heap_after_concurrent_cycle();
 }
 
 void ConcurrentMark::completeCleanup() {
@@ -2444,7 +2446,7 @@ void ConcurrentMark::weakRefsWork(bool clear_all_soft_refs) {
     if (G1Log::finer()) {
       gclog_or_tty->put(' ');
     }
-    TraceTime t("GC ref-proc", G1Log::finer(), false, gclog_or_tty);
+    GCTraceTime t("GC ref-proc", G1Log::finer(), false, g1h->gc_timer_cm());
 
     ReferenceProcessor* rp = g1h->ref_processor_cm();
 
@@ -2496,10 +2498,13 @@ void ConcurrentMark::weakRefsWork(bool clear_all_soft_refs) {
     rp->set_active_mt_degree(active_workers);
 
     // Process the weak references.
-    rp->process_discovered_references(&g1_is_alive,
-                                      &g1_keep_alive,
-                                      &g1_drain_mark_stack,
-                                      executor);
+    const ReferenceProcessorStats& stats =
+        rp->process_discovered_references(&g1_is_alive,
+                                          &g1_keep_alive,
+                                          &g1_drain_mark_stack,
+                                          executor,
+                                          g1h->gc_timer_cm());
+    g1h->gc_tracer_cm()->report_gc_reference_stats(stats);
 
     // The do_oop work routines of the keep_alive and drain_marking_stack
     // oop closures will set the has_overflown flag if we overflow the
@@ -3232,6 +3237,9 @@ void ConcurrentMark::abort() {
   satb_mq_set.set_active_all_threads(
                                  false, /* new active value */
                                  satb_mq_set.is_active() /* expected_active */);
+
+  _g1h->trace_heap_after_concurrent_cycle();
+  _g1h->register_concurrent_cycle_end();
 }
 
 static void print_ms_time_info(const char* prefix, const char* name,
@@ -4520,7 +4528,8 @@ G1PrintRegionLivenessInfoClosure(outputStream* out, const char* phase_name)
     _total_used_bytes(0), _total_capacity_bytes(0),
     _total_prev_live_bytes(0), _total_next_live_bytes(0),
     _hum_used_bytes(0), _hum_capacity_bytes(0),
-    _hum_prev_live_bytes(0), _hum_next_live_bytes(0) {
+    _hum_prev_live_bytes(0), _hum_next_live_bytes(0),
+    _total_remset_bytes(0) {
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
   MemRegion g1_committed = g1h->g1_committed();
   MemRegion g1_reserved = g1h->g1_reserved();
@@ -4538,23 +4547,25 @@ G1PrintRegionLivenessInfoClosure(outputStream* out, const char* phase_name)
                  HeapRegion::GrainBytes);
   _out->print_cr(G1PPRL_LINE_PREFIX);
   _out->print_cr(G1PPRL_LINE_PREFIX
-                 G1PPRL_TYPE_H_FORMAT
-                 G1PPRL_ADDR_BASE_H_FORMAT
-                 G1PPRL_BYTE_H_FORMAT
-                 G1PPRL_BYTE_H_FORMAT
-                 G1PPRL_BYTE_H_FORMAT
-                 G1PPRL_DOUBLE_H_FORMAT,
-                 "type", "address-range",
-                 "used", "prev-live", "next-live", "gc-eff");
+                G1PPRL_TYPE_H_FORMAT
+                G1PPRL_ADDR_BASE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT
+                G1PPRL_DOUBLE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT,
+                "type", "address-range",
+                "used", "prev-live", "next-live", "gc-eff", "remset");
   _out->print_cr(G1PPRL_LINE_PREFIX
-                 G1PPRL_TYPE_H_FORMAT
-                 G1PPRL_ADDR_BASE_H_FORMAT
-                 G1PPRL_BYTE_H_FORMAT
-                 G1PPRL_BYTE_H_FORMAT
-                 G1PPRL_BYTE_H_FORMAT
-                 G1PPRL_DOUBLE_H_FORMAT,
-                 "", "",
-                 "(bytes)", "(bytes)", "(bytes)", "(bytes/ms)");
+                G1PPRL_TYPE_H_FORMAT
+                G1PPRL_ADDR_BASE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT
+                G1PPRL_DOUBLE_H_FORMAT
+                G1PPRL_BYTE_H_FORMAT,
+                "", "",
+                "(bytes)", "(bytes)", "(bytes)", "(bytes/ms)", "(bytes)");
 }
 
 // It takes as a parameter a reference to one of the _hum_* fields, it
@@ -4596,6 +4607,7 @@ bool G1PrintRegionLivenessInfoClosure::doHeapRegion(HeapRegion* r) {
   size_t prev_live_bytes = r->live_bytes();
   size_t next_live_bytes = r->next_live_bytes();
   double gc_eff          = r->gc_efficiency();
+  size_t remset_bytes    = r->rem_set()->mem_size();
   if (r->used() == 0) {
     type = "FREE";
   } else if (r->is_survivor()) {
@@ -4629,6 +4641,7 @@ bool G1PrintRegionLivenessInfoClosure::doHeapRegion(HeapRegion* r) {
   _total_capacity_bytes  += capacity_bytes;
   _total_prev_live_bytes += prev_live_bytes;
   _total_next_live_bytes += next_live_bytes;
+  _total_remset_bytes    += remset_bytes;
 
   // Print a line for this particular region.
   _out->print_cr(G1PPRL_LINE_PREFIX
@@ -4637,14 +4650,17 @@ bool G1PrintRegionLivenessInfoClosure::doHeapRegion(HeapRegion* r) {
                  G1PPRL_BYTE_FORMAT
                  G1PPRL_BYTE_FORMAT
                  G1PPRL_BYTE_FORMAT
-                 G1PPRL_DOUBLE_FORMAT,
+                 G1PPRL_DOUBLE_FORMAT
+                 G1PPRL_BYTE_FORMAT,
                  type, bottom, end,
-                 used_bytes, prev_live_bytes, next_live_bytes, gc_eff);
+                 used_bytes, prev_live_bytes, next_live_bytes, gc_eff , remset_bytes);
 
   return false;
 }
 
 G1PrintRegionLivenessInfoClosure::~G1PrintRegionLivenessInfoClosure() {
+  // add static memory usages to remembered set sizes
+  _total_remset_bytes += HeapRegionRemSet::fl_mem_size() + HeapRegionRemSet::static_mem_size();
   // Print the footer of the output.
   _out->print_cr(G1PPRL_LINE_PREFIX);
   _out->print_cr(G1PPRL_LINE_PREFIX
@@ -4652,13 +4668,15 @@ G1PrintRegionLivenessInfoClosure::~G1PrintRegionLivenessInfoClosure() {
                  G1PPRL_SUM_MB_FORMAT("capacity")
                  G1PPRL_SUM_MB_PERC_FORMAT("used")
                  G1PPRL_SUM_MB_PERC_FORMAT("prev-live")
-                 G1PPRL_SUM_MB_PERC_FORMAT("next-live"),
+                 G1PPRL_SUM_MB_PERC_FORMAT("next-live")
+                 G1PPRL_SUM_MB_FORMAT("remset"),
                  bytes_to_mb(_total_capacity_bytes),
                  bytes_to_mb(_total_used_bytes),
                  perc(_total_used_bytes, _total_capacity_bytes),
                  bytes_to_mb(_total_prev_live_bytes),
                  perc(_total_prev_live_bytes, _total_capacity_bytes),
                  bytes_to_mb(_total_next_live_bytes),
-                 perc(_total_next_live_bytes, _total_capacity_bytes));
+                 perc(_total_next_live_bytes, _total_capacity_bytes),
+                 bytes_to_mb(_total_remset_bytes));
   _out->cr();
 }

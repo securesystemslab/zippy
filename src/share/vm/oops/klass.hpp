@@ -398,9 +398,10 @@ class Klass : public Metadata {
 
   // vtables
   virtual klassVtable* vtable() const        { return NULL; }
+  virtual int vtable_length() const          { return 0; }
 
   // subclass check
-  bool is_subclass_of(Klass* k) const;
+  bool is_subclass_of(const Klass* k) const;
   // subtype check: true if is_subclass_of, or if k is interface and receiver implements it
   bool is_subtype_of(Klass* k) const {
     juint    off = k->super_check_offset();
@@ -449,7 +450,7 @@ class Klass : public Metadata {
   Klass* array_klass_or_null(int rank);
   Klass* array_klass_or_null();
 
-  virtual oop protection_domain()       { return NULL; }
+  virtual oop protection_domain() const = 0;
 
   oop class_loader() const;
 

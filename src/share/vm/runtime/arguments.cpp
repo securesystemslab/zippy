@@ -751,16 +751,16 @@ void Arguments::add_string(char*** bldarray, int* count, const char* arg) {
     return;
   }
 
-  int index = *count;
+  int new_count = *count + 1;
 
   // expand the array and add arg to the last element
-  (*count)++;
   if (*bldarray == NULL) {
-    *bldarray = NEW_C_HEAP_ARRAY(char*, *count, mtInternal);
+    *bldarray = NEW_C_HEAP_ARRAY(char*, new_count, mtInternal);
   } else {
-    *bldarray = REALLOC_C_HEAP_ARRAY(char*, *bldarray, *count, mtInternal);
+    *bldarray = REALLOC_C_HEAP_ARRAY(char*, *bldarray, new_count, mtInternal);
   }
-  (*bldarray)[index] = strdup(arg);
+  (*bldarray)[*count] = strdup(arg);
+  *count = new_count;
 }
 
 void Arguments::build_jvm_args(const char* arg) {
@@ -1097,6 +1097,10 @@ void Arguments::set_tiered_flags() {
   // Increase the code cache size - tiered compiles a lot more.
   if (FLAG_IS_DEFAULT(ReservedCodeCacheSize)) {
     FLAG_SET_DEFAULT(ReservedCodeCacheSize, ReservedCodeCacheSize * 5);
+  }
+  if (!UseInterpreter) { // -Xcomp
+    Tier3InvokeNotifyFreqLog = 0;
+    Tier4InvocationThreshold = 0;
   }
 }
 
@@ -1626,30 +1630,38 @@ void Arguments::set_heap_size() {
     FLAG_SET_ERGO(uintx, MaxHeapSize, (uintx)reasonable_max);
   }
 
-  // If the initial_heap_size has not been set with InitialHeapSize
-  // or -Xms, then set it as fraction of the size of physical memory,
-  // respecting the maximum and minimum sizes of the heap.
-  if (FLAG_IS_DEFAULT(InitialHeapSize)) {
+  // If the minimum or initial heap_size have not been set or requested to be set
+  // ergonomically, set them accordingly.
+  if (InitialHeapSize == 0 || min_heap_size() == 0) {
     julong reasonable_minimum = (julong)(OldSize + NewSize);
 
     reasonable_minimum = MIN2(reasonable_minimum, (julong)MaxHeapSize);
 
     reasonable_minimum = limit_by_allocatable_memory(reasonable_minimum);
 
-    julong reasonable_initial = phys_mem / InitialRAMFraction;
+    if (InitialHeapSize == 0) {
+      julong reasonable_initial = phys_mem / InitialRAMFraction;
 
-    reasonable_initial = MAX2(reasonable_initial, reasonable_minimum);
-    reasonable_initial = MIN2(reasonable_initial, (julong)MaxHeapSize);
+      reasonable_initial = MAX3(reasonable_initial, reasonable_minimum, (julong)min_heap_size());
+      reasonable_initial = MIN2(reasonable_initial, (julong)MaxHeapSize);
 
-    reasonable_initial = limit_by_allocatable_memory(reasonable_initial);
+      reasonable_initial = limit_by_allocatable_memory(reasonable_initial);
 
-    if (PrintGCDetails && Verbose) {
-      // Cannot use gclog_or_tty yet.
-      tty->print_cr("  Initial heap size " SIZE_FORMAT, (uintx)reasonable_initial);
-      tty->print_cr("  Minimum heap size " SIZE_FORMAT, (uintx)reasonable_minimum);
+      if (PrintGCDetails && Verbose) {
+        // Cannot use gclog_or_tty yet.
+        tty->print_cr("  Initial heap size " SIZE_FORMAT, (uintx)reasonable_initial);
+      }
+      FLAG_SET_ERGO(uintx, InitialHeapSize, (uintx)reasonable_initial);
     }
-    FLAG_SET_ERGO(uintx, InitialHeapSize, (uintx)reasonable_initial);
-    set_min_heap_size((uintx)reasonable_minimum);
+    // If the minimum heap size has not been set (via -Xms),
+    // synchronize with InitialHeapSize to avoid errors with the default value.
+    if (min_heap_size() == 0) {
+      set_min_heap_size(MIN2((uintx)reasonable_minimum, InitialHeapSize));
+      if (PrintGCDetails && Verbose) {
+        // Cannot use gclog_or_tty yet.
+        tty->print_cr("  Minimum heap size " SIZE_FORMAT, min_heap_size());
+      }
+    }
   }
 }
 
@@ -1670,6 +1682,20 @@ void Arguments::set_bytecode_flags() {
 // Aggressive optimization flags  -XX:+AggressiveOpts
 void Arguments::set_aggressive_opts_flags() {
 #ifdef COMPILER2
+  if (AggressiveUnboxing) {
+    if (FLAG_IS_DEFAULT(EliminateAutoBox)) {
+      FLAG_SET_DEFAULT(EliminateAutoBox, true);
+    } else if (!EliminateAutoBox) {
+      // warning("AggressiveUnboxing is disabled because EliminateAutoBox is disabled");
+      AggressiveUnboxing = false;
+    }
+    if (FLAG_IS_DEFAULT(DoEscapeAnalysis)) {
+      FLAG_SET_DEFAULT(DoEscapeAnalysis, true);
+    } else if (!DoEscapeAnalysis) {
+      // warning("AggressiveUnboxing is disabled because DoEscapeAnalysis is disabled");
+      AggressiveUnboxing = false;
+    }
+  }
   if (AggressiveOpts || !FLAG_IS_DEFAULT(AutoBoxCacheMax)) {
     if (FLAG_IS_DEFAULT(EliminateAutoBox)) {
       FLAG_SET_DEFAULT(EliminateAutoBox, true);
@@ -1902,7 +1928,7 @@ bool Arguments::check_vm_args_consistency() {
     status = false;
   }
 
-  status = status && verify_percentage(AdaptiveSizePolicyWeight,
+  status = status && verify_interval(AdaptiveSizePolicyWeight, 0, 100,
                               "AdaptiveSizePolicyWeight");
   status = status && verify_percentage(ThresholdTolerance, "ThresholdTolerance");
   status = status && verify_percentage(MinHeapFreeRatio, "MinHeapFreeRatio");
@@ -1910,7 +1936,7 @@ bool Arguments::check_vm_args_consistency() {
 
   // Divide by bucket size to prevent a large size from causing rollover when
   // calculating amount of memory needed to be allocated for the String table.
-  status = status && verify_interval(StringTableSize, defaultStringTableSize,
+  status = status && verify_interval(StringTableSize, minimumStringTableSize,
     (max_uintx / StringTable::bucket_size()), "StringTable size");
 
   if (MinHeapFreeRatio > MaxHeapFreeRatio) {
@@ -1961,8 +1987,6 @@ bool Arguments::check_vm_args_consistency() {
     // Turn off gc-overhead-limit-exceeded checks
     FLAG_SET_DEFAULT(UseGCOverheadLimit, false);
   }
-
-  status = status && verify_percentage(GCHeapFreeLimit, "GCHeapFreeLimit");
 
   status = status && check_gc_consistency();
   status = status && check_stack_pages();
@@ -2052,6 +2076,56 @@ bool Arguments::check_vm_args_consistency() {
                                         "G1RefProcDrainInterval");
     status = status && verify_min_value((intx)G1ConcMarkStepDurationMillis, 1,
                                         "G1ConcMarkStepDurationMillis");
+    status = status && verify_interval(G1ConcRSHotCardLimit, 0, max_jubyte,
+                                       "G1ConcRSHotCardLimit");
+    status = status && verify_interval(G1ConcRSLogCacheSize, 0, 31,
+                                       "G1ConcRSLogCacheSize");
+  }
+  if (UseConcMarkSweepGC) {
+    status = status && verify_min_value(CMSOldPLABNumRefills, 1, "CMSOldPLABNumRefills");
+    status = status && verify_min_value(CMSOldPLABToleranceFactor, 1, "CMSOldPLABToleranceFactor");
+    status = status && verify_min_value(CMSOldPLABMax, 1, "CMSOldPLABMax");
+    status = status && verify_interval(CMSOldPLABMin, 1, CMSOldPLABMax, "CMSOldPLABMin");
+
+    status = status && verify_min_value(CMSYoungGenPerWorker, 1, "CMSYoungGenPerWorker");
+
+    status = status && verify_min_value(CMSSamplingGrain, 1, "CMSSamplingGrain");
+    status = status && verify_interval(CMS_SweepWeight, 0, 100, "CMS_SweepWeight");
+    status = status && verify_interval(CMS_FLSWeight, 0, 100, "CMS_FLSWeight");
+
+    status = status && verify_interval(FLSCoalescePolicy, 0, 4, "FLSCoalescePolicy");
+
+    status = status && verify_min_value(CMSRescanMultiple, 1, "CMSRescanMultiple");
+    status = status && verify_min_value(CMSConcMarkMultiple, 1, "CMSConcMarkMultiple");
+
+    status = status && verify_interval(CMSPrecleanIter, 0, 9, "CMSPrecleanIter");
+    status = status && verify_min_value(CMSPrecleanDenominator, 1, "CMSPrecleanDenominator");
+    status = status && verify_interval(CMSPrecleanNumerator, 0, CMSPrecleanDenominator - 1, "CMSPrecleanNumerator");
+
+    status = status && verify_percentage(CMSBootstrapOccupancy, "CMSBootstrapOccupancy");
+
+    status = status && verify_min_value(CMSPrecleanThreshold, 100, "CMSPrecleanThreshold");
+
+    status = status && verify_percentage(CMSScheduleRemarkEdenPenetration, "CMSScheduleRemarkEdenPenetration");
+    status = status && verify_min_value(CMSScheduleRemarkSamplingRatio, 1, "CMSScheduleRemarkSamplingRatio");
+    status = status && verify_min_value(CMSBitMapYieldQuantum, 1, "CMSBitMapYieldQuantum");
+    status = status && verify_percentage(CMSTriggerRatio, "CMSTriggerRatio");
+    status = status && verify_percentage(CMSIsTooFullPercentage, "CMSIsTooFullPercentage");
+  }
+
+  if (UseParallelGC || UseParallelOldGC) {
+    status = status && verify_interval(ParallelOldDeadWoodLimiterMean, 0, 100, "ParallelOldDeadWoodLimiterMean");
+    status = status && verify_interval(ParallelOldDeadWoodLimiterStdDev, 0, 100, "ParallelOldDeadWoodLimiterStdDev");
+
+    status = status && verify_percentage(YoungGenerationSizeIncrement, "YoungGenerationSizeIncrement");
+    status = status && verify_percentage(TenuredGenerationSizeIncrement, "TenuredGenerationSizeIncrement");
+
+    status = status && verify_min_value(YoungGenerationSizeSupplementDecay, 1, "YoungGenerationSizeSupplementDecay");
+    status = status && verify_min_value(TenuredGenerationSizeSupplementDecay, 1, "TenuredGenerationSizeSupplementDecay");
+
+    status = status && verify_min_value(ParGCCardsPerStrideChunk, 1, "ParGCCardsPerStrideChunk");
+
+    status = status && verify_min_value(ParallelOldGCSplitInterval, 0, "ParallelOldGCSplitInterval");
   }
 #endif // INCLUDE_ALL_GCS
 
@@ -2072,7 +2146,42 @@ bool Arguments::check_vm_args_consistency() {
 
   status = status && verify_interval(MarkStackSizeMax,
                                   1, (max_jint - 1), "MarkStackSizeMax");
+  status = status && verify_interval(NUMAChunkResizeWeight, 0, 100, "NUMAChunkResizeWeight");
 
+  status = status && verify_min_value(LogEventsBufferEntries, 1, "LogEventsBufferEntries");
+
+  status = status && verify_min_value(HeapSizePerGCThread, (uintx) os::vm_page_size(), "HeapSizePerGCThread");
+
+  status = status && verify_min_value(GCTaskTimeStampEntries, 1, "GCTaskTimeStampEntries");
+
+  status = status && verify_percentage(ParallelGCBufferWastePct, "ParallelGCBufferWastePct");
+  status = status && verify_interval(TargetPLABWastePct, 1, 100, "TargetPLABWastePct");
+
+  status = status && verify_min_value(ParGCStridesPerThread, 1, "ParGCStridesPerThread");
+
+  status = status && verify_min_value(MinRAMFraction, 1, "MinRAMFraction");
+  status = status && verify_min_value(InitialRAMFraction, 1, "InitialRAMFraction");
+  status = status && verify_min_value(MaxRAMFraction, 1, "MaxRAMFraction");
+  status = status && verify_min_value(DefaultMaxRAMFraction, 1, "DefaultMaxRAMFraction");
+
+  status = status && verify_interval(AdaptiveTimeWeight, 0, 100, "AdaptiveTimeWeight");
+  status = status && verify_min_value(AdaptiveSizeDecrementScaleFactor, 1, "AdaptiveSizeDecrementScaleFactor");
+
+  status = status && verify_interval(TLABAllocationWeight, 0, 100, "TLABAllocationWeight");
+  status = status && verify_min_value(MinTLABSize, 1, "MinTLABSize");
+  status = status && verify_min_value(TLABRefillWasteFraction, 1, "TLABRefillWasteFraction");
+
+  status = status && verify_percentage(YoungGenerationSizeSupplement, "YoungGenerationSizeSupplement");
+  status = status && verify_percentage(TenuredGenerationSizeSupplement, "TenuredGenerationSizeSupplement");
+
+  // the "age" field in the oop header is 4 bits; do not want to pull in markOop.hpp
+  // just for that, so hardcode here.
+  status = status && verify_interval(MaxTenuringThreshold, 0, 15, "MaxTenuringThreshold");
+  status = status && verify_interval(InitialTenuringThreshold, 0, MaxTenuringThreshold, "MaxTenuringThreshold");
+  status = status && verify_percentage(TargetSurvivorRatio, "TargetSurvivorRatio");
+  status = status && verify_percentage(MarkSweepDeadRatio, "MarkSweepDeadRatio");
+
+  status = status && verify_min_value(MarkSweepAlwaysCompactCount, 1, "MarkSweepAlwaysCompactCount");
 #ifdef SPARC
   if (UseConcMarkSweepGC || UseG1GC) {
     // Issue a stern warning if the user has explicitly set
@@ -2110,38 +2219,6 @@ bool Arguments::check_vm_args_consistency() {
     FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
   }
 
-  if (UseCompressedKlassPointers) {
-    if (IgnoreUnrecognizedVMOptions) {
-      warning("UseCompressedKlassPointers is disabled, because it is not supported by Graal");
-      FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
-    } else {
-      jio_fprintf(defaultStream::error_stream(),
-                    "UseCompressedKlassPointers are not supported in Graal at the moment\n");
-      status = false;
-    }
-  } else {
-    // This prevents the flag being set to true by set_ergonomics_flags()
-    FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
-  }
-  if (UseG1GC) {
-      if (IgnoreUnrecognizedVMOptions) {
-        warning("UseG1GC is still experimental in Graal, use SerialGC instead ");
-        FLAG_SET_CMDLINE(bool, UseG1GC, true);
-      } else {
-        warning("UseG1GC is still experimental in Graal, use SerialGC instead ");
-        status = true;
-      }
-    } else {
-      // This prevents the flag being set to true by set_ergonomics_flags()
-      FLAG_SET_CMDLINE(bool, UseG1GC, false);
-    }
-
-  if (!ScavengeRootsInCode) {
-      warning("forcing ScavengeRootsInCode non-zero because Graal is enabled");
-      ScavengeRootsInCode = 1;
-  }
-
-#endif
   return status;
 }
 
@@ -2278,6 +2355,55 @@ jint Arguments::parse_vm_init_args(const JavaVMInitArgs* args) {
   return JNI_OK;
 }
 
+// Checks if name in command-line argument -agent{lib,path}:name[=options]
+// represents a valid HPROF of JDWP agent.  is_path==true denotes that we
+// are dealing with -agentpath (case where name is a path), otherwise with
+// -agentlib
+bool valid_hprof_or_jdwp_agent(char *name, bool is_path) {
+  char *_name;
+  const char *_hprof = "hprof", *_jdwp = "jdwp";
+  size_t _len_hprof, _len_jdwp, _len_prefix;
+
+  if (is_path) {
+    if ((_name = strrchr(name, (int) *os::file_separator())) == NULL) {
+      return false;
+    }
+
+    _name++;  // skip past last path separator
+    _len_prefix = strlen(JNI_LIB_PREFIX);
+
+    if (strncmp(_name, JNI_LIB_PREFIX, _len_prefix) != 0) {
+      return false;
+    }
+
+    _name += _len_prefix;
+    _len_hprof = strlen(_hprof);
+    _len_jdwp = strlen(_jdwp);
+
+    if (strncmp(_name, _hprof, _len_hprof) == 0) {
+      _name += _len_hprof;
+    }
+    else if (strncmp(_name, _jdwp, _len_jdwp) == 0) {
+      _name += _len_jdwp;
+    }
+    else {
+      return false;
+    }
+
+    if (strcmp(_name, JNI_LIB_SUFFIX) != 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  if (strcmp(name, _hprof) == 0 || strcmp(name, _jdwp) == 0) {
+    return true;
+  }
+
+  return false;
+}
+
 jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
                                        SysClassPath* scp_p,
                                        bool* scp_assembly_required_p,
@@ -2376,7 +2502,7 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
           options = strcpy(NEW_C_HEAP_ARRAY(char, strlen(pos + 1) + 1, mtInternal), pos + 1);
         }
 #if !INCLUDE_JVMTI
-        if ((strcmp(name, "hprof") == 0) || (strcmp(name, "jdwp") == 0)) {
+        if (valid_hprof_or_jdwp_agent(name, is_absolute_path)) {
           jio_fprintf(defaultStream::error_stream(),
             "Profiling and debugging agents are not supported in this VM\n");
           return JNI_ERR;
@@ -2431,7 +2557,8 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
     // -Xms
     } else if (match_option(option, "-Xms", &tail)) {
       julong long_initial_heap_size = 0;
-      ArgsRange errcode = parse_memory_size(tail, &long_initial_heap_size, 1);
+      // an initial heap size of 0 means automatically determine
+      ArgsRange errcode = parse_memory_size(tail, &long_initial_heap_size, 0);
       if (errcode != arg_in_range) {
         jio_fprintf(defaultStream::error_stream(),
                     "Invalid initial heap size: %s\n", option->optionString);
@@ -2442,7 +2569,7 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
       // Currently the minimum size and the initial heap sizes are the same.
       set_min_heap_size(InitialHeapSize);
     // -Xmx
-    } else if (match_option(option, "-Xmx", &tail)) {
+    } else if (match_option(option, "-Xmx", &tail) || match_option(option, "-XX:MaxHeapSize=", &tail)) {
       julong long_max_heap_size = 0;
       ArgsRange errcode = parse_memory_size(tail, &long_max_heap_size, 1);
       if (errcode != arg_in_range) {
@@ -2494,16 +2621,23 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
     } else if (match_option(option, "-Xmaxjitcodesize", &tail) ||
                match_option(option, "-XX:ReservedCodeCacheSize=", &tail)) {
       julong long_ReservedCodeCacheSize = 0;
-      ArgsRange errcode = parse_memory_size(tail, &long_ReservedCodeCacheSize,
-                                            (size_t)InitialCodeCacheSize);
+      ArgsRange errcode = parse_memory_size(tail, &long_ReservedCodeCacheSize, 1);
       if (errcode != arg_in_range) {
         jio_fprintf(defaultStream::error_stream(),
-                    "Invalid maximum code cache size: %s. Should be greater than InitialCodeCacheSize=%dK\n",
-                    option->optionString, InitialCodeCacheSize/K);
-        describe_range_error(errcode);
+                    "Invalid maximum code cache size: %s.\n", option->optionString);
         return JNI_EINVAL;
       }
       FLAG_SET_CMDLINE(uintx, ReservedCodeCacheSize, (uintx)long_ReservedCodeCacheSize);
+      //-XX:IncreaseFirstTierCompileThresholdAt=
+      } else if (match_option(option, "-XX:IncreaseFirstTierCompileThresholdAt=", &tail)) {
+        uintx uint_IncreaseFirstTierCompileThresholdAt = 0;
+        if (!parse_uintx(tail, &uint_IncreaseFirstTierCompileThresholdAt, 0) || uint_IncreaseFirstTierCompileThresholdAt > 99) {
+          jio_fprintf(defaultStream::error_stream(),
+                      "Invalid value for IncreaseFirstTierCompileThresholdAt: %s. Should be between 0 and 99.\n",
+                      option->optionString);
+          return JNI_EINVAL;
+        }
+        FLAG_SET_CMDLINE(uintx, IncreaseFirstTierCompileThresholdAt, (uintx)uint_IncreaseFirstTierCompileThresholdAt);
     // -green
     } else if (match_option(option, "-green", &tail)) {
       jio_fprintf(defaultStream::error_stream(),
@@ -2968,6 +3102,11 @@ jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_req
     set_mode_flags(_int);
   }
 
+  // eventually fix up InitialTenuringThreshold if only MaxTenuringThreshold is set
+  if (FLAG_IS_DEFAULT(InitialTenuringThreshold) && (InitialTenuringThreshold > MaxTenuringThreshold)) {
+    FLAG_SET_ERGO(uintx, InitialTenuringThreshold, MaxTenuringThreshold);
+  }
+
 #ifndef COMPILER2
   // Don't degrade server performance for footprint
   if (FLAG_IS_DEFAULT(UseLargePages) &&
@@ -3100,36 +3239,27 @@ jint Arguments::parse_options_environment_variable(const char* name, SysClassPat
 }
 
 void Arguments::set_shared_spaces_flags() {
-  const bool must_share = DumpSharedSpaces || RequireSharedSpaces;
-  const bool might_share = must_share || UseSharedSpaces;
+#ifdef _LP64
+    const bool must_share = DumpSharedSpaces || RequireSharedSpaces;
 
-  // CompressedOops cannot be used with CDS.  The offsets of oopmaps and
-  // static fields are incorrect in the archive.  With some more clever
-  // initialization, this restriction can probably be lifted.
-  // ??? UseLargePages might be okay now
-  const bool cannot_share = UseCompressedOops ||
-                            (UseLargePages && FLAG_IS_CMDLINE(UseLargePages));
-  if (cannot_share) {
-    if (must_share) {
-        warning("disabling large pages %s"
-                "because of %s", "" LP64_ONLY("and compressed oops "),
-                DumpSharedSpaces ? "-Xshare:dump" : "-Xshare:on");
-        FLAG_SET_CMDLINE(bool, UseLargePages, false);
-        LP64_ONLY(FLAG_SET_CMDLINE(bool, UseCompressedOops, false));
-        LP64_ONLY(FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false));
-    } else {
-      // Prefer compressed oops and large pages to class data sharing
-      if (UseSharedSpaces && Verbose) {
-        warning("turning off use of shared archive because of large pages%s",
-                 "" LP64_ONLY(" and/or compressed oops"));
+    // CompressedOops cannot be used with CDS.  The offsets of oopmaps and
+    // static fields are incorrect in the archive.  With some more clever
+    // initialization, this restriction can probably be lifted.
+    if (UseCompressedOops) {
+      if (must_share) {
+          warning("disabling compressed oops because of %s",
+                  DumpSharedSpaces ? "-Xshare:dump" : "-Xshare:on");
+          FLAG_SET_CMDLINE(bool, UseCompressedOops, false);
+          FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
+      } else {
+        // Prefer compressed oops to class data sharing
+        if (UseSharedSpaces && Verbose) {
+          warning("turning off use of shared archive because of compressed oops");
+        }
+        no_shared_spaces();
       }
-      no_shared_spaces();
     }
-  } else if (UseLargePages && might_share) {
-    // Disable large pages to allow shared spaces.  This is sub-optimal, since
-    // there may not even be a shared archive to use.
-    FLAG_SET_DEFAULT(UseLargePages, false);
-  }
+#endif
 
   if (DumpSharedSpaces) {
     if (RequireSharedSpaces) {
@@ -3174,24 +3304,36 @@ static void force_serial_gc() {
 }
 #endif // INCLUDE_ALL_GCS
 
+// Sharing support
+// Construct the path to the archive
+static char* get_shared_archive_path() {
+  char *shared_archive_path;
+  if (SharedArchiveFile == NULL) {
+    char jvm_path[JVM_MAXPATHLEN];
+    os::jvm_path(jvm_path, sizeof(jvm_path));
+    char *end = strrchr(jvm_path, *os::file_separator());
+    if (end != NULL) *end = '\0';
+    size_t jvm_path_len = strlen(jvm_path);
+    size_t file_sep_len = strlen(os::file_separator());
+    shared_archive_path = NEW_C_HEAP_ARRAY(char, jvm_path_len +
+        file_sep_len + 20, mtInternal);
+    if (shared_archive_path != NULL) {
+      strncpy(shared_archive_path, jvm_path, jvm_path_len + 1);
+      strncat(shared_archive_path, os::file_separator(), file_sep_len);
+      strncat(shared_archive_path, "classes.jsa", 11);
+    }
+  } else {
+    shared_archive_path = NEW_C_HEAP_ARRAY(char, strlen(SharedArchiveFile) + 1, mtInternal);
+    if (shared_archive_path != NULL) {
+      strncpy(shared_archive_path, SharedArchiveFile, strlen(SharedArchiveFile) + 1);
+    }
+  }
+  return shared_archive_path;
+}
+
 // Parse entry point called from JNI_CreateJavaVM
 
 jint Arguments::parse(const JavaVMInitArgs* args) {
-
-  // Sharing support
-  // Construct the path to the archive
-  char jvm_path[JVM_MAXPATHLEN];
-  os::jvm_path(jvm_path, sizeof(jvm_path));
-  char *end = strrchr(jvm_path, *os::file_separator());
-  if (end != NULL) *end = '\0';
-  char *shared_archive_path = NEW_C_HEAP_ARRAY(char, strlen(jvm_path) +
-      strlen(os::file_separator()) + 20, mtInternal);
-  if (shared_archive_path == NULL) return JNI_ENOMEM;
-  strcpy(shared_archive_path, jvm_path);
-  strcat(shared_archive_path, os::file_separator());
-  strcat(shared_archive_path, "classes");
-  strcat(shared_archive_path, ".jsa");
-  SharedArchivePath = shared_archive_path;
 
   // Remaining part of option string
   const char* tail;
@@ -3281,6 +3423,12 @@ jint Arguments::parse(const JavaVMInitArgs* args) {
   jint result = parse_vm_init_args(args);
   if (result != JNI_OK) {
     return result;
+  }
+
+  // Call get_shared_archive_path() here, after possible SharedArchiveFile option got parsed.
+  SharedArchivePath = get_shared_archive_path();
+  if (SharedArchivePath == NULL) {
+    return JNI_ENOMEM;
   }
 
   // Delay warning until here so that we've had a chance to process

@@ -32,6 +32,10 @@
 #include "runtime/mutex.hpp"
 #include "utilities/growableArray.hpp"
 
+#if INCLUDE_TRACE
+# include "trace/traceTime.hpp"
+#endif
+
 //
 // A class loader represents a linkset. Conceptually, a linkset identifies
 // the complete transitive closure of resolved links that a dynamic linker can
@@ -49,6 +53,7 @@ class ClassLoaderData;
 class JNIMethodBlock;
 class JNIHandleBlock;
 class Metadebug;
+
 // GC root for walking class loader data created
 
 class ClassLoaderDataGraph : public AllStatic {
@@ -62,7 +67,8 @@ class ClassLoaderDataGraph : public AllStatic {
   // CMS support.
   static ClassLoaderData* _saved_head;
 
-  static ClassLoaderData* add(ClassLoaderData** loader_data_addr, Handle class_loader, TRAPS);
+  static ClassLoaderData* add(Handle class_loader, bool anonymous, TRAPS);
+  static void post_class_unload_events(void);
  public:
   static ClassLoaderData* find_or_create(Handle class_loader, TRAPS);
   static void purge();
@@ -71,6 +77,8 @@ class ClassLoaderDataGraph : public AllStatic {
   static void always_strong_oops_do(OopClosure* blk, KlassClosure* klass_closure, bool must_claim);
   static void keep_alive_oops_do(OopClosure* blk, KlassClosure* klass_closure, bool must_claim);
   static void classes_do(KlassClosure* klass_closure);
+  static void classes_do(void f(Klass* const));
+  static void classes_unloading_do(void f(Klass* const));
   static bool do_unloading(BoolObjectClosure* is_alive);
 
   // CMS support.
@@ -86,6 +94,12 @@ class ClassLoaderDataGraph : public AllStatic {
   static bool contains(address x);
   static bool contains_loader_data(ClassLoaderData* loader_data);
 #endif
+
+#if INCLUDE_TRACE
+ private:
+  static TracingTime _class_unload_time;
+  static void class_unload_event(Klass* const k);
+#endif
 };
 
 // ClassLoaderData class
@@ -100,6 +114,9 @@ class ClassLoaderData : public CHeapObj<mtClass> {
                     Thread* THREAD);
    public:
     Dependencies() : _list_head(NULL) {}
+    Dependencies(TRAPS) : _list_head(NULL) {
+      init(CHECK);
+    }
     void add(Handle dependency, TRAPS);
     void init(TRAPS);
     void oops_do(OopClosure* f);
@@ -150,7 +167,7 @@ class ClassLoaderData : public CHeapObj<mtClass> {
   void set_next(ClassLoaderData* next) { _next = next; }
   ClassLoaderData* next() const        { return _next; }
 
-  ClassLoaderData(Handle h_class_loader, bool is_anonymous);
+  ClassLoaderData(Handle h_class_loader, bool is_anonymous, Dependencies dependencies);
   ~ClassLoaderData();
 
   void set_metaspace(Metaspace* m) { _metaspace = m; }
@@ -168,7 +185,7 @@ class ClassLoaderData : public CHeapObj<mtClass> {
   void unload();
   bool keep_alive() const       { return _keep_alive; }
   bool is_alive(BoolObjectClosure* is_alive_closure) const;
-
+  void classes_do(void f(Klass*));
   void classes_do(void f(InstanceKlass*));
 
   // Deallocate free list during class unloading.
@@ -190,7 +207,9 @@ class ClassLoaderData : public CHeapObj<mtClass> {
   static void init_null_class_loader_data() {
     assert(_the_null_class_loader_data == NULL, "cannot initialize twice");
     assert(ClassLoaderDataGraph::_head == NULL, "cannot initialize twice");
-    _the_null_class_loader_data = new ClassLoaderData((oop)NULL, false);
+
+    // We explicitly initialize the Dependencies object at a later phase in the initialization
+    _the_null_class_loader_data = new ClassLoaderData((oop)NULL, false, Dependencies());
     ClassLoaderDataGraph::_head = _the_null_class_loader_data;
     assert(_the_null_class_loader_data->is_the_null_class_loader_data(), "Must be");
     if (DumpSharedSpaces) {

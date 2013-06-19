@@ -86,12 +86,23 @@ typedef AllocFailStrategy::AllocFailEnum AllocFailType;
 // subclasses.
 //
 // The following macros and function should be used to allocate memory
-// directly in the resource area or in the C-heap:
+// directly in the resource area or in the C-heap, The _OBJ variants
+// of the NEW/FREE_C_HEAP macros are used for alloc/dealloc simple
+// objects which are not inherited from CHeapObj, note constructor and
+// destructor are not called. The preferable way to allocate objects
+// is using the new operator.
 //
-//   NEW_RESOURCE_ARRAY(type,size)
+// WARNING: The array variant must only be used for a homogenous array
+// where all objects are of the exact type specified. If subtypes are
+// stored in the array then must pay attention to calling destructors
+// at needed.
+//
+//   NEW_RESOURCE_ARRAY(type, size)
 //   NEW_RESOURCE_OBJ(type)
-//   NEW_C_HEAP_ARRAY(type,size)
-//   NEW_C_HEAP_OBJ(type)
+//   NEW_C_HEAP_ARRAY(type, size)
+//   NEW_C_HEAP_OBJ(type, memflags)
+//   FREE_C_HEAP_ARRAY(type, old, memflags)
+//   FREE_C_HEAP_OBJ(objname, type, memflags)
 //   char* AllocateHeap(size_t size, const char* name);
 //   void  FreeHeap(void* p);
 //
@@ -146,7 +157,8 @@ enum MemoryType {
   mtJavaHeap          = 0x0C00,  // Java heap
   mtClassShared       = 0x0D00,  // class data sharing
   mtTest              = 0x0E00,  // Test type for verifying NMT
-  mt_number_of_types  = 0x000E,  // number of memory types (mtDontTrack
+  mtTracing           = 0x0F00,  // memory used for Tracing
+  mt_number_of_types  = 0x000F,  // number of memory types (mtDontTrack
                                  // is not included as validate type)
   mtDontTrack         = 0x0F00,  // memory we do not or cannot track
   mt_masks            = 0x7F00,
@@ -195,8 +207,11 @@ template <MEMFLAGS F> class CHeapObj ALLOCATION_SUPER_CLASS_SPEC {
   _NOINLINE_ void* operator new(size_t size, address caller_pc = 0);
   _NOINLINE_ void* operator new (size_t size, const std::nothrow_t&  nothrow_constant,
                                address caller_pc = 0);
-
+  _NOINLINE_ void* operator new [](size_t size, address caller_pc = 0);
+  _NOINLINE_ void* operator new [](size_t size, const std::nothrow_t&  nothrow_constant,
+                               address caller_pc = 0);
   void  operator delete(void* p);
+  void  operator delete [] (void* p);
 };
 
 // Base class for objects allocated on the stack only.
@@ -206,6 +221,8 @@ class StackObj ALLOCATION_SUPER_CLASS_SPEC {
  private:
   void* operator new(size_t size);
   void  operator delete(void* p);
+  void* operator new [](size_t size);
+  void  operator delete [](void* p);
 };
 
 // Base class for objects used as value objects.
@@ -229,7 +246,9 @@ class StackObj ALLOCATION_SUPER_CLASS_SPEC {
 class _ValueObj {
  private:
   void* operator new(size_t size);
-  void operator delete(void* p);
+  void  operator delete(void* p);
+  void* operator new [](size_t size);
+  void  operator delete [](void* p);
 };
 
 
@@ -250,8 +269,55 @@ class MetaspaceObj {
   bool is_shared() const;
   void print_address_on(outputStream* st) const;  // nonvirtual address printing
 
+#define METASPACE_OBJ_TYPES_DO(f) \
+  f(Unknown) \
+  f(Class) \
+  f(Symbol) \
+  f(TypeArrayU1) \
+  f(TypeArrayU2) \
+  f(TypeArrayU4) \
+  f(TypeArrayU8) \
+  f(TypeArrayOther) \
+  f(Method) \
+  f(ConstMethod) \
+  f(MethodData) \
+  f(ConstantPool) \
+  f(ConstantPoolCache) \
+  f(Annotation) \
+  f(MethodCounters)
+
+#define METASPACE_OBJ_TYPE_DECLARE(name) name ## Type,
+#define METASPACE_OBJ_TYPE_NAME_CASE(name) case name ## Type: return #name;
+
+  enum Type {
+    // Types are MetaspaceObj::ClassType, MetaspaceObj::SymbolType, etc
+    METASPACE_OBJ_TYPES_DO(METASPACE_OBJ_TYPE_DECLARE)
+    _number_of_types
+  };
+
+  static const char * type_name(Type type) {
+    switch(type) {
+    METASPACE_OBJ_TYPES_DO(METASPACE_OBJ_TYPE_NAME_CASE)
+    default:
+      ShouldNotReachHere();
+      return NULL;
+    }
+  }
+
+  static MetaspaceObj::Type array_type(size_t elem_size) {
+    switch (elem_size) {
+    case 1: return TypeArrayU1Type;
+    case 2: return TypeArrayU2Type;
+    case 4: return TypeArrayU4Type;
+    case 8: return TypeArrayU8Type;
+    default:
+      return TypeArrayOtherType;
+    }
+  }
+
   void* operator new(size_t size, ClassLoaderData* loader_data,
-                     size_t word_size, bool read_only, Thread* thread);
+                     size_t word_size, bool read_only,
+                     Type type, Thread* thread);
                      // can't use TRAPS from this header file.
   void operator delete(void* p) { ShouldNotCallThis(); }
 };
@@ -510,13 +576,24 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
 
  public:
   void* operator new(size_t size, allocation_type type, MEMFLAGS flags);
+  void* operator new [](size_t size, allocation_type type, MEMFLAGS flags);
   void* operator new(size_t size, const std::nothrow_t&  nothrow_constant,
       allocation_type type, MEMFLAGS flags);
+  void* operator new [](size_t size, const std::nothrow_t&  nothrow_constant,
+      allocation_type type, MEMFLAGS flags);
+
   void* operator new(size_t size, Arena *arena) {
       address res = (address)arena->Amalloc(size);
       DEBUG_ONLY(set_allocation_type(res, ARENA);)
       return res;
   }
+
+  void* operator new [](size_t size, Arena *arena) {
+      address res = (address)arena->Amalloc(size);
+      DEBUG_ONLY(set_allocation_type(res, ARENA);)
+      return res;
+  }
+
   void* operator new(size_t size) {
       address res = (address)resource_allocate_bytes(size);
       DEBUG_ONLY(set_allocation_type(res, RESOURCE_AREA);)
@@ -529,7 +606,20 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
       return res;
   }
 
+  void* operator new [](size_t size) {
+      address res = (address)resource_allocate_bytes(size);
+      DEBUG_ONLY(set_allocation_type(res, RESOURCE_AREA);)
+      return res;
+  }
+
+  void* operator new [](size_t size, const std::nothrow_t& nothrow_constant) {
+      address res = (address)resource_allocate_bytes(size, AllocFailStrategy::RETURN_NULL);
+      DEBUG_ONLY(if (res != NULL) set_allocation_type(res, RESOURCE_AREA);)
+      return res;
+  }
+
   void  operator delete(void* p);
+  void  operator delete [](void* p);
 };
 
 // One of the following macros must be used when allocating an array
@@ -538,6 +628,9 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
 
 #define NEW_RESOURCE_ARRAY(type, size)\
   (type*) resource_allocate_bytes((size) * sizeof(type))
+
+#define NEW_RESOURCE_ARRAY_RETURN_NULL(type, size)\
+  (type*) resource_allocate_bytes((size) * sizeof(type), AllocFailStrategy::RETURN_NULL)
 
 #define NEW_RESOURCE_ARRAY_IN_THREAD(thread, type, size)\
   (type*) resource_allocate_bytes(thread, (size) * sizeof(type))
@@ -560,12 +653,8 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
 #define REALLOC_C_HEAP_ARRAY(type, old, size, memflags)\
   (type*) (ReallocateHeap((char*)old, (size) * sizeof(type), memflags))
 
-#define FREE_C_HEAP_ARRAY(type,old,memflags) \
+#define FREE_C_HEAP_ARRAY(type, old, memflags) \
   FreeHeap((char*)(old), memflags)
-
-#define NEW_C_HEAP_OBJ(type, memflags)\
-  NEW_C_HEAP_ARRAY(type, 1, memflags)
-
 
 #define NEW_C_HEAP_ARRAY2(type, size, memflags, pc)\
   (type*) (AllocateHeap((size) * sizeof(type), memflags, pc))
@@ -573,11 +662,16 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
 #define REALLOC_C_HEAP_ARRAY2(type, old, size, memflags, pc)\
   (type*) (ReallocateHeap((char*)old, (size) * sizeof(type), memflags, pc))
 
-#define NEW_C_HEAP_OBJ2(type, memflags, pc)\
-  NEW_C_HEAP_ARRAY2(type, 1, memflags, pc)
+#define NEW_C_HEAP_ARRAY3(type, size, memflags, pc, allocfail)         \
+  (type*) AllocateHeap(size * sizeof(type), memflags, pc, allocfail)
 
+// allocate type in heap without calling ctor
+#define NEW_C_HEAP_OBJ(type, memflags)\
+  NEW_C_HEAP_ARRAY(type, 1, memflags)
 
-extern bool warn_new_operator;
+// deallocate obj of type in heap without calling dtor
+#define FREE_C_HEAP_OBJ(objname, memflags)\
+  FreeHeap((char*)objname, memflags);
 
 // for statistics
 #ifndef PRODUCT

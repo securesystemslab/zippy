@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -153,7 +153,8 @@ class JvmtiTagHashmap : public CHeapObj<mtInternal> {
     size_t s = initial_size * sizeof(JvmtiTagHashmapEntry*);
     _table = (JvmtiTagHashmapEntry**)os::malloc(s, mtInternal);
     if (_table == NULL) {
-      vm_exit_out_of_memory(s, "unable to allocate initial hashtable for jvmti object tags");
+      vm_exit_out_of_memory(s, OOM_MALLOC_ERROR,
+        "unable to allocate initial hashtable for jvmti object tags");
     }
     for (int i=0; i<initial_size; i++) {
       _table[i] = NULL;
@@ -2856,7 +2857,7 @@ inline bool VM_HeapWalkOperation::iterate_over_class(oop java_class) {
 
     // references from the constant pool
     {
-      ConstantPool* const pool = ik->constants();
+      ConstantPool* pool = ik->constants();
       for (int i = 1; i < pool->length(); i++) {
         constantTag tag = pool->tag_at(i).value();
         if (tag.is_string() || tag.is_klass()) {
