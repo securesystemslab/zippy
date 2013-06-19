@@ -482,8 +482,9 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
 
 void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread) {
   MethodCounters* mcs = m->method_counters();
+  assert(mcs != NULL, "method counters should be initialized");
   int hot_count = m->invocation_count();
-  jlong hot_time = (mcs == NULL) ? 0 : mcs->graal_invocation_time();
+  jlong hot_time = mcs->graal_invocation_time();
   reset_counter_for_invocation_event(m);
 
   if (is_compilation_enabled() && can_be_compiled(m)) {
@@ -497,18 +498,18 @@ void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread
         }
         if (UseNewCode) {
           if (m->queued_for_compilation()) {
-            if (time_per_call < (m->graal_priority() / 5)) {
-              m->set_graal_priority(time_per_call);
+            if (time_per_call < (mcs->graal_priority() / 5)) {
+              mcs->set_graal_priority(time_per_call);
               m->clear_queued_for_compilation();
             }
           } else {
-            if (time_per_call < m->graal_priority()) {
-              m->set_graal_priority(time_per_call);
+            if (time_per_call < mcs->graal_priority()) {
+              mcs->set_graal_priority(time_per_call);
             }
           }
         } else {
-          if (time_per_call < m->graal_priority()) {
-            m->set_graal_priority(time_per_call);
+          if (time_per_call < mcs->graal_priority()) {
+            mcs->set_graal_priority(time_per_call);
           }
         }
       }

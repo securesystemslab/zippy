@@ -117,6 +117,12 @@ int CompiledStaticCall::reloc_to_interp_stub() {
 
 void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) {
   address stub = find_stub();
+#ifdef GRAAL
+  if (stub == NULL) {
+    set_destination_mt_safe(entry);
+    return;
+  }
+#endif
   guarantee(stub != NULL, "stub not found");
 
   if (TraceICs) {
@@ -168,10 +174,12 @@ void CompiledStaticCall::verify() {
 
   // Verify stub.
   address stub = find_stub();
+#ifndef GRAAL
   assert(stub != NULL, "no stub found for static call");
   // Creation also verifies the object.
   NativeMovConstReg* method_holder = nativeMovConstReg_at(stub);
   NativeJump*        jump          = nativeJump_at(method_holder->next_instruction_address());
+#endif
 
   // Verify state.
   assert(is_clean() || is_call_to_compiled() || is_call_to_interpreted(), "sanity check");

@@ -86,6 +86,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>ptx</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src/gpu/ptx</locationURI>
+		</link>
+		<link>
 			<name>x86</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/src/cpu/x86/vm</locationURI>

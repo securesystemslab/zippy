@@ -1988,5 +1988,3 @@ void Method::verify_on(outputStream* st) {
   guarantee(md == NULL ||
       md->is_methodData(), "should be method data");
 }
-
-#endif

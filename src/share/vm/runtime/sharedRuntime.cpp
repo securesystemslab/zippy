@@ -781,7 +781,7 @@ JRT_END
 #ifdef GRAAL
 address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason) {
   assert(deopt_reason > Deoptimization::Reason_none && deopt_reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
-  thread->_ScratchA = (intptr_t)pc;
+  thread->set_graal_implicit_exception_pc(pc);
   thread->set_pending_deoptimization(Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret));
   return (SharedRuntime::deopt_blob()->implicit_exception_uncommon_trap());
 }

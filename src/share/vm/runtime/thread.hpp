@@ -898,7 +898,8 @@ class JavaThread: public Thread {
  private:
 
 #ifdef GRAAL
-  address _graal_alternate_call_target;
+  address   _graal_alternate_call_target;
+  address   _graal_implicit_exception_pc;  // pc at which the most recent implicit exception occurred
 #endif
   StackGuardState        _stack_guard_state;
 
@@ -1273,6 +1274,7 @@ class JavaThread: public Thread {
 
 #ifdef GRAAL
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
+  void set_graal_implicit_exception_pc(address a) { _graal_implicit_exception_pc = a; }
 #endif
 
   // Exception handling for compiled methods
@@ -1357,6 +1359,7 @@ class JavaThread: public Thread {
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
 #ifdef GRAAL
   static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
+  static ByteSize graal_implicit_exception_pc_offset() { return byte_offset_of(JavaThread, _graal_implicit_exception_pc); }
 #endif
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }
