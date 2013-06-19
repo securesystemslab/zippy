@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,7 @@
 #include "runtime/reflection.hpp"
 #include "runtime/synchronizer.hpp"
 #include "services/threadService.hpp"
+#include "trace/tracing.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/dtrace.hpp"
 
@@ -115,12 +116,6 @@ inline jint invocation_key_to_method_slot(jint key) {
 
 inline void* index_oop_from_field_offset_long(oop p, jlong field_offset) {
   jlong byte_offset = field_offset_to_byte_offset(field_offset);
-  // Don't allow unsafe to be used to read or write the header word of oops
-  // unless running GRAAL which wants to read the misc word for example when
-  // interpreting computeHashCode().
-#ifndef GRAAL
-  assert(p == NULL || field_offset >= oopDesc::header_size(), "offset must be outside of header");
-#endif
 #ifdef ASSERT
   if (p != NULL) {
     assert(byte_offset >= 0 && byte_offset <= (jlong)MAX_OBJECT_SIZE, "sane offset");
@@ -190,7 +185,7 @@ jint Unsafe_invocation_key_to_method_slot(jint key) {
    oop v; \
    /* Uncompression is not performed to unsafeAccess with null object.
     * This concerns accesses to the metaspace such as the classMirrorOffset which is not compressed.*/ \
-   if (UseCompressedOops && p!=NULL && offset>=oopDesc::header_size()) { \
+   if (UseCompressedOops && p != NULL && offset >= oopDesc::header_size()) { \
      narrowOop n = *(narrowOop*)index_oop_from_field_offset_long(p, offset); \
      v = oopDesc::decode_heap_oop(n); \
    } else { \
@@ -331,10 +326,7 @@ UNSAFE_ENTRY(void, Unsafe_SetObjectVolatile(JNIEnv *env, jobject unsafe, jobject
   OrderAccess::fence();
 UNSAFE_END
 
-#if defined(SPARC) || defined(X86)
-// Sparc and X86 have atomic jlong (8 bytes) instructions
-
-#else
+#ifndef SUPPORTS_NATIVE_CX8
 // Keep old code for platforms which may not have atomic jlong (8 bytes) instructions
 
 // Volatile long versions must use locks if !VM_Version::supports_cx8().
@@ -372,7 +364,7 @@ UNSAFE_ENTRY(void, Unsafe_SetLongVolatile(JNIEnv *env, jobject unsafe, jobject o
   }
 UNSAFE_END
 
-#endif // not SPARC and not X86
+#endif // not SUPPORTS_NATIVE_CX8
 
 #define DEFINE_GETSETOOP(jboolean, Boolean) \
  \
@@ -436,8 +428,7 @@ DEFINE_GETSETOOP_VOLATILE(jint, Int);
 DEFINE_GETSETOOP_VOLATILE(jfloat, Float);
 DEFINE_GETSETOOP_VOLATILE(jdouble, Double);
 
-#if defined(SPARC) || defined(X86)
-// Sparc and X86 have atomic jlong (8 bytes) instructions
+#ifdef SUPPORTS_NATIVE_CX8
 DEFINE_GETSETOOP_VOLATILE(jlong, Long);
 #endif
 
@@ -466,8 +457,7 @@ UNSAFE_END
 
 UNSAFE_ENTRY(void, Unsafe_SetOrderedLong(JNIEnv *env, jobject unsafe, jobject obj, jlong offset, jlong x))
   UnsafeWrapper("Unsafe_SetOrderedLong");
-#if defined(SPARC) || defined(X86)
-  // Sparc and X86 have atomic jlong (8 bytes) instructions
+#ifdef SUPPORTS_NATIVE_CX8
   SET_FIELD_VOLATILE(obj, offset, jlong, x);
 #else
   // Keep old code for platforms which may not have atomic long (8 bytes) instructions
@@ -1227,6 +1217,7 @@ UNSAFE_END
 
 UNSAFE_ENTRY(void, Unsafe_Park(JNIEnv *env, jobject unsafe, jboolean isAbsolute, jlong time))
   UnsafeWrapper("Unsafe_Park");
+  EventThreadPark event;
 #ifndef USDT2
   HS_DTRACE_PROBE3(hotspot, thread__park__begin, thread->parker(), (int) isAbsolute, time);
 #else /* USDT2 */
@@ -1241,6 +1232,13 @@ UNSAFE_ENTRY(void, Unsafe_Park(JNIEnv *env, jobject unsafe, jboolean isAbsolute,
   HOTSPOT_THREAD_PARK_END(
                           (uintptr_t) thread->parker());
 #endif /* USDT2 */
+  if (event.should_commit()) {
+    oop obj = thread->current_park_blocker();
+    event.set_klass(obj ? obj->klass() : NULL);
+    event.set_timeout(time);
+    event.set_address(obj ? (TYPE_ADDRESS) (uintptr_t) obj : 0);
+    event.commit();
+  }
 UNSAFE_END
 
 UNSAFE_ENTRY(void, Unsafe_Unpark(JNIEnv *env, jobject unsafe, jobject jthread))

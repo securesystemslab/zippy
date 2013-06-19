@@ -136,7 +136,7 @@ oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
     } else {
       length = _deopted_leaf_graph_count;
     }
-    elements = new jlong[length];
+    elements = NEW_C_HEAP_ARRAY(jlong, length, mtCompiler);
     for (int i = 0; i < length; i++) {
       elements[i] = _deopted_leaf_graphs[i];
     }
@@ -146,7 +146,7 @@ oop GraalCompiler::dump_deopted_leaf_graphs(TRAPS) {
   for (int i = 0; i < length; i++) {
     array->long_at_put(i, elements[i]);
   }
-  delete elements;
+  FREE_C_HEAP_ARRAY(jlong, elements, mtCompiler);
   return array;
 }
 
@@ -171,7 +171,8 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   ResourceMark rm;
   JavaThread::current()->set_is_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
-  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, method->graal_priority());
+  MethodCounters* mcs = method->method_counters();
+  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, mcs->graal_priority());
   JavaThread::current()->set_is_compiling(false);
 }
 
@@ -223,7 +224,8 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
       // We have to lock the cpool to keep the oop from being resolved
       // while we are accessing it. But we must release the lock before
       // calling up into Java.
-      MonitorLockerEx ml(cp->lock());
+      oop cplock = cp->lock();
+      ObjectLocker ol(cplock, THREAD, cplock != NULL);
       constantTag tag = cp->tag_at(index);
       if (tag.is_klass()) {
         // The klass has been inserted into the constant pool

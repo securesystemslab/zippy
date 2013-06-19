@@ -932,7 +932,7 @@ def gate(args):
 
         _vmbuild = 'product'
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
         _vmbuild = 'product'

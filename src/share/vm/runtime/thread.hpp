@@ -47,7 +47,8 @@
 #include "services/memRecorder.hpp"
 #endif // INCLUDE_NMT
 
-#include "trace/tracing.hpp"
+#include "trace/traceBackend.hpp"
+#include "trace/traceMacros.hpp"
 #include "utilities/exceptions.hpp"
 #include "utilities/top.hpp"
 #if INCLUDE_ALL_GCS
@@ -258,7 +259,7 @@ class Thread: public ThreadShadow {
   jlong _allocated_bytes;                       // Cumulative number of bytes allocated on
                                                 // the Java heap
 
-  TRACE_BUFFER _trace_buffer;                   // Thread-local buffer for tracing
+  TRACE_DATA _trace_data;                       // Thread-local data for tracing
 
   int   _vm_operation_started_count;            // VM_Operation support
   int   _vm_operation_completed_count;          // VM_Operation support
@@ -449,8 +450,7 @@ class Thread: public ThreadShadow {
     return allocated_bytes;
   }
 
-  TRACE_BUFFER trace_buffer()              { return _trace_buffer; }
-  void set_trace_buffer(TRACE_BUFFER buf)  { _trace_buffer = buf; }
+  TRACE_DATA* trace_data()              { return &_trace_data; }
 
   // VM operation support
   int vm_operation_ticket()                      { return ++_vm_operation_started_count; }
@@ -638,9 +638,6 @@ public:
   jint _hashStateZ ;
   void * _schedctl ;
 
-  intptr_t _ScratchA, _ScratchB ;              // Scratch locations for fast-path sync code
-  static ByteSize ScratchA_offset()            { return byte_offset_of(Thread, _ScratchA ); }
-  static ByteSize ScratchB_offset()            { return byte_offset_of(Thread, _ScratchB ); }
 
   volatile jint rng [4] ;                      // RNG for spin loop
 
@@ -901,7 +898,8 @@ class JavaThread: public Thread {
  private:
 
 #ifdef GRAAL
-  address _graal_alternate_call_target;
+  address   _graal_alternate_call_target;
+  address   _graal_implicit_exception_pc;  // pc at which the most recent implicit exception occurred
 #endif
   StackGuardState        _stack_guard_state;
 
@@ -1075,11 +1073,11 @@ class JavaThread: public Thread {
 #if INCLUDE_NMT
   // native memory tracking
   inline MemRecorder* get_recorder() const          { return (MemRecorder*)_recorder; }
-  inline void         set_recorder(MemRecorder* rc) { _recorder = (volatile MemRecorder*)rc; }
+  inline void         set_recorder(MemRecorder* rc) { _recorder = rc; }
 
  private:
   // per-thread memory recorder
-  volatile MemRecorder* _recorder;
+  MemRecorder* volatile _recorder;
 #endif // INCLUDE_NMT
 
   // Suspend/resume support for JavaThread
@@ -1276,6 +1274,7 @@ class JavaThread: public Thread {
 
 #ifdef GRAAL
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
+  void set_graal_implicit_exception_pc(address a) { _graal_implicit_exception_pc = a; }
 #endif
 
   // Exception handling for compiled methods
@@ -1360,6 +1359,7 @@ class JavaThread: public Thread {
   static ByteSize osthread_offset()              { return byte_offset_of(JavaThread, _osthread            ); }
 #ifdef GRAAL
   static ByteSize graal_alternate_call_target_offset() { return byte_offset_of(JavaThread, _graal_alternate_call_target); }
+  static ByteSize graal_implicit_exception_pc_offset() { return byte_offset_of(JavaThread, _graal_implicit_exception_pc); }
 #endif
   static ByteSize exception_oop_offset()         { return byte_offset_of(JavaThread, _exception_oop       ); }
   static ByteSize exception_pc_offset()          { return byte_offset_of(JavaThread, _exception_pc        ); }

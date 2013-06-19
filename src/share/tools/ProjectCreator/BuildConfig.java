@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,25 +65,7 @@ class BuildConfig {
         String sourceBase = getFieldString(null, "SourceBase");
         String buildSpace = getFieldString(null, "BuildSpace");
         String outDir = buildBase;
-        String value = System.getenv("OUT_DIR");
-        if (value != null) {
-            outDir = value;
-        }
-        
-        int lastDirectorySeparator = Math.max(outDir.lastIndexOf("/"), outDir.lastIndexOf("\\"));
-        if (lastDirectorySeparator >= 0) {
-            outDir = outDir.substring(0, lastDirectorySeparator);
-        }
-        
-        outDir += Util.sep + build + Util.sep + "jre" + Util.sep + "bin";
-        if (flavour.equals("graal")) {
-            outDir += Util.sep + "graal";
-        } else if (flavour.equals("compiler1")) {
-            outDir += Util.sep + "client";
-        } else {
-            outDir += Util.sep + "server";
-        }
-        buildBase = outDir;
+        String jdkTargetRoot = getFieldString(null, "JdkTargetRoot");
 
         put("Id", flavourBuild);
         put("OutputDir", outDir);
@@ -91,6 +73,7 @@ class BuildConfig {
         put("BuildBase", buildBase);
         put("BuildSpace", buildSpace);
         put("OutputDll", outDir + Util.sep + outDll);
+        put("JdkTargetRoot", jdkTargetRoot);
 
         context = new String [] {flavourBuild, flavour, build, null};
     }
@@ -181,7 +164,7 @@ class BuildConfig {
         sysDefines.add("_WINDOWS");
         sysDefines.add("HOTSPOT_BUILD_USER=\\\""+System.getProperty("user.name")+"\\\"");
         sysDefines.add("HOTSPOT_BUILD_TARGET=\\\""+get("Build")+"\\\"");
-        sysDefines.add("INCLUDE_TRACE");
+        sysDefines.add("INCLUDE_TRACE=1");
         sysDefines.add("_JNI_IMPLEMENTATION_");
         if (vars.get("PlatformName").equals("Win32")) {
             sysDefines.add("HOTSPOT_LIB_ARCH=\\\"i386\\\"");

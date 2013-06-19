@@ -31,6 +31,7 @@
 #include "interpreter/invocationCounter.hpp"
 #include "oops/annotations.hpp"
 #include "oops/constantPool.hpp"
+#include "oops/methodCounters.hpp"
 #include "oops/instanceKlass.hpp"
 #include "oops/oop.hpp"
 #include "oops/typeArrayOop.hpp"
@@ -66,7 +67,7 @@
 // | ConstMethod*                   (oop)                 |
 // |------------------------------------------------------|
 // | methodData                     (oop)                 |
-// | interp_invocation_count                              |
+// | methodCounters                                       |
 // |------------------------------------------------------|
 // | access_flags                                         |
 // | vtable_index                                         |
@@ -74,16 +75,6 @@
 // | result_index (C++ interpreter only)                  |
 // |------------------------------------------------------|
 // | method_size             |   intrinsic_id|   flags    |
-// |------------------------------------------------------|
-// | throwout_count          |   num_breakpoints          |
-// |------------------------------------------------------|
-// | invocation_counter                                   |
-// | backedge_counter                                     |
-// |------------------------------------------------------|
-// |           prev_time (tiered only, 64 bit wide)       |
-// |                                                      |
-// |------------------------------------------------------|
-// |                  rate (tiered)                       |
 // |------------------------------------------------------|
 // | code                           (pointer)             |
 // | i2i                            (pointer)             |
@@ -100,6 +91,7 @@ class CheckedExceptionElement;
 class LocalVariableTableElement;
 class AdapterHandlerEntry;
 class MethodData;
+class MethodCounters;
 class ConstMethod;
 class InlineTableSizes;
 class KlassSizeStats;
@@ -109,7 +101,7 @@ class Method : public Metadata {
  private:
   ConstMethod*      _constMethod;                // Method read-only data.
   MethodData*       _method_data;
-  int               _interpreter_invocation_count; // Count of times invoked (reused as prev_event_count in tiered)
+  MethodCounters*   _method_counters;
   AccessFlags       _access_flags;               // Access flags
   int               _vtable_index;               // vtable index of this method (see VtableIndexFlag)
                                                  // note: can have vtables with >2**16 elements (because of inheritance)
@@ -124,19 +116,6 @@ class Method : public Metadata {
                     _hidden           : 1,
                     _dont_inline      : 1,
                                       : 3;
-  u2                _interpreter_throwout_count; // Count of times method was exited via exception while interpreting
-  u2                _number_of_breakpoints;      // fullspeed debugging support
-  InvocationCounter _invocation_counter;         // Incremented before each activation of the method - used to trigger frequency-based optimizations
-  InvocationCounter _backedge_counter;           // Incremented before each backedge taken - used to trigger frequencey-based optimizations
-
-#ifdef GRAAL
-  jlong             _graal_invocation_time;
-  int               _graal_priority;
-#endif
-#ifdef TIERED
-  float             _rate;                        // Events (invocation and backedge counter increments) per millisecond
-  jlong             _prev_time;                   // Previous time the rate was acquired
-#endif
 
 #ifndef PRODUCT
   int               _compiled_invocation_count;  // Number of nmethod invocations so far (for perf. debugging)
@@ -251,11 +230,31 @@ class Method : public Metadata {
   void clear_all_breakpoints();
   // Tracking number of breakpoints, for fullspeed debugging.
   // Only mutated by VM thread.
-  u2   number_of_breakpoints() const             { return _number_of_breakpoints; }
-  void incr_number_of_breakpoints()              { ++_number_of_breakpoints; }
-  void decr_number_of_breakpoints()              { --_number_of_breakpoints; }
+  u2   number_of_breakpoints()             const {
+    if (method_counters() == NULL) {
+      return 0;
+    } else {
+      return method_counters()->number_of_breakpoints();
+    }
+  }
+  void incr_number_of_breakpoints(TRAPS)         {
+    MethodCounters* mcs = get_method_counters(CHECK);
+    if (mcs != NULL) {
+      mcs->incr_number_of_breakpoints();
+    }
+  }
+  void decr_number_of_breakpoints(TRAPS)         {
+    MethodCounters* mcs = get_method_counters(CHECK);
+    if (mcs != NULL) {
+      mcs->decr_number_of_breakpoints();
+    }
+  }
   // Initialization only
-  void clear_number_of_breakpoints()             { _number_of_breakpoints = 0; }
+  void clear_number_of_breakpoints()             {
+    if (method_counters() != NULL) {
+      method_counters()->clear_number_of_breakpoints();
+    }
+  }
 
   // index into InstanceKlass methods() array
   // note: also used by jfr
@@ -292,14 +291,20 @@ class Method : public Metadata {
   void set_highest_osr_comp_level(int level);
 
   // Count of times method was exited via exception while interpreting
-  void interpreter_throwout_increment() {
-    if (_interpreter_throwout_count < 65534) {
-      _interpreter_throwout_count++;
+  void interpreter_throwout_increment(TRAPS) {
+    MethodCounters* mcs = get_method_counters(CHECK);
+    if (mcs != NULL) {
+      mcs->interpreter_throwout_increment();
     }
   }
 
-  int  interpreter_throwout_count() const        { return _interpreter_throwout_count; }
-  void set_interpreter_throwout_count(int count) { _interpreter_throwout_count = count; }
+  int  interpreter_throwout_count() const        {
+    if (method_counters() == NULL) {
+      return 0;
+    } else {
+      return method_counters()->interpreter_throwout_count();
+    }
+  }
 
   // size of parameters
   int  size_of_parameters() const                { return constMethod()->size_of_parameters(); }
@@ -343,51 +348,75 @@ class Method : public Metadata {
   MethodData* method_data() const              {
     return _method_data;
   }
+
   void set_method_data(MethodData* data)       {
     _method_data = data;
   }
 
-  // invocation counter
-  InvocationCounter* invocation_counter() { return &_invocation_counter; }
-  InvocationCounter* backedge_counter()   { return &_backedge_counter; }
+  MethodCounters* method_counters() const {
+    return _method_counters;
+  }
+
+
+  void set_method_counters(MethodCounters* counters) {
+    _method_counters = counters;
+  }
 
 #ifdef TIERED
   // We are reusing interpreter_invocation_count as a holder for the previous event count!
   // We can do that since interpreter_invocation_count is not used in tiered.
-  int prev_event_count() const                   { return _interpreter_invocation_count;  }
-  void set_prev_event_count(int count)           { _interpreter_invocation_count = count; }
-  jlong prev_time() const                        { return _prev_time; }
-  void set_prev_time(jlong time)                 { _prev_time = time; }
-  float rate() const                             { return _rate; }
-  void set_rate(float rate)                      { _rate = rate; }
+  int prev_event_count() const                   {
+    if (method_counters() == NULL) {
+      return 0;
+    } else {
+      return method_counters()->interpreter_invocation_count();
+    }
+  }
+  void set_prev_event_count(int count, TRAPS)    {
+    MethodCounters* mcs = get_method_counters(CHECK);
+    if (mcs != NULL) {
+      mcs->set_interpreter_invocation_count(count);
+    }
+  }
+  jlong prev_time() const                        {
+    return method_counters() == NULL ? 0 : method_counters()->prev_time();
+  }
+  void set_prev_time(jlong time, TRAPS)          {
+    MethodCounters* mcs = get_method_counters(CHECK);
+    if (mcs != NULL) {
+      mcs->set_prev_time(time);
+    }
+  }
+  float rate() const                             {
+    return method_counters() == NULL ? 0 : method_counters()->rate();
+  }
+  void set_rate(float rate, TRAPS) {
+    MethodCounters* mcs = get_method_counters(CHECK);
+    if (mcs != NULL) {
+      mcs->set_rate(rate);
+    }
+  }
 #endif
 
   int invocation_count();
   int backedge_count();
-
-#ifdef GRAAL
-  void set_graal_invocation_time(jlong time) { _graal_invocation_time = time; }
-  jlong graal_invocation_time()          { return _graal_invocation_time; }
-
-  void set_graal_priority(int prio)      { _graal_priority = prio; }
-  int graal_priority()                   { return _graal_priority; }
-
-  void reset_counters();
-#endif // GRAAL
 
   bool was_executed_more_than(int n);
   bool was_never_executed()                      { return !was_executed_more_than(0); }
 
   static void build_interpreter_method_data(methodHandle method, TRAPS);
 
+  static MethodCounters* build_method_counters(Method* m, TRAPS);
+
   int interpreter_invocation_count() {
     if (TieredCompilation) return invocation_count();
-    else return _interpreter_invocation_count;
+    else return (method_counters() == NULL) ? 0 :
+                 method_counters()->interpreter_invocation_count();
   }
-  void set_interpreter_invocation_count(int count) { _interpreter_invocation_count = count; }
-  int increment_interpreter_invocation_count() {
+  int increment_interpreter_invocation_count(TRAPS) {
     if (TieredCompilation) ShouldNotReachHere();
-    return ++_interpreter_invocation_count;
+    MethodCounters* mcs = get_method_counters(CHECK_0);
+    return (mcs == NULL) ? 0 : mcs->increment_interpreter_invocation_count();
   }
   
 #ifndef PRODUCT
@@ -596,16 +625,12 @@ class Method : public Metadata {
 #endif /* CC_INTERP */
   static ByteSize from_compiled_offset()         { return byte_offset_of(Method, _from_compiled_entry); }
   static ByteSize code_offset()                  { return byte_offset_of(Method, _code); }
-  static ByteSize invocation_counter_offset()    { return byte_offset_of(Method, _invocation_counter); }
-  static ByteSize backedge_counter_offset()      { return byte_offset_of(Method, _backedge_counter); }
   static ByteSize method_data_offset()           {
     return byte_offset_of(Method, _method_data);
   }
-  static ByteSize interpreter_invocation_counter_offset() { return byte_offset_of(Method, _interpreter_invocation_count); }
-#ifdef GRAAL
-  static ByteSize graal_invocation_time_offset() { return byte_offset_of(Method, _graal_invocation_time); }
-  static ByteSize graal_priority_offset()        { return byte_offset_of(Method, _graal_priority); }
-#endif
+  static ByteSize method_counters_offset()       {
+    return byte_offset_of(Method, _method_counters);
+  }
 #ifndef PRODUCT
   static ByteSize compiled_invocation_counter_offset() { return byte_offset_of(Method, _compiled_invocation_count); }
 #endif // not PRODUCT
@@ -616,8 +641,6 @@ class Method : public Metadata {
 
   // for code generation
   static int method_data_offset_in_bytes()       { return offset_of(Method, _method_data); }
-  static int interpreter_invocation_counter_offset_in_bytes()
-                                                 { return offset_of(Method, _interpreter_invocation_count); }
   static int intrinsic_id_offset_in_bytes()      { return offset_of(Method, _intrinsic_id); }
   static int intrinsic_id_size_in_bytes()        { return sizeof(u1); }
 
@@ -648,13 +671,15 @@ class Method : public Metadata {
                                                    Symbol* signature, //anything at all
                                                    TRAPS);
   static Klass* check_non_bcp_klass(Klass* klass);
-  // these operate only on invoke methods:
+
+  // How many extra stack entries for invokedynamic when it's enabled
+  static const int extra_stack_entries_for_jsr292 = 1;
+
+  // this operates only on invoke methods:
   // presize interpreter frames for extra interpreter stack entries, if needed
-  // method handles want to be able to push a few extra values (e.g., a bound receiver), and
-  // invokedynamic sometimes needs to push a bootstrap method, call site, and arglist,
-  // all without checking for a stack overflow
-  static int extra_stack_entries() { return EnableInvokeDynamic ? 2 : 0; }
-  static int extra_stack_words();  // = extra_stack_entries() * Interpreter::stackElementSize()
+  // Account for the extra appendix argument for invokehandle/invokedynamic
+  static int extra_stack_entries() { return EnableInvokeDynamic ? extra_stack_entries_for_jsr292 : 0; }
+  static int extra_stack_words();  // = extra_stack_entries() * Interpreter::stackElementSize
 
   // RedefineClasses() support:
   bool is_old() const                               { return access_flags().is_old(); }
@@ -774,6 +799,13 @@ class Method : public Metadata {
 
  private:
   void print_made_not_compilable(int comp_level, bool is_osr, bool report, const char* reason);
+
+  MethodCounters* get_method_counters(TRAPS) {
+    if (_method_counters == NULL) {
+      build_method_counters(this, CHECK_AND_CLEAR_NULL);
+    }
+    return _method_counters;
+  }
 
  public:
   bool   is_not_c1_compilable() const         { return access_flags().is_not_c1_compilable();  }
@@ -956,7 +988,7 @@ class ExceptionTable : public StackObj {
   u2  _length;
 
  public:
-  ExceptionTable(Method* m) {
+  ExceptionTable(const Method* m) {
     if (m->has_exception_handler()) {
       _table = m->exception_table_start();
       _length = m->exception_table_length();

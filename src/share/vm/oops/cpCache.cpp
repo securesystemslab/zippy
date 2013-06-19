@@ -266,7 +266,8 @@ void ConstantPoolCacheEntry::set_method_handle_common(constantPoolHandle cpool,
   // the lock, so that when the losing writer returns, he can use the linked
   // cache entry.
 
-  MonitorLockerEx ml(cpool->lock());
+  oop cplock = cpool->lock();
+  ObjectLocker ol(cplock, Thread::current(), cplock != NULL);
   if (!is_f1_null()) {
     return;
   }
@@ -541,7 +542,8 @@ ConstantPoolCache* ConstantPoolCache::allocate(ClassLoaderData* loader_data,
                                      const intStack& invokedynamic_map, TRAPS) {
   int size = ConstantPoolCache::size(length);
 
-  return new (loader_data, size, false, THREAD) ConstantPoolCache(length, index_map, invokedynamic_map);
+  return new (loader_data, size, false, MetaspaceObj::ConstantPoolCacheType, THREAD)
+    ConstantPoolCache(length, index_map, invokedynamic_map);
 }
 
 void ConstantPoolCache::initialize(const intArray& inverse_index_map,

@@ -160,7 +160,8 @@ void VM_RedefineClasses::doit() {
   if (RC_TRACE_ENABLED(0x00004000)) {
 #endif
     RC_TRACE_WITH_THREAD(0x00004000, thread, ("calling check_class"));
-    SystemDictionary::classes_do(check_class, thread);
+    CheckClass check_class(thread);
+    ClassLoaderDataGraph::classes_do(&check_class);
 #ifdef PRODUCT
   }
 #endif
@@ -415,20 +416,26 @@ void VM_RedefineClasses::append_entry(constantPoolHandle scratch_cp,
     // this is an indirect CP entry so it needs special handling
     case JVM_CONSTANT_InvokeDynamic:
     {
-      // TBD: cross-checks and possible extra appends into CP and bsm operands
-      // are needed as well. This issue is tracked by a separate bug 8007037.
-      int bss_idx = scratch_cp->invoke_dynamic_bootstrap_specifier_index(scratch_i);
-
-      int ref_i = scratch_cp->invoke_dynamic_name_and_type_ref_index_at(scratch_i);
-      int new_ref_i = find_or_append_indirect_entry(scratch_cp, ref_i, merge_cp_p,
+      // Index of the bootstrap specifier in the operands array
+      int old_bs_i = scratch_cp->invoke_dynamic_bootstrap_specifier_index(scratch_i);
+      int new_bs_i = find_or_append_operand(scratch_cp, old_bs_i, merge_cp_p,
+                                            merge_cp_length_p, THREAD);
+      // The bootstrap method NameAndType_info index
+      int old_ref_i = scratch_cp->invoke_dynamic_name_and_type_ref_index_at(scratch_i);
+      int new_ref_i = find_or_append_indirect_entry(scratch_cp, old_ref_i, merge_cp_p,
                                                     merge_cp_length_p, THREAD);
-      if (new_ref_i != ref_i) {
+      if (new_bs_i != old_bs_i) {
         RC_TRACE(0x00080000,
-                 ("InvokeDynamic entry@%d name_and_type ref_index change: %d to %d",
-                  *merge_cp_length_p, ref_i, new_ref_i));
+                 ("InvokeDynamic entry@%d bootstrap_method_attr_index change: %d to %d",
+                  *merge_cp_length_p, old_bs_i, new_bs_i));
+      }
+      if (new_ref_i != old_ref_i) {
+        RC_TRACE(0x00080000,
+                 ("InvokeDynamic entry@%d name_and_type_index change: %d to %d",
+                  *merge_cp_length_p, old_ref_i, new_ref_i));
       }
 
-      (*merge_cp_p)->invoke_dynamic_at_put(*merge_cp_length_p, bss_idx, new_ref_i);
+      (*merge_cp_p)->invoke_dynamic_at_put(*merge_cp_length_p, new_bs_i, new_ref_i);
       if (scratch_i != *merge_cp_length_p) {
         // The new entry in *merge_cp_p is at a different index than
         // the new entry in scratch_cp so we need to map the index values.
@@ -490,6 +497,105 @@ int VM_RedefineClasses::find_or_append_indirect_entry(constantPoolHandle scratch
 
   return new_ref_i;
 } // end find_or_append_indirect_entry()
+
+
+// Append a bootstrap specifier into the merge_cp operands that is semantically equal
+// to the scratch_cp operands bootstrap specifier passed by the old_bs_i index.
+// Recursively append new merge_cp entries referenced by the new bootstrap specifier.
+void VM_RedefineClasses::append_operand(constantPoolHandle scratch_cp, int old_bs_i,
+       constantPoolHandle *merge_cp_p, int *merge_cp_length_p, TRAPS) {
+
+  int old_ref_i = scratch_cp->operand_bootstrap_method_ref_index_at(old_bs_i);
+  int new_ref_i = find_or_append_indirect_entry(scratch_cp, old_ref_i, merge_cp_p,
+                                                merge_cp_length_p, THREAD);
+  if (new_ref_i != old_ref_i) {
+    RC_TRACE(0x00080000,
+             ("operands entry@%d bootstrap method ref_index change: %d to %d",
+              _operands_cur_length, old_ref_i, new_ref_i));
+  }
+
+  Array<u2>* merge_ops = (*merge_cp_p)->operands();
+  int new_bs_i = _operands_cur_length;
+  // We have _operands_cur_length == 0 when the merge_cp operands is empty yet.
+  // However, the operand_offset_at(0) was set in the extend_operands() call.
+  int new_base = (new_bs_i == 0) ? (*merge_cp_p)->operand_offset_at(0)
+                                 : (*merge_cp_p)->operand_next_offset_at(new_bs_i - 1);
+  int argc     = scratch_cp->operand_argument_count_at(old_bs_i);
+
+  ConstantPool::operand_offset_at_put(merge_ops, _operands_cur_length, new_base);
+  merge_ops->at_put(new_base++, new_ref_i);
+  merge_ops->at_put(new_base++, argc);
+
+  for (int i = 0; i < argc; i++) {
+    int old_arg_ref_i = scratch_cp->operand_argument_index_at(old_bs_i, i);
+    int new_arg_ref_i = find_or_append_indirect_entry(scratch_cp, old_arg_ref_i, merge_cp_p,
+                                                      merge_cp_length_p, THREAD);
+    merge_ops->at_put(new_base++, new_arg_ref_i);
+    if (new_arg_ref_i != old_arg_ref_i) {
+      RC_TRACE(0x00080000,
+               ("operands entry@%d bootstrap method argument ref_index change: %d to %d",
+                _operands_cur_length, old_arg_ref_i, new_arg_ref_i));
+    }
+  }
+  if (old_bs_i != _operands_cur_length) {
+    // The bootstrap specifier in *merge_cp_p is at a different index than
+    // that in scratch_cp so we need to map the index values.
+    map_operand_index(old_bs_i, new_bs_i);
+  }
+  _operands_cur_length++;
+} // end append_operand()
+
+
+int VM_RedefineClasses::find_or_append_operand(constantPoolHandle scratch_cp,
+      int old_bs_i, constantPoolHandle *merge_cp_p, int *merge_cp_length_p, TRAPS) {
+
+  int new_bs_i = old_bs_i; // bootstrap specifier index
+  bool match = (old_bs_i < _operands_cur_length) &&
+               scratch_cp->compare_operand_to(old_bs_i, *merge_cp_p, old_bs_i, THREAD);
+
+  if (!match) {
+    // forward reference in *merge_cp_p or not a direct match
+    int found_i = scratch_cp->find_matching_operand(old_bs_i, *merge_cp_p,
+                                                    _operands_cur_length, THREAD);
+    if (found_i != -1) {
+      guarantee(found_i != old_bs_i, "compare_operand_to() and find_matching_operand() disagree");
+      // found a matching operand somewhere else in *merge_cp_p so just need a mapping
+      new_bs_i = found_i;
+      map_operand_index(old_bs_i, found_i);
+    } else {
+      // no match found so we have to append this bootstrap specifier to *merge_cp_p
+      append_operand(scratch_cp, old_bs_i, merge_cp_p, merge_cp_length_p, THREAD);
+      new_bs_i = _operands_cur_length - 1;
+    }
+  }
+  return new_bs_i;
+} // end find_or_append_operand()
+
+
+void VM_RedefineClasses::finalize_operands_merge(constantPoolHandle merge_cp, TRAPS) {
+  if (merge_cp->operands() == NULL) {
+    return;
+  }
+  // Shrink the merge_cp operands
+  merge_cp->shrink_operands(_operands_cur_length, CHECK);
+
+  if (RC_TRACE_ENABLED(0x00040000)) {
+    // don't want to loop unless we are tracing
+    int count = 0;
+    for (int i = 1; i < _operands_index_map_p->length(); i++) {
+      int value = _operands_index_map_p->at(i);
+      if (value != -1) {
+        RC_TRACE_WITH_THREAD(0x00040000, THREAD,
+          ("operands_index_map[%d]: old=%d new=%d", count, i, value));
+        count++;
+      }
+    }
+  }
+  // Clean-up
+  _operands_index_map_p = NULL;
+  _operands_cur_length = 0;
+  _operands_index_map_count = 0;
+} // end finalize_operands_merge()
 
 
 jvmtiError VM_RedefineClasses::compare_and_normalize_class_versions(
@@ -765,6 +871,31 @@ int VM_RedefineClasses::find_new_index(int old_index) {
 } // end find_new_index()
 
 
+// Find new bootstrap specifier index value for old bootstrap specifier index
+// value by seaching the index map. Returns unused index (-1) if there is
+// no mapped value for the old bootstrap specifier index.
+int VM_RedefineClasses::find_new_operand_index(int old_index) {
+  if (_operands_index_map_count == 0) {
+    // map is empty so nothing can be found
+    return -1;
+  }
+
+  if (old_index == -1 || old_index >= _operands_index_map_p->length()) {
+    // The old_index is out of range so it is not mapped.
+    // This should not happen in regular constant pool merging use.
+    return -1;
+  }
+
+  int value = _operands_index_map_p->at(old_index);
+  if (value == -1) {
+    // the old_index is not mapped
+    return -1;
+  }
+
+  return value;
+} // end find_new_operand_index()
+
+
 // Returns true if the current mismatch is due to a resolved/unresolved
 // class pair. Otherwise, returns false.
 bool VM_RedefineClasses::is_unresolved_class_mismatch(constantPoolHandle cp1,
@@ -1014,6 +1145,25 @@ void VM_RedefineClasses::map_index(constantPoolHandle scratch_cp,
 } // end map_index()
 
 
+// Map old_index to new_index as needed.
+void VM_RedefineClasses::map_operand_index(int old_index, int new_index) {
+  if (find_new_operand_index(old_index) != -1) {
+    // old_index is already mapped
+    return;
+  }
+
+  if (old_index == new_index) {
+    // no mapping is needed
+    return;
+  }
+
+  _operands_index_map_p->at_put(old_index, new_index);
+  _operands_index_map_count++;
+
+  RC_TRACE(0x00040000, ("mapped bootstrap specifier at index %d to %d", old_index, new_index));
+} // end map_index()
+
+
 // Merge old_cp and scratch_cp and return the results of the merge via
 // merge_cp_p. The number of entries in *merge_cp_p is returned via
 // merge_cp_length_p. The entries in old_cp occupy the same locations
@@ -1086,6 +1236,7 @@ bool VM_RedefineClasses::merge_constant_pools(constantPoolHandle old_cp,
     } // end for each old_cp entry
 
     ConstantPool::copy_operands(old_cp, *merge_cp_p, CHECK_0);
+    (*merge_cp_p)->extend_operands(scratch_cp, CHECK_0);
 
     // We don't need to sanity check that *merge_cp_length_p is within
     // *merge_cp_p bounds since we have the minimum on-entry check above.
@@ -1202,6 +1353,7 @@ bool VM_RedefineClasses::merge_constant_pools(constantPoolHandle old_cp,
       ("after pass 1b: merge_cp_len=%d, scratch_i=%d, index_map_len=%d",
       *merge_cp_length_p, scratch_i, _index_map_count));
   }
+  finalize_operands_merge(*merge_cp_p, THREAD);
 
   return true;
 } // end merge_constant_pools()
@@ -1269,6 +1421,11 @@ jvmtiError VM_RedefineClasses::merge_cp_and_rewrite(
   ResourceMark rm(THREAD);
   _index_map_count = 0;
   _index_map_p = new intArray(scratch_cp->length(), -1);
+
+  _operands_cur_length = ConstantPool::operand_array_length(old_cp->operands());
+  _operands_index_map_count = 0;
+  _operands_index_map_p = new intArray(
+    ConstantPool::operand_array_length(scratch_cp->operands()), -1);
 
   // reference to the cp holder is needed for copy_operands()
   merge_cp->set_pool_holder(scratch_class());
@@ -1399,7 +1556,6 @@ bool VM_RedefineClasses::rewrite_cp_refs(instanceKlassHandle scratch_class,
 
   return true;
 } // end rewrite_cp_refs()
-
 
 // Rewrite constant pool references in the methods.
 bool VM_RedefineClasses::rewrite_cp_refs_in_methods(
@@ -2497,29 +2653,35 @@ void VM_RedefineClasses::set_new_constant_pool(
 } // end set_new_constant_pool()
 
 
-void VM_RedefineClasses::adjust_array_vtable(Klass* k_oop) {
-  ArrayKlass* ak = ArrayKlass::cast(k_oop);
-  bool trace_name_printed = false;
-  ak->vtable()->adjust_method_entries(_matching_old_methods,
-                                      _matching_new_methods,
-                                      _matching_methods_length,
-                                      &trace_name_printed);
-}
-
 // Unevolving classes may point to methods of the_class directly
 // from their constant pool caches, itables, and/or vtables. We
-// use the SystemDictionary::classes_do() facility and this helper
+// use the ClassLoaderDataGraph::classes_do() facility and this helper
 // to fix up these pointers.
-//
-// Note: We currently don't support updating the vtable in
-// arrayKlassOops. See Open Issues in jvmtiRedefineClasses.hpp.
-void VM_RedefineClasses::adjust_cpool_cache_and_vtable(Klass* k_oop,
-       ClassLoaderData* initiating_loader,
-       TRAPS) {
-  Klass *k = k_oop;
-  if (k->oop_is_instance()) {
-    HandleMark hm(THREAD);
-    InstanceKlass *ik = (InstanceKlass *) k;
+
+// Adjust cpools and vtables closure
+void VM_RedefineClasses::AdjustCpoolCacheAndVtable::do_klass(Klass* k) {
+
+  // This is a very busy routine. We don't want too much tracing
+  // printed out.
+  bool trace_name_printed = false;
+
+  // Very noisy: only enable this call if you are trying to determine
+  // that a specific class gets found by this routine.
+  // RC_TRACE macro has an embedded ResourceMark
+  // RC_TRACE_WITH_THREAD(0x00100000, THREAD,
+  //   ("adjust check: name=%s", k->external_name()));
+  // trace_name_printed = true;
+
+  // If the class being redefined is java.lang.Object, we need to fix all
+  // array class vtables also
+  if (k->oop_is_array() && _the_class_oop == SystemDictionary::Object_klass()) {
+    k->vtable()->adjust_method_entries(_matching_old_methods,
+                                       _matching_new_methods,
+                                       _matching_methods_length,
+                                       &trace_name_printed);
+  } else if (k->oop_is_instance()) {
+    HandleMark hm(_thread);
+    InstanceKlass *ik = InstanceKlass::cast(k);
 
     // HotSpot specific optimization! HotSpot does not currently
     // support delegation from the bootstrap class loader to a
@@ -2539,23 +2701,6 @@ void VM_RedefineClasses::adjust_cpool_cache_and_vtable(Klass* k_oop,
       return;
     }
 
-    // If the class being redefined is java.lang.Object, we need to fix all
-    // array class vtables also
-    if (_the_class_oop == SystemDictionary::Object_klass()) {
-      ik->array_klasses_do(adjust_array_vtable);
-    }
-
-    // This is a very busy routine. We don't want too much tracing
-    // printed out.
-    bool trace_name_printed = false;
-
-    // Very noisy: only enable this call if you are trying to determine
-    // that a specific class gets found by this routine.
-    // RC_TRACE macro has an embedded ResourceMark
-    // RC_TRACE_WITH_THREAD(0x00100000, THREAD,
-    //   ("adjust check: name=%s", ik->external_name()));
-    // trace_name_printed = true;
-
     // Fix the vtable embedded in the_class and subclasses of the_class,
     // if one exists. We discard scratch_class and we don't keep an
     // InstanceKlass around to hold obsolete methods so we don't have
@@ -2563,7 +2708,7 @@ void VM_RedefineClasses::adjust_cpool_cache_and_vtable(Klass* k_oop,
     // holds the Method*s for virtual (but not final) methods.
     if (ik->vtable_length() > 0 && ik->is_subtype_of(_the_class_oop)) {
       // ik->vtable() creates a wrapper object; rm cleans it up
-      ResourceMark rm(THREAD);
+      ResourceMark rm(_thread);
       ik->vtable()->adjust_method_entries(_matching_old_methods,
                                           _matching_new_methods,
                                           _matching_methods_length,
@@ -2579,7 +2724,7 @@ void VM_RedefineClasses::adjust_cpool_cache_and_vtable(Klass* k_oop,
     if (ik->itable_length() > 0 && (_the_class_oop->is_interface()
         || ik->is_subclass_of(_the_class_oop))) {
       // ik->itable() creates a wrapper object; rm cleans it up
-      ResourceMark rm(THREAD);
+      ResourceMark rm(_thread);
       ik->itable()->adjust_method_entries(_matching_old_methods,
                                           _matching_new_methods,
                                           _matching_methods_length,
@@ -2602,7 +2747,7 @@ void VM_RedefineClasses::adjust_cpool_cache_and_vtable(Klass* k_oop,
     constantPoolHandle other_cp;
     ConstantPoolCache* cp_cache;
 
-    if (k_oop != _the_class_oop) {
+    if (ik != _the_class_oop) {
       // this klass' constant pool cache may need adjustment
       other_cp = constantPoolHandle(ik->constants());
       cp_cache = other_cp->cache();
@@ -2614,7 +2759,7 @@ void VM_RedefineClasses::adjust_cpool_cache_and_vtable(Klass* k_oop,
       }
     }
     {
-      ResourceMark rm(THREAD);
+      ResourceMark rm(_thread);
       // PreviousVersionInfo objects returned via PreviousVersionWalker
       // contain a GrowableArray of handles. We have to clean up the
       // GrowableArray _after_ the PreviousVersionWalker destructor
@@ -3052,7 +3197,7 @@ void VM_RedefineClasses::swap_annotations(instanceKlassHandle the_class,
 //      parts of the_class
 //    - adjusting constant pool caches and vtables in other classes
 //      that refer to methods in the_class. These adjustments use the
-//      SystemDictionary::classes_do() facility which only allows
+//      ClassLoaderDataGraph::classes_do() facility which only allows
 //      a helper method to be specified. The interesting parameters
 //      that we would like to pass to the helper method are saved in
 //      static global fields in the VM operation.
@@ -3210,6 +3355,10 @@ void VM_RedefineClasses::redefine_single_class(jclass the_jclass,
   }
 #endif
 
+  // NULL out in scratch class to not delete twice.  The class to be redefined
+  // always owns these bytes.
+  scratch_class->set_cached_class_file(NULL, 0);
+
   // Replace inner_classes
   Array<u2>* old_inner_classes = the_class->inner_classes();
   the_class->set_inner_classes(scratch_class->inner_classes());
@@ -3282,7 +3431,18 @@ void VM_RedefineClasses::redefine_single_class(jclass the_jclass,
 
   // Adjust constantpool caches and vtables for all classes
   // that reference methods of the evolved class.
-  SystemDictionary::classes_do(adjust_cpool_cache_and_vtable, THREAD);
+  AdjustCpoolCacheAndVtable adjust_cpool_cache_and_vtable(THREAD);
+  ClassLoaderDataGraph::classes_do(&adjust_cpool_cache_and_vtable);
+
+  // JSR-292 support
+  MemberNameTable* mnt = the_class->member_names();
+  if (mnt != NULL) {
+    bool trace_name_printed = false;
+    mnt->adjust_method_entries(_matching_old_methods,
+                               _matching_new_methods,
+                               _matching_methods_length,
+                               &trace_name_printed);
+  }
 
   // Fix Resolution Error table also to remove old constant pools
   SystemDictionary::delete_resolution_error(old_constants);
@@ -3333,34 +3493,33 @@ void VM_RedefineClasses::increment_class_counter(InstanceKlass *ik, TRAPS) {
   }
 }
 
-void VM_RedefineClasses::check_class(Klass* k_oop,
-                                     ClassLoaderData* initiating_loader,
-                                     TRAPS) {
-  Klass *k = k_oop;
-  if (k->oop_is_instance()) {
-    HandleMark hm(THREAD);
-    InstanceKlass *ik = (InstanceKlass *) k;
-    bool no_old_methods = true;  // be optimistic
-    ResourceMark rm(THREAD);
+void VM_RedefineClasses::CheckClass::do_klass(Klass* k) {
+  bool no_old_methods = true;  // be optimistic
 
-    // a vtable should never contain old or obsolete methods
-    if (ik->vtable_length() > 0 &&
-        !ik->vtable()->check_no_old_or_obsolete_entries()) {
-      if (RC_TRACE_ENABLED(0x00004000)) {
-        RC_TRACE_WITH_THREAD(0x00004000, THREAD,
-          ("klassVtable::check_no_old_or_obsolete_entries failure"
-           " -- OLD or OBSOLETE method found -- class: %s",
-           ik->signature_name()));
-        ik->vtable()->dump_vtable();
-      }
-      no_old_methods = false;
+  // Both array and instance classes have vtables.
+  // a vtable should never contain old or obsolete methods
+  ResourceMark rm(_thread);
+  if (k->vtable_length() > 0 &&
+      !k->vtable()->check_no_old_or_obsolete_entries()) {
+    if (RC_TRACE_ENABLED(0x00004000)) {
+      RC_TRACE_WITH_THREAD(0x00004000, _thread,
+        ("klassVtable::check_no_old_or_obsolete_entries failure"
+         " -- OLD or OBSOLETE method found -- class: %s",
+         k->signature_name()));
+      k->vtable()->dump_vtable();
     }
+    no_old_methods = false;
+  }
+
+  if (k->oop_is_instance()) {
+    HandleMark hm(_thread);
+    InstanceKlass *ik = InstanceKlass::cast(k);
 
     // an itable should never contain old or obsolete methods
     if (ik->itable_length() > 0 &&
         !ik->itable()->check_no_old_or_obsolete_entries()) {
       if (RC_TRACE_ENABLED(0x00004000)) {
-        RC_TRACE_WITH_THREAD(0x00004000, THREAD,
+        RC_TRACE_WITH_THREAD(0x00004000, _thread,
           ("klassItable::check_no_old_or_obsolete_entries failure"
            " -- OLD or OBSOLETE method found -- class: %s",
            ik->signature_name()));
@@ -3374,7 +3533,7 @@ void VM_RedefineClasses::check_class(Klass* k_oop,
         ik->constants()->cache() != NULL &&
         !ik->constants()->cache()->check_no_old_or_obsolete_entries()) {
       if (RC_TRACE_ENABLED(0x00004000)) {
-        RC_TRACE_WITH_THREAD(0x00004000, THREAD,
+        RC_TRACE_WITH_THREAD(0x00004000, _thread,
           ("cp-cache::check_no_old_or_obsolete_entries failure"
            " -- OLD or OBSOLETE method found -- class: %s",
            ik->signature_name()));
@@ -3382,18 +3541,20 @@ void VM_RedefineClasses::check_class(Klass* k_oop,
       }
       no_old_methods = false;
     }
+  }
 
-    if (!no_old_methods) {
-      if (RC_TRACE_ENABLED(0x00004000)) {
-        dump_methods();
-      } else {
-        tty->print_cr("INFO: use the '-XX:TraceRedefineClasses=16384' option "
-          "to see more info about the following guarantee() failure.");
-      }
-      guarantee(false, "OLD and/or OBSOLETE method(s) found");
+  // print and fail guarantee if old methods are found.
+  if (!no_old_methods) {
+    if (RC_TRACE_ENABLED(0x00004000)) {
+      dump_methods();
+    } else {
+      tty->print_cr("INFO: use the '-XX:TraceRedefineClasses=16384' option "
+        "to see more info about the following guarantee() failure.");
     }
+    guarantee(false, "OLD and/or OBSOLETE method(s) found");
   }
 }
+
 
 void VM_RedefineClasses::dump_methods() {
   int j;

@@ -35,23 +35,18 @@
 #include "code/vmreg.hpp"
 
 #ifdef TARGET_ARCH_x86
-# include "codeInstaller_x86.hpp"
 # include "vmreg_x86.inline.hpp"
 #endif
 #ifdef TARGET_ARCH_sparc
-# include "codeInstaller_sparc.hpp"
 # include "vmreg_sparc.inline.hpp"
 #endif
 #ifdef TARGET_ARCH_zero
-# include "codeInstaller_zero.hpp"
 # include "vmreg_zero.inline.hpp"
 #endif
 #ifdef TARGET_ARCH_arm
-# include "codeInstaller_arm.hpp"
 # include "vmreg_arm.inline.hpp"
 #endif
 #ifdef TARGET_ARCH_ppc
-# include "codeInstaller_ppc.hpp"
 # include "vmreg_ppc.inline.hpp"
 #endif
 

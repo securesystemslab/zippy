@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,6 +45,7 @@
 #include "runtime/java.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "services/memoryService.hpp"
+#include "trace/tracing.hpp"
 #include "utilities/xmlstream.hpp"
 
 // Helper class for printing in CodeCache
@@ -114,7 +115,6 @@ class CodeBlob_sizes {
   }
 };
 
-
 // CodeCache implementation
 
 CodeHeap * CodeCache::_heap = new CodeHeap();
@@ -126,6 +126,7 @@ bool CodeCache::_needs_cache_clean = false;
 nmethod* CodeCache::_scavenge_root_nmethods = NULL;
 nmethod* CodeCache::_saved_nmethods = NULL;
 
+int CodeCache::_codemem_full_count = 0;
 
 CodeBlob* CodeCache::first() {
   assert_locked_or_safepoint(CodeCache_lock);
@@ -172,7 +173,7 @@ nmethod* CodeCache::next_nmethod (CodeBlob* cb) {
 
 static size_t maxCodeCacheUsed = 0;
 
-CodeBlob* CodeCache::allocate(int size) {
+CodeBlob* CodeCache::allocate(int size, bool is_critical) {
   // Do not seize the CodeCache lock here--if the caller has not
   // already done so, we are going to lose bigtime, since the code
   // cache will contain a garbage CodeBlob until the caller can
@@ -183,7 +184,7 @@ CodeBlob* CodeCache::allocate(int size) {
   CodeBlob* cb = NULL;
   _number_of_blobs++;
   while (true) {
-    cb = (CodeBlob*)_heap->allocate(size);
+    cb = (CodeBlob*)_heap->allocate(size, is_critical);
     if (cb != NULL) break;
     if (!_heap->expand_by(CodeCacheExpansionSize)) {
       // Expansion failed
@@ -192,8 +193,8 @@ CodeBlob* CodeCache::allocate(int size) {
     if (PrintCodeCacheExtension) {
       ResourceMark rm;
       tty->print_cr("code cache extended to [" INTPTR_FORMAT ", " INTPTR_FORMAT "] (%d bytes)",
-                    (intptr_t)_heap->begin(), (intptr_t)_heap->end(),
-                    (address)_heap->end() - (address)_heap->begin());
+                    (intptr_t)_heap->low_boundary(), (intptr_t)_heap->high(),
+                    (address)_heap->high() - (address)_heap->low_boundary());
     }
   }
   maxCodeCacheUsed = MAX2(maxCodeCacheUsed, ((address)_heap->high_boundary() -
@@ -472,8 +473,10 @@ void CodeCache::verify_perm_nmethods(CodeBlobClosure* f_or_null) {
 }
 #endif //PRODUCT
 
-
-nmethod* CodeCache::find_and_remove_saved_code(Method* m) {
+/**
+ * Remove and return nmethod from the saved code list in order to reanimate it.
+ */
+nmethod* CodeCache::reanimate_saved_code(Method* m) {
   MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
   nmethod* saved = _saved_nmethods;
   nmethod* prev = NULL;
@@ -488,7 +491,7 @@ nmethod* CodeCache::find_and_remove_saved_code(Method* m) {
       saved->set_speculatively_disconnected(false);
       saved->set_saved_nmethod_link(NULL);
       if (PrintMethodFlushing) {
-        saved->print_on(tty, " ### nmethod is reconnected\n");
+        saved->print_on(tty, " ### nmethod is reconnected");
       }
       if (LogCompilation && (xtty != NULL)) {
         ttyLocker ttyl;
@@ -505,6 +508,9 @@ nmethod* CodeCache::find_and_remove_saved_code(Method* m) {
   return NULL;
 }
 
+/**
+ * Remove nmethod from the saved code list in order to discard it permanently
+ */
 void CodeCache::remove_saved_code(nmethod* nm) {
   // For conc swpr this will be called with CodeCache_lock taken by caller
   assert_locked_or_safepoint(CodeCache_lock);
@@ -538,7 +544,7 @@ void CodeCache::speculatively_disconnect(nmethod* nm) {
   nm->set_saved_nmethod_link(_saved_nmethods);
   _saved_nmethods = nm;
   if (PrintMethodFlushing) {
-    nm->print_on(tty, " ### nmethod is speculatively disconnected\n");
+    nm->print_on(tty, " ### nmethod is speculatively disconnected");
   }
   if (LogCompilation && (xtty != NULL)) {
     ttyLocker ttyl;
@@ -617,15 +623,24 @@ void CodeCache::verify_oops() {
 
 address CodeCache::first_address() {
   assert_locked_or_safepoint(CodeCache_lock);
-  return (address)_heap->begin();
+  return (address)_heap->low_boundary();
 }
 
 
 address CodeCache::last_address() {
   assert_locked_or_safepoint(CodeCache_lock);
-  return (address)_heap->end();
+  return (address)_heap->high();
 }
 
+/**
+ * Returns the reverse free ratio. E.g., if 25% (1/4) of the code cache
+ * is free, reverse_free_ratio() returns 4.
+ */
+double CodeCache::reverse_free_ratio() {
+  double unallocated_capacity = (double)(CodeCache::unallocated_capacity() - CodeCacheMinimumFreeSpace);
+  double max_capacity = (double)CodeCache::max_capacity();
+  return max_capacity / unallocated_capacity;
+}
 
 void icache_init();
 
@@ -824,6 +839,22 @@ void CodeCache::verify() {
   }
 }
 
+void CodeCache::report_codemem_full() {
+  _codemem_full_count++;
+  EventCodeCacheFull event;
+  if (event.should_commit()) {
+    event.set_startAddress((u8)low_bound());
+    event.set_commitedTopAddress((u8)high());
+    event.set_reservedTopAddress((u8)high_bound());
+    event.set_entryCount(nof_blobs());
+    event.set_methodCount(nof_nmethods());
+    event.set_adaptorCount(nof_adapters());
+    event.set_unallocatedCapacity(unallocated_capacity()/K);
+    event.set_fullCount(_codemem_full_count);
+    event.commit();
+  }
+}
+
 //------------------------------------------------------------------------------------------------
 // Non-product version
 
@@ -1005,10 +1036,9 @@ void CodeCache::print() {
 void CodeCache::print_summary(outputStream* st, bool detailed) {
   size_t total = (_heap->high_boundary() - _heap->low_boundary());
   st->print_cr("CodeCache: size=" SIZE_FORMAT "Kb used=" SIZE_FORMAT
-               "Kb max_used=" SIZE_FORMAT "Kb free=" SIZE_FORMAT
-               "Kb max_free_chunk=" SIZE_FORMAT "Kb",
+               "Kb max_used=" SIZE_FORMAT "Kb free=" SIZE_FORMAT "Kb",
                total/K, (total - unallocated_capacity())/K,
-               maxCodeCacheUsed/K, unallocated_capacity()/K, largest_free_block()/K);
+               maxCodeCacheUsed/K, unallocated_capacity()/K);
 
   if (detailed) {
     st->print_cr(" bounds [" INTPTR_FORMAT ", " INTPTR_FORMAT ", " INTPTR_FORMAT "]",
@@ -1027,19 +1057,8 @@ void CodeCache::print_summary(outputStream* st, bool detailed) {
 
 void CodeCache::log_state(outputStream* st) {
   st->print(" total_blobs='" UINT32_FORMAT "' nmethods='" UINT32_FORMAT "'"
-            " adapters='" UINT32_FORMAT "' free_code_cache='" SIZE_FORMAT "'"
-            " largest_free_block='" SIZE_FORMAT "'",
+            " adapters='" UINT32_FORMAT "' free_code_cache='" SIZE_FORMAT "'",
             nof_blobs(), nof_nmethods(), nof_adapters(),
-            unallocated_capacity(), largest_free_block());
+            unallocated_capacity());
 }
 
-size_t CodeCache::largest_free_block() {
-  // This is called both with and without CodeCache_lock held so
-  // handle both cases.
-  if (CodeCache_lock->owned_by_self()) {
-    return _heap->largest_free_block();
-  } else {
-    MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
-    return _heap->largest_free_block();
-  }
-}

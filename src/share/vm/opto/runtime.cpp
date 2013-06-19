@@ -134,7 +134,7 @@ static bool check_compiled_frame(JavaThread* thread) {
   assert(caller.is_compiled_frame(), "not being called from compiled like code");
   return true;
 }
-#endif
+#endif // ASSERT
 
 
 #define gen(env, var, type_func_gen, c_func, fancy_jump, pass_tls, save_arg_regs, return_pc) \

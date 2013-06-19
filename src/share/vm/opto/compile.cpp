@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,6 +63,7 @@
 #include "runtime/signature.hpp"
 #include "runtime/stubRoutines.hpp"
 #include "runtime/timer.hpp"
+#include "trace/tracing.hpp"
 #include "utilities/copy.hpp"
 #ifdef TARGET_ARCH_MODEL_x86_32
 # include "adfiles/ad_x86_32.hpp"
@@ -418,6 +419,7 @@ void Compile::remove_useless_nodes(Unique_Node_List &useful) {
   }
   // clean up the late inline lists
   remove_useless_late_inlines(&_string_late_inlines, useful);
+  remove_useless_late_inlines(&_boxing_late_inlines, useful);
   remove_useless_late_inlines(&_late_inlines, useful);
   debug_only(verify_graph_edges(true/*check for no_dead_code*/);)
 }
@@ -483,6 +485,12 @@ void Compile::print_compile_messages() {
     // Recompiling without escape analysis
     tty->print_cr("*********************************************************");
     tty->print_cr("** Bailout: Recompile without escape analysis          **");
+    tty->print_cr("*********************************************************");
+  }
+  if (_eliminate_boxing != EliminateAutoBox && PrintOpto) {
+    // Recompiling without boxing elimination
+    tty->print_cr("*********************************************************");
+    tty->print_cr("** Bailout: Recompile without boxing elimination       **");
     tty->print_cr("*********************************************************");
   }
   if (env()->break_at_compile()) {
@@ -601,7 +609,8 @@ debug_only( int Compile::_debug_idx = 100000; )
 // the continuation bci for on stack replacement.
 
 
-Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr_bci, bool subsume_loads, bool do_escape_analysis )
+Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr_bci,
+                  bool subsume_loads, bool do_escape_analysis, bool eliminate_boxing )
                 : Phase(Compiler),
                   _env(ci_env),
                   _log(ci_env->log()),
@@ -617,6 +626,7 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
                   _warm_calls(NULL),
                   _subsume_loads(subsume_loads),
                   _do_escape_analysis(do_escape_analysis),
+                  _eliminate_boxing(eliminate_boxing),
                   _failure_reason(NULL),
                   _code_buffer("Compile::Fill_buffer"),
                   _orig_pc_slot(0),
@@ -638,6 +648,7 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
                   _congraph(NULL),
                   _late_inlines(comp_arena(), 2, 0, NULL),
                   _string_late_inlines(comp_arena(), 2, 0, NULL),
+                  _boxing_late_inlines(comp_arena(), 2, 0, NULL),
                   _late_inlines_pos(0),
                   _number_of_mh_late_inlines(0),
                   _inlining_progress(false),
@@ -776,7 +787,7 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
 
     if (failing())  return;
 
-    print_method("Before RemoveUseless", 3);
+    print_method(PHASE_BEFORE_REMOVEUSELESS, 3);
 
     // Remove clutter produced by parsing.
     if (!failing()) {
@@ -906,6 +917,7 @@ Compile::Compile( ciEnv* ci_env,
     _orig_pc_slot_offset_in_bytes(0),
     _subsume_loads(true),
     _do_escape_analysis(false),
+    _eliminate_boxing(false),
     _failure_reason(NULL),
     _code_buffer("Compile::Fill_buffer"),
     _has_method_handle_invokes(false),
@@ -1016,6 +1028,7 @@ void Compile::Init(int aliaslevel) {
   set_has_split_ifs(false);
   set_has_loops(has_method() && method()->has_loops()); // first approximation
   set_has_stringbuilder(false);
+  set_has_boxed_value(false);
   _trap_can_recompile = false;  // no traps emitted yet
   _major_progress = true; // start out assuming good things will happen
   set_has_unsafe_access(false);
@@ -1789,9 +1802,9 @@ void Compile::inline_string_calls(bool parse_time) {
 
   {
     ResourceMark rm;
-    print_method("Before StringOpts", 3);
+    print_method(PHASE_BEFORE_STRINGOPTS, 3);
     PhaseStringOpts pso(initial_gvn(), for_igvn());
-    print_method("After StringOpts", 3);
+    print_method(PHASE_AFTER_STRINGOPTS, 3);
   }
 
   // now inline anything that we skipped the first time around
@@ -1805,6 +1818,38 @@ void Compile::inline_string_calls(bool parse_time) {
     if (failing())  return;
   }
   _string_late_inlines.trunc_to(0);
+}
+
+// Late inlining of boxing methods
+void Compile::inline_boxing_calls(PhaseIterGVN& igvn) {
+  if (_boxing_late_inlines.length() > 0) {
+    assert(has_boxed_value(), "inconsistent");
+
+    PhaseGVN* gvn = initial_gvn();
+    set_inlining_incrementally(true);
+
+    assert( igvn._worklist.size() == 0, "should be done with igvn" );
+    for_igvn()->clear();
+    gvn->replace_with(&igvn);
+
+    while (_boxing_late_inlines.length() > 0) {
+      CallGenerator* cg = _boxing_late_inlines.pop();
+      cg->do_late_inline();
+      if (failing())  return;
+    }
+    _boxing_late_inlines.trunc_to(0);
+
+    {
+      ResourceMark rm;
+      PhaseRemoveUseless pru(gvn, for_igvn());
+    }
+
+    igvn = PhaseIterGVN(gvn);
+    igvn.optimize();
+
+    set_inlining_progress(false);
+    set_inlining_incrementally(false);
+  }
 }
 
 void Compile::inline_incrementally_one(PhaseIterGVN& igvn) {
@@ -1831,7 +1876,7 @@ void Compile::inline_incrementally_one(PhaseIterGVN& igvn) {
 
   {
     ResourceMark rm;
-    PhaseRemoveUseless pru(C->initial_gvn(), C->for_igvn());
+    PhaseRemoveUseless pru(gvn, for_igvn());
   }
 
   igvn = PhaseIterGVN(gvn);
@@ -1914,7 +1959,7 @@ void Compile::Optimize() {
 
   NOT_PRODUCT( verify_graph_edges(); )
 
-  print_method("After Parsing");
+  print_method(PHASE_AFTER_PARSING);
 
  {
   // Iterative Global Value Numbering, including ideal transforms
@@ -1925,15 +1970,28 @@ void Compile::Optimize() {
     igvn.optimize();
   }
 
-  print_method("Iter GVN 1", 2);
+  print_method(PHASE_ITER_GVN1, 2);
 
   if (failing())  return;
 
-  inline_incrementally(igvn);
+  {
+    NOT_PRODUCT( TracePhase t2("incrementalInline", &_t_incrInline, TimeCompiler); )
+    inline_incrementally(igvn);
+  }
 
-  print_method("Incremental Inline", 2);
+  print_method(PHASE_INCREMENTAL_INLINE, 2);
 
   if (failing())  return;
+
+  if (eliminate_boxing()) {
+    NOT_PRODUCT( TracePhase t2("incrementalInline", &_t_incrInline, TimeCompiler); )
+    // Inline valueOf() methods now.
+    inline_boxing_calls(igvn);
+
+    print_method(PHASE_INCREMENTAL_BOXING_INLINE, 2);
+
+    if (failing())  return;
+  }
 
   // No more new expensive nodes will be added to the list from here
   // so keep only the actual candidates for optimizations.
@@ -1945,7 +2003,7 @@ void Compile::Optimize() {
       // Cleanup graph (remove dead nodes).
       TracePhase t2("idealLoop", &_t_idealLoop, true);
       PhaseIdealLoop ideal_loop( igvn, false, true );
-      if (major_progress()) print_method("PhaseIdealLoop before EA", 2);
+      if (major_progress()) print_method(PHASE_PHASEIDEAL_BEFORE_EA, 2);
       if (failing())  return;
     }
     ConnectionGraph::do_analysis(this, &igvn);
@@ -1954,7 +2012,7 @@ void Compile::Optimize() {
 
     // Optimize out fields loads from scalar replaceable allocations.
     igvn.optimize();
-    print_method("Iter GVN after EA", 2);
+    print_method(PHASE_ITER_GVN_AFTER_EA, 2);
 
     if (failing())  return;
 
@@ -1965,7 +2023,7 @@ void Compile::Optimize() {
       igvn.set_delay_transform(false);
 
       igvn.optimize();
-      print_method("Iter GVN after eliminating allocations and locks", 2);
+      print_method(PHASE_ITER_GVN_AFTER_ELIMINATION, 2);
 
       if (failing())  return;
     }
@@ -1981,7 +2039,7 @@ void Compile::Optimize() {
       TracePhase t2("idealLoop", &_t_idealLoop, true);
       PhaseIdealLoop ideal_loop( igvn, true );
       loop_opts_cnt--;
-      if (major_progress()) print_method("PhaseIdealLoop 1", 2);
+      if (major_progress()) print_method(PHASE_PHASEIDEALLOOP1, 2);
       if (failing())  return;
     }
     // Loop opts pass if partial peeling occurred in previous pass
@@ -1989,7 +2047,7 @@ void Compile::Optimize() {
       TracePhase t3("idealLoop", &_t_idealLoop, true);
       PhaseIdealLoop ideal_loop( igvn, false );
       loop_opts_cnt--;
-      if (major_progress()) print_method("PhaseIdealLoop 2", 2);
+      if (major_progress()) print_method(PHASE_PHASEIDEALLOOP2, 2);
       if (failing())  return;
     }
     // Loop opts pass for loop-unrolling before CCP
@@ -1997,7 +2055,7 @@ void Compile::Optimize() {
       TracePhase t4("idealLoop", &_t_idealLoop, true);
       PhaseIdealLoop ideal_loop( igvn, false );
       loop_opts_cnt--;
-      if (major_progress()) print_method("PhaseIdealLoop 3", 2);
+      if (major_progress()) print_method(PHASE_PHASEIDEALLOOP3, 2);
     }
     if (!failing()) {
       // Verify that last round of loop opts produced a valid graph
@@ -2014,7 +2072,7 @@ void Compile::Optimize() {
     TracePhase t2("ccp", &_t_ccp, true);
     ccp.do_transform();
   }
-  print_method("PhaseCPP 1", 2);
+  print_method(PHASE_CPP1, 2);
 
   assert( true, "Break here to ccp.dump_old2new_map()");
 
@@ -2025,7 +2083,7 @@ void Compile::Optimize() {
     igvn.optimize();
   }
 
-  print_method("Iter GVN 2", 2);
+  print_method(PHASE_ITER_GVN2, 2);
 
   if (failing())  return;
 
@@ -2038,7 +2096,7 @@ void Compile::Optimize() {
       assert( cnt++ < 40, "infinite cycle in loop optimization" );
       PhaseIdealLoop ideal_loop( igvn, true);
       loop_opts_cnt--;
-      if (major_progress()) print_method("PhaseIdealLoop iterations", 2);
+      if (major_progress()) print_method(PHASE_PHASEIDEALLOOP_ITERATIONS, 2);
       if (failing())  return;
     }
   }
@@ -2071,7 +2129,7 @@ void Compile::Optimize() {
     }
   }
 
-  print_method("Optimize finished", 2);
+  print_method(PHASE_OPTIMIZE_FINISHED, 2);
 }
 
 
@@ -2119,7 +2177,7 @@ void Compile::Code_Gen() {
     cfg.GlobalCodeMotion(m,unique(),proj_list);
     if (failing())  return;
 
-    print_method("Global code motion", 2);
+    print_method(PHASE_GLOBAL_CODE_MOTION, 2);
 
     NOT_PRODUCT( verify_graph_edges(); )
 
@@ -2127,22 +2185,19 @@ void Compile::Code_Gen() {
   }
   NOT_PRODUCT( verify_graph_edges(); )
 
-  PhaseChaitin regalloc(unique(),cfg,m);
+  PhaseChaitin regalloc(unique(), cfg, m);
   _regalloc = &regalloc;
   {
     TracePhase t2("regalloc", &_t_registerAllocation, true);
-    // Perform any platform dependent preallocation actions.  This is used,
-    // for example, to avoid taking an implicit null pointer exception
-    // using the frame pointer on win95.
-    _regalloc->pd_preallocate_hook();
-
     // Perform register allocation.  After Chaitin, use-def chains are
     // no longer accurate (at spill code) and so must be ignored.
     // Node->LRG->reg mappings are still accurate.
     _regalloc->Register_Allocate();
 
     // Bail out if the allocator builds too many nodes
-    if (failing())  return;
+    if (failing()) {
+      return;
+    }
   }
 
   // Prior to register allocation we kept empty basic blocks in case the
@@ -2160,9 +2215,6 @@ void Compile::Code_Gen() {
     cfg.fixup_flow();
   }
 
-  // Perform any platform dependent postallocation verifications.
-  debug_only( _regalloc->pd_postallocate_verify_hook(); )
-
   // Apply peephole optimizations
   if( OptoPeephole ) {
     NOT_PRODUCT( TracePhase t2("peephole", &_t_peephole, TimeCompiler); )
@@ -2178,7 +2230,7 @@ void Compile::Code_Gen() {
     Output();
   }
 
-  print_method("Final Code");
+  print_method(PHASE_FINAL_CODE);
 
   // He's dead, Jim.
   _cfg     = (PhaseCFG*)0xdeadbeef;
@@ -2902,6 +2954,7 @@ void Compile::final_graph_reshaping_impl( Node *n, Final_Reshape_Counts &frc) {
     }
     break;
   case Op_MemBarStoreStore:
+  case Op_MemBarRelease:
     // Break the link with AllocateNode: it is no longer useful and
     // confuses register allocation.
     if (n->req() > MemBarNode::Precedent) {
@@ -3264,8 +3317,16 @@ void Compile::record_failure(const char* reason) {
     // Record the first failure reason.
     _failure_reason = reason;
   }
+
+  EventCompilerFailure event;
+  if (event.should_commit()) {
+    event.set_compileID(Compile::compile_id());
+    event.set_failure(reason);
+    event.commit();
+  }
+
   if (!C->failure_reason_is(C2Compiler::retry_no_subsuming_loads())) {
-    C->print_method(_failure_reason);
+    C->print_method(PHASE_FAILURE);
   }
   _root = NULL;  // flush the graph, too
 }

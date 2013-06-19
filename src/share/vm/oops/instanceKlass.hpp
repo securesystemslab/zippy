@@ -26,6 +26,7 @@
 #define SHARE_VM_OOPS_INSTANCEKLASS_HPP
 
 #include "classfile/classLoaderData.hpp"
+#include "memory/referenceType.hpp"
 #include "oops/annotations.hpp"
 #include "oops/constMethod.hpp"
 #include "oops/fieldInfo.hpp"
@@ -37,6 +38,7 @@
 #include "utilities/accessFlags.hpp"
 #include "utilities/bitMap.inline.hpp"
 #include "utilities/macros.hpp"
+#include "trace/traceMacros.hpp"
 
 // An InstanceKlass is the VM level representation of a Java class.
 // It contains all information needed for at class at execution runtime.
@@ -58,8 +60,6 @@
 //    [fields                     ]
 //    [constants                  ]
 //    [class loader               ]
-//    [protection domain          ]
-//    [signers                    ]
 //    [source file name           ]
 //    [inner classes              ]
 //    [static field size          ]
@@ -90,6 +90,7 @@ class DepChange;
 class nmethodBucket;
 class PreviousVersionNode;
 class JvmtiCachedClassFieldMap;
+class MemberNameTable;
 
 // This is used in iterators below.
 class FieldClosure: public StackObj {
@@ -179,15 +180,6 @@ class InstanceKlass: public Klass {
   static volatile int _total_instanceKlass_count;
 
  protected:
-  // Protection domain.
-  oop             _protection_domain;
-  // Class signers.
-  objArrayOop     _signers;
-  // Initialization lock.  Must be one per class and it has to be a VM internal
-  // object so java code cannot lock it (like the mirror)
-  // It has to be an object not a Mutex because it's held through java calls.
-  volatile oop    _init_lock;
-
   // Annotations for this class
   Annotations*    _annotations;
   // Array classes holding elements of this class.
@@ -235,7 +227,7 @@ class InstanceKlass: public Klass {
     _misc_rewritten            = 1 << 0, // methods rewritten.
     _misc_has_nonstatic_fields = 1 << 1, // for sizing with UseCompressedOops
     _misc_should_verify_class  = 1 << 2, // allow caching of preverification
-    _misc_is_anonymous         = 1 << 3, // has embedded _inner_classes field
+    _misc_is_anonymous         = 1 << 3, // has embedded _host_klass field
     _misc_is_contended         = 1 << 4, // marked with contended annotation
     _misc_has_default_methods  = 1 << 5  // class/superclass/implemented interfaces has default methods
   };
@@ -246,6 +238,7 @@ class InstanceKlass: public Klass {
   int             _vtable_len;           // length of Java vtable (in words)
   int             _itable_len;           // length of Java itable (in words)
   OopMapCache*    volatile _oop_map_cache;   // OopMapCache for all methods in the klass (allocated lazily)
+  MemberNameTable* _member_names;        // Member names
   JNIid*          _jni_ids;              // First JNI identifier for static fields in this class
   jmethodID*      _methods_jmethod_ids;  // jmethodIDs corresponding to method_idnum, or NULL if none
   int*            _methods_cached_itable_indices;  // itable_index cache for JNI invoke corresponding to methods idnum, or NULL
@@ -524,8 +517,10 @@ class InstanceKlass: public Klass {
   void set_constants(ConstantPool* c)    { _constants = c; }
 
   // protection domain
-  oop protection_domain()                  { return _protection_domain; }
-  void set_protection_domain(oop pd)       { klass_oop_store(&_protection_domain, pd); }
+  oop protection_domain() const;
+
+  // signers
+  objArrayOop signers() const;
 
   // host class
   Klass* host_klass() const              {
@@ -571,10 +566,6 @@ class InstanceKlass: public Klass {
       _misc_flags &= ~_misc_is_contended;
     }
   }
-
-  // signers
-  objArrayOop signers() const              { return _signers; }
-  void set_signers(objArrayOop s)          { klass_oop_store((oop*)&_signers, s); }
 
   // source file name
   Symbol* source_file_name() const         { return _source_file_name; }
@@ -736,7 +727,7 @@ class InstanceKlass: public Klass {
   void set_osr_nmethods_head(nmethod* h)     { _osr_nmethods_head = h; };
   void add_osr_nmethod(nmethod* n);
   void remove_osr_nmethod(nmethod* n);
-  nmethod* lookup_osr_nmethod(Method* const m, int bci, int level, bool match_level) const;
+  nmethod* lookup_osr_nmethod(const Method* m, int bci, int level, bool match_level) const;
 
   // Breakpoint support (see methods on Method* for details)
   BreakpointInfo* breakpoints() const       { return _breakpoints; };
@@ -909,8 +900,6 @@ class InstanceKlass: public Klass {
   Method* method_at_itable(Klass* holder, int index, TRAPS);
 
   // Garbage collection
-  virtual void oops_do(OopClosure* cl);
-
   void oop_follow_contents(oop obj);
   int  oop_adjust_pointers(oop obj);
 
@@ -932,7 +921,9 @@ class InstanceKlass: public Klass {
   // referenced by handles.
   bool on_stack() const { return _constants->on_stack(); }
 
-  void release_C_heap_structures();
+  // callbacks for actions during class unloading
+  static void notify_unload_class(InstanceKlass* ik);
+  static void release_C_heap_structures(InstanceKlass* ik);
 
   // Parallel Scavenge and Parallel Old
   PARALLEL_GC_DECLS
@@ -966,6 +957,7 @@ class InstanceKlass: public Klass {
 #endif // INCLUDE_ALL_GCS
 
   u2 idnum_allocated_count() const      { return _idnum_allocated_count; }
+
 private:
   // initialization state
 #ifdef ASSERT
@@ -992,14 +984,13 @@ private:
          { OrderAccess::release_store_ptr(&_methods_cached_itable_indices, indices); }
 
   // Lock during initialization
+public:
+  // Lock for (1) initialization; (2) access to the ConstantPool of this class.
+  // Must be one per class and it has to be a VM internal object so java code
+  // cannot lock it (like the mirror).
+  // It has to be an object not a Mutex because it's held through java calls.
   volatile oop init_lock() const;
-  void set_init_lock(oop value)      { klass_oop_store(&_init_lock, value); }
-  void fence_and_clear_init_lock();  // after fully_initialized
-
-  // Offsets for memory management
-  oop* adr_protection_domain() const { return (oop*)&this->_protection_domain;}
-  oop* adr_signers() const           { return (oop*)&this->_signers;}
-  oop* adr_init_lock() const         { return (oop*)&this->_init_lock;}
+private:
 
   // Static methods that are used to implement member methods where an exposed this pointer
   // is needed due to possible GCs
@@ -1020,6 +1011,8 @@ private:
   // Returns the array class with this class as element type
   Klass* array_klass_impl(bool or_null, TRAPS);
 
+  // Free CHeap allocated fields.
+  void release_C_heap_structures();
 public:
   // CDS support - remove and restore oops from metadata. Oops are not shared.
   virtual void remove_unshareable_info();
@@ -1027,6 +1020,12 @@ public:
 
   // jvm support
   jint compute_modifier_flags(TRAPS) const;
+
+  // JSR-292 support
+  MemberNameTable* member_names() { return _member_names; }
+  void set_member_names(MemberNameTable* member_names) { _member_names = member_names; }
+  void add_member_name(int index, Handle member_name);
+  oop  get_member_name(int index);
 
 public:
   // JVMTI support
