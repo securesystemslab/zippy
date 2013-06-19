@@ -3357,8 +3357,7 @@ void SharedRuntime::generate_deopt_blob() {
 
 #ifdef GRAAL
   int implicit_exception_uncommon_trap_offset = __ pc() - start;
-  // pc where the exception happened is in ScratchA
-  __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
+  __ pushptr(Address(r15_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset())));
 
   int uncommon_trap_offset = __ pc() - start;
 

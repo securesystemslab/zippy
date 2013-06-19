@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -242,11 +242,13 @@ public:
     PerRegionTable* cur = _free_list;
     size_t res = 0;
     while (cur != NULL) {
-      res += sizeof(PerRegionTable);
+      res += cur->mem_size();
       cur = cur->next();
     }
     return res;
   }
+
+  static void test_fl_mem_size();
 };
 
 PerRegionTable* PerRegionTable::_free_list = NULL;
@@ -282,10 +284,11 @@ OtherRegionsTable::OtherRegionsTable(HeapRegion* hr) :
     _fine_eviction_stride = _max_fine_entries / _fine_eviction_sample_size;
   }
 
-  _fine_grain_regions = new PerRegionTablePtr[_max_fine_entries];
+  _fine_grain_regions = NEW_C_HEAP_ARRAY3(PerRegionTablePtr, _max_fine_entries,
+                        mtGC, 0, AllocFailStrategy::RETURN_NULL);
 
   if (_fine_grain_regions == NULL) {
-    vm_exit_out_of_memory(sizeof(void*)*_max_fine_entries,
+    vm_exit_out_of_memory(sizeof(void*)*_max_fine_entries, OOM_MALLOC_ERROR,
                           "Failed to allocate _fine_grain_entries.");
   }
 
@@ -706,10 +709,11 @@ size_t OtherRegionsTable::mem_size() const {
   // Cast away const in this case.
   MutexLockerEx x((Mutex*)&_m, Mutex::_no_safepoint_check_flag);
   size_t sum = 0;
-  PerRegionTable * cur = _first_all_fine_prts;
-  while (cur != NULL) {
-    sum += cur->mem_size();
-    cur = cur->next();
+  // all PRTs are of the same size so it is sufficient to query only one of them.
+  if (_first_all_fine_prts != NULL) {
+    assert(_last_all_fine_prts != NULL &&
+      _first_all_fine_prts->mem_size() == _last_all_fine_prts->mem_size(), "check that mem_size() is constant");
+    sum += _first_all_fine_prts->mem_size() * _n_fine_entries;
   }
   sum += (sizeof(PerRegionTable*) * _max_fine_entries);
   sum += (_coarse_map.size_in_words() * HeapWordSize);
@@ -877,14 +881,9 @@ bool HeapRegionRemSet::iter_is_complete() {
   return _iter_state == Complete;
 }
 
-void HeapRegionRemSet::init_iterator(HeapRegionRemSetIterator* iter) const {
-  iter->initialize(this);
-}
-
 #ifndef PRODUCT
 void HeapRegionRemSet::print() const {
-  HeapRegionRemSetIterator iter;
-  init_iterator(&iter);
+  HeapRegionRemSetIterator iter(this);
   size_t card_index;
   while (iter.has_next(card_index)) {
     HeapWord* card_start =
@@ -928,35 +927,23 @@ void HeapRegionRemSet::scrub(CardTableModRefBS* ctbs,
 
 //-------------------- Iteration --------------------
 
-HeapRegionRemSetIterator::
-HeapRegionRemSetIterator() :
-  _hrrs(NULL),
+HeapRegionRemSetIterator:: HeapRegionRemSetIterator(const HeapRegionRemSet* hrrs) :
+  _hrrs(hrrs),
   _g1h(G1CollectedHeap::heap()),
-  _bosa(NULL),
-  _sparse_iter() { }
-
-void HeapRegionRemSetIterator::initialize(const HeapRegionRemSet* hrrs) {
-  _hrrs = hrrs;
-  _coarse_map = &_hrrs->_other_regions._coarse_map;
-  _fine_grain_regions = _hrrs->_other_regions._fine_grain_regions;
-  _bosa = _hrrs->bosa();
-
-  _is = Sparse;
+  _coarse_map(&hrrs->_other_regions._coarse_map),
+  _fine_grain_regions(hrrs->_other_regions._fine_grain_regions),
+  _bosa(hrrs->bosa()),
+  _is(Sparse),
   // Set these values so that we increment to the first region.
-  _coarse_cur_region_index = -1;
-  _coarse_cur_region_cur_card = (HeapRegion::CardsPerRegion-1);
-
-  _cur_region_cur_card = 0;
-
-  _fine_array_index = -1;
-  _fine_cur_prt = NULL;
-
-  _n_yielded_coarse = 0;
-  _n_yielded_fine = 0;
-  _n_yielded_sparse = 0;
-
-  _sparse_iter.init(&hrrs->_other_regions._sparse_table);
-}
+  _coarse_cur_region_index(-1),
+  _coarse_cur_region_cur_card(HeapRegion::CardsPerRegion-1),
+  _cur_region_cur_card(0),
+  _fine_array_index(-1),
+  _fine_cur_prt(NULL),
+  _n_yielded_coarse(0),
+  _n_yielded_fine(0),
+  _n_yielded_sparse(0),
+  _sparse_iter(&hrrs->_other_regions._sparse_table) {}
 
 bool HeapRegionRemSetIterator::coarse_has_next(size_t& card_index) {
   if (_hrrs->_other_regions._n_coarse_entries == 0) return false;
@@ -1164,6 +1151,19 @@ HeapRegionRemSet::finish_cleanup_task(HRRSCleanupTask* hrrs_cleanup_task) {
 }
 
 #ifndef PRODUCT
+void PerRegionTable::test_fl_mem_size() {
+  PerRegionTable* dummy = alloc(NULL);
+  free(dummy);
+  guarantee(dummy->mem_size() == fl_mem_size(), "fl_mem_size() does not return the correct element size");
+  // try to reset the state
+  _free_list = NULL;
+  delete dummy;
+}
+
+void HeapRegionRemSet::test_prt() {
+  PerRegionTable::test_fl_mem_size();
+}
+
 void HeapRegionRemSet::test() {
   os::sleep(Thread::current(), (jlong)5000, false);
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
@@ -1209,8 +1209,7 @@ void HeapRegionRemSet::test() {
   hrrs->add_reference((OopOrNarrowOopStar)hr5->bottom());
 
   // Now, does iteration yield these three?
-  HeapRegionRemSetIterator iter;
-  hrrs->init_iterator(&iter);
+  HeapRegionRemSetIterator iter(hrrs);
   size_t sum = 0;
   size_t card_index;
   while (iter.has_next(card_index)) {

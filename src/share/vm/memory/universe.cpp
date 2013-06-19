@@ -228,11 +228,8 @@ void Universe::serialize(SerializeClosure* f, bool do_all) {
 
 void Universe::check_alignment(uintx size, uintx alignment, const char* name) {
   if (size < alignment || size % alignment != 0) {
-    ResourceMark rm;
-    stringStream st;
-    st.print("Size of %s (" UINTX_FORMAT " bytes) must be aligned to " UINTX_FORMAT " bytes", name, size, alignment);
-    char* error = st.as_string();
-    vm_exit_during_initialization(error);
+    vm_exit_during_initialization(
+      err_msg("Size of %s (" UINTX_FORMAT " bytes) must be aligned to " UINTX_FORMAT " bytes", name, size, alignment));
   }
 }
 
@@ -822,12 +819,14 @@ jint Universe::initialize_heap() {
       // keep the Universe::narrow_oop_base() set in Universe::reserve_heap()
       Universe::set_narrow_oop_shift(LogMinObjAlignmentInBytes);
       if (verbose) {
-        tty->print(", Compressed Oops with base: "PTR_FORMAT, Universe::narrow_oop_base());
+        tty->print(", %s: "PTR_FORMAT,
+            narrow_oop_mode_to_string(HeapBasedNarrowOop),
+            Universe::narrow_oop_base());
       }
     } else {
       Universe::set_narrow_oop_base(0);
       if (verbose) {
-        tty->print(", zero based Compressed Oops");
+        tty->print(", %s", narrow_oop_mode_to_string(ZeroBasedNarrowOop));
       }
 #ifdef _WIN64
       if (!Universe::narrow_oop_use_implicit_null_checks()) {
@@ -842,7 +841,7 @@ jint Universe::initialize_heap() {
       } else {
         Universe::set_narrow_oop_shift(0);
         if (verbose) {
-          tty->print(", 32-bits Oops");
+          tty->print(", %s", narrow_oop_mode_to_string(UnscaledNarrowOop));
         }
       }
     }
@@ -916,7 +915,7 @@ ReservedSpace Universe::reserve_heap(size_t heap_size, size_t alignment) {
   }
 
   if (!total_rs.is_reserved()) {
-    vm_exit_during_initialization(err_msg("Could not reserve enough space for object heap %d bytes", total_reserved));
+    vm_exit_during_initialization(err_msg("Could not reserve enough space for " SIZE_FORMAT "KB object heap", total_reserved/K));
     return total_rs;
   }
 
@@ -948,6 +947,33 @@ void Universe::update_heap_info_at_gc() {
   _heap_used_at_last_gc     = heap()->used();
 }
 
+
+const char* Universe::narrow_oop_mode_to_string(Universe::NARROW_OOP_MODE mode) {
+  switch (mode) {
+    case UnscaledNarrowOop:
+      return "32-bits Oops";
+    case ZeroBasedNarrowOop:
+      return "zero based Compressed Oops";
+    case HeapBasedNarrowOop:
+      return "Compressed Oops with base";
+  }
+
+  ShouldNotReachHere();
+  return "";
+}
+
+
+Universe::NARROW_OOP_MODE Universe::narrow_oop_mode() {
+  if (narrow_oop_base() != 0) {
+    return HeapBasedNarrowOop;
+  }
+
+  if (narrow_oop_shift() != 0) {
+    return ZeroBasedNarrowOop;
+  }
+
+  return UnscaledNarrowOop;
+}
 
 
 void universe2_init() {
@@ -1270,7 +1296,7 @@ void Universe::print_heap_after_gc(outputStream* st, bool ignore_extended) {
   st->print_cr("}");
 }
 
-void Universe::verify(bool silent, VerifyOption option) {
+void Universe::verify(VerifyOption option, const char* prefix, bool silent) {
   // The use of _verify_in_progress is a temporary work around for
   // 6320749.  Don't bother with a creating a class to set and clear
   // it since it is only used in this method and the control flow is
@@ -1287,11 +1313,12 @@ void Universe::verify(bool silent, VerifyOption option) {
   HandleMark hm;  // Handles created during verification can be zapped
   _verify_count++;
 
+  if (!silent) gclog_or_tty->print(prefix);
   if (!silent) gclog_or_tty->print("[Verifying ");
   if (!silent) gclog_or_tty->print("threads ");
   Threads::verify();
+  if (!silent) gclog_or_tty->print("heap ");
   heap()->verify(silent, option);
-
   if (!silent) gclog_or_tty->print("syms ");
   SymbolTable::verify();
   if (!silent) gclog_or_tty->print("strs ");
@@ -1424,25 +1451,25 @@ ActiveMethodOopsCache::~ActiveMethodOopsCache() {
 }
 
 
-void ActiveMethodOopsCache::add_previous_version(Method* const method) {
+void ActiveMethodOopsCache::add_previous_version(Method* method) {
   assert(Thread::current()->is_VM_thread(),
     "only VMThread can add previous versions");
 
   // Only append the previous method if it is executing on the stack.
   if (method->on_stack()) {
 
-  if (_prev_methods == NULL) {
-    // This is the first previous version so make some space.
-    // Start with 2 elements under the assumption that the class
-    // won't be redefined much.
+    if (_prev_methods == NULL) {
+      // This is the first previous version so make some space.
+      // Start with 2 elements under the assumption that the class
+      // won't be redefined much.
       _prev_methods = new (ResourceObj::C_HEAP, mtClass) GrowableArray<Method*>(2, true);
-  }
+    }
 
-  // RC_TRACE macro has an embedded ResourceMark
-  RC_TRACE(0x00000100,
-    ("add: %s(%s): adding prev version ref for cached method @%d",
-    method->name()->as_C_string(), method->signature()->as_C_string(),
-    _prev_methods->length()));
+    // RC_TRACE macro has an embedded ResourceMark
+    RC_TRACE(0x00000100,
+      ("add: %s(%s): adding prev version ref for cached method @%d",
+        method->name()->as_C_string(), method->signature()->as_C_string(),
+        _prev_methods->length()));
 
     _prev_methods->append(method);
   }
@@ -1463,16 +1490,17 @@ void ActiveMethodOopsCache::add_previous_version(Method* const method) {
       MetadataFactory::free_metadata(method->method_holder()->class_loader_data(), method);
     } else {
       // RC_TRACE macro has an embedded ResourceMark
-      RC_TRACE(0x00000400, ("add: %s(%s): previous cached method @%d is alive",
-        method->name()->as_C_string(), method->signature()->as_C_string(), i));
+      RC_TRACE(0x00000400,
+        ("add: %s(%s): previous cached method @%d is alive",
+         method->name()->as_C_string(), method->signature()->as_C_string(), i));
     }
   }
 } // end add_previous_version()
 
 
-bool ActiveMethodOopsCache::is_same_method(Method* const method) const {
+bool ActiveMethodOopsCache::is_same_method(const Method* method) const {
   InstanceKlass* ik = InstanceKlass::cast(klass());
-  Method* check_method = ik->method_with_idnum(method_idnum());
+  const Method* check_method = ik->method_with_idnum(method_idnum());
   assert(check_method != NULL, "sanity check");
   if (check_method == method) {
     // done with the easy case

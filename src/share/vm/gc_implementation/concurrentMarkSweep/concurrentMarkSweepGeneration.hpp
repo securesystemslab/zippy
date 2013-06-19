@@ -25,8 +25,10 @@
 #ifndef SHARE_VM_GC_IMPLEMENTATION_CONCURRENTMARKSWEEP_CONCURRENTMARKSWEEPGENERATION_HPP
 #define SHARE_VM_GC_IMPLEMENTATION_CONCURRENTMARKSWEEP_CONCURRENTMARKSWEEPGENERATION_HPP
 
+#include "gc_implementation/shared/gcHeapSummary.hpp"
 #include "gc_implementation/shared/gSpaceCounters.hpp"
 #include "gc_implementation/shared/gcStats.hpp"
+#include "gc_implementation/shared/gcWhen.hpp"
 #include "gc_implementation/shared/generationCounters.hpp"
 #include "memory/freeBlockDictionary.hpp"
 #include "memory/generation.hpp"
@@ -53,6 +55,8 @@
 class CMSAdaptiveSizePolicy;
 class CMSConcMarkingTask;
 class CMSGCAdaptivePolicyCounters;
+class CMSTracer;
+class ConcurrentGCTimer;
 class ConcurrentMarkSweepGeneration;
 class ConcurrentMarkSweepPolicy;
 class ConcurrentMarkSweepThread;
@@ -61,6 +65,7 @@ class FreeChunk;
 class PromotionInfo;
 class ScanMarkedObjectsAgainCarefullyClosure;
 class TenuredGeneration;
+class SerialOldTracer;
 
 // A generic CMS bit map. It's the basis for both the CMS marking bit map
 // as well as for the mod union table (in each case only a subset of the
@@ -485,10 +490,6 @@ class CMSIsAliveClosure: public BoolObjectClosure {
     assert(!span.is_empty(), "Empty span could spell trouble");
   }
 
-  void do_object(oop obj) {
-    assert(false, "not to be invoked");
-  }
-
   bool do_object_b(oop obj);
 };
 
@@ -571,8 +572,9 @@ class CMSCollector: public CHeapObj<mtGC> {
   bool _completed_initialization;
 
   // In support of ExplicitGCInvokesConcurrent
-  static   bool _full_gc_requested;
-  unsigned int  _collection_count_start;
+  static bool _full_gc_requested;
+  static GCCause::Cause _full_gc_cause;
+  unsigned int _collection_count_start;
 
   // Should we unload classes this concurrent cycle?
   bool _should_unload_classes;
@@ -604,12 +606,28 @@ class CMSCollector: public CHeapObj<mtGC> {
   ConcurrentMarkSweepPolicy* _collector_policy;
   ConcurrentMarkSweepPolicy* collector_policy() { return _collector_policy; }
 
+  void set_did_compact(bool v);
+
   // XXX Move these to CMSStats ??? FIX ME !!!
   elapsedTimer _inter_sweep_timer;   // time between sweeps
   elapsedTimer _intra_sweep_timer;   // time _in_ sweeps
   // padded decaying average estimates of the above
   AdaptivePaddedAverage _inter_sweep_estimate;
   AdaptivePaddedAverage _intra_sweep_estimate;
+
+  CMSTracer* _gc_tracer_cm;
+  ConcurrentGCTimer* _gc_timer_cm;
+
+  bool _cms_start_registered;
+
+  GCHeapSummary _last_heap_summary;
+  MetaspaceSummary _last_metaspace_summary;
+
+  void register_foreground_gc_start(GCCause::Cause cause);
+  void register_gc_start(GCCause::Cause cause);
+  void register_gc_end();
+  void save_heap_summary();
+  void report_heap_summary(GCWhen::Type when);
 
  protected:
   ConcurrentMarkSweepGeneration* _cmsGen;  // old gen (CMS)
@@ -829,6 +847,10 @@ class CMSCollector: public CHeapObj<mtGC> {
   void do_mark_sweep_work(bool clear_all_soft_refs,
     CollectorState first_state, bool should_start_over);
 
+  // Work methods for reporting concurrent mode interruption or failure
+  bool is_external_interruption();
+  void report_concurrent_mode_interruption();
+
   // If the backgrould GC is active, acquire control from the background
   // GC and do the collection.
   void acquire_control_and_collect(bool   full, bool clear_all_soft_refs);
@@ -878,11 +900,11 @@ class CMSCollector: public CHeapObj<mtGC> {
                bool   clear_all_soft_refs,
                size_t size,
                bool   tlab);
-  void collect_in_background(bool clear_all_soft_refs);
-  void collect_in_foreground(bool clear_all_soft_refs);
+  void collect_in_background(bool clear_all_soft_refs, GCCause::Cause cause);
+  void collect_in_foreground(bool clear_all_soft_refs, GCCause::Cause cause);
 
   // In support of ExplicitGCInvokesConcurrent
-  static void request_full_gc(unsigned int full_gc_count);
+  static void request_full_gc(unsigned int full_gc_count, GCCause::Cause cause);
   // Should we unload classes in a particular concurrent cycle?
   bool should_unload_classes() const {
     return _should_unload_classes;
@@ -990,7 +1012,7 @@ class CMSCollector: public CHeapObj<mtGC> {
 
   // debugging
   void verify();
-  bool verify_after_remark();
+  bool verify_after_remark(bool silent = VerifySilently);
   void verify_ok_to_terminate() const PRODUCT_RETURN;
   void verify_work_stacks_empty() const PRODUCT_RETURN;
   void verify_overflow_empty() const PRODUCT_RETURN;
@@ -1081,6 +1103,10 @@ class ConcurrentMarkSweepGeneration: public CardGeneration {
 
   CollectionTypes _debug_collection_type;
 
+  // True if a compactiing collection was done.
+  bool _did_compact;
+  bool did_compact() { return _did_compact; }
+
   // Fraction of current occupancy at which to start a CMS collection which
   // will collect this generation (at least).
   double _initiating_occupancy;
@@ -1120,6 +1146,8 @@ class ConcurrentMarkSweepGeneration: public CardGeneration {
 
   // Adaptive size policy
   CMSAdaptiveSizePolicy* size_policy();
+
+  void set_did_compact(bool v) { _did_compact = v; }
 
   bool refs_discovery_is_atomic() const { return false; }
   bool refs_discovery_is_mt()     const {
@@ -1528,9 +1556,6 @@ class ScanMarkedObjectsAgainClosure: public UpwardsObjectClosure {
     _bit_map(bit_map),
     _par_scan_closure(cl) { }
 
-  void do_object(oop obj) {
-    guarantee(false, "Call do_object_b(oop, MemRegion) instead");
-  }
   bool do_object_b(oop obj) {
     guarantee(false, "Call do_object_b(oop, MemRegion) form instead");
     return false;

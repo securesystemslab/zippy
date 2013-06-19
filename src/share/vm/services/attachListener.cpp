@@ -157,7 +157,7 @@ static jint jcmd(AttachOperation* op, outputStream* out) {
   Thread* THREAD = Thread::current();
   // All the supplied jcmd arguments are stored as a single
   // string (op->arg(0)). This is parsed by the Dcmd framework.
-  DCmd::parse_and_execute(out, op->arg(0), ' ', THREAD);
+  DCmd::parse_and_execute(DCmd_Source_AttachAPI, out, op->arg(0), ' ', THREAD);
   if (HAS_PENDING_EXCEPTION) {
     java_lang_Throwable::print(PENDING_EXCEPTION, out);
     out->cr();
@@ -227,7 +227,7 @@ static jint heap_inspection(AttachOperation* op, outputStream* out) {
     }
     live_objects_only = strcmp(arg0, "-live") == 0;
   }
-  VM_GC_HeapInspection heapop(out, live_objects_only /* request full gc */, true /* need_prologue */);
+  VM_GC_HeapInspection heapop(out, live_objects_only /* request full gc */);
   VMThread::execute(&heapop);
   return JNI_OK;
 }

@@ -93,6 +93,10 @@ address os::current_stack_pointer() {
   register void *esp;
   __asm__("mov %%"SPELL_REG_SP", %0":"=r"(esp));
   return (address) ((char*)esp + sizeof(long)*2);
+#elif defined(__clang__)
+  intptr_t* esp;
+  __asm__ __volatile__ ("mov %%"SPELL_REG_SP", %0":"=r"(esp):);
+  return (address) esp;
 #else
   register void *esp __asm__ (SPELL_REG_SP);
   return (address) esp;
@@ -175,6 +179,9 @@ intptr_t* _get_previous_fp() {
 #ifdef SPARC_WORKS
   register intptr_t **ebp;
   __asm__("mov %%"SPELL_REG_FP", %0":"=r"(ebp));
+#elif defined(__clang__)
+  intptr_t **ebp;
+  __asm__ __volatile__ ("mov %%"SPELL_REG_FP", %0":"=r"(ebp):);
 #else
   register intptr_t **ebp __asm__ (SPELL_REG_FP);
 #endif
@@ -710,7 +717,7 @@ static void current_stack_region(address * bottom, size_t * size) {
      // JVM needs to know exact stack location, abort if it fails
      if (rslt != 0) {
        if (rslt == ENOMEM) {
-         vm_exit_out_of_memory(0, "pthread_getattr_np");
+         vm_exit_out_of_memory(0, OOM_MMAP_ERROR, "pthread_getattr_np");
        } else {
          fatal(err_msg("pthread_getattr_np failed with errno = %d", rslt));
        }

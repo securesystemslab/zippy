@@ -31,8 +31,10 @@
 #include "oops/symbol.hpp"
 #include "runtime/java.hpp"
 #include "runtime/reflectionUtils.hpp"
+#include "trace/traceTime.hpp"
 #include "utilities/hashtable.hpp"
 #include "utilities/hashtable.inline.hpp"
+
 
 // The system dictionary stores all loaded classes and maps:
 //
@@ -363,10 +365,7 @@ public:
   static void classes_do(void f(Klass*, TRAPS), TRAPS);
   //   All classes, and their class loaders
   static void classes_do(void f(Klass*, ClassLoaderData*));
-  //   All classes, and their class loaders
-  //   (added for helpers that use HandleMarks and ResourceMarks)
-  static void classes_do(void f(Klass*, ClassLoaderData*, TRAPS), TRAPS);
-  // All entries in the placeholder table and their class loaders
+
   static void placeholders_do(void f(Symbol*));
 
   // Iterate over all methods in all klasses in dictionary
@@ -689,6 +688,9 @@ private:
   // Setup link to hierarchy
   static void add_to_hierarchy(instanceKlassHandle k, TRAPS);
 
+  // event based tracing
+  static void post_class_load_event(TracingTime start_time, instanceKlassHandle k,
+                                    Handle initiating_loader);
   // We pass in the hashtable index so we can calculate it outside of
   // the SystemDictionary_lock.
 

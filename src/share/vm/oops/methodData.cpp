@@ -400,7 +400,8 @@ void ArgInfoData::print_data_on(outputStream* st) {
 MethodData* MethodData::allocate(ClassLoaderData* loader_data, methodHandle method, TRAPS) {
   int size = MethodData::compute_allocation_size_in_words(method);
 
-  return new (loader_data, size, false, THREAD) MethodData(method(), size, CHECK_NULL);
+  return new (loader_data, size, false, MetaspaceObj::MethodDataType, THREAD)
+    MethodData(method(), size, CHECK_NULL);
 }
 
 int MethodData::bytecode_cell_count(Bytecodes::Code code) {
@@ -774,14 +775,17 @@ int MethodData::mileage_of(Method* method) {
   } else {
     int iic = method->interpreter_invocation_count();
     if (mileage < iic)  mileage = iic;
-    InvocationCounter* ic = method->invocation_counter();
-    InvocationCounter* bc = method->backedge_counter();
-    int icval = ic->count();
-    if (ic->carry()) icval += CompileThreshold;
-    if (mileage < icval)  mileage = icval;
-    int bcval = bc->count();
-    if (bc->carry()) bcval += CompileThreshold;
-    if (mileage < bcval)  mileage = bcval;
+    MethodCounters* mcs = method->method_counters();
+    if (mcs != NULL) {
+      InvocationCounter* ic = mcs->invocation_counter();
+      InvocationCounter* bc = mcs->backedge_counter();
+      int icval = ic->count();
+      if (ic->carry()) icval += CompileThreshold;
+      if (mileage < icval)  mileage = icval;
+      int bcval = bc->count();
+      if (bc->carry()) bcval += CompileThreshold;
+      if (mileage < bcval)  mileage = bcval;
+    }
   }
   return mileage;
 }
