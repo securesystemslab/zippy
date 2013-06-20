@@ -51,8 +51,6 @@ import org.python.antlr.base.excepthandler;
 import org.python.antlr.base.expr;
 import org.python.antlr.base.slice;
 import org.python.antlr.base.stmt;
-import org.python.ast.nodes.NodeFactory;
-import org.python.ast.nodes.TypedNode;
 
 import java.math.BigInteger;
 import java.util.ArrayList;

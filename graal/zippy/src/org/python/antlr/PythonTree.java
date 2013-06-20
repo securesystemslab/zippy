@@ -5,7 +5,7 @@ import org.antlr.runtime.Token;
 import org.antlr.runtime.tree.CommonTree;
 
 import org.python.core.*;
-import org.python.core.truffle.PythonTypes;
+//import org.python.core.truffle.PythonTypes;
 import org.python.antlr.ast.Name;
 import org.python.antlr.ast.VisitorIF;
 
@@ -16,7 +16,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
-@TypeSystemReference(PythonTypes.class)
+//@TypeSystemReference(PythonTypes.class)
 public class PythonTree extends AST {
 
     public boolean from_future_checked = false;

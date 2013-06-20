@@ -5,7 +5,6 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.python.antlr.base.mod;
 import org.python.ast.nodes.ModuleNode;
-import org.python.ast.nodes.PNode;
 import org.python.core.Options;
 
 import com.oracle.truffle.api.nodes.*;
