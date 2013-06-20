@@ -1,0 +1,287 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# jython.sh - start script for Jython (adapted from jruby.sh)
+#
+# Environment variables (optional)
+#
+#   JAVA_HOME      Java installation directory
+#
+#   JYTHON_HOME    Jython installation directory
+#
+#   JYTHON_OPTS    Default Jython command line arguments
+#
+# -----------------------------------------------------------------------------
+
+cygwin=false
+
+# ----- Identify OS we are running under --------------------------------------
+case "`uname`" in
+  CYGWIN*) cygwin=true;;
+  Darwin) darwin=true;;
+esac
+
+# ----- Verify and set required environment variables -------------------------
+
+## resolve links - $0 may be a link to home
+PRG=$0
+
+while [ -h "$PRG" ] ; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '.*/.*' > /dev/null; then
+    if expr "$link" : '/' > /dev/null; then
+      PRG="$link"
+    else
+      PRG="`dirname ${PRG}`/${link}"
+    fi
+  else
+    PRG="`dirname $PRG`/$link"
+  fi
+done
+
+if [ -z "$JAVA_HOME" ] ; then
+  JAVA_CMD=(java)
+else
+  if $cygwin; then
+    JAVA_HOME=`cygpath -u "$JAVA_HOME"`
+  fi
+  JAVA_CMD=("$JAVA_HOME/bin/java")
+fi
+
+# try to dynamically determine jython home
+# (this script typically resides in jython home, or in the /bin subdirectory)
+if [ -z "$JYTHON_HOME" ] ; then
+  if [ "$PRG" = "./jython" ] ; then
+    # current dir is the script dir
+    JYTHON_HOME_1=`pwd`
+  else
+    # current dir is not the script dir
+    JYTHON_HOME_1=`dirname "$PRG"`
+  fi
+  if [ -f "$JYTHON_HOME_1"/jython.jar -o -f "$JYTHON_HOME_1"/jython-dev.jar ] ; then
+    JYTHON_HOME="$JYTHON_HOME_1"
+  else
+    JYTHON_HOME=`dirname "$JYTHON_HOME_1"`
+  fi
+  if [ ! -f "$JYTHON_HOME"/jython.jar -a ! -f "$JYTHON_HOME"/jython-dev.jar ] ; then
+    JYTHON_HOME="$JYTHON_HOME_FALLBACK"
+  fi
+fi
+
+if [ -z "$JYTHON_OPTS" ] ; then
+  JYTHON_OPTS=""
+fi
+
+CP_DELIMITER=":"
+
+CP=$JYTHON_HOME/jython-dev.jar
+
+if [ -f "$CP" ] ; then
+  # add necessary jars for command-line execution
+  for j in "$JYTHON_HOME"/javalib/*.jar; do
+    if [ "$CP" ]; then
+      CP="$CP$CP_DELIMITER$j"
+    else
+      CP="$j"
+    fi
+  done
+elif [ ! -f "$JYTHON_HOME"/jython.jar ] ; then
+  echo "$0: $JYTHON_HOME contains neither jython-dev.jar nor jython.jar." >&2
+  echo "Try running this script from the 'bin' directory of an installed Jython or " >&2
+  echo 'setting $JYTHON_HOME.' >&2
+  exit 1
+else
+  CP=$JYTHON_HOME/jython.jar
+fi
+
+if $cygwin; then
+  # switch delimiter only after building a Unix style $CP
+  CP_DELIMITER=";"
+  CP=`cygpath -p -w "$CP"`
+  PRG=`cygpath -w "$PRG"`
+fi
+
+# ----- Execute the requested command -----------------------------------------
+
+if [ -z "$JAVA_MEM" ] ; then
+  JAVA_MEM=-Xmx512m
+fi
+
+if [ -z "$JAVA_STACK" ]; then
+   # 32 bit Java 6 needs the stack increased to at least 512k for
+   # test_cpickle to pass, but we don't want to shrink 64 bit Java's
+   # default of 1024k
+  JAVA_STACK=-Xss1024k
+fi
+
+JAVA_ENCODING=""
+
+# Split out any -J argument for passing to the JVM.
+# Scanning for args is aborted by '--'.
+while [ $# -gt 0 ] ; do
+  case "$1" in
+    # Stuff after '-J' in this argument goes to JVM
+    -J*)
+      val=${1:2}
+      if [ "${val:0:4}" = "-Xmx" ]; then
+        JAVA_MEM=$val
+      elif [ "${val:0:4}" = "-Xss" ]; then
+        JAVA_STACK=$val
+      elif [ "${val}" = "" ]; then
+          $JAVA_CMD -help
+          echo "(Prepend -J in front of these options when using 'jython' command)" 
+          exit
+      elif [ "${val}" = "-X" ]; then
+          $JAVA_CMD -X
+          echo "(Prepend -J in front of these options when using 'jython' command)" 
+          exit
+        elif [ "${val}" = "-classpath" ]; then
+            CP="$CP$CP_DELIMITER$2"
+            shift
+        elif [ "${val}" = "-cp" ]; then
+            CP="$CP$CP_DELIMITER$2"
+            shift
+      else
+          if [ "${val:0:16}" = "-Dfile.encoding=" ]; then
+              JAVA_ENCODING=$val
+          fi
+	  java_args=("${java_args[@]}" "${1:2}")
+      fi
+      ;;
+    # Match switches that take an argument
+    -c|-C|-m|-jar|-Q|-W)
+      if [ $# = 1 ]; then
+          python_args=("${python_args[@]}" "$1")
+      else
+          python_args=("${python_args[@]}" "$1" "$2")
+          shift
+      fi;
+      ;;
+    # Match -Dprop=val type args
+    -D*)
+      python_args=("${python_args[@]}" "$1")
+      ;;
+    # Print the command, don't execute it
+    --print)
+      print_requested=true
+      ;;
+    # Run with the instrumented profiler: http://jiprof.sourceforge.net/
+    --profile)
+      rm -f profile.txt # XXX do this?
+      profile_requested=true
+      agent_path="$JYTHON_HOME/javalib/profile.jar"
+      props_path="$JYTHON_HOME/javalib/profile.properties"
+      if $cygwin; then
+	agent_path=`cygpath -w "$agent_path"`
+	props_path=`cygpath -w "$props_path"`
+      fi
+      java_args=("${java_args[@]}" -javaagent:"$agent_path"
+	-Dprofile.properties="$props_path")
+      ;;
+    # Put Jython on the boot classpath (disables the verifier)
+    --boot)
+      boot_requested=true
+      ;;
+    # Run under JDB
+    --jdb)
+      if [ -z "$JAVA_HOME" ] ; then
+	JAVA_CMD=(jdb)
+      else
+	if $cygwin; then
+	  JAVA_HOME=`cygpath -u "$JAVA_HOME"`
+	fi
+	JAVA_CMD=("$JAVA_HOME/bin/jdb")
+      fi
+      ;;
+    -h|--help)
+      help_requested=true
+      python_args=("${python_args[@]}" "$1")
+      ;;
+    # Abort processing on a double dash
+    --)
+      break
+      ;;
+    # Other opts go to Jython
+    -*)
+      python_args=("${python_args[@]}" "$1")
+      ;;
+    # Abort processing on first non-opt arg
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+# Force file.encoding to UTF-8 when on Mac, since Apple JDK defaults to MacRoman (JRUBY-3576)
+if [[ $darwin && -z "$JAVA_ENCODING" ]]; then
+  java_args=("${java_args[@]}" "-Dfile.encoding=UTF-8")
+fi
+
+# Append the rest of the arguments
+python_args=("${python_args[@]}" "$@")
+
+# Put the python_args back into the position arguments $1, $2 etc
+set -- "${python_args[@]}"
+
+JAVA_OPTS="$JAVA_OPTS $JAVA_MEM $JAVA_STACK"
+
+if $cygwin; then
+  JAVA_HOME=`cygpath --mixed "$JAVA_HOME"`
+  JYTHON_HOME=`cygpath --mixed "$JYTHON_HOME"`
+  
+  if [[ ( "${1:0:1}" = "/" ) && ( ( -f "$1" ) || ( -d "$1" )) ]]; then
+    win_arg=`cygpath -w "$1"`
+    shift
+    win_args=("$win_arg" "$@")
+    set -- "${win_args[@]}"
+  fi
+
+  # fix JLine to use UnixTerminal
+  stty -icanon min 1 -echo > /dev/null 2>&1
+  if [ $? = 0 ]; then
+    JAVA_OPTS="$JAVA_OPTS -Djline.terminal=jline.UnixTerminal"
+  fi
+fi
+
+if [ -n "$profile_requested" -o -z "$boot_requested" ] ; then
+  [ -n "$profile_requested" ] && echo "Running with instrumented profiler"
+  java_args=("${java_args[@]}" -classpath "$CP$CP_DELIMITER$CLASSPATH")
+else
+  if [ -z "$help_requested" -a -z "$print_requested" ] ; then
+    JAVA_CMD=(exec "${JAVA_CMD[@]}")
+  fi
+  java_args=("${java_args[@]}" -Xbootclasspath/a:"$CP")
+  [ -n "$CLASSPATH" ] && java_args=("${java_args[@]}" -classpath "$CLASSPATH")
+fi
+
+if [ -n "$print_requested" ] ; then
+  JAVA_CMD=(echo $JAVA_CMD)
+fi
+
+"${JAVA_CMD[@]}" $JAVA_OPTS "${java_args[@]}" -Dpython.home="$JYTHON_HOME" \
+  -Dpython.executable="$PRG" org.python.util.jython $JYTHON_OPTS "$@"
+JYTHON_STATUS=$?
+
+if [ -n "$profile_requested" ] ; then
+  echo "Profiling results:"
+  cat profile.txt
+elif [ -n "$help_requested" ] ; then
+  echo "Jython launcher options:" >&2
+  echo "-Jarg    : pass argument through to Java VM (e.g. -J-Xmx512m)" >&2
+  echo "--jdb    : run under JDB" >&2
+  echo "--print  : print the Java command instead of executing it" >&2
+  echo "--profile: run with the Java Interactive Profiler (http://jiprof.sf.net)" >&2
+  echo "--boot   : put jython on the boot classpath (disables the bytecode verifier)" >&2
+  echo "--       : pass remaining arguments through to Jython" >&2
+  echo "Jython launcher environment variables:" >&2
+  echo "JAVA_HOME  : Java installation directory" >&2
+  echo "JYTHON_HOME: Jython installation directory" >&2
+  echo "JYTHON_OPTS: default command line arguments" >&2
+fi
+
+if $cygwin; then
+  stty icanon echo > /dev/null 2>&1
+fi
+
+exit $JYTHON_STATUS
