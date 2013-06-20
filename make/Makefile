@@ -167,6 +167,7 @@ C2_DIR      =$(OUTPUTDIR)/$(VM_PLATFORM)_compiler2
 MINIMAL1_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_minimal1
 ZERO_DIR    =$(OUTPUTDIR)/$(VM_PLATFORM)_zero
 SHARK_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_shark
+GRAAL_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_graal
 
 # Build variation of hotspot
 $(C1_VM_TARGETS):
@@ -189,17 +190,16 @@ $(MINIMAL1_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
 	$(MAKE) BUILD_DIR=$(MINIMAL1_DIR) BUILD_FLAVOR=$(@:%minimal1=%) VM_TARGET=$@ generic_buildminimal1 $(ALT_OUT)
 
+$(GRAAL_VM_TARGETS):
+	$(CD) $(GAMMADIR)/make; \
+	$(MAKE) BUILD_DIR=$(GRAAL_DIR) BUILD_FLAVOR=$(@:%graal=%) VM_TARGET=$@ generic_buildgraal $(ALT_OUT)
+
 # Install hotspot script in build directory
 HOTSPOT_SCRIPT=$(BUILD_DIR)/$(BUILD_FLAVOR)/hotspot
 $(HOTSPOT_SCRIPT): $(GAMMADIR)/make/hotspot.script
 	$(QUIETLY) $(MKDIR) -p $(BUILD_DIR)/$(BUILD_FLAVOR)
 	$(QUIETLY) cat $< | sed -e 's|@@LIBARCH@@|$(LIBARCH)|g' | sed -e 's|@@JDK_IMPORT_PATH@@|$(JDK_IMPORT_PATH)|g' > $@
 	$(QUIETLY) chmod +x $@
-
-$(GRAAL_VM_TARGETS):
-	$(CD) $(GAMMADIR)/make; \
-	$(MAKE) BUILD_FLAVOR=$@ VM_TARGET=$@ \
-	  generic_buildgraal $(ALT_OUT)
 
 # Build compiler1 (client) rule, different for platforms
 generic_build1: $(HOTSPOT_SCRIPT) buildshared
@@ -272,7 +272,7 @@ else
 	@$(ECHO) "Error: trying to build a minimal target but JVM_VARIANT_MINIMAL1 is not true."
 endif
 
-generic_buildgraal: buildshared
+generic_buildgraal: $(HOTSPOT_SCRIPT) buildshared
 	$(MKDIR) -p $(OUTPUTDIR)
 	$(CD) $(OUTPUTDIR); \
 		$(MAKE) -f $(ABS_OS_MAKEFILE) \

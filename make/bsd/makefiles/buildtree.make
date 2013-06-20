@@ -361,27 +361,10 @@ dtrace.make: $(BUILDTREE_MAKE)
 	@echo Creating $@ ...
 	$(QUIETLY) ( \
 	$(BUILDTREE_COMMENT); \
-	{ echo "JAVA_HOME=$(JDK_IMPORT_PATH)"; }; \
-	{ \
-	echo "CLASSPATH=$${CLASSPATH:+$$CLASSPATH:}.:\$${JAVA_HOME}/jre/lib/rt.jar:\$${JAVA_HOME}/jre/lib/i18n.jar"; \
-	} | sed s:$${JAVA_HOME:--------}:\$${JAVA_HOME}:g; \
-	echo "HOTSPOT_BUILD_USER=\"$${LOGNAME:-$$USER} in `basename $(GAMMADIR)`\""; \
-	echo "export JAVA_HOME CLASSPATH HOTSPOT_BUILD_USER"; \
-	) > $@
-
-env.csh: env.sh
-	@echo Creating $@ ...
-	$(QUIETLY) ( \
-	$(BUILDTREE_COMMENT); \
-	{ echo "setenv JAVA_HOME \"$(JDK_IMPORT_PATH)\""; }; \
-	sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=/setenv \1 /p' $?; \
-	) > $@
-
-jdkpath.sh: $(BUILDTREE_MAKE)
-	@echo Creating $@ ...
-	$(QUIETLY) ( \
-	$(BUILDTREE_COMMENT); \
-	echo "JDK=${JAVA_HOME}"; \
+	echo; \
+	echo include flags.make; \
+	echo; \
+	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(@F)"; \
 	) > $@
 
 FORCE:
