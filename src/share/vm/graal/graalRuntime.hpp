@@ -52,6 +52,8 @@ class GraalRuntime: public AllStatic {
     LOG_OBJECT_ADDRESS = 0x04
   };
   static void log_object(JavaThread* thread, oop msg, jint flags);
+  static void write_barrier_pre(JavaThread* thread, oopDesc* obj);
+  static void write_barrier_post(JavaThread* thread, void* card);
 };
 
 #endif // SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP
