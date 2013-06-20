@@ -358,6 +358,14 @@ JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oop obj, jint flags
   }
 JRT_END
 
+JRT_LEAF(void, GraalRuntime::write_barrier_pre(JavaThread* thread, oopDesc* obj))
+  thread->satb_mark_queue().enqueue(obj);
+JRT_END
+
+JRT_LEAF(void, GraalRuntime::write_barrier_post(JavaThread* thread, void* card_addr))
+  thread->dirty_card_queue().enqueue(card_addr);
+JRT_END
+
 JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format, jlong value))
   ResourceMark rm;
   assert(where == NULL || java_lang_String::is_instance(where), "must be");
