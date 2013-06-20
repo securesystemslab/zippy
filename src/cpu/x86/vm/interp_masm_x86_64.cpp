@@ -1154,13 +1154,12 @@ void InterpreterMacroAssembler::profile_called_method(Register method, Register 
     Label done;
     record_item_in_profile_helper(method, mdp, reg2, 0, done, MethodProfileWidth,
       &VirtualCallData::method_offset, &VirtualCallData::method_count_offset, in_bytes(VirtualCallData::nonprofiled_receiver_count_offset()));
-    bind (done);
+    bind(done);
 
     update_mdp_by_constant(mdp, in_bytes(VirtualCallData::virtual_call_data_size()));
     bind(profile_continue);
   }
 }
-
 #endif
 
 // This routine creates a state machine for updating the multi-row
