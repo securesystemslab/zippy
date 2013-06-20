@@ -164,6 +164,7 @@ endif
 # Output directories
 C1_DIR      =$(OUTPUTDIR)/$(VM_PLATFORM)_compiler1
 C2_DIR      =$(OUTPUTDIR)/$(VM_PLATFORM)_compiler2
+GRAAL_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_graal
 MINIMAL1_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_minimal1
 ZERO_DIR    =$(OUTPUTDIR)/$(VM_PLATFORM)_zero
 SHARK_DIR   =$(OUTPUTDIR)/$(VM_PLATFORM)_shark
@@ -309,11 +310,12 @@ XUSAGE=$(HS_SRC_DIR)/share/vm/Xusage.txt
 DOCS_DIR=$(OUTPUTDIR)/$(VM_PLATFORM)_docs
 C1_BUILD_DIR      =$(C1_DIR)/$(BUILD_FLAVOR)
 C2_BUILD_DIR      =$(C2_DIR)/$(BUILD_FLAVOR)
+GRAAL_BUILD_DIR   =$(GRAAL_DIR)/$(BUILD_FLAVOR)
 MINIMAL1_BUILD_DIR=$(MINIMAL1_DIR)/$(BUILD_FLAVOR)
 ZERO_BUILD_DIR    =$(ZERO_DIR)/$(BUILD_FLAVOR)
 SHARK_BUILD_DIR   =$(SHARK_DIR)/$(BUILD_FLAVOR)
 
-# Server (C2)
+# Server (C2) and Graal
 ifeq ($(JVM_VARIANT_SERVER), true)
 # Common
 $(EXPORT_SERVER_DIR)/%.diz:       		$(C2_BUILD_DIR)/%.diz
@@ -355,6 +357,49 @@ $(EXPORT_SERVER_DIR)/64/%.debuginfo:    	$(C2_BUILD_DIR)/%.debuginfo
 $(EXPORT_JRE_LIB_ARCH_DIR)/%.diz: 		$(C2_BUILD_DIR)/%.diz
 	$(install-file)
 $(EXPORT_SERVER_DIR)/64/%.diz:    		$(C2_BUILD_DIR)/%.diz
+	$(install-file)
+
+# Graal
+# Common
+$(EXPORT_SERVER_DIR)/%.diz:       		$(GRAAL_BUILD_DIR)/%.diz
+	$(install-file)
+$(EXPORT_LIB_DIR)/%.jar:			$(GRAAL_BUILD_DIR)/../generated/%.jar
+	$(install-file)
+$(EXPORT_INCLUDE_DIR)/%:			$(GRAAL_BUILD_DIR)/../generated/jvmtifiles/%
+	$(install-file)
+# Windows
+$(EXPORT_SERVER_DIR)/%.dll:			$(GRAAL_BUILD_DIR)/%.dll
+	$(install-file)
+$(EXPORT_SERVER_DIR)/%.pdb:			$(GRAAL_BUILD_DIR)/%.pdb
+	$(install-file)
+$(EXPORT_SERVER_DIR)/%.map:			$(GRAAL_BUILD_DIR)/%.map
+	$(install-file)
+$(EXPORT_LIB_DIR)/%.lib:			$(GRAAL_BUILD_DIR)/%.lib
+	$(install-file)
+$(EXPORT_JRE_BIN_DIR)/%.diz:			$(GRAAL_BUILD_DIR)/%.diz
+	$(install-file)
+$(EXPORT_JRE_BIN_DIR)/%.dll:			$(GRAAL_BUILD_DIR)/%.dll
+	$(install-file)
+$(EXPORT_JRE_BIN_DIR)/%.pdb:			$(GRAAL_BUILD_DIR)/%.pdb
+	$(install-file)
+$(EXPORT_JRE_BIN_DIR)/%.map:			$(GRAAL_BUILD_DIR)/%.map
+	$(install-file)
+# Unix
+$(EXPORT_JRE_LIB_ARCH_DIR)/%.$(LIBRARY_SUFFIX): $(GRAAL_BUILD_DIR)/%.$(LIBRARY_SUFFIX)
+	$(install-file)
+$(EXPORT_SERVER_DIR)/%.$(LIBRARY_SUFFIX):       $(GRAAL_BUILD_DIR)/%.$(LIBRARY_SUFFIX)
+	$(install-file)
+$(EXPORT_SERVER_DIR)/64/%.$(LIBRARY_SUFFIX):    $(GRAAL_BUILD_DIR)/%.$(LIBRARY_SUFFIX)
+	$(install-file)
+$(EXPORT_JRE_LIB_ARCH_DIR)/%.debuginfo: 	$(GRAAL_BUILD_DIR)/%.debuginfo
+	$(install-file)
+$(EXPORT_SERVER_DIR)/%.debuginfo:       	$(GRAAL_BUILD_DIR)/%.debuginfo
+	$(install-file)
+$(EXPORT_SERVER_DIR)/64/%.debuginfo:    	$(GRAAL_BUILD_DIR)/%.debuginfo
+	$(install-file)
+$(EXPORT_JRE_LIB_ARCH_DIR)/%.diz: 		$(GRAAL_BUILD_DIR)/%.diz
+	$(install-file)
+$(EXPORT_SERVER_DIR)/64/%.diz:    		$(GRAAL_BUILD_DIR)/%.diz
 	$(install-file)
 endif
 
@@ -492,6 +537,9 @@ $(EXPORT_SERVER_DIR)/%.diz:			$(SHARK_BUILD_DIR)/%.diz
 	$(install-file)
 endif
 
+$(EXPORT_JRE_LIB_DIR)/%.jar: $(SHARED_DIR)/%.jar
+	$(install-file)
+
 $(EXPORT_INCLUDE_DIR)/%: $(HS_SRC_DIR)/share/vm/code/%
 	$(install-file)
 
@@ -533,10 +581,10 @@ clean_build:
 	$(RM) -r $(SHARED_DIR)
 	$(RM) -r $(C1_DIR)
 	$(RM) -r $(C2_DIR)
+	$(RM) -r $(GRAAL_DIR)
 	$(RM) -r $(ZERO_DIR)
 	$(RM) -r $(SHARK_DIR)
 	$(RM) -r $(MINIMAL1_DIR)
-	$(RM) -r $(GRAAL_DIR)
 clean_export:
 	$(RM) -r $(EXPORT_PATH)
 clean_jdk:
