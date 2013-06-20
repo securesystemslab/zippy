@@ -59,6 +59,7 @@
 #include "services/attachListener.hpp"
 #include "services/management.hpp"
 #include "services/threadService.hpp"
+#include "trace/tracing.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/defaultStream.hpp"
 #include "utilities/dtrace.hpp"
@@ -1074,11 +1075,7 @@ JVM_ENTRY(jobjectArray, JVM_GetClassSigners(JNIEnv *env, jclass cls))
     return NULL;
   }
 
-  Klass* k = java_lang_Class::as_Klass(JNIHandles::resolve_non_null(cls));
-  objArrayOop signers = NULL;
-  if (k->oop_is_instance()) {
-    signers = InstanceKlass::cast(k)->signers();
-  }
+  objArrayOop signers = java_lang_Class::signers(JNIHandles::resolve_non_null(cls));
 
   // If there are no signers set in the class, or if the class
   // is an array, return NULL.
@@ -1104,7 +1101,7 @@ JVM_ENTRY(void, JVM_SetClassSigners(JNIEnv *env, jclass cls, jobjectArray signer
     // be called with an array.  Only the bootstrap loader creates arrays.
     Klass* k = java_lang_Class::as_Klass(JNIHandles::resolve_non_null(cls));
     if (k->oop_is_instance()) {
-      InstanceKlass::cast(k)->set_signers(objArrayOop(JNIHandles::resolve(signers)));
+      java_lang_Class::set_signers(k->java_mirror(), objArrayOop(JNIHandles::resolve(signers)));
     }
   }
 JVM_END
@@ -1121,8 +1118,8 @@ JVM_ENTRY(jobject, JVM_GetProtectionDomain(JNIEnv *env, jclass cls))
     return NULL;
   }
 
-  Klass* k = java_lang_Class::as_Klass(JNIHandles::resolve(cls));
-  return (jobject) JNIHandles::make_local(env, k->protection_domain());
+  oop pd = java_lang_Class::protection_domain(JNIHandles::resolve(cls));
+  return (jobject) JNIHandles::make_local(env, pd);
 JVM_END
 
 
@@ -1141,7 +1138,7 @@ JVM_ENTRY(void, JVM_SetProtectionDomain(JNIEnv *env, jclass cls, jobject protect
     if (k->oop_is_instance()) {
       oop pd = JNIHandles::resolve(protection_domain);
       assert(pd == NULL || pd->is_oop(), "just checking");
-      InstanceKlass::cast(k)->set_protection_domain(pd);
+      java_lang_Class::set_protection_domain(k->java_mirror(), pd);
     }
   }
 JVM_END
@@ -1712,7 +1709,7 @@ JVM_ENTRY(jobjectArray, JVM_GetMethodParameters(JNIEnv *env, jobject method))
     for (int i = 0; i < num_params; i++) {
       MethodParametersElement* params = mh->method_parameters_start();
       // For a 0 index, give a NULL symbol
-      Symbol* const sym = 0 != params[i].name_cp_index ?
+      Symbol* sym = 0 != params[i].name_cp_index ?
         mh->constants()->symbol_at(params[i].name_cp_index) : NULL;
       int flags = params[i].flags;
       oop param = Reflection::new_parameter(reflected_method, i, sym,
@@ -3005,6 +3002,8 @@ JVM_ENTRY(void, JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis))
                              millis);
 #endif /* USDT2 */
 
+  EventThreadSleep event;
+
   if (millis == 0) {
     // When ConvertSleepToYield is on, this matches the classic VM implementation of
     // JVM_Sleep. Critical for similar threading behaviour (Win32)
@@ -3025,6 +3024,10 @@ JVM_ENTRY(void, JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis))
       // An asynchronous exception (e.g., ThreadDeathException) could have been thrown on
       // us while we were sleeping. We do not overwrite those.
       if (!HAS_PENDING_EXCEPTION) {
+        if (event.should_commit()) {
+          event.set_time(millis);
+          event.commit();
+        }
 #ifndef USDT2
         HS_DTRACE_PROBE1(hotspot, thread__sleep__end,1);
 #else /* USDT2 */
@@ -3037,6 +3040,10 @@ JVM_ENTRY(void, JVM_Sleep(JNIEnv* env, jclass threadClass, jlong millis))
       }
     }
     thread->osthread()->set_state(old_state);
+  }
+  if (event.should_commit()) {
+    event.set_time(millis);
+    event.commit();
   }
 #ifndef USDT2
   HS_DTRACE_PROBE1(hotspot, thread__sleep__end,0);

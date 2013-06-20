@@ -114,10 +114,10 @@ private:
 };
 
 #ifdef TARGET_ARCH_x86
-# include "codeInstaller_x86.hpp"
+# include "graalCodeInstaller_x86.hpp"
 #endif
 #ifdef TARGET_ARCH_sparc
-# include "codeInstaller_sparc.hpp"
+# include "graalCodeInstaller_sparc.hpp"
 #endif
 #ifdef TARGET_ARCH_zero
 # error

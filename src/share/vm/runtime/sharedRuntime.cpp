@@ -781,7 +781,7 @@ JRT_END
 #ifdef GRAAL
 address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason) {
   assert(deopt_reason > Deoptimization::Reason_none && deopt_reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
-  thread->_ScratchA = (intptr_t)pc;
+  thread->set_graal_implicit_exception_pc(pc);
   thread->set_pending_deoptimization(Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret));
   return (SharedRuntime::deopt_blob()->implicit_exception_uncommon_trap());
 }
@@ -937,24 +937,28 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 }
 
 
-JNI_ENTRY(void, throw_unsatisfied_link_error(JNIEnv* env, ...))
+/**
+ * Throws an java/lang/UnsatisfiedLinkError.  The address of this method is
+ * installed in the native function entry of all native Java methods before
+ * they get linked to their actual native methods.
+ *
+ * \note
+ * This method actually never gets called!  The reason is because
+ * the interpreter's native entries call NativeLookup::lookup() which
+ * throws the exception when the lookup fails.  The exception is then
+ * caught and forwarded on the return from NativeLookup::lookup() call
+ * before the call to the native function.  This might change in the future.
+ */
+JNI_ENTRY(void*, throw_unsatisfied_link_error(JNIEnv* env, ...))
 {
-  THROW(vmSymbols::java_lang_UnsatisfiedLinkError());
-}
-JNI_END
-
-JNI_ENTRY(void, throw_unsupported_operation_exception(JNIEnv* env, ...))
-{
-  THROW(vmSymbols::java_lang_UnsupportedOperationException());
+  // We return a bad value here to make sure that the exception is
+  // forwarded before we look at the return value.
+  THROW_(vmSymbols::java_lang_UnsatisfiedLinkError(), (void*)badJNIHandle);
 }
 JNI_END
 
 address SharedRuntime::native_method_throw_unsatisfied_link_error_entry() {
   return CAST_FROM_FN_PTR(address, &throw_unsatisfied_link_error);
-}
-
-address SharedRuntime::native_method_throw_unsupported_operation_exception_entry() {
-  return CAST_FROM_FN_PTR(address, &throw_unsupported_operation_exception);
 }
 
 
@@ -1380,12 +1384,6 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method(JavaThread* thread))
   frame stub_frame = thread->last_frame();
   assert(stub_frame.is_runtime_frame(), "sanity check");
   frame caller_frame = stub_frame.sender(&reg_map);
-
-  // MethodHandle invokes don't have a CompiledIC and should always
-  // simply redispatch to the callee_target.
-  address   sender_pc = caller_frame.pc();
-  CodeBlob* sender_cb = caller_frame.cb();
-  nmethod*  sender_nm = sender_cb->as_nmethod_or_null();
 
   if (caller_frame.is_interpreted_frame() ||
       caller_frame.is_entry_frame()) {
@@ -2793,7 +2791,7 @@ VMReg SharedRuntime::name_for_receiver() {
   return regs.first();
 }
 
-VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, int* arg_size) {
+VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, bool has_appendix, int* arg_size) {
   // This method is returning a data structure allocating as a
   // ResourceObject, so do not put any ResourceMarks in here.
   char *s = sig->as_C_string();
@@ -2837,6 +2835,11 @@ VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, 
     default : ShouldNotReachHere();
     }
   }
+
+  if (has_appendix) {
+    sig_bt[cnt++] = T_OBJECT;
+  }
+
   assert( cnt < 256, "grow table size" );
 
   int comp_args_on_stack;

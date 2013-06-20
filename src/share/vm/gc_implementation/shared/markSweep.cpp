@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,13 +24,15 @@
 
 #include "precompiled.hpp"
 #include "compiler/compileBroker.hpp"
+#include "gc_implementation/shared/gcTimer.hpp"
+#include "gc_implementation/shared/gcTrace.hpp"
 #include "gc_implementation/shared/markSweep.inline.hpp"
 #include "gc_interface/collectedHeap.inline.hpp"
 #include "oops/methodData.hpp"
 #include "oops/objArrayKlass.inline.hpp"
 #include "oops/oop.inline.hpp"
 
-unsigned int            MarkSweep::_total_invocations = 0;
+uint                    MarkSweep::_total_invocations = 0;
 
 Stack<oop, mtGC>              MarkSweep::_marking_stack;
 Stack<ObjArrayTask, mtGC>     MarkSweep::_objarray_stack;
@@ -41,6 +43,8 @@ size_t                  MarkSweep::_preserved_count = 0;
 size_t                  MarkSweep::_preserved_count_max = 0;
 PreservedMark*          MarkSweep::_preserved_marks = NULL;
 ReferenceProcessor*     MarkSweep::_ref_processor   = NULL;
+STWGCTimer*             MarkSweep::_gc_timer        = NULL;
+SerialOldTracer*        MarkSweep::_gc_tracer       = NULL;
 
 MarkSweep::FollowRootClosure  MarkSweep::follow_root_closure;
 CodeBlobToOopClosure MarkSweep::follow_code_root_closure(&MarkSweep::follow_root_closure, /*do_marking=*/ true);
@@ -81,7 +85,7 @@ void MarkSweep::follow_class_loader(ClassLoaderData* cld) {
 }
 
 void MarkSweep::adjust_class_loader(ClassLoaderData* cld) {
-  cld->oops_do(&MarkSweep::adjust_root_pointer_closure, &MarkSweep::adjust_klass_closure, true);
+  cld->oops_do(&MarkSweep::adjust_pointer_closure, &MarkSweep::adjust_klass_closure, true);
 }
 
 
@@ -95,7 +99,7 @@ void MarkSweep::follow_stack() {
     // Process ObjArrays one at a time to avoid marking stack bloat.
     if (!_objarray_stack.is_empty()) {
       ObjArrayTask task = _objarray_stack.pop();
-      ObjArrayKlass* const k = (ObjArrayKlass*)task.obj()->klass();
+      ObjArrayKlass* k = (ObjArrayKlass*)task.obj()->klass();
       k->oop_follow_contents(task.obj(), task.index());
     }
   } while (!_marking_stack.is_empty() || !_objarray_stack.is_empty());
@@ -121,11 +125,10 @@ void MarkSweep::preserve_mark(oop obj, markOop mark) {
   }
 }
 
-MarkSweep::AdjustPointerClosure MarkSweep::adjust_root_pointer_closure(true);
-MarkSweep::AdjustPointerClosure MarkSweep::adjust_pointer_closure(false);
+MarkSweep::AdjustPointerClosure MarkSweep::adjust_pointer_closure;
 
-void MarkSweep::AdjustPointerClosure::do_oop(oop* p)       { adjust_pointer(p, _is_root); }
-void MarkSweep::AdjustPointerClosure::do_oop(narrowOop* p) { adjust_pointer(p, _is_root); }
+void MarkSweep::AdjustPointerClosure::do_oop(oop* p)       { adjust_pointer(p); }
+void MarkSweep::AdjustPointerClosure::do_oop(narrowOop* p) { adjust_pointer(p); }
 
 void MarkSweep::adjust_marks() {
   assert( _preserved_oop_stack.size() == _preserved_mark_stack.size(),
@@ -167,7 +170,6 @@ void MarkSweep::restore_marks() {
 
 MarkSweep::IsAliveClosure   MarkSweep::is_alive;
 
-void MarkSweep::IsAliveClosure::do_object(oop p)   { ShouldNotReachHere(); }
 bool MarkSweep::IsAliveClosure::do_object_b(oop p) { return p->is_gc_marked(); }
 
 MarkSweep::KeepAliveClosure MarkSweep::keep_alive;
@@ -175,7 +177,10 @@ MarkSweep::KeepAliveClosure MarkSweep::keep_alive;
 void MarkSweep::KeepAliveClosure::do_oop(oop* p)       { MarkSweep::KeepAliveClosure::do_oop_work(p); }
 void MarkSweep::KeepAliveClosure::do_oop(narrowOop* p) { MarkSweep::KeepAliveClosure::do_oop_work(p); }
 
-void marksweep_init() { /* empty */ }
+void marksweep_init() {
+  MarkSweep::_gc_timer = new (ResourceObj::C_HEAP, mtGC) STWGCTimer();
+  MarkSweep::_gc_tracer = new (ResourceObj::C_HEAP, mtGC) SerialOldTracer();
+}
 
 #ifndef PRODUCT
 

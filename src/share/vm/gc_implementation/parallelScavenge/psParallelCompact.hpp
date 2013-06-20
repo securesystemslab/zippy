@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,8 @@ class GCTaskQueue;
 class PreGCValues;
 class MoveAndUpdateClosure;
 class RefProcTaskExecutor;
+class ParallelOldTracer;
+class STWGCTimer;
 
 // The SplitInfo class holds the information needed to 'split' a source region
 // so that the live data can be copied to two destination *spaces*.  Normally,
@@ -220,6 +222,17 @@ public:
   // Mask for the bits in a pointer to get the address of the start of a region.
   static const size_t RegionAddrMask;
 
+  static const size_t Log2BlockSize;
+  static const size_t BlockSize;
+  static const size_t BlockSizeBytes;
+
+  static const size_t BlockSizeOffsetMask;
+  static const size_t BlockAddrOffsetMask;
+  static const size_t BlockAddrMask;
+
+  static const size_t BlocksPerRegion;
+  static const size_t Log2BlocksPerRegion;
+
   class RegionData
   {
   public:
@@ -272,6 +285,12 @@ public:
     inline uint destination_count() const;
     inline uint destination_count_raw() const;
 
+    // Whether the block table for this region has been filled.
+    inline bool blocks_filled() const;
+
+    // Number of times the block table was filled.
+    DEBUG_ONLY(inline size_t blocks_filled_count() const;)
+
     // The location of the java heap data that corresponds to this region.
     inline HeapWord* data_location() const;
 
@@ -296,6 +315,7 @@ public:
     void set_partial_obj_size(size_t words)    {
       _partial_obj_size = (region_sz_t) words;
     }
+    inline void set_blocks_filled();
 
     inline void set_destination_count(uint count);
     inline void set_live_obj_size(size_t words);
@@ -328,7 +348,11 @@ public:
     HeapWord*            _partial_obj_addr;
     region_sz_t          _partial_obj_size;
     region_sz_t volatile _dc_and_los;
+    bool                 _blocks_filled;
+
 #ifdef ASSERT
+    size_t               _blocks_filled_count;   // Number of block table fills.
+
     // These enable optimizations that are only partially implemented.  Use
     // debug builds to prevent the code fragments from breaking.
     HeapWord*            _data_location;
@@ -337,9 +361,24 @@ public:
 
 #ifdef ASSERT
    public:
-    uint            _pushed;   // 0 until region is pushed onto a worker's stack
+    uint                 _pushed;   // 0 until region is pushed onto a stack
    private:
 #endif
+  };
+
+  // "Blocks" allow shorter sections of the bitmap to be searched.  Each Block
+  // holds an offset, which is the amount of live data in the Region to the left
+  // of the first live object that starts in the Block.
+  class BlockData
+  {
+  public:
+    typedef unsigned short int blk_ofs_t;
+
+    blk_ofs_t offset() const    { return _offset; }
+    void set_offset(size_t val) { _offset = (blk_ofs_t)val; }
+
+  private:
+    blk_ofs_t _offset;
   };
 
 public:
@@ -347,13 +386,15 @@ public:
   bool initialize(MemRegion covered_region);
 
   size_t region_count() const { return _region_count; }
+  size_t reserved_byte_size() const { return _reserved_byte_size; }
 
   // Convert region indices to/from RegionData pointers.
   inline RegionData* region(size_t region_idx) const;
   inline size_t     region(const RegionData* const region_ptr) const;
 
-  // Returns true if the given address is contained within the region
-  bool region_contains(size_t region_index, HeapWord* addr);
+  size_t block_count() const { return _block_count; }
+  inline BlockData* block(size_t block_idx) const;
+  inline size_t     block(const BlockData* block_ptr) const;
 
   void add_obj(HeapWord* addr, size_t len);
   void add_obj(oop p, size_t len) { add_obj((HeapWord*)p, len); }
@@ -393,11 +434,24 @@ public:
   inline HeapWord*  region_align_up(HeapWord* addr) const;
   inline bool       is_region_aligned(HeapWord* addr) const;
 
+  // Analogous to region_offset() for blocks.
+  size_t     block_offset(const HeapWord* addr) const;
+  size_t     addr_to_block_idx(const HeapWord* addr) const;
+  size_t     addr_to_block_idx(const oop obj) const {
+    return addr_to_block_idx((HeapWord*) obj);
+  }
+  inline BlockData* addr_to_block_ptr(const HeapWord* addr) const;
+  inline HeapWord*  block_to_addr(size_t block) const;
+  inline size_t     region_to_block_idx(size_t region) const;
+
+  inline HeapWord*  block_align_down(HeapWord* addr) const;
+  inline HeapWord*  block_align_up(HeapWord* addr) const;
+  inline bool       is_block_aligned(HeapWord* addr) const;
+
   // Return the address one past the end of the partial object.
   HeapWord* partial_obj_end(size_t region_idx) const;
 
-  // Return the new location of the object p after the
-  // the compaction.
+  // Return the location of the object after compaction.
   HeapWord* calc_new_pointer(HeapWord* addr);
 
   HeapWord* calc_new_pointer(oop p) {
@@ -410,6 +464,7 @@ public:
 #endif  // #ifdef ASSERT
 
 private:
+  bool initialize_block_data();
   bool initialize_region_data(size_t region_size);
   PSVirtualSpace* create_vspace(size_t count, size_t element_size);
 
@@ -420,8 +475,13 @@ private:
 #endif  // #ifdef ASSERT
 
   PSVirtualSpace* _region_vspace;
+  size_t          _reserved_byte_size;
   RegionData*     _region_data;
   size_t          _region_count;
+
+  PSVirtualSpace* _block_vspace;
+  BlockData*      _block_data;
+  size_t          _block_count;
 };
 
 inline uint
@@ -434,6 +494,28 @@ inline uint
 ParallelCompactData::RegionData::destination_count() const
 {
   return destination_count_raw() >> dc_shift;
+}
+
+inline bool
+ParallelCompactData::RegionData::blocks_filled() const
+{
+  return _blocks_filled;
+}
+
+#ifdef ASSERT
+inline size_t
+ParallelCompactData::RegionData::blocks_filled_count() const
+{
+  return _blocks_filled_count;
+}
+#endif // #ifdef ASSERT
+
+inline void
+ParallelCompactData::RegionData::set_blocks_filled()
+{
+  _blocks_filled = true;
+  // Debug builds count the number of times the table was filled.
+  DEBUG_ONLY(Atomic::inc_ptr(&_blocks_filled_count));
 }
 
 inline void
@@ -530,6 +612,12 @@ ParallelCompactData::region(const RegionData* const region_ptr) const
   return pointer_delta(region_ptr, _region_data, sizeof(RegionData));
 }
 
+inline ParallelCompactData::BlockData*
+ParallelCompactData::block(size_t n) const {
+  assert(n < block_count(), "bad arg");
+  return _block_data + n;
+}
+
 inline size_t
 ParallelCompactData::region_offset(const HeapWord* addr) const
 {
@@ -594,6 +682,63 @@ inline bool
 ParallelCompactData::is_region_aligned(HeapWord* addr) const
 {
   return region_offset(addr) == 0;
+}
+
+inline size_t
+ParallelCompactData::block_offset(const HeapWord* addr) const
+{
+  assert(addr >= _region_start, "bad addr");
+  assert(addr <= _region_end, "bad addr");
+  return (size_t(addr) & BlockAddrOffsetMask) >> LogHeapWordSize;
+}
+
+inline size_t
+ParallelCompactData::addr_to_block_idx(const HeapWord* addr) const
+{
+  assert(addr >= _region_start, "bad addr");
+  assert(addr <= _region_end, "bad addr");
+  return pointer_delta(addr, _region_start) >> Log2BlockSize;
+}
+
+inline ParallelCompactData::BlockData*
+ParallelCompactData::addr_to_block_ptr(const HeapWord* addr) const
+{
+  return block(addr_to_block_idx(addr));
+}
+
+inline HeapWord*
+ParallelCompactData::block_to_addr(size_t block) const
+{
+  assert(block < _block_count, "block out of range");
+  return _region_start + (block << Log2BlockSize);
+}
+
+inline size_t
+ParallelCompactData::region_to_block_idx(size_t region) const
+{
+  return region << Log2BlocksPerRegion;
+}
+
+inline HeapWord*
+ParallelCompactData::block_align_down(HeapWord* addr) const
+{
+  assert(addr >= _region_start, "bad addr");
+  assert(addr < _region_end + RegionSize, "bad addr");
+  return (HeapWord*)(size_t(addr) & BlockAddrMask);
+}
+
+inline HeapWord*
+ParallelCompactData::block_align_up(HeapWord* addr) const
+{
+  assert(addr >= _region_start, "bad addr");
+  assert(addr <= _region_end, "bad addr");
+  return block_align_down(addr + BlockSizeOffsetMask);
+}
+
+inline bool
+ParallelCompactData::is_block_aligned(HeapWord* addr) const
+{
+  return block_offset(addr) == 0;
 }
 
 // Abstract closure for use with ParMarkBitMap::iterate(), which will invoke the
@@ -773,6 +918,7 @@ class PSParallelCompact : AllStatic {
   // Convenient access to type names.
   typedef ParMarkBitMap::idx_t idx_t;
   typedef ParallelCompactData::RegionData RegionData;
+  typedef ParallelCompactData::BlockData BlockData;
 
   typedef enum {
     old_space_id, eden_space_id,
@@ -784,7 +930,6 @@ class PSParallelCompact : AllStatic {
   //
   class IsAliveClosure: public BoolObjectClosure {
    public:
-    virtual void do_object(oop p);
     virtual bool do_object_b(oop p);
   };
 
@@ -799,16 +944,6 @@ class PSParallelCompact : AllStatic {
     virtual void do_oop(narrowOop* p);
   };
 
-  // Current unused
-  class FollowRootClosure: public OopsInGenClosure {
-   private:
-    ParCompactionManager* _compaction_manager;
-   public:
-    FollowRootClosure(ParCompactionManager* cm) : _compaction_manager(cm) { }
-    virtual void do_oop(oop* p);
-    virtual void do_oop(narrowOop* p);
- };
-
   class FollowStackClosure: public VoidClosure {
    private:
     ParCompactionManager* _compaction_manager;
@@ -818,10 +953,7 @@ class PSParallelCompact : AllStatic {
   };
 
   class AdjustPointerClosure: public OopClosure {
-   private:
-    bool _is_root;
    public:
-    AdjustPointerClosure(bool is_root) : _is_root(is_root) { }
     virtual void do_oop(oop* p);
     virtual void do_oop(narrowOop* p);
     // do not walk from thread stacks to the code cache on this phase
@@ -838,11 +970,12 @@ class PSParallelCompact : AllStatic {
   friend class AdjustPointerClosure;
   friend class AdjustKlassClosure;
   friend class FollowKlassClosure;
-  friend class FollowRootClosure;
   friend class InstanceClassLoaderKlass;
   friend class RefProcTaskProxy;
 
  private:
+  static STWGCTimer           _gc_timer;
+  static ParallelOldTracer    _gc_tracer;
   static elapsedTimer         _accumulated_time;
   static unsigned int         _total_invocations;
   static unsigned int         _maximum_compaction_gc_num;
@@ -853,7 +986,6 @@ class PSParallelCompact : AllStatic {
   static IsAliveClosure       _is_alive_closure;
   static SpaceInfo            _space_info[last_space_id];
   static bool                 _print_phases;
-  static AdjustPointerClosure _adjust_root_pointer_closure;
   static AdjustPointerClosure _adjust_pointer_closure;
   static AdjustKlassClosure   _adjust_klass_closure;
 
@@ -887,10 +1019,8 @@ class PSParallelCompact : AllStatic {
 
   // Mark live objects
   static void marking_phase(ParCompactionManager* cm,
-                            bool maximum_heap_compaction);
-
-  template <class T> static inline void adjust_pointer(T* p, bool is_root);
-  static void adjust_root_pointer(oop* p) { adjust_pointer(p, true); }
+                            bool maximum_heap_compaction,
+                            ParallelOldTracer *gc_tracer);
 
   template <class T>
   static inline void follow_root(ParCompactionManager* cm, T* p);
@@ -979,6 +1109,8 @@ class PSParallelCompact : AllStatic {
   // Adjust addresses in roots.  Does not adjust addresses in heap.
   static void adjust_roots();
 
+  DEBUG_ONLY(static void write_block_fill_histogram(outputStream* const out);)
+
   // Move objects to new locations.
   static void compact_perm(ParCompactionManager* cm);
   static void compact();
@@ -1046,7 +1178,6 @@ class PSParallelCompact : AllStatic {
 
   // Closure accessors
   static OopClosure* adjust_pointer_closure()      { return (OopClosure*)&_adjust_pointer_closure; }
-  static OopClosure* adjust_root_pointer_closure() { return (OopClosure*)&_adjust_root_pointer_closure; }
   static KlassClosure* adjust_klass_closure()      { return (KlassClosure*)&_adjust_klass_closure; }
   static BoolObjectClosure* is_alive_closure()     { return (BoolObjectClosure*)&_is_alive_closure; }
 
@@ -1067,6 +1198,7 @@ class PSParallelCompact : AllStatic {
   // Check mark and maybe push on marking stack
   template <class T> static inline void mark_and_push(ParCompactionManager* cm,
                                                       T* p);
+  template <class T> static inline void adjust_pointer(T* p);
 
   static void follow_klass(ParCompactionManager* cm, Klass* klass);
   static void adjust_klass(ParCompactionManager* cm, Klass* klass);
@@ -1145,17 +1277,19 @@ class PSParallelCompact : AllStatic {
     fill_region(cm, region);
   }
 
+  // Fill in the block table for the specified region.
+  static void fill_blocks(size_t region_idx);
+
   // Update the deferred objects in the space.
   static void update_deferred_objects(ParCompactionManager* cm, SpaceId id);
 
   static ParMarkBitMap* mark_bitmap() { return &_mark_bitmap; }
   static ParallelCompactData& summary_data() { return _summary_data; }
 
-  static inline void adjust_pointer(oop* p)       { adjust_pointer(p, false); }
-  static inline void adjust_pointer(narrowOop* p) { adjust_pointer(p, false); }
-
   // Reference Processing
   static ReferenceProcessor* const ref_processor() { return _ref_processor; }
+
+  static STWGCTimer* gc_timer() { return &_gc_timer; }
 
   // Return the SpaceId for the given address.
   static SpaceId space_id(HeapWord* addr);
@@ -1230,7 +1364,7 @@ inline void PSParallelCompact::mark_and_push(ParCompactionManager* cm, T* p) {
 }
 
 template <class T>
-inline void PSParallelCompact::adjust_pointer(T* p, bool isroot) {
+inline void PSParallelCompact::adjust_pointer(T* p) {
   T heap_oop = oopDesc::load_heap_oop(p);
   if (!oopDesc::is_null(heap_oop)) {
     oop obj     = oopDesc::decode_heap_oop_not_null(heap_oop);

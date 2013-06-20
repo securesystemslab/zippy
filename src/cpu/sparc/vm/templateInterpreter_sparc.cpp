@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -292,11 +292,15 @@ address TemplateInterpreterGenerator::generate_continuation_for(TosState state) 
 // ??: invocation counter
 //
 void InterpreterGenerator::generate_counter_incr(Label* overflow, Label* profile_method, Label* profile_method_continue) {
-  // Note: In tiered we increment either counters in Method* or in MDO depending if we're profiling or not.
+  // Note: In tiered we increment either counters in MethodCounters* or in
+  // MDO depending if we're profiling or not.
+  const Register Rcounters = G3_scratch;
+  Label done;
+
   if (TieredCompilation) {
     const int increment = InvocationCounter::count_increment;
     const int mask = ((1 << Tier0InvokeNotifyFreqLog) - 1) << InvocationCounter::count_shift;
-    Label no_mdo, done;
+    Label no_mdo;
     if (ProfileInterpreter) {
       // If no method data exists, go to profile_continue.
       __ ld_ptr(Lmethod, Method::method_data_offset(), G4_scratch);
@@ -311,23 +315,26 @@ void InterpreterGenerator::generate_counter_incr(Label* overflow, Label* profile
       __ ba_short(done);
     }
 
-    // Increment counter in Method*
+    // Increment counter in MethodCounters*
     __ bind(no_mdo);
-    Address invocation_counter(Lmethod,
-                               in_bytes(Method::invocation_counter_offset()) +
-                               in_bytes(InvocationCounter::counter_offset()));
+    Address invocation_counter(Rcounters,
+            in_bytes(MethodCounters::invocation_counter_offset()) +
+            in_bytes(InvocationCounter::counter_offset()));
+    __ get_method_counters(Lmethod, Rcounters, done);
     __ increment_mask_and_jump(invocation_counter, increment, mask,
-                               G3_scratch, Lscratch,
+                               G4_scratch, Lscratch,
                                Assembler::zero, overflow);
     __ bind(done);
   } else {
     // Update standard invocation counters
-    __ increment_invocation_counter(O0, G3_scratch);
-    if (ProfileInterpreter) {  // %%% Merge this into MethodData*
-      Address interpreter_invocation_counter(Lmethod,in_bytes(Method::interpreter_invocation_counter_offset()));
-      __ ld(interpreter_invocation_counter, G3_scratch);
-      __ inc(G3_scratch);
-      __ st(G3_scratch, interpreter_invocation_counter);
+    __ get_method_counters(Lmethod, Rcounters, done);
+    __ increment_invocation_counter(Rcounters, O0, G4_scratch);
+    if (ProfileInterpreter) {
+      Address interpreter_invocation_counter(Rcounters,
+            in_bytes(MethodCounters::interpreter_invocation_counter_offset()));
+      __ ld(interpreter_invocation_counter, G4_scratch);
+      __ inc(G4_scratch);
+      __ st(G4_scratch, interpreter_invocation_counter);
     }
 
     if (ProfileInterpreter && profile_method != NULL) {
@@ -345,6 +352,7 @@ void InterpreterGenerator::generate_counter_incr(Label* overflow, Label* profile
     __ cmp(O0, G3_scratch);
     __ br(Assembler::greaterEqualUnsigned, false, Assembler::pn, *overflow); // Far distance
     __ delayed()->nop();
+    __ bind(done);
   }
 
 }
@@ -499,7 +507,7 @@ void TemplateInterpreterGenerator::generate_fixed_frame(bool native_call) {
 
   const int extra_space =
     rounded_vm_local_words +                   // frame local scratch space
-    //6815692//Method::extra_stack_words() +       // extra push slots for MH adapters
+    Method::extra_stack_entries() +            // extra stack for jsr 292
     frame::memory_parameter_word_sp_offset +   // register save area
     (native_call ? frame::interpreter_frame_extra_outgoing_argument_words : 0);
 
@@ -1563,7 +1571,6 @@ static int size_activation_helper(int callee_extra_locals, int max_stack, int mo
        round_to(callee_extra_locals * Interpreter::stackElementWords, WordsPerLong);
   const int max_stack_words = max_stack * Interpreter::stackElementWords;
   return (round_to((max_stack_words
-                   //6815692//+ Method::extra_stack_words()
                    + rounded_vm_local_words
                    + frame::memory_parameter_word_sp_offset), WordsPerLong)
                    // already rounded

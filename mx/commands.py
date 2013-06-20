@@ -424,119 +424,6 @@ def jdkhome(args, vm=None):
     build = _vmbuild if _vmSourcesAvailable else 'product'
     print join(_graal_home, 'jdk' + str(mx.java().version), build)
 
-def initantbuild(args):
-    """(re)generates an ant build file for producing graal.jar"""
-    parser=ArgumentParser(prog='mx initantbuild')
-    parser.add_argument('-f', '--buildfile', help='file to generate', default=join(_graal_home, 'make', 'build-graal.xml'))
-
-    args = parser.parse_args(args)
-    
-    out = mx.XMLDoc()
-    
-    out.comment("""
- Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
- DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-
- This code is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License version 2 only, as
- published by the Free Software Foundation.  Oracle designates this
- particular file as subject to the "Classpath" exception as provided
- by Oracle in the LICENSE file that accompanied this code.
-
- This code is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- version 2 for more details (a copy is included in the LICENSE file that
- accompanied this code).
-
- You should have received a copy of the GNU General Public License version
- 2 along with this work; if not, write to the Free Software Foundation,
- Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-
- Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- or visit www.oracle.com if you need additional information or have any
- questions.
-""")
-    
-    out.open('project', {'name' : 'graal', 'default' : 'main', 'basedir' : '.'})
-    out.element('property', {'name' : 'src.dir', 'value' : '${gamma.dir}/graal'})
-    out.element('property', {'name' : 'classes.dir', 'value' : '${shared.dir}/graal'})
-    out.element('property', {'name' : 'jar.dir', 'value' : '${shared.dir}'})
-    out.element('property', {'name' : 'jar.file', 'value' : '${jar.dir}/graal.jar'})
-    
-    out.element('target', {'name' : 'main', 'depends' : 'options,jar'})
-
-    serviceMap = {};
-    def addService(service, provider):
-        if service not in serviceMap:
-            serviceMap[service] = set();
-        serviceMap[service].add(provider)
-
-    out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
-    out.element('mkdir', {'dir' : '${classes.dir}'})
-    out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', })
-
-    for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
-        out.element('src', {'path' : '${src.dir}/' + p.name})
-        servicesDir = join(p.output_dir(), 'META-INF', 'services')
-        if exists(servicesDir):
-            for service in os.listdir(servicesDir):
-                with open(join(servicesDir, service), 'r') as serviceFile:
-                    for line in serviceFile:
-                        addService(service, line.strip())
-        providersDir = join(p.output_dir(), 'META-INF', 'providers')
-        if exists(providersDir):
-            for provider in os.listdir(providersDir):
-                with open(join(providersDir, provider), 'r') as providerFile:
-                    for line in providerFile:
-                        addService(line.strip(), provider)
-
-    out.element('compilerarg', {'value' : '-XDignore.symbol.file'})
-    
-    out.open('classpath')
-    out.open('fileset', {'dir' : '${java.home}/../lib'})
-    out.element('include', {'name' : 'tools.jar'})
-    out.close('fileset')
-    out.close('classpath')
-    
-    out.close('javac')
-    out.close('target')
-
-    out.open('target', {'name' : 'jar', 'depends' : 'compile'})
-    out.element('mkdir', {'dir' : '${jar.dir}'})
-    out.open('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
-
-    for service in sorted(serviceMap.iterkeys()):
-        out.open('service', {'type' : service})
-        for provider in sorted(serviceMap[service]):
-            out.element('provider', {'classname' : provider})
-        out.close('service')
-
-    out.close('jar');
-    out.close('target')
-    
-    out.open('target', {'name' : 'cleanclasses'})
-    out.element('delete', {'dir' : '${classes.dir}'})
-    out.close('target')
-
-    out.open('target', {'name' : 'options', 'if' : 'graal.options.exists'})
-    out.open('copy', {'todir' : '${jar.dir}'})
-    out.element('filelist', {'dir' : '${gamma.dir}', 'files' : 'graal.options'})
-    out.close('copy')
-    out.close('target')
-
-    out.open('target', {'name' : 'check-graal-options-exists'})
-    out.element('available', {'property' : 'graal.options.exists', 'file' : '${gamma.dir}/graal.options'})
-    out.close('target')
-    
-    out.open('target', {'name' : 'clean', 'depends' : 'cleanclasses'})
-    out.element('delete', {'file' : '${jar.file}'})
-    out.close('target')
-
-    out.close('project')
-    
-    return mx.update_file(args.buildfile, out.xml(indent='  ', newl='\n'))
-
 def buildvars(args):
     """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
 
@@ -567,8 +454,20 @@ def build(args, vm=None):
 
     # Call mx.build to compile the Java sources
     parser=ArgumentParser(prog='mx build')
+    parser.add_argument('--export-dir', help='directory to which graal.jar and graal.options will be copied', metavar='<path>')
     parser.add_argument('-D', action='append', help='set a HotSpot build variable (run \'mx buildvars\' to list variables)', metavar='name=value')
     opts2 = mx.build(['--source', '1.7'] + args, parser=parser)
+
+    if opts2.export_dir is not None:
+        if not exists(opts2.export_dir):
+            os.makedirs(opts2.export_dir)
+        else:
+            assert os.path.isdir(opts2.export_dir), '{} is not a directory'.format(opts2.export_dir)
+
+        shutil.copy(mx.distribution('GRAAL').path, opts2.export_dir)
+        graalOptions = join(_graal_home, 'graal.options')
+        if exists(graalOptions):
+            shutil.copy(graalOptions, opts2.export_dir)
 
     if not _vmSourcesAvailable or not opts2.native:
         return
@@ -590,8 +489,6 @@ def build(args, vm=None):
         assert vm == 'graal', vm
         buildSuffix = 'graal'
         
-    initantbuild([])
-
     for build in builds:
         if build == 'ide-build-target':
             build = os.environ.get('IDE_BUILD_TARGET', 'product')
@@ -1011,12 +908,6 @@ def gate(args):
         build(['--no-native', '--jdt-warning-as-error'])
         tasks.append(t.stop())
 
-        t = Task('Check build-graal.xml')
-        mx.log(time.strftime('%d %b %Y %H:%M:%S - Ensuring make/build-graal.xml file is up to date...'))
-        if initantbuild([]):
-            t.abort('Rerun "mx build" and check-in the modified make/build-graal.xml file.')
-        tasks.append(t.stop())
-        
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
             t.abort('Checkstyle warnings were found')
@@ -1041,7 +932,7 @@ def gate(args):
 
         _vmbuild = 'product'
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
         _vmbuild = 'product'
@@ -1384,7 +1275,6 @@ def mx_init():
         'clean': [clean, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
-        'initantbuild' : [initantbuild, '[-options]'],
         'igv' : [igv, ''],
         'jdkhome': [jdkhome, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
