@@ -40,7 +40,7 @@ def get_env():
         platform = 'linux'
 
     currentDir = os.path.abspath('.')
-    graalVMDir = os.path.abspath('../..')
+    graalVMDir = os.path.abspath('../../..')
     jdkDirs = glob.glob(graalVMDir + '/jdk1.7*')
     # assert len(jdkDirs) == 1, "there are more than one JDK directories"
     numOfJDKDirs = len(jdkDirs)
@@ -50,7 +50,7 @@ def get_env():
     jythonScriptsPath = currentDir + "/benchmarks"
 
     # Jython stuff
-    jythonDir = os.path.join(graalVMDir, 'jython')
+    jythonDir = os.path.join(graalVMDir, 'graal/zippy')
     jythonDist = os.path.join(jythonDir, 'dist')
     jythonDistJavaLib = os.path.join(jythonDist, 'javalib')
 
@@ -164,8 +164,8 @@ def get_exec(cmd_class=get_jython_classname(), action_args=[]):
 
         command = "%s %s -cp %s %s %s %s" % (executable, host_vm_opts, get_jython_classpath(),
                                          cmd_class, client_vm_opts, arguments)
-        # print executable
-        # print get_jython_classpath()
+        #print executable
+        #print get_jython_classpath()
         # print cmd_class
         
         # print "Executing:", command
