@@ -1,0 +1,79 @@
+# Python Registry -*- sh -*-
+# This default registry sets many common options to their default values
+# All of these settings could be erased with no change in behavior
+
+# This is how Jim sets his path on his Windows development machine
+#python.path=.;c:\\Jython\\Lib;d:\\Python-1.5.2\\Lib
+# This is how Barry sets his path on his Unix development machine
+#python.path = /home/bwarsaw/projects/python/Lib
+# This is how Finn  sets his path on his windows development machine
+#python.path = d:\\python20\\lib
+
+# Set the directory to use for caches (currently just package information)
+# This directory should be writable by the user
+# If this is an absolute path it is used as given
+# Otherwise it is interpreted relative to sys.prefix
+# (typically the directory of this file)
+python.cachedir = cachedir
+
+# Setting this property to true disables the package scan for the cachedir.
+# Please be aware that disabling this will break importing * from java packages
+#python.cachedir.skip = false
+
+# Properties to check for initializing and updating the package cache
+# Hopefully you won't have any need to change these
+python.packages.paths = java.class.path, sun.boot.class.path
+python.packages.directories = java.ext.dirs
+
+# Set verbosity to error, warning, message, comment, or debug
+# for varying levels of informative messages from Jython. Normally
+# this option is set from the command line.
+#python.verbose = message
+
+# Jython ships with a JLine console (http://jline.sourceforge.net/)
+# out of the box. Setting this to the name of a different console class,
+# new console features can be enabled. Readline support is such an
+# example:
+#python.console=org.python.util.ReadlineConsole
+#python.console.readlinelib=JavaReadline
+# To activate the legacy Jython console:
+#python.console=org.python.util.InteractiveConsole
+
+# Setting this to a valid codec name will cause the console to use a
+# different encoding when reading commands from the console.
+#python.console.encoding = cp850
+
+# Setting this to false will allow Jython to provide access to
+# non-public fields, methods, and constructors of Java objects.
+python.security.respectJavaAccessibility = true
+
+# Setting this to true will force Jython will use the first module
+# found on sys.path where java File.isFile() returns true.
+# Setting this to true has no effect on unix-type filesystems. 
+# On Windows/HPS+ systems, setting it to true will enable Jython-2.0 
+# behaviour.
+python.options.caseok = false
+
+
+# Use this registry entry to control the list of builtin modules; you
+# can add, remove, or override builtin modules.  The value for this
+# registry key is a comma separated list of module entries, each entry 
+# of which has the following allowable forms:
+#
+# name
+#     The module name is `name' and the class name is
+#     org.python.modules.name
+#
+# name:class
+#     The module name is `name' and the class name is `class' where
+#     class must be a fully qualified Java class name
+#
+# name:null
+#     The module `name' is removed from the list of builtin modules
+#
+# A good example would be to use a jni version of os for more
+# functionality by having an entry such as os:com.foo.jni.os
+#python.modules.builtin = whatever
+
+# proxyDebugDirectory to dump class files
+#python.options.proxyDebugDirectory = classfiles/

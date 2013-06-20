@@ -1,0 +1,166 @@
+package org.python.ast.datatypes;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
+public class PCharArray extends PArray implements Iterable<Character> {
+
+    private final char[] array;
+
+    public PCharArray() {
+        array = new char[0];
+    }
+
+    public PCharArray(char[] elements) {
+        if (elements == null) {
+            array = new char[0];
+        } else {
+            array = new char[elements.length];
+            System.arraycopy(elements, 0, array, 0, elements.length);
+        }
+    }
+
+    /**
+     * Note: This constructor assumes that <code>elements</code> is not null.
+     * 
+     * @param elements
+     *            the tuple elements
+     * @param copy
+     *            whether to copy the elements into a new array or not
+     */
+    private PCharArray(char[] elements, boolean copy) {
+        if (copy) {
+            array = new char[elements.length];
+            System.arraycopy(elements, 0, array, 0, elements.length);
+        } else {
+            array = elements;
+        }
+    }
+
+    public char[] getSequence() {
+        return array;
+    }
+
+    @Override
+    public int len() {
+        return array.length;
+    }
+
+    @Override
+    public Object getItem(int idx) {
+        return array[idx];
+    }
+    
+    @Override
+    public void setItem(int idx, Object value) {
+        if (idx < 0) {
+            idx += array.length;
+        }
+        array[idx] = (char) value;
+    }
+
+    @Override
+    public PCharArray getSlice(PSlice slice) {
+        int length = slice.computeActualIndices(array.length);
+        return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
+    }
+    
+    @Override
+    public PCharArray getSlice(int start, int stop, int step, int length) {
+        char[] newArray = new char[length];
+
+        if (step == 1) {
+            System.arraycopy(array, start, newArray, 0, stop - start);
+            return new PCharArray(newArray, false);
+        }
+        for (int i = start, j = 0; j < length; i += step, j++) {
+            newArray[j] = array[i];
+        }
+        return new PCharArray(newArray, false);
+    }
+
+    public void setItem(int idx, char value) {
+        if (idx < 0) {
+            idx += array.length;
+        }
+        array[idx] = value;
+    }
+
+    public void setSlice(PSlice slice, PCharArray value) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[0];
+    }
+
+    @Override
+    public Object getMax() {
+        char[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+    
+    @Override
+    public Object multiply(int value) {
+        char[] newArray = new char[value * array.length];
+        int count = 0;
+        for (int i = 0; i < value; i++) {
+            for (int j = 0; j < array.length; j++) {
+                newArray[count++] = array[j];
+            }
+        }
+        
+        return new PCharArray(newArray);
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder buf = new StringBuilder("(");
+        for (int i = 0; i < array.length - 1; i++) {
+            buf.append(array[i] + " ");
+        }
+        buf.append(array[array.length - 1]);
+        buf.append(")");
+        return buf.toString();
+    }
+
+    @Override
+    public PCallable findAttribute(String name) {
+        throw new UnsupportedOperationException();
+    }
+    
+    private List<Character> getList() {
+        List<Character> list = new ArrayList<Character>();
+        for (int i = 0; i < array.length; i++) {
+            list.add(array[i]);
+        }
+        return list;
+    }
+
+
+    @Override
+    public Iterator<Character> iterator() {
+        return new Iterator<Character>() {
+
+            private final Iterator<Character> iter = getList().iterator();
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+            public boolean hasNext() {
+                return iter.hasNext();
+            }
+
+            public Character next() {
+                return iter.next();
+            }
+        };
+    }
+}

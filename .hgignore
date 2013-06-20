@@ -72,3 +72,10 @@ core.*
 *.jar.*
 eclipse-build.xml
 rebuild-launch.out
+
+# zippy
+graal/zippy/bin
+graal/zippy/build
+graal/zippy/dist
+graal/zippy/src_gen
+*.pydevproject

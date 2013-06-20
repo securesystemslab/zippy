@@ -1,0 +1,27 @@
+#binarytrees3.py 12
+#binarytrees3.py 14
+#binarytrees3.py 16
+#fannkuchredux3.py 9
+#fannkuchredux3.py 10
+#fasta3.py 250000
+#fasta3.py 2500000
+#fasta3.py 1000000
+#mandelbrot3.py 600
+#mandelbrot3.py 800
+#mandelbrot3.py 1000
+#meteor3.py 2098
+#nbody3.py 100000
+#nbody3.py 300000
+#nbody3.py 500000
+#spectralnorm3.py 500
+#spectralnorm3.py 750
+#spectralnorm3.py 1000
+#
+# testing
+binarytrees3.py 12
+fannkuchredux3.py 9
+fasta3.py 250000
+mandelbrot3.py 600
+meteor3.py 2098
+nbody3.py 100000
+spectralnorm3.py 500

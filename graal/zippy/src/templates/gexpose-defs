@@ -1,0 +1,192 @@
+# copyright 2004-2005 Samuele Pedroni
+define: (ClassBodyDeclarations)typeinfo0
+
+  /* type info */
+
+  `basic;
+
+define: (ClassBodyDeclarations)typeinfo1
+
+  public static void typeSetup(PyObject dict, PyType.Newstyle marker) {
+    `setup;
+  }
+
+define: (BlockStatements)pair
+  `trailer;
+  `last;
+define: getset
+    dict.__setitem__(
+            `strfy`(`name),
+            new PyGetSetDescr(`strfy`(`name), `typ.class, `get, `set, `del));
+
+define: (ClassBodyDeclarations)call_cmeths args body
+    public PyObject __call__(`args) {
+        `body;
+    }
+
+define: (ClassBodyDeclarations)call_meths args body
+    public PyObject __call__(`args) {
+        `body;
+    }
+
+define: expose_wide_meth
+        class `concat`(exposed_,`name) extends PyBuiltinMethod {
+
+            `concat`(exposed_,`name)(PyObject self, PyBuiltinFunction.Info info) {
+                super(self, info);
+            }
+
+            public PyBuiltinFunction bind(PyObject self) {
+                return new `concat`(exposed_,`name)(self, info);
+            }
+
+            public PyObject __call__(PyObject[] args) {
+                 return __call__(args,Py.NoKeywords);
+            }
+
+            `call_meths;
+
+        }
+
+        dict.__setitem__(
+            `strfy`(`name),
+            new PyMethodDescr(
+                `strfy`(`name),
+                `typ.class,
+                `minargs,
+                `maxargs,
+                new `concat`(exposed_,`name)(null, null)));
+
+define: expose_narrow_meth typ name minargs maxargs call_meths
+        class `concat`(exposed_,`name) extends PyBuiltinMethodNarrow {
+
+            `concat`(exposed_,`name)(PyObject self, PyBuiltinFunction.Info info) {
+                super(self, info);
+            }
+
+            public PyBuiltinFunction bind(PyObject self) {
+                return new `concat`(exposed_,`name)(self, info);
+            }
+
+            `call_meths;
+
+        }
+
+        dict.__setitem__(
+            `strfy`(`name),
+            new PyMethodDescr(
+                `strfy`(`name),
+                `typ.class,
+                `minargs,
+                `maxargs,
+                new `concat`(exposed_,`name)(null, null)));    
+
+define: expose_narrow_cmeth typ name minargs maxargs call_meths
+        class `concat`(exposed_,`name) extends PyBuiltinMethodNarrow {
+
+            `concat`(exposed_,`name)(PyObject self, PyBuiltinFunction.Info info) {
+                super(self, info);
+            }
+
+            public PyBuiltinFunction bind(PyObject self) {
+                return new `concat`(exposed_,`name)(self, info);
+            }
+
+            `call_meths;
+
+        }
+
+        dict.__setitem__(
+            `strfy`(`name),
+            new PyClassMethodDescr(
+                `strfy`(`name),
+                `typ.class,
+                `minargs,
+                `maxargs,
+                new `concat`(exposed_,`name)(null, null)));    
+
+define: conv_error_handling unsafe_body
+     try {
+         `unsafe_body;
+     } catch(PyObject.ConversionException e) {
+         String msg;
+         switch(e.index) {
+         case `cases;
+         default:
+           msg = "xxx";   
+         }
+         throw Py.TypeError(msg);
+     }
+define: key_getitem
+   PyObject ret = `deleg`(__finditem__);
+   if (ret == null)
+       throw Py.KeyError(`arg0.toString());
+   return ret;
+define: index_getitem
+   PyObject ret = `deleg`(__finditem__);
+   if (ret == null) {
+       throw Py.IndexError("index out of range: "+`arg0);
+   }
+   return ret;
+define: vanilla_cmp deleg_prefix
+  int ret = ((`typ)self).`concat`(`deleg_prefix,__cmp__)(`arg0); 
+  if (ret == -2) {
+    throw Py.TypeError(`strfy`(`typname)+".__cmp__(x,y) requires y to be '"+
+                       `strfy`(`typname)+"', not a '"+(`arg0).getType().fastGetName()+"'");
+  }
+  return Py.newInteger(ret);
+define: vanilla_pow deleg_prefix
+  PyObject ret =  ((`typ)self).`concat`(`deleg_prefix,__pow__)(`arg0,`arg1);  
+  if (ret == null)
+    return Py.NotImplemented;
+  return ret;
+define: unary deleg_prefix
+  return ((`typ)self).`concat`(`deleg_prefix,`name)();
+define: binary deleg_prefix
+  PyObject ret =  ((`typ)self).`concat`(`deleg_prefix,`name)(`arg0);  
+  if (ret == null)
+    return Py.NotImplemented;
+  return ret;
+define: (Expression)deleg name deleg_prefix
+  ((`typ)self).`concat`(`deleg_prefix,`name)(`all)
+define: vdeleg: name deleg_prefix
+  `deleg`(`name,`deleg_prefix);
+define: rdeleg: name deleg_prefix
+  return `deleg`(`name,`deleg_prefix);
+define: ideleg: name deleg_prefix
+  return Py.newInteger(`deleg`(`name,`deleg_prefix));
+define: ldeleg: name deleg_prefix
+  return new PyLong(`deleg`(`name,`deleg_prefix));
+define: bdeleg: name deleg_prefix
+  return Py.newBoolean(`deleg`(`name,`deleg_prefix));
+define: sdeleg: name deleg_prefix
+  return new PyString(`deleg`(`name,`deleg_prefix));
+define: udeleg: name deleg_prefix
+  return new PyUnicode(`deleg`(`name,`deleg_prefix));
+define: void:
+  return Py.None;
+define: expose_new
+       dict
+            .__setitem__(
+                "__new__",
+                new PyNewWrapper(`typ.class, "__new__", `minargs, `maxargs) {
+            public PyObject new_impl(
+                boolean init,
+                PyType subtype,
+                PyObject[] args,
+                String[] keywords) {
+                `body;
+            }
+        });
+
+define: mutable_new_body
+                `typ newobj;
+                if (for_type == subtype) {
+                    newobj = new `typ();
+                    if (init) newobj.`concat`(`typname,_init)(args,keywords);
+                } else {
+                    newobj = new `concat`(`typ,Derived)(subtype);
+                }
+                return newobj;
+define: immutable_new_body
+                return `concat`(`typname,_new)(this,init,subtype,args,keywords);

@@ -1,0 +1,73 @@
+# -*- makefile -*-
+# Copyright © Corporation for National Research Initiatives
+#
+# Generic Makefile rules for building JPython.  Assumes GNU make.
+# Configure your build of JPython by modifying macros in this file.
+
+# You will need to get Sun's JavaCC (Java Compiler Compiler) to build
+# the JPython parser.  JavaCC can be downloaded from
+# http://www.sun.com/suntest/products/JavaCC/index.html
+# I currently use JavaCC 0.7.1 to build JPython, our grammar files are
+# incompatible with any newer version of JavaCC.  While this will be
+# fixed in some future version, for now don't rebuild the .java files
+# in org/python/parser.
+
+# Uncomment these 3 lines to use the Jikes compiler.  Jikes is a Java
+# compiler available from IBM's alphaWorks.  It is much faster than
+# Sun's javac.  You'll need at least Jikes 0.50.  I've tested up to
+# Jikes 1.02, which seems to work well.  You may need to change
+# BOOTSTRAPCLASSES to point to your standard Java classes.  Jikes
+# requires you to supply your own standard classes; the one described
+# below comes from Sun's production JDK 1.2 for Solaris.
+#
+# Get Jikes from http://www.alphaWorks.ibm.com/formula/Jikes
+
+JAVAC = jikes +E +D
+OPT = -g
+JIKESPATH = /opt/IBMJava2-13/jre/lib/rt.jar
+BOOTSTRAPCLASSES = $(JIKESPATH)
+
+# Uncomment these 3 lines to use Sun's 1.2 javac compiler
+
+# JAVAC = javac
+# OPT = -g:lines,vars,source
+# BOOTSTRAPCLASSES =
+
+# Uncomment these 3 lines to use Sun's 1.1 javac compiler.  See the
+# notes in org/python/modules/time.java for compatibility issues.
+
+# JAVAC = /depot/java/bin1.1/javac
+# OPT = -g
+# BOOTSTRAPCLASSES = /depot/java/plat/jdk1.1/lib/classes.zip
+
+# This is the Java intepreter to use
+JAVA = java
+
+# Unix and Linux users should use this CLASSPATH separator
+SEP = :
+# Windows users may need to redefine the CLASSPATH separator to this
+# SEP = ;
+
+# You shouldn't need to change anything below this line
+
+CLASSPATH = "SUBDIRS MUST OVERRIDE"
+CLASSPATHSWITCH = $(CLASSPATH)$(SEP)$(BOOTSTRAPCLASSES)
+
+.SUFFIXES= .java .class
+
+%.class: %.java
+	$(JAVAC) $(OPT) -classpath "$(CLASSPATHSWITCH)" $?
+
+SOURCES = $(wildcard *.java)
+CLASSES = $(filter-out $(SKIP),$(SOURCES:%.java=%.class))
+
+.PHONY: all clean realclean
+
+all: $(CLASSES)
+
+install: all
+
+clean::
+	-rm *.class
+
+realclean:: clean
