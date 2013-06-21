@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,14 +20,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.codegen;
+package com.oracle.graal.nodes.extended;
 
-import java.lang.annotation.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.type.*;
 
-@Retention(RetentionPolicy.CLASS)
-@Target({ElementType.TYPE})
-public @interface ExecuteChildren {
+/**
+ * Base class for nodes that modify a range of an array.
+ */
+public abstract class ArrayRangeWriteNode extends AbstractStateSplit implements Node.IterableNodeType {
 
-    String[] value();
+    protected ArrayRangeWriteNode(Stamp stamp) {
+        super(stamp);
+    }
 
+    /**
+     * The array that is written to.
+     */
+    public abstract ValueNode getArray();
+
+    /**
+     * The first modified index.
+     */
+    public abstract ValueNode getIndex();
+
+    /**
+     * The length of the modified range.
+     */
+    public abstract ValueNode getLength();
+
+    /**
+     * Return true if the written array is an object array, false if it is a primitive array.
+     */
+    public abstract boolean isObjectArray();
 }

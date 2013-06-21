@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,24 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.phases;
+package com.oracle.truffle.api.codegen;
 
-import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
-import com.oracle.graal.phases.*;
-import com.oracle.graal.phases.common.*;
-import com.oracle.graal.phases.tiers.*;
+import java.lang.annotation.*;
 
-public class LowTier extends PhaseSuite<LowTierContext> {
+import com.oracle.truffle.api.nodes.*;
 
-    public LowTier() {
-        appendPhase(new LoweringPhase(LoweringType.AFTER_GUARDS));
+/**
+ * Specifies a factory method that creates a {@link Node} which is used to cast this child.
+ */
+@Retention(RetentionPolicy.CLASS)
+@Target({ElementType.METHOD})
+public @interface CreateCast {
 
-        appendPhase(new FrameStateAssignmentPhase());
+    String[] value();
 
-        appendPhase(new ExpandLogicPhase());
-
-        appendPhase(new DeadCodeEliminationPhase());
-
-        appendPhase(new RemoveValueProxyPhase());
-    }
 }
