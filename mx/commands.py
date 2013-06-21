@@ -1274,7 +1274,6 @@ def site(args):
                     '--dot-output-base', 'projects'] + args)
 
 def mx_init():
-    _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
         'buildvars': [buildvars, ''],
