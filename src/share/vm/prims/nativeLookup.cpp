@@ -125,6 +125,7 @@ extern "C" {
   void JNICALL JVM_RegisterWhiteBoxMethods(JNIEnv *env, jclass wbclass);
 #ifdef GRAAL
   jobject JNICALL JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass);
+  jobject JNICALL JVM_InitializeTruffleRuntime(JNIEnv *env, jclass graalclass);
 #endif
 }
 
@@ -142,6 +143,7 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_sun_hotspot_WhiteBox_registerNatives",                 NULL, FN_PTR(JVM_RegisterWhiteBoxMethods)     },
 #ifdef GRAAL
   { CC"Java_com_oracle_graal_api_runtime_Graal_initializeRuntime", NULL, FN_PTR(JVM_InitializeGraalRuntime)      },
+  { CC"Java_com_oracle_truffle_api_Truffle_initializeRuntime",     NULL, FN_PTR(JVM_InitializeTruffleRuntime)    },
 #endif
 };
 

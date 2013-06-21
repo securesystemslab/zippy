@@ -1004,10 +1004,11 @@ C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(element);
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jlong nmethodValue))
+C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jobject hotspotInstalledCode))
   ResourceMark rm;
   HandleMark hm;
 
+  jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
   nmethod* nm = (nmethod*) (address) nmethodValue;
   methodHandle mh = nm->method();
   Symbol* signature = mh->signature();
@@ -1203,7 +1204,6 @@ C2V_END
 #define METHOD_DATA           "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
-#define NMETHOD               "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
@@ -1243,7 +1243,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
-  {CC"executeCompiledMethodVarargs",  CC"(["OBJECT NMETHOD")"OBJECT,                                    FN_PTR(executeCompiledMethodVarargs)},
+  {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},

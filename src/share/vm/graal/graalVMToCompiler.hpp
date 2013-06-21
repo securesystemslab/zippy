@@ -44,6 +44,7 @@ private:
 
 public:
   static Handle graalRuntime();
+  static Handle truffleRuntime();
 
   static jobject graalRuntimePermObject() {
     graalRuntime();

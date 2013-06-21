@@ -348,6 +348,8 @@
   template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject")                       \
   template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout")                  \
   template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
+  /* graal.truffle */                                                                                                                 \
+  template(com_oracle_graal_truffle_GraalTruffleRuntime,             "com/oracle/graal/truffle/GraalTruffleRuntime")                  \
   template(startCompiler_name,                    "startCompiler")                                                                    \
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
@@ -382,6 +384,7 @@
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
   template(getInstance_name,                      "getInstance")                                                                      \
+  template(getTruffleRuntimeInstance_signature,   "()Lcom/oracle/graal/truffle/GraalTruffleRuntime;")                                 \
   template(makeInstance_name,                     "makeInstance")                                                                     \
   template(initialize_name,                       "initialize")                                                                       \
   template(getInstance_signature,                 "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
@@ -1145,7 +1148,7 @@
    do_name(     Double_valueOf_signature,                        "(D)Ljava/lang/Double;")                               \
                                                                                                                         \
   do_intrinsic(_CompilerToVMImpl_executeCompiledMethod,           com_oracle_graal_hotspot_bridge_CompilerToVMImpl, executeCompiledMethod_name, CompilerToVMImpl_executeCompiledMethod_signature, F_SN)\
-   do_name(     CompilerToVMImpl_executeCompiledMethod_signature, "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;J)Ljava/lang/Object;")                               \
+   do_name(     CompilerToVMImpl_executeCompiledMethod_signature, "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;)Ljava/lang/Object;")                               \
    do_name(     executeCompiledMethod_name,                       "executeCompiledMethodIntrinsic")                     \
     /*end*/
 

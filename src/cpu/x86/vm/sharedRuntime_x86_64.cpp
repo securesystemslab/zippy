@@ -40,6 +40,9 @@
 #ifdef COMPILER2
 #include "opto/runtime.hpp"
 #endif
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 #define __ masm->
 
@@ -1674,9 +1677,22 @@ static void gen_special_dispatch(MacroAssembler* masm,
   if (iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
     // We are called from compiled code here. The three object arguments
     // are already in the correct registers (j_rarg0, jrarg1, jrarg2). The
-    // fourth argument (j_rarg3) is a raw pointer to the nmethod. Make a tail
-    // call to its verified entry point.
+    // fourth argument (j_rarg3) is a pointer to the HotSpotInstalledCode object.
+
+    // Load the nmethod pointer from the HotSpotInstalledCode object
+    __ movq(j_rarg3, Address(j_rarg3, sizeof(oopDesc)));
+
+    // Check whether the nmethod was invalidated
+    __ testq(j_rarg3, j_rarg3);
+    Label invalid_nmethod;
+    __ jcc(Assembler::zero, invalid_nmethod);
+
+    // Perform a tail call to the verified entry point of the nmethod.
     __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+
+    __ bind(invalid_nmethod);
+    __ xorq(rax, rax);
+    __ ret(0);
     return;
   }
 #endif
