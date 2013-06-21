@@ -21,9 +21,6 @@ import java.util.Calendar;
 import java.util.Set;
 
 import org.python.antlr.base.mod;
-import org.python.ast.PythonTreeOptimizer;
-import org.python.ast.PythonTreeProcessor;
-import org.python.ast.PythonTreeTranslator;
 
 import com.kenai.constantine.Constant;
 import com.kenai.constantine.platform.Errno;
@@ -1850,14 +1847,14 @@ public final class Py {
      */
     public static RootNode parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags) {
         mod node = ParserFacade.parse(istream, kind, filename, cflags);
-        PythonTreeProcessor ptp = new PythonTreeProcessor();
+//        PythonTreeProcessor ptp = new PythonTreeProcessor();
 
-        node = ptp.process(node);
+//        node = ptp.process(node);
 
         if (Options.specialize) {
-            PythonTreeTranslator ptt = new PythonTreeTranslator();
-            RootNode rootNode = ptt.translate(node);
-            return rootNode;
+//            PythonTreeTranslator ptt = new PythonTreeTranslator();
+//            RootNode rootNode = ptt.translate(node);
+//            return rootNode;
         }
         
         return node;

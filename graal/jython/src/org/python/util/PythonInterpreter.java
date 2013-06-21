@@ -247,12 +247,6 @@ public class PythonInterpreter {
             RootNode root = Py.parseToAST(s, name, CompileMode.exec, cflags);
             BaseParser.visualizeAST(root, "Before Specialization");
 
-            if (Options.optimizeAST) {
-                PythonTreeOptimizer optimizer = new PythonTreeOptimizer();
-                optimizer.optimize(root);  
-                BaseParser.visualizeAST(root, "After Partial Evaluation");
-            }
-                        
             ASTInterpreter.interpret(root, false);
 
             if (Options.specialize) {
