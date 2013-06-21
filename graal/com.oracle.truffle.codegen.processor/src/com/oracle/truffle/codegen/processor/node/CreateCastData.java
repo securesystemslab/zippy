@@ -20,14 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.codegen;
+package com.oracle.truffle.codegen.processor.node;
 
-import java.lang.annotation.*;
+import java.util.*;
 
-@Retention(RetentionPolicy.CLASS)
-@Target({ElementType.ANNOTATION_TYPE})
-public @interface ExtensionAnnotation {
+import com.oracle.truffle.codegen.processor.template.*;
 
-    String processorClassName();
+public class CreateCastData extends TemplateMethod {
+
+    private final List<String> childNames;
+
+    public CreateCastData(TemplateMethod method, List<String> childNames) {
+        super(method);
+        this.childNames = childNames;
+    }
+
+    public List<String> getChildNames() {
+        return childNames;
+    }
 
 }

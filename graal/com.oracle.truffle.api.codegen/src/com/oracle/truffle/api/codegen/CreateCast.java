@@ -24,9 +24,14 @@ package com.oracle.truffle.api.codegen;
 
 import java.lang.annotation.*;
 
+import com.oracle.truffle.api.nodes.*;
+
+/**
+ * Specifies a factory method that creates a {@link Node} which is used to cast this child.
+ */
 @Retention(RetentionPolicy.CLASS)
-@Target({ElementType.TYPE})
-public @interface ExecuteChildren {
+@Target({ElementType.METHOD})
+public @interface CreateCast {
 
     String[] value();
 

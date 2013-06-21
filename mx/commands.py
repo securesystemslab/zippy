@@ -54,6 +54,8 @@ _vmbuild = _vmbuildChoices[0]
 
 _jacoco = 'off'
 
+_workdir = None
+
 _native_dbg = None
 
 _make_eclipse_launch = False
@@ -644,6 +646,11 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
 
     if vm is None:
         vm = _vm
+
+    if cwd is None:
+        cwd = _workdir
+    elif _workdir is not None:
+        mx.abort("conflicting working directories: do not set --workdir for this command")
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm)
@@ -1267,7 +1274,6 @@ def site(args):
                     '--dot-output-base', 'projects'] + args)
 
 def mx_init():
-    _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
         'buildvars': [buildvars, ''],
@@ -1298,6 +1304,7 @@ def mx_init():
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
+    mx.add_argument('--workdir', help='runs the VM in the given directory', default=None)
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=_vmChoices, help='the VM to build/run (default: ' + _vmChoices[0] + ')')
@@ -1330,6 +1337,8 @@ def mx_post_parse_cmd_line(opts):#
         _make_eclipse_launch = getattr(opts, 'make_eclipse_launch', False)
     global _jacoco
     _jacoco = opts.jacoco
+    global _workdir
+    _workdir = opts.workdir
     global _native_dbg
     _native_dbg = opts.native_dbg
 
