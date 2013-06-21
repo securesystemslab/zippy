@@ -365,7 +365,7 @@ project@com.oracle.graal.compiler.sparc@workingSets=Graal,SPARC
 # graal.compiler.sparc.test
 project@com.oracle.graal.compiler.sparc.test@subDir=graal
 project@com.oracle.graal.compiler.sparc.test@sourceDirs=src
-project@com.oracle.graal.compiler.sparc.test@dependencies=com.oracle.graal.compiler.sparc,com.oracle.graal.compiler.test
+project@com.oracle.graal.compiler.sparc.test@dependencies=com.oracle.graal.compiler.test
 project@com.oracle.graal.compiler.sparc.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.sparc.test@javaCompliance=1.7
 project@com.oracle.graal.compiler.sparc.test@workingSets=Graal,SPARC,Test
