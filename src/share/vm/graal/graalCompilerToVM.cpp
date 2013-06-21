@@ -1160,7 +1160,7 @@ C2V_END
 C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspotInstalledCode))
   jlong nativeMethod = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
   nmethod* m = (nmethod*)nativeMethod;
-  if (!m->is_not_entrant()) {
+  if (m != NULL && !m->is_not_entrant()) {
     m->mark_for_deoptimization();
     VM_Deoptimize op;
     VMThread::execute(&op);
