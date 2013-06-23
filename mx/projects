@@ -385,6 +385,22 @@ project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.7
 project@com.oracle.graal.java@workingSets=Graal,Java
 
+# graal.java.decompiler
+project@com.oracle.graal.java.decompiler@subDir=graal
+project@com.oracle.graal.java.decompiler@sourceDirs=src
+project@com.oracle.graal.java.decompiler@dependencies=com.oracle.graal.java
+project@com.oracle.graal.java.decompiler@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.java.decompiler@javaCompliance=1.7
+project@com.oracle.graal.java.decompiler@workingSets=Graal
+
+# graal.java.decompiler.test
+project@com.oracle.graal.java.decompiler.test@subDir=graal
+project@com.oracle.graal.java.decompiler.test@sourceDirs=src
+project@com.oracle.graal.java.decompiler.test@dependencies=com.oracle.graal.printer
+project@com.oracle.graal.java.decompiler.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.java.decompiler.test@javaCompliance=1.7
+project@com.oracle.graal.java.decompiler.test@workingSets=Graal,Test
+
 # graal.printer
 project@com.oracle.graal.printer@subDir=graal
 project@com.oracle.graal.printer@sourceDirs=src
