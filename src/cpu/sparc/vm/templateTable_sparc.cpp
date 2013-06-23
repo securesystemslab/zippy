@@ -2983,6 +2983,9 @@ void TemplateTable::generate_vtable_call(Register Rrecv, Register Rindex, Regist
 
   // get target Method* & entry point
   __ lookup_virtual_method(Rrecv, Rindex, G5_method);
+#ifdef GRAAL
+  __ profile_called_method(G5_method, Rtemp);
+#endif
   __ call_from_interpreter(Rcall, Gargs, Rret);
 }
 
@@ -3231,6 +3234,10 @@ void TemplateTable::invokeinterface(int byte_no) {
 
   Register Rcall = Rinterface;
   assert_different_registers(Rcall, G5_method, Gargs, Rret);
+
+#ifdef GRAAL
+  __ profile_called_method(G5_method, Rscratch);
+#endif
 
   __ call_from_interpreter(Rcall, Gargs, Rret);
 }
@@ -3524,7 +3531,8 @@ void TemplateTable::checkcast() {
   Register RspecifiedKlass = O4;
 
   // Check for casting a NULL
-  __ br_null_short(Otos_i, Assembler::pn, is_null);
+  __ br_null(Otos_i, false, Assembler::pn, is_null);
+  __ delayed()->nop();
 
   // Get value klass in RobjKlass
   __ load_klass(Otos_i, RobjKlass); // get value klass
@@ -3580,7 +3588,8 @@ void TemplateTable::instanceof() {
   Register RspecifiedKlass = O4;
 
   // Check for casting a NULL
-  __ br_null_short(Otos_i, Assembler::pt, is_null);
+  __ br_null(Otos_i, false, Assembler::pt, is_null);
+  __ delayed()->nop();
 
   // Get value klass in RobjKlass
   __ load_klass(Otos_i, RobjKlass); // get value klass
