@@ -1691,8 +1691,8 @@ static void gen_special_dispatch(MacroAssembler* masm,
     __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
 
     __ bind(invalid_nmethod);
-    __ xorq(rax, rax);
-    __ ret(0);
+
+    __ jump(RuntimeAddress(StubRoutines::throw_InvalidInstalledCodeException_entry()));
     return;
   }
 #endif

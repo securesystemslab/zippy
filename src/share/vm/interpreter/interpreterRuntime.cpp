@@ -501,6 +501,10 @@ IRT_ENTRY(void, InterpreterRuntime::throw_IncompatibleClassChangeError(JavaThrea
 IRT_END
 
 
+IRT_ENTRY(void, InterpreterRuntime::throw_InvalidInstalledCodeException(JavaThread* thread))
+  THROW(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException());
+IRT_END
+
 //------------------------------------------------------------------------------------------------------------------------
 // Fields
 //

@@ -934,8 +934,10 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
   __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
 
   __ bind(invalid_nmethod);
-  __ xorq(rax, rax);
-  __ ret(0);
+
+  __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::throw_InvalidInstalledCodeException));
+  // the call_VM checks for exception, so we should never return here.
+  __ should_not_reach_here();
 
   return entry_point;
 }
