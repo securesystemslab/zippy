@@ -1397,9 +1397,10 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
     if (!is_osr_method() && !is_not_entrant()) {
       address stub = SharedRuntime::get_handle_wrong_method_stub();
 #ifdef GRAAL
-      if (_graal_installed_code != NULL && !HotSpotNmethod::isDefault(_graal_installed_code)) {
-        // This was manually installed machine code. Patch entry with stub that throws an exception.
-        stub = SharedRuntime::get_deoptimized_installed_code_stub();
+      if (_graal_installed_code != NULL) {
+        // Break the link between nmethod and HotSpotInstalledCode such that the nmethod can subsequently be flushed safely.
+        HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
+        _graal_installed_code = NULL;
       }
 #endif
       NativeJump::patch_verified_entry(entry_point(), verified_entry_point(), stub);

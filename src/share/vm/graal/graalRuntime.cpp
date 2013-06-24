@@ -474,3 +474,8 @@ JRT_END
 JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
   return VMToCompiler::graalRuntimePermObject();
 JVM_END
+
+// JVM_InitializeTruffleRuntime
+JVM_ENTRY(jobject, JVM_InitializeTruffleRuntime(JNIEnv *env, jclass graalclass))
+  return JNIHandles::make_local(VMToCompiler::truffleRuntime()());
+JVM_END

@@ -46,6 +46,9 @@
 #include "runtime/vframeArray.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 #define __ _masm->
 
@@ -908,19 +911,33 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
 
   // Move first object argument from interpreter calling convention to compiled
   // code calling convention.
-  __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*5));
+  __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*4));
 
   // Move second object argument.
-  __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*4));
+  __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*3));
 
   // Move third object argument.
-  __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*3));
+  __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*2));
 
-  // Load the raw pointer to the nmethod.
+  // Load the raw pointer to the HotSpotInstalledCode object.
   __ movq(j_rarg3, Address(r11, Interpreter::stackElementSize));
+
+  // Load the nmethod pointer from the HotSpotInstalledCode object
+  __ movq(j_rarg3, Address(j_rarg3, sizeof(oopDesc)));
+
+  // Check whether the nmethod was invalidated
+  __ testq(j_rarg3, j_rarg3);
+  Label invalid_nmethod;
+  __ jcc(Assembler::zero, invalid_nmethod);
 
   // Perform a tail call to the verified entry point of the nmethod.
   __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+
+  __ bind(invalid_nmethod);
+
+  __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::throw_InvalidInstalledCodeException));
+  // the call_VM checks for exception, so we should never return here.
+  __ should_not_reach_here();
 
   return entry_point;
 }

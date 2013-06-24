@@ -46,6 +46,16 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
   return _vmToCompilerPermKlass;
 }
 
+Handle VMToCompiler::truffleRuntime() {
+  Symbol* name = vmSymbols::com_oracle_graal_truffle_GraalTruffleRuntime();
+  KlassHandle klass = loadClass(name);
+
+  JavaValue result(T_OBJECT);
+  JavaCalls::call_static(&result, klass, vmSymbols::makeInstance_name(), vmSymbols::getTruffleRuntimeInstance_signature(), Thread::current());
+  check_pending_exception("Couldn't initialize GraalTruffleRuntime");
+  return Handle((oop) result.get_jobject());
+}
+
 Handle VMToCompiler::graalRuntime() {
   if (JNIHandles::resolve(_graalRuntimePermObject) == NULL) {
 #ifdef AMD64
@@ -291,4 +301,5 @@ oop VMToCompiler::createLocal(Handle name, Handle typeInfo, int bci_start, int b
   return (oop) result.get_jobject();
 
 }
+
 

@@ -1004,10 +1004,11 @@ C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(element);
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jlong nmethodValue))
+C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jobject hotspotInstalledCode))
   ResourceMark rm;
   HandleMark hm;
 
+  jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
   nmethod* nm = (nmethod*) (address) nmethodValue;
   methodHandle mh = nm->method();
   Symbol* signature = mh->signature();
@@ -1156,20 +1157,16 @@ C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
 C2V_END
 
 
-C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jlong nativeMethod))
+C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspotInstalledCode))
+  jlong nativeMethod = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
   nmethod* m = (nmethod*)nativeMethod;
-  if (!m->is_not_entrant()) {
+  if (m != NULL && !m->is_not_entrant()) {
     m->mark_for_deoptimization();
     VM_Deoptimize op;
     VMThread::execute(&op);
   }
 C2V_END
 
-
-C2V_VMENTRY(jboolean, isInstalledCodeValid, (JNIEnv *env, jobject, jlong nativeMethod))
-  nmethod* m = (nmethod*)nativeMethod;
-  return m->is_alive() && !m->is_not_entrant();
-C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
@@ -1203,7 +1200,6 @@ C2V_END
 #define METHOD_DATA           "Lcom/oracle/graal/hotspot/meta/HotSpotMethodData;"
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
-#define NMETHOD               "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeBytecode",            CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
@@ -1243,14 +1239,13 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
   {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
-  {CC"executeCompiledMethodVarargs",  CC"(["OBJECT NMETHOD")"OBJECT,                                    FN_PTR(executeCompiledMethodVarargs)},
+  {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},
   {CC"getLineNumberTable",            CC"("HS_RESOLVED_METHOD")[J",                                     FN_PTR(getLineNumberTable)},
   {CC"getLocalVariableTable",         CC"("HS_RESOLVED_METHOD")["LOCAL,                                 FN_PTR(getLocalVariableTable)},
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
-  {CC"invalidateInstalledCode",       CC"(J)V",                                                         FN_PTR(invalidateInstalledCode)},
-  {CC"isInstalledCodeValid",          CC"(J)Z",                                                         FN_PTR(isInstalledCodeValid)},
+  {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
 };
 
 int CompilerToVM_methods_count() {

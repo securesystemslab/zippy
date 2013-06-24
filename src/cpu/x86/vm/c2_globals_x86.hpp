@@ -86,7 +86,11 @@ define_pd_global(bool, UseCISCSpill,                 true);
 define_pd_global(bool, OptoScheduling,               false);
 define_pd_global(bool, OptoBundling,                 false);
 
+#ifdef GRAAL
+define_pd_global(intx, ReservedCodeCacheSize,        64*M);
+#else
 define_pd_global(intx, ReservedCodeCacheSize,        48*M);
+#endif
 define_pd_global(uintx,CodeCacheMinBlockLength,      4);
 
 // Heap related flags
