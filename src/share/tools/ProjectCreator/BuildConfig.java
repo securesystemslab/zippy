@@ -67,6 +67,24 @@ class BuildConfig {
         String outDir = buildBase;
         String jdkTargetRoot = getFieldString(null, "JdkTargetRoot");
 
+        String value = System.getenv("OUT_DIR");
+        if (value != null) {
+            outDir = value;
+            int lastDirectorySeparator = Math.max(outDir.lastIndexOf("/"), outDir.lastIndexOf("\\"));
+            if (lastDirectorySeparator >= 0) {
+                outDir = outDir.substring(0, lastDirectorySeparator);
+            }
+            outDir += Util.sep + build + Util.sep + "jre" + Util.sep + "bin";
+            if (flavour.equals("graal")) {
+                outDir += Util.sep + "graal";
+            } else if (flavour.equals("compiler1")) {
+                outDir += Util.sep + "client";
+            } else {
+                outDir += Util.sep + "server";
+            }
+            buildBase = outDir;
+        }
+
         put("Id", flavourBuild);
         put("OutputDir", outDir);
         put("SourceBase", sourceBase);
