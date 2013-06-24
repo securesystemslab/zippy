@@ -375,11 +375,13 @@ void InterpreterGenerator::generate_counter_incr(
       __ testl(rcx, InvocationCounter::count_mask_value);
       __ jcc(Assembler::notZero, not_zero);
 
+      __ push(rax);
       __ push(rcx);
       __ call_VM(noreg, CAST_FROM_FN_PTR(address, graal_initialize_time), rdx, false);
       __ set_method_data_pointer_for_bcp();
       __ get_method(rbx);
       __ pop(rcx);
+      __ pop(rax);
 
       __ testl(rcx, InvocationCounter::count_mask_value);
       __ jcc(Assembler::zero, not_zero);
