@@ -55,7 +55,6 @@ class SharedRuntime: AllStatic {
 
   // Shared stub locations
 
-  static RuntimeStub*        _deoptimized_installed_code_blob;
   static RuntimeStub*        _wrong_method_blob;
   static RuntimeStub*        _ic_miss_blob;
   static RuntimeStub*        _resolve_opt_virtual_call_blob;
@@ -209,11 +208,6 @@ class SharedRuntime: AllStatic {
   static address get_handle_wrong_method_stub() {
     assert(_wrong_method_blob!= NULL, "oops");
     return _wrong_method_blob->entry_point();
-  }
-
-  static address get_deoptimized_installed_code_stub() {
-    assert(_deoptimized_installed_code_blob!= NULL, "oops");
-    return _deoptimized_installed_code_blob->entry_point();
   }
 
 #ifdef COMPILER2
@@ -492,9 +486,6 @@ class SharedRuntime: AllStatic {
   // wrong method handling (inline cache misses, zombie methods)
   static address handle_wrong_method(JavaThread* thread);
   static address handle_wrong_method_ic_miss(JavaThread* thread);
-
-  // handle deoptimized installed code
-  static address handle_deoptimized_installed_code(JavaThread* thread);
 
 #ifndef PRODUCT
 
