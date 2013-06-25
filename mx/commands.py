@@ -937,9 +937,9 @@ def gate(args):
         vm(['-esa', '-version'])
         tasks.append(t.stop())
 
-        _vmbuild = 'fastdebug'
-        t = Task('BootstrapWithGCVerification:fastdebug')
-        vm(['-XX:+VerifyBeforeGC', '-version'])
+        _vmbuild = 'product'
+        t = Task('BootstrapWithGCVerification:product')
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
         tasks.append(t.stop())
 
         _vmbuild = 'product'
