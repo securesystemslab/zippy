@@ -1168,6 +1168,13 @@ C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspo
 C2V_END
 
 
+C2V_VMENTRY(jobject, readUnsafeUncompressedPointer, (JNIEnv *env, jobject, jobject o, jlong offset))
+  oop resolved_o = JNIHandles::resolve(o);
+  jlong address = offset + (jlong)resolved_o;
+  return JNIHandles::make_local(*((oop*)address));
+C2V_END
+
+
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
 
@@ -1246,6 +1253,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getFileName",                   CC"("HS_RESOLVED_JAVA_TYPE")"STRING,                              FN_PTR(getFileName)},
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
+  {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
 };
 
 int CompilerToVM_methods_count() {
