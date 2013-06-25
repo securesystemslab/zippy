@@ -3287,17 +3287,20 @@ commands = {
 _argParser = ArgParser()
 
 def _findPrimarySuite():
+    def is_suite_dir(d):
+        mxDir = join(d, 'mx')
+        if exists(mxDir) and isdir(mxDir) and exists(join(mxDir, 'projects')):
+            return dirname(mxDir)
+
     # try current working directory first
-    mxDir = join(os.getcwd(), 'mx')
-    if exists(mxDir) and isdir(mxDir):
-        return dirname(mxDir)
+    if is_suite_dir(os.getcwd()):
+        return os.getcwd()
 
     # now search path of my executable
     me = sys.argv[0]
     parent = dirname(me)
     while parent:
-        mxDir = join(parent, 'mx')
-        if exists(mxDir) and isdir(mxDir):
+        if is_suite_dir(parent):
             return parent
         parent = dirname(parent)
     return None
