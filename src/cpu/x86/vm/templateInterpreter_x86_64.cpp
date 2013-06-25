@@ -904,13 +904,6 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
   // we need to align the outgoing SP for compiled code.
   __ movptr(r11, rsp);
 
-  // Ensure compiled code always sees stack at proper alignment
-  __ andptr(rsp, -16);
-
-  // push the return address and misalign the stack that youngest frame always sees
-  // as far as the placement of the call instruction
-  __ push(rax);
-
   // Move first object argument from interpreter calling convention to compiled
   // code calling convention.
   __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*4));
@@ -932,11 +925,22 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
   Label invalid_nmethod;
   __ jcc(Assembler::zero, invalid_nmethod);
 
+  // Ensure compiled code always sees stack at proper alignment
+  __ andptr(rsp, -16);
+
+  // push the return address and misalign the stack that youngest frame always sees
+  // as far as the placement of the call instruction
+  __ push(rax);
+
   // Perform a tail call to the verified entry point of the nmethod.
   __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
 
   __ bind(invalid_nmethod);
 
+  //  pop return address, reset last_sp to NULL
+  __ empty_expression_stack();
+  __ restore_bcp();      // rsi must be correct for exception handler   (was destroyed)
+  __ restore_locals();   // make sure locals pointer is correct as well (was destroyed)
   __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::throw_InvalidInstalledCodeException));
   // the call_VM checks for exception, so we should never return here.
   __ should_not_reach_here();
