@@ -94,7 +94,7 @@ private:
   void initialize_assumptions(oop target_method);
 
   // perform data and call relocation on the CodeBuffer
-  void initialize_buffer(CodeBuffer& buffer);
+  bool initialize_buffer(CodeBuffer& buffer);
 
   void assumption_MethodContents(Handle assumption);
   void assumption_NoFinalizableSubclass(Handle assumption);

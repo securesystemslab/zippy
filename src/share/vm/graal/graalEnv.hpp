@@ -62,7 +62,8 @@ public:
   enum CodeInstallResult {
      ok,
      dependencies_failed,
-     cache_full
+     cache_full,
+     code_too_large
   };
 
   // Look up a klass by name from a particular class loader (the accessor's).

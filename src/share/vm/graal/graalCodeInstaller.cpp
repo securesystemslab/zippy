@@ -369,7 +369,10 @@ CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult&
   {
     No_Safepoint_Verifier no_safepoint;
     initialize_fields(JNIHandles::resolve(compiled_code_obj));
-    initialize_buffer(buffer);
+    if (!initialize_buffer(buffer)) {
+      result = GraalEnv::code_too_large;
+      return;
+    }
     process_exception_handlers();
   }
 
@@ -427,7 +430,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 }
 
 // perform data and call relocation on the CodeBuffer
-void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
+bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   int locs_buffer_size = _sites->length() * (relocInfo::length_limit + sizeof(relocInfo));
   char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
   buffer.insts()->initialize_shared_locs((relocInfo*)locs_buffer, locs_buffer_size / sizeof(relocInfo));
@@ -443,8 +446,12 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   _constants = buffer.consts();
 
   // copy the code into the newly created CodeBuffer
+  address end_pc = _instructions->start() + _code_size;
+  if (!_instructions->allocates2(end_pc)) {
+    return false;
+  }
   memcpy(_instructions->start(), _code->base(T_BYTE), _code_size);
-  _instructions->set_end(_instructions->start() + _code_size);
+  _instructions->set_end(end_pc);
 
   for (int i = 0; i < _sites->length(); i++) {
     oop site=((objArrayOop) (_sites))->obj_at(i);
@@ -486,6 +493,7 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     }
   }
 #endif
+  return true;
 }
 
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
