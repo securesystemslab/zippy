@@ -809,6 +809,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("newInstanceAddress", GraalRuntime::new_instance);
   set_address("newArrayAddress", GraalRuntime::new_array);
   set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
+  set_address("dynamicNewArrayAddress", GraalRuntime::dynamic_new_array);
   set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
   set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
   set_address("uncommonTrapStub", SharedRuntime::deopt_blob()->uncommon_trap());
