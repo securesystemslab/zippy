@@ -64,7 +64,7 @@
   develop(bool, GraalUseFastNewObjectArray, true,                           \
           "Use fast inlined object array allocation")                       \
                                                                             \
-  develop(intx, GraalNMethodSizeLimit, (64*K)*wordSize,                     \
+  product(intx, GraalNMethodSizeLimit, (80*K)*wordSize,                     \
           "Maximum size of a compiled method.")                             \
                                                                             \
   notproduct(bool, GraalPrintSimpleStubs, false,                            \
