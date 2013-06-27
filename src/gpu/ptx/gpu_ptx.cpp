@@ -55,9 +55,11 @@ void gpu::initialize_gpu() {
   }
 }
 
-void gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
+void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
   if (gpu::has_gpu_linkage()) {
-    gpu::Ptx::generate_kernel(code, code_len, name);
+    return (gpu::Ptx::generate_kernel(code, code_len, name));
+  } else {
+    return NULL;
   }
 }
 
