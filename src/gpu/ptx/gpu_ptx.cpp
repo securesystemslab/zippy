@@ -102,7 +102,7 @@ bool gpu::Ptx::initialize_gpu() {
   return status == 0;  // CUDA_SUCCESS
 }
 
-void gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
+void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
 
   void *cu_module;
   const unsigned int jit_num_options = 3;
@@ -134,6 +134,7 @@ void gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *na
   if (TraceWarpLoading) {
     tty->print_cr("gpu_ptx::_cuda_cu_module_get_function(%s):%x %d", name, cu_function, status);
   }
+  return cu_function;
 }
 
 

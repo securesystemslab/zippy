@@ -34,7 +34,7 @@ class Ptx {
   static bool probe_linkage_apple();
 #endif
   static bool initialize_gpu();
-  static void generate_kernel(unsigned char *code, int code_len, const char *name);
+  static void * generate_kernel(unsigned char *code, int code_len, const char *name);
   
 private:
   typedef int (*cuda_cu_init_func_t)(unsigned int, int);

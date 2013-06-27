@@ -52,11 +52,11 @@ C2V_VMENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstri
   jbyte *bytes = env->GetByteArrayElements(code, &is_copy);
   jint len = env->GetArrayLength(code);
   const char *namestr = env->GetStringUTFChars(name, &is_copy);
-  gpu::generate_kernel((unsigned char *)bytes, len, namestr);
+  void *kernel = gpu::generate_kernel((unsigned char *)bytes, len, namestr);
   env->ReleaseByteArrayElements(code, bytes, 0);
   env->ReleaseStringUTFChars(name, namestr);
 
-  return 42;
+  return (jlong)kernel;
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
