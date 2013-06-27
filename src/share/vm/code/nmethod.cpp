@@ -1307,6 +1307,7 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
   // Java wrapper is no longer alive. Here we need to clear out this weak
   // reference to the dead object.
   if (_graal_installed_code != NULL) {
+    HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
     _graal_installed_code = NULL;
   }
 #endif
