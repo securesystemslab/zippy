@@ -33,6 +33,7 @@ import mx
 import sanitycheck
 import json, textwrap
 
+# This works because when mx loads this file, it makes sure __file__ gets an absolute path
 _graal_home = dirname(dirname(__file__))
 
 """ Used to distinguish an exported GraalVM (see 'mx export'). """
@@ -268,22 +269,20 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
-    if _vmdir:
-        return _vmdir
-    return join(_graal_home, 'jdk' + str(mx.java().version))
+    return os.path.abspath(_vmdir if _vmdir else join(_graal_home, 'jdk' + str(mx.java().version)))
 
-def _jdk(build='product', vmToCheck=None, create=False):
+def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
     jdk = join(_jdksDir(), build)
-    srcJdk = mx.java().jdk
-    jdkContents = ['bin', 'include', 'jre', 'lib']
-    if exists(join(srcJdk, 'db')):
-        jdkContents.append('db')
-    if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
-        jdkContents.append('man')
     if create:
+        srcJdk = mx.java().jdk
+        jdkContents = ['bin', 'include', 'jre', 'lib']
+        if exists(join(srcJdk, 'db')):
+            jdkContents.append('db')
+        if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
+            jdkContents.append('man')
         if not exists(jdk):
             mx.log('Creating ' + jdk + ' from ' + srcJdk)
             os.makedirs(jdk)
@@ -334,7 +333,8 @@ def _jdk(build='product', vmToCheck=None, create=False):
             vmOption = ' --vm ' + vmToCheck if vmToCheck else ''
             mx.abort('The ' + build + ' VM has not been created - run "mx' + vmOption + ' build ' + build + '"')
             
-    _installGraalJarInJdks(mx.distribution('GRAAL'))
+    if installGraalJar:
+        _installGraalJarInJdks(mx.distribution('GRAAL'))
     
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -352,7 +352,7 @@ def _jdk(build='product', vmToCheck=None, create=False):
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
     graalOptions = join(_graal_home, 'graal.options')
-    jdks = join(_graal_home, 'jdk' + str(mx.java().version))
+    jdks = _jdksDir()
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
@@ -428,7 +428,7 @@ def jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
 
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    print join(_graal_home, 'jdk' + str(mx.java().version), build)
+    print _jdk(build, installGraalJar=False)
 
 def buildvars(args):
     """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
