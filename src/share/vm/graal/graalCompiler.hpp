@@ -85,23 +85,13 @@ public:
 
   static int to_cp_index_u2(int index) {
     // Tag.
-    return to_index_u2(index) + ConstantPool::CPCACHE_INDEX_TAG;
-  }
-
-  static int to_index_u2(int index) {
-    // Swap.
-    return ((index & 0xFF) << 8) | (index >> 8);
-  }
-
-  static int to_index_u4(int index) {
-    // Swap.
-    return ((index & 0xFF) << 24) | ((index & 0xFF00) << 8) | ((index & 0xFF0000) >> 8) | ((index & 0xFF000000) >> 24);
+    return index + ConstantPool::CPCACHE_INDEX_TAG;
   }
 
   static int to_cp_index(int raw_index, Bytecodes::Code bc) {
     int cp_index;
     if (bc == Bytecodes::_invokedynamic) {
-      cp_index = to_index_u4(raw_index);
+      cp_index = raw_index;
       assert(ConstantPool::is_invokedynamic_index(cp_index), "not an invokedynamic constant pool index");
     } else {
       assert(bc == Bytecodes::_getfield        || bc == Bytecodes::_putfield  ||

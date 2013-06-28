@@ -85,24 +85,57 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
       reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
       memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
     }
-    BytecodeStream s(method);
-    while (!s.is_last_bytecode()) {
-      s.next();
-      Bytecodes::Code opcode = s.raw_code();
-      if (!Bytecodes::is_java_code(opcode)) {
-        jbyte original_opcode = Bytecodes::java_code(opcode);
-        int bci = s.bci();
-        reconstituted_code[bci] = original_opcode;
-        if (opcode == Bytecodes::_fast_aldc_w) {
-          int cpci = Bytes::get_native_u2((address) reconstituted_code + bci + 1);
-          int i = method->constants()->object_to_cp_index(cpci);
-          assert(i < method->constants()->length(), "sanity check");
-          Bytes::put_Java_u2((address) reconstituted_code + bci + 1, (u2)i);
-        } else if (opcode == Bytecodes::_fast_aldc) {
-          int cpci = reconstituted_code[bci + 1] & 0xff;
-          int i = method->constants()->object_to_cp_index(cpci);
-          assert(i < method->constants()->length(), "sanity check");
-          reconstituted_code[bci + 1] = (jbyte)i;
+
+    for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
+      Bytecodes::Code code = s.code();
+      Bytecodes::Code raw_code = s.raw_code();
+      int bci = s.bci();
+
+      // Restore original byte code.  The Bytecodes::is_java_code check
+      // also avoids overwriting wide bytecodes.
+      if (!Bytecodes::is_java_code(raw_code)) {
+        reconstituted_code[bci] = (jbyte) code;
+      }
+
+      // Restore the big-endian constant pool indexes.
+      // Cf. Rewriter::scan_method
+      switch (code) {
+        case Bytecodes::_getstatic:
+        case Bytecodes::_putstatic:
+        case Bytecodes::_getfield:
+        case Bytecodes::_putfield:
+        case Bytecodes::_invokevirtual:
+        case Bytecodes::_invokespecial:
+        case Bytecodes::_invokestatic:
+        case Bytecodes::_invokeinterface:
+        case Bytecodes::_invokehandle: {
+          int cp_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
+          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          break;
+        }
+
+        case Bytecodes::_invokedynamic:
+          int cp_index = Bytes::get_native_u4((address) &reconstituted_code[bci + 1]);
+          Bytes::put_Java_u4((address) &reconstituted_code[bci + 1], (u4) cp_index);
+          break;
+      }
+
+      // Not all ldc byte code are rewritten.
+      switch (raw_code) {
+        case Bytecodes::_fast_aldc: {
+          int cpc_index = reconstituted_code[bci + 1] & 0xff;
+          int cp_index = method->constants()->object_to_cp_index(cpc_index);
+          assert(cp_index < method->constants()->length(), "sanity check");
+          reconstituted_code[bci + 1] = (jbyte) cp_index;
+          break;
+        }
+
+        case Bytecodes::_fast_aldc_w: {
+          int cpc_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
+          int cp_index = method->constants()->object_to_cp_index(cpc_index);
+          assert(cp_index < method->constants()->length(), "sanity check");
+          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          break;
         }
       }
     }
@@ -456,19 +489,19 @@ C2V_VMENTRY(jobject, lookupMethodInPool, (JNIEnv *env, jobject, jobject type, ji
   instanceKlassHandle pool_holder(cp->pool_holder());
 
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
-  index = GraalCompiler::to_cp_index(index, bc);
+  int cp_index = GraalCompiler::to_cp_index(index, bc);
 
-  methodHandle method = GraalEnv::get_method_by_index(cp, index, bc, pool_holder);
+  methodHandle method = GraalEnv::get_method_by_index(cp, cp_index, bc, pool_holder);
   if (!method.is_null()) {
     Handle holder = GraalCompiler::get_JavaType(method->method_holder(), CHECK_NULL);
     return JNIHandles::make_local(THREAD, VMToCompiler::createResolvedJavaMethod(holder, method(), THREAD));
   } else {
     // Get the method's name and signature.
-    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
-    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
+    Handle name = java_lang_String::create_from_symbol(cp->name_ref_at(cp_index), CHECK_NULL);
+    Handle signature  = java_lang_String::create_from_symbol(cp->signature_ref_at(cp_index), CHECK_NULL);
     Handle type;
     if (bc != Bytecodes::_invokedynamic) {
-      int holder_index = cp->klass_ref_index_at(index);
+      int holder_index = cp->klass_ref_index_at(cp_index);
       type = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
     } else {
       type = Handle(SystemDictionary::MethodHandle_klass()->java_mirror());
@@ -509,15 +542,15 @@ C2V_END
 C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jobject constantPoolHolder, jint index, jbyte opcode))
   ResourceMark rm;
 
-  index = GraalCompiler::to_cp_index_u2(index);
+  int cp_index = GraalCompiler::to_cp_index_u2(index);
   constantPoolHandle cp = InstanceKlass::cast(java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(constantPoolHolder)))->constants();
 
-  int nt_index = cp->name_and_type_ref_index_at(index);
+  int nt_index = cp->name_and_type_ref_index_at(cp_index);
   int sig_index = cp->signature_ref_index_at(nt_index);
   Symbol* signature = cp->symbol_at(sig_index);
   int name_index = cp->name_ref_index_at(nt_index);
   Symbol* name = cp->symbol_at(name_index);
-  int holder_index = cp->klass_ref_index_at(index);
+  int holder_index = cp->klass_ref_index_at(cp_index);
   Handle holder = GraalCompiler::get_JavaType(cp, holder_index, cp->pool_holder(), CHECK_NULL);
   instanceKlassHandle holder_klass;
 
@@ -527,7 +560,7 @@ C2V_VMENTRY(jobject, lookupFieldInPool, (JNIEnv *env, jobject, jobject constantP
   BasicType basic_type;
   if (holder->klass() == SystemDictionary::HotSpotResolvedObjectType_klass()) {
     FieldAccessInfo result;
-    LinkResolver::resolve_field(result, cp, index,
+    LinkResolver::resolve_field(result, cp, cp_index,
                                 Bytecodes::java_code(code),
                                 true, false, Thread::current());
     if (HAS_PENDING_EXCEPTION) {
