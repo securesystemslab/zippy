@@ -56,6 +56,8 @@ _jacoco = 'off'
 
 _workdir = None
 
+_vmdir = None
+
 _native_dbg = None
 
 _make_eclipse_launch = False
@@ -266,6 +268,8 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
+    if _vmdir:
+        return _vmdir
     return join(_graal_home, 'jdk' + str(mx.java().version))
 
 def _jdk(build='product', vmToCheck=None, create=False):
@@ -1310,6 +1314,7 @@ def mx_init():
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
     mx.add_argument('--workdir', help='runs the VM in the given directory', default=None)
+    mx.add_argument('--vmdir', help='specify where the directory in which the vms should be', default=None)
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=_vmChoices, help='the VM to build/run (default: ' + _vmChoices[0] + ')')
@@ -1344,6 +1349,8 @@ def mx_post_parse_cmd_line(opts):#
     _jacoco = opts.jacoco
     global _workdir
     _workdir = opts.workdir
+    global _vmdir
+    _vmdir = opts.vmdir
     global _native_dbg
     _native_dbg = opts.native_dbg
 
