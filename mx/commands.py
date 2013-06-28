@@ -495,7 +495,7 @@ def build(args, vm=None):
         if build == 'ide-build-target':
             build = os.environ.get('IDE_BUILD_TARGET', 'product')
             if len(build) == 0:
-                mx.log('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
+                mx.logv('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
                 continue
 
         jdk = _jdk(build, create=True)
@@ -536,7 +536,7 @@ def build(args, vm=None):
                     break
 
         if not mustBuild:
-            mx.log('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
+            mx.logv('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
             continue
 
         if platform.system() == 'Windows':
@@ -1034,17 +1034,17 @@ def longtests(args):
 def gv(args):
     """run the Graal Visualizer"""
     with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
-        mx.log('[Graal Visualizer log is in ' + fp.name + ']')
+        mx.logv('[Graal Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'visualizer', 'build.xml')):
-            mx.log('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
+            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
-        mx.log('[Ideal Graph Visualizer log is in ' + fp.name + ']')
+        mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
-            mx.log('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
+            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
 
 def bench(args):
