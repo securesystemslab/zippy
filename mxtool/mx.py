@@ -1734,33 +1734,57 @@ def archive(args):
             d = distribution(dname)
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
             services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+
+            def overwriteCheck(zf, arcname, source):
+                if arcname in zf.namelist():
+                    log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
+                
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
-                for p in sorted_deps(d.deps):
-                    # skip a  Java project if its Java compliance level is "higher" than the configured JDK
-                    if java().javaCompliance < p.javaCompliance:
-                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
-                        continue
-
-                    outputDir = p.output_dir()
-                    for root, _, files in os.walk(outputDir):
-                        relpath = root[len(outputDir) + 1:]
-                        if relpath == join('META-INF', 'services'):
-                            for f in files:
-                                with open(join(services, f), 'a') as outfile:
+                for dep in sorted_deps(d.deps, includeLibs=True):
+                    if dep.isLibrary():
+                        l = dep
+                        # merge library jar into distribution jar
+                        logv('[' + d.path + ': adding library ' + l.name + ']')
+                        lpath = l.get_path(resolve=True)
+                        with zipfile.ZipFile(lpath, 'r') as lp:
+                            for arcname in lp.namelist():
+                                if arcname.startswith('META-INF/services/'):
+                                    f = arcname[len('META-INF/services/'):].replace('/', os.sep)
+                                    with open(join(services, f), 'a') as outfile:
+                                        for line in lp.read(arcname).splitlines():
+                                            outfile.write(line)
+                                else:
+                                    overwriteCheck(zf, arcname, lpath + '!' + arcname)
+                                    zf.writestr(arcname, lp.read(arcname))
+                    else:
+                        p = dep
+                        # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                        if java().javaCompliance < p.javaCompliance:
+                            log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
+                            continue
+    
+                        logv('[' + d.path + ': adding project ' + p.name + ']')
+                        outputDir = p.output_dir()
+                        for root, _, files in os.walk(outputDir):
+                            relpath = root[len(outputDir) + 1:]
+                            if relpath == join('META-INF', 'services'):
+                                for f in files:
+                                    with open(join(services, f), 'a') as outfile:
+                                        with open(join(root, f), 'r') as infile:
+                                            for line in infile:
+                                                outfile.write(line)
+                            elif relpath == join('META-INF', 'providers'):
+                                for f in files:
                                     with open(join(root, f), 'r') as infile:
                                         for line in infile:
-                                            outfile.write(line)
-                        elif relpath == join('META-INF', 'providers'):
-                            for f in files:
-                                with open(join(root, f), 'r') as infile:
-                                    for line in infile:
-                                        with open(join(services, line.strip()), 'a') as outfile:
-                                            outfile.write(f + '\n')
-                        else:
-                            for f in files:
-                                arcname = join(relpath, f).replace(os.sep, '/')
-                                zf.write(join(root, f), arcname)
+                                            with open(join(services, line.strip()), 'a') as outfile:
+                                                outfile.write(f + '\n')
+                            else:
+                                for f in files:
+                                    arcname = join(relpath, f).replace(os.sep, '/')
+                                    overwriteCheck(zf, arcname, join(root, f))
+                                    zf.write(join(root, f), arcname)
                 for f in os.listdir(services):
                     arcname = join('META-INF', 'services', f).replace(os.sep, '/')
                     zf.write(join(services, f), arcname)
