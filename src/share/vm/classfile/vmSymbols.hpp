@@ -338,6 +338,7 @@
   template(com_oracle_graal_api_code_CompilationResult_Mark,         "com/oracle/graal/api/code/CompilationResult$Mark")              \
   template(com_oracle_graal_api_code_CompilationResult_Infopoint,    "com/oracle/graal/api/code/CompilationResult$Infopoint")         \
   template(com_oracle_graal_api_code_CompilationResult_Site,         "com/oracle/graal/api/code/CompilationResult$Site")              \
+  template(com_oracle_graal_api_code_ExternalCompilationResult,      "com/oracle/graal/api/code/ExternalCompilationResult")           \
   template(com_oracle_graal_api_code_InfopointReason,                "com/oracle/graal/api/code/InfopointReason")                     \
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \

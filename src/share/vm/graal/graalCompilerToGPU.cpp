@@ -24,7 +24,9 @@
 #include "precompiled.hpp"
 
 #include "graal/graalCompiler.hpp"
+#include "graal/graalCompilerToVM.hpp"
 #include "graal/graalEnv.hpp"
+#include "graal/graalJavaAccess.hpp"
 #include "runtime/gpu.hpp"
 
 
@@ -53,10 +55,46 @@ C2V_VMENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstri
   jint len = env->GetArrayLength(code);
   const char *namestr = env->GetStringUTFChars(name, &is_copy);
   void *kernel = gpu::generate_kernel((unsigned char *)bytes, len, namestr);
+  tty->print_cr("generateKernel: %x", kernel);
   env->ReleaseByteArrayElements(code, bytes, 0);
   env->ReleaseStringUTFChars(name, namestr);
 
   return (jlong)kernel;
+C2V_END
+
+C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobject args, jobject hotspotInstalledCode))
+  ResourceMark rm;
+  HandleMark hm;
+
+  if (gpu::is_available() == false || gpu::has_gpu_linkage() == false && gpu::is_initialized()) {
+    tty->print_cr("executeExternalMethodVarargs - not available / no linkage / not initialized");
+    return NULL;
+  }
+  jlong nmethodValue = HotSpotInstalledCode::codeBlob(hotspotInstalledCode);
+  nmethod* nm = (nmethod*) (address) nmethodValue;
+  methodHandle mh = nm->method();
+  Symbol* signature = mh->signature();
+  JavaCallArguments jca(mh->size_of_parameters());
+
+  JavaArgumentUnboxer jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
+  JavaValue result(jap.get_ret_type());
+  jca.set_alternative_target(nm);
+
+  // start value is the kernel
+  jlong startValue = HotSpotInstalledCode::start(hotspotInstalledCode);
+
+  // JavaCalls::call(&result, mh, &jca, CHECK_NULL);
+  tty->print_cr("executeExternalMethodVarargs: start: %x", (address)startValue);
+  gpu::execute_kernel((address)startValue);
+
+  if (jap.get_ret_type() == T_VOID) {
+    return NULL;
+  } else if (jap.get_ret_type() == T_OBJECT || jap.get_ret_type() == T_ARRAY) {
+    return JNIHandles::make_local((oop) result.get_jobject());
+  } else {
+    oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
+    return JNIHandles::make_local(o);
+  }
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
@@ -113,9 +151,10 @@ C2V_END
 #define GPUSPACE_METHOD       "J"
 
 JNINativeMethod CompilerToGPU_methods[] = {
-  {CC"generateKernel", CC"([B" STRING ")"GPUSPACE_METHOD, FN_PTR(generateKernel)},
-  {CC"deviceInit",     CC"()Z",                           FN_PTR(deviceInit)},
-  {CC"deviceDetach",   CC"()Z",                           FN_PTR(deviceDetach)},
+  {CC"generateKernel",                CC"([B" STRING ")"GPUSPACE_METHOD,        FN_PTR(generateKernel)},
+  {CC"deviceInit",                    CC"()Z",                                  FN_PTR(deviceInit)},
+  {CC"deviceDetach",                  CC"()Z",                                  FN_PTR(deviceDetach)},
+  {CC"executeExternalMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,  FN_PTR(executeExternalMethodVarargs)},
 };
 
 int CompilerToGPU_methods_count() {

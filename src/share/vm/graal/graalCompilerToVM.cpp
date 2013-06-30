@@ -969,7 +969,13 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
     if (!installed_code_handle.is_null()) {
       assert(installed_code_handle->is_a(HotSpotInstalledCode::klass()), "wrong type");
       HotSpotInstalledCode::set_codeBlob(installed_code_handle, (jlong) cb);
-      HotSpotInstalledCode::set_start(installed_code_handle, (jlong) cb->code_begin());
+      oop comp_result = HotSpotCompiledCode::comp(compiled_code_handle);
+      if (comp_result->is_a(ExternalCompilationResult::klass())) {
+        tty->print_cr("installCode0: ExternalCompilationResult");
+        HotSpotInstalledCode::set_start(installed_code_handle, ExternalCompilationResult::kernel(comp_result));
+      } else {
+        HotSpotInstalledCode::set_start(installed_code_handle, (jlong) cb->code_begin());
+      }
       nmethod* nm = cb->as_nmethod_or_null();
       assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
     }

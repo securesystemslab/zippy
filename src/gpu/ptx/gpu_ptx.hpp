@@ -35,6 +35,7 @@ class Ptx {
 #endif
   static bool initialize_gpu();
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+  static bool execute_kernel(address kernel);
   
 private:
   typedef int (*cuda_cu_init_func_t)(unsigned int, int);
@@ -45,7 +46,10 @@ private:
   typedef int (*cuda_cu_device_get_name_func_t)(char *, int, int);
   typedef int (*cuda_cu_device_get_func_t)(int *, int);
   typedef int (*cuda_cu_device_compute_capability_func_t)(int *, int *, int);
-  typedef int (*cuda_cu_launch_kernel_func_t)(int *, int *, int);
+  typedef int (*cuda_cu_launch_kernel_func_t)(void *,
+                                              unsigned int, unsigned int, unsigned int,
+                                              unsigned int, unsigned int, unsigned int,
+                                              unsigned int, void *, void **, void **);
   typedef int (*cuda_cu_module_get_function_func_t)(void *, void *, const char *);
   typedef int (*cuda_cu_module_load_data_ex_func_t)(void *, void *, unsigned int, int *, void **);
 
