@@ -498,38 +498,38 @@ project@com.oracle.truffle.api.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.truffle.api.test@javaCompliance=1.7
 project@com.oracle.truffle.api.test@workingSets=API,Truffle,Test
 
-# truffle.api.codegen
-project@com.oracle.truffle.api.codegen@subDir=graal
-project@com.oracle.truffle.api.codegen@sourceDirs=src
-project@com.oracle.truffle.api.codegen@dependencies=com.oracle.truffle.api
-project@com.oracle.truffle.api.codegen@checkstyle=com.oracle.graal.graph
-project@com.oracle.truffle.api.codegen@javaCompliance=1.7
-project@com.oracle.truffle.api.codegen@workingSets=API,Truffle,Codegen
+# truffle.api.dsl
+project@com.oracle.truffle.api.dsl@subDir=graal
+project@com.oracle.truffle.api.dsl@sourceDirs=src
+project@com.oracle.truffle.api.dsl@dependencies=com.oracle.truffle.api
+project@com.oracle.truffle.api.dsl@checkstyle=com.oracle.graal.graph
+project@com.oracle.truffle.api.dsl@javaCompliance=1.7
+project@com.oracle.truffle.api.dsl@workingSets=API,Truffle,Codegen
 
-# truffle.api.codegen.test
-project@com.oracle.truffle.api.codegen.test@subDir=graal
-project@com.oracle.truffle.api.codegen.test@sourceDirs=src
-project@com.oracle.truffle.api.codegen.test@dependencies=com.oracle.truffle.api.codegen,JUNIT
-project@com.oracle.truffle.api.codegen.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.truffle.api.codegen.test@javaCompliance=1.7
-project@com.oracle.truffle.api.codegen.test@annotationProcessors=com.oracle.truffle.codegen.processor
-project@com.oracle.truffle.api.codegen.test@workingSets=API,Truffle,Codegen,Test
+# truffle.api.dsl.test
+project@com.oracle.truffle.api.dsl.test@subDir=graal
+project@com.oracle.truffle.api.dsl.test@sourceDirs=src
+project@com.oracle.truffle.api.dsl.test@dependencies=com.oracle.truffle.api.dsl,JUNIT
+project@com.oracle.truffle.api.dsl.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.truffle.api.dsl.test@javaCompliance=1.7
+project@com.oracle.truffle.api.dsl.test@annotationProcessors=com.oracle.truffle.dsl.processor
+project@com.oracle.truffle.api.dsl.test@workingSets=API,Truffle,Codegen,Test
 
-# truffle.codegen.processor
-project@com.oracle.truffle.codegen.processor@subDir=graal
-project@com.oracle.truffle.codegen.processor@sourceDirs=src
-project@com.oracle.truffle.codegen.processor@dependencies=com.oracle.truffle.api.codegen
-project@com.oracle.truffle.codegen.processor@checkstyle=com.oracle.graal.graph
-project@com.oracle.truffle.codegen.processor@javaCompliance=1.7
-project@com.oracle.truffle.codegen.processor@workingSets=Truffle,Codegen
+# truffle.dsl.processor
+project@com.oracle.truffle.dsl.processor@subDir=graal
+project@com.oracle.truffle.dsl.processor@sourceDirs=src
+project@com.oracle.truffle.dsl.processor@dependencies=com.oracle.truffle.api.dsl
+project@com.oracle.truffle.dsl.processor@checkstyle=com.oracle.graal.graph
+project@com.oracle.truffle.dsl.processor@javaCompliance=1.7
+project@com.oracle.truffle.dsl.processor@workingSets=Truffle,Codegen
 
 # truffle.sl
 project@com.oracle.truffle.sl@subDir=graal
 project@com.oracle.truffle.sl@sourceDirs=src
-project@com.oracle.truffle.sl@dependencies=com.oracle.truffle.api.codegen
+project@com.oracle.truffle.sl@dependencies=com.oracle.truffle.api.dsl
 project@com.oracle.truffle.sl@checkstyle=com.oracle.graal.graph
 project@com.oracle.truffle.sl@javaCompliance=1.7
-project@com.oracle.truffle.sl@annotationProcessors=com.oracle.truffle.codegen.processor
+project@com.oracle.truffle.sl@annotationProcessors=com.oracle.truffle.dsl.processor
 project@com.oracle.truffle.sl@workingSets=Truffle,SimpleLanguage
 
 # truffle.sl.test
