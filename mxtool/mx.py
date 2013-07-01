@@ -606,12 +606,15 @@ class Suite:
         e = join(mxDir, 'env')
         if exists(e):
             with open(e) as f:
+                lineNum = 0
                 for line in f:
+                    lineNum = lineNum + 1
                     line = line.strip()
                     if len(line) != 0 and line[0] != '#':
+                        if not '=' in line:
+                            abort(e + ':' + str(lineNum) + ': line does not match pattern "key=value"')
                         key, value = line.split('=', 1)
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
-
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
