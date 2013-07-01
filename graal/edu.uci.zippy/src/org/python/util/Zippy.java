@@ -12,7 +12,6 @@ import org.python.core.Options;
 import org.python.core.Py;
 import org.python.core.PyException;
 import org.python.core.PyFile;
-import org.python.core.PyList;
 import org.python.core.PyString;
 import org.python.core.PySystemState;
 import org.python.core.imp;
@@ -22,12 +21,18 @@ import org.python.modules.posix.PosixModule;
 
 public class Zippy extends jython {
 	
+    private static final String COPYRIGHT = "Type \"help\", \"copyright\", \"credits\" or \"license\" for more information.";
+
+    static final String usageHeader = "usage: ZipPy ......";
+
+    private static final String usage = usageHeader;
+	
     public static void run(String[] args) {
         // Parse the command line options
         CommandLineOptions opts = new CommandLineOptions();
         if (!opts.parse(args)) {
             if (opts.version) {
-                System.err.println("Jython " + Version.PY_VERSION);
+                System.err.println("ZipPy " + Version.PY_VERSION);
                 System.exit(0);
             }
             if (opts.help) {

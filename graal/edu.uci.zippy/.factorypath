@@ -1,0 +1,6 @@
+<factorypath>
+    <factorypathentry kind="PLUGIN" id="org.eclipse.jst.ws.annotations.core" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="EXTJAR" id="/Users/myq/Documents/zippy/graal/com.oracle.truffle.api/com.oracle.truffle.api.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="EXTJAR" id="/Users/myq/Documents/zippy/graal/com.oracle.truffle.api.codegen/com.oracle.truffle.api.codegen.jar" enabled="true" runInBatchMode="false"/>
+    <factorypathentry kind="EXTJAR" id="/Users/myq/Documents/zippy/graal/com.oracle.truffle.codegen.processor/com.oracle.truffle.codegen.processor.jar" enabled="true" runInBatchMode="false"/>
+</factorypath>
