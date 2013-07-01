@@ -38,6 +38,7 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -101,7 +102,10 @@ public class NewObjectSnippets implements Snippets {
             // This handles both negative array sizes and very large array sizes
             DeoptimizeNode.deopt(DeoptimizationAction.None, DeoptimizationReason.RuntimeConstraint);
         }
+        return allocateArrayImpl(hub, length, prototypeMarkWord, headerSize, log2ElementSize, fillContents);
+    }
 
+    private static Object allocateArrayImpl(Word hub, int length, Word prototypeMarkWord, int headerSize, int log2ElementSize, boolean fillContents) {
         Object result;
         int alignment = wordSize();
         int allocationSize = computeArrayAllocationSize(length, alignment, headerSize, log2ElementSize);
@@ -121,12 +125,16 @@ public class NewObjectSnippets implements Snippets {
         return unsafeArrayCast(verifyOop(result), length, StampFactory.forNodeIntrinsic(), anchorNode);
     }
 
+    public static final ForeignCallDescriptor DYNAMIC_NEW_ARRAY = new ForeignCallDescriptor("dynamic_new_array", Object.class, Class.class, int.class);
+
+    @NodeIntrinsic(ForeignCallNode.class)
+    public static native Object dynamicNewArrayStub(@ConstantNodeParameter ForeignCallDescriptor descriptor, Class<?> elementType, int length);
+
     @Snippet
     public static Object allocateArrayDynamic(Class<?> elementType, int length, @ConstantParameter boolean fillContents) {
         Word hub = loadWordFromObject(elementType, arrayKlassOffset());
-        if (hub.equal(Word.zero())) {
-            // the array class is not yet loaded
-            DeoptimizeNode.deopt(DeoptimizationAction.InvalidateRecompile, DeoptimizationReason.Unresolved);
+        if (hub.equal(Word.zero()) || !belowThan(length, MAX_ARRAY_FAST_PATH_ALLOCATION_LENGTH)) {
+            return dynamicNewArrayStub(DYNAMIC_NEW_ARRAY, elementType, length);
         }
 
         int layoutHelper = readLayoutHelper(hub);
@@ -147,7 +155,7 @@ public class NewObjectSnippets implements Snippets {
         int log2ElementSize = (layoutHelper >> layoutHelperLog2ElementSizeShift()) & layoutHelperLog2ElementSizeMask();
         Word prototypeMarkWord = hub.readWord(prototypeMarkWordOffset(), PROTOTYPE_MARK_WORD_LOCATION);
 
-        return allocateArray(hub, length, prototypeMarkWord, headerSize, log2ElementSize, fillContents);
+        return allocateArrayImpl(hub, length, prototypeMarkWord, headerSize, log2ElementSize, fillContents);
     }
 
     /**

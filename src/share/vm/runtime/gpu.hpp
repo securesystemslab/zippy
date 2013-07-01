@@ -41,7 +41,9 @@ public:
   
   static void initialize_gpu();
   
-  static void generate_kernel(unsigned char *code, int code_len, const char *name);
+  static void * generate_kernel(unsigned char *code, int code_len, const char *name);
+
+  static bool execute_kernel(address kernel);
 
   static void set_available(bool value) {
     _available = value;

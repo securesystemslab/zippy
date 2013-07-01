@@ -230,7 +230,6 @@ public enum SPARCArithmetic {
         }
     }
 
-    @SuppressWarnings("unused")
     public static void emit(TargetMethodAssembler tasm, SPARCAssembler masm, SPARCArithmetic opcode, Value dst, Value src1, Value src2, LIRFrameState info) {
         int exceptionOffset = -1;
         if (isConstant(src1)) {
@@ -382,30 +381,30 @@ public enum SPARCArithmetic {
                 case LREM:
                     throw new InternalError("NYI");
                 case FADD:
-                    new Fadds(masm, asFloatReg(src1), asFloatReg(src2), asFloatReg(dst));
+                    new Fadds(asFloatReg(src1), asFloatReg(src2), asFloatReg(dst)).emit(masm);
                     break;
                 case FSUB:
-                    new Fsubs(masm, asFloatReg(src1), asFloatReg(src2), asFloatReg(dst));
+                    new Fsubs(asFloatReg(src1), asFloatReg(src2), asFloatReg(dst)).emit(masm);
                     break;
                 case FMUL:
-                    new Fmuls(masm, asFloatReg(src1), asFloatReg(src2), asFloatReg(dst));
+                    new Fmuls(asFloatReg(src1), asFloatReg(src2), asFloatReg(dst)).emit(masm);
                     break;
                 case FDIV:
-                    new Fdivs(masm, asFloatReg(src1), asFloatReg(src2), asFloatReg(dst));
+                    new Fdivs(asFloatReg(src1), asFloatReg(src2), asFloatReg(dst)).emit(masm);
                     break;
                 case FREM:
                     throw new InternalError("NYI");
                 case DADD:
-                    new Faddd(masm, asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst));
+                    new Faddd(asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst)).emit(masm);
                     break;
                 case DSUB:
-                    new Fsubd(masm, asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst));
+                    new Fsubd(asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst)).emit(masm);
                     break;
                 case DMUL:
-                    new Fmuld(masm, asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst));
+                    new Fmuld(asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst)).emit(masm);
                     break;
                 case DDIV:
-                    new Fdivd(masm, asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst));
+                    new Fdivd(asDoubleReg(src1), asDoubleReg(src2), asDoubleReg(dst)).emit(masm);
                     break;
                 case DREM:
                     throw new InternalError("NYI");

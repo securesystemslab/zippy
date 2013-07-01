@@ -1680,15 +1680,15 @@ static void gen_special_dispatch(MacroAssembler* masm,
     // fourth argument (j_rarg3) is a pointer to the HotSpotInstalledCode object.
 
     // Load the nmethod pointer from the HotSpotInstalledCode object
-    __ movq(j_rarg3, Address(j_rarg3, sizeof(oopDesc)));
+    __ movq(j_rarg4, Address(j_rarg3, sizeof(oopDesc)));
 
     // Check whether the nmethod was invalidated
-    __ testq(j_rarg3, j_rarg3);
+    __ testq(j_rarg4, j_rarg4);
     Label invalid_nmethod;
     __ jcc(Assembler::zero, invalid_nmethod);
 
     // Perform a tail call to the verified entry point of the nmethod.
-    __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+    __ jmp(Address(j_rarg4, nmethod::verified_entry_point_offset()));
 
     __ bind(invalid_nmethod);
 

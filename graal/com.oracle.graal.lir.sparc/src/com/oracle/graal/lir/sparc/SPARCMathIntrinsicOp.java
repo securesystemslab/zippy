@@ -48,11 +48,10 @@ public class SPARCMathIntrinsicOp extends SPARCLIRInstruction {
     }
 
     @Override
-    @SuppressWarnings("unused")
     public void emitCode(TargetMethodAssembler tasm, SPARCAssembler asm) {
         switch (opcode) {
             case SQRT:
-                new Fsqrtd(asm, asDoubleReg(result), asDoubleReg(input));
+                new Fsqrtd(asDoubleReg(result), asDoubleReg(input)).emit(asm);
                 break;
             case LOG:
             case LOG10:

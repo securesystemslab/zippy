@@ -565,6 +565,10 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
 
         }
       }
+      
+      if (HotSpotNmethod::isExternal(installed_code())) {
+        tty->print_cr("External method:%s", method()->name_and_sig_as_C_string());
+      }
     }
   }
   // JVMTI -- compiled method notification (must be done outside lock)

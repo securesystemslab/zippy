@@ -606,12 +606,15 @@ class Suite:
         e = join(mxDir, 'env')
         if exists(e):
             with open(e) as f:
+                lineNum = 0
                 for line in f:
+                    lineNum = lineNum + 1
                     line = line.strip()
                     if len(line) != 0 and line[0] != '#':
+                        if not '=' in line:
+                            abort(e + ':' + str(lineNum) + ': line does not match pattern "key=value"')
                         key, value = line.split('=', 1)
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
-
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
@@ -1226,6 +1229,10 @@ def get_env(key, default=None):
     value = os.environ.get(key, default)
     return value
 
+def logv(msg=None):
+    if _opts.verbose:
+        log(msg)
+    
 def log(msg=None):
     """
     Write a message to the console.
@@ -1528,11 +1535,11 @@ def build(args, parser=None):
                             break
 
         if not mustBuild:
-            log('[all class files for {0} are up to date - skipping]'.format(p.name))
+            logv('[all class files for {0} are up to date - skipping]'.format(p.name))
             continue
 
         if len(javafilelist) == 0:
-            log('[no Java sources for {0} - skipping]'.format(p.name))
+            logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
         built.add(p.name)
@@ -1668,7 +1675,8 @@ def eclipseformat(args):
         batch = Batch(join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs'))
 
         if not exists(batch.path):
-            log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(batch.path))
+            if _opts.verbose:
+                log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(batch.path))
             continue
 
         for sourceDir in sourceDirs:
@@ -1676,7 +1684,7 @@ def eclipseformat(args):
                 for f in [join(root, name) for name in files if name.endswith('.java')]:
                     batch.javafiles.append(FileInfo(f))
         if len(batch.javafiles) == 0:
-            log('[no Java sources in {0} - skipping]'.format(p.name))
+            logv('[no Java sources in {0} - skipping]'.format(p.name))
             continue
 
         res = batches.setdefault(batch.settings(), batch)
@@ -1729,33 +1737,57 @@ def archive(args):
             d = distribution(dname)
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
             services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+
+            def overwriteCheck(zf, arcname, source):
+                if arcname in zf.namelist():
+                    log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
+                
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
-                for p in sorted_deps(d.deps):
-                    # skip a  Java project if its Java compliance level is "higher" than the configured JDK
-                    if java().javaCompliance < p.javaCompliance:
-                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
-                        continue
-
-                    outputDir = p.output_dir()
-                    for root, _, files in os.walk(outputDir):
-                        relpath = root[len(outputDir) + 1:]
-                        if relpath == join('META-INF', 'services'):
-                            for f in files:
-                                with open(join(services, f), 'a') as outfile:
+                for dep in sorted_deps(d.deps, includeLibs=True):
+                    if dep.isLibrary():
+                        l = dep
+                        # merge library jar into distribution jar
+                        logv('[' + d.path + ': adding library ' + l.name + ']')
+                        lpath = l.get_path(resolve=True)
+                        with zipfile.ZipFile(lpath, 'r') as lp:
+                            for arcname in lp.namelist():
+                                if arcname.startswith('META-INF/services/'):
+                                    f = arcname[len('META-INF/services/'):].replace('/', os.sep)
+                                    with open(join(services, f), 'a') as outfile:
+                                        for line in lp.read(arcname).splitlines():
+                                            outfile.write(line)
+                                else:
+                                    overwriteCheck(zf, arcname, lpath + '!' + arcname)
+                                    zf.writestr(arcname, lp.read(arcname))
+                    else:
+                        p = dep
+                        # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                        if java().javaCompliance < p.javaCompliance:
+                            log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
+                            continue
+    
+                        logv('[' + d.path + ': adding project ' + p.name + ']')
+                        outputDir = p.output_dir()
+                        for root, _, files in os.walk(outputDir):
+                            relpath = root[len(outputDir) + 1:]
+                            if relpath == join('META-INF', 'services'):
+                                for f in files:
+                                    with open(join(services, f), 'a') as outfile:
+                                        with open(join(root, f), 'r') as infile:
+                                            for line in infile:
+                                                outfile.write(line)
+                            elif relpath == join('META-INF', 'providers'):
+                                for f in files:
                                     with open(join(root, f), 'r') as infile:
                                         for line in infile:
-                                            outfile.write(line)
-                        elif relpath == join('META-INF', 'providers'):
-                            for f in files:
-                                with open(join(root, f), 'r') as infile:
-                                    for line in infile:
-                                        with open(join(services, line.strip()), 'a') as outfile:
-                                            outfile.write(f + '\n')
-                        else:
-                            for f in files:
-                                arcname = join(relpath, f).replace(os.sep, '/')
-                                zf.write(join(root, f), arcname)
+                                            with open(join(services, line.strip()), 'a') as outfile:
+                                                outfile.write(f + '\n')
+                            else:
+                                for f in files:
+                                    arcname = join(relpath, f).replace(os.sep, '/')
+                                    overwriteCheck(zf, arcname, join(root, f))
+                                    zf.write(join(root, f), arcname)
                 for f in os.listdir(services):
                     arcname = join('META-INF', 'services', f).replace(os.sep, '/')
                     zf.write(join(services, f), arcname)
@@ -1880,7 +1912,7 @@ def checkstyle(args):
             for root, _, files in os.walk(sourceDir):
                 javafilelist += [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']
             if len(javafilelist) == 0:
-                log('[no Java sources in {0} - skipping]'.format(sourceDir))
+                logv('[no Java sources in {0} - skipping]'.format(sourceDir))
                 continue
 
             timestampFile = join(p.suite.dir, 'mx', 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp')
@@ -1916,7 +1948,7 @@ def checkstyle(args):
                 else:
                     config = join(p.dir, configLocation)
             else:
-                log('[unknown Checkstyle configuration type "' + configType + '" in {0} - skipping]'.format(sourceDir))
+                logv('[unknown Checkstyle configuration type "' + configType + '" in {0} - skipping]'.format(sourceDir))
                 continue
 
             exclude = join(p.dir, '.checkstyle.exclude')
@@ -2875,7 +2907,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                 for d in deps:
                     assess_candidate(d, projects)
             if not assess_candidate(p, projects):
-                log('[package-list file exists - skipping {0}]'.format(p.name))
+                logv('[package-list file exists - skipping {0}]'.format(p.name))
 
 
     def find_packages(sourceDirs, pkgs=set()):

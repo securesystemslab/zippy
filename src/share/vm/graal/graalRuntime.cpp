@@ -29,6 +29,7 @@
 #include "prims/jvm.h"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/interfaceSupport.hpp"
+#include "runtime/reflection.hpp"
 #include "utilities/debug.hpp"
 
 // Simple helper to see if the caller of a runtime stub which
@@ -98,6 +99,11 @@ JRT_ENTRY(void, GraalRuntime::new_multi_array(JavaThread* thread, Klass* klass, 
   assert(klass->is_klass(), "not a class");
   assert(rank >= 1, "rank must be nonzero");
   oop obj = ArrayKlass::cast(klass)->multi_allocate(rank, dims, CHECK);
+  thread->set_vm_result(obj);
+JRT_END
+
+JRT_ENTRY(void, GraalRuntime::dynamic_new_array(JavaThread* thread, oop element_mirror, jint length))
+  oop obj = Reflection::reflect_new_array(element_mirror, length, CHECK);
   thread->set_vm_result(obj);
 JRT_END
 

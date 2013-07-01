@@ -55,9 +55,19 @@ void gpu::initialize_gpu() {
   }
 }
 
-void gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
+void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
   if (gpu::has_gpu_linkage()) {
-    gpu::Ptx::generate_kernel(code, code_len, name);
+    return (gpu::Ptx::generate_kernel(code, code_len, name));
+  } else {
+    return NULL;
+  }
+}
+
+bool gpu::execute_kernel(address kernel) {
+  if (gpu::has_gpu_linkage()) {
+    return (gpu::Ptx::execute_kernel(kernel));
+  } else {
+    return false;
   }
 }
 
@@ -102,7 +112,7 @@ bool gpu::Ptx::initialize_gpu() {
   return status == 0;  // CUDA_SUCCESS
 }
 
-void gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
+void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *name) {
 
   void *cu_module;
   const unsigned int jit_num_options = 3;
@@ -134,8 +144,29 @@ void gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *na
   if (TraceWarpLoading) {
     tty->print_cr("gpu_ptx::_cuda_cu_module_get_function(%s):%x %d", name, cu_function, status);
   }
+  return cu_function;
 }
 
+bool gpu::Ptx::execute_kernel(address kernel) {
+  // grid dimensionality
+  unsigned int gridX = 1;
+  unsigned int gridY = 1;
+  unsigned int gridZ = 1;
+
+  // thread dimensionality
+  unsigned int blockX = 1;
+  unsigned int blockY = 1;
+  unsigned int blockZ = 1;
+  
+  int *cu_function = (int *)kernel;
+
+  int status = _cuda_cu_launch_kernel(cu_function,
+                                      gridX, gridY, gridZ,
+                                      blockX, blockY, blockZ,
+                                      0, NULL, NULL, NULL);
+  tty->print_cr("gpu_ptx::_cuda_cu_launch_kernel(%x): %d", kernel, status);
+  return status == 0;  // CUDA_SUCCESS
+}
 
 #ifdef __APPLE__
 bool gpu::Ptx::probe_linkage_apple() {
@@ -161,6 +192,8 @@ bool gpu::Ptx::probe_linkage_apple() {
         CAST_TO_FN_PTR(cuda_cu_module_get_function_func_t, dlsym(handle, "cuModuleGetFunction"));
     _cuda_cu_module_load_data_ex =
         CAST_TO_FN_PTR(cuda_cu_module_load_data_ex_func_t, dlsym(handle, "cuModuleLoadDataEx"));
+    _cuda_cu_launch_kernel =
+        CAST_TO_FN_PTR(cuda_cu_launch_kernel_func_t, dlsym(handle, "cuLaunchKernel"));
     return true;
   }
   return false;
