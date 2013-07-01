@@ -164,7 +164,9 @@ bool gpu::Ptx::execute_kernel(address kernel) {
                                       gridX, gridY, gridZ,
                                       blockX, blockY, blockZ,
                                       0, NULL, NULL, NULL);
-  tty->print_cr("gpu_ptx::_cuda_cu_launch_kernel(%x): %d", kernel, status);
+  if (TraceWarpLoading) {
+    tty->print_cr("gpu_ptx::_cuda_cu_launch_kernel(%x): %d", kernel, status);
+  }
   return status == 0;  // CUDA_SUCCESS
 }
 
