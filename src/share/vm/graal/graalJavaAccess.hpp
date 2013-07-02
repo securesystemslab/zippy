@@ -112,7 +112,7 @@ void graal_compute_offsets();
     oop_field(ExceptionHandler, catchType, "Lcom/oracle/graal/api/meta/JavaType;")                                                                             \
   end_class                                                                                                                                                    \
   start_class(ExternalCompilationResult)                                                                                                                       \
-    long_field(ExternalCompilationResult, kernel)                                                                                                              \
+    long_field(ExternalCompilationResult, entryPoint)                                                                                                              \
   end_class                                                                                                                                                    \
   start_class(CompilationResult)                                                                                                                               \
     int_field(CompilationResult, frameSize)                                                                                                                    \
