@@ -24,6 +24,7 @@
 #include "precompiled.hpp"
 
 #include "graal/graalCompiler.hpp"
+#include "runtime/javaCalls.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalJavaAccess.hpp"
