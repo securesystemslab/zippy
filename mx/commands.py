@@ -715,9 +715,6 @@ def _run_tests(args, harness, annotations, testfile):
                 return True
         return False
     
-    if len(tests) == 0:
-        mx.abort('no tests specified')
-
     candidates = []
     for p in mx.projects():
         if mx.java().javaCompliance < p.javaCompliance:
@@ -725,17 +722,20 @@ def _run_tests(args, harness, annotations, testfile):
         candidates += _find_classes_with_annotations(p, None, annotations).keys()
 
     classes = []
-    for t in tests:
-        if t.startswith('-'):
-            mx.abort('VM option needs @ prefix (i.e., @' + t + ')')
-            
-        found = False
-        for c in candidates:
-            if t in c:
-                found = True
-                classes.append(c)
-        if not found:
-            mx.log('warning: no tests matched by substring "' + t)
+    if len(tests) == 0:
+        classes = candidates
+    else:
+        for t in tests:
+            if t.startswith('-'):
+                mx.abort('VM option needs @ prefix (i.e., @' + t + ')')
+                
+            found = False
+            for c in candidates:
+                if t in c:
+                    found = True
+                    classes.append(c)
+            if not found:
+                mx.log('warning: no tests matched by substring "' + t)
 
     projectscp = mx.classpath([pcp.name for pcp in mx.projects() if pcp.javaCompliance <= mx.java().javaCompliance])
 
