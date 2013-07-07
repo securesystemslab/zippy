@@ -907,6 +907,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("g1SATBQueueBufferOffset", in_bytes(JavaThread::satb_mark_queue_offset() + PtrQueue::byte_offset_of_buf()));
   set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
   set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
+  set_address("gcTotalCollectionsAddress", (jlong)(address)(Universe::heap()->total_collections_address()));
 
   BarrierSet* bs = Universe::heap()->barrier_set();
   switch (bs->kind()) {
