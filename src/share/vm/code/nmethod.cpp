@@ -518,7 +518,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
                                             code_buffer, frame_size,
                                             basic_lock_owner_sp_offset,
                                             basic_lock_sp_offset, oop_maps);
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_native_nmethod(nm));
+    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -554,7 +554,7 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
     nm = new (nmethod_size) nmethod(method(), nmethod_size,
                                     &offsets, code_buffer, frame_size);
 
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
+    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -639,7 +639,7 @@ nmethod* nmethod::new_nmethod(methodHandle method,
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
     }
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
+    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
