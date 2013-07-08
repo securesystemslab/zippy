@@ -304,7 +304,7 @@ address TemplateInterpreterGenerator::generate_safept_entry_for(
 // Helpers for commoning out cases in the various type of method entries.
 //
 
-#ifdef GRAAL
+#ifdef GRAALVM
 
 void graal_initialize_time(JavaThread* thread) {
   assert(ProfileInterpreter, "must be profiling interpreter");
@@ -314,7 +314,7 @@ void graal_initialize_time(JavaThread* thread) {
   fr.interpreter_frame_method()->method_counters()->set_graal_invocation_time(os::javaTimeNanos());
 }
 
-#endif // GRAAL
+#endif // GRAALVM
 
 // increment invocation count & check for overflow
 //
@@ -369,7 +369,7 @@ void InterpreterGenerator::generate_counter_incr(
               MethodCounters::interpreter_invocation_counter_offset()));
     }
 
-#ifdef GRAAL
+#ifdef GRAALVM
     if (CompilationPolicyChoice == 4) {
       Label not_zero;
       __ testl(rcx, InvocationCounter::count_mask_value);
@@ -391,7 +391,7 @@ void InterpreterGenerator::generate_counter_incr(
 
       __ bind(not_zero);
     }
-#endif // GRAAL
+#endif // GRAALVM
 
     // Update standard invocation counters
     __ movl(rcx, invocation_counter);
