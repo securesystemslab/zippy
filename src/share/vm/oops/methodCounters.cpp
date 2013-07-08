@@ -32,6 +32,10 @@ MethodCounters* MethodCounters::allocate(ClassLoaderData* loader_data, TRAPS) {
 void MethodCounters::clear_counters() {
   invocation_counter()->reset();
   backedge_counter()->reset();
+#ifdef GRAALVM
+  set_graal_priority(0);
+  set_graal_invocation_time(0L);
+#endif
   set_interpreter_throwout_count(0);
   set_interpreter_invocation_count(0);
 }

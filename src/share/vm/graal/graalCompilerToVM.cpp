@@ -297,11 +297,6 @@ C2V_VMENTRY(jobject, getUniqueImplementor, (JNIEnv *, jobject, jobject interface
   return NULL;
 C2V_END
 
-C2V_ENTRY(jint, getInvocationCount, (JNIEnv *, jobject, jlong metaspace_method))
-  Method* method = asMethod(metaspace_method);
-  return method->invocation_count();
-C2V_END
-
 C2V_VMENTRY(void, initializeMethod,(JNIEnv *, jobject, jlong metaspace_method, jobject hotspot_method))
   methodHandle method = asMethod(metaspace_method);
   Handle name = java_lang_String::create_from_symbol(method->name(), CHECK);
@@ -325,33 +320,7 @@ C2V_VMENTRY(void, initializeMethodData,(JNIEnv *, jobject, jlong metaspace_metho
   HotSpotMethodData::set_normalDataSize(hotspot_method_data, method_data->data_size());
   HotSpotMethodData::set_extraDataSize(hotspot_method_data, method_data->extra_data_size());
 C2V_END
-
-// ------------------------------------------------------------------
-// Adjust a CounterData count to be commensurate with
-// interpreter_invocation_count.  If the MDO exists for
-// only 25% of the time the method exists, then the
-// counts in the MDO should be scaled by 4X, so that
-// they can be usefully and stably compared against the
-// invocation counts in methods.
-int scale_count(MethodData* method_data, int count) {
-  if (count > 0) {
-    int counter_life;
-    int method_life = method_data->method()->interpreter_invocation_count();
-    int current_mileage = MethodData::mileage_of(method_data->method());
-    int creation_mileage = method_data->creation_mileage();
-    counter_life = current_mileage - creation_mileage;
-
-    // counter_life due to backedge_counter could be > method_life
-    if (counter_life > method_life)
-      counter_life = method_life;
-    if (0 < counter_life && counter_life <= method_life) {
-      count = (int)((double)count * method_life / counter_life + 0.5);
-      count = (count > 0) ? count : 1;
-    }
-  }
-  return count;
-}
-
+  
 C2V_ENTRY(jint, getCompiledCodeSize, (JNIEnv *env, jobject, jlong metaspace_method))
   nmethod* code = (asMethod(metaspace_method))->code();
   return code == NULL ? 0 : code->insts_size();
@@ -1262,7 +1231,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeMethod",              CC"("METASPACE_METHOD HS_RESOLVED_METHOD")V",                     FN_PTR(initializeMethod)},
   {CC"initializeMethodData",          CC"("METASPACE_METHOD_DATA METHOD_DATA")V",                       FN_PTR(initializeMethodData)},
   {CC"isMethodCompilable",            CC"("METASPACE_METHOD")Z",                                        FN_PTR(isMethodCompilable)},
-  {CC"getInvocationCount",            CC"("METASPACE_METHOD")I",                                        FN_PTR(getInvocationCount)},
   {CC"getCompiledCodeSize",           CC"("METASPACE_METHOD")I",                                        FN_PTR(getCompiledCodeSize)},
   {CC"getVtableEntryOffset",          CC"("METASPACE_METHOD")I",                                        FN_PTR(getVtableEntryOffset)},
   {CC"hasVtableEntry",                CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasVtableEntry)},
