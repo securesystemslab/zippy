@@ -490,7 +490,9 @@ class CollectedHeap : public CHeapObj<mtInternal> {
   // Total number of GC collections (started)
   unsigned int total_collections() const { return _total_collections; }
   unsigned int total_full_collections() const { return _total_full_collections;}
-
+#ifdef GRAAL
+  void* total_collections_address() { return &_total_collections;}
+#endif
   // Increment total number of GC collections (started)
   // Should be protected but used by PSMarkSweep - cleanup for 1.4.2
   void increment_total_collections(bool full = false) {
