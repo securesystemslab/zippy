@@ -706,8 +706,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
 def _run_tests(args, harness, annotations, testfile):
-    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
-    neg = [a[1:] for a in args if a[0] == '-']
+    tests = [a for a in args if a[0] != '@' ]
     vmArgs = [a[1:] for a in args if a[0] == '@']
 
     def containsAny(c, substrings):
@@ -715,17 +714,28 @@ def _run_tests(args, harness, annotations, testfile):
             if s in c:
                 return True
         return False
-
-    classes = []
+    
+    candidates = []
     for p in mx.projects():
         if mx.java().javaCompliance < p.javaCompliance:
             continue
-        classes += _find_classes_with_annotations(p, None, annotations).keys()
+        candidates += _find_classes_with_annotations(p, None, annotations).keys()
 
-        if len(pos) != 0:
-            classes = [c for c in classes if containsAny(c, pos)]
-        if len(neg) != 0:
-            classes = [c for c in classes if not containsAny(c, neg)]
+    classes = []
+    if len(tests) == 0:
+        classes = candidates
+    else:
+        for t in tests:
+            if t.startswith('-'):
+                mx.abort('VM option needs @ prefix (i.e., @' + t + ')')
+                
+            found = False
+            for c in candidates:
+                if t in c:
+                    found = True
+                    classes.append(c)
+            if not found:
+                mx.log('warning: no tests matched by substring "' + t)
 
     projectscp = mx.classpath([pcp.name for pcp in mx.projects() if pcp.javaCompliance <= mx.java().javaCompliance])
 
@@ -764,8 +774,7 @@ def _unittest(args, annotations):
 _unittestHelpSuffix = """
 
     If filters are supplied, only tests whose fully qualified name
-    includes a filter as a substring are run. Negative filters are
-    those with a '-' prefix.
+    includes a filter as a substring are run.
     
     Options with a '@' prefix are passed to the VM.
     
