@@ -454,11 +454,6 @@ void SimpleCompPolicy::method_invocation_event(methodHandle m, JavaThread* threa
 
   if (is_compilation_enabled() && can_be_compiled(m, comp_level)) {
     nmethod* nm = m->code();
-#ifdef GRAALVM
-    if (m->queued_for_compilation()) {
-      delay_compilation(m());
-    } else
-#endif
     if (nm == NULL ) {
       CompileBroker::compile_method(m, InvocationEntryBci, comp_level, m, hot_count, comment, thread);
     }
@@ -469,6 +464,9 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
   const int comp_level = CompLevel_highest_tier;
   const int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
+#ifdef GRAALVM
+  reset_counter_for_back_branch_event(m);
+#endif
 
   if (is_compilation_enabled() && !m->is_not_osr_compilable(comp_level) && can_be_compiled(m, comp_level)) {
     CompileBroker::compile_method(m, bci, comp_level, m, hot_count, comment, thread);
@@ -513,7 +511,7 @@ void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread
           }
         }
       }
-     
+
       if (!m->queued_for_compilation()) {
         if (TraceCompilationPolicy) {
           tty->print("method invocation trigger: ");
@@ -531,6 +529,7 @@ void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread
 void GraalCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThread* thread) {
   int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
+  reset_counter_for_back_branch_event(m);
 
   if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m) && !m->queued_for_compilation() && m->code() == NULL) {
     if (TraceCompilationPolicy) {

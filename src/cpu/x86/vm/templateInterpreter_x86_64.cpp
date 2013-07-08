@@ -383,9 +383,11 @@ void InterpreterGenerator::generate_counter_incr(
       __ pop(rcx);
       __ pop(rax);
 
+#ifdef ASSERT
       __ testl(rcx, InvocationCounter::count_mask_value);
       __ jcc(Assembler::zero, not_zero);
       __ stop("unexpected counter value in rcx");
+#endif
 
       __ bind(not_zero);
     }
