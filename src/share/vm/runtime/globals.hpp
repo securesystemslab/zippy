@@ -3483,7 +3483,7 @@ class CommandLineFlags {
           "NON_TIERED number of method invocations/branches (expressed as %"\
           "of CompileThreshold) before (re-)compiling OSR code")            \
                                                                             \
-  product(intx, InterpreterProfilePercentage, NOT_GRAAL(33) GRAAL_ONLY(3),  \
+  product(intx, InterpreterProfilePercentage, 33,                           \
           "NON_TIERED number of method invocations/branches (expressed as %"\
           "of CompileThreshold) before profiling in the interpreter")       \
                                                                             \
