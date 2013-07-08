@@ -179,7 +179,6 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
       break;
     }
     default:
-      fatal("invalid _next_call_type value");
       break;
   }
 }
