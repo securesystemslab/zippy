@@ -171,8 +171,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   ResourceMark rm;
   JavaThread::current()->set_is_compiling(true);
   Handle holder = GraalCompiler::createHotSpotResolvedObjectType(method, CHECK);
-  int priority = GRAALVM_ONLY(method->method_counters()->graal_priority()) NOT_GRAALVM(0);
-  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking, priority);
+  VMToCompiler::compileMethod(method(), holder, entry_bci, blocking);
   JavaThread::current()->set_is_compiling(false);
 }
 

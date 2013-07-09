@@ -58,7 +58,7 @@ public:
   static jboolean setOption(Handle option);
 
   // public abstract boolean compileMethod(long vmId, String name, int entry_bci, boolean blocking);
-  static void compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority);
+  static void compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();

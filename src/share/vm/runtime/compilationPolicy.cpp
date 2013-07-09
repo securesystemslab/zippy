@@ -80,15 +80,8 @@ void compilationPolicy_init() {
     Unimplemented();
 #endif
     break;
-  case 4:
-#ifdef GRAALVM
-    CompilationPolicy::set_policy(new GraalCompPolicy());
-#else
-    Unimplemented();
-#endif
-    break;
   default:
-    fatal("CompilationPolicyChoice must be in the range: [0-4]");
+    fatal("CompilationPolicyChoice must be in the range: [0-3]");
   }
   CompilationPolicy::policy()->initialize();
 }
@@ -464,88 +457,12 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
   const int comp_level = CompLevel_highest_tier;
   const int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
-#ifdef GRAALVM
-  reset_counter_for_back_branch_event(m);
-#endif
 
   if (is_compilation_enabled() && !m->is_not_osr_compilable(comp_level) && can_be_compiled(m, comp_level)) {
     CompileBroker::compile_method(m, bci, comp_level, m, hot_count, comment, thread);
     NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, comp_level, true));)
   }
 }
-
-// GraalCompPolicy - compile current method
-
-#ifdef GRAALVM
-
-void GraalCompPolicy::method_invocation_event(methodHandle m, JavaThread* thread) {
-  MethodCounters* mcs = m->method_counters();
-  assert(mcs != NULL, "method counters should be initialized");
-  int hot_count = m->invocation_count();
-  jlong hot_time = mcs->graal_invocation_time();
-  reset_counter_for_invocation_event(m);
-
-  if (is_compilation_enabled() && can_be_compiled(m)) {
-    nmethod* nm = m->code();
-    if (nm == NULL) {
-      if (hot_count > 1) {
-        jlong current_time = os::javaTimeNanos();
-        int time_per_call = (int) ((current_time - hot_time) / hot_count);
-        if (mcs != NULL) {
-          mcs->set_graal_invocation_time(current_time);
-        }
-        if (UseNewCode) {
-          if (m->queued_for_compilation()) {
-            if (time_per_call < (mcs->graal_priority() / 5)) {
-              mcs->set_graal_priority(time_per_call);
-              m->clear_queued_for_compilation();
-            }
-          } else {
-            if (time_per_call < mcs->graal_priority()) {
-              mcs->set_graal_priority(time_per_call);
-            }
-          }
-        } else {
-          if (time_per_call < mcs->graal_priority()) {
-            mcs->set_graal_priority(time_per_call);
-          }
-        }
-      }
-
-      if (!m->queued_for_compilation()) {
-        if (TraceCompilationPolicy) {
-          tty->print("method invocation trigger: ");
-          m->print_short_name(tty);
-          tty->print_cr(" ( interpreted " INTPTR_FORMAT ", size=%d, hotCount=%d, hotTime=" UINT64_FORMAT " ) ", (address)m(), m->code_size(), hot_count, hot_time);
-        }
-
-        assert(m->is_native() || m->method_data() != NULL, "do not compile code methods");
-        CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier, m, hot_count, "count", thread);
-      }
-    }
-  }
-}
-
-void GraalCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThread* thread) {
-  int hot_count = m->backedge_count();
-  const char* comment = "backedge_count";
-  reset_counter_for_back_branch_event(m);
-
-  if (is_compilation_enabled() && !m->is_not_osr_compilable() && can_be_compiled(m) && !m->queued_for_compilation() && m->code() == NULL) {
-    if (TraceCompilationPolicy) {
-      tty->print("backedge invocation trigger: ");
-      m->print_short_name(tty);
-      tty->print_cr(" ( interpreted " INTPTR_FORMAT ", size=%d, hotCount=%d ) ", (address)m(), m->code_size(), hot_count);
-    }
-
-    CompileBroker::compile_method(m, bci, CompLevel_highest_tier,
-                                  m, hot_count, comment, thread);
-    NOT_PRODUCT(trace_osr_completion(m->lookup_osr_nmethod_for(bci, CompLevel_highest_tier, true));)
-  }
-}
-
-#endif // GRAALVM
-
 
 // StackWalkCompPolicy - walk up stack to find a suitable method to compile
 

@@ -304,18 +304,6 @@ address TemplateInterpreterGenerator::generate_safept_entry_for(
 // Helpers for commoning out cases in the various type of method entries.
 //
 
-#ifdef GRAALVM
-
-void graal_initialize_time(JavaThread* thread) {
-  assert(ProfileInterpreter, "must be profiling interpreter");
-  frame fr = thread->last_frame();
-  assert(fr.is_interpreted_frame(), "must come from interpreter");
-  assert(fr.interpreter_frame_method()->method_counters() != NULL, "need to initialize method counters");
-  fr.interpreter_frame_method()->method_counters()->set_graal_invocation_time(os::javaTimeNanos());
-}
-
-#endif // GRAALVM
-
 // increment invocation count & check for overflow
 //
 // Note: checking for negative value instead of overflow
@@ -368,30 +356,6 @@ void InterpreterGenerator::generate_counter_incr(
       __ incrementl(Address(rax,
               MethodCounters::interpreter_invocation_counter_offset()));
     }
-
-#ifdef GRAALVM
-    if (CompilationPolicyChoice == 4) {
-      Label not_zero;
-      __ testl(rcx, InvocationCounter::count_mask_value);
-      __ jcc(Assembler::notZero, not_zero);
-
-      __ push(rax);
-      __ push(rcx);
-      __ call_VM(noreg, CAST_FROM_FN_PTR(address, graal_initialize_time), rdx, false);
-      __ set_method_data_pointer_for_bcp();
-      __ get_method(rbx);
-      __ pop(rcx);
-      __ pop(rax);
-
-#ifdef ASSERT
-      __ testl(rcx, InvocationCounter::count_mask_value);
-      __ jcc(Assembler::zero, not_zero);
-      __ stop("unexpected counter value in rcx");
-#endif
-
-      __ bind(not_zero);
-    }
-#endif // GRAALVM
 
     // Update standard invocation counters
     __ movl(rcx, invocation_counter);
