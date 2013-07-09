@@ -464,9 +464,6 @@ void SimpleCompPolicy::method_back_branch_event(methodHandle m, int bci, JavaThr
   const int comp_level = CompLevel_highest_tier;
   const int hot_count = m->backedge_count();
   const char* comment = "backedge_count";
-#ifdef GRAALVM
-  reset_counter_for_back_branch_event(m);
-#endif
 
   if (is_compilation_enabled() && !m->is_not_osr_compilable(comp_level) && can_be_compiled(m, comp_level)) {
     CompileBroker::compile_method(m, bci, comp_level, m, hot_count, comment, thread);
