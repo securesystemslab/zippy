@@ -29,6 +29,7 @@
 #include "graal/graalEnv.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "runtime/gpu.hpp"
+#include "runtime/javaCalls.hpp"
 
 
 // Entry to native method implementation that transitions current thread to '_thread_in_vm'.
