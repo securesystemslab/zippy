@@ -37,10 +37,6 @@ class MethodCounters: public MetaspaceObj {
   InvocationCounter _invocation_counter;         // Incremented before each activation of the method - used to trigger frequency-based optimizations
   InvocationCounter _backedge_counter;           // Incremented before each backedge taken - used to trigger frequencey-based optimizations
 
-#ifdef GRAALVM
-  jlong             _graal_invocation_time;
-  int               _graal_priority;
-#endif
 #ifdef TIERED
   float             _rate;                        // Events (invocation and backedge counter increments) per millisecond
   jlong             _prev_time;                   // Previous time the rate was acquired
@@ -49,10 +45,6 @@ class MethodCounters: public MetaspaceObj {
   MethodCounters() : _interpreter_invocation_count(0),
                      _interpreter_throwout_count(0),
                      _number_of_breakpoints(0)
-#ifdef GRAALVM
-                     , _graal_invocation_time(0L)
-                     , _graal_priority(0)
-#endif
 
 #ifdef TIERED
                    , _rate(0),
@@ -101,15 +93,6 @@ class MethodCounters: public MetaspaceObj {
   void incr_number_of_breakpoints()    { ++_number_of_breakpoints; }
   void decr_number_of_breakpoints()    { --_number_of_breakpoints; }
   void clear_number_of_breakpoints()   { _number_of_breakpoints = 0; }
-
-#ifdef GRAALVM
-  void set_graal_invocation_time(jlong time) { _graal_invocation_time = time; }
-  jlong graal_invocation_time()              { return _graal_invocation_time; }
-
-  void set_graal_priority(int prio)          { _graal_priority = prio; }
-  int graal_priority()                       { return _graal_priority; }
-#endif // GRAAL
-
 
 #ifdef TIERED
   jlong prev_time() const                        { return _prev_time; }

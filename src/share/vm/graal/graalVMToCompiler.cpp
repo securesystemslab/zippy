@@ -106,7 +106,7 @@ jboolean VMToCompiler::setOption(Handle option) {
   return result.get_jboolean();
 }
 
-void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority) {
+void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking) {
   assert(method != NULL, "just checking");
   assert(!holder.is_null(), "just checking");
   Thread* THREAD = Thread::current();
@@ -117,7 +117,6 @@ void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, j
   args.push_oop(holder());
   args.push_int(entry_bci);
   args.push_int(blocking);
-  args.push_int(priority);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
 }
