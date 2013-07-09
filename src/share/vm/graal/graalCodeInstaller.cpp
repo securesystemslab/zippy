@@ -171,7 +171,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
 
   if (value->is_a(RegisterValue::klass())) {
     jint number = code_Register::number(RegisterValue::reg(value));
-    if (number < 16) {
+    if (number < RegisterImpl::number_of_registers) {
       if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
         locationType = Location::int_in_long;
       } else if (type == T_LONG) {
@@ -366,6 +366,10 @@ CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult&
   jobject compiled_code_obj = JNIHandles::make_local(compiled_code());
   initialize_assumptions(JNIHandles::resolve(compiled_code_obj));
 
+  // Get instructions and constants CodeSections early because we need it.
+  _instructions = buffer.insts();
+  _constants = buffer.consts();
+
   {
     No_Safepoint_Verifier no_safepoint;
     initialize_fields(JNIHandles::resolve(compiled_code_obj));
@@ -397,6 +401,11 @@ CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult&
         GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
     cb = nm;
   }
+
+  if (cb != NULL) {
+    // Make sure the pre-calculated constants section size was correct.
+    guarantee((cb->code_begin() - cb->content_begin()) == _constants_size, err_msg("%d != %d", cb->code_begin() - cb->content_begin(), _constants_size));
+  }
 }
 
 void CodeInstaller::initialize_fields(oop compiled_code) {
@@ -417,11 +426,12 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
   _code = (arrayOop) CompilationResult::targetCode(comp_result);
   _code_size = CompilationResult::targetCodeSize(comp_result);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;
+  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;  // FIXME this is an x86-ism
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
-  // (very) conservative estimate: each site needs a constant section entry
-  _constants_size = _sites->length() * (BytesPerLong*2);
+  // Pre-calculate the constants section size.  This is required for PC-relative addressing.
+  _constants_size = calculate_constants_size();
+
 #ifndef PRODUCT
   _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
 #endif
@@ -442,9 +452,6 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
   buffer.initialize_oop_recorder(_oop_recorder);
 
-  _instructions = buffer.insts();
-  _constants = buffer.consts();
-
   // copy the code into the newly created CodeBuffer
   address end_pc = _instructions->start() + _code_size;
   if (!_instructions->allocates2(end_pc)) {
@@ -454,7 +461,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   _instructions->set_end(end_pc);
 
   for (int i = 0; i < _sites->length(); i++) {
-    oop site=((objArrayOop) (_sites))->obj_at(i);
+    oop site = ((objArrayOop) (_sites))->obj_at(i);
     jint pc_offset = CompilationResult_Site::pcOffset(site);
 
     if (site->is_a(CompilationResult_Call::klass())) {
@@ -485,7 +492,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 #ifndef PRODUCT
   if (_comments != NULL) {
     for (int i = 0; i < _comments->length(); i++) {
-      oop comment=((objArrayOop) (_comments))->obj_at(i);
+      oop comment = ((objArrayOop) (_comments))->obj_at(i);
       assert(comment->is_a(HotSpotCompiledCode_Comment::klass()), "cce");
       jint offset = HotSpotCompiledCode_Comment::pcOffset(comment);
       char* text = java_lang_String::as_utf8_string(HotSpotCompiledCode_Comment::text(comment));
@@ -494,6 +501,35 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   }
 #endif
   return true;
+}
+
+/**
+ * Calculate the constants section size by iterating over all DataPatches.
+ * Knowing the size of the constants section before patching instructions
+ * is necessary for PC-relative addressing.
+ */
+int CodeInstaller::calculate_constants_size() {
+  int size = 0;
+
+  for (int i = 0; i < _sites->length(); i++) {
+    oop site = ((objArrayOop) (_sites))->obj_at(i);
+    jint pc_offset = CompilationResult_Site::pcOffset(site);
+
+    if (site->is_a(CompilationResult_DataPatch::klass())) {
+      oop constant = CompilationResult_DataPatch::constant(site);
+      int alignment = CompilationResult_DataPatch::alignment(site);
+      bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
+
+      if (!inlined) {
+        if (alignment > 0) {
+          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+          size = align_size_up(size, alignment);
+        }
+        size = size + sizeof(int64_t);
+      }
+    }
+  }
+  return size == 0 ? 0 : align_size_up(size, _constants->alignment());
 }
 
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
@@ -732,11 +768,7 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop constant = CompilationResult_DataPatch::constant(site);
-  int alignment = CompilationResult_DataPatch::alignment(site);
-  bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
   oop kind = Constant::kind(constant);
-
-  address instruction = _instructions->start() + pc_offset;
   char typeChar = Kind::typeChar(kind);
   switch (typeChar) {
     case 'f':
@@ -745,7 +777,7 @@ void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site)
       record_metadata_in_constant(constant, _oop_recorder);
       break;
   }
-  CodeInstaller::pd_site_DataPatch(constant, kind, inlined, instruction, alignment, typeChar);
+  CodeInstaller::pd_site_DataPatch(pc_offset, site);
 }
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
