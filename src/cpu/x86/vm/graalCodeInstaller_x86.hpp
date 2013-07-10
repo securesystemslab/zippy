@@ -56,8 +56,16 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
   }
 }
 
-inline void CodeInstaller::pd_site_DataPatch(oop constant, oop kind, bool inlined,
-                                             address instruction, int alignment, char typeChar) {
+inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
+  oop constant = CompilationResult_DataPatch::constant(site);
+  int alignment = CompilationResult_DataPatch::alignment(site);
+  bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
+
+  oop kind = Constant::kind(constant);
+  char typeChar = Kind::typeChar(kind);
+
+  address pc = _instructions->start() + pc_offset;
+
   switch (typeChar) {
     case 'z':
     case 'b':
@@ -70,11 +78,11 @@ inline void CodeInstaller::pd_site_DataPatch(oop constant, oop kind, bool inline
     case 'j':
     case 'd': {
       if (inlined) {
-        address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
+        address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
         *((jlong*) operand) = Constant::primitive(constant);
       } else {
-        address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
-        address next_instruction = Assembler::locate_next_instruction(instruction);
+        address operand = Assembler::locate_operand(pc, Assembler::disp32_operand);
+        address next_instruction = Assembler::locate_next_instruction(pc);
         int size = _constants->size();
         if (alignment > 0) {
           guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
@@ -82,26 +90,27 @@ inline void CodeInstaller::pd_site_DataPatch(oop constant, oop kind, bool inline
         }
         // we don't care if this is a long/double/etc., the primitive field contains the right bits
         address dest = _constants->start() + size;
-        _constants->set_end(dest + BytesPerLong);
-        *(jlong*) dest = Constant::primitive(constant);
+        _constants->set_end(dest);
+        uint64_t value = Constant::primitive(constant);
+        _constants->emit_int64(value);
 
         long disp = dest - next_instruction;
         assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
         *((jint*) operand) = (jint) disp;
 
-        _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
-        TRACE_graal_3("relocating (%c) at %p/%p with destination at %p (%d)", typeChar, instruction, operand, dest, size);
+        _instructions->relocate(pc, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
+        TRACE_graal_3("relocating (%c) at %p/%p with destination at %p (%d)", typeChar, pc, operand, dest, size);
       }
       break;
     }
     case 'a': {
-      address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
+      address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
       Handle obj = Constant::object(constant);
 
       jobject value = JNIHandles::make_local(obj());
       *((jobject*) operand) = value;
-      _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-      TRACE_graal_3("relocating (oop constant) at %p/%p", instruction, operand);
+      _instructions->relocate(pc, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
+      TRACE_graal_3("relocating (oop constant) at %p/%p", pc, operand);
       break;
     }
     default:
