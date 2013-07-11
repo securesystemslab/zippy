@@ -203,12 +203,12 @@ Handle GraalCompiler::get_JavaTypeFromSignature(Symbol* signature, KlassHandle l
   if (field_type == T_OBJECT || field_type == T_ARRAY) {
     KlassHandle handle = GraalEnv::get_klass_by_name(loading_klass, signature, false);
     if (handle.is_null()) {
-      return get_JavaType(signature, CHECK_NULL);
+      return get_JavaType(signature, CHECK_NH);
     } else {
-      return get_JavaType(handle, CHECK_NULL);
+      return get_JavaType(handle, CHECK_NH);
     }
   } else {
-    return VMToCompiler::createPrimitiveJavaType(field_type, CHECK_NULL);
+    return VMToCompiler::createPrimitiveJavaType(field_type, CHECK_NH);
   }
 }
 
@@ -229,7 +229,7 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
       if (tag.is_klass()) {
         // The klass has been inserted into the constant pool
         // very recently.
-        return GraalCompiler::get_JavaType(cp->resolved_klass_at(index), CHECK_NULL);
+        return GraalCompiler::get_JavaType(cp->resolved_klass_at(index), CHECK_NH);
       } else if (tag.is_symbol()) {
         klass_name = cp->symbol_at(index);
       } else {
@@ -237,9 +237,9 @@ Handle GraalCompiler::get_JavaType(constantPoolHandle cp, int index, KlassHandle
         klass_name = cp->unresolved_klass_at(index);
       }
     }
-    return GraalCompiler::get_JavaType(klass_name, CHECK_NULL);
+    return GraalCompiler::get_JavaType(klass_name, CHECK_NH);
   } else {
-    return GraalCompiler::get_JavaType(klass, CHECK_NULL);
+    return GraalCompiler::get_JavaType(klass, CHECK_NH);
   }
 }
 
@@ -254,19 +254,19 @@ Handle GraalCompiler::get_JavaTypeFromClass(Handle java_class, TRAPS) {
     return VMToCompiler::createPrimitiveJavaType((int) basicType, THREAD);
   } else {
     KlassHandle klass = java_lang_Class::as_Klass(java_class());
-    Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
-    return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
+    Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NH);
+    return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NH);
   }
 }
 
 Handle GraalCompiler::get_JavaType(KlassHandle klass, TRAPS) {
   Handle name = java_lang_String::create_from_symbol(klass->name(), THREAD);
-  return createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
+  return createHotSpotResolvedObjectType(klass, name, CHECK_NH);
 }
 
 Handle GraalCompiler::get_JavaField(int offset, int flags, Symbol* field_name, Handle field_holder, Handle field_type, TRAPS) {
-  Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NULL);
-  return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NULL);
+  Handle name = java_lang_String::create_from_symbol(field_name, CHECK_NH);
+  return VMToCompiler::createJavaField(field_holder, name, field_type, offset, flags, false, CHECK_NH);
 }
 
 Handle GraalCompiler::createHotSpotResolvedObjectType(methodHandle method, TRAPS) {
@@ -277,8 +277,8 @@ Handle GraalCompiler::createHotSpotResolvedObjectType(methodHandle method, TRAPS
     assert(graal_mirror->is_a(HotSpotResolvedObjectType::klass()), "unexpected class...");
     return graal_mirror;
   }
-  Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NULL);
-  return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NULL);
+  Handle name = java_lang_String::create_from_symbol(klass->name(), CHECK_NH);
+  return GraalCompiler::createHotSpotResolvedObjectType(klass, name, CHECK_NH);
 }
 
 Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle name, TRAPS) {
@@ -293,7 +293,7 @@ Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle 
   if (klass->oop_is_instance()) {
     ResourceMark rm;
     InstanceKlass* ik = (InstanceKlass*) klass();
-    name = java_lang_String::create_from_str(ik->signature_name(), CHECK_NULL);
+    name = java_lang_String::create_from_str(ik->signature_name(), CHECK_NH);
   }
 
   int sizeOrSpecies;
@@ -308,7 +308,7 @@ Handle GraalCompiler::createHotSpotResolvedObjectType(KlassHandle klass, Handle 
     }
   }
 
-  return VMToCompiler::createResolvedJavaType(klass(), name, simpleName, java_class, sizeOrSpecies, CHECK_NULL);
+  return VMToCompiler::createResolvedJavaType(klass(), name, simpleName, java_class, sizeOrSpecies, CHECK_NH);
 }
 
 BasicType GraalCompiler::kindToBasicType(jchar ch) {
