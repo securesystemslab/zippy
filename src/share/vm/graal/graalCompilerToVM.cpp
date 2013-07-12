@@ -868,6 +868,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("narrowOopBase", Universe::narrow_oop_base());
   set_int("narrowOopShift", Universe::narrow_oop_shift());
   set_int("logMinObjAlignment", LogMinObjAlignmentInBytes);
+  set_address("narrowKlassBase", Universe::narrow_klass_base());
+  set_int("narrowKlassShift", Universe::narrow_klass_shift());
+  set_int("logKlassAlignment", LogKlassAlignmentInBytes);
+
 
   set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
   set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
@@ -1187,6 +1191,11 @@ C2V_VMENTRY(jobject, readUnsafeUncompressedPointer, (JNIEnv *env, jobject, jobje
   return JNIHandles::make_local(*((oop*)address));
 C2V_END
 
+C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
+  oop resolved_o = JNIHandles::resolve(o);
+  jlong klass = (jlong)(address)resolved_o->klass();
+  return klass;
+C2V_END
 
 #define CC (char*)  /*cast a literal from (const char*)*/
 #define FN_PTR(f) CAST_FROM_FN_PTR(void*, &(c2v_ ## f))
@@ -1266,6 +1275,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"reprofile",                     CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
   {CC"invalidateInstalledCode",       CC"("HS_INSTALLED_CODE")V",                                       FN_PTR(invalidateInstalledCode)},
   {CC"readUnsafeUncompressedPointer", CC"("OBJECT"J)"OBJECT,                                            FN_PTR(readUnsafeUncompressedPointer)},
+  {CC"readUnsafeKlassPointer",        CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
 };
 
 int CompilerToVM_methods_count() {

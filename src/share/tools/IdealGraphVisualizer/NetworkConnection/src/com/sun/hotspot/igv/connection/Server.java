@@ -24,6 +24,7 @@
  */
 package com.sun.hotspot.igv.connection;
 
+import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.services.GroupCallback;
 import com.sun.hotspot.igv.settings.Settings;
 import java.io.IOException;
@@ -43,12 +44,14 @@ import org.openide.util.RequestProcessor;
 public class Server implements PreferenceChangeListener {
     private final boolean binary;
     private ServerSocketChannel serverSocket;
+    private final GraphDocument rootDocument;
     private final GroupCallback callback;
     private int port;
     private Runnable serverRunnable;
 
-    public Server(GroupCallback callback, boolean binary) {
+    public Server(GraphDocument rootDocument, GroupCallback callback, boolean binary) {
         this.binary = binary;
+        this.rootDocument = rootDocument;
         this.callback = callback;
         initializeNetwork();
         Settings.get().addPreferenceChangeListener(this);
@@ -87,7 +90,7 @@ public class Server implements PreferenceChangeListener {
                             clientSocket.close();
                             return;
                         }
-                        RequestProcessor.getDefault().post(new Client(clientSocket, callback, binary), 0, Thread.MAX_PRIORITY);
+                        RequestProcessor.getDefault().post(new Client(clientSocket, rootDocument, callback, binary), 0, Thread.MAX_PRIORITY);
                     } catch (IOException ex) {
                         serverSocket = null;
                         NotifyDescriptor message = new NotifyDescriptor.Message("Error during listening for incoming connections. Listening for incoming binary data is disabled.", NotifyDescriptor.ERROR_MESSAGE);
