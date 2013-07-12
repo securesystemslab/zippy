@@ -867,6 +867,10 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("narrowOopBase", Universe::narrow_oop_base());
   set_int("narrowOopShift", Universe::narrow_oop_shift());
   set_int("logMinObjAlignment", LogMinObjAlignmentInBytes);
+  set_address("narrowKlassBase", Universe::narrow_klass_base());
+  set_int("narrowKlassShift", Universe::narrow_klass_shift());
+  set_int("logKlassAlignment", LogKlassAlignmentInBytes);
+
 
   set_int("g1CardQueueIndexOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_index()));
   set_int("g1CardQueueBufferOffset", in_bytes(JavaThread::dirty_card_queue_offset() + PtrQueue::byte_offset_of_buf()));
