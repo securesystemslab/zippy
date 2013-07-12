@@ -788,7 +788,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
     assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");
     jint id = id_obj->int_field(java_lang_boxing_object::value_offset_in_bytes(T_INT));
 
-    address instruction = _instructions->start() + pc_offset;
+    address pc = _instructions->start() + pc_offset;
 
     switch (id) {
       case MARK_UNVERIFIED_ENTRY:
@@ -807,40 +807,34 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
       case MARK_INVOKEVIRTUAL:
-      case MARK_INVOKEINTERFACE: {
-        // Convert the initial value of the Klass* slot in an inline cache
-        // from 0L to Universe::non_oop_word().
-        NativeMovConstReg* n_copy = nativeMovConstReg_at(instruction);
-        assert(n_copy->data() == 0, "inline cache Klass* initial value should be 0L");
-        n_copy->set_data((intptr_t)Universe::non_oop_word());
-      }
+      case MARK_INVOKEINTERFACE:
       case MARK_INLINE_INVOKE:
       case MARK_INVOKESTATIC:
       case MARK_INVOKESPECIAL:
         _next_call_type = (MarkId) id;
-        _invoke_mark_pc = instruction;
+        _invoke_mark_pc = pc;
         break;
       case MARK_POLL_NEAR: {
-        NativeInstruction* ni = nativeInstruction_at(instruction);
-        int32_t* disp = (int32_t*) pd_locate_operand(instruction);
+        NativeInstruction* ni = nativeInstruction_at(pc);
+        int32_t* disp = (int32_t*) pd_locate_operand(pc);
         // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
         int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
         intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
         *disp = (int32_t)new_disp;
       }
       case MARK_POLL_FAR:
-        _instructions->relocate(instruction, relocInfo::poll_type);
+        _instructions->relocate(pc, relocInfo::poll_type);
         break;
       case MARK_POLL_RETURN_NEAR: {
-        NativeInstruction* ni = nativeInstruction_at(instruction);
-        int32_t* disp = (int32_t*) pd_locate_operand(instruction);
+        NativeInstruction* ni = nativeInstruction_at(pc);
+        int32_t* disp = (int32_t*) pd_locate_operand(pc);
         // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
         int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
         intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
         *disp = (int32_t)new_disp;
       }
       case MARK_POLL_RETURN_FAR:
-        _instructions->relocate(instruction, relocInfo::poll_return_type);
+        _instructions->relocate(pc, relocInfo::poll_return_type);
         break;
       default:
         ShouldNotReachHere();
