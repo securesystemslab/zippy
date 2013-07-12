@@ -2208,12 +2208,9 @@ bool Arguments::check_vm_args_consistency() {
 #ifdef GRAAL
   if (UseCompressedKlassPointers) {
     if (IgnoreUnrecognizedVMOptions) {
-      warning("UseCompressedKlassPointers is disabled, because it is not supported by Graal");
-      FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
+      FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, true);
     } else {
-      jio_fprintf(defaultStream::error_stream(),
-                    "UseCompressedKlassPointers are not supported in Graal at the moment\n");
-      status = false;
+      status = true;
     }
   } else {
     // This prevents the flag being set to true by set_ergonomics_flags()
