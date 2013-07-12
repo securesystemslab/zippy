@@ -110,14 +110,14 @@ public final class ImportAction extends CallableSystemAction {
                     }
                 };
                 final GraphParser parser;
+                final OutlineTopComponent component = OutlineTopComponent.findInstance();
                 if (file.getName().endsWith(".xml")) {
                     parser = new Parser(channel, monitor, null);
                 } else if (file.getName().endsWith(".bgv")) {
-                    parser = new BinaryParser(channel, monitor, null);
+                    parser = new BinaryParser(channel, monitor, component.getDocument(), null);
                 } else {
                     parser = null;
                 }
-                final OutlineTopComponent component = OutlineTopComponent.findInstance();
                 RequestProcessor.getDefault().post(new Runnable() {
                     @Override
                     public void run() {

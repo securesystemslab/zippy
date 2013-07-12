@@ -69,6 +69,7 @@ public class BinaryParser implements GraphParser {
     private final List<Object> constantPool;
     private final ByteBuffer buffer;
     private final ReadableByteChannel channel;
+    private final GraphDocument rootDocument;
     private final Deque<Folder> folderStack;
     private final ParseMonitor monitor;
     
@@ -240,12 +241,13 @@ public class BinaryParser implements GraphParser {
         }
     }
 
-    public BinaryParser(ReadableByteChannel channel, ParseMonitor monitor, GroupCallback callback) {
+    public BinaryParser(ReadableByteChannel channel, ParseMonitor monitor, GraphDocument rootDocument, GroupCallback callback) {
         this.callback = callback;
         constantPool = new ArrayList<>();
         buffer = ByteBuffer.allocateDirect(256 * 1024);
         buffer.flip();
         this.channel = channel;
+        this.rootDocument = rootDocument;
         folderStack = new LinkedList<>();
         this.monitor = monitor;
     }
@@ -527,8 +529,7 @@ public class BinaryParser implements GraphParser {
 
     @Override
     public GraphDocument parse() throws IOException {
-        GraphDocument doc = new GraphDocument();
-        folderStack.push(doc);
+        folderStack.push(rootDocument);
         if (monitor != null) {
             monitor.setState("Starting parsing");
         }
@@ -542,7 +543,7 @@ public class BinaryParser implements GraphParser {
         if (monitor != null) {
             monitor.setState("Finished parsing");
         }
-        return doc;
+        return rootDocument;
     }
 
     private void parseRoot() throws IOException {
