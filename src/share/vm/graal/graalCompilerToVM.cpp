@@ -786,6 +786,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_boolean("tlabStats", TLABStats);
   set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
 
+  set_address("nonOopBits", Universe::non_oop_word());
   set_long("verifyOopCounterAddress", (jlong)(address) StubRoutines::verify_oop_count_addr());
   set_long("verifyOopMask", Universe::verify_oop_mask());
   set_long("verifyOopBits", Universe::verify_oop_bits());

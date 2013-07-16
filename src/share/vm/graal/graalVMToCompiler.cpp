@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/systemDictionary.hpp"
 #include "graal/graalVMToCompiler.hpp"
 
 // this is a *global* handle
@@ -30,7 +31,7 @@ jobject VMToCompiler::_vmToCompilerPermObject = NULL;
 Klass* VMToCompiler::_vmToCompilerPermKlass = NULL;
 
 static Klass* loadClass(Symbol* name) {
-  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), NULL, Thread::current());
+  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), Handle(), Thread::current());
   if (klass == NULL) {
     tty->print_cr("Could not load class %s", name->as_C_string());
     vm_abort(false);
