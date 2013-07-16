@@ -163,9 +163,11 @@ public class NodeUtil {
                 } else if (Node.class.isAssignableFrom(field.getType()) && field.getAnnotation(Child.class) != null) {
                     kind = NodeFieldKind.CHILD;
                     childOffsetsList.add(fieldOffsetProvider.objectFieldOffset(field));
+                    assert !Modifier.isFinal(field.getModifiers()) : "child field must not be final (\"" + field.getName() + "\", " + clazz + ")";
                 } else if (field.getType().isArray() && Node.class.isAssignableFrom(field.getType().getComponentType()) && field.getAnnotation(Children.class) != null) {
                     kind = NodeFieldKind.CHILDREN;
                     childrenOffsetsList.add(fieldOffsetProvider.objectFieldOffset(field));
+                    assert Modifier.isFinal(field.getModifiers()) : "children array field must be final (\"" + field.getName() + "\", " + clazz + ")";
                 } else {
                     kind = NodeFieldKind.DATA;
                 }
@@ -352,22 +354,52 @@ public class NodeUtil {
     public static void replaceChild(Node parent, Node oldChild, Node newChild) {
         NodeClass nodeClass = NodeClass.get(parent.getClass());
 
-        for (long fieldOffset : nodeClass.childOffsets) {
+        for (long fieldOffset : nodeClass.getChildOffsets()) {
             if (unsafe.getObject(parent, fieldOffset) == oldChild) {
+                assert assertAssignable(nodeClass, fieldOffset, newChild);
                 unsafe.putObject(parent, fieldOffset, newChild);
             }
         }
-        for (long fieldOffset : nodeClass.childrenOffsets) {
-            Node[] array = (Node[]) unsafe.getObject(parent, fieldOffset);
-            if (array != null) {
+
+        for (long fieldOffset : nodeClass.getChildrenOffsets()) {
+            Object arrayObject = unsafe.getObject(parent, fieldOffset);
+            if (arrayObject != null) {
+                assert arrayObject instanceof Node[] : "Children array must be instanceof Node[] ";
+                Node[] array = (Node[]) arrayObject;
                 for (int i = 0; i < array.length; i++) {
                     if (array[i] == oldChild) {
+                        assert assertAssignable(nodeClass, fieldOffset, newChild);
                         array[i] = newChild;
-                        return;
                     }
                 }
             }
         }
+    }
+
+    private static boolean assertAssignable(NodeClass clazz, long fieldOffset, Object newValue) {
+        if (newValue == null) {
+            return true;
+        }
+        for (NodeField field : clazz.getFields()) {
+            if (field.getOffset() == fieldOffset) {
+                if (field.getKind() == NodeFieldKind.CHILD) {
+                    if (field.getType().isAssignableFrom(newValue.getClass())) {
+                        return true;
+                    } else {
+                        assert false : "Child class " + newValue.getClass().getName() + " is not assignable to field \"" + field.getName() + "\" of type " + field.getType().getName();
+                        return false;
+                    }
+                } else if (field.getKind() == NodeFieldKind.CHILDREN) {
+                    if (field.getType().getComponentType().isAssignableFrom(newValue.getClass())) {
+                        return true;
+                    } else {
+                        assert false : "Child class " + newValue.getClass().getName() + " is not assignable to field \"" + field.getName() + "\" of type " + field.getType().getName();
+                        return false;
+                    }
+                }
+            }
+        }
+        throw new IllegalArgumentException();
     }
 
     /** Returns all declared fields in the class hierarchy. */
@@ -660,4 +692,5 @@ public class NodeUtil {
             p.print("    ");
         }
     }
+
 }
