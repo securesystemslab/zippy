@@ -43,8 +43,6 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
 
   address pc = _instructions->start() + pc_offset;
 
-  tty->print_cr("CodeInstaller::pd_site_DataPatch: typeChar=%c, inlined=%d", typeChar, inlined);
-
   switch (typeChar) {
     case 'z':
     case 'b':
@@ -57,7 +55,9 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
     case 'j':
     case 'd': {
       if (inlined) {
-        fatal(err_msg("inlined: type=%c, constant=%lx", inlined, Constant::primitive(constant)));
+        NativeMovConstReg* move = nativeMovConstReg_at(pc);
+        uint64_t value = Constant::primitive(constant);
+        move->set_data(value);
       } else {
         int size = _constants->size();
         if (alignment > 0) {
@@ -73,23 +73,27 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
         NativeMovRegMem* load = nativeMovRegMem_at(pc);
         int disp = _constants_size + pc_offset - size - BytesPerInstWord;
         load->set_offset(-disp);
-
-//        assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
-//        *((jint*) operand) = (jint) disp;
-
-//        _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS) /*, Assembler::disp32_operand*/);
-//        TRACE_graal_3("relocating (%c) at %p/%p with destination at %p (%d)", typeChar, instruction, operand, dest, size);
       }
       break;
     }
     case 'a': {
-//      address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-//      Handle obj = Constant::object(constant);
-//
-//      jobject value = JNIHandles::make_local(obj());
-//      *((jobject*) operand) = value;
-//      _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-//      TRACE_graal_3("relocating (oop constant) at %p/%p", instruction, operand);
+      int size = _constants->size();
+      if (alignment > 0) {
+        guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+        size = align_size_up(size, alignment);
+      }
+      address dest = _constants->start() + size;
+      _constants->set_end(dest);
+      Handle obj = Constant::object(constant);
+      jobject value = JNIHandles::make_local(obj());
+      _constants->emit_address((address) value);
+
+      NativeMovRegMem* load = nativeMovRegMem_at(pc);
+      int disp = _constants_size + pc_offset - size - BytesPerInstWord;
+      load->set_offset(-disp);
+
+      int oop_index = _oop_recorder->find_index(value);
+      _constants->relocate(dest, oop_Relocation::spec(oop_index));
       break;
     }
     default:
@@ -122,18 +126,16 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
       assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_virtual_call_stub());
-//      _instructions->relocate(call->instruction_address(),
-//                                             virtual_call_Relocation::spec(_invoke_mark_pc),
-//                                             Assembler::call32_operand);
-      fatal("NYI");
+      _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc));
+      /*, Assembler::call32_operand); */
       break;
     }
     case MARK_INVOKESTATIC: {
       assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_static_call_stub());
-      _instructions->relocate(call->instruction_address(),
-                                             relocInfo::static_call_type /*, Assembler::call32_operand*/);
+      _instructions->relocate(call->instruction_address(), relocInfo::static_call_type);
+      /*, Assembler::call32_operand); */
       break;
     }
     case MARK_INVOKESPECIAL: {
