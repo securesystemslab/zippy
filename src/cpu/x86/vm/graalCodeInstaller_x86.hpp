@@ -57,14 +57,20 @@ inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offse
 }
 
 inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
-  oop constant = CompilationResult_DataPatch::constant(site);
   int alignment = CompilationResult_DataPatch::alignment(site);
   bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
 
-  oop kind = Constant::kind(constant);
-  char typeChar = Kind::typeChar(kind);
-
   address pc = _instructions->start() + pc_offset;
+
+  oop constant = CompilationResult_DataPatch::constant(site);
+  char typeChar;
+  if (constant != NULL) {
+    oop kind = Constant::kind(constant);
+    typeChar = Kind::typeChar(kind);
+  } else {
+    assert(!inlined, "cannot inline raw constants");
+    typeChar = '*';
+  }
 
   switch (typeChar) {
     case 'z':
@@ -76,7 +82,8 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
       break;
     case 'f':
     case 'j':
-    case 'd': {
+    case 'd':
+    case '*': {
       if (inlined) {
         address operand = Assembler::locate_operand(pc, Assembler::imm_operand);
         *((jlong*) operand) = Constant::primitive(constant);
@@ -91,8 +98,16 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
         // we don't care if this is a long/double/etc., the primitive field contains the right bits
         address dest = _constants->start() + size;
         _constants->set_end(dest);
-        uint64_t value = Constant::primitive(constant);
-        _constants->emit_int64(value);
+        if (constant != NULL) {
+          uint64_t value = Constant::primitive(constant);
+          _constants->emit_int64(value);
+        } else {
+          arrayOop rawConstant = arrayOop(CompilationResult_DataPatch::rawConstant(site));
+          int8_t *ptr = (int8_t*) rawConstant->base(T_BYTE);
+          for (int i = rawConstant->length(); i > 0; i--, ptr++) {
+            _constants->emit_int8(*ptr);
+          }
+        }
 
         long disp = dest - next_instruction;
         assert(disp == (jint) disp, "disp doesn't fit in 32 bits");

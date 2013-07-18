@@ -516,7 +516,6 @@ int CodeInstaller::calculate_constants_size() {
     jint pc_offset = CompilationResult_Site::pcOffset(site);
 
     if (site->is_a(CompilationResult_DataPatch::klass())) {
-      oop constant = CompilationResult_DataPatch::constant(site);
       int alignment = CompilationResult_DataPatch::alignment(site);
       bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
 
@@ -525,7 +524,12 @@ int CodeInstaller::calculate_constants_size() {
           guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
           size = align_size_up(size, alignment);
         }
-        size = size + sizeof(int64_t);
+        if (CompilationResult_DataPatch::constant(site) != NULL) {
+          size = size + sizeof(int64_t);
+        } else {
+          arrayOop rawConstant = arrayOop(CompilationResult_DataPatch::rawConstant(site));
+          size = size + rawConstant->length();
+        }
       }
     }
   }
@@ -768,14 +772,16 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop constant = CompilationResult_DataPatch::constant(site);
-  oop kind = Constant::kind(constant);
-  char typeChar = Kind::typeChar(kind);
-  switch (typeChar) {
-    case 'f':
-    case 'j':
-    case 'd':
-      record_metadata_in_constant(constant, _oop_recorder);
-      break;
+  if (constant != NULL) {
+    oop kind = Constant::kind(constant);
+    char typeChar = Kind::typeChar(kind);
+    switch (typeChar) {
+      case 'f':
+      case 'j':
+      case 'd':
+        record_metadata_in_constant(constant, _oop_recorder);
+        break;
+    }
   }
   CodeInstaller::pd_site_DataPatch(pc_offset, site);
 }
