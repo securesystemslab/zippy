@@ -47,7 +47,6 @@ public class PyObjectContainer extends PyObject {
         innerObject = inner;
     }
 
-    @Override
     public boolean isContainer() {
         return true;
     }

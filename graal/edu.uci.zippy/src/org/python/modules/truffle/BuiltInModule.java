@@ -187,7 +187,7 @@ public class BuiltInModule extends PythonModule {
         }
     }
 
-    @ModuleConstant public final static String __name__ = "__main__";
+    @ModuleConstant public static final String __name__ = "__main__";
 
     @ModuleMethod
     public Object min(Object[] args, Object[] keywords) {
@@ -249,7 +249,7 @@ public class BuiltInModule extends PythonModule {
     }
 
     @ModuleMethod
-    public int len(Object args[], Object[] keywords) {
+    public int len(Object[] args, Object[] keywords) {
         if (args.length == 1) {
             return len(args[0]);
         } else {
@@ -272,8 +272,8 @@ public class BuiltInModule extends PythonModule {
     }
 
     @ModuleMethod
-    public Object print(Object args[], Object[] keywords) {
-        Object values[] = args;
+    public Object print(Object[] args, Object[] keywords) {
+        Object[] values = args;
 
         String end = null;
         String sep = null;
@@ -282,17 +282,19 @@ public class BuiltInModule extends PythonModule {
             for (int i = 0; i < keywords.length; i++) { // not support file
                                                         // keyword now
                 PKeyword kw = (PKeyword) keywords[i];
-                if (kw.getName().equals("end"))
+                if (kw.getName().equals("end")) {
                     end = (String) kw.getValue();
-                else if (kw.getName().equals("sep"))
+                } else if (kw.getName().equals("sep")) {
                     sep = (String) kw.getValue();
+                }
             }
         }
 
         return print(values, sep, end);
     }
 
-    private Object print(Object values[], String sep, String end) {
+    private Object print(Object[] values, String sep, String end) {
+        // CheckStyle: stop system..print check
         if (values.length == 0) {
             System.out.println();
         } else {
@@ -313,18 +315,23 @@ public class BuiltInModule extends PythonModule {
 
             System.out.print(sb.toString() + sep + end);
         }
+        // CheckStyle: resume system..print check
         return null;
     }
 
     public Object print(Object value) {
         String end = System.getProperty("line.separator");
+        // CheckStyle: stop system..print check
         System.out.print(value + end);
+        // CheckStyle: resume system..print check
         return null;
     }
 
     public Object print(Object value1, Object value2) {
         String end = System.getProperty("line.separator");
+        // CheckStyle: stop system..print check
         System.out.print(value1 + " " + value2 + end);
+        // CheckStyle: resume system..print check
         return null;
     }
 
@@ -433,7 +440,7 @@ public class BuiltInModule extends PythonModule {
             return new PDictionary(((PDictionary) arg).getMap());
         } else if (arg instanceof PSequence) { // iterator type
             Iterator<?> iter = ((PSequence) arg).iterator();
-            Map<Object, Object> newMap = new HashMap<Object, Object>();
+            Map<Object, Object> newMap = new HashMap<>();
 
             while (iter.hasNext()) {
                 Object obj = iter.next();
@@ -467,19 +474,21 @@ public class BuiltInModule extends PythonModule {
     public Object abs(Object arg) {
         if (arg instanceof Integer) {
             int val = (int) arg;
-            if (val < 0)
+            if (val < 0) {
                 return -val;
-            else
+            } else {
                 return val;
+            }
         } else if (arg instanceof BigInteger) {
             BigInteger val = (BigInteger) arg;
             return val.abs();
         } else if (arg instanceof Double) {
             double val = (double) arg;
-            if (val < 0)
+            if (val < 0) {
                 return -val;
-            else
+            } else {
                 return val;
+            }
         } else if (arg instanceof PComplex) {
             PComplex val = (PComplex) arg;
             // return Math.hypot(val.getReal(), val.getImag());
@@ -519,20 +528,22 @@ public class BuiltInModule extends PythonModule {
         throw new RuntimeException("wrong number of arguments for list()");
     }
 
-    private Object doubleToInt(Double num) {
-        if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE)
+    private static Object doubleToInt(Double num) {
+        if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE) {
             return BigInteger.valueOf(num.longValue());
-        else
+        } else {
             return num.intValue();
+        }
     }
 
     private Object stringToInt(String num, int base) {
         if ((base >= 2 && base <= 32) || base == 0) {
             BigInteger bi = asciiToBigInteger(num, 10, false);
-            if (bi.compareTo(BigInteger.valueOf((long) Integer.MAX_VALUE)) > 0 || bi.compareTo(BigInteger.valueOf((long) Integer.MIN_VALUE)) < 0)
+            if (bi.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0 || bi.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) < 0) {
                 return bi;
-            else
+            } else {
                 return bi.intValue();
+            }
         } else {
             throw new RuntimeException("base is out of range for int()");
         }
@@ -551,9 +562,9 @@ public class BuiltInModule extends PythonModule {
     }
 
     public Object toInt(Object arg) {
-        if (arg instanceof Integer || arg instanceof BigInteger)
+        if (arg instanceof Integer || arg instanceof BigInteger) {
             return arg;
-        else if (arg instanceof Double) {
+        } else if (arg instanceof Double) {
             return doubleToInt((Double) arg);
         } else if (arg instanceof String) {
             return stringToInt((String) arg, 10);
@@ -571,23 +582,26 @@ public class BuiltInModule extends PythonModule {
     }
 
     // Copied directly from Jython
-    private BigInteger asciiToBigInteger(String str, int base, boolean isLong) {
+    private static BigInteger asciiToBigInteger(String str, int base, boolean isLong) {
         int b = 0;
         int e = str.length();
 
-        while (b < e && Character.isWhitespace(str.charAt(b)))
+        while (b < e && Character.isWhitespace(str.charAt(b))) {
             b++;
+        }
 
-        while (e > b && Character.isWhitespace(str.charAt(e - 1)))
+        while (e > b && Character.isWhitespace(str.charAt(e - 1))) {
             e--;
+        }
 
         char sign = 0;
         if (b < e) {
             sign = str.charAt(b);
             if (sign == '-' || sign == '+') {
                 b++;
-                while (b < e && Character.isWhitespace(str.charAt(b)))
+                while (b < e && Character.isWhitespace(str.charAt(b))) {
                     b++;
+                }
             }
 
             if (base == 16) {
@@ -645,8 +659,8 @@ public class BuiltInModule extends PythonModule {
         return bi;
     }
 
-    private PList rangeInt(int start, int stop, int step) {
-        ArrayList<Object> list = new ArrayList<Object>();
+    private static PList rangeInt(int start, int stop, int step) {
+        ArrayList<Object> list = new ArrayList<>();
 
         if (step > 0) {
             for (int i = start; i < stop; i += step) {
@@ -667,12 +681,12 @@ public class BuiltInModule extends PythonModule {
         }
     }
 
-    private PList rangeBigInt(Object start, Object stop, Object step) {
+    private static PList rangeBigInt(Object start, Object stop, Object step) {
         BigInteger bigStart = getBigInt(start);
         BigInteger bigStop = getBigInt(stop);
         BigInteger bigStep = getBigInt(step);
 
-        ArrayList<Object> list = new ArrayList<Object>();
+        ArrayList<Object> list = new ArrayList<>();
 
         if (bigStep.compareTo(BigInteger.ZERO) == 1) {
             for (BigInteger i = bigStart; i.compareTo(bigStop) == -1; i.add(bigStep)) {
@@ -693,13 +707,14 @@ public class BuiltInModule extends PythonModule {
         }
     }
 
-    private BigInteger getBigInt(Object num) {
-        if (num instanceof BigInteger)
+    private static BigInteger getBigInt(Object num) {
+        if (num instanceof BigInteger) {
             return (BigInteger) num;
-        else if (num instanceof Integer)
+        } else if (num instanceof Integer) {
             return BigInteger.valueOf((long) num);
-        else
+        } else {
             return null; // this should not happen
+        }
     }
 
     @ModuleMethod
@@ -739,7 +754,7 @@ public class BuiltInModule extends PythonModule {
     }
 
     /**
-     * str() currently only handle one argument
+     * str() currently only handle one argument.
      */
     @ModuleMethod
     public String str(Object[] args, Object[] keywords) {
@@ -776,7 +791,7 @@ public class BuiltInModule extends PythonModule {
         PCallable callee = (PCallable) arg0;
         Iterator iter = getIterable(arg1);
 
-        ArrayList<Object> list = new ArrayList<Object>();
+        ArrayList<Object> list = new ArrayList<>();
         while (iter.hasNext()) {
             list.add(callee.call(null, iter.next()));
         }
@@ -803,8 +818,9 @@ public class BuiltInModule extends PythonModule {
     }
 
     /**
-     * int()
+     * int().
      */
+    // Checkstyle: stop method name check
     @ModuleMethod("int")
     public int Int(Object[] args, Object[] keywords) {
         return Int(args[0]);
@@ -818,8 +834,10 @@ public class BuiltInModule extends PythonModule {
         return (int) toInt(arg0, arg1);
     }
 
+    // Checkstyle: resume method name check
+
     /**
-     * zip() method, should return a python iterator, but we use list as a temporary solution
+     * zip() method, should return a python iterator, but we use list as a temporary solution.
      */
 
     @SuppressWarnings("rawtypes")

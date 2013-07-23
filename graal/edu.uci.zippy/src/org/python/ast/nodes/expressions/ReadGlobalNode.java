@@ -59,10 +59,10 @@ public abstract class ReadGlobalNode extends PNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
 
-        System.out.println(this);
+        ASTInterpreter.trace(this);
     }
 
 }

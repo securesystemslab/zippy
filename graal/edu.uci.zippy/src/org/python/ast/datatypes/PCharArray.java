@@ -110,6 +110,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
         array[idx] = value;
     }
 
+    @SuppressWarnings("unused")
     public void setSlice(PSlice slice, PCharArray value) {
         throw new UnsupportedOperationException();
     }
@@ -158,7 +159,7 @@ public class PCharArray extends PArray implements Iterable<Character> {
     }
 
     private List<Character> getList() {
-        List<Character> list = new ArrayList<Character>();
+        List<Character> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {
             list.add(array[i]);
         }

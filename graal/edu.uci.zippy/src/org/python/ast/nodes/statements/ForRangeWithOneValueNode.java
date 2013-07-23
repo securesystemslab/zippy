@@ -28,6 +28,7 @@ import org.python.ast.nodes.PNode;
 import org.python.ast.nodes.RuntimeValueNode;
 import org.python.ast.nodes.WriteNode;
 import org.python.ast.utils.*;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.frame.*;
 
@@ -115,9 +116,9 @@ public class ForRangeWithOneValueNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         target.visualize(level);

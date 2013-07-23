@@ -109,8 +109,9 @@ public class PythonTreeProcessor extends Visitor {
 
     public void suite(List<stmt> stmts) throws Exception {
 
-        for (int i = 0; i < stmts.size(); i++)
+        for (int i = 0; i < stmts.size(); i++) {
             visit(stmts.get(i));
+        }
     }
 
     private FrameSlot def(String name) {

@@ -103,6 +103,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
         array[idx] = (double) value;
     }
 
+    @SuppressWarnings("unused")
     public void setSlice(PSlice slice, PDoubleArray value) {
         throw new UnsupportedOperationException();
     }
@@ -151,7 +152,7 @@ public class PDoubleArray extends PArray implements Iterable<Double> {
     }
 
     private List<Double> getList() {
-        List<Double> list = new ArrayList<Double>();
+        List<Double> list = new ArrayList<>();
         for (int i = 0; i < array.length; i++) {
             list.add(array[i]);
         }

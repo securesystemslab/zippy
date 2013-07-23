@@ -82,8 +82,9 @@ public class PythonModule extends PObject {
     public Object lookup(String name) {
         PCallable method = lookupMethod(name);
 
-        if (method != null)
+        if (method != null) {
             return method;
+        }
 
         return lookupConstant(name);
     }
@@ -121,9 +122,6 @@ public class PythonModule extends PObject {
 
     /**
      * Load methods that are marked with @ModuleMethod in this class into the module.
-     * 
-     * @throws SecurityException
-     * @throws NoSuchMethodException
      */
     public void addBuiltInMethods() {
         try {

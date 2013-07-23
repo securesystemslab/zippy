@@ -76,8 +76,9 @@ public class ListAttribute extends PythonModule {
 
         if (arg instanceof PList) {
             List<Object> list = ((PList) arg).getList();
-            for (int i = 0; i < list.size(); i++)
+            for (int i = 0; i < list.size(); i++) {
                 selfList.getList().add(list.get(i));
+            }
             return selfList;
         } else {
             throw new RuntimeException("invalid arguments for extend()");
@@ -124,10 +125,11 @@ public class ListAttribute extends PythonModule {
     public PList remove(Object arg, Object self) {
         PList selfList = (PList) self;
 
-        if (selfList.getList().remove(arg))
+        if (selfList.getList().remove(arg)) {
             return selfList;
-        else
+        } else {
             throw new RuntimeException("invalid arguments for remove()");
+        }
     }
 
     public PList remove(Object arg0, Object arg1, Object self) {
@@ -179,10 +181,11 @@ public class ListAttribute extends PythonModule {
         PList selfList = (PList) self;
 
         int ret = selfList.getList().indexOf(arg);
-        if (ret != -1)
+        if (ret != -1) {
             return ret;
-        else
+        } else {
             throw new RuntimeException("invalid arguments for index()");
+        }
     }
 
     public int index(Object arg0, Object arg1, Object self) {
@@ -204,8 +207,9 @@ public class ListAttribute extends PythonModule {
         int ret = 0;
         List<Object> list = selfList.getList();
         for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).equals(arg))
+            if (list.get(i).equals(arg)) {
                 ret++;
+            }
         }
         return ret;
     }
@@ -215,7 +219,7 @@ public class ListAttribute extends PythonModule {
     }
 
     @ModuleMethod
-    public PList sort(Object args[], Object self) {
+    public PList sort(Object[] args, Object self) {
         PList selfList = (PList) self;
 
         if (args.length == 0) {

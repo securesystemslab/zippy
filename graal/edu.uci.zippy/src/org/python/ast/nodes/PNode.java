@@ -164,10 +164,10 @@ public abstract class PNode extends Node implements Visualizable {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
 
-        System.out.println(this);
+        ASTInterpreter.trace(this);
     }
 
     public void accept(PNodeVisitor visitor) {

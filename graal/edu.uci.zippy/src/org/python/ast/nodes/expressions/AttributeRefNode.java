@@ -27,6 +27,7 @@ package org.python.ast.nodes.expressions;
 import org.python.ast.datatypes.PObject;
 import org.python.ast.datatypes.PString;
 import org.python.core.*;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -74,9 +75,9 @@ public abstract class AttributeRefNode extends UnaryOpNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         getOperand().visualize(level);

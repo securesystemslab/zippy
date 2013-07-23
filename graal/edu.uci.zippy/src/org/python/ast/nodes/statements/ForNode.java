@@ -32,6 +32,7 @@ import org.python.ast.nodes.RuntimeValueNode;
 import org.python.ast.nodes.WriteNode;
 import org.python.ast.utils.*;
 import org.python.core.PyObject;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.frame.*;
 
@@ -149,6 +150,7 @@ public class ForNode extends StatementNode {
         return super.toString() + "(" + target + ", " + iterator + ")";
     }
 
+    @Override
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitForNode(this);
     }
@@ -156,9 +158,9 @@ public class ForNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         target.visualize(level);

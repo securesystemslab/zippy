@@ -26,6 +26,7 @@ package org.python.ast.nodes.statements;
 
 import org.python.ast.datatypes.PFunction;
 import org.python.ast.nodes.FunctionRootNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -92,9 +93,9 @@ public class FunctionDefNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
 

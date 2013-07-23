@@ -28,7 +28,7 @@ import java.util.*;
 
 import org.python.ast.*;
 import org.python.ast.nodes.*;
-import org.python.core.*;
+import org.python.core.truffle.*;
 
 public class ASTLinearizer implements StatementVisitor<StatementNode> {
 
@@ -47,9 +47,9 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
     public StatementNode linearize() {
         visit(root);
 
-        if (Options.debug) {
-            new LiearizedASTPrinter().print();
-        }
+// if (Options.debug) {
+// new LiearizedASTPrinter().print();
+// }
 
         return getHead();
     }
@@ -186,7 +186,7 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         public StatementNode visitStatementNode(StatementNode node) {
             int id = getId(node);
             int nextId = getId(node.next());
-            System.out.println(id + " " + node + " -> " + nextId);
+            ASTInterpreter.trace(id + " " + node + " -> " + nextId);
             return null;
         }
 

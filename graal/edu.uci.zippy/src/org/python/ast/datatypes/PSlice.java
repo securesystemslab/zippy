@@ -106,9 +106,9 @@ public class PSlice {
         }
 
         if (step > 0) {
-            length = (int) ((stop - start + step - 1) / step);
+            length = (stop - start + step - 1) / step;
         } else {
-            length = (int) ((stop - start + step + 1) / step);
+            length = (stop - start + step + 1) / step;
         }
 
         if (length < 0) {

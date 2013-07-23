@@ -26,6 +26,7 @@ package org.python.ast.nodes.expressions;
 
 import org.python.ast.nodes.PNode;
 import org.python.ast.nodes.statements.StatementNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.NodeChild;
 
@@ -42,9 +43,9 @@ public abstract class UnaryOpNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         getOperand().visualize(level);

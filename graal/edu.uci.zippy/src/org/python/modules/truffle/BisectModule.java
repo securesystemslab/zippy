@@ -90,6 +90,7 @@ public class BisectModule extends PythonModule {
         throw new RuntimeException("wrong number of arguments for bisect() ");
     }
 
+    // Checkstyle: stop method name check
     @ModuleMethod
     public int bisect_right(Object[] args, Object[] keywords) {
         return bisect(args, keywords);
@@ -211,6 +212,8 @@ public class BisectModule extends PythonModule {
         throw new RuntimeException("wrong number of arguments for insort_left() ");
     }
 
+    // Checkstyle: resume method name check
+
     public int getIndexLeft(List<Object> args, Object key) {
         return binarySearchLeft(args, 0, args.size() - 1, key);
     }
@@ -246,10 +249,11 @@ public class BisectModule extends PythonModule {
     }
 
     public int getIndexRight(List<Object> args, Object key) {
-        if (key instanceof String)
+        if (key instanceof String) {
             return binarySearchRightStr(args, 0, args.size() - 1, (String) key);
-        else
+        } else {
             return binarySearchRightDouble(args, 0, args.size() - 1, (double) key);
+        }
     }
 
     public int binarySearchRightDouble(List<Object> args, int start, int stop, double key) {

@@ -71,7 +71,7 @@ public abstract class CallBuiltInNode extends PNode {
     }
 
     @ExplodeLoop
-    private final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+    private static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         Object[] evaluated = new Object[arguments.length];
         int index = 0;
 

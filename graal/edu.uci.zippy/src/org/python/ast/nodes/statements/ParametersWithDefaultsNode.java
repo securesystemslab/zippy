@@ -29,6 +29,7 @@ import java.util.List;
 import org.python.ast.datatypes.PArguments;
 import org.python.ast.nodes.PNode;
 import org.python.ast.nodes.ReadDefaultArgumentNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -90,9 +91,9 @@ public final class ParametersWithDefaultsNode extends ParametersNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
 

@@ -25,6 +25,7 @@
 package org.python.ast.nodes;
 
 import org.python.ast.nodes.expressions.*;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -61,9 +62,9 @@ public abstract class GeneratorExpressionNode extends PNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         generator.visualize(level);

@@ -31,6 +31,7 @@ import org.python.ast.nodes.Amendable;
 import org.python.ast.nodes.PNode;
 import org.python.ast.nodes.WriteNode;
 import org.python.ast.nodes.statements.StatementNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -111,9 +112,9 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         getRightNode().visualize(level);

@@ -37,7 +37,7 @@ public class BuiltIns {
     public static final HashMap<String, PythonModule> moduleMap = moduleMapInit();
 
     public static HashMap<String, PythonModule> moduleMapInit() {
-        HashMap<String, PythonModule> map = new HashMap<String, PythonModule>();
+        HashMap<String, PythonModule> map = new HashMap<>();
         map.put("array", new ArrayModule());
         map.put("bisect", new BisectModule());
         map.put("time", new TimeModule());

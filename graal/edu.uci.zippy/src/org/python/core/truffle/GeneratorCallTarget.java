@@ -62,7 +62,7 @@ public class GeneratorCallTarget extends CallTarget {
     @Override
     public Object call(PackedFrame caller, Arguments arguments) {
         frame = new DefaultVirtualFrame(frameDescriptor, caller, arguments);
-        List<PyObject> results = new ArrayList<PyObject>();
+        List<PyObject> results = new ArrayList<>();
 
         while (true) {
             try {
@@ -78,7 +78,8 @@ public class GeneratorCallTarget extends CallTarget {
         return new PyList(results);
     }
 
-    public Object __iter__(VirtualFrame caller) {
+    // __iter__
+    public Object iter(VirtualFrame caller) {
         frame = new DefaultVirtualFrame(frameDescriptor, caller.pack(), new PArguments());
 
         assert iterator != null;

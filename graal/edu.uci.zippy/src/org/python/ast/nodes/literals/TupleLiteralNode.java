@@ -25,6 +25,7 @@
 package org.python.ast.nodes.literals;
 
 import org.python.ast.nodes.PNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -59,9 +60,9 @@ public final class TupleLiteralNode extends LiteralNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         for (PNode v : values) {

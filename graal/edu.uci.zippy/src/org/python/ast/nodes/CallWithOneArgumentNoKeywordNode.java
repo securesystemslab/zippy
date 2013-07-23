@@ -27,6 +27,7 @@ package org.python.ast.nodes;
 import org.python.ast.datatypes.PCallable;
 import org.python.core.Py;
 import org.python.core.PyObject;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
@@ -71,9 +72,9 @@ public abstract class CallWithOneArgumentNoKeywordNode extends PNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         getCallee().visualize(level);

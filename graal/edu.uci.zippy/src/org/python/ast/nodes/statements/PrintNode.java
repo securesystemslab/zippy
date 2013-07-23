@@ -25,6 +25,7 @@
 package org.python.ast.nodes.statements;
 
 import org.python.ast.nodes.PNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.frame.*;
 
@@ -58,7 +59,9 @@ public class PrintNode extends StatementNode {
             sb.append(System.getProperty("line.separator"));
         }
 
+        // CheckStyle: stop system..print check
         System.out.print(sb.toString());
+        // CheckStyle: resume system..print check
 
         if (out != null) {
             out.append(sb.toString());
@@ -78,7 +81,9 @@ public class PrintNode extends StatementNode {
             sb.append(System.getProperty("line.separator"));
         }
 
+        // CheckStyle: stop system..print check
         System.out.print(sb.toString());
+        // CheckStyle: resume system..print check
 
         if (out != null) {
             out.append(sb.toString());
@@ -90,9 +95,9 @@ public class PrintNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         for (PNode val : values) {

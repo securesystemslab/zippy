@@ -84,11 +84,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         /**
-         * This is a fix for comparisons involving a PyInteger
+         * This is a fix for comparisons involving a PyInteger.
          * 
          * @param left
          * @param right
-         * @return
+         * @return comparison result
          */
         @Generic
         public boolean doGeneric(Object left, Object right) {

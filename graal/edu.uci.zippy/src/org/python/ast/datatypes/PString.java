@@ -40,6 +40,7 @@ public class PString extends PObject implements Iterable<Object> {
         this.value = value;
     }
 
+    @Override
     public PCallable findAttribute(String name) {
         PCallable method = stringModule.lookupMethod(name);
         method.setSelf(value);
@@ -61,13 +62,14 @@ public class PString extends PObject implements Iterable<Object> {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("hiding")
     @Override
     public Object multiply(int value) {
         throw new UnsupportedOperationException();
     }
 
     public List<String> getList() {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
 
         char[] array = value.toCharArray();
         for (int i = 0; i < array.length; i++) {

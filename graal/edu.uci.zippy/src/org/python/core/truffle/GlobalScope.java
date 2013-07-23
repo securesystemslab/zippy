@@ -36,7 +36,7 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 
-public class GlobalScope {
+public final class GlobalScope {
 
     PyStringMap jythonGlobals;
 
@@ -46,7 +46,7 @@ public class GlobalScope {
 
     private static GlobalScope instance;
 
-    private final static BuiltInModule truffleBuiltIns = new BuiltInModule();
+    private static final BuiltInModule truffleBuiltIns = new BuiltInModule();
 
     private GlobalScope(PyStringMap globals, MaterializedFrame frame) {
         jythonGlobals = globals;

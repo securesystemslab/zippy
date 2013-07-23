@@ -37,16 +37,13 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import static org.python.core.truffle.ASTInterpreter.*;
 
 public class VirtualFrameUtil {
 
+    @Deprecated
     public static void setName(VirtualFrame frame, Name name, Object value) {
-        FrameSlot slot = name.getSlot();
-
-        if (debug) {
-            System.out.println("SET " + frame + " slot " + slot + " name " + (slot == null ? "" : slot.getIdentifier()));
-        }
+// FrameSlot slot = name.getSlot();
+        FrameSlot slot = null;
 
         if (slot != null) {
             try {
@@ -59,8 +56,9 @@ public class VirtualFrameUtil {
         }
     }
 
+    @Deprecated
     public static void recursiveUnpackAndAssign(VirtualFrame frame, PyObject val, java.util.List<expr> targetExpressions) {
-        ArrayList<PyObject> values = new ArrayList<PyObject>();
+        ArrayList<PyObject> values = new ArrayList<>();
         for (PyObject value : val.asIterable()) {
             values.add(value);
         }
@@ -76,7 +74,7 @@ public class VirtualFrameUtil {
                 Tuple tuple = (Tuple) e;
                 recursiveUnpackAndAssign(frame, values.get(index), tuple.getInternalElts());
             } else if (e instanceof Subscript) {
-                ((Subscript) e).doUpdate(frame, (PyObject) values.get(index));
+// ((Subscript) e).doUpdate(frame, (PyObject) values.get(index));
             }
             index++;
         }

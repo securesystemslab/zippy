@@ -115,12 +115,11 @@ public abstract class FrameSlotNode extends StatementNode {
 
     /**
      * Specialization for reference types. This is only needed for read access since write accesses
-     * of FrameSlot cannot be made different from {@link setObject()};
+     * of FrameSlot cannot be made different from {@link #setObject(Frame, Object) };
      */
     protected final BigInteger getBigInteger(Frame frame) throws FrameSlotTypeException {
         Object object = frame.getObject(slot);
 
-        // TODO instanceof can be improved
         if (object instanceof BigInteger) {
             return (BigInteger) object;
         } else {

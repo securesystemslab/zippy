@@ -35,6 +35,7 @@ import org.python.ast.nodes.RuntimeValueNode;
 import org.python.ast.nodes.WriteNode;
 import org.python.ast.nodes.statements.StatementNode;
 import org.python.ast.utils.*;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.NodeChild;
@@ -61,7 +62,7 @@ public abstract class ComprehensionNode extends StatementNode {
 
     @Specialization
     public Object doPSequence(VirtualFrame frame, PSequence sequence) {
-        List<Object> results = new ArrayList<Object>();
+        List<Object> results = new ArrayList<>();
         Iterator<?> iter = sequence.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
@@ -85,7 +86,7 @@ public abstract class ComprehensionNode extends StatementNode {
             throw new RuntimeException("Unhandled sequence");
         }
 
-        List<Object> results = new ArrayList<Object>();
+        List<Object> results = new ArrayList<>();
         Iterator<?> iter = seq.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
@@ -102,6 +103,7 @@ public abstract class ComprehensionNode extends StatementNode {
         return condition != null && !condition.executeBoolean(frame);
     }
 
+    @SuppressWarnings("unused")
     protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
         throw new RuntimeException("This is not a concrete comprehension node!");
     }
@@ -109,9 +111,9 @@ public abstract class ComprehensionNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         getIterator().visualize(level);

@@ -89,18 +89,22 @@ public class PComplex extends PObject {
         return (real != c.real || imag != c.imag);
     }
 
+    @SuppressWarnings("unused")
     public boolean greaterEqual(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
+    @SuppressWarnings("unused")
     public boolean greaterThan(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
+    @SuppressWarnings("unused")
     public boolean lessEqual(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
+    @SuppressWarnings("unused")
     public boolean lessThan(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }

@@ -30,6 +30,7 @@ import org.python.ast.datatypes.*;
 import org.python.ast.nodes.PNode;
 import org.python.ast.nodes.ReadNode;
 import org.python.ast.nodes.statements.StatementNode;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -94,10 +95,10 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
 
-        System.out.println(this);
+        ASTInterpreter.trace(this);
     }
 
 }

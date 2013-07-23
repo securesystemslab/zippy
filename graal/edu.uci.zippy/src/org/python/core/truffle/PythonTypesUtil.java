@@ -98,7 +98,7 @@ public class PythonTypesUtil {
             return new PySet(adaptToPyObjects(set.getSet().toArray()));
         } else if (value instanceof PDictionary) {
             PDictionary dict = (PDictionary) value;
-            ConcurrentHashMap<PyObject, PyObject> map = new ConcurrentHashMap<PyObject, PyObject>();
+            ConcurrentHashMap<PyObject, PyObject> map = new ConcurrentHashMap<>();
             for (Object key : dict.keys()) {
                 map.put(adaptToPyObject(key), adaptToPyObject(dict.getItem(key)));
             }
@@ -115,7 +115,7 @@ public class PythonTypesUtil {
     }
 
     public static PyObject[] adaptToPyObjects(Object[] values) {
-        List<PyObject> converted = new ArrayList<PyObject>(values.length);
+        List<PyObject> converted = new ArrayList<>(values.length);
 
         for (Object value : values) {
             converted.add(adaptToPyObject(value));
@@ -138,8 +138,8 @@ public class PythonTypesUtil {
             return new PTuple(unboxPyObjects(tuple.getArray()));
         } else if (value instanceof PyList) {
             PyList list = (PyList) value;
-            List<PyObject> values = list.getInternalList();
-            return new PList(unboxPyObjects(values.toArray(new PyObject[values.size()])));
+            PyObject[] values = list.getArray();
+            return new PList(unboxPyObjects(values));
         } else if (value instanceof PyArray) {
             // TODO Temporary fix
             PyList array = (PyList) ((PyArray) value).tolist();

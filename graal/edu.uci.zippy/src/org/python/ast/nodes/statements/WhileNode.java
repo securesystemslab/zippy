@@ -27,6 +27,7 @@ package org.python.ast.nodes.statements;
 import org.python.ast.*;
 import org.python.ast.nodes.expressions.BooleanCastNode;
 import org.python.ast.utils.*;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.frame.*;
 
@@ -109,6 +110,7 @@ public class WhileNode extends StatementNode {
         return super.toString() + "(" + condition + ")";
     }
 
+    @Override
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitWhileNode(this);
     }
@@ -116,9 +118,9 @@ public class WhileNode extends StatementNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
-        System.out.println(this);
+        ASTInterpreter.trace(this);
 
         level++;
         condition.visualize(level);

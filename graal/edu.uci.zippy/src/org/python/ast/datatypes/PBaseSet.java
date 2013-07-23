@@ -35,7 +35,7 @@ public abstract class PBaseSet extends PObject implements Iterable<Object> {
     protected Set<Object> set;
 
     public PBaseSet() {
-        this.set = new HashSet<Object>();
+        this.set = new HashSet<>();
     }
 
     public PBaseSet(Iterable<?> iterable) {
@@ -183,11 +183,13 @@ public abstract class PBaseSet extends PObject implements Iterable<Object> {
         return this.intersection(new PSet(other));
     }
 
+    @SuppressWarnings("unused")
     public PBaseSet symmetricDifference(PBaseSet other) {
         // TODO
         return null;
     }
 
+    @SuppressWarnings("unused")
     public PBaseSet symmetricDifference(Object[] args) {
         // TODO
         return null;
@@ -259,7 +261,7 @@ public abstract class PBaseSet extends PObject implements Iterable<Object> {
 
     protected void updateInternal(PBaseSet data) {
         // Skip the iteration if both are sets
-        set.addAll(((PBaseSet) data).set);
+        set.addAll(data.set);
     }
 
     protected void updateInternal(Iterable<Object> data) {

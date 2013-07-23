@@ -123,7 +123,7 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     public List<PNode> suite(List<stmt> stmts) throws Exception {
-        List<PNode> statements = new ArrayList<PNode>();
+        List<PNode> statements = new ArrayList<>();
 
         for (int i = 0; i < stmts.size(); i++) {
             PNode statement = (PNode) visit(stmts.get(i));

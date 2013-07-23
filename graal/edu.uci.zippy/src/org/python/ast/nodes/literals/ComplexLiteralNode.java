@@ -25,6 +25,7 @@
 package org.python.ast.nodes.literals;
 
 import org.python.ast.datatypes.*;
+import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.Specialization;
 
@@ -53,10 +54,10 @@ public abstract class ComplexLiteralNode extends LiteralNode {
     @Override
     public void visualize(int level) {
         for (int i = 0; i < level; i++) {
-            System.out.print("    ");
+            ASTInterpreter.trace("    ");
         }
 
-        System.out.println(this);
+        ASTInterpreter.trace(this);
     }
 
 }

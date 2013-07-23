@@ -36,6 +36,7 @@ public class ASTInterpreter {
 
     public static boolean debug;
 
+    @SuppressWarnings("hiding")
     public static void init(PyStringMap globals, boolean debug) {
         GlobalScope.create(globals);
         ASTInterpreter.debug = debug;
@@ -44,12 +45,8 @@ public class ASTInterpreter {
     public static void interpret(RootNode rootNode, boolean log) {
         CallTarget module;
 
-        if (Options.specialize) {
-            ModuleNode root = (ModuleNode) rootNode;
-            module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
-        } else {
-            throw new RuntimeException("Non specialized interpreter is broken");
-        }
+        ModuleNode root = (ModuleNode) rootNode;
+        module = Truffle.getRuntime().createCallTarget(root, root.getFrameDescriptor());
 
         Arguments arguments = new PArguments();
 
@@ -58,16 +55,22 @@ public class ASTInterpreter {
         long end = System.nanoTime();
 
         if (log) {
+            // CheckStyle: stop system..print check
             System.out.printf("== iteration %d: %.3f ms\n", (0), (end - start) / 1000000.0);
+            // CheckStyle: resume system..print check
         }
     }
 
     public static void trace(String message) {
-        if (!ASTInterpreter.debug) {
-            return;
-        }
-
+        // CheckStyle: stop system..print check
         System.out.println(message);
+        // CheckStyle: resume system..print check
+    }
+
+    public static void trace(Object entity) {
+        // CheckStyle: stop system..print check
+        System.out.println(entity);
+        // CheckStyle: resume system..print check
     }
 
 }

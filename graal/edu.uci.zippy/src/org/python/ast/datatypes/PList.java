@@ -39,15 +39,15 @@ public class PList extends PSequence {
     public static final ListAttribute listModule = new ListAttribute();
 
     public PList() {
-        list = new ArrayList<Object>();
+        list = new ArrayList<>();
     }
 
     public PList(Object[] elements) {
-        list = new ArrayList<Object>(Arrays.asList(elements));
+        list = new ArrayList<>(Arrays.asList(elements));
     }
 
     public PList(Iterable<?> iterable) {
-        list = new ArrayList<Object>();
+        list = new ArrayList<>();
         for (Object o : iterable) {
             addItem(o);
         }
@@ -104,9 +104,9 @@ public class PList extends PSequence {
     public Object getSlice(int start, int stop, int step, int length) {
         List<Object> newList;
         if (step == 1) {
-            newList = new ArrayList<Object>(list.subList(start, stop));
+            newList = new ArrayList<>(list.subList(start, stop));
         } else {
-            newList = new ArrayList<Object>(length);
+            newList = new ArrayList<>(length);
             for (int i = start, j = 0; j < length; i += step, j++) {
                 newList.add(list.get(i));
             }
@@ -146,7 +146,7 @@ public class PList extends PSequence {
 
     private void setsliceIterator(int start, int stop, int step, Iterator<Object> iter) {
         if (step == 1) {
-            List<Object> insertion = new ArrayList<Object>();
+            List<Object> insertion = new ArrayList<>();
             if (iter != null) {
                 while (iter.hasNext()) {
                     insertion.add(iter.next());
@@ -240,7 +240,7 @@ public class PList extends PSequence {
 
     @Override
     public Object multiply(int value) {
-        ArrayList<Object> result = new ArrayList<Object>();
+        ArrayList<Object> result = new ArrayList<>();
         for (int i = 0; i < value; i++) {
             for (int j = 0; j < list.size(); j++) {
                 result.add(list.get(j));

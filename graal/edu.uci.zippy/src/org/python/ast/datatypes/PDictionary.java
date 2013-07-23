@@ -37,7 +37,7 @@ public class PDictionary extends PObject {
     public static final DictionaryAttribute dictModule = new DictionaryAttribute();
 
     public PDictionary() {
-        map = new ConcurrentHashMap<Object, Object>();
+        map = new ConcurrentHashMap<>();
     }
 
     public PDictionary(Map<Object, Object> map) {
