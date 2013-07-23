@@ -1,4 +1,0 @@
-base_class: dropwhile
-want_dict: true
-ctr:
-incl: object

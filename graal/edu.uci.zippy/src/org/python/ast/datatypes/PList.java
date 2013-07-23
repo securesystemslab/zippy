@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.datatypes;
 
 import java.util.ArrayList;
@@ -11,8 +35,8 @@ import org.python.modules.truffle.*;
 public class PList extends PSequence {
 
     private final List<Object> list;
-    
-    static final public ListAttribute listModule = new ListAttribute();
+
+    public static final ListAttribute listModule = new ListAttribute();
 
     public PList() {
         list = new ArrayList<Object>();
@@ -101,8 +125,7 @@ public class PList extends PSequence {
      * @param start
      * @param stop
      * @param step
-     * @param value
-     *            the value can only be a TruffleSequence or a java.util.List
+     * @param value the value can only be a TruffleSequence or a java.util.List
      */
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {
@@ -121,7 +144,7 @@ public class PList extends PSequence {
         setsliceIterator(start, stop, step, value.iterator());
     }
 
-    final private void setsliceIterator(int start, int stop, int step, Iterator<Object> iter) {
+    private void setsliceIterator(int start, int stop, int step, Iterator<Object> iter) {
         if (step == 1) {
             List<Object> insertion = new ArrayList<Object>();
             if (iter != null) {
@@ -174,6 +197,7 @@ public class PList extends PSequence {
         return false;
     }
 
+    @Override
     public PCallable findAttribute(String name) {
         PCallable method = listModule.lookupMethod(name);
         method.setSelf(this);
@@ -213,7 +237,7 @@ public class PList extends PSequence {
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
-    
+
     @Override
     public Object multiply(int value) {
         ArrayList<Object> result = new ArrayList<Object>();
@@ -222,7 +246,7 @@ public class PList extends PSequence {
                 result.add(list.get(j));
             }
         }
-        
+
         return new PList(result);
     }
 

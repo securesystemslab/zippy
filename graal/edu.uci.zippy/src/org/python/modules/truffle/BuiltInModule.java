@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.modules.truffle;
 
 import java.math.BigInteger;
@@ -22,31 +46,28 @@ import org.python.ast.datatypes.PTuple;
 import org.python.modules.truffle.annotations.ModuleConstant;
 import org.python.modules.truffle.annotations.ModuleMethod;
 
-public class BuiltInModule extends Module {
-    private static final long MASK_NON_SIGN_LONG = 0x7fffffffffffffffl;
-    
+public class BuiltInModule extends PythonModule {
+
+    private static final long MASK_NON_SIGN_LONG = 0x7fffffffffffffffL;
+
     public BuiltInModule() {
-        try {
-            addBuiltInMethods();
-        } catch (NoSuchMethodException | SecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        addBuiltInMethods();
         addConstants();
     }
-    
+
     public static int getExponent(final double d) {
         // NaN and Infinite will return 1024 anywho so can use raw bits
         return (int) ((Double.doubleToRawLongBits(d) >>> 52) & 0x7ff) - 1023;
     }
-    
+
     public static double abs(double x) {
         return Double.longBitsToDouble(MASK_NON_SIGN_LONG & Double.doubleToRawLongBits(x));
     }
-    
+
     public static double scalb(final double d, final int n) {
 
-        // first simple and fast handling when 2^n can be represented using normal numbers
+        // first simple and fast handling when 2^n can be represented using
+        // normal numbers
         if ((n > -1023) && (n < 1024)) {
             return d * Double.longBitsToDouble(((long) (n + 1023)) << 52);
         }
@@ -65,8 +86,8 @@ public class BuiltInModule extends Module {
         // decompose d
         final long bits = Double.doubleToRawLongBits(d);
         final long sign = bits & 0x8000000000000000L;
-        int  exponent   = ((int) (bits >>> 52)) & 0x7ff;
-        long mantissa   = bits & 0x000fffffffffffffL;
+        int exponent = ((int) (bits >>> 52)) & 0x7ff;
+        long mantissa = bits & 0x000fffffffffffffL;
 
         // compute scaled exponent
         int scaledExponent = exponent + n;
@@ -74,15 +95,18 @@ public class BuiltInModule extends Module {
         if (n < 0) {
             // we are really in the case n <= -1023
             if (scaledExponent > 0) {
-                // both the input and the result are normal numbers, we only adjust the exponent
+                // both the input and the result are normal numbers, we only
+                // adjust the exponent
                 return Double.longBitsToDouble(sign | (((long) scaledExponent) << 52) | mantissa);
             } else if (scaledExponent > -53) {
-                // the input is a normal number and the result is a subnormal number
+                // the input is a normal number and the result is a subnormal
+                // number
 
                 // recover the hidden mantissa bit
                 mantissa = mantissa | (1L << 52);
 
-                // scales down complete mantissa, hence losing least significant bits
+                // scales down complete mantissa, hence losing least significant
+                // bits
                 final long mostSignificantLostBit = mantissa & (1L << (-scaledExponent));
                 mantissa = mantissa >>> (1 - scaledExponent);
                 if (mostSignificantLostBit != 0) {
@@ -121,12 +145,12 @@ public class BuiltInModule extends Module {
         }
 
     }
-    
+
     public static double sqrt(final double a) {
         return Math.sqrt(a);
     }
-    
-    //FastMath
+
+    // FastMath
     public static double hypot(final double x, final double y) {
         if (Double.isInfinite(x) || Double.isInfinite(y)) {
             return Double.POSITIVE_INFINITY;
@@ -144,7 +168,8 @@ public class BuiltInModule extends Module {
                 return abs(y);
             } else {
 
-                // find an intermediate scale to avoid both overflow and underflow
+                // find an intermediate scale to avoid both overflow and
+                // underflow
                 final int middleExp = (expX + expY) / 2;
 
                 // scale parameters without losing precision
@@ -161,10 +186,9 @@ public class BuiltInModule extends Module {
 
         }
     }
-    
-    @ModuleConstant
-    public final static String __name__ = "__main__";
-    
+
+    @ModuleConstant public final static String __name__ = "__main__";
+
     @ModuleMethod
     public Object min(Object[] args, Object[] keywords) {
         if (args.length == 1) {
@@ -172,12 +196,12 @@ public class BuiltInModule extends Module {
         } else {
             Object[] copy = Arrays.copyOf(args, args.length);
             Arrays.sort(copy);
-            return copy[0];            
+            return copy[0];
         }
     }
-    
+
     // Specialized with one argument
-    public Object min(Object arg) {  
+    public Object min(Object arg) {
         if (arg instanceof PObject) {
             return ((PObject) arg).getMin();
         } else if (arg instanceof String) {
@@ -188,11 +212,11 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unexpected argument type for min() ");
         }
     }
-    
-    public Object min(Object arg0, Object arg1) {  
+
+    public Object min(Object arg0, Object arg1) {
         Object[] copy = {arg0, arg1};
         Arrays.sort(copy);
-        return copy[0];          
+        return copy[0];
     }
 
     @ModuleMethod
@@ -205,7 +229,7 @@ public class BuiltInModule extends Module {
             return copy[copy.length - 1];
         }
     }
-    
+
     public Object max(Object arg) {
         if (arg instanceof PObject) {
             return ((PObject) arg).getMax();
@@ -217,11 +241,11 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unexpected argument type for max() ");
         }
     }
-    
+
     public Object max(Object arg0, Object arg1) {
         Object[] copy = {arg0, arg1};
         Arrays.sort(copy);
-        return copy[copy.length - 1]; 
+        return copy[copy.length - 1];
     }
 
     @ModuleMethod
@@ -232,7 +256,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for len() ");
         }
     }
-    
+
     public int len(Object arg) {
         if (arg instanceof PObject) {
             return ((PObject) arg).len();
@@ -242,11 +266,11 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unexpected argument type for len() ");
         }
     }
-    
+
     public int len(Object arg1, Object arg2) {
         throw new RuntimeException("wrong number of arguments for len() ");
     }
-    
+
     @ModuleMethod
     public Object print(Object args[], Object[] keywords) {
         Object values[] = args;
@@ -255,7 +279,8 @@ public class BuiltInModule extends Module {
         String sep = null;
 
         if (keywords != null) {
-            for (int i = 0; i < keywords.length; i++) { // not support file keyword now
+            for (int i = 0; i < keywords.length; i++) { // not support file
+                                                        // keyword now
                 PKeyword kw = (PKeyword) keywords[i];
                 if (kw.getName().equals("end"))
                     end = (String) kw.getValue();
@@ -290,13 +315,13 @@ public class BuiltInModule extends Module {
         }
         return null;
     }
-    
+
     public Object print(Object value) {
         String end = System.getProperty("line.separator");
         System.out.print(value + end);
         return null;
     }
-    
+
     public Object print(Object value1, Object value2) {
         String end = System.getProperty("line.separator");
         System.out.print(value1 + " " + value2 + end);
@@ -305,14 +330,14 @@ public class BuiltInModule extends Module {
 
     private List<Character> stringToCharList(String s) {
         ArrayList<Character> list = new ArrayList<Character>();
-        
+
         char[] charArray = s.toCharArray();
         for (int i = 0; i < charArray.length; i++) {
             list.add(charArray[i]);
         }
         return list;
     }
-    
+
     @ModuleMethod
     public PSet set(Object[] args, Object[] keywords) {
         if (args.length == 1) {
@@ -321,7 +346,7 @@ public class BuiltInModule extends Module {
             return new PSet();
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     public PSet set(Object arg) {
         if (arg instanceof String) {
@@ -332,7 +357,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unexpected argument type for set() ");
         }
     }
-    
+
     public PSet set(Object arg1, Object arg2) {
         return new PSet();
     }
@@ -345,7 +370,7 @@ public class BuiltInModule extends Module {
             return new PFrozenSet();
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     public PFrozenSet frozenset(Object arg) {
         if (arg instanceof String) {
@@ -356,11 +381,11 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unexpected argument type for frozenset() ");
         }
     }
-    
+
     public PFrozenSet frozenset(Object arg1, Object arg2) {
         return new PFrozenSet();
     }
-   
+
     @ModuleMethod
     public PList enumerate(Object[] args, Object[] keywords) {
         if (args.length != 1) {
@@ -368,7 +393,7 @@ public class BuiltInModule extends Module {
         }
         return enumerate(args[0]);
     }
-    
+
     public PList enumerate(Object arg) {
         if (arg instanceof PList) {
             PList list = (PList) arg;
@@ -376,7 +401,7 @@ public class BuiltInModule extends Module {
             int index = 0;
 
             for (int i = 0; i < list.len(); i++) {
-                results.add(new PTuple(new Object[] { index, list.getItem(i) }));
+                results.add(new PTuple(new Object[]{index, list.getItem(i)}));
                 index++;
             }
 
@@ -385,12 +410,10 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unsupported argument type for enumerate() ");
         }
     }
-    
+
     public PList enumerate(Object arg1, Object arg2) {
         throw new RuntimeException("wrong number of arguments for enumerate()");
     }
-    
-    
 
     @ModuleMethod
     public PDictionary dict(Object[] args, Object[] keywords) {
@@ -403,10 +426,10 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for dict()");
         }
     }
-    
+
     public PDictionary dict(Object arg) {
         if (arg instanceof PDictionary) { // argument is a mapping
-                                              // type
+                                          // type
             return new PDictionary(((PDictionary) arg).getMap());
         } else if (arg instanceof PSequence) { // iterator type
             Iterator<?> iter = ((PSequence) arg).iterator();
@@ -427,7 +450,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("invalid args for dict()");
         }
     }
-    
+
     public PDictionary dict(Object arg1, Object arg2) {
         throw new RuntimeException("wrong number of arguments for dict()");
     }
@@ -440,7 +463,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for abs()");
         }
     }
-    
+
     public Object abs(Object arg) {
         if (arg instanceof Integer) {
             int val = (int) arg;
@@ -459,7 +482,7 @@ public class BuiltInModule extends Module {
                 return val;
         } else if (arg instanceof PComplex) {
             PComplex val = (PComplex) arg;
-            //return Math.hypot(val.getReal(), val.getImag());
+            // return Math.hypot(val.getReal(), val.getImag());
             double real = val.getReal();
             double imag = val.getImag();
             return hypot(real, imag);
@@ -467,7 +490,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("invalid data type for abs()");
         }
     }
-    
+
     public Object abs(Object arg1, Object arg2) {
         throw new RuntimeException("wrong number of args for abs()");
     }
@@ -480,7 +503,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for list()");
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     public PList list(Object arg) {
         if (arg instanceof String) {
@@ -491,12 +514,11 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("Unexpected argument type");
         }
     }
-    
+
     public PList list(Object arg1, Object arg2) {
         throw new RuntimeException("wrong number of arguments for list()");
     }
 
-        
     private Object doubleToInt(Double num) {
         if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE)
             return BigInteger.valueOf(num.longValue());
@@ -527,7 +549,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for int()");
         }
     }
-    
+
     public Object toInt(Object arg) {
         if (arg instanceof Integer || arg instanceof BigInteger)
             return arg;
@@ -539,7 +561,7 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("invalid value for int()");
         }
     }
-    
+
     public Object toInt(Object arg1, Object arg2) {
         if (arg1 instanceof String && arg2 instanceof Integer) {
             return stringToInt((String) arg1, (Integer) arg2);
@@ -570,8 +592,7 @@ public class BuiltInModule extends Module {
 
             if (base == 16) {
                 if (str.charAt(b) == '0') {
-                    if (b < e - 1 &&
-                            Character.toUpperCase(str.charAt(b + 1)) == 'X') {
+                    if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'X') {
                         b += 2;
                     }
                 }
@@ -595,8 +616,7 @@ public class BuiltInModule extends Module {
                     b += 2;
                 }
             } else if (base == 2) {
-                if (b < e - 1 &&
-                        Character.toUpperCase(str.charAt(b + 1)) == 'B') {
+                if (b < e - 1 && Character.toUpperCase(str.charAt(b + 1)) == 'B') {
                     b += 2;
                 }
             }
@@ -624,7 +644,7 @@ public class BuiltInModule extends Module {
         }
         return bi;
     }
-    
+
     private PList rangeInt(int start, int stop, int step) {
         ArrayList<Object> list = new ArrayList<Object>();
 
@@ -698,15 +718,18 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for range() ");
         }
     }
-    
+
     public PList range(Object arg) {
         if (arg instanceof Integer) {
             return rangeInt(0, (Integer) arg, 1);
+        } else if (arg instanceof Double) {
+            int intArg = ((Double) arg).intValue();
+            return rangeInt(0, intArg, 1);
         } else {
             return rangeBigInt(BigInteger.ZERO, arg, BigInteger.ONE);
         }
     }
-    
+
     public PList range(Object arg1, Object arg2) {
         if (arg1 instanceof Integer && arg2 instanceof Integer) {
             return rangeInt((Integer) arg1, (Integer) arg2, 1);
@@ -714,7 +737,7 @@ public class BuiltInModule extends Module {
             return rangeBigInt(arg1, arg2, BigInteger.ONE);
         }
     }
-    
+
     /**
      * str() currently only handle one argument
      */
@@ -726,15 +749,15 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for str() ");
         }
     }
-    
+
     public String str(Object arg) {
         return arg.toString();
     }
-    
+
     public String str(Object arg0, Object arg1) {
         throw new RuntimeException("wrong number of arguments for str() ");
     }
-    
+
     @ModuleMethod
     public PList map(Object[] args, Object[] keywords) {
         if (args.length == 2) {
@@ -743,24 +766,24 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for str() ");
         }
     }
-    
+
     public PList map(Object arg) {
         throw new RuntimeException("wrong number of arguments for map() ");
     }
-    
+
     @SuppressWarnings("rawtypes")
     public PList map(Object arg0, Object arg1) {
         PCallable callee = (PCallable) arg0;
-        Iterator iter = getIterable(arg1);    
-        
+        Iterator iter = getIterable(arg1);
+
         ArrayList<Object> list = new ArrayList<Object>();
         while (iter.hasNext()) {
             list.add(callee.call(null, iter.next()));
         }
-        
+
         return new PList(list);
     }
-    
+
     @ModuleMethod
     public String chr(Object[] args, Object[] keywords) {
         if (args.length == 1) {
@@ -769,38 +792,53 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("wrong number of arguments for chr() ");
         }
     }
-    
+
     public String chr(Object arg) {
         int value = (int) arg;
-        return Character.toString ((char) value);
+        return Character.toString((char) value);
     }
-    
+
     public String chr(Object arg0, Object arg1) {
         throw new RuntimeException("wrong number of arguments for chr() ");
     }
-    
+
     /**
-     *  zip() method, should return a python iterator, but we use list as a temporary solution
+     * int()
      */
-    
+    @ModuleMethod("int")
+    public int Int(Object[] args, Object[] keywords) {
+        return Int(args[0]);
+    }
+
+    public int Int(Object arg) {
+        return (int) toInt(arg);
+    }
+
+    public int Int(Object arg0, Object arg1) {
+        return (int) toInt(arg0, arg1);
+    }
+
+    /**
+     * zip() method, should return a python iterator, but we use list as a temporary solution
+     */
+
     @SuppressWarnings("rawtypes")
     @ModuleMethod
     public PList zip(Object[] args, Object[] keywords) {
         int itemsize = args.length;
-        
+
         Iterator[] argList = new Iterator[itemsize];
-        
+
         int index = 0;
-        for (int i = 0; i< args.length; i++) {
+        for (int i = 0; i < args.length; i++) {
             argList[index++] = getIterable(args[i]);
         }
-        
+
         ArrayList<PTuple> tuples = new ArrayList<PTuple>();
-              
-        OutterLoop:
-        while (true) {
+
+        OutterLoop: while (true) {
             Object[] temp = new Object[itemsize];
-       
+
             for (int i = 0; i < itemsize; i++) {
                 if (argList[i].hasNext()) {
                     temp[i] = argList[i].next();
@@ -808,13 +846,13 @@ public class BuiltInModule extends Module {
                     break OutterLoop;
                 }
             }
-            
+
             tuples.add(new PTuple(temp));
         }
-        
+
         return new PList(tuples);
     }
-    
+
     @SuppressWarnings("unchecked")
     public PList zip(Object arg) {
         if (arg instanceof String) {
@@ -825,23 +863,23 @@ public class BuiltInModule extends Module {
             throw new RuntimeException("argument is not iterable ");
         }
     }
-    
+
     @SuppressWarnings("rawtypes")
-    public PList zip(Object arg0, Object arg1) {                
+    public PList zip(Object arg0, Object arg1) {
         Iterator iter0 = getIterable(arg0);
         Iterator iter1 = getIterable(arg1);
 
         ArrayList<PTuple> tuples = new ArrayList<PTuple>();
-              
+
         while (true) {
             Object[] temp = new Object[2];
-       
+
             if (iter0.hasNext()) {
                 temp[0] = iter0.next();
             } else {
                 break;
             }
-            
+
             if (iter1.hasNext()) {
                 temp[1] = iter1.next();
             } else {
@@ -850,10 +888,10 @@ public class BuiltInModule extends Module {
 
             tuples.add(new PTuple(temp));
         }
-        
+
         return new PList(tuples);
     }
-    
+
     @SuppressWarnings("unchecked")
     private Iterator<Object> getIterable(Object o) {
         if (o instanceof String) {

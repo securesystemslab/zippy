@@ -1,39 +1,51 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.literals;
 
-import org.python.ast.datatypes.*;
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.PNode;
 
-import com.oracle.truffle.api.codegen.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import static org.python.core.truffle.PythonTypesUtil.*;
 
-@ExecuteChildren({ "values" })
-public abstract class TupleLiteralNode extends TypedNode {
+public final class TupleLiteralNode extends LiteralNode {
 
-    @Children
-    protected TypedNode[] values;
+    @Children protected final PNode[] values;
 
-    public TupleLiteralNode(TypedNode[] values) {
+    public TupleLiteralNode(PNode[] values) {
         this.values = adoptChildren(values);
     }
 
-    protected TupleLiteralNode(TupleLiteralNode node) {
-        this(node.values);
-    }
-
-    @Specialization
-    public PTuple doTruffleTuple(VirtualFrame frame) {
-        return (PTuple) doGeneric(frame); // TODO
-    }
-
-    @Generic
-    public Object doGeneric(VirtualFrame frame) {
+    @ExplodeLoop
+    @Override
+    public Object execute(VirtualFrame frame) {
         Object[] elements = new Object[values.length];
 
-        int i = 0;
-        for (TypedNode v : this.values) {
-            elements[i++] = v.executeGeneric(frame);
+        for (int i = 0; i < values.length; i++) {
+            elements[i] = values[i].execute(frame);
         }
 
         return createTuple(elements);
@@ -41,7 +53,7 @@ public abstract class TupleLiteralNode extends TypedNode {
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName();
+        return "tuple";
     }
 
     @Override
@@ -52,7 +64,7 @@ public abstract class TupleLiteralNode extends TypedNode {
         System.out.println(this);
 
         level++;
-        for (TypedNode v : values) {
+        for (PNode v : values) {
             v.visualize(level);
         }
     }

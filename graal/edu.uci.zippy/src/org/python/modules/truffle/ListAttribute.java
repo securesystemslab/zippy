@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.modules.truffle;
 
 import java.util.Arrays;
@@ -7,8 +31,8 @@ import java.util.List;
 import org.python.ast.datatypes.PList;
 import org.python.modules.truffle.annotations.ModuleMethod;
 
-public class ListAttribute extends Module{
-    
+public class ListAttribute extends PythonModule {
+
     public ListAttribute() {
         try {
             addAttributeMethods();
@@ -17,40 +41,39 @@ public class ListAttribute extends Module{
             e.printStackTrace();
         }
     }
-    
-    
+
     @ModuleMethod
-    public PList append(Object[] args, Object self) {        
+    public PList append(Object[] args, Object self) {
         if (args.length == 1) {
             return append(args[0], self);
         } else {
             throw new RuntimeException("wrong number of arguments for append()");
         }
     }
-    
+
     public PList append(Object arg, Object self) {
         PList selfList = (PList) self;
-        
+
         selfList.getList().add(arg);
         return selfList;
     }
-    
-    public PList append(Object arg0, Object arg1, Object self) {        
+
+    public PList append(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for append()");
     }
 
     @ModuleMethod
-    public PList extend(Object[] args, Object self) {        
+    public PList extend(Object[] args, Object self) {
         if (args.length == 1) {
-           return extend(args[0], self);
+            return extend(args[0], self);
         } else {
             throw new RuntimeException("wrong number of arguments for extend()");
         }
     }
-    
+
     public PList extend(Object arg, Object self) {
         PList selfList = (PList) self;
-        
+
         if (arg instanceof PList) {
             List<Object> list = ((PList) arg).getList();
             for (int i = 0; i < list.size(); i++)
@@ -60,8 +83,8 @@ public class ListAttribute extends Module{
             throw new RuntimeException("invalid arguments for extend()");
         }
     }
-    
-    public PList extend(Object arg0, Object arg1, Object self) {        
+
+    public PList extend(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for extend()");
     }
 
@@ -73,7 +96,7 @@ public class ListAttribute extends Module{
             throw new RuntimeException("wrong number of arguments for insert()");
         }
     }
-    
+
     public PList insert(Object arg0, Object arg1, Object self) {
         PList selfList = (PList) self;
 
@@ -84,7 +107,7 @@ public class ListAttribute extends Module{
             throw new RuntimeException("invalid arguments for insert()");
         }
     }
-    
+
     public PList insert(Object arg, Object self) {
         throw new RuntimeException("wrong number of arguments for insert()");
     }
@@ -97,16 +120,16 @@ public class ListAttribute extends Module{
             throw new RuntimeException("wrong number of arguments for remove()");
         }
     }
-    
+
     public PList remove(Object arg, Object self) {
         PList selfList = (PList) self;
-        
+
         if (selfList.getList().remove(arg))
             return selfList;
         else
             throw new RuntimeException("invalid arguments for remove()");
     }
-    
+
     public PList remove(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for remove()");
     }
@@ -125,7 +148,7 @@ public class ListAttribute extends Module{
             throw new RuntimeException("wrong number of arguments for pop()");
         }
     }
-    
+
     public Object pop(Object arg, Object self) {
         PList selfList = (PList) self;
 
@@ -138,7 +161,7 @@ public class ListAttribute extends Module{
             throw new RuntimeException("invalid arguments for pop()");
         }
     }
-    
+
     public Object pop(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for pop()");
     }
@@ -146,12 +169,12 @@ public class ListAttribute extends Module{
     @ModuleMethod
     public int index(Object[] args, Object self) {
         if (args.length == 1) {
-           return index(args[0], self);
+            return index(args[0], self);
         } else {
             throw new RuntimeException("wrong number of arguments for index()");
         }
     }
-    
+
     public int index(Object arg, Object self) {
         PList selfList = (PList) self;
 
@@ -161,7 +184,7 @@ public class ListAttribute extends Module{
         else
             throw new RuntimeException("invalid arguments for index()");
     }
-    
+
     public int index(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for index()");
     }
@@ -174,7 +197,7 @@ public class ListAttribute extends Module{
             throw new RuntimeException("wrong number of arguments for count()");
         }
     }
-    
+
     public int count(Object arg, Object self) {
         PList selfList = (PList) self;
 
@@ -186,7 +209,7 @@ public class ListAttribute extends Module{
         }
         return ret;
     }
-    
+
     public int count(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for count()");
     }
@@ -207,11 +230,11 @@ public class ListAttribute extends Module{
             throw new RuntimeException("wrong number of arguments for sort()");
         }
     }
-    
+
     public PList sort(Object arg, Object self) {
         throw new RuntimeException("wrong number of arguments for sort()");
     }
-    
+
     public PList sort(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for sort()");
     }
@@ -227,11 +250,11 @@ public class ListAttribute extends Module{
             throw new RuntimeException("wrong number of arguments for reverse()");
         }
     }
-    
+
     public PList reverse(Object arg, Object self) {
         throw new RuntimeException("wrong number of arguments for reverse()");
     }
-    
+
     public PList reverse(Object arg0, Object arg1, Object self) {
         throw new RuntimeException("wrong number of arguments for reverse()");
     }

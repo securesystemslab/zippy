@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.expressions;
 
 import java.math.BigInteger;
@@ -5,38 +29,28 @@ import java.math.BigInteger;
 import org.python.ast.datatypes.PDictionary;
 import org.python.ast.datatypes.PList;
 import org.python.ast.datatypes.PTuple;
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.PNode;
+import org.python.ast.nodes.statements.StatementNode;
 
-import com.oracle.truffle.api.codegen.ExecuteChildren;
-import com.oracle.truffle.api.codegen.Generic;
-import com.oracle.truffle.api.codegen.Specialization;
+import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-@ExecuteChildren({ "test", "body", "orelse" })
-public abstract class IfExpressionNode extends TypedNode {
+@NodeChildren({@NodeChild(value = "condition", type = PNode.class), @NodeChild(value = "then", type = PNode.class), @NodeChild(value = "orelse", type = PNode.class)})
+public abstract class IfExpressionNode extends StatementNode {
 
-    @Child
-    protected TypedNode test;
+    public abstract PNode getCondition();
 
-    @Child
-    protected TypedNode body;
+    public abstract PNode getThen();
 
-    @Child
-    protected TypedNode orelse;
+    public abstract PNode getOrelse();
 
-    public IfExpressionNode(TypedNode test, TypedNode body, TypedNode orelse) {
-        this.test = adoptChild(test);
-        this.body = adoptChild(body);
-        this.orelse = adoptChild(orelse);
-    }
-    
-    protected IfExpressionNode(IfExpressionNode node) {
-        this.test = adoptChild(node.test);
-        this.body = adoptChild(node.body);
-        this.orelse = adoptChild(node.orelse);
-        copyNext(node);
-    }
-    
+    @Child protected StatementNode body;
+
+    @Child protected StatementNode orelse;
+
     @Specialization
     Object doInteger(int test, Object body, Object orelse) {
         boolean condition = test != 0;
@@ -54,20 +68,20 @@ public abstract class IfExpressionNode extends TypedNode {
         boolean condition = test != 0;
         return runIfExp(condition, body, orelse);
     }
-    
+
     @Specialization
     Object doString(VirtualFrame frame, String test, Object body, Object orelse) {
         boolean condition = test.length() != 0;
         return runIfExp(condition, body, orelse);
 
     }
-    
+
     @Specialization
     Object doPTuple(VirtualFrame frame, PTuple test, Object body, Object orelse) {
         boolean condition = test.len() != 0;
         return runIfExp(condition, body, orelse);
     }
-    
+
     @Specialization
     Object doPList(VirtualFrame frame, PList test, Object body, Object orelse) {
         boolean condition = test.len() != 0;
@@ -85,7 +99,7 @@ public abstract class IfExpressionNode extends TypedNode {
         boolean condition = test != null;
         return runIfExp(condition, body, orelse);
     }
-    
+
     private Object runIfExp(boolean test, Object body, Object orelse) {
         if (test) {
             return body;

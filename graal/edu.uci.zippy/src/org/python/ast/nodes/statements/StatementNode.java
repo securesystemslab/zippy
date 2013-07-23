@@ -1,13 +1,35 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.statements;
 
 import org.python.ast.*;
 import org.python.ast.nodes.FunctionRootNode;
 import org.python.ast.nodes.PNode;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-
 /**
- * New StatementNode replacing stmt
+ * New StatementNode replacing stmt.
  * 
  * @author zwei
  * 
@@ -33,11 +55,11 @@ public abstract class StatementNode extends PNode {
         this.loopHeader = loopHeader;
     }
 
-    public boolean isBreak() {
+    public final boolean isBreak() {
         return isBreak;
     }
 
-    protected boolean reachedBreak() {
+    protected final boolean reachedBreak() {
         if (loopHeader != null) {
             return loopHeader.isBreak();
         } else {
@@ -45,7 +67,7 @@ public abstract class StatementNode extends PNode {
         }
     }
 
-    public boolean reachedReturn() {
+    public final boolean reachedReturn() {
         if (funcRoot != null) {
             return funcRoot.reachedReturn();
         } else {
@@ -69,8 +91,6 @@ public abstract class StatementNode extends PNode {
         assert this.next != null : "next is not initialized";
         return next;
     }
-
-    public abstract void executeVoid(VirtualFrame frame);
 
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitStatementNode(this);

@@ -1,4 +1,0 @@
-base_class: PyEnumerate
-want_dict: true
-ctr: PyObject seq
-incl: object

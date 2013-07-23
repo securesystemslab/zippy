@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast;
 
 import java.util.List;
@@ -12,9 +36,9 @@ import org.python.compiler.*;
 import org.python.core.*;
 import org.python.core.truffle.EnvironmentFrameSlot;
 import org.python.core.truffle.GlobalScope;
-import org.python.core.truffle.PythonTypesGen;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.DefaultFrameTypeConversion;
 
 public class PythonTreeProcessor extends Visitor {
 
@@ -44,7 +68,9 @@ public class PythonTreeProcessor extends Visitor {
         if (currentFrame != null) {
             frames.push(currentFrame);
         }
-        currentFrame = new FrameDescriptor(PythonTypesGen.PYTHONTYPES);
+
+        // temporary fix!
+        currentFrame = new FrameDescriptor(DefaultFrameTypeConversion.getInstance());
 
         if (globalFrame == null) {
             globalFrame = currentFrame;
@@ -249,9 +275,14 @@ public class PythonTreeProcessor extends Visitor {
         traverse(node);
 
         String name = node.getInternalId();
+
         if (node.getInternalCtx() != expr_contextType.Load) {
             if (scopeLevel == 1) {
                 // Module global scope
+                /**
+                 * Variables in module's scope are also treated as globals This is why slot is not
+                 * set for variables in module's scope WriteGlobal or ReadGlobal
+                 */
                 if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
                     node.setSlot(def(name));
                 }
@@ -333,9 +364,9 @@ public class PythonTreeProcessor extends Visitor {
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         // The first iterator is evaluated in the outer scope
-//        if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
-//            visit(node.getInternalGenerators().get(0).getInternalIter());
-//        }
+// if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
+// visit(node.getInternalGenerators().get(0).getInternalIter());
+// }
         String bound_exp = "_(x)";
         String tmp = "_(" + node.getLine() + "_" + node.getCharPositionInLine() + ")";
         def(tmp);
@@ -370,19 +401,16 @@ public class PythonTreeProcessor extends Visitor {
         }
 
         /*
-         * The order and how different generator parts are parsed here makes
-         * zero sense to me.
+         * The order and how different generator parts are parsed here makes zero sense to me.
          * 
-         * Why the first iterator is evaluated in the outer scope? Answer: The
-         * first iterator should be evaluated in the outer scope, and the
-         * returned sequence shall be passed to the closure of the generator
-         * expression.
+         * Why the first iterator is evaluated in the outer scope? Answer: The first iterator should
+         * be evaluated in the outer scope, and the returned sequence shall be passed to the closure
+         * of the generator expression.
          * 
          * What is the purpose of this hard coded bound_exp
          * 
-         * Why is generator targets parsed after the first elt? Answer: Elt need
-         * to be parsed after generators. This is logical and in line with the
-         * interpretation order.
+         * Why is generator targets parsed after the first elt? Answer: Elt need to be parsed after
+         * generators. This is logical and in line with the interpretation order.
          */
         transformComprehensions(node.getInternalGenerators(), node.getInternalElt());
 

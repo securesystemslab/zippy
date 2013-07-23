@@ -1,35 +1,47 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.expressions;
 
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.PNode;
+import org.python.ast.nodes.statements.StatementNode;
 
-import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
 
-@ExecuteChildren({ "first", "second", "third" })
-public abstract class TernaryOpNode extends TypedNode {
+@NodeChildren({@NodeChild(value = "first", type = PNode.class), @NodeChild(value = "second", type = PNode.class), @NodeChild(value = "third", type = PNode.class)})
+public abstract class TernaryOpNode extends StatementNode {
 
-    @Child
-    protected TypedNode first;
+    public abstract PNode getFirst();
 
-    @Child
-    protected TypedNode second;
+    public abstract PNode getSecond();
 
-    @Child
-    protected TypedNode third;
-
-    public TernaryOpNode(TypedNode first, TypedNode second, TypedNode third) {
-        this.first = adoptChild(first);
-        this.second = adoptChild(second);
-        this.third = adoptChild(third);
-    }
-
-    protected TernaryOpNode(TernaryOpNode node) {
-        this(node.first, node.second, node.third);
-        copyNext(node);
-    }
+    public abstract PNode getThird();
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "(" + first + ", " + second + ", " + third + ")";
+        return this.getClass().getSimpleName() + "(" + getFirst() + ", " + getSecond() + ", " + getThird() + ")";
     }
 
     @Override
@@ -40,14 +52,14 @@ public abstract class TernaryOpNode extends TypedNode {
         System.out.println(this);
 
         level++;
-        if (first != null) {
-            first.visualize(level);
+        if (getFirst() != null) {
+            getFirst().visualize(level);
         }
-        if (second != null) {
-            second.visualize(level);
+        if (getSecond() != null) {
+            getSecond().visualize(level);
         }
-        if (third != null) {
-            third.visualize(level);
+        if (getThird() != null) {
+            getThird().visualize(level);
         }
     }
 

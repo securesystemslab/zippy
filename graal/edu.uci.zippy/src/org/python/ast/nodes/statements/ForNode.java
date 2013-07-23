@@ -1,10 +1,35 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.statements;
 
 import java.util.*;
 
 import org.python.ast.*;
-import org.python.ast.nodes.LeftHandSideNode;
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.PNode;
+import org.python.ast.nodes.RuntimeValueNode;
+import org.python.ast.nodes.WriteNode;
 import org.python.ast.utils.*;
 import org.python.core.PyObject;
 
@@ -14,25 +39,21 @@ import static org.python.core.truffle.PythonTypesUtil.*;
 
 public class ForNode extends StatementNode {
 
-    @Child
-    protected LeftHandSideNode target;
+    @Child protected StatementNode target;
 
-    @Child
-    protected TypedNode iterator;
+    @Child protected PNode iterator;
 
-    @Child
-    protected BlockNode body;
+    @Child protected BlockNode body;
 
-    @Child
-    protected BlockNode orelse;
+    @Child protected BlockNode orelse;
 
-    public ForNode(LeftHandSideNode target, TypedNode iterator, BlockNode body, BlockNode orelse) {
+    public ForNode(StatementNode target, PNode iterator, BlockNode body, BlockNode orelse) {
         this.target = adoptChild(target);
         this.iterator = adoptChild(iterator);
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
     }
-    
+
     public void setInternal(BlockNode body, BlockNode orelse) {
         this.body = adoptChild(body);
         this.orelse = adoptChild(orelse);
@@ -40,7 +61,7 @@ public class ForNode extends StatementNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        Object evaluatedIterator = iterator.executeGeneric(frame);
+        Object evaluatedIterator = iterator.execute(frame);
 
         if (evaluatedIterator instanceof Iterable) {
             loopOnIterable(frame, (Iterable<?>) evaluatedIterator);
@@ -51,12 +72,29 @@ public class ForNode extends StatementNode {
         }
     }
 
+    @Override
+    public Object execute(VirtualFrame frame) {
+        Object evaluatedIterator = iterator.execute(frame);
+
+        if (evaluatedIterator instanceof Iterable) {
+            loopOnIterable(frame, (Iterable<?>) evaluatedIterator);
+        } else if (evaluatedIterator instanceof PyObject) {
+            loopOnPyObject(frame, (PyObject) evaluatedIterator);
+        } else {
+            throw new RuntimeException("Unexpected iterator type " + evaluatedIterator.getClass());
+        }
+
+        return null;
+    }
+
     private void loopOnIterable(VirtualFrame frame, Iterable<?> iterable) {
         Iterator<?> iter = iterable.iterator();
+        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
-        //try {
+        // try {
         while (iter.hasNext()) {
-            target.doLeftHandSide(frame, iter.next());
+            rvn.setValue(iter.next());
+            target.execute(frame);
 
             try {
                 body.executeVoid(frame);
@@ -68,11 +106,11 @@ public class ForNode extends StatementNode {
                 // Fall through to next loop iteration.
             }
         }
-        //} catch (BreakException ex) {
-            // Done executing this loop.
-            // If there is a break, orelse should not be executed
-        //    return;
-        //}
+        // } catch (BreakException ex) {
+        // Done executing this loop.
+        // If there is a break, orelse should not be executed
+        // return;
+        // }
 
         orelse.executeVoid(frame);
     }
@@ -80,10 +118,12 @@ public class ForNode extends StatementNode {
     private void loopOnPyObject(VirtualFrame frame, PyObject sequence) {
         PyObject iterator = sequence.__iter__();
         PyObject itValue;
+        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
-        //try {
+        // try {
         while ((itValue = iterator.__iternext__()) != null) {
-            target.doLeftHandSide(frame, unboxPyObject(itValue));
+            rvn.setValue(unboxPyObject(itValue));
+            target.execute(frame);
 
             try {
                 body.executeVoid(frame);
@@ -95,12 +135,12 @@ public class ForNode extends StatementNode {
                 // Fall through to next loop iteration.
             }
         }
-        //} catch (BreakException ex) {
-            // Done executing this loop
-            // If there is a break, orelse should not be executed
-        //    return;
-        //}
-        
+        // } catch (BreakException ex) {
+        // Done executing this loop
+        // If there is a break, orelse should not be executed
+        // return;
+        // }
+
         orelse.executeVoid(frame);
     }
 
@@ -121,8 +161,7 @@ public class ForNode extends StatementNode {
         System.out.println(this);
 
         level++;
-//        PythonTree p = (PythonTree) target;
-//        p.visualize(level);
+        target.visualize(level);
         iterator.visualize(level);
         body.visualize(level);
     }
@@ -138,13 +177,16 @@ public class ForNode extends StatementNode {
         @Override
         public void executeVoid(VirtualFrame frame) {
             if (iter == null) {
-                Iterable<?> it = (Iterable<?>) this.iterator.executeGeneric(frame);
+                Iterable<?> it = (Iterable<?>) this.iterator.execute(frame);
                 iter = (Iterator<?>) it.iterator();
             }
 
+            RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+
             try {
                 while (iter.hasNext()) {
-                    target.doLeftHandSide(frame, iter.next());
+                    rvn.setValue(iter.next());
+                    target.execute(frame);
 
                     try {
                         body.executeVoid(frame);

@@ -1,4 +1,0 @@
-base_class: PyFile
-want_dict: true
-ctr:
-incl: object

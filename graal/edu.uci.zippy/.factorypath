@@ -1,6 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <factorypath>
-    <factorypathentry kind="PLUGIN" id="org.eclipse.jst.ws.annotations.core" enabled="true" runInBatchMode="false"/>
-    <factorypathentry kind="EXTJAR" id="/Users/myq/Documents/zippy/graal/com.oracle.truffle.api/com.oracle.truffle.api.jar" enabled="true" runInBatchMode="false"/>
-    <factorypathentry kind="EXTJAR" id="/Users/myq/Documents/zippy/graal/com.oracle.truffle.api.codegen/com.oracle.truffle.api.codegen.jar" enabled="true" runInBatchMode="false"/>
-    <factorypathentry kind="EXTJAR" id="/Users/myq/Documents/zippy/graal/com.oracle.truffle.codegen.processor/com.oracle.truffle.codegen.processor.jar" enabled="true" runInBatchMode="false"/>
+	<factorypathentry enabled="true" id="org.eclipse.jst.ws.annotations.core" kind="PLUGIN" runInBatchMode="false"/>
+	<factorypathentry enabled="true" id="/com.oracle.truffle.api/com.oracle.truffle.api.jar" kind="WKSPJAR" runInBatchMode="false"/>
+	<factorypathentry enabled="true" id="/com.oracle.truffle.api.dsl/com.oracle.truffle.api.dsl.jar" kind="WKSPJAR" runInBatchMode="false"/>
+	<factorypathentry enabled="true" id="/com.oracle.truffle.dsl.processor/com.oracle.truffle.dsl.processor.jar" kind="WKSPJAR" runInBatchMode="false"/>
 </factorypath>

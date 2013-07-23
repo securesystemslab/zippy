@@ -1,4 +1,0 @@
-base_class: ifilter
-want_dict: true
-ctr:
-incl: object

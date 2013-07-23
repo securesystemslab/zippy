@@ -1,121 +1,71 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.statements;
 
-import java.math.BigInteger;
-
 import org.python.ast.*;
-import org.python.ast.datatypes.PDictionary;
-import org.python.ast.datatypes.PList;
-import org.python.ast.datatypes.PTuple;
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.expressions.BooleanCastNode;
 
-import com.oracle.truffle.api.codegen.Generic;
-import com.oracle.truffle.api.codegen.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public abstract class IfNode extends StatementNode {
+public class IfNode extends StatementNode {
 
-    @Child
-    protected TypedNode conditionNode;
+    @Child protected final BooleanCastNode condition;
 
-    protected BlockNode thenPartNode;
+    @Child protected final BlockNode then;
 
-    protected BlockNode elsePartNode;
+    @Child protected final BlockNode orelse;
 
-    public IfNode(TypedNode condition, BlockNode thenPart, BlockNode elsePart) {
-        conditionNode = adoptChild(condition);
-        thenPartNode = adoptChild(thenPart);
-        elsePartNode = adoptChild(elsePart);
-    }
-    
-    protected IfNode(IfNode node) {
-        conditionNode = adoptChild(node.conditionNode);
-        thenPartNode = adoptChild(node.thenPartNode);
-        elsePartNode = adoptChild(node.elsePartNode);
+    public IfNode(BooleanCastNode condition, BlockNode then, BlockNode orelse) {
+        this.condition = adoptChild(condition);
+        this.then = adoptChild(then);
+        this.orelse = adoptChild(orelse);
     }
 
-    @Specialization
-    Object doInteger(VirtualFrame frame, int conditionNode) {
-        boolean test = conditionNode != 0;
-        return runIf(test, frame);
-    }
-    
-    @Specialization
-    Object doBoolean(VirtualFrame frame, boolean conditionNode) {
-        return runIf(conditionNode, frame);
-    }
-
-    @Specialization
-    Object doBigInteger(VirtualFrame frame, BigInteger conditionNode) {
-        boolean test = conditionNode.compareTo(BigInteger.ZERO) != 0;
-        return runIf(test, frame);
-    }
-
-    @Specialization
-    Object doDouble(VirtualFrame frame, double conditionNode) {
-        boolean test = conditionNode != 0;
-        return runIf(test, frame);
-    }
-    
-    @Specialization
-    Object doString(VirtualFrame frame, String conditionNode) {
-        boolean test = conditionNode.length() != 0;
-        return runIf(test, frame);
-
-    }
-    
-    @Specialization
-    Object doPTuple(VirtualFrame frame, PTuple conditionNode) {
-        boolean test = conditionNode.len() != 0;
-        return runIf(test, frame);
-    }
-    
-    @Specialization
-    Object doPList(VirtualFrame frame, PList conditionNode) {
-        boolean test = conditionNode.len() != 0;
-        return runIf(test, frame);
-    }
-
-    @Specialization
-    Object doPDictionary(VirtualFrame frame, PDictionary conditionNode) {
-        boolean test = conditionNode.len() != 0;
-        return runIf(test, frame);
-    }
-
-    @Generic
-    Object doGeneric(VirtualFrame frame, Object conditionNode) {
-        boolean test = conditionNode != null;
-        return runIf(test, frame);
-    }
- 
-    Object runIf(boolean test, VirtualFrame frame) {
-        if (test) {
-            thenPartNode.executeVoid(frame);
+    @Override
+    public void executeVoid(VirtualFrame frame) {
+        if (condition.executeBoolean(frame)) {
+            then.executeVoid(frame);
         } else {
-            elsePartNode.executeVoid(frame);
+            orelse.executeVoid(frame);
         }
-        
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        if (condition.executeBoolean(frame)) {
+            then.executeVoid(frame);
+        } else {
+            orelse.executeVoid(frame);
+        }
+
         return null;
     }
-    
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        executeGeneric(frame);
-    }
-    
-    public abstract Object executeGeneric(VirtualFrame frame);
-    
-/*    @Override
-    public void executeVoid(VirtualFrame frame) {
-        if (!conditionNode.executeCondition(frame)) {
-            thenPartNode.executeVoid(frame);
-        } else {
-            elsePartNode.executeVoid(frame);
-        }
-    }
-*/
+
     @Override
     public String toString() {
-        return super.toString() + "(" + conditionNode + ")";
+        return super.toString() + "(" + condition + ")";
     }
 
     public <R> R accept(StatementVisitor<R> visitor) {
@@ -130,9 +80,9 @@ public abstract class IfNode extends StatementNode {
         System.out.println(this);
 
         level++;
-        conditionNode.visualize(level);
-        thenPartNode.visualize(level);
-        elsePartNode.visualize(level);
+        condition.visualize(level);
+        then.visualize(level);
+        orelse.visualize(level);
     }
 
 }

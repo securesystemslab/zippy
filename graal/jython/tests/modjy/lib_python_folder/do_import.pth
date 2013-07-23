@@ -1,4 +1,0 @@
-# This is to test whether an import statement in a pth file is correctly exec'ed
-# http://www.python.org/doc/2.5/lib/module-site.html
-
-import math

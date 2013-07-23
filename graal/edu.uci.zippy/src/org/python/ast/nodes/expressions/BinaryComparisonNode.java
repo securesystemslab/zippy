@@ -1,32 +1,40 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.expressions;
 
 import java.math.*;
 import java.util.*;
 
 import org.python.ast.datatypes.*;
-import org.python.ast.nodes.TypedNode;
 
-import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.dsl.Specialization;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
 
-    public BinaryComparisonNode(TypedNode left, TypedNode right) {
-        super(left, right);
-    }
-
-    protected BinaryComparisonNode(BinaryComparisonNode node) {
-        super(node);
-    }
-
     public abstract static class EqualNode extends BinaryComparisonNode {
-
-        public EqualNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected EqualNode(EqualNode node) {
-            super(node);
-        }
 
         @Specialization
         boolean doInteger(int left, int right) {
@@ -90,14 +98,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class NotEqualNode extends BinaryComparisonNode {
 
-        public NotEqualNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected NotEqualNode(NotEqualNode node) {
-            super(node);
-        }
-
         @Specialization
         boolean doInteger(int left, int right) {
             return left != right;
@@ -125,14 +125,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     public abstract static class LessThanNode extends BinaryComparisonNode {
-
-        public LessThanNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected LessThanNode(LessThanNode node) {
-            super(node);
-        }
 
         @Specialization
         boolean doInteger(int left, int right) {
@@ -166,14 +158,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     public abstract static class LessThanEqualNode extends BinaryComparisonNode {
-
-        public LessThanEqualNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected LessThanEqualNode(LessThanEqualNode node) {
-            super(node);
-        }
 
         @Specialization
         boolean doInteger(int left, int right) {
@@ -209,14 +193,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class GreaterThanNode extends BinaryComparisonNode {
 
-        public GreaterThanNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected GreaterThanNode(GreaterThanNode node) {
-            super(node);
-        }
-
         @Specialization
         boolean doInteger(int left, int right) {
             return left > right;
@@ -243,16 +219,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
-    public abstract static class GreaterThanEqualNode extends
-            BinaryComparisonNode {
-
-        public GreaterThanEqualNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected GreaterThanEqualNode(GreaterThanEqualNode node) {
-            super(node);
-        }
+    public abstract static class GreaterThanEqualNode extends BinaryComparisonNode {
 
         @Specialization
         boolean doInteger(int left, int right) {
@@ -282,14 +249,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class IsNode extends BinaryComparisonNode {
 
-        public IsNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected IsNode(IsNode node) {
-            super(node);
-        }
-
         @Specialization
         boolean doInteger(int left, int right) {
             return left == right;
@@ -313,14 +272,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     public abstract static class IsNotNode extends BinaryComparisonNode {
-
-        public IsNotNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected IsNotNode(IsNotNode node) {
-            super(node);
-        }
 
         @Specialization
         boolean doInteger(int left, int right) {
@@ -346,14 +297,6 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class InNode extends BinaryComparisonNode {
 
-        public InNode(TypedNode left, TypedNode right) {
-            super(left, right);
-        }
-
-        protected InNode(InNode node) {
-            super(node);
-        }
-
         @Specialization
         public boolean doPSequence(Object left, PSequence right) {
             boolean has = false;
@@ -374,7 +317,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         public boolean doPDictionary(Object left, PDictionary right) {
-            return right.hasKey(new Object[] { left });
+            return right.hasKey(new Object[]{left});
         }
 
     }

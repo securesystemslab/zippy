@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.expressions;
 
 import java.util.ArrayList;
@@ -6,50 +30,51 @@ import java.util.List;
 
 import org.python.ast.datatypes.PList;
 import org.python.ast.datatypes.PSequence;
-import org.python.ast.nodes.ConditionNode;
-import org.python.ast.nodes.LeftHandSideNode;
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.PNode;
+import org.python.ast.nodes.RuntimeValueNode;
+import org.python.ast.nodes.WriteNode;
+import org.python.ast.nodes.statements.StatementNode;
 import org.python.ast.utils.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-@ExecuteChildren({ "iterator" })
-public abstract class ComprehensionNode extends TypedNode {
+@NodeChild(value = "iterator", type = PNode.class)
+public abstract class ComprehensionNode extends StatementNode {
 
-    @Child
-    protected TypedNode iterator;
+    public abstract PNode getIterator();
 
-    protected ConditionNode condition;
+    @Child protected BooleanCastNode condition;
 
-    protected LeftHandSideNode target;
+    @Child protected StatementNode target;
 
-    public ComprehensionNode(LeftHandSideNode target, TypedNode iterator, ConditionNode condition) {
+    public ComprehensionNode(StatementNode target, BooleanCastNode condition) {
         this.target = adoptChild(target);
-        this.iterator = adoptChild(iterator);
         this.condition = adoptChild(condition);
     }
 
     protected ComprehensionNode(ComprehensionNode node) {
-        this(node.target, node.iterator, node.condition);
-        copyNext(node);
+        this(node.target, node.condition);
     }
 
     @Specialization
     public Object doPSequence(VirtualFrame frame, PSequence sequence) {
         List<Object> results = new ArrayList<Object>();
         Iterator<?> iter = sequence.iterator();
+        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         while (iter.hasNext()) {
             Object value = iter.next();
+            rvn.setValue(value);
             evaluateNextItem(frame, value, results);
         }
 
         throw new ExplicitReturnException(new PList(results));
     }
 
-    @Generic
+    @Specialization
     public Object doGeneric(VirtualFrame frame, Object sequence) {
         PList seq;
         if (sequence instanceof CallTarget) {
@@ -62,9 +87,11 @@ public abstract class ComprehensionNode extends TypedNode {
 
         List<Object> results = new ArrayList<Object>();
         Iterator<?> iter = seq.iterator();
+        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         while (iter.hasNext()) {
             Object value = iter.next();
+            rvn.setValue(value);
             evaluateNextItem(frame, value, results);
         }
 
@@ -72,7 +99,7 @@ public abstract class ComprehensionNode extends TypedNode {
     }
 
     protected boolean evaluateCondition(VirtualFrame frame) {
-        return condition != null && !condition.executeCondition(frame);
+        return condition != null && !condition.executeBoolean(frame);
     }
 
     protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
@@ -87,7 +114,7 @@ public abstract class ComprehensionNode extends TypedNode {
         System.out.println(this);
 
         level++;
-        iterator.visualize(level);
+        getIterator().visualize(level);
         target.visualize(level);
         if (condition != null) {
             condition.visualize(level);
@@ -96,28 +123,27 @@ public abstract class ComprehensionNode extends TypedNode {
 
     public abstract static class InnerComprehensionNode extends ComprehensionNode {
 
-        @Child
-        protected TypedNode loopBody;
+        @Child protected PNode loopBody;
 
-        public InnerComprehensionNode(LeftHandSideNode target, TypedNode iterator, ConditionNode condition, TypedNode loopBody) {
-            super(target, iterator, condition);
+        public InnerComprehensionNode(StatementNode target, BooleanCastNode condition, PNode loopBody) {
+            super(target, condition);
             this.loopBody = adoptChild(loopBody);
         }
 
         protected InnerComprehensionNode(InnerComprehensionNode node) {
-            this(node.target, node.iterator, node.condition, node.loopBody);
+            this(node.target, node.condition, node.loopBody);
         }
 
         @Override
         protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
-            target.doLeftHandSide(frame, value);
+            target.execute(frame);
 
             if (this.evaluateCondition(frame)) {
                 return;
             }
 
             if (loopBody != null) {
-                results.add(loopBody.executeGeneric(frame));
+                results.add(loopBody.execute(frame));
             }
         }
 
@@ -133,21 +159,20 @@ public abstract class ComprehensionNode extends TypedNode {
 
     public abstract static class OuterComprehensionNode extends ComprehensionNode {
 
-        @Child
-        protected TypedNode innerLoop;
+        @Child protected PNode innerLoop;
 
-        public OuterComprehensionNode(LeftHandSideNode target, TypedNode iterator, ConditionNode condition, TypedNode innerLoop) {
-            super(target, iterator, condition);
+        public OuterComprehensionNode(StatementNode target, BooleanCastNode condition, PNode innerLoop) {
+            super(target, condition);
             this.innerLoop = adoptChild(innerLoop);
         }
 
         protected OuterComprehensionNode(OuterComprehensionNode node) {
-            this(node.target, node.iterator, node.condition, node.innerLoop);
+            this(node.target, node.condition, node.innerLoop);
         }
 
         @Override
         protected void evaluateNextItem(VirtualFrame frame, Object value, List<Object> results) {
-            target.doLeftHandSide(frame, value);
+            target.execute(frame);
 
             if (this.evaluateCondition(frame)) {
                 return;
@@ -158,7 +183,7 @@ public abstract class ComprehensionNode extends TypedNode {
             }
 
             try {
-                innerLoop.executeGeneric(frame);
+                innerLoop.execute(frame);
             } catch (ExplicitReturnException ere) {
                 PList list = (PList) ere.getValue();
                 results.addAll(list.getList());

@@ -1,3 +1,0 @@
-base_class: PyObject
-want_dict: true
-ctr: int x

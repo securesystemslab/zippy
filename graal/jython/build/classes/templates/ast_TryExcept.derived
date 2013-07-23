@@ -1,4 +1,0 @@
-base_class: TryExcept
-want_dict: true
-ctr
-incl: object

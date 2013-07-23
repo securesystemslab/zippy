@@ -1,4 +1,0 @@
-base_class: PyFrozenSet
-want_dict: true
-ctr: PyObject data
-incl: object

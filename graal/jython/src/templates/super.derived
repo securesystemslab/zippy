@@ -1,4 +1,0 @@
-base_class: PySuper
-want_dict: true
-ctr:
-incl: object

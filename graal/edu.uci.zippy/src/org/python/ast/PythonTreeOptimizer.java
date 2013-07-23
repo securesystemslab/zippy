@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast;
 
 import java.math.BigInteger;
@@ -16,40 +40,38 @@ import org.python.ast.nodes.expressions.BinaryArithmeticNode.SubNode;
 import org.python.ast.nodes.statements.*;
 import org.python.ast.nodes.literals.*;
 
-import com.oracle.truffle.api.intrinsics.ExactMath;
+import com.oracle.truffle.api.ExactMath;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-
 
 public class PythonTreeOptimizer implements PNodeVisitor {
 
     public void optimize(RootNode rootNode) {
         traverseChildren(rootNode);
     }
-    
+
     public void visitPNode(PNode node) {
     }
 
     public void visitStatementNode(StatementNode node) {
         traverseChildren(node);
     }
- 
-    
+
     public void visitAddNode(AddNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = ExactMath.addExact(leftValue, rightValue);
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
+            } catch (ArithmeticException e) {
                 BigInteger resultValue = BigInteger.valueOf(leftValue).add(BigInteger.valueOf(rightValue));
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
@@ -68,28 +90,28 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             node.replace(resultNode);
         } else if (isLiteralComplexType(leftNode) && isLiteralComplexType(rightNode)) {
             PComplex leftValue = getComplexValueOfLiteral(leftNode);
-            PComplex rightValue =getComplexValueOfLiteral(rightNode);
+            PComplex rightValue = getComplexValueOfLiteral(rightNode);
             PComplex resultValue = leftValue.add(rightValue);
             ComplexLiteralNode resultNode = ComplexLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        }        
+        }
     }
-    
+
     public void visitSubNode(SubNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = ExactMath.subtractExact(leftValue, rightValue);
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
+            } catch (ArithmeticException e) {
                 BigInteger resultValue = BigInteger.valueOf(leftValue).subtract(BigInteger.valueOf(rightValue));
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
@@ -108,29 +130,28 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             node.replace(resultNode);
         } else if (isLiteralComplexType(leftNode) && isLiteralComplexType(rightNode)) {
             PComplex leftValue = getComplexValueOfLiteral(leftNode);
-            PComplex rightValue =getComplexValueOfLiteral(rightNode);
+            PComplex rightValue = getComplexValueOfLiteral(rightNode);
             PComplex resultValue = leftValue.sub(rightValue);
             ComplexLiteralNode resultNode = ComplexLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        }   
+        }
     }
-    
-    
+
     public void visitMulNode(MulNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = ExactMath.multiplyExact(leftValue, rightValue);
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
+            } catch (ArithmeticException e) {
                 BigInteger resultValue = BigInteger.valueOf(leftValue).multiply(BigInteger.valueOf(rightValue));
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
@@ -149,28 +170,28 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             node.replace(resultNode);
         } else if (isLiteralComplexType(leftNode) && isLiteralComplexType(rightNode)) {
             PComplex leftValue = getComplexValueOfLiteral(leftNode);
-            PComplex rightValue =getComplexValueOfLiteral(rightNode);
+            PComplex rightValue = getComplexValueOfLiteral(rightNode);
             PComplex resultValue = leftValue.mul(rightValue);
             ComplexLiteralNode resultNode = ComplexLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        }   
+        }
     }
-    
+
     public void visitDivNode(DivNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = leftValue / rightValue;
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
+            } catch (ArithmeticException e) {
                 BigInteger resultValue = BigInteger.valueOf(leftValue).divide(BigInteger.valueOf(rightValue));
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
@@ -189,28 +210,28 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             node.replace(resultNode);
         } else if (isLiteralComplexType(leftNode) && isLiteralComplexType(rightNode)) {
             PComplex leftValue = getComplexValueOfLiteral(leftNode);
-            PComplex rightValue =getComplexValueOfLiteral(rightNode);
+            PComplex rightValue = getComplexValueOfLiteral(rightNode);
             PComplex resultValue = leftValue.div(rightValue);
             ComplexLiteralNode resultNode = ComplexLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        }    
+        }
     }
-    
+
     public void visitFloorDivNode(FloorDivNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = leftValue / rightValue;
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
+            } catch (ArithmeticException e) {
                 BigInteger resultValue = BigInteger.valueOf(leftValue).divide(BigInteger.valueOf(rightValue));
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
@@ -229,28 +250,28 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             node.replace(resultNode);
         } else if (isLiteralComplexType(leftNode) && isLiteralComplexType(rightNode)) {
             PComplex leftValue = getComplexValueOfLiteral(leftNode);
-            PComplex rightValue =getComplexValueOfLiteral(rightNode);
+            PComplex rightValue = getComplexValueOfLiteral(rightNode);
             PComplex resultValue = leftValue.div(rightValue);
             ComplexLiteralNode resultNode = ComplexLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        }    
+        }
     }
-    
+
     public void visitModuloNode(ModuloNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = leftValue % rightValue;
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
+            } catch (ArithmeticException e) {
                 BigInteger resultValue = BigInteger.valueOf(leftValue).mod(BigInteger.valueOf(rightValue));
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
@@ -267,37 +288,37 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             double resultValue = leftValue % rightValue;
             DoubleLiteralNode resultNode = DoubleLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        } 
+        }
         /**
          * TODO Complex is missing
          */
     }
-    
+
     public void visitPowerNode(PowerNode node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
+        Iterator<Node> iterator = node.getChildren().iterator();
         // Iterator for next field in statement node
         iterator.next();
         Node leftNode = iterator.next();
         Node rightNode = iterator.next();
-       
+
         if ((leftNode instanceof IntegerLiteralNode) && (rightNode instanceof IntegerLiteralNode)) {
-            int leftValue = ((IntegerLiteralNode)leftNode).getValue();
-            int rightValue = ((IntegerLiteralNode)rightNode).getValue();
+            int leftValue = ((IntegerLiteralNode) leftNode).getValue();
+            int rightValue = ((IntegerLiteralNode) rightNode).getValue();
             try {
                 int resultValue = (int) Math.pow(leftValue, rightValue);
                 IntegerLiteralNode result = IntegerLiteralNodeFactory.create(resultValue);
                 node.replace(result);
-            } catch(ArithmeticException e) {
-                double value =  Math.pow(BigInteger.valueOf(leftValue).doubleValue(), BigInteger.valueOf(rightValue).doubleValue());
-                BigInteger resultValue = BigInteger.valueOf((long)value);
+            } catch (ArithmeticException e) {
+                double value = Math.pow(BigInteger.valueOf(leftValue).doubleValue(), BigInteger.valueOf(rightValue).doubleValue());
+                BigInteger resultValue = BigInteger.valueOf((long) value);
                 BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
                 node.replace(resultNode);
             }
         } else if (isLiteralBigIntegerType(leftNode) && isLiteralBigIntegerType(rightNode)) {
             BigInteger leftValue = getBigIntegerValueOfLiteral(leftNode);
             BigInteger rightValue = getBigIntegerValueOfLiteral(rightNode);
-            double value =  Math.pow(leftValue.doubleValue(), rightValue.doubleValue());
-            BigInteger resultValue = BigInteger.valueOf((long)value);
+            double value = Math.pow(leftValue.doubleValue(), rightValue.doubleValue());
+            BigInteger resultValue = BigInteger.valueOf((long) value);
             BigIntegerLiteralNode resultNode = BigIntegerLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
         } else if (isLiteralDoubleType(leftNode) && isLiteralDoubleType(rightNode)) {
@@ -306,18 +327,18 @@ public class PythonTreeOptimizer implements PNodeVisitor {
             double resultValue = Math.pow(leftValue, rightValue);
             DoubleLiteralNode resultNode = DoubleLiteralNodeFactory.create(resultValue);
             node.replace(resultNode);
-        }      
+        }
         /**
          * TODO Complex is missing
          */
     }
-    
+
     private void traverseChildren(Node node) {
-        Iterator<Node> iterator  = node.getChildren().iterator();
-        while(iterator.hasNext()) {
+        Iterator<Node> iterator = node.getChildren().iterator();
+        while (iterator.hasNext()) {
             Node child = iterator.next();
             /**
-             * First child of statementNodes are null because of next  
+             * First child of statementNodes are null because of next
              */
             if (child != null) {
                 if (child instanceof FunctionRootNode) {
@@ -327,82 +348,76 @@ public class PythonTreeOptimizer implements PNodeVisitor {
                     pchild.accept(this);
                 }
             }
-        }   
+        }
     }
 
     private boolean isLiteralBigIntegerType(Node node) {
-        if (node instanceof IntegerLiteralNode 
-           || node instanceof BigIntegerLiteralNode) {
+        if (node instanceof IntegerLiteralNode || node instanceof BigIntegerLiteralNode) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean isLiteralDoubleType(Node node) {
-        if (node instanceof IntegerLiteralNode 
-            || node instanceof BigIntegerLiteralNode
-            || node instanceof DoubleLiteralNode) {
+        if (node instanceof IntegerLiteralNode || node instanceof BigIntegerLiteralNode || node instanceof DoubleLiteralNode) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     private boolean isLiteralComplexType(Node node) {
-        if (node instanceof IntegerLiteralNode 
-            || node instanceof BigIntegerLiteralNode
-            || node instanceof DoubleLiteralNode
-            || node instanceof ComplexLiteralNode) {
+        if (node instanceof IntegerLiteralNode || node instanceof BigIntegerLiteralNode || node instanceof DoubleLiteralNode || node instanceof ComplexLiteralNode) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     private BigInteger getBigIntegerValueOfLiteral(Node node) {
         if (node instanceof IntegerLiteralNode) {
-            int value = ((IntegerLiteralNode)node).getValue();
+            int value = ((IntegerLiteralNode) node).getValue();
             return BigInteger.valueOf(value);
         } else if (node instanceof BigIntegerLiteralNode) {
-            BigInteger value = ((BigIntegerLiteralNode)node).getValue();
+            BigInteger value = ((BigIntegerLiteralNode) node).getValue();
             return value;
         } else {
             throw new RuntimeException("Unexpected literal node: " + node);
         }
     }
-    
+
     private double getDoubleValueOfLiteral(Node node) {
         if (node instanceof IntegerLiteralNode) {
-            int value = ((IntegerLiteralNode)node).getValue();
+            int value = ((IntegerLiteralNode) node).getValue();
             return value;
         } else if (node instanceof BigIntegerLiteralNode) {
-            BigInteger value = ((BigIntegerLiteralNode)node).getValue();
+            BigInteger value = ((BigIntegerLiteralNode) node).getValue();
             return value.doubleValue();
         } else if (node instanceof DoubleLiteralNode) {
-            double value = ((DoubleLiteralNode)node).getValue();
+            double value = ((DoubleLiteralNode) node).getValue();
             return value;
-        }  else {
+        } else {
             throw new RuntimeException("Unexpected literal node: " + node);
         }
     }
-    
+
     private PComplex getComplexValueOfLiteral(Node node) {
         if (node instanceof IntegerLiteralNode) {
-            int value = ((IntegerLiteralNode)node).getValue();
+            int value = ((IntegerLiteralNode) node).getValue();
             return new PComplex(value, 0);
         } else if (node instanceof BigIntegerLiteralNode) {
-            BigInteger value = ((BigIntegerLiteralNode)node).getValue();
+            BigInteger value = ((BigIntegerLiteralNode) node).getValue();
             return new PComplex(value.doubleValue(), 0);
         } else if (node instanceof DoubleLiteralNode) {
-            double value = ((DoubleLiteralNode)node).getValue();
+            double value = ((DoubleLiteralNode) node).getValue();
             return new PComplex(value, 0);
-        }  else if (node instanceof ComplexLiteralNode) {
-            PComplex value = ((ComplexLiteralNode)node).getValue();
+        } else if (node instanceof ComplexLiteralNode) {
+            PComplex value = ((ComplexLiteralNode) node).getValue();
             return value;
-        }  else {
+        } else {
             throw new RuntimeException("Unexpected literal node: " + node);
         }
     }
-    
+
 }

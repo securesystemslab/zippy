@@ -1,4 +1,0 @@
-base_class: Tuple
-want_dict: true
-ctr
-incl: object

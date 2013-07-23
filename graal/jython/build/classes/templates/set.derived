@@ -1,4 +1,0 @@
-base_class: PySet
-want_dict: true
-ctr:
-incl: object

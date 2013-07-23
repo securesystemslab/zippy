@@ -27,6 +27,9 @@ library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/be
 library@OKRA@path=lib/okra-1.jar
 library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.jar
 
+library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
+library@JYTHON@urls:http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
+
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@dependencies=com.oracle.graal.hotspot.amd64,com.oracle.graal.truffle,com.oracle.graal.truffle.printer,com.oracle.graal.hotspot.sparc,com.oracle.graal.hotspot,com.oracle.graal.compiler.hsail
 
@@ -609,5 +612,14 @@ project@com.oracle.graal.truffle.printer@dependencies=com.oracle.graal.nodes
 project@com.oracle.graal.truffle.printer@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.printer@javaCompliance=1.7
 project@com.oracle.graal.truffle.printer@workingSets=Graal,Truffle
+
+# zippy
+project@edu.uci.zippy@subDir=graal
+project@edu.uci.zippy@sourceDirs=src
+project@edu.uci.zippy@dependencies=com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.zippy@checkstyle=edu.uci.zippy
+project@edu.uci.zippy@javaCompliance=1.7
+project@edu.uci.zippy@annotationProcessors=com.oracle.truffle.dsl.processor
+project@edu.uci.zippy@workingSets=Truffle,Python
 
 

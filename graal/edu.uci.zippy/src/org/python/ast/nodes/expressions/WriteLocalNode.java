@@ -1,123 +1,111 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.expressions;
 
 import java.math.BigInteger;
 
 import org.python.ast.datatypes.*;
-import org.python.ast.nodes.TypedNode;
-import org.python.core.truffle.*;
+import org.python.ast.nodes.Amendable;
+import org.python.ast.nodes.PNode;
+import org.python.ast.nodes.WriteNode;
+import org.python.ast.nodes.statements.StatementNode;
 
-import com.oracle.truffle.api.codegen.Generic;
-import com.oracle.truffle.api.codegen.Specialization;
-import com.oracle.truffle.api.codegen.SpecializationListener;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-public abstract class WriteLocalNode extends FrameSlotNode {
+@NodeChild(value = "rightNode", type = PNode.class)
+public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode, Amendable {
 
-    @Child
-    protected TypedNode rightNode;
+    public abstract PNode getRightNode();
 
-    public WriteLocalNode(FrameSlot slot, TypedNode right) {
+    public WriteLocalNode(FrameSlot slot) {
         super(slot);
-        this.rightNode = adoptChild(right);
     }
 
     public WriteLocalNode(WriteLocalNode specialized) {
-        this(specialized.slot, specialized.rightNode);
-        copyNext(specialized);
-    }
-
-    public void patchValue(TypedNode right) {
-        rightNode = adoptChild(right);
-    }
-
-    /*
-     * As a LeftHandSideNode
-     */
-    public void doLeftHandSide(VirtualFrame frame, int value) {
-        write(frame, value);
-    }
-
-    public void doLeftHandSide(VirtualFrame frame, BigInteger value) {
-        write(frame, value);
-    }
-
-    public void doLeftHandSide(VirtualFrame frame, double value) {
-        write(frame, value);
-    }
-
-    public void doLeftHandSide(VirtualFrame frame, String value) {
-        write(frame, value);
+        this(specialized.slot);
     }
 
     @Override
-    public void doLeftHandSide(VirtualFrame frame, Object value) {
-        writeGeneric(frame, value);
+    public PNode makeReadNode() {
+        return ReadLocalNodeFactory.create(slot);
     }
 
-    /*
-     * As a right hand side expression
-     */
-    @Specialization
-    public int write(VirtualFrame frame, int right) {
-        frame.setInt(slot, right);
+    @Override
+    public PNode getRhs() {
+        return getRightNode();
+    }
+
+    @Override
+    public StatementNode updateRhs(PNode newRhs) {
+        return WriteLocalNodeFactory.create(this.slot, newRhs);
+    }
+
+    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    public int write(VirtualFrame frame, int value) throws FrameSlotTypeException {
+        setInteger(frame, value);
+        return value;
+    }
+
+    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    public BigInteger write(VirtualFrame frame, BigInteger right) throws FrameSlotTypeException {
+        setBigInteger(frame, right);
         return right;
     }
 
-    @Specialization
-    public BigInteger write(VirtualFrame frame, BigInteger right) {
-        frame.setObject(slot, right);
-        return right;
-    }
-
-    @Specialization
-    public double write(VirtualFrame frame, double right) {
-        frame.setDouble(slot, right);
+    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    public double write(VirtualFrame frame, double right) throws FrameSlotTypeException {
+        setDouble(frame, right);
         return right;
     }
 
     @Specialization
     public PComplex write(VirtualFrame frame, PComplex right) {
-        //frame.setObject(slot, right);
-        frame.setObject(slot, new PComplex(right));
+        setObject(frame, right);
         return right;
     }
 
-    @Specialization
-    public boolean write(VirtualFrame frame, boolean right) {
-        frame.setBoolean(slot, right);
+    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    public boolean write(VirtualFrame frame, boolean right) throws FrameSlotTypeException {
+        setBoolean(frame, right);
         return right;
     }
 
     @Specialization
     public String write(VirtualFrame frame, String right) {
-        frame.setObject(slot, right);
+        setObject(frame, right);
         return right;
     }
 
-    @Generic(useSpecializations = false)
-    public Object writeGeneric(VirtualFrame frame, Object right) {
-        frame.setObject(slot, right);
+    @Specialization
+    public Object write(VirtualFrame frame, Object right) {
+        setObject(frame, right);
         return right;
-    }
-
-    @SpecializationListener
-    protected void onSpecialize(VirtualFrame frame, Object value) {
-        /*
-         * This is a dirty hack. a write local in fasta is initialized to None.
-         */
-        if (value == null) {
-            return;
-        }
-
-        Class<?> target = PythonTypes.getRelaxedTyped(value);
-        slot.setType(target);
-        frame.updateToLatestVersion();
-    }
-
-    @Override
-    protected FrameSlotNode specialize(Class<?> clazz) {
-        return WriteLocalNodeFactory.createSpecialized(this, clazz);
     }
 
     @Override
@@ -128,7 +116,7 @@ public abstract class WriteLocalNode extends FrameSlotNode {
         System.out.println(this);
 
         level++;
-        rightNode.visualize(level);
+        getRightNode().visualize(level);
     }
 
 }

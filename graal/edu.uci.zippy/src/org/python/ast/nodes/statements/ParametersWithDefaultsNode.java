@@ -1,70 +1,112 @@
+/*
+ * Copyright (c) 2013, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.python.ast.nodes.statements;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.python.ast.datatypes.PArguments;
-import org.python.ast.nodes.LeftHandSideNode;
-import org.python.ast.nodes.TypedNode;
+import org.python.ast.nodes.PNode;
+import org.python.ast.nodes.ReadDefaultArgumentNode;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
-public class ParametersWithDefaultsNode extends ParametersWithNoDefaultsNode {
+public final class ParametersWithDefaultsNode extends ParametersNode {
 
-    @Children
-    TypedNode[] defaults;
+    protected final ReadDefaultArgumentNode[] defaultReads;
 
-    Object[] evaluatedDefaults;
+    @Children protected final PNode[] parameters;
 
-    public ParametersWithDefaultsNode(LeftHandSideNode[] parameters, TypedNode[] defaults, List<String> paramNames) {
-        super(parameters, paramNames);
-        this.defaults = adoptChildren(defaults);
+    @Children protected final PNode[] defaultWrites;
+
+    public ParametersWithDefaultsNode(PNode[] parameters, List<String> paramNames, ReadDefaultArgumentNode[] defaultReads, PNode[] defaultWrites) {
+        super(paramNames);
+        this.defaultReads = defaultReads;
+        this.parameters = adoptChildren(parameters);
+        this.defaultWrites = adoptChildren(defaultWrites);
     }
 
     @Override
     public void evaluateDefaults(VirtualFrame frame) {
-        Object[] evaluated = new Object[defaults.length];
-
-        int index = 0;
-        for (int i = 0; i < defaults.length; i++) {
-            evaluated[index++] = defaults[i].executeGeneric(frame);
+        for (ReadDefaultArgumentNode rdan : defaultReads) {
+            rdan.evaluateDefault(frame);
         }
-
-        evaluatedDefaults = evaluated;
     }
 
     /**
-     * invoked when CallTarget is called, applies runtime arguments to the newly
-     * created VirtualFrame.
+     * invoked when CallTarget is called, applies runtime arguments to the newly created
+     * VirtualFrame.
      */
+    @ExplodeLoop
     @Override
     public void executeVoid(VirtualFrame frame) {
-        PArguments args = (PArguments) frame.getArguments();
+        PArguments args = frame.getArguments(PArguments.class);
         Object[] values = args.getArgumentsArray();
 
-        // update defaults
-        int offset = parameters.length - evaluatedDefaults.length;
-        for (int i = 0; i < evaluatedDefaults.length; i++) {
-            parameters[offset].doLeftHandSide(frame, evaluatedDefaults[i]);
-            offset++;
+        // apply defaults
+        for (PNode write : defaultWrites) {
+            write.executeVoid(frame);
         }
 
         // update parameters
-        int valLen = values.length;
-        int paramLen = parameters.length;
-        int size = paramLen > valLen ? valLen : paramLen;
-        for (int i = 0; i < size; i++) {
-            Object val = values[i];
+        for (int i = 0; i < parameters.length; i++) {
+            if (i < values.length) {
+                Object val = values[i];
 
-            if (val != null) {
-                parameters[i].doLeftHandSide(frame, val);
+                if (val != null) {
+                    parameters[i].executeVoid(frame);
+                }
             }
         }
     }
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "(" + Arrays.toString(parameters) + ", " + Arrays.toString(defaults) + ")";
+        return this.getClass().getSimpleName() + "(" + parameterNames + ")";
+    }
+
+    @Override
+    public void visualize(int level) {
+        for (int i = 0; i < level; i++) {
+            System.out.print("    ");
+        }
+        System.out.println(this);
+
+        level++;
+
+        for (PNode statement : defaultReads) {
+            statement.visualize(level);
+        }
+
+        for (PNode statement : parameters) {
+            statement.visualize(level);
+        }
+
+        for (PNode statement : defaultWrites) {
+            statement.visualize(level);
+        }
     }
 
 }
