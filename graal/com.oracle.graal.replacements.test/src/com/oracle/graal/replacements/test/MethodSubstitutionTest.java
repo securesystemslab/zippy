@@ -50,11 +50,10 @@ public abstract class MethodSubstitutionTest extends GraalCompilerTest {
                 StructuredGraph graph = parse(snippet);
                 PhasePlan phasePlan = getDefaultPhasePlan();
                 Assumptions assumptions = new Assumptions(true);
-                new ComputeProbabilityPhase().apply(graph);
                 Debug.dump(graph, "Graph");
                 new InliningPhase(runtime(), null, replacements, assumptions, null, phasePlan, OptimisticOptimizations.ALL).apply(graph);
                 Debug.dump(graph, "Graph");
-                new CanonicalizerPhase.Instance(runtime(), assumptions).apply(graph);
+                new CanonicalizerPhase.Instance(runtime(), assumptions, true).apply(graph);
                 new DeadCodeEliminationPhase().apply(graph);
 
                 assertNotInGraph(graph, Invoke.class);

@@ -22,12 +22,14 @@
  */
 package com.oracle.graal.hotspot;
 
+import static com.oracle.graal.compiler.GraalDebugConfig.*;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+
 import java.io.*;
 import java.util.concurrent.*;
 
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.printer.*;
 
 public final class CompilerThread extends Thread {
@@ -39,27 +41,19 @@ public final class CompilerThread extends Thread {
             return new CompilerThread(r);
         }
     };
-    public static final ThreadFactory LOW_PRIORITY_FACTORY = new ThreadFactory() {
-
-        @Override
-        public Thread newThread(Runnable r) {
-            CompilerThread thread = new CompilerThread(r);
-            thread.setPriority(MIN_PRIORITY);
-            return thread;
-        }
-    };
 
     private CompilerThread(Runnable r) {
         super(r);
         this.setName("GraalCompilerThread-" + this.getId());
+        this.setPriority(MAX_PRIORITY);
         this.setDaemon(true);
     }
 
     @Override
     public void run() {
         GraalDebugConfig hotspotDebugConfig = null;
-        if (GraalOptions.Debug) {
-            PrintStream log = HotSpotGraalRuntime.getInstance().getVMToCompiler().log();
+        if (DebugEnabled.getValue()) {
+            PrintStream log = graalRuntime().getVMToCompiler().log();
             DebugEnvironment.initialize(log);
         }
         try {

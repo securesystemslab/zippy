@@ -33,7 +33,7 @@ import com.oracle.graal.nodes.virtual.*;
  * The {@code LoadFieldNode} represents a read of a static or instance field.
  */
 @NodeInfo(nameTemplate = "LoadField#{p#field/s}")
-public final class LoadFieldNode extends AccessFieldNode implements Canonicalizable, Node.IterableNodeType, Virtualizable {
+public final class LoadFieldNode extends AccessFieldNode implements Canonicalizable, Node.IterableNodeType, VirtualizableRoot {
 
     /**
      * Creates a new LoadFieldNode instance.
@@ -57,6 +57,19 @@ public final class LoadFieldNode extends AccessFieldNode implements Canonicaliza
     @Override
     public ValueNode canonical(CanonicalizerTool tool) {
         MetaAccessProvider runtime = tool.runtime();
+        if (tool.canonicalizeReads()) {
+            ConstantNode constant = asConstant(runtime);
+            if (constant != null) {
+                return constant;
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Gets a constant value for this load if possible.
+     */
+    public ConstantNode asConstant(MetaAccessProvider runtime) {
         if (runtime != null) {
             Constant constant = null;
             if (isStatic()) {
@@ -68,7 +81,7 @@ public final class LoadFieldNode extends AccessFieldNode implements Canonicaliza
                 return ConstantNode.forConstant(constant, runtime, graph());
             }
         }
-        return this;
+        return null;
     }
 
     @Override

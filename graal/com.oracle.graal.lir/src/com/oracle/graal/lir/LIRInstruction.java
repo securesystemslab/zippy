@@ -84,16 +84,16 @@ public abstract class LIRInstruction {
         /**
          * The value must have been defined before. It is alive before the instruction until the
          * beginning of the instruction, but not necessarily throughout the instruction. A register
-         * assigned to it can also be assigend to a Temp or Output operand. The value can be used
-         * again after the instruction, so the instruction must not modify the register.
+         * assigned to it can also be assigned to a {@link #TEMP} or {@link #DEF} operand. The value
+         * can be used again after the instruction, so the instruction must not modify the register.
          */
         USE,
 
         /**
          * The value must have been defined before. It is alive before the instruction and
-         * throughout the instruction. A register assigned to it cannot be assigned to a Temp or
-         * Output operand. The value can be used again after the instruction, so the instruction
-         * must not modify the register.
+         * throughout the instruction. A register assigned to it cannot be assigned to a
+         * {@link #TEMP} or {@link #DEF} operand. The value can be used again after the instruction,
+         * so the instruction must not modify the register.
          */
         ALIVE,
 
@@ -144,13 +144,6 @@ public abstract class LIRInstruction {
     public static @interface State {
     }
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.TYPE, ElementType.FIELD})
-    public static @interface Opcode {
-
-        String value() default "";
-    }
-
     /**
      * Flags for an operand.
      */
@@ -181,11 +174,6 @@ public abstract class LIRInstruction {
         ILLEGAL,
 
         /**
-         * The value can be {@link AllocatableValue#UNUSED}.
-         */
-        UNUSED,
-
-        /**
          * The register allocator should try to assign a certain register to improve code quality.
          * Use {@link LIRInstruction#forEachRegisterHint} to access the register hints.
          */
@@ -205,10 +193,10 @@ public abstract class LIRInstruction {
 
     static {
         ALLOWED_FLAGS = new EnumMap<>(OperandMode.class);
-        ALLOWED_FLAGS.put(USE, EnumSet.of(REG, STACK, COMPOSITE, CONST, ILLEGAL, HINT, UNUSED, UNINITIALIZED));
-        ALLOWED_FLAGS.put(ALIVE, EnumSet.of(REG, STACK, COMPOSITE, CONST, ILLEGAL, HINT, UNUSED, UNINITIALIZED));
-        ALLOWED_FLAGS.put(TEMP, EnumSet.of(REG, COMPOSITE, CONST, ILLEGAL, UNUSED, HINT));
-        ALLOWED_FLAGS.put(DEF, EnumSet.of(REG, STACK, COMPOSITE, ILLEGAL, UNUSED, HINT));
+        ALLOWED_FLAGS.put(USE, EnumSet.of(REG, STACK, COMPOSITE, CONST, ILLEGAL, HINT, UNINITIALIZED));
+        ALLOWED_FLAGS.put(ALIVE, EnumSet.of(REG, STACK, COMPOSITE, CONST, ILLEGAL, HINT, UNINITIALIZED));
+        ALLOWED_FLAGS.put(TEMP, EnumSet.of(REG, COMPOSITE, CONST, ILLEGAL, HINT));
+        ALLOWED_FLAGS.put(DEF, EnumSet.of(REG, STACK, COMPOSITE, ILLEGAL, HINT));
     }
 
     /**
@@ -249,7 +237,7 @@ public abstract class LIRInstruction {
     }
 
     public final boolean hasOperands() {
-        return instructionClass.hasOperands() || hasState() || hasCall();
+        return instructionClass.hasOperands() || hasState() || destroysCallerSavedRegisters();
     }
 
     public final boolean hasState() {
@@ -257,10 +245,9 @@ public abstract class LIRInstruction {
     }
 
     /**
-     * Returns true when this instruction is a call instruction that destroys all caller-saved
-     * registers.
+     * Determines if this instruction destroys all caller-saved registers..
      */
-    public boolean hasCall() {
+    public boolean destroysCallerSavedRegisters() {
         return false;
     }
 

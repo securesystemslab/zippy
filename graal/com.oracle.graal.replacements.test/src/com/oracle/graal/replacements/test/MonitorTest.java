@@ -33,26 +33,27 @@ public class MonitorTest extends GraalCompilerTest {
     public void test0() {
         test("lockObjectSimple", new Object(), new Object());
         test("lockObjectSimple", new Object(), null);
+        test("lockObjectSimple", null, null);
     }
 
     @Test
-    public void test0_1() {
+    public void test01() {
         test("lockThisSimple", "test1", new Object());
         test("lockThisSimple", "test1", null);
     }
 
     @Test
-    public void test0_2() {
+    public void test02() {
         test("lockObjectSimple", null, "test1");
     }
 
     @Test
-    public void test1_1() {
+    public void test101() {
         test("lockObject", new Object(), "test1", new String[1]);
     }
 
     @Test
-    public void test1_2() {
+    public void test102() {
         test("lockObject", null, "test1_1", new String[1]);
     }
 
@@ -62,7 +63,7 @@ public class MonitorTest extends GraalCompilerTest {
     }
 
     /**
-     * Tests monitor operations on {@link PartialEscapeAnalysisPhase virtual objects}.
+     * Tests monitor operations on {@link PartialEscapePhase virtual objects}.
      */
     @Test
     public void test3() {

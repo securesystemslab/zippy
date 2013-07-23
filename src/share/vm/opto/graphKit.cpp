@@ -333,6 +333,7 @@ void GraphKit::combine_exception_states(SafePointNode* ex_map, SafePointNode* ph
   assert(ex_jvms->stkoff() == phi_map->_jvms->stkoff(), "matching locals");
   assert(ex_jvms->sp() == phi_map->_jvms->sp(), "matching stack sizes");
   assert(ex_jvms->monoff() == phi_map->_jvms->monoff(), "matching JVMS");
+  assert(ex_jvms->scloff() == phi_map->_jvms->scloff(), "matching scalar replaced objects");
   assert(ex_map->req() == phi_map->req(), "matching maps");
   uint tos = ex_jvms->stkoff() + ex_jvms->sp();
   Node*         hidden_merge_mark = root();
@@ -409,7 +410,7 @@ void GraphKit::combine_exception_states(SafePointNode* ex_map, SafePointNode* ph
         while (dst->req() > orig_width)  dst->del_req(dst->req()-1);
       } else {
         assert(dst->is_Phi(), "nobody else uses a hidden region");
-        phi = (PhiNode*)dst;
+        phi = dst->as_Phi();
       }
       if (add_multiple && src->in(0) == ex_control) {
         // Both are phis.
@@ -1438,7 +1439,12 @@ Node* GraphKit::make_load(Node* ctl, Node* adr, const Type* t, BasicType bt,
   } else {
     ld = LoadNode::make(_gvn, ctl, mem, adr, adr_type, t, bt);
   }
-  return _gvn.transform(ld);
+  ld = _gvn.transform(ld);
+  if ((bt == T_OBJECT) && C->do_escape_analysis() || C->eliminate_boxing()) {
+    // Improve graph before escape analysis and boxing elimination.
+    record_for_igvn(ld);
+  }
+  return ld;
 }
 
 Node* GraphKit::store_to_memory(Node* ctl, Node* adr, Node *val, BasicType bt,
@@ -3144,7 +3150,7 @@ Node* GraphKit::new_instance(Node* klass_node,
   set_all_memory(mem); // Create new memory state
 
   AllocateNode* alloc
-    = new (C) AllocateNode(C, AllocateNode::alloc_type(),
+    = new (C) AllocateNode(C, AllocateNode::alloc_type(Type::TOP),
                            control(), mem, i_o(),
                            size, klass_node,
                            initial_slow_test);
@@ -3285,7 +3291,7 @@ Node* GraphKit::new_array(Node* klass_node,     // array klass (maybe variable)
 
   // Create the AllocateArrayNode and its result projections
   AllocateArrayNode* alloc
-    = new (C) AllocateArrayNode(C, AllocateArrayNode::alloc_type(),
+    = new (C) AllocateArrayNode(C, AllocateArrayNode::alloc_type(TypeInt::INT),
                                 control(), mem, i_o(),
                                 size, klass_node,
                                 initial_slow_test,
@@ -3326,10 +3332,9 @@ AllocateNode* AllocateNode::Ideal_allocation(Node* ptr, PhaseTransform* phase) {
   if (ptr == NULL) {     // reduce dumb test in callers
     return NULL;
   }
-  if (ptr->is_CheckCastPP()) {  // strip a raw-to-oop cast
-    ptr = ptr->in(1);
-    if (ptr == NULL)  return NULL;
-  }
+  ptr = ptr->uncast();  // strip a raw-to-oop cast
+  if (ptr == NULL)  return NULL;
+
   if (ptr->is_Proj()) {
     Node* allo = ptr->in(0);
     if (allo != NULL && allo->is_Allocate()) {
@@ -3369,19 +3374,6 @@ InitializeNode* AllocateNode::initialization() {
     if (init->is_Initialize()) {
       assert(init->as_Initialize()->allocation() == this, "2-way link");
       return init->as_Initialize();
-    }
-  }
-  return NULL;
-}
-
-// Trace Allocate -> Proj[Parm] -> MemBarStoreStore
-MemBarStoreStoreNode* AllocateNode::storestore() {
-  ProjNode* rawoop = proj_out(AllocateNode::RawAddress);
-  if (rawoop == NULL)  return NULL;
-  for (DUIterator_Fast imax, i = rawoop->fast_outs(imax); i < imax; i++) {
-    Node* storestore = rawoop->fast_out(i);
-    if (storestore->is_MemBarStoreStore()) {
-      return storestore->as_MemBarStoreStore();
     }
   }
   return NULL;
@@ -3564,7 +3556,8 @@ void GraphKit::g1_write_barrier_pre(bool do_load,
 
   Node* no_ctrl = NULL;
   Node* no_base = __ top();
-  Node* zero = __ ConI(0);
+  Node* zero  = __ ConI(0);
+  Node* zeroX = __ ConX(0);
 
   float likely  = PROB_LIKELY(0.999);
   float unlikely  = PROB_UNLIKELY(0.999);
@@ -3590,7 +3583,9 @@ void GraphKit::g1_write_barrier_pre(bool do_load,
 
   // if (!marking)
   __ if_then(marking, BoolTest::ne, zero); {
-    Node* index   = __ load(__ ctrl(), index_adr, TypeInt::INT, T_INT, Compile::AliasIdxRaw);
+    BasicType index_bt = TypeX_X->basic_type();
+    assert(sizeof(size_t) == type2aelembytes(index_bt), "Loading G1 PtrQueue::_index with wrong size.");
+    Node* index   = __ load(__ ctrl(), index_adr, TypeX_X, index_bt, Compile::AliasIdxRaw);
 
     if (do_load) {
       // load original value
@@ -3603,22 +3598,16 @@ void GraphKit::g1_write_barrier_pre(bool do_load,
       Node* buffer  = __ load(__ ctrl(), buffer_adr, TypeRawPtr::NOTNULL, T_ADDRESS, Compile::AliasIdxRaw);
 
       // is the queue for this thread full?
-      __ if_then(index, BoolTest::ne, zero, likely); {
+      __ if_then(index, BoolTest::ne, zeroX, likely); {
 
         // decrement the index
-        Node* next_index = __ SubI(index,  __ ConI(sizeof(intptr_t)));
-        Node* next_indexX = next_index;
-#ifdef _LP64
-        // We could refine the type for what it's worth
-        // const TypeLong* lidxtype = TypeLong::make(CONST64(0), get_size_from_queue);
-        next_indexX = _gvn.transform( new (C) ConvI2LNode(next_index, TypeLong::make(0, max_jlong, Type::WidenMax)) );
-#endif
+        Node* next_index = _gvn.transform(new (C) SubXNode(index, __ ConX(sizeof(intptr_t))));
 
         // Now get the buffer location we will log the previous value into and store it
-        Node *log_addr = __ AddP(no_base, buffer, next_indexX);
+        Node *log_addr = __ AddP(no_base, buffer, next_index);
         __ store(__ ctrl(), log_addr, pre_val, T_OBJECT, Compile::AliasIdxRaw);
         // update the index
-        __ store(__ ctrl(), index_adr, next_index, T_INT, Compile::AliasIdxRaw);
+        __ store(__ ctrl(), index_adr, next_index, index_bt, Compile::AliasIdxRaw);
 
       } __ else_(); {
 
@@ -3645,26 +3634,21 @@ void GraphKit::g1_mark_card(IdealKit& ideal,
                             Node* buffer,
                             const TypeFunc* tf) {
 
-  Node* zero = __ ConI(0);
+  Node* zero  = __ ConI(0);
+  Node* zeroX = __ ConX(0);
   Node* no_base = __ top();
   BasicType card_bt = T_BYTE;
   // Smash zero into card. MUST BE ORDERED WRT TO STORE
   __ storeCM(__ ctrl(), card_adr, zero, oop_store, oop_alias_idx, card_bt, Compile::AliasIdxRaw);
 
   //  Now do the queue work
-  __ if_then(index, BoolTest::ne, zero); {
+  __ if_then(index, BoolTest::ne, zeroX); {
 
-    Node* next_index = __ SubI(index, __ ConI(sizeof(intptr_t)));
-    Node* next_indexX = next_index;
-#ifdef _LP64
-    // We could refine the type for what it's worth
-    // const TypeLong* lidxtype = TypeLong::make(CONST64(0), get_size_from_queue);
-    next_indexX = _gvn.transform( new (C) ConvI2LNode(next_index, TypeLong::make(0, max_jlong, Type::WidenMax)) );
-#endif // _LP64
-    Node* log_addr = __ AddP(no_base, buffer, next_indexX);
+    Node* next_index = _gvn.transform(new (C) SubXNode(index, __ ConX(sizeof(intptr_t))));
+    Node* log_addr = __ AddP(no_base, buffer, next_index);
 
     __ store(__ ctrl(), log_addr, card_adr, T_ADDRESS, Compile::AliasIdxRaw);
-    __ store(__ ctrl(), index_adr, next_index, T_INT, Compile::AliasIdxRaw);
+    __ store(__ ctrl(), index_adr, next_index, TypeX_X->basic_type(), Compile::AliasIdxRaw);
 
   } __ else_(); {
     __ make_leaf_call(tf, CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_post), "g1_wb_post", card_adr, __ thread());
@@ -3725,7 +3709,7 @@ void GraphKit::g1_write_barrier_post(Node* oop_store,
   // Now some values
   // Use ctrl to avoid hoisting these values past a safepoint, which could
   // potentially reset these fields in the JavaThread.
-  Node* index  = __ load(__ ctrl(), index_adr, TypeInt::INT, T_INT, Compile::AliasIdxRaw);
+  Node* index  = __ load(__ ctrl(), index_adr, TypeX_X, TypeX_X->basic_type(), Compile::AliasIdxRaw);
   Node* buffer = __ load(__ ctrl(), buffer_adr, TypeRawPtr::NOTNULL, T_ADDRESS, Compile::AliasIdxRaw);
 
   // Convert the store obj pointer to an int prior to doing math on it

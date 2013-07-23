@@ -22,6 +22,9 @@
  */
 package com.oracle.graal.hotspot.stubs;
 
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.oracle.graal.api.code.*;
@@ -29,108 +32,158 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.debug.internal.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.bridge.CompilerToVM.CodeInstallResult;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
-import com.oracle.graal.replacements.*;
-import com.oracle.graal.replacements.Snippet.ConstantParameter;
-import com.oracle.graal.replacements.SnippetTemplate.AbstractTemplates;
-import com.oracle.graal.replacements.SnippetTemplate.Arguments;
-import com.oracle.graal.replacements.SnippetTemplate.SnippetInfo;
+
+//JaCoCo Exclude
 
 /**
- * Base class for implementing some low level code providing the out-of-line slow path for a
- * snippet. A concrete stub is defined a subclass of this class.
- * <p>
- * Implementation detail: The stub classes re-use some of the functionality for {@link Snippet}s
- * purely for convenience (e.g., can re-use the {@link ReplacementsImpl}).
+ * Base class for implementing some low level code providing the out-of-line slow path for a snippet
+ * and/or a callee saved call to a HotSpot C/C++ runtime function or even a another compiled Java
+ * method.
  */
-public abstract class Stub extends AbstractTemplates implements Snippets {
+public abstract class Stub {
 
     /**
-     * The method implementing the stub.
+     * The linkage information for a call to this stub from compiled code.
      */
-    protected final SnippetInfo stubInfo;
-
-    /**
-     * The linkage information for the stub.
-     */
-    protected final HotSpotRuntimeCallTarget linkage;
+    protected final HotSpotForeignCallLinkage linkage;
 
     /**
      * The code installed for the stub.
      */
-    protected InstalledCode stubCode;
+    protected InstalledCode code;
 
     /**
-     * Creates a new stub container. The new stub still needs to be
-     * {@linkplain #getAddress(Backend) installed}.
+     * The registers destroyed by this stub.
+     */
+    private Set<Register> destroyedRegisters;
+
+    public void initDestroyedRegisters(Set<Register> registers) {
+        assert registers != null;
+        assert destroyedRegisters == null || registers.equals(destroyedRegisters) : "cannot redefine";
+        destroyedRegisters = registers;
+    }
+
+    /**
+     * Gets the registers defined by this stub. These are the temporaries of this stub and must thus
+     * be caller saved by a callers of this stub.
+     */
+    public Set<Register> getDestroyedRegisters() {
+        assert destroyedRegisters != null : "not yet initialized";
+        return destroyedRegisters;
+    }
+
+    /**
+     * Determines if this stub preserves all registers apart from those it
+     * {@linkplain #getDestroyedRegisters() destroys}.
+     */
+    public boolean preservesRegisters() {
+        return true;
+    }
+
+    protected final HotSpotRuntime runtime;
+
+    protected final Replacements replacements;
+
+    /**
+     * Creates a new stub.
      * 
      * @param linkage linkage details for a call to the stub
      */
-    public Stub(HotSpotRuntime runtime, Replacements replacements, TargetDescription target, HotSpotRuntimeCallTarget linkage, String methodName) {
-        super(runtime, replacements, target);
-        this.stubInfo = snippet(getClass(), methodName);
+    public Stub(HotSpotRuntime runtime, Replacements replacements, HotSpotForeignCallLinkage linkage) {
         this.linkage = linkage;
-
+        this.runtime = runtime;
+        this.replacements = replacements;
     }
 
     /**
-     * Adds the {@linkplain ConstantParameter constant} arguments of this stub.
+     * Gets the linkage for a call to this stub from compiled code.
      */
-    protected abstract Arguments makeArguments(SnippetInfo stub);
-
-    protected HotSpotRuntime runtime() {
-        return (HotSpotRuntime) runtime;
-    }
-
-    /**
-     * Gets the method implementing this stub.
-     */
-    public ResolvedJavaMethod getMethod() {
-        return stubInfo.getMethod();
-    }
-
-    public HotSpotRuntimeCallTarget getLinkage() {
+    public HotSpotForeignCallLinkage getLinkage() {
         return linkage;
     }
 
     /**
-     * Ensures the code for this stub is installed.
-     * 
-     * @return the entry point address for calls to this stub
+     * Gets the graph that from which the code for this stub will be compiled.
      */
-    public synchronized long getAddress(Backend backend) {
-        if (stubCode == null) {
-            Arguments args = makeArguments(stubInfo);
-            SnippetTemplate template = template(args);
-            StructuredGraph graph = template.copySpecializedGraph();
+    protected abstract StructuredGraph getGraph();
 
-            PhasePlan phasePlan = new PhasePlan();
-            GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
-            phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
-            final CompilationResult compResult = GraalCompiler.compileMethod(runtime(), replacements, backend, runtime().getTarget(), getMethod(), graph, null, phasePlan, OptimisticOptimizations.ALL,
-                            new SpeculationLog());
+    @Override
+    public String toString() {
+        return "Stub<" + linkage.getDescriptor() + ">";
+    }
 
-            stubCode = Debug.scope("CodeInstall", new Object[]{runtime(), getMethod()}, new Callable<InstalledCode>() {
+    /**
+     * Gets the method the stub's code will be {@linkplain InstalledCode#getMethod() associated}
+     * with once installed. This may be null.
+     */
+    protected abstract ResolvedJavaMethod getInstalledCodeOwner();
+
+    /**
+     * Gets a context object for the debug scope created when producing the code for this stub.
+     */
+    protected abstract Object debugScopeContext();
+
+    /**
+     * Gets the code for this stub, compiling it first if necessary.
+     */
+    public synchronized InstalledCode getCode(final Backend backend) {
+        if (code == null) {
+            Debug.sandbox("CompilingStub", new Object[]{runtime, debugScopeContext()}, DebugScope.getConfig(), new Runnable() {
 
                 @Override
-                public InstalledCode call() {
-                    InstalledCode installedCode = runtime().addMethod(getMethod(), compResult);
-                    assert installedCode != null : "error installing stub " + getMethod();
-                    if (Debug.isDumpEnabled()) {
-                        Debug.dump(new Object[]{compResult, installedCode}, "After code installation");
+                public void run() {
+
+                    final StructuredGraph graph = getGraph();
+                    if (!(graph.start() instanceof StubStartNode)) {
+                        StubStartNode newStart = graph.add(new StubStartNode(Stub.this));
+                        newStart.setStateAfter(graph.start().stateAfter());
+                        graph.replaceFixed(graph.start(), newStart);
                     }
-                    return installedCode;
+
+                    PhasePlan phasePlan = new PhasePlan();
+                    GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.ALL);
+                    phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
+                    CallingConvention cc = linkage.getCallingConvention();
+                    final CompilationResult compResult = GraalCompiler.compileGraph(graph, cc, getInstalledCodeOwner(), runtime, replacements, backend, runtime.getTarget(), null, phasePlan,
+                                    OptimisticOptimizations.ALL, new SpeculationLog(), runtime.getDefaultSuites(), new CompilationResult());
+
+                    assert destroyedRegisters != null;
+                    code = Debug.scope("CodeInstall", new Callable<InstalledCode>() {
+
+                        @Override
+                        public InstalledCode call() {
+                            Stub stub = Stub.this;
+                            HotSpotRuntimeStub installedCode = new HotSpotRuntimeStub(stub);
+                            HotSpotCompiledCode hsCompResult = new HotSpotCompiledRuntimeStub(stub, compResult);
+                            CodeInstallResult result = graalRuntime().getCompilerToVM().installCode(hsCompResult, installedCode, null);
+                            if (result != CodeInstallResult.OK) {
+                                throw new GraalInternalError("Error installing stub %s: %s", Stub.this, result);
+                            }
+                            if (Debug.isDumpEnabled()) {
+                                Debug.dump(new Object[]{compResult, installedCode}, "After code installation");
+                            }
+                            if (Debug.isLogEnabled()) {
+                                Debug.log("%s", runtime.disassemble(installedCode));
+                            }
+                            return installedCode;
+                        }
+                    });
+
                 }
             });
-
-            assert stubCode != null : "error installing stub " + getMethod();
+            assert code != null : "error installing stub " + this;
         }
-        return stubCode.getStart();
+        return code;
     }
 }

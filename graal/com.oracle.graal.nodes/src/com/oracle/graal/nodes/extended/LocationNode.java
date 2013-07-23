@@ -23,95 +23,42 @@
 package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ValueNumberable;
-import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 /**
- * A location for a memory access in terms of the kind of value accessed and how to access it. The
- * base version can represent addresses of the form [base + disp] where base is a node and disp is a
- * constant.
+ * A location for a memory access in terms of the kind of value accessed and how to access it. All
+ * locations have the form [base + location], where base is a node and location is defined by
+ * subclasses of the {@link LocationNode}.
  */
-@NodeInfo(nameTemplate = "Loc {p#locationIdentity/s}")
-public class LocationNode extends FloatingNode implements LIRLowerable, ValueNumberable {
-
-    private int displacement;
-    private Kind valueKind;
-    private Object locationIdentity;
+public abstract class LocationNode extends FloatingNode implements LIRLowerable, ValueNumberable {
 
     /**
-     * Creates a new unique location identity for read and write operations.
-     * 
-     * @param name the name of the new location identity, for debugging purposes
-     * @return the new location identity
+     * Marker interface for locations in snippets.
      */
-    public static Object createLocation(final String name) {
-        return new Object() {
+    public interface Location {
+    }
 
-            @Override
-            public String toString() {
-                return name;
-            }
-        };
+    protected LocationNode(Stamp stamp) {
+        super(stamp);
     }
 
     /**
-     * Denotes any location. A write to such a location kills all values in a memory map during an
-     * analysis of memory accesses in a graph. A read from this location cannot be moved or
-     * coalesced with other reads because its interaction with other reads is not known.
+     * Returns the kind of the accessed memory value.
      */
-    public static final Object ANY_LOCATION = createLocation("ANY_LOCATION");
+    public abstract Kind getValueKind();
 
     /**
-     * Denotes the location of a value that is guaranteed to be final.
+     * Returns the identity of the accessed memory location.
      */
-    public static final Object FINAL_LOCATION = createLocation("FINAL_LOCATION");
-
-    public static Object getArrayLocation(Kind elementKind) {
-        return elementKind;
-    }
-
-    public int displacement() {
-        return displacement;
-    }
-
-    public static LocationNode create(Object identity, Kind kind, int displacement, Graph graph) {
-        return graph.unique(new LocationNode(identity, kind, displacement));
-    }
-
-    protected LocationNode(Object identity, Kind kind, int displacement) {
-        super(StampFactory.extension());
-        assert kind != Kind.Illegal && kind != Kind.Void;
-        this.displacement = displacement;
-        this.valueKind = kind;
-        this.locationIdentity = identity;
-    }
-
-    public Kind getValueKind() {
-        return valueKind;
-    }
-
-    public Object locationIdentity() {
-        return locationIdentity;
-    }
+    public abstract LocationIdentity getLocationIdentity();
 
     @Override
-    public void generate(LIRGeneratorTool generator) {
+    public final void generate(LIRGeneratorTool generator) {
         // nothing to do...
     }
 
-    public Value generateLea(LIRGeneratorTool gen, ValueNode base) {
-        return gen.emitLea(gen.operand(base), displacement(), Value.ILLEGAL, 0);
-    }
-
-    public Value generateLoad(LIRGeneratorTool gen, ValueNode base, DeoptimizingNode deopting) {
-        return gen.emitLoad(getValueKind(), gen.operand(base), displacement(), Value.ILLEGAL, 0, deopting);
-    }
-
-    public void generateStore(LIRGeneratorTool gen, ValueNode base, ValueNode value, DeoptimizingNode deopting) {
-        gen.emitStore(getValueKind(), gen.operand(base), displacement(), Value.ILLEGAL, 0, gen.operand(value), deopting);
-    }
+    public abstract Value generateAddress(LIRGeneratorTool gen, Value base);
 }

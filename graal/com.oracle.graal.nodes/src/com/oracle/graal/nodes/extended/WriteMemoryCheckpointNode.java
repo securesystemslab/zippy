@@ -22,11 +22,12 @@
  */
 package com.oracle.graal.nodes.extended;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
-public final class WriteMemoryCheckpointNode extends AbstractStateSplit implements StateSplit, LIRLowerable, MemoryCheckpoint {
+public final class WriteMemoryCheckpointNode extends AbstractStateSplit implements StateSplit, LIRLowerable, MemoryCheckpoint.Single {
 
     public WriteMemoryCheckpointNode() {
         this(StampFactory.forVoid());
@@ -37,8 +38,8 @@ public final class WriteMemoryCheckpointNode extends AbstractStateSplit implemen
     }
 
     @Override
-    public Object[] getLocationIdentities() {
-        return new Object[]{LocationNode.ANY_LOCATION};
+    public LocationIdentity getLocationIdentity() {
+        return LocationIdentity.ANY_LOCATION;
     }
 
     @Override

@@ -24,6 +24,9 @@ package com.oracle.graal.api.code;
 
 import java.nio.*;
 
+import com.oracle.graal.api.code.Register.RegisterCategory;
+import com.oracle.graal.api.meta.*;
+
 /**
  * Represents a CPU architecture, including information such as its endianness, CPU registers, word
  * width, etc.
@@ -154,4 +157,77 @@ public abstract class Architecture {
     public final int requiredBarriers(int barriers) {
         return barriers & ~implicitMemoryBarriers;
     }
+
+    /**
+     * Determine the maximum vector length supported for vector operations on values of a given
+     * {@link Kind}.
+     * 
+     * @param kind the kind of the individual vector elements
+     * @return the maximum supported vector size
+     */
+    public int getMaxVectorLength(Kind kind) {
+        return 1;
+    }
+
+    /**
+     * Get a natively supported vector length for breaking down some vector operation on a constant
+     * length vector.
+     * 
+     * @param kind the kind of the individual vector elements
+     * @param maxLength the maximum length that should be returned
+     * @param arithmetic whether the vector length needs to support arithmetic operations or just
+     *            load and store
+     * @return a supported vector size, but at most {@code maxLength}
+     */
+    public int getSupportedVectorLength(Kind kind, int maxLength, boolean arithmetic) {
+        return 1;
+    }
+
+    /**
+     * Gets the size in bytes of the specified kind for this target.
+     * 
+     * @param kind the kind for which to get the size
+     * 
+     * @return the size in bytes of {@code kind}
+     */
+    public int getSizeInBytes(PlatformKind kind) {
+        switch ((Kind) kind) {
+            case Boolean:
+                return 1;
+            case Byte:
+                return 1;
+            case Char:
+                return 2;
+            case Short:
+                return 2;
+            case Int:
+                return 4;
+            case Long:
+                return 8;
+            case Float:
+                return 4;
+            case Double:
+                return 8;
+            case Object:
+                return wordSize;
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * Determine whether a kind can be stored in a register of a given category.
+     * 
+     * @param category the category of the register
+     * @param kind the kind that should be stored in the register
+     */
+    public abstract boolean canStoreValue(RegisterCategory category, PlatformKind kind);
+
+    /**
+     * Return the largest kind that can be stored in a register of a given category.
+     * 
+     * @param category the category of the register
+     * @return the largest kind that can be stored in a register {@code category}
+     */
+    public abstract PlatformKind getLargestStorableKind(RegisterCategory category);
 }

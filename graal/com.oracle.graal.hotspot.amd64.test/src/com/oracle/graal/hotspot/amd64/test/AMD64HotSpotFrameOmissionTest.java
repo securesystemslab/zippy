@@ -70,8 +70,9 @@ public class AMD64HotSpotFrameOmissionTest extends GraalCompilerTest {
 
             @Override
             public void generateCode(AMD64Assembler asm) {
-                asm.addl(rsi, 5);
-                asm.movl(rax, rsi);
+                Register arg = getArgumentRegister(0, Kind.Int);
+                asm.addl(arg, 5);
+                asm.movl(rax, arg);
                 asm.ret(0);
             }
         });
@@ -87,8 +88,9 @@ public class AMD64HotSpotFrameOmissionTest extends GraalCompilerTest {
 
             @Override
             public void generateCode(AMD64Assembler asm) {
-                asm.addq(rsi, 1);
-                asm.movq(rax, rsi);
+                Register arg = getArgumentRegister(0, Kind.Long);
+                asm.addq(arg, 1);
+                asm.movq(rax, arg);
                 asm.ret(0);
             }
         });
@@ -112,5 +114,10 @@ public class AMD64HotSpotFrameOmissionTest extends GraalCompilerTest {
         byte[] actualCode = Arrays.copyOf(installedCode.getCode(), expectedCode.length);
 
         Assert.assertArrayEquals(expectedCode, actualCode);
+    }
+
+    private Register getArgumentRegister(int index, Kind kind) {
+        Register[] regs = runtime.lookupRegisterConfig().getCallingConventionRegisters(CallingConvention.Type.JavaCall, kind);
+        return regs[index];
     }
 }

@@ -36,8 +36,12 @@ public class UnsafeCastNode extends PiNode implements Canonicalizable, LIRLowera
         super(object, stamp);
     }
 
-    public UnsafeCastNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+    public UnsafeCastNode(ValueNode object, Stamp stamp, GuardingNode anchor) {
         super(object, stamp, anchor);
+    }
+
+    public UnsafeCastNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+        this(object, stamp, (GuardingNode) anchor);
     }
 
     public UnsafeCastNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
@@ -50,12 +54,6 @@ public class UnsafeCastNode extends PiNode implements Canonicalizable, LIRLowera
             return false;
         }
         if (stamp() == StampFactory.forNodeIntrinsic()) {
-            return false;
-        }
-        if (object().objectStamp().alwaysNull() && objectStamp().nonNull()) {
-            // a null value flowing into a nonNull UnsafeCastNode should be guarded by a type/isNull
-            // guard, but the
-            // compiler might see this situation before the branch is deleted
             return false;
         }
         return updateStamp(stamp().join(object().stamp()));
@@ -90,8 +88,8 @@ public class UnsafeCastNode extends PiNode implements Canonicalizable, LIRLowera
     @Override
     public void generate(LIRGeneratorTool generator) {
         if (kind() != object().kind()) {
-            assert generator.target().sizeInBytes(kind()) == generator.target().sizeInBytes(object().kind()) : "unsafe cast cannot be used to change the size of a value";
-            Value result = generator.newVariable(kind());
+            assert generator.target().arch.getSizeInBytes(kind()) == generator.target().arch.getSizeInBytes(object().kind()) : "unsafe cast cannot be used to change the size of a value";
+            AllocatableValue result = generator.newVariable(kind());
             generator.emitMove(result, generator.operand(object()));
             generator.setResult(this, result);
         } else {
@@ -106,7 +104,7 @@ public class UnsafeCastNode extends PiNode implements Canonicalizable, LIRLowera
     public static native <T> T unsafeCast(Object object, @ConstantNodeParameter Stamp stamp);
 
     @NodeIntrinsic
-    public static native <T> T unsafeCast(Object object, @ConstantNodeParameter Stamp stamp, ValueNode anchor);
+    public static native <T> T unsafeCast(Object object, @ConstantNodeParameter Stamp stamp, GuardingNode anchor);
 
     @SuppressWarnings("unused")
     @NodeIntrinsic

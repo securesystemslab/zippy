@@ -172,7 +172,8 @@ KlassHandle GraalEnv::get_klass_by_index_impl(constantPoolHandle& cpool,
     {
       // We have to lock the cpool to keep the oop from being resolved
       // while we are accessing it.
-      MutexLockerEx ml(cpool->lock(), Mutex::_no_safepoint_check_flag);
+      oop cplock = cpool->lock();
+      ObjectLocker ol(cplock, THREAD, cplock != NULL);
 
       constantTag tag = cpool->tag_at(index);
       if (tag.is_klass()) {
@@ -449,7 +450,6 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
                                 Dependencies* dependencies,
                                 CompileTask* task,
                                 int compile_id,
-                                bool has_debug_info,
                                 bool has_unsafe_access,
                                 GrowableArray<jlong>* leaf_graph_ids,
                                 Handle installed_code,
@@ -527,7 +527,7 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
       // (Put nm into the task handle *before* publishing to the Java heap.)
       if (task != NULL)  task->set_code(nm);
 
-      if (HotSpotInstalledCode::isDefault(installed_code())) {
+      if (HotSpotNmethod::isDefault(installed_code())) {
         if (entry_bci == InvocationEntryBci) {
           if (TieredCompilation) {
             // If there is an old version we're done with it
@@ -564,6 +564,10 @@ GraalEnv::CodeInstallResult GraalEnv::register_method(
           InstanceKlass::cast(method->method_holder())->add_osr_nmethod(nm);
 
         }
+      }
+      
+      if (HotSpotNmethod::isExternal(installed_code())) {
+        tty->print_cr("External method:%s", method()->name_and_sig_as_C_string());
       }
     }
   }

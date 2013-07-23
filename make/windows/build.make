@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -198,6 +198,12 @@ HS_BUILD_VER=$(HOTSPOT_RELEASE_VERSION)-$(HOTSPOT_BUILD_VERSION)
 
 # End VERSIONINFO parameters
 
+# if hotspot-only build and/or OPENJDK isn't passed down, need to set OPENJDK
+!ifndef OPENJDK
+!if !exists($(WorkSpace)\src\closed)
+OPENJDK=true
+!endif
+!endif
 
 # We don't support SA on ia64, and we can't
 # build it if we are using a version of Vis Studio
@@ -237,17 +243,13 @@ product release optimized: checks $(variantDir) $(variantDir)\local.make sanity
 	cd $(variantDir)
 	nmake -nologo -f $(WorkSpace)\make\windows\makefiles\top.make BUILD_FLAVOR=product ARCH=$(ARCH)
 
-# The debug or jvmg (all the same thing) is an optional build
-debug jvmg: checks $(variantDir) $(variantDir)\local.make sanity
+# The debug build is an optional build
+debug: checks $(variantDir) $(variantDir)\local.make sanity
 	cd $(variantDir)
 	nmake -nologo -f $(WorkSpace)\make\windows\makefiles\top.make BUILD_FLAVOR=debug ARCH=$(ARCH)
 fastdebug: checks $(variantDir) $(variantDir)\local.make sanity
 	cd $(variantDir)
 	nmake -nologo -f $(WorkSpace)\make\windows\makefiles\top.make BUILD_FLAVOR=fastdebug ARCH=$(ARCH)
-
-develop: checks $(variantDir) $(variantDir)\local.make sanity
-	cd $(variantDir)
-	nmake -nologo -f $(WorkSpace)\make\windows\makefiles\top.make BUILD_FLAVOR=product DEVELOP=1 ARCH=$(ARCH)
 
 # target to create just the directory structure
 tree: checks $(variantDir) $(variantDir)\local.make sanity
@@ -279,6 +281,7 @@ $(variantDir)\local.make: checks
 	@ echo HS_COMPANY=$(COMPANY_NAME)			>> $@
 	@ echo HS_FILEDESC=$(HS_FILEDESC)			>> $@
 	@ echo HOTSPOT_VM_DISTRO=$(HOTSPOT_VM_DISTRO)		>> $@
+	@ if "$(OPENJDK)" NEQ "" echo OPENJDK=$(OPENJDK)	>> $@
 	@ echo HS_COPYRIGHT=$(HOTSPOT_VM_COPYRIGHT)		>> $@
 	@ echo HS_NAME=$(PRODUCT_NAME) $(JDK_MKTG_VERSION)	>> $@
 	@ echo HS_BUILD_VER=$(HS_BUILD_VER)			>> $@

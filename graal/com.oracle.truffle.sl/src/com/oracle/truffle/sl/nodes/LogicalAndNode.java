@@ -22,18 +22,10 @@
  */
 package com.oracle.truffle.sl.nodes;
 
-import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.dsl.*;
 
 @SuppressWarnings("unused")
 public abstract class LogicalAndNode extends BinaryNode {
-
-    public LogicalAndNode(TypedNode leftNode, TypedNode rightNode) {
-        super(leftNode, rightNode);
-    }
-
-    public LogicalAndNode(LogicalAndNode node) {
-        this(node.leftNode, node.rightNode);
-    }
 
     @ShortCircuit("rightNode")
     public boolean needsRightNode(boolean left) {

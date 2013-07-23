@@ -22,12 +22,17 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.hotspot.replacements.HotSpotSnippetUtils.*;
+import static com.oracle.graal.api.code.DeoptimizationAction.*;
+import static com.oracle.graal.api.meta.DeoptimizationReason.*;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.hotspot.replacements.TypeCheckSnippetUtils.*;
-import static com.oracle.graal.replacements.nodes.BranchProbabilityNode.*;
+import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.meta.ProfilingInfo.TriState;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.replacements.TypeCheckSnippetUtils.Hints;
 import com.oracle.graal.nodes.*;
@@ -54,18 +59,66 @@ import com.oracle.graal.word.*;
 public class InstanceOfSnippets implements Snippets {
 
     /**
+     * Gets the minimum required probability of a profiled instanceof hitting one the profiled types
+     * for use of the {@linkplain #instanceofWithProfile deoptimizing} snippet. The value is
+     * computed to be an order of magnitude greater than the configured compilation threshold. For
+     * example, if a method is compiled after being interpreted 10000 times, the deoptimizing
+     * snippet will only be used for an instanceof if its profile indicates that less than 1 in
+     * 100000 executions are for an object whose type is not one of the top N profiled types (where
+     * {@code N == } {@link GraalOptions#InstanceOfMaxHints}).
+     */
+    public static double hintHitProbabilityThresholdForDeoptimizingSnippet() {
+        return 1.0D - (1.0D / (graalRuntime().getConfig().compileThreshold * 10));
+    }
+
+    /**
+     * A test against a set of hints derived from a profile with very close to 100% precise coverage
+     * of seen types. This snippet deoptimizes on hint miss paths.
+     * 
+     * @see #hintHitProbabilityThresholdForDeoptimizingSnippet()
+     */
+    @Snippet
+    public static Object instanceofWithProfile(Object object, @VarargsParameter Word[] hints, @VarargsParameter boolean[] hintIsPositive, Object trueValue, Object falseValue,
+                    @ConstantParameter boolean checkNull, @ConstantParameter boolean nullSeen) {
+        if (probability(NOT_FREQUENT_PROBABILITY, checkNull && object == null)) {
+            isNull.inc();
+            if (!nullSeen) {
+                // See comment below for other deoptimization path; the
+                // same reasoning applies here.
+                DeoptimizeNode.deopt(InvalidateReprofile, OptimizedTypeCheckViolated);
+            }
+            return falseValue;
+        }
+        Word objectHub = loadHub(object);
+        // if we get an exact match: succeed immediately
+        ExplodeLoopNode.explodeLoop();
+        for (int i = 0; i < hints.length; i++) {
+            Word hintHub = hints[i];
+            boolean positive = hintIsPositive[i];
+            if (probability(NOT_FREQUENT_PROBABILITY, hintHub.equal(objectHub))) {
+                hintsHit.inc();
+                return positive ? trueValue : falseValue;
+            }
+        }
+        // This maybe just be a rare event but it might also indicate a phase change
+        // in the application. Ideally we want to use DeoptimizationAction.None for
+        // the former but the cost is too high if indeed it is the latter. As such,
+        // we defensively opt for InvalidateReprofile.
+        DeoptimizeNode.deopt(DeoptimizationAction.InvalidateReprofile, OptimizedTypeCheckViolated);
+        return falseValue;
+    }
+
+    /**
      * A test against a final type.
      */
     @Snippet
     public static Object instanceofExact(Object object, Word exactHub, Object trueValue, Object falseValue, @ConstantParameter boolean checkNull) {
-        if (checkNull && object == null) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (checkNull && probability(NOT_FREQUENT_PROBABILITY, object == null)) {
             isNull.inc();
             return falseValue;
         }
         Word objectHub = loadHub(object);
-        if (objectHub.notEqual(exactHub)) {
-            probability(LIKELY_PROBABILITY);
+        if (probability(LIKELY_PROBABILITY, objectHub.notEqual(exactHub))) {
             exactMiss.inc();
             return falseValue;
         }
@@ -78,14 +131,12 @@ public class InstanceOfSnippets implements Snippets {
      */
     @Snippet
     public static Object instanceofPrimary(Word hub, Object object, @ConstantParameter int superCheckOffset, Object trueValue, Object falseValue, @ConstantParameter boolean checkNull) {
-        if (checkNull && object == null) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (checkNull && probability(NOT_FREQUENT_PROBABILITY, object == null)) {
             isNull.inc();
             return falseValue;
         }
         Word objectHub = loadHub(object);
-        if (objectHub.readWord(superCheckOffset, FINAL_LOCATION).notEqual(hub)) {
-            probability(NOT_LIKELY_PROBABILITY);
+        if (probability(NOT_LIKELY_PROBABILITY, objectHub.readWord(superCheckOffset, LocationIdentity.FINAL_LOCATION).notEqual(hub))) {
             displayMiss.inc();
             return falseValue;
         }
@@ -99,8 +150,7 @@ public class InstanceOfSnippets implements Snippets {
     @Snippet
     public static Object instanceofSecondary(Word hub, Object object, @VarargsParameter Word[] hints, @VarargsParameter boolean[] hintIsPositive, Object trueValue, Object falseValue,
                     @ConstantParameter boolean checkNull) {
-        if (checkNull && object == null) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (checkNull && probability(NOT_FREQUENT_PROBABILITY, object == null)) {
             isNull.inc();
             return falseValue;
         }
@@ -110,8 +160,7 @@ public class InstanceOfSnippets implements Snippets {
         for (int i = 0; i < hints.length; i++) {
             Word hintHub = hints[i];
             boolean positive = hintIsPositive[i];
-            if (hintHub.equal(objectHub)) {
-                probability(NOT_FREQUENT_PROBABILITY);
+            if (probability(NOT_FREQUENT_PROBABILITY, hintHub.equal(objectHub))) {
                 hintsHit.inc();
                 return positive ? trueValue : falseValue;
             }
@@ -127,8 +176,7 @@ public class InstanceOfSnippets implements Snippets {
      */
     @Snippet
     public static Object instanceofDynamic(Class mirror, Object object, Object trueValue, Object falseValue, @ConstantParameter boolean checkNull) {
-        if (checkNull && object == null) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (checkNull && probability(NOT_FREQUENT_PROBABILITY, object == null)) {
             isNull.inc();
             return falseValue;
         }
@@ -143,6 +191,7 @@ public class InstanceOfSnippets implements Snippets {
 
     public static class Templates extends InstanceOfSnippetsTemplates {
 
+        private final SnippetInfo instanceofWithProfile = snippet(InstanceOfSnippets.class, "instanceofWithProfile");
         private final SnippetInfo instanceofExact = snippet(InstanceOfSnippets.class, "instanceofExact");
         private final SnippetInfo instanceofPrimary = snippet(InstanceOfSnippets.class, "instanceofPrimary");
         private final SnippetInfo instanceofSecondary = snippet(InstanceOfSnippets.class, "instanceofSecondary");
@@ -157,17 +206,22 @@ public class InstanceOfSnippets implements Snippets {
             if (replacer.instanceOf instanceof InstanceOfNode) {
                 InstanceOfNode instanceOf = (InstanceOfNode) replacer.instanceOf;
                 ValueNode object = instanceOf.object();
-                TypeCheckHints hintInfo = new TypeCheckHints(instanceOf.type(), instanceOf.profile(), tool.assumptions(), GraalOptions.InstanceOfMinHintHitProbability, GraalOptions.InstanceOfMaxHints);
+                TypeCheckHints hintInfo = new TypeCheckHints(instanceOf.type(), instanceOf.profile(), tool.assumptions(), InstanceOfMinHintHitProbability.getValue(), InstanceOfMaxHints.getValue());
                 final HotSpotResolvedObjectType type = (HotSpotResolvedObjectType) instanceOf.type();
                 ConstantNode hub = ConstantNode.forConstant(type.klass(), runtime, instanceOf.graph());
 
                 Arguments args;
-                if (hintInfo.exact) {
-                    ConstantNode[] hints = createHints(hintInfo, runtime, true, hub.graph()).hubs;
-                    assert hints.length == 1;
+
+                if (hintInfo.hintHitProbability >= hintHitProbabilityThresholdForDeoptimizingSnippet()) {
+                    Hints hints = createHints(hintInfo, runtime, false, hub.graph());
+                    args = new Arguments(instanceofWithProfile);
+                    args.add("object", object);
+                    args.addVarargs("hints", Word.class, StampFactory.forKind(wordKind()), hints.hubs);
+                    args.addVarargs("hintIsPositive", boolean.class, StampFactory.forKind(Kind.Boolean), hints.isPositive);
+                } else if (hintInfo.exact != null) {
                     args = new Arguments(instanceofExact);
                     args.add("object", object);
-                    args.add("exactHub", hints[0]);
+                    args.add("exactHub", ConstantNode.forConstant(((HotSpotResolvedObjectType) hintInfo.exact).klass(), runtime, hub.graph()));
                 } else if (type.isPrimaryType()) {
                     args = new Arguments(instanceofPrimary);
                     args.add("hub", hub);
@@ -178,12 +232,15 @@ public class InstanceOfSnippets implements Snippets {
                     args = new Arguments(instanceofSecondary);
                     args.add("hub", hub);
                     args.add("object", object);
-                    args.addVarargs("hints", Word.class, StampFactory.forKind(wordKind()), hints.hubs);
+                    args.addVarargs("hints", Word.class, StampFactory.forKind(getWordKind()), hints.hubs);
                     args.addVarargs("hintIsPositive", boolean.class, StampFactory.forKind(Kind.Boolean), hints.isPositive);
                 }
                 args.add("trueValue", replacer.trueValue);
                 args.add("falseValue", replacer.falseValue);
                 args.addConst("checkNull", !object.stamp().nonNull());
+                if (hintInfo.hintHitProbability >= hintHitProbabilityThresholdForDeoptimizingSnippet()) {
+                    args.addConst("nullSeen", hintInfo.profile.getNullSeen() != TriState.FALSE);
+                }
                 return args;
 
             } else {

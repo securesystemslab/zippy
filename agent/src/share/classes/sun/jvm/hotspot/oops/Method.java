@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,15 +24,21 @@
 
 package sun.jvm.hotspot.oops;
 
-import java.io.*;
-import java.util.*;
-import sun.jvm.hotspot.code.*;
-import sun.jvm.hotspot.debugger.*;
-import sun.jvm.hotspot.interpreter.*;
-import sun.jvm.hotspot.memory.*;
-import sun.jvm.hotspot.runtime.*;
-import sun.jvm.hotspot.types.*;
-import sun.jvm.hotspot.utilities.*;
+import java.io.PrintStream;
+import java.util.Observable;
+import java.util.Observer;
+
+import sun.jvm.hotspot.code.NMethod;
+import sun.jvm.hotspot.debugger.Address;
+import sun.jvm.hotspot.interpreter.OopMapCacheEntry;
+import sun.jvm.hotspot.runtime.SignatureConverter;
+import sun.jvm.hotspot.runtime.VM;
+import sun.jvm.hotspot.runtime.VMObjectFactory;
+import sun.jvm.hotspot.types.AddressField;
+import sun.jvm.hotspot.types.Type;
+import sun.jvm.hotspot.types.TypeDataBase;
+import sun.jvm.hotspot.types.WrongTypeException;
+import sun.jvm.hotspot.utilities.Assert;
 
 // A Method represents a Java method
 
@@ -49,18 +55,12 @@ public class Method extends Metadata {
     Type type                  = db.lookupType("Method");
     constMethod                = type.getAddressField("_constMethod");
     methodData                 = type.getAddressField("_method_data");
+    methodCounters             = type.getAddressField("_method_counters");
     methodSize                 = new CIntField(type.getCIntegerField("_method_size"), 0);
     accessFlags                = new CIntField(type.getCIntegerField("_access_flags"), 0);
     code                       = type.getAddressField("_code");
     vtableIndex                = new CIntField(type.getCIntegerField("_vtable_index"), 0);
-    if (!VM.getVM().isCore()) {
-      invocationCounter        = new CIntField(type.getCIntegerField("_invocation_counter"), 0);
-      backedgeCounter          = new CIntField(type.getCIntegerField("_backedge_counter"), 0);
-    }
     bytecodeOffset = type.getSize();
-
-    interpreterThrowoutCountField = new CIntField(type.getCIntegerField("_interpreter_throwout_count"), 0);
-    interpreterInvocationCountField = new CIntField(type.getCIntegerField("_interpreter_invocation_count"), 0);
 
     /*
     interpreterEntry           = type.getAddressField("_interpreter_entry");
@@ -80,17 +80,13 @@ public class Method extends Metadata {
   // Fields
   private static AddressField  constMethod;
   private static AddressField  methodData;
+  private static AddressField  methodCounters;
   private static CIntField methodSize;
   private static CIntField accessFlags;
   private static CIntField vtableIndex;
-  private static CIntField invocationCounter;
-  private static CIntField backedgeCounter;
   private static long      bytecodeOffset;
 
   private static AddressField       code;
-
-  private static CIntField interpreterThrowoutCountField;
-  private static CIntField interpreterInvocationCountField;
 
   // constant method names - <init>, <clinit>
   // Initialized lazily to avoid initialization ordering dependencies between Method and SymbolTable
@@ -127,6 +123,10 @@ public class Method extends Metadata {
     Address addr = methodData.getValue(getAddress());
     return (MethodData) VMObjectFactory.newObject(MethodData.class, addr);
   }
+  public MethodCounters getMethodCounters()           {
+    Address addr = methodCounters.getValue(getAddress());
+    return (MethodCounters) VMObjectFactory.newObject(MethodCounters.class, addr);
+  }
   /** WARNING: this is in words, not useful in this system; use getObjectSize() instead */
   public long         getMethodSize()                 { return                methodSize.getValue(this);        }
   public long         getMaxStack()                   { return                getConstMethod().getMaxStack();   }
@@ -138,17 +138,13 @@ public class Method extends Metadata {
   public long         getAccessFlags()                { return                accessFlags.getValue(this);       }
   public long         getCodeSize()                   { return                getConstMethod().getCodeSize();   }
   public long         getVtableIndex()                { return                vtableIndex.getValue(this);       }
-  public long         getInvocationCounter()          {
-    if (Assert.ASSERTS_ENABLED) {
-      Assert.that(!VM.getVM().isCore(), "must not be used in core build");
-    }
-    return invocationCounter.getValue(this);
+  public long         getInvocationCount()          {
+    MethodCounters mc = getMethodCounters();
+    return mc == null ? 0 : mc.getInvocationCounter();
   }
-  public long         getBackedgeCounter()          {
-    if (Assert.ASSERTS_ENABLED) {
-      Assert.that(!VM.getVM().isCore(), "must not be used in core build");
-    }
-    return backedgeCounter.getValue(this);
+  public long         getBackedgeCount()          {
+    MethodCounters mc = getMethodCounters();
+    return mc == null ? 0 : mc.getBackedgeCounter();
   }
 
   // get associated compiled native method, if available, else return null.
@@ -361,18 +357,18 @@ public class Method extends Metadata {
                   holder.getName().asString() + " " +
                   OopUtilities.escapeString(getName().asString()) + " " +
                   getSignature().asString() + " " +
-                  getInvocationCounter() + " " +
-                  getBackedgeCounter() + " " +
+                  getInvocationCount() + " " +
+                  getBackedgeCount() + " " +
                   interpreterInvocationCount() + " " +
                   interpreterThrowoutCount() + " " +
                   code_size);
   }
 
   public int interpreterThrowoutCount() {
-    return (int) interpreterThrowoutCountField.getValue(this);
+    return getMethodCounters().interpreterThrowoutCount();
   }
 
   public int interpreterInvocationCount() {
-    return (int) interpreterInvocationCountField.getValue(this);
+    return getMethodCounters().interpreterInvocationCount();
   }
 }

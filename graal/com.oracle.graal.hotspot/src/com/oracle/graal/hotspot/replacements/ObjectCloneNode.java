@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import java.lang.reflect.*;
 
 import com.oracle.graal.api.code.*;
@@ -31,7 +33,6 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.virtual.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.replacements.nodes.*;
 
 public class ObjectCloneNode extends MacroNode implements VirtualizableAllocation, ArrayLengthProvider {
@@ -51,7 +52,7 @@ public class ObjectCloneNode extends MacroNode implements VirtualizableAllocatio
 
     @Override
     protected StructuredGraph getSnippetGraph(LoweringTool tool) {
-        if (!GraalOptions.IntrinsifyObjectClone) {
+        if (!IntrinsifyObjectClone.getValue()) {
             return null;
         }
 
@@ -77,7 +78,7 @@ public class ObjectCloneNode extends MacroNode implements VirtualizableAllocatio
     }
 
     private static boolean isCloneableType(ResolvedJavaType type, MetaAccessProvider metaAccess) {
-        return metaAccess.lookupJavaType(Cloneable.class).isAssignableFrom(type);
+        return type != null && metaAccess.lookupJavaType(Cloneable.class).isAssignableFrom(type);
     }
 
     private static ResolvedJavaType getConcreteType(ObjectStamp stamp, Assumptions assumptions) {
@@ -103,7 +104,7 @@ public class ObjectCloneNode extends MacroNode implements VirtualizableAllocatio
                     newEntryState[i] = originalState.getEntry(i);
                 }
                 VirtualObjectNode newVirtual = originalVirtual.duplicate();
-                tool.createVirtualObject(newVirtual, newEntryState, 0);
+                tool.createVirtualObject(newVirtual, newEntryState, null);
                 tool.replaceWithVirtual(newVirtual);
             }
         } else {
@@ -123,18 +124,9 @@ public class ObjectCloneNode extends MacroNode implements VirtualizableAllocatio
                     final LoadFieldNode[] loads = new LoadFieldNode[fields.length];
                     for (int i = 0; i < fields.length; i++) {
                         state[i] = loads[i] = new LoadFieldNode(obj, fields[i]);
+                        tool.addNode(loads[i]);
                     }
-
-                    final StructuredGraph structuredGraph = (StructuredGraph) graph();
-                    tool.customAction(new Runnable() {
-
-                        public void run() {
-                            for (LoadFieldNode load : loads) {
-                                structuredGraph.addBeforeFixed(ObjectCloneNode.this, structuredGraph.add(load));
-                            }
-                        }
-                    });
-                    tool.createVirtualObject(newVirtual, state, 0);
+                    tool.createVirtualObject(newVirtual, state, null);
                     tool.replaceWithVirtual(newVirtual);
                 }
             }

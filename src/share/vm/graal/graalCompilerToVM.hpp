@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 #define SHARE_VM_GRAAL_GRAAL_COMPILER_TO_VM_HPP
 
 #include "prims/jni.h"
+#include "runtime/javaCalls.hpp"
 
 extern JNINativeMethod CompilerToVM_methods[];
 int CompilerToVM_methods_count();
@@ -54,7 +55,7 @@ class JavaArgumentUnboxer : public SignatureIterator {
 
   oop next_arg(BasicType expectedType) {
     assert(_index < _args->length(), "out of bounds");
-    oop arg = ((oop*) _args->base(T_OBJECT))[_index++];
+    oop arg=((objArrayOop) (_args))->obj_at(_index++);
     assert(expectedType == T_OBJECT || java_lang_boxing_object::is_instance(arg, expectedType), "arg type mismatch");
     return arg;
   }

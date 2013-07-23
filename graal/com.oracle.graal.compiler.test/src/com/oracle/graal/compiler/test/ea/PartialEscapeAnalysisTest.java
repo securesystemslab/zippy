@@ -24,9 +24,7 @@ package com.oracle.graal.compiler.test.ea;
 
 import java.util.concurrent.*;
 
-import junit.framework.Assert;
-
-import org.junit.Test;
+import org.junit.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.compiler.test.*;
@@ -34,16 +32,17 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.nodes.util.*;
+import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.graph.*;
 import com.oracle.graal.phases.tiers.*;
-import com.oracle.graal.virtual.nodes.*;
 import com.oracle.graal.virtual.phases.ea.*;
 
 /**
- * In these test cases the probability of all invokes is set to a high value, such that an
- * InliningPhase should inline them all. After that, the PartialEscapeAnalysisPhase is expected to
- * remove all allocations and return the correct values.
+ * The PartialEscapeAnalysisPhase is expected to remove all allocations and return the correct
+ * values.
  */
 public class PartialEscapeAnalysisTest extends GraalCompilerTest {
 
@@ -131,11 +130,13 @@ public class PartialEscapeAnalysisTest extends GraalCompilerTest {
         try {
             Assert.assertTrue("partial escape analysis should have removed all NewInstanceNode allocations", result.getNodes(NewInstanceNode.class).isEmpty());
             Assert.assertTrue("partial escape analysis should have removed all NewArrayNode allocations", result.getNodes(NewArrayNode.class).isEmpty());
+
+            NodesToDoubles nodeProbabilities = new ComputeProbabilityClosure(result).apply();
             double probabilitySum = 0;
             int materializeCount = 0;
-            for (MaterializeObjectNode materialize : result.getNodes(MaterializeObjectNode.class)) {
-                probabilitySum += materialize.probability();
-                materializeCount++;
+            for (CommitAllocationNode materialize : result.getNodes(CommitAllocationNode.class)) {
+                probabilitySum += nodeProbabilities.get(materialize) * materialize.getVirtualObjects().size();
+                materializeCount += materialize.getVirtualObjects().size();
             }
             Assert.assertEquals("unexpected number of MaterializeObjectNodes", expectedCount, materializeCount);
             Assert.assertEquals("unexpected probability of MaterializeObjectNodes", expectedProbability, probabilitySum, 0.01);
@@ -156,20 +157,20 @@ public class PartialEscapeAnalysisTest extends GraalCompilerTest {
             @Override
             public StructuredGraph call() {
                 StructuredGraph graph = parse(snippet);
-                new ComputeProbabilityPhase().apply(graph);
-                for (Invoke n : graph.getInvokes()) {
-                    n.asNode().setProbability(100000);
-                }
+
                 Assumptions assumptions = new Assumptions(false);
-                HighTierContext context = new HighTierContext(runtime(), assumptions);
+                HighTierContext context = new HighTierContext(runtime(), assumptions, replacements);
                 new InliningPhase(runtime(), null, replacements, assumptions, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL).apply(graph);
                 new DeadCodeEliminationPhase().apply(graph);
-                new CanonicalizerPhase().apply(graph, context);
-                new PartialEscapeAnalysisPhase(false, false).apply(graph, context);
+                CanonicalizerPhase canonicalizer = new CanonicalizerPhase(true);
+                canonicalizer.apply(graph, context);
+                new PartialEscapePhase(false, canonicalizer).apply(graph, context);
 
-                new CullFrameStatesPhase().apply(graph);
+                for (MergeNode merge : graph.getNodes(MergeNode.class)) {
+                    merge.setStateAfter(null);
+                }
                 new DeadCodeEliminationPhase().apply(graph);
-                new CanonicalizerPhase().apply(graph, context);
+                canonicalizer.apply(graph, context);
                 return graph;
             }
         });

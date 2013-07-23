@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,21 @@
  */
 package com.oracle.graal.nodes;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 /**
- * A node that changes the type of its input, usually narrowing it. For example, a PI node refines
+ * A node that changes the type of its input, usually narrowing it. For example, a PiNode refines
  * the type of a receiver during type-guarded inlining to be the type tested by the guard.
+ * 
+ * In contrast to a {@link GuardedValueNode}, a PiNode is useless as soon as the type of its input
+ * is as narrow or narrower than the PiNode's type. The PiNode, and therefore also the scheduling
+ * restriction enforced by the anchor, will go away.
  */
-public class PiNode extends FloatingNode implements LIRLowerable, Virtualizable, Node.IterableNodeType {
+public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, Node.IterableNodeType, GuardingNode, Canonicalizable, ValueProxy {
 
     @Input private ValueNode object;
 
@@ -44,25 +49,20 @@ public class PiNode extends FloatingNode implements LIRLowerable, Virtualizable,
         this.object = object;
     }
 
-    public PiNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+    public PiNode(ValueNode object, Stamp stamp, GuardingNode anchor) {
         super(stamp, anchor);
-        assert anchor instanceof FixedNode;
         this.object = object;
     }
 
     @Override
     public void generate(LIRGeneratorTool generator) {
-        generator.setResult(this, generator.operand(object));
+        if (object.kind() != Kind.Void && object.kind() != Kind.Illegal) {
+            generator.setResult(this, generator.operand(object));
+        }
     }
 
     @Override
     public boolean inferStamp() {
-        if (object().objectStamp().alwaysNull() && objectStamp().nonNull()) {
-            // a null value flowing into a nonNull PiNode should be guarded by a type/isNull guard,
-            // but the
-            // compiler might see this situation before the branch is deleted
-            return false;
-        }
         return updateStamp(stamp().join(object().stamp()));
     }
 
@@ -72,5 +72,19 @@ public class PiNode extends FloatingNode implements LIRLowerable, Virtualizable,
         if (state != null && state.getState() == EscapeState.Virtual) {
             tool.replaceWithVirtual(state.getVirtualObject());
         }
+    }
+
+    @Override
+    public ValueNode canonical(CanonicalizerTool tool) {
+        inferStamp();
+        if (stamp().equals(object().stamp())) {
+            return object();
+        }
+        return this;
+    }
+
+    @Override
+    public ValueNode getOriginalValue() {
+        return object;
     }
 }

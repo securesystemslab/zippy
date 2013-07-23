@@ -26,9 +26,9 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.type.*;
 
-public abstract class AbstractCallNode extends AbstractStateSplit implements StateSplit, MemoryCheckpoint {
+public abstract class AbstractCallNode extends AbstractStateSplit implements StateSplit {
 
-    @Input protected final NodeInputList<ValueNode> arguments;
+    @Input private final NodeInputList<ValueNode> arguments;
 
     public AbstractCallNode(Stamp stamp, ValueNode[] arguments) {
         super(stamp);

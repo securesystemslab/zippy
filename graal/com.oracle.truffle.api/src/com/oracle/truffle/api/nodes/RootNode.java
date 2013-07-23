@@ -39,4 +39,14 @@ public abstract class RootNode extends Node {
      * @return the value of the execution
      */
     public abstract Object execute(VirtualFrame frame);
+
+    private CallTarget callTarget;
+
+    public CallTarget getCallTarget() {
+        return callTarget;
+    }
+
+    public void setCallTarget(CallTarget callTarget) {
+        this.callTarget = callTarget;
+    }
 }

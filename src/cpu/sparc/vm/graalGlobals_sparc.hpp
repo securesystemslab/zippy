@@ -31,6 +31,32 @@
 // Sets the default values for platform dependent flags used by the Graal compiler.
 // (see graalGlobals.hpp)
 
-define_pd_global(intx, GraalSafepointPollOffset,     0    );
+#if !defined(COMPILER1) && !defined(COMPILER2)
+define_pd_global(bool, BackgroundCompilation,        true );
+define_pd_global(bool, UseTLAB,                      true );
+define_pd_global(bool, ResizeTLAB,                   true );
+define_pd_global(bool, InlineIntrinsics,             true );
+define_pd_global(bool, PreferInterpreterNativeStubs, false);
+define_pd_global(bool, TieredCompilation,            false);
+define_pd_global(intx, BackEdgeThreshold,            100000);
+
+define_pd_global(intx, OnStackReplacePercentage,     933  );
+define_pd_global(intx, FreqInlineSize,               325  );
+define_pd_global(intx, NewSizeThreadIncrease,        4*K  );
+define_pd_global(uintx,MetaspaceSize,                12*M );
+define_pd_global(bool, NeverActAsServerClassMachine, false);
+define_pd_global(uint64_t,MaxRAM,                    1ULL*G);
+define_pd_global(bool, CICompileOSR,                 true );
+define_pd_global(bool, ProfileTraps,                 true );
+define_pd_global(bool, UseOnStackReplacement,        true );
+define_pd_global(intx, CompileThreshold,             10000);
+define_pd_global(intx, InitialCodeCacheSize,         16*M );
+define_pd_global(intx, ReservedCodeCacheSize,        64*M );
+define_pd_global(bool, ProfileInterpreter,           true );
+define_pd_global(intx, CodeCacheExpansionSize,       64*K );
+define_pd_global(uintx,CodeCacheMinBlockLength,      4);
+define_pd_global(intx, TypeProfileWidth,             8);
+define_pd_global(intx, MethodProfileWidth,           4);
+#endif
 
 #endif // CPU_SPARC_VM_GRAALGLOBALS_SPARC_HPP

@@ -24,16 +24,17 @@ package com.oracle.graal.virtual.phases.ea;
 
 import java.util.*;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.debug.*;
 import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.common.*;
-import com.oracle.graal.virtual.nodes.*;
 
 public class GraphEffectList extends EffectList {
 
-    public void addCounterBefore(final String name, final int increment, final boolean addContext, final FixedNode position) {
+    public void addCounterBefore(final String group, final String name, final int increment, final boolean addContext, final FixedNode position) {
         if (!DynamicCounterNode.enabled) {
             return;
         }
@@ -47,14 +48,13 @@ public class GraphEffectList extends EffectList {
             @Override
             public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
                 assert position.isAlive();
-                DynamicCounterNode node = graph.add(new DynamicCounterNode(name, increment, addContext));
+                DynamicCounterNode node = graph.add(new DynamicCounterNode(group, name, increment, addContext));
                 graph.addBeforeFixed(position, node);
-                node.setProbability(position.probability());
             }
         });
     }
 
-    public void addSurvivingCounterBefore(final String name, final int increment, final boolean addContext, final ValueNode checkedValue, final FixedNode position) {
+    public void addSurvivingCounterBefore(final String group, final String name, final int increment, final boolean addContext, final ValueNode checkedValue, final FixedNode position) {
         if (!DynamicCounterNode.enabled) {
             return;
         }
@@ -68,9 +68,8 @@ public class GraphEffectList extends EffectList {
             @Override
             public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
                 assert position.isAlive();
-                DynamicCounterNode node = graph.add(new SurvivingCounterNode(name, increment, addContext, checkedValue));
+                DynamicCounterNode node = graph.add(new SurvivingCounterNode(group, name, increment, addContext, checkedValue));
                 graph.addBeforeFixed(position, node);
-                node.setProbability(position.probability());
             }
         });
     }
@@ -94,7 +93,6 @@ public class GraphEffectList extends EffectList {
             public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
                 assert !node.isAlive() && !node.isDeleted() && position.isAlive();
                 graph.addBeforeFixed(position, graph.add(node));
-                node.setProbability(position.probability());
             }
         });
     }
@@ -116,34 +114,6 @@ public class GraphEffectList extends EffectList {
             public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
                 assert !node.isAlive() && !node.isDeleted() : node + " " + cause;
                 graph.add(node);
-            }
-        });
-    }
-
-    /**
-     * Add the materialization node to the graph's control flow at the given position, and then sets
-     * its values.
-     * 
-     * @param node The materialization node that should be added.
-     * @param position The fixed node before which the materialization node should be added.
-     * @param values The values for the materialization node's entries.
-     */
-    public void addMaterialization(final MaterializeObjectNode node, final FixedNode position, final ValueNode[] values) {
-        add(new Effect() {
-
-            @Override
-            public String name() {
-                return "addMaterialization";
-            }
-
-            @Override
-            public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
-                assert !node.isAlive() && !node.isDeleted() && position.isAlive();
-                graph.addBeforeFixed(position, graph.add(node));
-                node.setProbability(position.probability());
-                for (int i = 0; i < values.length; i++) {
-                    node.getValues().set(i, values[i]);
-                }
             }
         });
     }
@@ -246,7 +216,7 @@ public class GraphEffectList extends EffectList {
                 FixedNode next = node.next();
                 node.setNext(null);
                 node.replaceAtPredecessor(next);
-                obsoleteNodes.add(node);
+                assert obsoleteNodes.add(node);
             }
         });
     }
@@ -281,7 +251,7 @@ public class GraphEffectList extends EffectList {
                     FixedNode next = ((FixedWithNextNode) node).next();
                     ((FixedWithNextNode) node).setNext(null);
                     node.replaceAtPredecessor(next);
-                    obsoleteNodes.add(node);
+                    assert obsoleteNodes.add(node);
                 }
             }
         });
@@ -331,6 +301,90 @@ public class GraphEffectList extends EffectList {
             @Override
             public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
                 action.run();
+            }
+        });
+    }
+
+    /**
+     * Add the materialization node to the graph's control flow at the given position, and then sets
+     * its values.
+     * 
+     * @param position The fixed node before which the materialization node should be added.
+     * @param objects The allocated objects.
+     * @param locks The lock depths for each object.
+     * @param values The values (field, elements) of all objects.
+     * @param otherAllocations A list of allocations that need to be added before the rest (used for
+     *            boxing allocations).
+     */
+    public void addMaterializationBefore(final FixedNode position, final List<AllocatedObjectNode> objects, final List<int[]> locks, final List<ValueNode> values,
+                    final List<ValueNode> otherAllocations) {
+        add(new Effect() {
+
+            @Override
+            public String name() {
+                return "addMaterializationBefore";
+            }
+
+            @Override
+            public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
+                for (ValueNode otherAllocation : otherAllocations) {
+                    graph.add(otherAllocation);
+                    if (otherAllocation instanceof FixedWithNextNode) {
+                        graph.addBeforeFixed(position, (FixedWithNextNode) otherAllocation);
+                    } else {
+                        assert otherAllocation instanceof FloatingNode;
+                    }
+                }
+                if (!objects.isEmpty()) {
+                    CommitAllocationNode commit;
+                    if (position.predecessor() instanceof CommitAllocationNode) {
+                        commit = (CommitAllocationNode) position.predecessor();
+                    } else {
+                        commit = graph.add(new CommitAllocationNode());
+                        graph.addBeforeFixed(position, commit);
+                    }
+                    for (AllocatedObjectNode obj : objects) {
+                        graph.add(obj);
+                        commit.getVirtualObjects().add(obj.getVirtualObject());
+                        obj.setCommit(commit);
+                    }
+                    commit.getValues().addAll(values);
+                    commit.getLocks().addAll(locks);
+
+                    assert commit.usages().filter(AllocatedObjectNode.class).count() == commit.usages().count();
+                    HashSet<AllocatedObjectNode> materializedValues = new HashSet<>(commit.usages().filter(AllocatedObjectNode.class).snapshot());
+                    for (int i = 0; i < commit.getValues().size(); i++) {
+                        if (materializedValues.contains(commit.getValues().get(i))) {
+                            commit.getValues().set(i, ((AllocatedObjectNode) commit.getValues().get(i)).getVirtualObject());
+                        }
+                    }
+
+                }
+            }
+
+            @Override
+            public boolean isVisible() {
+                return true;
+            }
+        });
+    }
+
+    public void addLowLevelCounterBefore(final String group, final String name, final int increment, final boolean addContext, final FixedNode position, final MetaAccessProvider runtime) {
+        add(new Effect() {
+
+            @Override
+            public String name() {
+                return "addLowLevelCounterBefore";
+            }
+
+            @Override
+            public void apply(StructuredGraph graph, ArrayList<Node> obsoleteNodes) {
+                DynamicCounterNode.addLowLevel(group, name, increment, addContext, position, runtime);
+            }
+
+            @Override
+            public boolean isVisible() {
+                return true;
             }
         });
     }

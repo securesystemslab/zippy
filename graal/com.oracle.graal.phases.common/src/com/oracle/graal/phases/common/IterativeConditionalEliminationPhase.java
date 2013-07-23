@@ -22,29 +22,22 @@
  */
 package com.oracle.graal.phases.common;
 
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import java.util.*;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.Graph.InputChangedListener;
+import com.oracle.graal.graph.Graph.NodeChangedListener;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.tiers.*;
 
-public class IterativeConditionalEliminationPhase extends Phase {
-
-    private final MetaAccessProvider runtime;
-    private final Assumptions assumptions;
-
-    public IterativeConditionalEliminationPhase(MetaAccessProvider runtime, Assumptions assumptions) {
-        this.runtime = runtime;
-        this.assumptions = assumptions;
-    }
+public class IterativeConditionalEliminationPhase extends BasePhase<PhaseContext> {
 
     @Override
-    protected void run(StructuredGraph graph) {
+    protected void run(StructuredGraph graph, PhaseContext context) {
         Set<Node> canonicalizationRoots = new HashSet<>();
-        ConditionalEliminationPhase eliminate = new ConditionalEliminationPhase(runtime);
+        ConditionalEliminationPhase eliminate = new ConditionalEliminationPhase(context.getRuntime());
         Listener listener = new Listener(canonicalizationRoots);
         while (true) {
             graph.trackInputChange(listener);
@@ -53,12 +46,12 @@ public class IterativeConditionalEliminationPhase extends Phase {
             if (canonicalizationRoots.isEmpty()) {
                 break;
             }
-            new CanonicalizerPhase.Instance(runtime, assumptions, canonicalizationRoots, null).apply(graph);
+            new CanonicalizerPhase.Instance(context.getRuntime(), context.getAssumptions(), !AOTCompilation.getValue(), canonicalizationRoots, null).apply(graph);
             canonicalizationRoots.clear();
         }
     }
 
-    private static class Listener implements InputChangedListener {
+    private static class Listener implements NodeChangedListener {
 
         private final Set<Node> canonicalizationRoots;
 
@@ -67,7 +60,7 @@ public class IterativeConditionalEliminationPhase extends Phase {
         }
 
         @Override
-        public void inputChanged(Node node) {
+        public void nodeChanged(Node node) {
             canonicalizationRoots.add(node);
         }
     }

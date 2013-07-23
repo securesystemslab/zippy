@@ -22,20 +22,19 @@
  */
 package com.oracle.graal.hotspot.amd64;
 
+import static com.oracle.graal.hotspot.HotSpotBackend.*;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.code.RuntimeCallTarget.Descriptor;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.LIRInstruction.*;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.asm.*;
 
 @Opcode("DEOPT")
 final class AMD64DeoptimizeOp extends AMD64LIRInstruction {
-
-    public static final Descriptor DEOPTIMIZE = new Descriptor("deoptimize", true, void.class);
 
     private DeoptimizationAction action;
     private DeoptimizationReason reason;
@@ -49,9 +48,9 @@ final class AMD64DeoptimizeOp extends AMD64LIRInstruction {
 
     @Override
     public void emitCode(TargetMethodAssembler tasm, AMD64MacroAssembler masm) {
-        HotSpotGraalRuntime runtime = HotSpotGraalRuntime.getInstance();
+        HotSpotGraalRuntime runtime = graalRuntime();
         Register thread = runtime.getRuntime().threadRegister();
         masm.movl(new AMD64Address(thread, runtime.getConfig().pendingDeoptimizationOffset), tasm.runtime.encodeDeoptActionAndReason(action, reason));
-        AMD64Call.directCall(tasm, masm, tasm.runtime.lookupRuntimeCall(DEOPTIMIZE), null, false, info);
+        AMD64Call.directCall(tasm, masm, tasm.runtime.lookupForeignCall(UNCOMMON_TRAP), null, false, info);
     }
 }

@@ -22,8 +22,9 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.hotspot.replacements.HotSpotSnippetUtils.*;
-import static com.oracle.graal.replacements.nodes.BranchProbabilityNode.*;
+import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
+import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
 
@@ -32,17 +33,17 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.replacements.*;
 import com.oracle.graal.word.*;
+
+//JaCoCo Exclude
 
 /**
  * Utilities and common code paths used by the type check snippets.
  */
 public class TypeCheckSnippetUtils {
 
-    public static final Object TYPE_DISPLAY_LOCATION = LocationNode.createLocation("TypeDisplay");
+    public static final LocationIdentity TYPE_DISPLAY_LOCATION = new NamedLocationIdentity("TypeDisplay");
 
     static boolean checkSecondarySubType(Word t, Word s) {
         // if (S.cache == T) return true
@@ -56,7 +57,7 @@ public class TypeCheckSnippetUtils {
 
     static boolean checkUnknownSubType(Word t, Word s) {
         // int off = T.offset
-        int superCheckOffset = t.readInt(superCheckOffsetOffset(), FINAL_LOCATION);
+        int superCheckOffset = t.readInt(superCheckOffsetOffset(), LocationIdentity.FINAL_LOCATION);
         boolean primary = superCheckOffset != secondarySuperCacheOffset();
 
         // if (T = S[off]) return true
@@ -87,10 +88,9 @@ public class TypeCheckSnippetUtils {
 
         // if (S.scan_s_s_array(T)) { S.cache = T; return true; }
         Word secondarySupers = s.readWord(secondarySupersOffset(), SECONDARY_SUPERS_LOCATION);
-        int length = secondarySupers.readInt(metaspaceArrayLengthOffset(), FINAL_LOCATION);
+        int length = secondarySupers.readInt(metaspaceArrayLengthOffset(), LocationIdentity.FINAL_LOCATION);
         for (int i = 0; i < length; i++) {
-            if (t.equal(loadSecondarySupersElement(secondarySupers, i))) {
-                probability(NOT_LIKELY_PROBABILITY);
+            if (probability(NOT_LIKELY_PROBABILITY, t.equal(loadSecondarySupersElement(secondarySupers, i)))) {
                 s.writeWord(secondarySuperCacheOffset(), t, SECONDARY_SUPER_CACHE_LOCATION);
                 secondariesHit.inc();
                 return true;
@@ -142,10 +142,10 @@ public class TypeCheckSnippetUtils {
     }
 
     static Word loadSecondarySupersElement(Word metaspaceArray, int index) {
-        return metaspaceArray.readWord(metaspaceArrayBaseOffset() + index * wordSize(), FINAL_LOCATION);
+        return metaspaceArray.readWord(metaspaceArrayBaseOffset() + index * wordSize(), LocationIdentity.FINAL_LOCATION);
     }
 
-    private static final SnippetCounter.Group counters = GraalOptions.SnippetCounters ? new SnippetCounter.Group("TypeCheck") : null;
+    private static final SnippetCounter.Group counters = SnippetCounters.getValue() ? new SnippetCounter.Group("TypeCheck") : null;
     static final SnippetCounter hintsHit = new SnippetCounter(counters, "hintsHit", "hit a hint type");
     static final SnippetCounter exactHit = new SnippetCounter(counters, "exactHit", "exact type test succeeded");
     static final SnippetCounter exactMiss = new SnippetCounter(counters, "exactMiss", "exact type test failed");

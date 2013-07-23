@@ -29,7 +29,6 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.LIRInstruction.Opcode;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -51,7 +50,7 @@ public class AMD64Call {
         }
 
         @Override
-        public boolean hasCall() {
+        public boolean destroysCallerSavedRegisters() {
             return true;
         }
     }
@@ -102,26 +101,26 @@ public class AMD64Call {
         }
     }
 
-    public abstract static class RuntimeCallOp extends CallOp {
+    public abstract static class ForeignCallOp extends CallOp {
 
-        protected final RuntimeCallTarget callTarget;
+        protected final ForeignCallLinkage callTarget;
 
-        public RuntimeCallOp(RuntimeCallTarget callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
+        public ForeignCallOp(ForeignCallLinkage callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
             super(result, parameters, temps, state);
             this.callTarget = callTarget;
         }
 
         @Override
-        public boolean hasCall() {
-            return !callTarget.preservesRegisters();
+        public boolean destroysCallerSavedRegisters() {
+            return callTarget.destroysRegisters();
         }
     }
 
-    @Opcode("CALL_NEAR_RUNTIME")
-    public static class DirectNearRuntimeCallOp extends RuntimeCallOp {
+    @Opcode("NEAR_FOREIGN_CALL")
+    public static class DirectNearForeignCallOp extends ForeignCallOp {
 
-        public DirectNearRuntimeCallOp(RuntimeCallTarget callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
-            super(callTarget, result, parameters, temps, state);
+        public DirectNearForeignCallOp(ForeignCallLinkage linkage, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
+            super(linkage, result, parameters, temps, state);
         }
 
         @Override
@@ -130,12 +129,12 @@ public class AMD64Call {
         }
     }
 
-    @Opcode("CALL_FAR_RUNTIME")
-    public static class DirectFarRuntimeCallOp extends RuntimeCallOp {
+    @Opcode("FAR_FOREIGN_CALL")
+    public static class DirectFarForeignCallOp extends ForeignCallOp {
 
         @Temp({REG}) protected AllocatableValue callTemp;
 
-        public DirectFarRuntimeCallOp(LIRGeneratorTool gen, RuntimeCallTarget callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
+        public DirectFarForeignCallOp(LIRGeneratorTool gen, ForeignCallLinkage callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
             super(callTarget, result, parameters, temps, state);
             callTemp = gen.newVariable(Kind.Long);
         }

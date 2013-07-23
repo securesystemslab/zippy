@@ -22,6 +22,10 @@
  */
 package com.oracle.graal.compiler.alloc;
 
+import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.compiler.GraalDebugConfig.*;
+import static com.oracle.graal.lir.LIRValueUtil.*;
+
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
@@ -29,11 +33,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.util.*;
-
-import static com.oracle.graal.api.code.ValueUtil.*;
-import static com.oracle.graal.lir.LIRValueUtil.*;
 
 /**
  * Represents an interval in the {@linkplain LinearScan linear scan register allocator}.
@@ -409,7 +409,7 @@ public final class Interval {
      * The {@linkplain RegisterValue register} or {@linkplain Variable variable} for this interval
      * prior to register allocation.
      */
-    public final Value operand;
+    public final AllocatableValue operand;
 
     /**
      * The operand number for this interval's {@linkplain #operand operand}.
@@ -420,7 +420,7 @@ public final class Interval {
      * The {@linkplain RegisterValue register} or {@linkplain StackSlot spill slot} assigned to this
      * interval.
      */
-    private Value location;
+    private AllocatableValue location;
 
     /**
      * The stack slot to which all splits of this interval are spilled if necessary.
@@ -430,7 +430,7 @@ public final class Interval {
     /**
      * The kind of this interval.
      */
-    private Kind kind;
+    private PlatformKind kind;
 
     /**
      * The head of the list of ranges describing this interval. This list is sorted by
@@ -498,18 +498,18 @@ public final class Interval {
      */
     private Interval locationHint;
 
-    void assignLocation(Value newLocation) {
+    void assignLocation(AllocatableValue newLocation) {
         if (isRegister(newLocation)) {
             assert this.location == null : "cannot re-assign location for " + this;
-            if (newLocation.getKind() == Kind.Illegal && kind != Kind.Illegal) {
+            if (newLocation.getPlatformKind() == Kind.Illegal && kind != Kind.Illegal) {
                 this.location = asRegister(newLocation).asValue(kind);
                 return;
             }
         } else {
             assert this.location == null || isRegister(this.location) : "cannot re-assign location for " + this;
             assert isStackSlot(newLocation);
-            assert newLocation.getKind() != Kind.Illegal;
-            assert newLocation.getKind() == this.kind;
+            assert newLocation.getPlatformKind() != Kind.Illegal;
+            assert newLocation.getPlatformKind() == this.kind;
         }
         this.location = newLocation;
     }
@@ -518,18 +518,17 @@ public final class Interval {
      * Gets the {@linkplain RegisterValue register} or {@linkplain StackSlot spill slot} assigned to
      * this interval.
      */
-    public Value location() {
+    public AllocatableValue location() {
         return location;
     }
 
-    public Kind kind() {
+    public PlatformKind kind() {
         assert !isRegister(operand) : "cannot access type for fixed interval";
         return kind;
     }
 
-    void setKind(Kind kind) {
+    void setKind(PlatformKind kind) {
         assert isRegister(operand) || this.kind() == Kind.Illegal || this.kind() == kind : "overwriting existing type";
-        assert kind == kind.getStackKind() || kind == Kind.Short : "these kinds should have int type registers";
         this.kind = kind;
     }
 
@@ -673,7 +672,7 @@ public final class Interval {
      */
     static final Interval EndMarker = new Interval(Value.ILLEGAL, -1);
 
-    Interval(Value operand, int operandNumber) {
+    Interval(AllocatableValue operand, int operandNumber) {
         assert operand != null;
         this.operand = operand;
         this.operandNumber = operandNumber;
@@ -714,12 +713,12 @@ public final class Interval {
 
                 assert i1.splitParent() == this : "not a split child of this interval";
                 assert i1.kind() == kind() : "must be equal for all split children";
-                assert i1.spillSlot() == spillSlot() : "must be equal for all split children";
+                assert (i1.spillSlot() == null && spillSlot == null) || i1.spillSlot().equals(spillSlot()) : "must be equal for all split children";
 
                 for (int j = i + 1; j < splitChildren.size(); j++) {
                     Interval i2 = splitChildren.get(j);
 
-                    assert i1.operand != i2.operand : "same register number";
+                    assert !i1.operand.equals(i2.operand) : "same register number";
 
                     if (i1.from() < i2.from()) {
                         assert i1.to() <= i2.from() && i1.to() < i2.to() : "intervals overlapping";
@@ -923,7 +922,7 @@ public final class Interval {
 
         // do not add use positions for precolored intervals because they are never used
         if (registerPriority != RegisterPriority.None && isVariable(operand)) {
-            if (GraalOptions.DetailedAsserts) {
+            if (DetailedAsserts.getValue()) {
                 for (int i = 0; i < usePosList.size(); i++) {
                     assert pos <= usePosList.usePos(i) : "already added a use-position with lower position";
                     if (i > 0) {
@@ -1027,7 +1026,7 @@ public final class Interval {
         // split list of use positions
         result.usePosList = usePosList.splitAt(splitPos);
 
-        if (GraalOptions.DetailedAsserts) {
+        if (DetailedAsserts.getValue()) {
             for (int i = 0; i < usePosList.size(); i++) {
                 assert usePosList.usePos(i) < splitPos;
             }

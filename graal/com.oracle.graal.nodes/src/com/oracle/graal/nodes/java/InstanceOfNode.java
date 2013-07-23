@@ -36,7 +36,7 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
 
     @Input private ValueNode object;
     private final ResolvedJavaType type;
-    private final JavaTypeProfile profile;
+    private JavaTypeProfile profile;
 
     /**
      * Constructs a new InstanceOfNode.
@@ -52,7 +52,7 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -61,47 +61,39 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
         assert object() != null : this;
 
         ObjectStamp stamp = object().objectStamp();
-        ResolvedJavaType stampType = stamp.type();
-
-        if (stamp.isExactType()) {
-            boolean subType = type().isAssignableFrom(stampType);
-
-            if (subType) {
-                if (stamp.nonNull()) {
-                    // the instanceOf matches, so return true
-                    return LogicConstantNode.tautology(graph());
-                } else {
-                    // the instanceof matches if the object is non-null, so return true depending on
-                    // the null-ness.
-                    negateUsages();
-                    return graph().unique(new IsNullNode(object()));
-                }
-            } else {
-                // since this type check failed for an exact type we know that it can never succeed
-                // at run time.
-                // we also don't care about null values, since they will also make the check fail.
-                return LogicConstantNode.contradiction(graph());
-            }
-        } else if (stampType != null) {
-            boolean subType = type().isAssignableFrom(stampType);
-
-            if (subType) {
-                if (stamp.nonNull()) {
-                    // the instanceOf matches, so return true
-                    return LogicConstantNode.tautology(graph());
-                } else {
-                    // the instanceof matches if the object is non-null, so return true depending on
-                    // the null-ness.
-                    negateUsages();
-                    return graph().unique(new IsNullNode(object()));
-                }
-            } else {
-                // since the subtype comparison was only performed on a declared type we don't
-                // really know if it might be true at run time...
-            }
-        }
         if (object().objectStamp().alwaysNull()) {
             return LogicConstantNode.contradiction(graph());
+        }
+
+        ResolvedJavaType stampType = stamp.type();
+        if (stamp.isExactType() || stampType != null) {
+            boolean subType = type().isAssignableFrom(stampType);
+
+            if (subType) {
+                if (stamp.nonNull()) {
+                    // the instanceOf matches, so return true
+                    return LogicConstantNode.tautology(graph());
+                } else {
+                    // the instanceof matches if the object is non-null, so return true depending on
+                    // the null-ness.
+                    negateUsages();
+                    return graph().unique(new IsNullNode(object()));
+                }
+            } else {
+                if (stamp.isExactType()) {
+                    // since this type check failed for an exact type we know that it can never
+                    // succeed at run time. we also don't care about null values, since they will
+                    // also make the check fail.
+                    return LogicConstantNode.contradiction(graph());
+                } else {
+                    boolean superType = stampType.isAssignableFrom(type());
+                    if (!superType && !stampType.isInterface() && !type().isInterface()) {
+                        return LogicConstantNode.contradiction(graph());
+                    }
+                    // since the subtype comparison was only performed on a declared type we don't
+                    // really know if it might be true at run time...
+                }
+            }
         }
         return this;
     }
@@ -121,10 +113,15 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
         return profile;
     }
 
+    public void setProfile(JavaTypeProfile profile) {
+        this.profile = profile;
+    }
+
     @Override
     public boolean verify() {
         for (Node usage : usages()) {
-            assertTrue(usage instanceof IfNode || usage instanceof ConditionalNode, "unsupported usage: ", usage);
+            assertTrue(usage instanceof IfNode || usage instanceof FixedGuardNode || usage instanceof GuardingPiNode || usage instanceof ConditionalNode || usage instanceof ShortCircuitBooleanNode,
+                            "unsupported usage: %s", usage);
         }
         return super.verify();
     }

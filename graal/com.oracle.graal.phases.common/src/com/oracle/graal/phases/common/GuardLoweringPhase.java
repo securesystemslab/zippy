@@ -22,10 +22,11 @@
  */
 package com.oracle.graal.phases.common;
 
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import java.util.*;
 import java.util.Map.Entry;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
@@ -33,57 +34,20 @@ import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.graph.*;
 import com.oracle.graal.phases.schedule.*;
+import com.oracle.graal.phases.tiers.*;
 
-public class GuardLoweringPhase extends Phase {
+public class GuardLoweringPhase extends BasePhase<MidTierContext> {
 
-    private abstract static class ScheduledNodeIterator {
-
-        private FixedWithNextNode lastFixed;
-        private FixedWithNextNode reconnect;
-        private ListIterator<ScheduledNode> iterator;
-
-        public void processNodes(List<ScheduledNode> nodes, FixedWithNextNode begin) {
-            assert begin != null;
-            lastFixed = begin;
-            reconnect = null;
-            iterator = nodes.listIterator();
-            while (iterator.hasNext()) {
-                Node node = iterator.next();
-                if (!node.isAlive()) {
-                    continue;
-                }
-                if (reconnect != null && node instanceof FixedNode) {
-                    reconnect.setNext((FixedNode) node);
-                    reconnect = null;
-                }
-                if (node instanceof FixedWithNextNode) {
-                    lastFixed = (FixedWithNextNode) node;
-                }
-                processNode(node);
-            }
-        }
-
-        protected void insert(FixedNode start, FixedWithNextNode end) {
-            this.lastFixed.setNext(start);
-            this.lastFixed = end;
-            this.reconnect = end;
-        }
-
-        protected void replaceCurrent(FixedWithNextNode newNode) {
-            Node current = iterator.previous();
-            iterator.next(); // needed because of the previous() call
-            current.replaceAndDelete(newNode);
-            insert(newNode, newNode);
-            iterator.set(newNode);
-        }
-
-        protected abstract void processNode(Node node);
-    }
-
-    private class UseImplicitNullChecks extends ScheduledNodeIterator {
+    private static class UseImplicitNullChecks extends ScheduledNodeIterator {
 
         private final IdentityHashMap<ValueNode, GuardNode> nullGuarded = new IdentityHashMap<>();
+        private final int implicitNullCheckLimit;
+
+        UseImplicitNullChecks(int implicitNullCheckLimit) {
+            this.implicitNullCheckLimit = implicitNullCheckLimit;
+        }
 
         @Override
         protected void processNode(Node node) {
@@ -109,8 +73,7 @@ public class GuardLoweringPhase extends Phase {
         private void processAccess(Access access) {
             GuardNode guard = nullGuarded.get(access.object());
             if (guard != null && isImplicitNullCheck(access.nullCheckLocation())) {
-                NodeInputList<ValueNode> dependencies = ((ValueNode) access).dependencies();
-                dependencies.remove(guard);
+                access.setGuard(guard.getGuard());
                 Access fixedAccess = access;
                 if (access instanceof FloatingAccessNode) {
                     fixedAccess = ((FloatingAccessNode) access).asFixedNode();
@@ -134,9 +97,17 @@ public class GuardLoweringPhase extends Phase {
                 nullGuarded.put(obj, guard);
             }
         }
+
+        private boolean isImplicitNullCheck(LocationNode location) {
+            if (location instanceof ConstantLocationNode) {
+                return ((ConstantLocationNode) location).getDisplacement() < implicitNullCheckLimit;
+            } else {
+                return false;
+            }
+        }
     }
 
-    private class LowerGuards extends ScheduledNodeIterator {
+    private static class LowerGuards extends ScheduledNodeIterator {
 
         private final Block block;
 
@@ -157,12 +128,12 @@ public class GuardLoweringPhase extends Phase {
         }
 
         private void lowerToIf(GuardNode guard) {
-            StructuredGraph graph = (StructuredGraph) guard.graph();
-            BeginNode fastPath = graph.add(new BeginNode());
+            StructuredGraph graph = guard.graph();
+            AbstractBeginNode fastPath = graph.add(new BeginNode());
             DeoptimizeNode deopt = graph.add(new DeoptimizeNode(guard.action(), guard.reason()));
-            BeginNode deoptBranch = BeginNode.begin(deopt);
-            BeginNode trueSuccessor;
-            BeginNode falseSuccessor;
+            AbstractBeginNode deoptBranch = AbstractBeginNode.begin(deopt);
+            AbstractBeginNode trueSuccessor;
+            AbstractBeginNode falseSuccessor;
             insertLoopExits(deopt);
             if (guard.negated()) {
                 trueSuccessor = deoptBranch;
@@ -180,11 +151,14 @@ public class GuardLoweringPhase extends Phase {
             IsNullNode isNull = (IsNullNode) guard.condition();
             NullCheckNode nullCheck = guard.graph().add(new NullCheckNode(isNull.object()));
             replaceCurrent(nullCheck);
+            if (isNull.usages().isEmpty()) {
+                isNull.safeDelete();
+            }
         }
 
         private void insertLoopExits(DeoptimizeNode deopt) {
             Loop loop = block.getLoop();
-            StructuredGraph graph = (StructuredGraph) deopt.graph();
+            StructuredGraph graph = deopt.graph();
             while (loop != null) {
                 LoopExitNode exit = graph.add(new LoopExitNode(loop.loopBegin()));
                 graph.addBeforeFixed(deopt, exit);
@@ -193,31 +167,21 @@ public class GuardLoweringPhase extends Phase {
         }
     }
 
-    private TargetDescription target;
-
-    public GuardLoweringPhase(TargetDescription target) {
-        this.target = target;
-    }
-
     @Override
-    protected void run(StructuredGraph graph) {
+    protected void run(StructuredGraph graph, MidTierContext context) {
         SchedulePhase schedule = new SchedulePhase();
         schedule.apply(graph);
 
         for (Block block : schedule.getCFG().getBlocks()) {
-            processBlock(block, schedule);
+            processBlock(block, schedule, context.getTarget().implicitNullCheckLimit);
         }
     }
 
-    private void processBlock(Block block, SchedulePhase schedule) {
+    private static void processBlock(Block block, SchedulePhase schedule, int implicitNullCheckLimit) {
         List<ScheduledNode> nodes = schedule.nodesFor(block);
-        if (GraalOptions.OptImplicitNullChecks && target.implicitNullCheckLimit > 0) {
-            new UseImplicitNullChecks().processNodes(nodes, block.getBeginNode());
+        if (OptImplicitNullChecks.getValue() && implicitNullCheckLimit > 0) {
+            new UseImplicitNullChecks(implicitNullCheckLimit).processNodes(nodes, block.getBeginNode());
         }
         new LowerGuards(block).processNodes(nodes, block.getBeginNode());
-    }
-
-    private boolean isImplicitNullCheck(LocationNode location) {
-        return !(location instanceof IndexedLocationNode) && location.displacement() < target.implicitNullCheckLimit;
     }
 }

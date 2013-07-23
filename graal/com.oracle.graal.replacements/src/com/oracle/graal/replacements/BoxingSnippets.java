@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.replacements;
 
+import static com.oracle.graal.phases.GraalOptions.*;
 import static com.oracle.graal.replacements.SnippetTemplate.*;
 
 import java.lang.reflect.*;
@@ -36,7 +37,7 @@ import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
-import com.oracle.graal.phases.*;
+import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.replacements.Snippet.Fold;
 import com.oracle.graal.replacements.Snippet.SnippetInliningPolicy;
 import com.oracle.graal.replacements.SnippetTemplate.AbstractTemplates;
@@ -205,7 +206,7 @@ public class BoxingSnippets implements Snippets {
         private final EnumMap<Kind, SnippetInfo> boxSnippets = new EnumMap<>(Kind.class);
         private final EnumMap<Kind, SnippetInfo> unboxSnippets = new EnumMap<>(Kind.class);
 
-        public Templates(CodeCacheProvider runtime, Replacements replacements, TargetDescription target) {
+        public Templates(MetaAccessProvider runtime, Replacements replacements, TargetDescription target) {
             super(runtime, replacements, target);
             for (Kind kind : new Kind[]{Kind.Boolean, Kind.Byte, Kind.Char, Kind.Double, Kind.Float, Kind.Int, Kind.Long, Kind.Short}) {
                 boxSnippets.put(kind, snippet(BoxingSnippets.class, kind.getJavaName() + "ValueOf"));
@@ -213,31 +214,34 @@ public class BoxingSnippets implements Snippets {
             }
         }
 
-        public void lower(BoxNode box) {
+        public void lower(BoxNode box, LoweringTool tool) {
             FloatingNode canonical = canonicalizeBoxing(box, runtime);
-            if (canonical != null) {
-                ((StructuredGraph) box.graph()).replaceFixedWithFloating(box, canonical);
+            // if in AOT mode, we don't want to embed boxed constants.
+            if (canonical != null && !AOTCompilation.getValue()) {
+                box.graph().replaceFloating(box, canonical);
             } else {
                 Arguments args = new Arguments(boxSnippets.get(box.getBoxingKind()));
                 args.add("value", box.getValue());
 
                 SnippetTemplate template = template(args);
                 Debug.log("Lowering integerValueOf in %s: node=%s, template=%s, arguments=%s", box.graph(), box, template, args);
-                template.instantiate(runtime, box, DEFAULT_REPLACER, args);
+                template.instantiate(runtime, box, DEFAULT_REPLACER, tool, args);
+                GraphUtil.killWithUnusedFloatingInputs(box);
             }
         }
 
-        public void lower(UnboxNode unbox) {
+        public void lower(UnboxNode unbox, LoweringTool tool) {
             Arguments args = new Arguments(unboxSnippets.get(unbox.getBoxingKind()));
             args.add("value", unbox.getValue());
 
             SnippetTemplate template = template(args);
             Debug.log("Lowering integerValueOf in %s: node=%s, template=%s, arguments=%s", unbox.graph(), unbox, template, args);
-            template.instantiate(runtime, unbox, DEFAULT_REPLACER, args);
+            template.instantiate(runtime, unbox, DEFAULT_REPLACER, tool, args);
+            GraphUtil.killWithUnusedFloatingInputs(unbox);
         }
     }
 
-    private static final SnippetCounter.Group integerCounters = GraalOptions.SnippetCounters ? new SnippetCounter.Group("Integer intrinsifications") : null;
+    private static final SnippetCounter.Group integerCounters = SnippetCounters.getValue() ? new SnippetCounter.Group("Integer intrinsifications") : null;
     private static final SnippetCounter valueOfCounter = new SnippetCounter(integerCounters, "valueOf", "valueOf intrinsification");
 
 }

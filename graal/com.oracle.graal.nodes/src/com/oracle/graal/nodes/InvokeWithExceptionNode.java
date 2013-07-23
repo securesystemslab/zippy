@@ -32,17 +32,20 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(nameTemplate = "Invoke!#{p#targetMethod/s}")
-public class InvokeWithExceptionNode extends ControlSplitNode implements Node.IterableNodeType, Invoke, MemoryCheckpoint, LIRLowerable {
+public class InvokeWithExceptionNode extends ControlSplitNode implements Node.IterableNodeType, Invoke, MemoryCheckpoint.Single, LIRLowerable {
 
-    @Successor private BeginNode next;
+    private static final double EXCEPTION_PROBA = 1e-5;
+
+    @Successor private AbstractBeginNode next;
     @Successor private DispatchBeginNode exceptionEdge;
-    @Input private final CallTargetNode callTarget;
+    @Input private CallTargetNode callTarget;
     @Input private FrameState deoptState;
     @Input private FrameState stateAfter;
+    @Input private GuardingNode guard;
     private final int bci;
     private boolean polymorphic;
     private boolean useForInlining;
-    private double inliningRelevance;
+    private double exceptionProbability;
 
     public InvokeWithExceptionNode(CallTargetNode callTarget, DispatchBeginNode exceptionEdge, int bci) {
         super(callTarget.returnStamp());
@@ -51,7 +54,7 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
         this.callTarget = callTarget;
         this.polymorphic = false;
         this.useForInlining = true;
-        this.inliningRelevance = Double.NaN;
+        this.exceptionProbability = EXCEPTION_PROBA;
     }
 
     public DispatchBeginNode exceptionEdge() {
@@ -63,11 +66,11 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
         exceptionEdge = x;
     }
 
-    public BeginNode next() {
+    public AbstractBeginNode next() {
         return next;
     }
 
-    public void setNext(BeginNode x) {
+    public void setNext(AbstractBeginNode x) {
         updatePredecessor(next, x);
         next = x;
     }
@@ -101,16 +104,6 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
     }
 
     @Override
-    public double inliningRelevance() {
-        return inliningRelevance;
-    }
-
-    @Override
-    public void setInliningRelevance(double value) {
-        inliningRelevance = value;
-    }
-
-    @Override
     public String toString(Verbosity verbosity) {
         if (verbosity == Verbosity.Long) {
             return super.toString(Verbosity.Short) + "(bci=" + bci() + ")";
@@ -133,14 +126,14 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
     @Override
     public void setNext(FixedNode x) {
         if (x != null) {
-            this.setNext(BeginNode.begin(x));
+            this.setNext(AbstractBeginNode.begin(x));
         } else {
             this.setNext(null);
         }
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -163,8 +156,8 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
     }
 
     @Override
-    public Object[] getLocationIdentities() {
-        return new Object[]{LocationNode.ANY_LOCATION};
+    public LocationIdentity getLocationIdentity() {
+        return LocationIdentity.ANY_LOCATION;
     }
 
     public FrameState stateDuring() {
@@ -177,14 +170,12 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
     @Override
     public Map<Object, Object> getDebugProperties(Map<Object, Object> map) {
         Map<Object, Object> debugProperties = super.getDebugProperties(map);
-        if (callTarget instanceof MethodCallTargetNode && methodCallTarget().targetMethod() != null) {
-            debugProperties.put("targetMethod", methodCallTarget().targetMethod());
-        }
+        debugProperties.put("targetMethod", callTarget.targetName());
         return debugProperties;
     }
 
     public void killExceptionEdge() {
-        BeginNode edge = exceptionEdge();
+        AbstractBeginNode edge = exceptionEdge();
         setExceptionEdge(null);
         GraphUtil.killCFG(edge);
     }
@@ -201,14 +192,14 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
         }
         if (node == null) {
             assert kind() == Kind.Void && usages().isEmpty();
-            ((StructuredGraph) graph()).removeSplit(this, next());
-        } else if (node instanceof DeoptimizeNode) {
+            graph().removeSplit(this, next());
+        } else if (node instanceof ControlSinkNode) {
             this.replaceAtPredecessor(node);
             this.replaceAtUsages(null);
             GraphUtil.killCFG(this);
             return;
         } else {
-            ((StructuredGraph) graph()).replaceSplit(this, node, next());
+            graph().replaceSplit(this, node, next());
         }
         call.safeDelete();
         if (state.usages().isEmpty()) {
@@ -216,11 +207,15 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
         }
     }
 
-    private static final double EXCEPTION_PROBA = 1e-5;
+    @Override
+    public double probability(AbstractBeginNode successor) {
+        return successor == next ? 1 - exceptionProbability : exceptionProbability;
+    }
 
     @Override
-    public double probability(BeginNode successor) {
-        return successor == next ? 1 - EXCEPTION_PROBA : EXCEPTION_PROBA;
+    public void setProbability(AbstractBeginNode successor, double value) {
+        assert successor == next || successor == exceptionEdge;
+        this.exceptionProbability = successor == next ? 1 - value : value;
     }
 
     @Override
@@ -249,7 +244,13 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Node.It
     }
 
     @Override
-    public boolean isCallSiteDeoptimization() {
-        return true;
+    public GuardingNode getGuard() {
+        return guard;
+    }
+
+    @Override
+    public void setGuard(GuardingNode guard) {
+        updateUsages(this.guard == null ? null : this.guard.asNode(), guard == null ? null : guard.asNode());
+        this.guard = guard;
     }
 }

@@ -33,10 +33,12 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.schedule.*;
+import com.oracle.graal.phases.tiers.*;
 
 /**
  * In these test the FrameStates are explicitly cleared out, so that the scheduling of
@@ -144,7 +146,7 @@ public class MemoryScheduleTest extends GraphScheduleTest {
     @Test
     public void testLoop1() {
         SchedulePhase schedule = getFinalSchedule("testLoop1Snippet", TestMode.WITHOUT_FRAMESTATES);
-        assertEquals(7, schedule.getCFG().getBlocks().length);
+        assertEquals(6, schedule.getCFG().getBlocks().length);
         assertReadWithinStartBlock(schedule, true);
     }
 
@@ -168,7 +170,7 @@ public class MemoryScheduleTest extends GraphScheduleTest {
     @Test
     public void testLoop2() {
         SchedulePhase schedule = getFinalSchedule("testLoop2Snippet", TestMode.WITHOUT_FRAMESTATES);
-        assertEquals(7, schedule.getCFG().getBlocks().length);
+        assertEquals(6, schedule.getCFG().getBlocks().length);
         assertReadWithinStartBlock(schedule, false);
     }
 
@@ -183,7 +185,7 @@ public class MemoryScheduleTest extends GraphScheduleTest {
     @Test
     public void testArrayCopy() {
         SchedulePhase schedule = getFinalSchedule("testArrayCopySnippet", TestMode.INLINED_WITHOUT_FRAMESTATES);
-        StructuredGraph graph = (StructuredGraph) schedule.getCFG().getStartBlock().getBeginNode().graph();
+        StructuredGraph graph = schedule.getCFG().getStartBlock().getBeginNode().graph();
         ReturnNode ret = graph.getNodes(ReturnNode.class).first();
         assertTrue(ret.result() instanceof FloatingReadNode);
         assertEquals(schedule.getCFG().blockFor(ret), schedule.getCFG().blockFor(ret.result()));
@@ -217,11 +219,13 @@ public class MemoryScheduleTest extends GraphScheduleTest {
             @Override
             public SchedulePhase call() throws Exception {
                 StructuredGraph graph = parse(snippet);
+                Assumptions assumptions = new Assumptions(false);
+                HighTierContext context = new HighTierContext(runtime(), assumptions, replacements);
+                new CanonicalizerPhase(true).apply(graph, context);
                 if (mode == TestMode.INLINED_WITHOUT_FRAMESTATES) {
-                    Assumptions assumptions = new Assumptions(false);
                     new InliningPhase(runtime(), null, replacements, assumptions, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL).apply(graph);
                 }
-                new LoweringPhase(null, runtime(), replacements, new Assumptions(false)).apply(graph);
+                new LoweringPhase(LoweringType.BEFORE_GUARDS).apply(graph, context);
                 if (mode == TestMode.WITHOUT_FRAMESTATES || mode == TestMode.INLINED_WITHOUT_FRAMESTATES) {
                     for (Node node : graph.getNodes()) {
                         if (node instanceof StateSplit) {

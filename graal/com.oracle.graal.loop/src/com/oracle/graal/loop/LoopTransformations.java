@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.loop;
 
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
@@ -29,12 +31,11 @@ import com.oracle.graal.graph.NodeClass.NodeClassIterator;
 import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 
 public abstract class LoopTransformations {
 
-    private static final int UNROLL_LIMIT = GraalOptions.FullUnrollMaxNodes * 2;
+    private static final int UNROLL_LIMIT = FullUnrollMaxNodes.getValue() * 2;
 
     private LoopTransformations() {
         // does not need to be instantiated
@@ -52,16 +53,16 @@ public abstract class LoopTransformations {
         loop.inside().duplicate().insertBefore(loop);
     }
 
-    public static void fullUnroll(LoopEx loop, MetaAccessProvider runtime, Assumptions assumptions) {
+    public static void fullUnroll(LoopEx loop, MetaAccessProvider runtime, Assumptions assumptions, boolean canonicalizeReads) {
         // assert loop.isCounted(); //TODO (gd) strenghten : counted with known trip count
         int iterations = 0;
         LoopBeginNode loopBegin = loop.loopBegin();
-        StructuredGraph graph = (StructuredGraph) loopBegin.graph();
+        StructuredGraph graph = loopBegin.graph();
         while (!loopBegin.isDeleted()) {
             int mark = graph.getMark();
             peel(loop);
-            new CanonicalizerPhase.Instance(runtime, assumptions, mark, null).apply(graph);
-            if (iterations++ > UNROLL_LIMIT || graph.getNodeCount() > GraalOptions.MaximumDesiredSize * 3) {
+            new CanonicalizerPhase.Instance(runtime, assumptions, canonicalizeReads, mark, null).apply(graph);
+            if (iterations++ > UNROLL_LIMIT || graph.getNodeCount() > MaximumDesiredSize.getValue() * 3) {
                 throw new BailoutException("FullUnroll : Graph seems to grow out of proportion");
             }
         }
@@ -78,19 +79,19 @@ public abstract class LoopTransformations {
         // original loop is used as first successor
         Position firstPosition = successors.nextPosition();
         NodeClass controlSplitClass = controlSplitNode.getNodeClass();
-        controlSplitClass.set(newControlSplit, firstPosition, BeginNode.begin(originalLoop.entryPoint()));
+        controlSplitClass.set(newControlSplit, firstPosition, AbstractBeginNode.begin(originalLoop.entryPoint()));
 
-        StructuredGraph graph = (StructuredGraph) controlSplitNode.graph();
+        StructuredGraph graph = controlSplitNode.graph();
         while (successors.hasNext()) {
             Position position = successors.nextPosition();
             // create a new loop duplicate, connect it and simplify it
             LoopFragmentWhole duplicateLoop = originalLoop.duplicate();
-            controlSplitClass.set(newControlSplit, position, BeginNode.begin(duplicateLoop.entryPoint()));
+            controlSplitClass.set(newControlSplit, position, AbstractBeginNode.begin(duplicateLoop.entryPoint()));
             ControlSplitNode duplicatedControlSplit = duplicateLoop.getDuplicatedNode(controlSplitNode);
-            graph.removeSplitPropagate(duplicatedControlSplit, (BeginNode) controlSplitClass.get(duplicatedControlSplit, position));
+            graph.removeSplitPropagate(duplicatedControlSplit, (AbstractBeginNode) controlSplitClass.get(duplicatedControlSplit, position));
         }
         // original loop is simplified last to avoid deleting controlSplitNode too early
-        graph.removeSplitPropagate(controlSplitNode, (BeginNode) controlSplitClass.get(controlSplitNode, firstPosition));
+        graph.removeSplitPropagate(controlSplitNode, (AbstractBeginNode) controlSplitClass.get(controlSplitNode, firstPosition));
         // TODO (gd) probabilities need some amount of fixup.. (probably also in other transforms)
     }
 

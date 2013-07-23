@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.hotspot.meta;
 
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
@@ -35,10 +37,10 @@ import com.oracle.graal.java.*;
 public class HotSpotSignature extends CompilerObject implements Signature {
 
     private static final long serialVersionUID = -2890917956072366116L;
-    private final List<String> arguments = new ArrayList<>();
+    private final List<String> parameters = new ArrayList<>();
     private final String returnType;
     private final String originalString;
-    private JavaType[] argumentTypes;
+    private JavaType[] parameterTypes;
     private JavaType returnTypeCache;
 
     public HotSpotSignature(String signature) {
@@ -49,7 +51,7 @@ public class HotSpotSignature extends CompilerObject implements Signature {
             int cur = 1;
             while (cur < signature.length() && signature.charAt(cur) != ')') {
                 int nextCur = parseSignature(signature, cur);
-                arguments.add(signature.substring(cur, nextCur));
+                parameters.add(signature.substring(cur, nextCur));
                 cur = nextCur;
             }
 
@@ -60,6 +62,20 @@ public class HotSpotSignature extends CompilerObject implements Signature {
         } else {
             returnType = null;
         }
+    }
+
+    public HotSpotSignature(JavaType returnType, JavaType... parameterTypes) {
+        this.parameterTypes = parameterTypes.clone();
+        this.returnTypeCache = returnType;
+        this.returnType = returnType.getName();
+        StringBuilder sb = new StringBuilder("(");
+        for (JavaType type : parameterTypes) {
+            parameters.add(type.getName());
+            sb.append(type.getName());
+        }
+        sb.append(")").append(returnType.getName());
+        this.originalString = sb.toString();
+        assert new HotSpotSignature(originalString).equals(this);
     }
 
     private static int parseSignature(String signature, int start) {
@@ -94,12 +110,12 @@ public class HotSpotSignature extends CompilerObject implements Signature {
 
     @Override
     public int getParameterCount(boolean withReceiver) {
-        return arguments.size() + (withReceiver ? 1 : 0);
+        return parameters.size() + (withReceiver ? 1 : 0);
     }
 
     @Override
     public Kind getParameterKind(int index) {
-        return Kind.fromTypeString(arguments.get(index));
+        return Kind.fromTypeString(parameters.get(index));
     }
 
     @Override
@@ -113,13 +129,13 @@ public class HotSpotSignature extends CompilerObject implements Signature {
 
     @Override
     public JavaType getParameterType(int index, ResolvedJavaType accessingClass) {
-        if (argumentTypes == null) {
-            argumentTypes = new JavaType[arguments.size()];
+        if (parameterTypes == null) {
+            parameterTypes = new JavaType[parameters.size()];
         }
-        JavaType type = argumentTypes[index];
+        JavaType type = parameterTypes[index];
         if (type == null || !(type instanceof ResolvedJavaType)) {
-            type = HotSpotGraalRuntime.getInstance().lookupType(arguments.get(index), (HotSpotResolvedObjectType) accessingClass, false);
-            argumentTypes[index] = type;
+            type = graalRuntime().lookupType(parameters.get(index), (HotSpotResolvedObjectType) accessingClass, false);
+            parameterTypes[index] = type;
         }
         return type;
     }
@@ -137,7 +153,7 @@ public class HotSpotSignature extends CompilerObject implements Signature {
     @Override
     public JavaType getReturnType(ResolvedJavaType accessingClass) {
         if (returnTypeCache == null || !(returnTypeCache instanceof ResolvedJavaType)) {
-            returnTypeCache = HotSpotGraalRuntime.getInstance().lookupType(returnType, (HotSpotResolvedObjectType) accessingClass, false);
+            returnTypeCache = graalRuntime().lookupType(returnType, (HotSpotResolvedObjectType) accessingClass, false);
         }
         return returnTypeCache;
     }
@@ -147,4 +163,21 @@ public class HotSpotSignature extends CompilerObject implements Signature {
         return "HotSpotSignature<" + originalString + ">";
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof HotSpotSignature) {
+            HotSpotSignature other = (HotSpotSignature) obj;
+            if (other.originalString.equals(originalString)) {
+                assert other.parameters.equals(parameters);
+                assert other.returnType.equals(returnType);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return originalString.hashCode();
+    }
 }

@@ -25,11 +25,13 @@ package com.oracle.graal.nodes;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(nameTemplate = "FixedGuard(!={p#negated}) {p#reason/s}")
-public final class FixedGuardNode extends FixedWithNextNode implements Simplifiable, Lowerable, Node.IterableNodeType, Negatable {
+public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implements Simplifiable, Lowerable, Node.IterableNodeType, Negatable, GuardingNode {
 
     @Input private LogicNode condition;
     private final DeoptimizationReason reason;
@@ -50,7 +52,7 @@ public final class FixedGuardNode extends FixedWithNextNode implements Simplifia
     }
 
     public FixedGuardNode(LogicNode condition, DeoptimizationReason deoptReason, DeoptimizationAction action, boolean negated) {
-        super(StampFactory.forVoid());
+        super(StampFactory.dependency());
         this.action = action;
         this.negated = negated;
         this.condition = condition;
@@ -83,26 +85,57 @@ public final class FixedGuardNode extends FixedWithNextNode implements Simplifia
         if (condition instanceof LogicConstantNode) {
             LogicConstantNode c = (LogicConstantNode) condition;
             if (c.getValue() != negated) {
-                ((StructuredGraph) graph()).removeFixed(this);
+                this.replaceAtUsages(BeginNode.prevBegin(this));
+                graph().removeFixed(this);
             } else {
-                FixedNode next = this.next();
-                if (next != null) {
-                    tool.deleteBranch(next);
-                }
-                setNext(graph().add(new DeoptimizeNode(DeoptimizationAction.InvalidateRecompile, reason)));
-                return;
+                FixedWithNextNode predecessor = (FixedWithNextNode) predecessor();
+                DeoptimizeNode deopt = graph().add(new DeoptimizeNode(DeoptimizationAction.InvalidateRecompile, reason));
+                deopt.setDeoptimizationState(getDeoptimizationState());
+                tool.deleteBranch(this);
+                predecessor.setNext(deopt);
             }
         }
     }
 
     @Override
-    public void lower(LoweringTool tool) {
-        tool.getRuntime().lower(this, tool);
+    public void lower(LoweringTool tool, LoweringType loweringType) {
+        if (loweringType == LoweringType.BEFORE_GUARDS) {
+            tool.getRuntime().lower(this, tool);
+        } else {
+            FixedNode next = next();
+            setNext(null);
+            DeoptimizeNode deopt = graph().add(new DeoptimizeNode(action, reason));
+            deopt.setDeoptimizationState(getDeoptimizationState());
+            IfNode ifNode;
+            if (negated) {
+                ifNode = graph().add(new IfNode(condition, deopt, next, 0));
+            } else {
+                ifNode = graph().add(new IfNode(condition, next, deopt, 1));
+            }
+            ((FixedWithNextNode) predecessor()).setNext(ifNode);
+            GraphUtil.killWithUnusedFloatingInputs(this);
+        }
     }
 
     @Override
-    public Negatable negate() {
+    public Negatable negate(LogicNode cond) {
+        assert cond == condition();
         negated = !negated;
         return this;
+    }
+
+    @Override
+    public FixedGuardNode asNode() {
+        return this;
+    }
+
+    @Override
+    public boolean canDeoptimize() {
+        return true;
+    }
+
+    @Override
+    public DeoptimizationReason getDeoptimizationReason() {
+        return reason;
     }
 }

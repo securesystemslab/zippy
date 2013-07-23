@@ -25,15 +25,15 @@ package com.oracle.truffle.api.frame;
 /**
  * A slot in a frame that can store a value of a given type.
  */
-public interface FrameSlot {
+public interface FrameSlot extends Cloneable {
 
     Object getIdentifier();
 
     int getIndex();
 
-    Class<?> getType();
+    FrameSlotKind getKind();
 
-    void setType(Class<?> type);
+    void setKind(FrameSlotKind kind);
 
-    void registerOneShotTypeListener(FrameSlotTypeListener listener);
+    FrameDescriptor getFrameDescriptor();
 }

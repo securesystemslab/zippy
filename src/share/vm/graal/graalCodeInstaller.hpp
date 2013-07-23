@@ -50,8 +50,6 @@ private:
 
   Arena         _arena;
 
-  oop           _comp_result;
-  oop           _name;
   arrayOop      _sites;
   arrayOop      _exception_handlers;
   CodeOffsets   _offsets;
@@ -62,6 +60,9 @@ private:
   jint          _custom_stack_area_offset;
   jint          _parameter_count;
   jint          _constants_size;
+#ifndef PRODUCT
+  arrayOop      _comments;
+#endif
 
   MarkId        _next_call_type;
   address       _invoke_mark_pc;
@@ -74,23 +75,28 @@ private:
   Dependencies*             _dependencies;
   ExceptionHandlerTable     _exception_handler_table;
 
+  jint pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method);
+  void pd_site_DataPatch(int pc_offset, oop site);
+  void pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst);
+  void pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination);
+  void pd_relocate_JavaMethod(oop method, jint pc_offset);
+  int32_t* pd_locate_operand(address instruction);
+
 public:
 
-  // constructor used to create a method
-  CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations);
-
-  // constructor used to create a stub
-  CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id);
+  CodeInstaller(Handle& comp_result, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
 
   static address runtime_call_target_address(oop runtime_call);
 
 private:
   // extract the fields of the CompilationResult
-  void initialize_fields(oop target_method, methodHandle method);
+  void initialize_fields(oop target_method);
   void initialize_assumptions(oop target_method);
 
   // perform data and call relocation on the CodeBuffer
-  void initialize_buffer(CodeBuffer& buffer);
+  bool initialize_buffer(CodeBuffer& buffer);
+
+  int calculate_constants_size();
 
   void assumption_MethodContents(Handle assumption);
   void assumption_NoFinalizableSubclass(Handle assumption);
@@ -108,5 +114,21 @@ private:
   void process_exception_handlers();
 
 };
+
+#ifdef TARGET_ARCH_x86
+# include "graalCodeInstaller_x86.hpp"
+#endif
+#ifdef TARGET_ARCH_sparc
+# include "graalCodeInstaller_sparc.hpp"
+#endif
+#ifdef TARGET_ARCH_zero
+# error
+#endif
+#ifdef TARGET_ARCH_arm
+# error
+#endif
+#ifdef TARGET_ARCH_ppc
+# error
+#endif
 
 #endif // SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP

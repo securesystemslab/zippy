@@ -105,7 +105,7 @@ public class ProfilingInfoTest extends GraalCompilerTest {
     }
 
     @Test
-    public void testTypeProfileInvokeVirtual() {
+    public void testProfileInvokeVirtual() {
         testTypeProfile("invokeVirtualSnippet", 1);
     }
 
@@ -128,7 +128,11 @@ public class ProfilingInfoTest extends GraalCompilerTest {
     }
 
     public static Serializable checkCastSnippet(Object obj) {
-        return (Serializable) obj;
+        try {
+            return (Serializable) obj;
+        } catch (ClassCastException e) {
+            return null;
+        }
     }
 
     @Test
@@ -140,18 +144,18 @@ public class ProfilingInfoTest extends GraalCompilerTest {
         return obj instanceof Serializable;
     }
 
-    private void testTypeProfile(String methodName, int bci) {
+    private void testTypeProfile(String testSnippet, int bci) {
         ResolvedJavaType stringType = runtime.lookupJavaType(String.class);
         ResolvedJavaType stringBuilderType = runtime.lookupJavaType(StringBuilder.class);
 
-        ProfilingInfo info = profile(methodName, "ABC");
+        ProfilingInfo info = profile(testSnippet, "ABC");
         JavaTypeProfile typeProfile = info.getTypeProfile(bci);
         Assert.assertEquals(0.0, typeProfile.getNotRecordedProbability(), DELTA);
         Assert.assertEquals(1, typeProfile.getTypes().length);
         Assert.assertEquals(stringType, typeProfile.getTypes()[0].getType());
         Assert.assertEquals(1.0, typeProfile.getTypes()[0].getProbability(), DELTA);
 
-        continueProfiling(methodName, new StringBuilder());
+        continueProfiling(testSnippet, new StringBuilder());
         typeProfile = info.getTypeProfile(bci);
         Assert.assertEquals(0.0, typeProfile.getNotRecordedProbability(), DELTA);
         Assert.assertEquals(2, typeProfile.getTypes().length);
@@ -160,7 +164,7 @@ public class ProfilingInfoTest extends GraalCompilerTest {
         Assert.assertEquals(0.5, typeProfile.getTypes()[0].getProbability(), DELTA);
         Assert.assertEquals(0.5, typeProfile.getTypes()[1].getProbability(), DELTA);
 
-        resetProfile(methodName);
+        resetProfile(testSnippet);
         typeProfile = info.getTypeProfile(bci);
         Assert.assertNull(typeProfile);
     }
@@ -250,19 +254,30 @@ public class ProfilingInfoTest extends GraalCompilerTest {
 
     @Test
     public void testNullSeen() {
-        ProfilingInfo info = profile("instanceOfSnippet", 1);
+        testNullSeen("instanceOfSnippet");
+        testNullSeen("checkCastSnippet");
+    }
+
+    private void testNullSeen(String snippet) {
+        ProfilingInfo info = profile(snippet, 1);
         Assert.assertEquals(TriState.FALSE, info.getNullSeen(1));
 
-        continueProfiling("instanceOfSnippet", "ABC");
+        continueProfiling(snippet, "ABC");
         Assert.assertEquals(TriState.FALSE, info.getNullSeen(1));
 
-        continueProfiling("instanceOfSnippet", (Object) null);
+        continueProfiling(snippet, new Object());
+        Assert.assertEquals(TriState.FALSE, info.getNullSeen(1));
+
+        continueProfiling(snippet, (Object) null);
         Assert.assertEquals(TriState.TRUE, info.getNullSeen(1));
 
-        continueProfiling("instanceOfSnippet", 0.0);
+        continueProfiling(snippet, 0.0);
         Assert.assertEquals(TriState.TRUE, info.getNullSeen(1));
 
-        resetProfile("instanceOfSnippet");
+        continueProfiling(snippet, new Object());
+        Assert.assertEquals(TriState.TRUE, info.getNullSeen(1));
+
+        resetProfile(snippet);
         Assert.assertEquals(TriState.FALSE, info.getNullSeen(1));
     }
 

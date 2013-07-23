@@ -28,11 +28,13 @@ import java.util.concurrent.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -115,6 +117,10 @@ public class SnippetTemplate {
         public boolean isVarargsParameter(int paramIdx) {
             return varargsParameters[paramIdx];
         }
+
+        public String getParameterName(int paramIdx) {
+            return names[paramIdx];
+        }
     }
 
     /**
@@ -186,7 +192,7 @@ public class SnippetTemplate {
         @Override
         public String toString() {
             StringBuilder result = new StringBuilder();
-            result.append("Parameters<").append(MetaUtil.format("%H.%n", info.method)).append(" [");
+            result.append("Parameters<").append(MetaUtil.format("%h.%n", info.method)).append(" [");
             String sep = "";
             for (int i = 0; i < info.getParameterCount(); i++) {
                 result.append(sep);
@@ -222,6 +228,38 @@ public class SnippetTemplate {
             } else {
                 this.length = Array.getLength(value);
             }
+        }
+
+        @Override
+        public String toString() {
+            if (value instanceof boolean[]) {
+                return Arrays.toString((boolean[]) value);
+            }
+            if (value instanceof byte[]) {
+                return Arrays.toString((byte[]) value);
+            }
+            if (value instanceof char[]) {
+                return Arrays.toString((char[]) value);
+            }
+            if (value instanceof short[]) {
+                return Arrays.toString((short[]) value);
+            }
+            if (value instanceof int[]) {
+                return Arrays.toString((int[]) value);
+            }
+            if (value instanceof long[]) {
+                return Arrays.toString((long[]) value);
+            }
+            if (value instanceof float[]) {
+                return Arrays.toString((float[]) value);
+            }
+            if (value instanceof double[]) {
+                return Arrays.toString((double[]) value);
+            }
+            if (value instanceof Object[]) {
+                return Arrays.toString((Object[]) value);
+            }
+            return String.valueOf(value);
         }
     }
 
@@ -268,7 +306,7 @@ public class SnippetTemplate {
     /**
      * Base class for snippet classes. It provides a cache for {@link SnippetTemplate}s.
      */
-    public abstract static class AbstractTemplates {
+    public abstract static class AbstractTemplates implements SnippetTemplateCache {
 
         protected final MetaAccessProvider runtime;
         protected final Replacements replacements;
@@ -282,16 +320,20 @@ public class SnippetTemplate {
             this.templates = new ConcurrentHashMap<>();
         }
 
+        /**
+         * Finds the method in {@code declaringClass} annotated with {@link Snippet} named
+         * {@code methodName}. If {@code methodName} is null, then there must be exactly one snippet
+         * method in {@code declaringClass}.
+         */
         protected SnippetInfo snippet(Class<? extends Snippets> declaringClass, String methodName) {
             Method found = null;
             for (Method method : declaringClass.getDeclaredMethods()) {
-                if (method.getAnnotation(Snippet.class) != null && method.getName().equals(methodName)) {
-                    assert found == null : "found more than one @" + Snippet.class.getSimpleName() + " method " + methodName + " in " + declaringClass;
+                if (method.getAnnotation(Snippet.class) != null && (methodName == null || method.getName().equals(methodName))) {
+                    assert found == null : "found more than one @" + Snippet.class.getSimpleName() + " method in " + declaringClass + (methodName == null ? "" : " named " + methodName);
                     found = method;
                 }
             }
-            assert found != null : "did not find @" + Snippet.class.getSimpleName() + " method " + methodName + " in " + declaringClass;
-
+            assert found != null : "did not find @" + Snippet.class.getSimpleName() + " method in " + declaringClass + (methodName == null ? "" : " named " + methodName);
             return new SnippetInfo(runtime.lookupJavaMethod(found));
         }
 
@@ -375,9 +417,9 @@ public class SnippetTemplate {
             new NodeIntrinsificationPhase(runtime).apply(snippetCopy);
             new WordTypeRewriterPhase(runtime, target.wordKind).apply(snippetCopy);
 
-            new CanonicalizerPhase.Instance(runtime, replacements.getAssumptions(), 0, null).apply(snippetCopy);
+            new CanonicalizerPhase.Instance(runtime, replacements.getAssumptions(), true, 0, null).apply(snippetCopy);
         }
-        assert NodeIntrinsificationVerificationPhase.verify(snippetCopy);
+        NodeIntrinsificationVerificationPhase.verify(snippetCopy);
 
         // Gather the template parameters
         parameters = new Object[parameterCount];
@@ -431,8 +473,8 @@ public class SnippetTemplate {
                 if (loopBegin != null) {
                     LoopEx loop = new LoopsData(snippetCopy).loop(loopBegin);
                     int mark = snippetCopy.getMark();
-                    LoopTransformations.fullUnroll(loop, runtime, null);
-                    new CanonicalizerPhase.Instance(runtime, replacements.getAssumptions(), mark, null).apply(snippetCopy);
+                    LoopTransformations.fullUnroll(loop, runtime, replacements.getAssumptions(), true);
+                    new CanonicalizerPhase.Instance(runtime, replacements.getAssumptions(), true, mark, null).apply(snippetCopy);
                 }
                 FixedNode explodeLoopNext = explodeLoop.next();
                 explodeLoop.clearSuccessors();
@@ -446,6 +488,7 @@ public class SnippetTemplate {
         // Remove all frame states from inlined snippet graph. Snippets must be atomic (i.e. free
         // of side-effects that prevent deoptimizing to a point before the snippet).
         ArrayList<StateSplit> curSideEffectNodes = new ArrayList<>();
+        ArrayList<DeoptimizingNode> curDeoptNodes = new ArrayList<>();
         ArrayList<ValueNode> curStampNodes = new ArrayList<>();
         for (Node node : snippetCopy.getNodes()) {
             if (node instanceof ValueNode && ((ValueNode) node).stamp() == StampFactory.forNodeIntrinsic()) {
@@ -459,6 +502,12 @@ public class SnippetTemplate {
                 }
                 if (frameState != null) {
                     stateSplit.setStateAfter(null);
+                }
+            }
+            if (node instanceof DeoptimizingNode) {
+                DeoptimizingNode deoptNode = (DeoptimizingNode) node;
+                if (deoptNode.canDeoptimize()) {
+                    curDeoptNodes.add(deoptNode);
                 }
             }
         }
@@ -486,6 +535,7 @@ public class SnippetTemplate {
         }
 
         this.sideEffectNodes = curSideEffectNodes;
+        this.deoptNodes = curDeoptNodes;
         this.stampNodes = curStampNodes;
         this.returnNode = retNode;
     }
@@ -545,6 +595,12 @@ public class SnippetTemplate {
      * instantiation.
      */
     private final ArrayList<StateSplit> sideEffectNodes;
+
+    /**
+     * Nodes that inherit the {@link DeoptimizingNode#getDeoptimizationState()} from the replacee
+     * during insantiation.
+     */
+    private final ArrayList<DeoptimizingNode> deoptNodes;
 
     /**
      * The nodes that inherit the {@link ValueNode#stamp()} from the replacee during instantiation.
@@ -679,7 +735,7 @@ public class SnippetTemplate {
         StructuredGraph snippetCopy = new StructuredGraph(name, snippet.method());
         StartNode entryPointNode = snippet.start();
         FixedNode firstCFGNode = entryPointNode.next();
-        StructuredGraph replaceeGraph = (StructuredGraph) replacee.graph();
+        StructuredGraph replaceeGraph = replacee.graph();
         IdentityHashMap<Node, Node> replacements = bind(replaceeGraph, runtime, args);
         Map<Node, Node> duplicates = replaceeGraph.addDuplicates(nodes, replacements);
         Debug.dump(replaceeGraph, "After inlining snippet %s", snippetCopy.method());
@@ -701,6 +757,17 @@ public class SnippetTemplate {
                 ((StateSplit) sideEffectDup).setStateAfter(((StateSplit) replacee).stateAfter());
             }
         }
+
+        if (replacee instanceof DeoptimizingNode) {
+            DeoptimizingNode replaceeDeopt = (DeoptimizingNode) replacee;
+            FrameState state = replaceeDeopt.getDeoptimizationState();
+            for (DeoptimizingNode deoptNode : deoptNodes) {
+                DeoptimizingNode deoptDup = (DeoptimizingNode) duplicates.get(deoptNode);
+                assert replaceeDeopt.canDeoptimize() || !deoptDup.canDeoptimize();
+                deoptDup.setDeoptimizationState(state);
+            }
+        }
+
         for (ValueNode stampNode : stampNodes) {
             Node stampDup = duplicates.get(stampNode);
             ((ValueNode) stampDup).setStamp(((ValueNode) replacee).stamp());
@@ -714,10 +781,14 @@ public class SnippetTemplate {
             } else {
                 returnValue = (ValueNode) duplicates.get(returnNode.result());
             }
-            assert returnValue != null || replacee.usages().isEmpty();
-            replacer.replace(replacee, returnValue);
-
             Node returnDuplicate = duplicates.get(returnNode);
+            if (returnValue == null && replacee.usages().isNotEmpty() && replacee instanceof MemoryCheckpoint) {
+                replacer.replace(replacee, (ValueNode) returnDuplicate.predecessor());
+            } else {
+                assert returnValue != null || replacee.usages().isEmpty() : this + " " + returnValue + " " + returnNode + " " + replacee.usages();
+                replacer.replace(replacee, returnValue);
+
+            }
             if (returnDuplicate.isAlive()) {
                 returnDuplicate.clearInputs();
                 returnDuplicate.replaceAndDelete(next);
@@ -755,13 +826,13 @@ public class SnippetTemplate {
         StructuredGraph snippetCopy = new StructuredGraph(name, snippet.method());
         StartNode entryPointNode = snippet.start();
         FixedNode firstCFGNode = entryPointNode.next();
-        StructuredGraph replaceeGraph = (StructuredGraph) replacee.graph();
+        StructuredGraph replaceeGraph = replacee.graph();
         IdentityHashMap<Node, Node> replacements = bind(replaceeGraph, runtime, args);
         Map<Node, Node> duplicates = replaceeGraph.addDuplicates(nodes, replacements);
         Debug.dump(replaceeGraph, "After inlining snippet %s", snippetCopy.method());
 
         FixedWithNextNode lastFixedNode = tool.lastFixedNode();
-        assert lastFixedNode != null && lastFixedNode.isAlive() : replaceeGraph;
+        assert lastFixedNode != null && lastFixedNode.isAlive() : replaceeGraph + " lastFixed=" + lastFixedNode;
         FixedNode next = lastFixedNode.next();
         lastFixedNode.setNext(null);
         FixedNode firstCFGNodeDuplicate = (FixedNode) duplicates.get(firstCFGNode);
@@ -790,14 +861,10 @@ public class SnippetTemplate {
         assert returnValue != null || replacee.usages().isEmpty();
         replacer.replace(replacee, returnValue);
 
-        tool.setLastFixedNode(null);
         Node returnDuplicate = duplicates.get(returnNode);
         if (returnDuplicate.isAlive()) {
             returnDuplicate.clearInputs();
             returnDuplicate.replaceAndDelete(next);
-            if (next != null && next.predecessor() instanceof FixedWithNextNode) {
-                tool.setLastFixedNode((FixedWithNextNode) next.predecessor());
-            }
         }
 
         Debug.dump(replaceeGraph, "After lowering %s with %s", replacee, this);

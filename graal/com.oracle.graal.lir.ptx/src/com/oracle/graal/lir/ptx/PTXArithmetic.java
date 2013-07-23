@@ -25,7 +25,6 @@ package com.oracle.graal.lir.ptx;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.ptx.*;
 import com.oracle.graal.graph.*;
@@ -374,6 +373,12 @@ public enum PTXArithmetic {
             }
         } else {
             switch (opcode) {
+            // case A:  new Add(Int, dst, src1, src2);
+            // case S:  new Sub(Int, dst, src1, src2);
+            // case U:  new Shl(UnsignedInt, dst, src1, src2);
+            // case L:  new Shl(UnsignedLong, dst, src1, src2);
+            // case F:  new Add(Float, dst, src1, src2);
+            // case D:  new Mul(Double, dst, src1, src2);
             case IADD:  masm.add_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
             case ISUB:  masm.sub_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;
             case IMUL:  masm.mul_s32(asIntReg(dst),    asIntReg(src1),    asIntReg(src2));    break;

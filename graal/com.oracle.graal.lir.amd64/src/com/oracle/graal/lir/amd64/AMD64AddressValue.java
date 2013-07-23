@@ -30,21 +30,22 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.asm.amd64.AMD64Address.Scale;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.lir.LIRInstruction.OperandFlag;
 
 public class AMD64AddressValue extends CompositeValue {
 
     private static final long serialVersionUID = -4444600052487578694L;
 
-    @Component({REG, UNUSED}) protected AllocatableValue base;
-    @Component({REG, UNUSED}) protected AllocatableValue index;
+    @Component({REG, OperandFlag.ILLEGAL}) protected AllocatableValue base;
+    @Component({REG, OperandFlag.ILLEGAL}) protected AllocatableValue index;
     protected final Scale scale;
     protected final int displacement;
 
-    public AMD64AddressValue(Kind kind, AllocatableValue base, int displacement) {
-        this(kind, base, AllocatableValue.UNUSED, Scale.Times1, displacement);
+    public AMD64AddressValue(PlatformKind kind, AllocatableValue base, int displacement) {
+        this(kind, base, Value.ILLEGAL, Scale.Times1, displacement);
     }
 
-    public AMD64AddressValue(Kind kind, AllocatableValue base, AllocatableValue index, Scale scale, int displacement) {
+    public AMD64AddressValue(PlatformKind kind, AllocatableValue base, AllocatableValue index, Scale scale, int displacement) {
         super(kind);
         this.base = base;
         this.index = index;
@@ -53,7 +54,7 @@ public class AMD64AddressValue extends CompositeValue {
     }
 
     private static Register toRegister(AllocatableValue value) {
-        if (value == AllocatableValue.UNUSED) {
+        if (value.equals(Value.ILLEGAL)) {
             return Register.None;
         } else {
             RegisterValue reg = (RegisterValue) value;
@@ -67,8 +68,7 @@ public class AMD64AddressValue extends CompositeValue {
 
     @Override
     public String toString() {
-        StringBuilder s = new StringBuilder();
-        s.append(getKind().getJavaName()).append("[");
+        StringBuilder s = new StringBuilder("[");
         String sep = "";
         if (isLegal(base)) {
             s.append(base);
@@ -91,13 +91,13 @@ public class AMD64AddressValue extends CompositeValue {
     public boolean equals(Object obj) {
         if (obj instanceof AMD64AddressValue) {
             AMD64AddressValue addr = (AMD64AddressValue) obj;
-            return getKind() == addr.getKind() && displacement == addr.displacement && base.equals(addr.base) && scale == addr.scale && index.equals(addr.index);
+            return getPlatformKind() == addr.getPlatformKind() && displacement == addr.displacement && base.equals(addr.base) && scale == addr.scale && index.equals(addr.index);
         }
         return false;
     }
 
     @Override
     public int hashCode() {
-        return base.hashCode() ^ index.hashCode() ^ (displacement << 4) ^ (scale.value << 8) ^ (getKind().ordinal() << 12);
+        return base.hashCode() ^ index.hashCode() ^ (displacement << 4) ^ (scale.value << 8) ^ getPlatformKind().hashCode();
     }
 }

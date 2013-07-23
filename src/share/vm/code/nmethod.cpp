@@ -124,7 +124,6 @@ bool nmethod::is_compiled_by_shark() const {
 //   PrintC1Statistics, PrintOptoStatistics, LogVMOutput, and LogCompilation.
 // (In the latter two cases, they like other stats are printed to the log only.)
 
-#ifndef PRODUCT
 // These variables are put into one block to reduce relocations
 // and make it simpler to print from the debugger.
 static
@@ -214,7 +213,6 @@ struct nmethod_stats_struct {
                   pc_desc_tests, pc_desc_searches, pc_desc_adds);
   }
 } nmethod_stats;
-#endif //PRODUCT
 
 
 //---------------------------------------------------------------------------------
@@ -512,18 +510,17 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
   {
     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     int native_nmethod_size = allocation_size(code_buffer, sizeof(nmethod));
-    if (CodeCache::has_space(native_nmethod_size)) {
-      CodeOffsets offsets;
-      offsets.set_value(CodeOffsets::Verified_Entry, vep_offset);
-      offsets.set_value(CodeOffsets::Frame_Complete, frame_complete);
-      nm = new (native_nmethod_size) nmethod(method(), native_nmethod_size,
-                                             compile_id, &offsets,
-                                             code_buffer, frame_size,
-                                             basic_lock_owner_sp_offset,
-                                             basic_lock_sp_offset, oop_maps);
-      NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_native_nmethod(nm));
-      if (PrintAssembly && nm != NULL)
-        Disassembler::decode(nm);
+    CodeOffsets offsets;
+    offsets.set_value(CodeOffsets::Verified_Entry, vep_offset);
+    offsets.set_value(CodeOffsets::Frame_Complete, frame_complete);
+    nm = new (native_nmethod_size) nmethod(method(), native_nmethod_size,
+                                            compile_id, &offsets,
+                                            code_buffer, frame_size,
+                                            basic_lock_owner_sp_offset,
+                                            basic_lock_sp_offset, oop_maps);
+    if (nm != NULL)  nmethod_stats.note_native_nmethod(nm);
+    if (PrintAssembly && nm != NULL) {
+      Disassembler::decode(nm);
     }
   }
   // verify nmethod
@@ -549,18 +546,17 @@ nmethod* nmethod::new_dtrace_nmethod(methodHandle method,
   {
     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
     int nmethod_size = allocation_size(code_buffer, sizeof(nmethod));
-    if (CodeCache::has_space(nmethod_size)) {
-      CodeOffsets offsets;
-      offsets.set_value(CodeOffsets::Verified_Entry, vep_offset);
-      offsets.set_value(CodeOffsets::Dtrace_trap, trap_offset);
-      offsets.set_value(CodeOffsets::Frame_Complete, frame_complete);
+    CodeOffsets offsets;
+    offsets.set_value(CodeOffsets::Verified_Entry, vep_offset);
+    offsets.set_value(CodeOffsets::Dtrace_trap, trap_offset);
+    offsets.set_value(CodeOffsets::Frame_Complete, frame_complete);
 
-      nm = new (nmethod_size) nmethod(method(), nmethod_size,
-                                      &offsets, code_buffer, frame_size);
+    nm = new (nmethod_size) nmethod(method(), nmethod_size,
+                                    &offsets, code_buffer, frame_size);
 
-      NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
-      if (PrintAssembly && nm != NULL)
-        Disassembler::decode(nm);
+    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    if (PrintAssembly && nm != NULL) {
+      Disassembler::decode(nm);
     }
   }
   // verify nmethod
@@ -609,22 +605,21 @@ nmethod* nmethod::new_nmethod(methodHandle method,
       + round_to(nul_chk_table->size_in_bytes(), oopSize)
       + round_to(debug_info->data_size()       , oopSize)
       + leaf_graph_ids_size;
-    if (CodeCache::has_space(nmethod_size)) {
-      nm = new (nmethod_size)
-      nmethod(method(), nmethod_size, compile_id, entry_bci, offsets,
-              orig_pc_offset, debug_info, dependencies, code_buffer, frame_size,
-              oop_maps,
-              handler_table,
-              nul_chk_table,
-              compiler,
-              comp_level,
-              leaf_graph_ids
+    nm = new (nmethod_size)
+    nmethod(method(), nmethod_size, compile_id, entry_bci, offsets,
+            orig_pc_offset, debug_info, dependencies, code_buffer, frame_size,
+            oop_maps,
+            handler_table,
+            nul_chk_table,
+            compiler,
+            comp_level,
+            leaf_graph_ids
 #ifdef GRAAL
-              , installed_code,
-              triggered_deoptimizations
+            , installed_code,
+            triggered_deoptimizations
 #endif
-              );
-    }
+            );
+
     if (nm != NULL) {
       // To make dependency checking during class loading fast, record
       // the nmethod dependencies in the classes it is dependent on.
@@ -636,15 +631,18 @@ nmethod* nmethod::new_nmethod(methodHandle method,
       // classes the slow way is too slow.
       for (Dependencies::DepStream deps(nm); deps.next(); ) {
         Klass* klass = deps.context_type();
-        if (klass == NULL)  continue;  // ignore things like evol_method
+        if (klass == NULL) {
+          continue;  // ignore things like evol_method
+        }
 
         // record this nmethod as dependent on this klass
         InstanceKlass::cast(klass)->add_dependent_nmethod(nm);
       }
     }
-    NOT_PRODUCT(if (nm != NULL)  nmethod_stats.note_nmethod(nm));
-    if (PrintAssembly && nm != NULL)
+    if (nm != NULL)  nmethod_stats.note_nmethod(nm);
+    if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
+    }
   }
 
   // verify nmethod
@@ -823,12 +821,10 @@ nmethod::nmethod(
 }
 #endif // def HAVE_DTRACE_H
 
-void* nmethod::operator new(size_t size, int nmethod_size) {
-  void*  alloc = CodeCache::allocate(nmethod_size);
-  guarantee(alloc != NULL, "CodeCache should have enough space");
-  return alloc;
+void* nmethod::operator new(size_t size, int nmethod_size) throw () {
+  // Not critical, may return null if there is too little continuous memory
+  return CodeCache::allocate(nmethod_size);
 }
-
 
 nmethod::nmethod(
   Method* method,
@@ -1311,6 +1307,7 @@ void nmethod::make_unloaded(BoolObjectClosure* is_alive, oop cause) {
   // Java wrapper is no longer alive. Here we need to clear out this weak
   // reference to the dead object.
   if (_graal_installed_code != NULL) {
+    HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
     _graal_installed_code = NULL;
   }
 #endif
@@ -1401,9 +1398,10 @@ bool nmethod::make_not_entrant_or_zombie(unsigned int state) {
     if (!is_osr_method() && !is_not_entrant()) {
       address stub = SharedRuntime::get_handle_wrong_method_stub();
 #ifdef GRAAL
-      if (_graal_installed_code != NULL && !HotSpotInstalledCode::isDefault(_graal_installed_code)) {
-        // This was manually installed machine code. Patch entry with stub that throws an exception.
-        stub = SharedRuntime::get_deoptimized_installed_code_stub();
+      if (_graal_installed_code != NULL) {
+        // Break the link between nmethod and HotSpotInstalledCode such that the nmethod can subsequently be flushed safely.
+        HotSpotInstalledCode::set_codeBlob(_graal_installed_code, 0);
+        _graal_installed_code = NULL;
       }
 #endif
       NativeJump::patch_verified_entry(entry_point(), verified_entry_point(), stub);
@@ -1698,7 +1696,7 @@ void nmethod::do_unloading(BoolObjectClosure* is_alive, bool unloading_occurred)
 #ifdef GRAAL
   // Follow Graal method
   if (_graal_installed_code != NULL) {
-    if (HotSpotInstalledCode::isDefault(_graal_installed_code)) {
+    if (HotSpotNmethod::isDefault(_graal_installed_code)) {
       if (!is_alive->do_object_b(_graal_installed_code)) {
         _graal_installed_code = NULL;
       }
@@ -1863,6 +1861,13 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
 #endif
 }
 
+#ifdef GRAAL
+void nmethod::mark_graal_reference(OopClosure* f) {
+  if (_graal_installed_code != NULL) {
+    f->do_oop((oop*) &_graal_installed_code);
+  }
+}
+#endif
 
 // Iterate over metadata calling this function.   Used by RedefineClasses
 void nmethod::metadata_do(void f(Metadata*)) {
@@ -1888,6 +1893,19 @@ void nmethod::metadata_do(void f(Metadata*)) {
           Metadata* md = r->metadata_value();
           f(md);
         }
+      } else if (iter.type() == relocInfo::virtual_call_type) {
+        // Check compiledIC holders associated with this nmethod
+        CompiledIC *ic = CompiledIC_at(iter.reloc());
+        if (ic->is_icholder_call()) {
+          CompiledICHolder* cichk = ic->cached_icholder();
+          f(cichk->holder_method());
+          f(cichk->holder_klass());
+        } else {
+          Metadata* ic_oop = ic->cached_metadata();
+          if (ic_oop != NULL) {
+            f(ic_oop);
+          }
+        }
       }
     }
   }
@@ -1898,6 +1916,7 @@ void nmethod::metadata_do(void f(Metadata*)) {
     Metadata* md = *p;
     f(md);
   }
+
   // Call function Method*, not embedded in these other places.
   if (_method != NULL) f(_method);
 }
@@ -2065,11 +2084,10 @@ void nmethod::preserve_callee_argument_oops(frame fr, const RegisterMap *reg_map
   if (!method()->is_native()) {
     SimpleScopeDesc ssd(this, fr.pc());
     Bytecode_invoke call(ssd.method(), ssd.bci());
-    // compiled invokedynamic call sites have an implicit receiver at
-    // resolution time, so make sure it gets GC'ed.
-    bool has_receiver = !call.is_invokestatic();
+    bool has_receiver = call.has_receiver();
+    bool has_appendix = call.has_appendix();
     Symbol* signature = call.signature();
-    fr.oops_compiled_arguments_do(signature, has_receiver, reg_map, f);
+    fr.oops_compiled_arguments_do(signature, has_receiver, has_appendix, reg_map, f);
   }
 #endif // !SHARK
 }
@@ -3018,6 +3036,8 @@ void nmethod::print_nul_chk_table() {
   ImplicitExceptionTable(this).print(code_begin());
 }
 
+#endif // PRODUCT
+
 void nmethod::print_statistics() {
   ttyLocker ttyl;
   if (xtty != NULL)  xtty->head("statistics type='nmethod'");
@@ -3028,5 +3048,3 @@ void nmethod::print_statistics() {
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }
-
-#endif // PRODUCT

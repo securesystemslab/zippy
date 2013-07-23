@@ -92,14 +92,6 @@ public interface CompilerToVM {
     ResolvedJavaType getUniqueImplementor(HotSpotResolvedObjectType interfaceType);
 
     /**
-     * Gets the invocation count for a method.
-     * 
-     * @param metaspaceMethod the metaspace Method object to query
-     * @return the invocation count for the method
-     */
-    int getInvocationCount(long metaspaceMethod);
-
-    /**
      * Initializes a {@link HotSpotResolvedJavaMethod} object from a metaspace Method object.
      * 
      * @param metaspaceMethod the metaspace Method object
@@ -144,18 +136,17 @@ public interface CompilerToVM {
 
     // Must be kept in sync with enum in graalEnv.hpp
     public enum CodeInstallResult {
-        OK, DEPENDENCIES_FAILED, CACHE_FULL
+        OK, DEPENDENCIES_FAILED, CACHE_FULL, CODE_TOO_LARGE
     }
 
     /**
      * Installs the result of a compilation into the code cache.
      * 
-     * @param compResult the result of a compilation
-     * @param code if not null, then the code is installed as the non-default compiled code for the
-     *            associated method and the details of the installation are written to this object
+     * @param compiledCode the result of a compilation
+     * @param code the details of the installed CodeBlob are written to this object
      * @return the outcome of the installation as a {@link CodeInstallResult}.
      */
-    CodeInstallResult installCode(HotSpotCompilationResult compResult, HotSpotInstalledCode code, SpeculationLog cache);
+    CodeInstallResult installCode(HotSpotCompiledCode compiledCode, HotSpotInstalledCode code, SpeculationLog cache);
 
     void initializeConfiguration(HotSpotVMConfig config);
 
@@ -168,6 +159,10 @@ public interface CompilerToVM {
     ResolvedJavaType getResolvedType(Class<?> javaClass);
 
     HotSpotResolvedJavaField[] getInstanceFields(HotSpotResolvedObjectType klass);
+
+    HotSpotResolvedJavaMethod[] getMethods(HotSpotResolvedObjectType klass);
+
+    boolean hasFinalizableSubclass(HotSpotResolvedObjectType klass);
 
     /**
      * Gets the compiled code size for a method.
@@ -190,24 +185,26 @@ public interface CompilerToVM {
 
     HotSpotResolvedJavaField getJavaField(Field reflectionField);
 
-    long getMaxCallTargetOffset(long stub);
+    long getMaxCallTargetOffset(long address);
 
-    String disassembleNMethod(long nmethod);
+    String disassembleCodeBlob(long codeBlob);
 
     /**
-     * Gets a copy of the machine code for an nmethod.
+     * Gets a copy of the machine code for a CodeBlob.
      * 
-     * @return the machine code for {@code nmethod} if it is valid, null otherwise
+     * @return the machine code for {@code codeBlob} if it is valid, null otherwise
      */
-    byte[] getCode(long nmethod);
+    byte[] getCode(long codeBlob);
 
     StackTraceElement getStackTraceElement(long metaspaceMethod, int bci);
 
-    Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, long nativeMethod) throws InvalidInstalledCodeException;
+    Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 
-    Object executeCompiledMethodVarargs(Object[] args, long nativeMethod) throws InvalidInstalledCodeException;
+    Object executeCompiledMethodVarargs(Object[] args, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 
     int getVtableEntryOffset(long metaspaceMethod);
+
+    boolean hasVtableEntry(long metaspaceMethod);
 
     long[] getDeoptedLeafGraphIds();
 
@@ -217,7 +214,9 @@ public interface CompilerToVM {
 
     String getFileName(HotSpotResolvedJavaType method);
 
-    void clearQueuedForCompilation(HotSpotResolvedJavaMethod method);
+    Object readUnsafeUncompressedPointer(Object o, long displacement);
+
+    long readUnsafeKlassPointer(Object o);
 
     /**
      * Invalidates the profiling information and restarts profiling upon the next invocation.
@@ -226,7 +225,5 @@ public interface CompilerToVM {
      */
     void reprofile(long metaspaceMethod);
 
-    void invalidateInstalledCode(long nativeMethod);
-
-    boolean isInstalledCodeValid(long nativeMethod);
+    void invalidateInstalledCode(HotSpotInstalledCode hotspotInstalledCode);
 }

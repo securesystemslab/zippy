@@ -118,8 +118,8 @@ public final class OutlineTopComponent extends TopComponent implements ExplorerM
             }
         };
         
-        server = new Server(callback, false);
-        binaryServer = new Server(callback, true);
+        server = new Server(getDocument(), callback, false);
+        binaryServer = new Server(getDocument(), callback, true);
     }
 
     public void clear() {

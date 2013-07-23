@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.hotspot.nodes;
 
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -40,8 +42,8 @@ import com.oracle.graal.nodes.type.*;
  */
 public class TailcallNode extends FixedWithNextNode implements LIRLowerable {
 
-    @Input private final FrameState frameState;
-    @Input private final ValueNode target;
+    @Input private FrameState frameState;
+    @Input private ValueNode target;
 
     /**
      * Creates a TailcallNode.
@@ -58,7 +60,7 @@ public class TailcallNode extends FixedWithNextNode implements LIRLowerable {
     @Override
     public void generate(LIRGeneratorTool generator) {
         LIRGenerator gen = (LIRGenerator) generator;
-        HotSpotVMConfig config = HotSpotGraalRuntime.getInstance().getConfig();
+        HotSpotVMConfig config = graalRuntime().getConfig();
         ResolvedJavaMethod method = frameState.method();
         boolean isStatic = Modifier.isStatic(method.getModifiers());
 
@@ -69,7 +71,8 @@ public class TailcallNode extends FixedWithNextNode implements LIRLowerable {
             parameters.add(frameState.localAt(slot));
         }
         Value[] args = gen.visitInvokeArguments(cc, parameters);
-        Value entry = gen.emitLoad(Kind.Long, gen.operand(target), config.nmethodEntryOffset, Value.ILLEGAL, 0, null);
+        Value address = gen.emitAddress(gen.operand(target), config.nmethodEntryOffset, Value.ILLEGAL, 0);
+        Value entry = gen.emitLoad(Kind.Long, address, null);
         HotSpotLIRGenerator hsgen = (HotSpotLIRGenerator) gen;
         hsgen.emitTailcall(args, entry);
     }

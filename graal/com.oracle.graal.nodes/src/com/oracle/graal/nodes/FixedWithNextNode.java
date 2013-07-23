@@ -22,8 +22,6 @@
  */
 package com.oracle.graal.nodes;
 
-import java.util.*;
-
 import com.oracle.graal.nodes.type.*;
 
 /**
@@ -32,24 +30,18 @@ import com.oracle.graal.nodes.type.*;
  */
 public abstract class FixedWithNextNode extends FixedNode {
 
+    @Successor private FixedNode next;
+
     public FixedNode next() {
-        assert scheduledNext() == null || scheduledNext() instanceof FixedNode : "next() cannot be used while the graph is scheduled";
-        return (FixedNode) scheduledNext();
+        return next;
     }
 
     public void setNext(FixedNode x) {
-        setScheduledNext(x);
+        updatePredecessor(next, x);
+        next = x;
     }
 
     public FixedWithNextNode(Stamp stamp) {
         super(stamp);
-    }
-
-    public FixedWithNextNode(Stamp stamp, List<ValueNode> dependencies) {
-        super(stamp, dependencies);
-    }
-
-    public FixedWithNextNode(Stamp stamp, ValueNode... dependencies) {
-        super(stamp, dependencies);
     }
 }

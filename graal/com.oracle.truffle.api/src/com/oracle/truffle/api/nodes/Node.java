@@ -25,6 +25,9 @@ package com.oracle.truffle.api.nodes;
 import java.lang.annotation.*;
 import java.util.*;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.NodeInfo.Kind;
+
 /**
  * Abstract base class for all Truffle nodes.
  */
@@ -36,6 +39,8 @@ public abstract class Node implements Cloneable {
     public static final Node[] EMPTY_ARRAY = new Node[0];
 
     private Node parent;
+
+    private SourceSection sourceSection;
 
     /**
      * Marks array fields that are children of this node.
@@ -51,6 +56,50 @@ public abstract class Node implements Cloneable {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.FIELD})
     public @interface Child {
+    }
+
+    protected Node() {
+        CompilerAsserts.neverPartOfCompilation();
+    }
+
+    /**
+     * Assigns a link to a guest language source section to this node.
+     * 
+     * @param section the object representing a section in guest language source code
+     */
+    public final void assignSourceSection(SourceSection section) {
+        if (sourceSection != null) {
+            throw new IllegalStateException("Source section is already assigned.");
+        }
+        this.sourceSection = section;
+    }
+
+    /**
+     * Clears any previously assigned guest language source code from this node.
+     */
+    public final void clearSourceSection() {
+        this.sourceSection = null;
+    }
+
+    /**
+     * Retrieves the guest language source code section that is currently assigned to this node.
+     * 
+     * @return the assigned source code section
+     */
+    public final SourceSection getSourceSection() {
+        return sourceSection;
+    }
+
+    /**
+     * Retrieves the guest language source code section that is currently assigned to this node.
+     * 
+     * @return the assigned source code section
+     */
+    public final SourceSection getEncapsulatingSourceSection() {
+        if (sourceSection == null && getParent() != null) {
+            return getParent().getEncapsulatingSourceSection();
+        }
+        return sourceSection;
     }
 
     /**
@@ -77,6 +126,9 @@ public abstract class Node implements Cloneable {
      */
     protected final <T extends Node> T adoptChild(T newChild) {
         if (newChild != null) {
+            if (newChild == this) {
+                throw new IllegalStateException("The parent of a node can never be the node itself.");
+            }
             ((Node) newChild).parent = this;
         }
         return newChild;
@@ -103,39 +155,120 @@ public abstract class Node implements Cloneable {
     }
 
     /**
-     * Replaces one child of this node with another node.
-     * 
-     * @param oldChild the old child
-     * @param newChild the new child that should replace the old child
-     * @return the new child
-     */
-    public final <T extends Node> T replaceChild(T oldChild, T newChild) {
-        NodeUtil.replaceChild(this, oldChild, newChild);
-        adoptChild(newChild);
-        return newChild;
-    }
-
-    /**
-     * Replaces this node with another node.
+     * Replaces this node with another node. If there is a source section (see
+     * {@link #getSourceSection()}) associated with this node, it is transferred to the new node.
      * 
      * @param newNode the new node that is the replacement
      * @param reason a description of the reason for the replacement
      * @return the new node
      */
     @SuppressWarnings({"unchecked"})
-    public <T extends Node> T replace(T newNode, String reason) {
-        assert this.getParent() != null;
+    public final <T extends Node> T replace(T newNode, String reason) {
+        if (this.getParent() == null) {
+            throw new IllegalStateException("This node cannot be replaced, because it does not yet have a parent.");
+        }
+        if (sourceSection != null) {
+            // Pass on the source section to the new node.
+            newNode.assignSourceSection(sourceSection);
+        }
+        onReplace(newNode, reason);
         return (T) this.getParent().replaceChild(this, newNode);
     }
 
+    private <T extends Node> T replaceChild(T oldChild, T newChild) {
+        NodeUtil.replaceChild(this, oldChild, newChild);
+        adoptChild(newChild);
+        return newChild;
+    }
+
     /**
-     * Replaces this node with another node.
+     * Replaces this node with another node. If there is a source section (see
+     * {@link #getSourceSection()}) associated with this node, it is transferred to the new node.
      * 
      * @param newNode the new node that is the replacement
      * @return the new node
      */
-    public <T extends Node> T replace(T newNode) {
+    public final <T extends Node> T replace(T newNode) {
         return replace(newNode, "");
+    }
+
+    /**
+     * Intended to be implemented by subclasses of {@link Node} to receive a notification when the
+     * node is rewritten. This method is invoked before the actual replace has happened.
+     * 
+     * @param newNode the replacement node
+     * @param reason the reason the replace supplied
+     */
+    protected void onReplace(Node newNode, String reason) {
+        if (TruffleOptions.TraceRewrites) {
+            Class<? extends Node> from = getClass();
+            Class<? extends Node> to = newNode.getClass();
+
+            if (TruffleOptions.TraceRewritesFilterFromKind != null) {
+                if (filterByKind(from, TruffleOptions.TraceRewritesFilterFromKind)) {
+                    return;
+                }
+            }
+
+            if (TruffleOptions.TraceRewritesFilterToKind != null) {
+                if (filterByKind(to, TruffleOptions.TraceRewritesFilterToKind)) {
+                    return;
+                }
+            }
+
+            String filter = TruffleOptions.TraceRewritesFilterClass;
+            if (filter != null && (filterByContainsClassName(from, filter) || filterByContainsClassName(to, filter))) {
+                return;
+            }
+
+            // CheckStyle: stop system..print check
+            System.out.printf("[truffle]   rewrite %-50s |From %-40s |To %-40s |Reason %s.%n", this.toString(), formatNodeInfo(from), formatNodeInfo(to), reason);
+            // CheckStyle: resume system..print check
+        }
+    }
+
+    private static String formatNodeInfo(Class<? extends Node> clazz) {
+        NodeInfo nodeInfo = clazz.getAnnotation(NodeInfo.class);
+        String kind = "?";
+        if (nodeInfo != null) {
+            switch (nodeInfo.kind()) {
+                case GENERIC:
+                    kind = "G";
+                    break;
+                case SPECIALIZED:
+                    kind = "S";
+                    break;
+                case UNINITIALIZED:
+                    kind = "U";
+                    break;
+                case POLYMORPHIC:
+                    kind = "P";
+                    break;
+                default:
+                    kind = "?";
+                    break;
+            }
+        }
+        return kind + " " + clazz.getSimpleName();
+    }
+
+    private static boolean filterByKind(Class<?> clazz, Kind kind) {
+        NodeInfo info = clazz.getAnnotation(NodeInfo.class);
+        if (info != null) {
+            return info.kind() != kind;
+        }
+        return true;
+    }
+
+    private static boolean filterByContainsClassName(Class<? extends Node> from, String filter) {
+        Class<?> currentFrom = from;
+        while (currentFrom != null) {
+            if (currentFrom.getName().contains(filter)) {
+                return false;
+            }
+            currentFrom = currentFrom.getSuperclass();
+        }
+        return true;
     }
 
     /**

@@ -90,8 +90,27 @@ public interface MetaAccessProvider {
      * 
      * @param base the base address from which the value is read
      * @param displacement the displacement within the object in bytes
+     * @param compressedPointer whether this is a read of a compressed or an uncompressed pointer
      * @return the read value encapsulated in a {@link Constant} object, or {@code null} if the
      *         value cannot be read.
      */
-    Constant readUnsafeConstant(Kind kind, Object base, long displacement);
+    Constant readUnsafeConstant(Kind kind, Object base, long displacement, boolean compressedPointer);
+
+    /**
+     * Determines if a given foreign call is side-effect free. Deoptimization cannot return
+     * execution to a point before a foreign call that has a side effect.
+     */
+    boolean isReexecutable(ForeignCallDescriptor descriptor);
+
+    /**
+     * Gets the set of memory locations killed by a given foreign call. Returning the special value
+     * {@link LocationIdentity#ANY_LOCATION} denotes that the call kills all memory locations.
+     * Returning any empty array denotes that the call does not kill any memory locations.
+     */
+    LocationIdentity[] getKilledLocations(ForeignCallDescriptor descriptor);
+
+    /**
+     * Determines if deoptimization can occur during a given foreign call.
+     */
+    boolean canDeoptimize(ForeignCallDescriptor descriptor);
 }

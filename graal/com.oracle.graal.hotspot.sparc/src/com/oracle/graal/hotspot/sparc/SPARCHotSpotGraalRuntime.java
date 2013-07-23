@@ -25,6 +25,7 @@ package com.oracle.graal.hotspot.sparc;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.sparc.*;
 
 /**
  * SPARC specific implementation of {@link HotSpotGraalRuntime}.
@@ -38,16 +39,22 @@ final class SPARCHotSpotGraalRuntime extends HotSpotGraalRuntime {
      * Called from C++ code to retrieve the singleton instance, creating it first if necessary.
      */
     public static HotSpotGraalRuntime makeInstance() {
-        if (getInstance() == null) {
+        if (graalRuntime() == null) {
             setInstance(new SPARCHotSpotGraalRuntime());
         }
-        return getInstance();
+        return graalRuntime();
+    }
+
+    protected static Architecture createArchitecture() {
+        return new SPARC();
     }
 
     @Override
     protected TargetDescription createTarget() {
-        // SPARC: Create target description.
-        return null;
+        final int stackFrameAlignment = 16;
+        final int implicitNullCheckLimit = 4096;
+        final boolean inlineObjects = false;  // TODO We might want to change this later.
+        return new TargetDescription(createArchitecture(), true, stackFrameAlignment, implicitNullCheckLimit, inlineObjects);
     }
 
     @Override

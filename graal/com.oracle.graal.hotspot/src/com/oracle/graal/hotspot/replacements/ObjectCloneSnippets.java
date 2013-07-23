@@ -22,8 +22,10 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.hotspot.replacements.HotSpotSnippetUtils.*;
-import static com.oracle.graal.replacements.nodes.BranchProbabilityNode.*;
+import static com.oracle.graal.api.meta.LocationIdentity.*;
+import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
+import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.lang.reflect.*;
 
@@ -32,7 +34,6 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.replacements.*;
 import com.oracle.graal.word.*;
 
@@ -52,12 +53,11 @@ public class ObjectCloneSnippets implements Snippets {
 
     private static Object instanceClone(Object src, Word hub, int layoutHelper) {
         int instanceSize = layoutHelper;
-        Pointer memory = NewObjectSnippets.allocate(instanceSize);
         Word prototypeMarkWord = hub.readWord(prototypeMarkWordOffset(), PROTOTYPE_MARK_WORD_LOCATION);
-        Object result = NewObjectSnippets.initializeObject((Word) memory, hub, prototypeMarkWord, instanceSize, false, false);
+        Object result = NewObjectSnippets.allocateInstance(instanceSize, hub, prototypeMarkWord, false);
 
-        memory = Word.fromObject(result);
-        for (int offset = 2 * wordSize(); offset < instanceSize; offset += wordSize()) {
+        Pointer memory = Word.fromObject(result);
+        for (int offset = instanceHeaderSize(); offset < instanceSize; offset += wordSize()) {
             memory.writeWord(offset, Word.fromObject(src).readWord(offset, ANY_LOCATION), ANY_LOCATION);
         }
 
@@ -70,11 +70,10 @@ public class ObjectCloneSnippets implements Snippets {
         int headerSize = (layoutHelper >> layoutHelperHeaderSizeShift()) & layoutHelperHeaderSizeMask();
         int sizeInBytes = NewObjectSnippets.computeArrayAllocationSize(arrayLength, wordSize(), headerSize, log2ElementSize);
 
-        Pointer memory = NewObjectSnippets.allocate(sizeInBytes);
         Word prototypeMarkWord = hub.readWord(prototypeMarkWordOffset(), PROTOTYPE_MARK_WORD_LOCATION);
-        Object result = NewObjectSnippets.initializeArray((Word) memory, hub, arrayLength, sizeInBytes, prototypeMarkWord, headerSize, false, false);
+        Object result = NewObjectSnippets.allocateArray(hub, arrayLength, prototypeMarkWord, headerSize, log2ElementSize, false);
 
-        memory = Word.fromObject(result);
+        Pointer memory = Word.fromObject(result);
         for (int offset = headerSize; offset < sizeInBytes; offset += wordSize()) {
             memory.writeWord(offset, Word.fromObject(src).readWord(offset, ANY_LOCATION), ANY_LOCATION);
         }
@@ -84,7 +83,6 @@ public class ObjectCloneSnippets implements Snippets {
     private static Word getAndCheckHub(Object src) {
         Word hub = loadHub(src);
         if (!(src instanceof Cloneable)) {
-            probability(DEOPT_PATH_PROBABILITY);
             DeoptimizeNode.deopt(DeoptimizationAction.None, DeoptimizationReason.RuntimeConstraint);
         }
         return hub;
@@ -110,8 +108,7 @@ public class ObjectCloneSnippets implements Snippets {
         genericCloneCounter.inc();
         Word hub = getAndCheckHub(src);
         int layoutHelper = hub.readInt(layoutHelperOffset(), FINAL_LOCATION);
-        if (layoutHelper < 0) {
-            probability(LIKELY_PROBABILITY);
+        if (probability(LIKELY_PROBABILITY, layoutHelper < 0)) {
             genericArrayCloneCounter.inc();
             return arrayClone(src, hub, layoutHelper);
         } else {
@@ -120,12 +117,12 @@ public class ObjectCloneSnippets implements Snippets {
         }
     }
 
-    private static final SnippetCounter.Group cloneCounters = GraalOptions.SnippetCounters ? new SnippetCounter.Group("Object.clone") : null;
+    private static final SnippetCounter.Group cloneCounters = SnippetCounters.getValue() ? new SnippetCounter.Group("Object.clone") : null;
     private static final SnippetCounter instanceCloneCounter = new SnippetCounter(cloneCounters, "instanceClone", "clone snippet for instances");
     private static final SnippetCounter arrayCloneCounter = new SnippetCounter(cloneCounters, "arrayClone", "clone snippet for arrays");
     private static final SnippetCounter genericCloneCounter = new SnippetCounter(cloneCounters, "genericClone", "clone snippet for arrays and instances");
 
-    private static final SnippetCounter.Group genericCloneCounters = GraalOptions.SnippetCounters ? new SnippetCounter.Group("Object.clone generic snippet") : null;
+    private static final SnippetCounter.Group genericCloneCounters = SnippetCounters.getValue() ? new SnippetCounter.Group("Object.clone generic snippet") : null;
     private static final SnippetCounter genericInstanceCloneCounter = new SnippetCounter(genericCloneCounters, "genericInstanceClone", "generic clone implementation took instance path");
     private static final SnippetCounter genericArrayCloneCounter = new SnippetCounter(genericCloneCounters, "genericArrayClone", "generic clone implementation took array path");
 

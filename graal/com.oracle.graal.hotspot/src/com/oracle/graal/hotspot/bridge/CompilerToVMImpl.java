@@ -35,11 +35,11 @@ import com.oracle.graal.hotspot.meta.*;
  */
 public class CompilerToVMImpl implements CompilerToVM {
 
-    private native int installCode0(HotSpotCompilationResult comp, HotSpotInstalledCode code, boolean[] triggeredDeoptimizations);
+    private native int installCode0(HotSpotCompiledCode compiledCode, HotSpotInstalledCode code, boolean[] triggeredDeoptimizations);
 
     @Override
-    public CodeInstallResult installCode(HotSpotCompilationResult comp, HotSpotInstalledCode code, SpeculationLog speculationLog) {
-        return CodeInstallResult.values()[installCode0(comp, code, (speculationLog == null) ? null : speculationLog.getRawMap())];
+    public CodeInstallResult installCode(HotSpotCompiledCode compiledCode, HotSpotInstalledCode code, SpeculationLog speculationLog) {
+        return CodeInstallResult.values()[installCode0(compiledCode, code, (speculationLog == null) ? null : speculationLog.getRawMap())];
     }
 
     @Override
@@ -73,9 +73,6 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native ResolvedJavaType getUniqueImplementor(HotSpotResolvedObjectType interfaceType);
 
     @Override
-    public native int getInvocationCount(long metaspaceMethod);
-
-    @Override
     public native JavaType lookupType(String name, HotSpotResolvedObjectType accessingClass, boolean eagerResolve);
 
     @Override
@@ -106,6 +103,9 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native boolean isTypeInitialized(HotSpotResolvedObjectType klass);
 
     @Override
+    public native boolean hasFinalizableSubclass(HotSpotResolvedObjectType klass);
+
+    @Override
     public native void initializeType(HotSpotResolvedObjectType klass);
 
     @Override
@@ -121,25 +121,32 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native HotSpotResolvedJavaField[] getInstanceFields(HotSpotResolvedObjectType klass);
 
     @Override
+    public native HotSpotResolvedJavaMethod[] getMethods(HotSpotResolvedObjectType klass);
+
+    @Override
     public native int getCompiledCodeSize(long metaspaceMethod);
 
     @Override
-    public native long getMaxCallTargetOffset(long stub);
+    public native long getMaxCallTargetOffset(long address);
+
+    // The HotSpot disassembler seems not to be thread safe so it's better to synchronize its usage
+    @Override
+    public synchronized native String disassembleCodeBlob(long codeBlob);
 
     @Override
-    public native String disassembleNMethod(long nmethod);
-
-    @Override
-    public native byte[] getCode(long nmethod);
+    public native byte[] getCode(long codeBlob);
 
     @Override
     public native StackTraceElement getStackTraceElement(long metaspaceMethod, int bci);
 
     @Override
-    public native Object executeCompiledMethodVarargs(Object[] args, long nativeMethod);
+    public native Object executeCompiledMethodVarargs(Object[] args, HotSpotInstalledCode hotspotInstalledCode);
 
     @Override
     public native int getVtableEntryOffset(long metaspaceMethod);
+
+    @Override
+    public native boolean hasVtableEntry(long metaspaceMethod);
 
     @Override
     public native long[] getDeoptedLeafGraphIds();
@@ -154,31 +161,31 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native String getFileName(HotSpotResolvedJavaType method);
 
     @Override
-    public native void clearQueuedForCompilation(HotSpotResolvedJavaMethod method);
-
-    @Override
     public native void reprofile(long metaspaceMethod);
 
     @Override
     public native Object lookupAppendixInPool(HotSpotResolvedObjectType pool, int cpi, byte opcode);
 
     @Override
-    public native void invalidateInstalledCode(long nativeMethod);
+    public native void invalidateInstalledCode(HotSpotInstalledCode hotspotInstalledCode);
 
     @Override
-    public native boolean isInstalledCodeValid(long nativeMethod);
+    public native Object readUnsafeUncompressedPointer(Object o, long displacement);
 
     @Override
-    public Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, long nativeMethod) throws InvalidInstalledCodeException {
-        return executeCompiledMethodIntrinsic(arg1, arg2, arg3, nativeMethod);
+    public native long readUnsafeKlassPointer(Object o);
+
+    @Override
+    public Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException {
+        return executeCompiledMethodIntrinsic(arg1, arg2, arg3, hotspotInstalledCode);
     }
 
     /**
-     * Direct call to the given nativeMethod with three object arguments and an object return value.
-     * This method does not have an implementation on the C++ side, but its entry points (from
+     * Direct call to the given nmethod with three object arguments and an object return value. This
+     * method does not have an implementation on the C++ side, but its entry points (from
      * interpreter and from compiled code) are directly pointing to a manually generated assembly
      * stub that does the necessary argument shuffling and a tail call via an indirect jump to the
      * verified entry point of the given native method.
      */
-    private static native Object executeCompiledMethodIntrinsic(Object arg1, Object arg2, Object arg3, long nativeMethod);
+    public static native Object executeCompiledMethodIntrinsic(Object arg1, Object arg2, Object arg3, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 }

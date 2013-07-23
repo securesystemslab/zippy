@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot.nodes;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.nodes.*;
@@ -32,7 +33,7 @@ import com.oracle.graal.nodes.type.*;
  * Intrinsic for closing a {@linkplain BeginLockScopeNode scope} binding a stack-based lock with an
  * object.
  */
-public final class EndLockScopeNode extends AbstractStateSplit implements LIRGenLowerable, MonitorExit {
+public final class EndLockScopeNode extends AbstractStateSplit implements LIRGenLowerable, MonitorExit, MemoryCheckpoint.Single {
 
     public EndLockScopeNode() {
         super(StampFactory.forVoid());
@@ -44,8 +45,8 @@ public final class EndLockScopeNode extends AbstractStateSplit implements LIRGen
     }
 
     @Override
-    public Object[] getLocationIdentities() {
-        return new Object[]{LocationNode.ANY_LOCATION};
+    public LocationIdentity getLocationIdentity() {
+        return LocationIdentity.ANY_LOCATION;
     }
 
     @Override

@@ -22,12 +22,16 @@
  */
 package com.oracle.graal.compiler.test.backend;
 
+import static com.oracle.graal.api.code.CodeUtil.*;
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 
 import org.junit.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.test.*;
@@ -97,7 +101,7 @@ public class AllocatorTest extends GraalCompilerTest {
                 Value def = move.getResult();
                 Value use = move.getInput();
                 if (ValueUtil.isRegister(def)) {
-                    if (ValueUtil.isRegister(use) && ValueUtil.asRegister(def) != ValueUtil.asRegister(use)) {
+                    if (ValueUtil.isRegister(use)) {
                         regRegMoves++;
                     }
                 } else if (ValueUtil.isStackSlot(def)) {
@@ -109,13 +113,13 @@ public class AllocatorTest extends GraalCompilerTest {
 
     private RegisterStats getRegisterStats(final StructuredGraph graph) {
         final PhasePlan phasePlan = getDefaultPhasePlan();
-        final Assumptions assumptions = new Assumptions(GraalOptions.OptAssumptions);
+        final Assumptions assumptions = new Assumptions(OptAssumptions.getValue());
 
         final LIR lir = Debug.scope("FrontEnd", new Callable<LIR>() {
 
             @Override
             public LIR call() {
-                return GraalCompiler.emitHIR(runtime, backend.target, graph, replacements, assumptions, null, phasePlan, OptimisticOptimizations.NONE, new SpeculationLog());
+                return GraalCompiler.emitHIR(runtime, backend.target, graph, replacements, assumptions, null, phasePlan, OptimisticOptimizations.NONE, new SpeculationLog(), suites);
             }
         });
 
@@ -123,7 +127,8 @@ public class AllocatorTest extends GraalCompilerTest {
 
             @Override
             public RegisterStats call() {
-                GraalCompiler.emitLIR(backend, backend.target, lir, graph, graph.method());
+                CallingConvention cc = getCallingConvention(runtime, Type.JavaCallee, graph.method(), false);
+                GraalCompiler.emitLIR(backend, backend.target, lir, graph, cc);
                 return new RegisterStats(lir);
             }
         });

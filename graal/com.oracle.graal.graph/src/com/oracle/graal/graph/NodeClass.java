@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,13 +37,22 @@ public class NodeClass extends FieldIntrospection {
             return clazz;
         }
 
-        // We can have a race of multiple threads creating the LIRInstructionClass at the same time.
-        // However, only one will be put into the map, and this is the one returned by all threads.
-        clazz = new NodeClass(c);
-        NodeClass oldClazz = (NodeClass) allClasses.putIfAbsent(c, clazz);
-        if (oldClazz != null) {
-            return oldClazz;
-        } else {
+        /*
+         * Using putIfAbsent doesn't work here, because the creation of NodeClass needs to be
+         * serialized. (the NodeClass constructor looks at allClasses, and it also uses the static
+         * field nextIterableId)
+         * 
+         * The fact that ConcurrentHashMap.put and .get are used should make the double-checked
+         * locking idiom work, since it internally uses volatile.
+         */
+
+        synchronized (allClasses) {
+            clazz = (NodeClass) allClasses.get(c);
+            if (clazz == null) {
+                clazz = new NodeClass(c);
+                NodeClass oldClass = (NodeClass) allClasses.putIfAbsent(c, clazz);
+                assert oldClass == null;
+            }
             return clazz;
         }
     }
@@ -190,9 +199,13 @@ public class NodeClass extends FieldIntrospection {
             if (field.isAnnotationPresent(Node.Input.class)) {
                 assert !field.isAnnotationPresent(Node.Successor.class) : "field cannot be both input and successor";
                 if (INPUT_LIST_CLASS.isAssignableFrom(type)) {
+                    GraalInternalError.guarantee(Modifier.isFinal(field.getModifiers()), "NodeInputList input field %s should be final", field);
+                    GraalInternalError.guarantee(!Modifier.isPublic(field.getModifiers()), "NodeInputList input field %s should not be public", field);
                     inputListOffsets.add(offset);
                 } else {
-                    assert NODE_CLASS.isAssignableFrom(type) : "invalid input type: " + type;
+                    GraalInternalError.guarantee(NODE_CLASS.isAssignableFrom(type) || type.isInterface(), "invalid input type: %s", type);
+                    GraalInternalError.guarantee(!Modifier.isFinal(field.getModifiers()), "Node input field %s should not be final", field);
+                    GraalInternalError.guarantee(Modifier.isPrivate(field.getModifiers()), "Node input field %s should be private", field);
                     inputOffsets.add(offset);
                 }
                 if (field.getAnnotation(Node.Input.class).notDataflow()) {
@@ -200,15 +213,19 @@ public class NodeClass extends FieldIntrospection {
                 }
             } else if (field.isAnnotationPresent(Node.Successor.class)) {
                 if (SUCCESSOR_LIST_CLASS.isAssignableFrom(type)) {
+                    GraalInternalError.guarantee(Modifier.isFinal(field.getModifiers()), "NodeSuccessorList successor field % should be final", field);
+                    GraalInternalError.guarantee(!Modifier.isPublic(field.getModifiers()), "NodeSuccessorList successor field %s should not be public", field);
                     successorListOffsets.add(offset);
                 } else {
-                    assert NODE_CLASS.isAssignableFrom(type) : "invalid successor type: " + type;
+                    GraalInternalError.guarantee(NODE_CLASS.isAssignableFrom(type), "invalid successor type: %s", type);
+                    GraalInternalError.guarantee(!Modifier.isFinal(field.getModifiers()), "Node successor field %s should not be final", field);
+                    GraalInternalError.guarantee(Modifier.isPrivate(field.getModifiers()), "Node successor field %s should be private", field);
                     successorOffsets.add(offset);
                 }
             } else {
-                assert !NODE_CLASS.isAssignableFrom(type) || field.getName().equals("Null") : "suspicious node field: " + field;
-                assert !INPUT_LIST_CLASS.isAssignableFrom(type) : "suspicious node input list field: " + field;
-                assert !SUCCESSOR_LIST_CLASS.isAssignableFrom(type) : "suspicious node successor list field: " + field;
+                GraalInternalError.guarantee(!NODE_CLASS.isAssignableFrom(type) || field.getName().equals("Null"), "suspicious node field: %s", field);
+                GraalInternalError.guarantee(!INPUT_LIST_CLASS.isAssignableFrom(type), "suspicious node input list field: %s", field);
+                GraalInternalError.guarantee(!SUCCESSOR_LIST_CLASS.isAssignableFrom(type), "suspicious node successor list field: %s", field);
                 dataOffsets.add(offset);
             }
         }
@@ -520,6 +537,12 @@ public class NodeClass extends FieldIntrospection {
                     if (aLong != bLong) {
                         return false;
                     }
+                } else if (type == Double.TYPE) {
+                    double aDouble = unsafe.getDouble(a, dataOffsets[i]);
+                    double bDouble = unsafe.getDouble(b, dataOffsets[i]);
+                    if (aDouble != bDouble) {
+                        return false;
+                    }
                 } else {
                     assert false : "unhandled type: " + type;
                 }
@@ -652,12 +675,8 @@ public class NodeClass extends FieldIntrospection {
         while (index < directSuccessorCount) {
             Node successor = getNode(node, successorOffsets[index]);
             if (successor == old) {
-                assert other == null || fieldTypes.get(successorOffsets[index]).isAssignableFrom(other.getClass()); // :
-                                                                                                                    // successorTypes[index]
-                                                                                                                    // +
-                                                                                                                    // " is not compatible with "
-                                                                                                                    // +
-                                                                                                                    // other.getClass();
+                assert other == null || fieldTypes.get(successorOffsets[index]).isAssignableFrom(other.getClass()) : fieldTypes.get(successorOffsets[index]) + " is not compatible with " +
+                                other.getClass();
                 putNode(node, successorOffsets[index], other);
                 return true;
             }
@@ -759,8 +778,11 @@ public class NodeClass extends FieldIntrospection {
     }
 
     public boolean edgesEqual(Node node, Node other) {
-        assert node.getClass() == clazz && other.getClass() == clazz;
+        return inputsEqual(node, other) && successorsEqual(node, other);
+    }
 
+    public boolean inputsEqual(Node node, Node other) {
+        assert node.getClass() == clazz && other.getClass() == clazz;
         int index = 0;
         while (index < directInputCount) {
             if (getNode(other, inputOffsets[index]) != getNode(node, inputOffsets[index])) {
@@ -775,8 +797,12 @@ public class NodeClass extends FieldIntrospection {
             }
             index++;
         }
+        return true;
+    }
 
-        index = 0;
+    public boolean successorsEqual(Node node, Node other) {
+        assert node.getClass() == clazz && other.getClass() == clazz;
+        int index = 0;
         while (index < directSuccessorCount) {
             if (getNode(other, successorOffsets[index]) != getNode(node, successorOffsets[index])) {
                 return false;

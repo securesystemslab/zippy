@@ -22,15 +22,19 @@
  */
 package com.oracle.graal.replacements;
 
+import static com.oracle.graal.api.meta.MetaUtil.*;
+
 import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
@@ -54,10 +58,8 @@ public class NodeIntrinsificationPhase extends Phase {
     @Override
     protected void run(StructuredGraph graph) {
         ArrayList<Node> cleanUpReturnList = new ArrayList<>();
-        for (Invoke i : graph.getInvokes()) {
-            if (i.callTarget() instanceof MethodCallTargetNode) {
-                tryIntrinsify(i, cleanUpReturnList);
-            }
+        for (MethodCallTargetNode node : graph.getNodes(MethodCallTargetNode.class)) {
+            tryIntrinsify(node, cleanUpReturnList);
         }
 
         for (Node node : cleanUpReturnList) {
@@ -65,8 +67,8 @@ public class NodeIntrinsificationPhase extends Phase {
         }
     }
 
-    private boolean tryIntrinsify(Invoke invoke, List<Node> cleanUpReturnList) {
-        ResolvedJavaMethod target = invoke.methodCallTarget().targetMethod();
+    private boolean tryIntrinsify(MethodCallTargetNode methodCallTargetNode, List<Node> cleanUpReturnList) {
+        ResolvedJavaMethod target = methodCallTargetNode.targetMethod();
         NodeIntrinsic intrinsic = target.getAnnotation(Node.NodeIntrinsic.class);
         ResolvedJavaType declaringClass = target.getDeclaringClass();
         if (intrinsic != null) {
@@ -77,7 +79,7 @@ public class NodeIntrinsificationPhase extends Phase {
             ResolvedJavaType returnType = target.getSignature().getReturnType(declaringClass).resolve(declaringClass);
 
             // Prepare the arguments for the reflective constructor call on the node class.
-            Constant[] nodeConstructorArguments = prepareArguments(invoke, parameterTypes, target, false);
+            Constant[] nodeConstructorArguments = prepareArguments(methodCallTargetNode, parameterTypes, target, false);
             if (nodeConstructorArguments == null) {
                 return false;
             }
@@ -87,8 +89,8 @@ public class NodeIntrinsificationPhase extends Phase {
             Node newInstance = createNodeInstance(c, parameterTypes, returnType, intrinsic.setStampFromReturnType(), nodeConstructorArguments);
 
             // Replace the invoke with the new node.
-            invoke.asNode().graph().add(newInstance);
-            invoke.intrinsify(newInstance);
+            methodCallTargetNode.graph().add(newInstance);
+            methodCallTargetNode.invoke().intrinsify(newInstance);
 
             // Clean up checkcast instructions inserted by javac if the return type is generic.
             cleanUpReturnList.add(newInstance);
@@ -96,12 +98,12 @@ public class NodeIntrinsificationPhase extends Phase {
             ResolvedJavaType[] parameterTypes = MetaUtil.resolveJavaTypes(MetaUtil.signatureToTypes(target), declaringClass);
 
             // Prepare the arguments for the reflective method call
-            Constant[] arguments = prepareArguments(invoke, parameterTypes, target, true);
+            Constant[] arguments = prepareArguments(methodCallTargetNode, parameterTypes, target, true);
             if (arguments == null) {
                 return false;
             }
             Constant receiver = null;
-            if (!invoke.methodCallTarget().isStatic()) {
+            if (!methodCallTargetNode.isStatic()) {
                 receiver = arguments[0];
                 arguments = Arrays.copyOfRange(arguments, 1, arguments.length);
                 parameterTypes = Arrays.copyOfRange(parameterTypes, 1, parameterTypes.length);
@@ -112,14 +114,14 @@ public class NodeIntrinsificationPhase extends Phase {
 
             if (constant != null) {
                 // Replace the invoke with the result of the call
-                ConstantNode node = ConstantNode.forConstant(constant, runtime, invoke.asNode().graph());
-                invoke.intrinsify(node);
+                ConstantNode node = ConstantNode.forConstant(constant, runtime, methodCallTargetNode.graph());
+                methodCallTargetNode.invoke().intrinsify(node);
 
                 // Clean up checkcast instructions inserted by javac if the return type is generic.
                 cleanUpReturnList.add(node);
             } else {
                 // Remove the invoke
-                invoke.intrinsify(null);
+                methodCallTargetNode.invoke().intrinsify(null);
             }
         }
         return true;
@@ -133,12 +135,12 @@ public class NodeIntrinsificationPhase extends Phase {
      * @return the arguments for the reflective invocation or null if an argument of {@code invoke}
      *         that is expected to be constant isn't
      */
-    private Constant[] prepareArguments(Invoke invoke, ResolvedJavaType[] parameterTypes, ResolvedJavaMethod target, boolean folding) {
-        NodeInputList<ValueNode> arguments = invoke.callTarget().arguments();
+    private Constant[] prepareArguments(MethodCallTargetNode methodCallTargetNode, ResolvedJavaType[] parameterTypes, ResolvedJavaMethod target, boolean folding) {
+        NodeInputList<ValueNode> arguments = methodCallTargetNode.arguments();
         Constant[] reflectionCallArguments = new Constant[arguments.size()];
         for (int i = 0; i < reflectionCallArguments.length; ++i) {
             int parameterIndex = i;
-            if (!invoke.methodCallTarget().isStatic()) {
+            if (!methodCallTargetNode.isStatic()) {
                 parameterIndex--;
             }
             ValueNode argument = arguments.get(i);
@@ -180,7 +182,8 @@ public class NodeIntrinsificationPhase extends Phase {
         } else {
             result = runtime.lookupJavaType(intrinsic.value());
         }
-        assert runtime.lookupJavaType(ValueNode.class).isAssignableFrom(result);
+        assert runtime.lookupJavaType(ValueNode.class).isAssignableFrom(result) : "Node intrinsic class " + toJavaName(result, false) + " derived from @" + NodeIntrinsic.class.getSimpleName() +
+                        " annotation on " + format("%H.%n(%p)", target) + " is not a subclass of " + ValueNode.class;
         return result;
     }
 
@@ -283,40 +286,67 @@ public class NodeIntrinsificationPhase extends Phase {
         if (newInstance instanceof ValueNode && (((ValueNode) newInstance).kind() != Kind.Object || ((ValueNode) newInstance).stamp() == StampFactory.forNodeIntrinsic())) {
             StructuredGraph graph = (StructuredGraph) newInstance.graph();
             for (CheckCastNode checkCastNode : newInstance.usages().filter(CheckCastNode.class).snapshot()) {
-                for (ProxyNode vpn : checkCastNode.usages().filter(ProxyNode.class).snapshot()) {
-                    graph.replaceFloating(vpn, checkCastNode);
-                }
                 for (Node checkCastUsage : checkCastNode.usages().snapshot()) {
-                    if (checkCastUsage instanceof ValueAnchorNode) {
-                        ValueAnchorNode valueAnchorNode = (ValueAnchorNode) checkCastUsage;
-                        graph.removeFixed(valueAnchorNode);
-                    } else if (checkCastUsage instanceof UnboxNode) {
-                        UnboxNode unbox = (UnboxNode) checkCastUsage;
-                        unbox.replaceAtUsages(newInstance);
-                        graph.removeFixed(unbox);
-                    } else if (checkCastUsage instanceof MethodCallTargetNode) {
-                        MethodCallTargetNode checkCastCallTarget = (MethodCallTargetNode) checkCastUsage;
-                        assert checkCastCallTarget.targetMethod().getAnnotation(NodeIntrinsic.class) != null : "checkcast at " + sourceLocation(checkCastNode) +
-                                        " not used by an unboxing method or node intrinsic, but by a call at " + sourceLocation(checkCastCallTarget.usages().first()) + " to " +
-                                        checkCastCallTarget.targetMethod();
-                        checkCastUsage.replaceFirstInput(checkCastNode, checkCastNode.object());
-                    } else if (checkCastUsage instanceof FrameState) {
-                        checkCastUsage.replaceFirstInput(checkCastNode, null);
-                    } else if (checkCastUsage instanceof ReturnNode && checkCastNode.object().stamp() == StampFactory.forNodeIntrinsic()) {
-                        checkCastUsage.replaceFirstInput(checkCastNode, checkCastNode.object());
-                    } else if (checkCastUsage instanceof IsNullNode) {
-                        assert checkCastUsage.usages().count() == 1 && checkCastUsage.usages().first().predecessor() == checkCastNode;
-                        graph.replaceFloating((FloatingNode) checkCastUsage, LogicConstantNode.contradiction(graph));
-                    } else {
-                        Debug.dump(graph, "exception");
-                        assert false : sourceLocation(checkCastUsage) + " has unexpected usage " + checkCastUsage + " of checkcast at " + sourceLocation(checkCastNode);
-                    }
+                    checkCheckCastUsage(graph, newInstance, checkCastNode, checkCastUsage);
                 }
                 FixedNode next = checkCastNode.next();
                 checkCastNode.setNext(null);
                 checkCastNode.replaceAtPredecessor(next);
                 GraphUtil.killCFG(checkCastNode);
             }
+        }
+    }
+
+    private static void checkCheckCastUsage(StructuredGraph graph, Node intrinsifiedNode, Node input, Node usage) {
+        if (usage instanceof ValueAnchorNode) {
+            ValueAnchorNode valueAnchorNode = (ValueAnchorNode) usage;
+            valueAnchorNode.removeAnchoredNode((ValueNode) input);
+            Debug.log("%s: Removed a ValueAnchor input", Debug.contextSnapshot(JavaMethod.class));
+        } else if (usage instanceof UnboxNode) {
+            UnboxNode unbox = (UnboxNode) usage;
+            unbox.replaceAtUsages(intrinsifiedNode);
+            graph.removeFloating(unbox);
+            Debug.log("%s: Removed an UnboxNode", Debug.contextSnapshot(JavaMethod.class));
+        } else if (usage instanceof MethodCallTargetNode) {
+            MethodCallTargetNode checkCastCallTarget = (MethodCallTargetNode) usage;
+            assert checkCastCallTarget.targetMethod().getAnnotation(NodeIntrinsic.class) != null : "checkcast at " + sourceLocation(input) +
+                            " not used by an unboxing method or node intrinsic, but by a call at " + sourceLocation(checkCastCallTarget.usages().first()) + " to " + checkCastCallTarget.targetMethod();
+            usage.replaceFirstInput(input, intrinsifiedNode);
+            Debug.log("%s: Checkcast used in an other node intrinsic", Debug.contextSnapshot(JavaMethod.class));
+        } else if (usage instanceof FrameState) {
+            usage.replaceFirstInput(input, null);
+            Debug.log("%s: Checkcast used in a FS", Debug.contextSnapshot(JavaMethod.class));
+        } else if (usage instanceof ReturnNode && ((ValueNode) intrinsifiedNode).stamp() == StampFactory.forNodeIntrinsic()) {
+            usage.replaceFirstInput(input, intrinsifiedNode);
+            Debug.log("%s: Checkcast used in a return with forNodeIntrinsic stamp", Debug.contextSnapshot(JavaMethod.class));
+        } else if (usage instanceof IsNullNode) {
+            if (!usage.usages().isEmpty()) {
+                assert usage.usages().count() == 1 && usage.usages().first().predecessor() == input : usage + " " + input;
+                graph.replaceFloating((FloatingNode) usage, LogicConstantNode.contradiction(graph));
+                Debug.log("%s: Replaced IsNull with false", Debug.contextSnapshot(JavaMethod.class));
+            } else {
+                // Removed as usage of a GuardingPiNode
+            }
+        } else if (usage instanceof ProxyNode) {
+            ProxyNode proxy = (ProxyNode) usage;
+            assert proxy.type() == PhiType.Value;
+            ProxyNode newProxy = graph.unique(new ProxyNode((ValueNode) intrinsifiedNode, proxy.proxyPoint(), PhiType.Value, proxy.getIdentity()));
+            for (Node proxyUsage : usage.usages().snapshot()) {
+                checkCheckCastUsage(graph, newProxy, proxy, proxyUsage);
+            }
+        } else if (usage instanceof PiNode) {
+            for (Node piUsage : usage.usages().snapshot()) {
+                checkCheckCastUsage(graph, intrinsifiedNode, usage, piUsage);
+            }
+        } else if (usage instanceof GuardingPiNode) {
+            GuardingPiNode pi = (GuardingPiNode) usage;
+            for (Node piUsage : pi.usages().snapshot()) {
+                checkCheckCastUsage(graph, intrinsifiedNode, usage, piUsage);
+            }
+            graph.removeFixed(pi);
+        } else {
+            DebugScope.dump(graph, "exception");
+            assert false : sourceLocation(usage) + " has unexpected usage " + usage + " of checkcast " + input + " at " + sourceLocation(input);
         }
     }
 }

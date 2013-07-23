@@ -22,9 +22,12 @@
  */
 package com.oracle.graal.replacements;
 
+import static com.oracle.graal.phases.GraalOptions.*;
+
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.phases.*;
 
 /**
  * Method substitutions that are VM-independent.
@@ -32,12 +35,13 @@ import com.oracle.graal.phases.*;
 @ServiceProvider(ReplacementsProvider.class)
 public class GraalMethodSubstitutions implements ReplacementsProvider {
 
-    public void registerReplacements(Replacements replacements) {
+    public void registerReplacements(MetaAccessProvider runtime, Replacements replacements, TargetDescription target) {
         for (Class<?> clazz : BoxingSubstitutions.getClasses()) {
             replacements.registerSubstitutions(clazz);
         }
 
-        if (GraalOptions.Intrinsify) {
+        if (Intrinsify.getValue()) {
+            replacements.registerSubstitutions(ArraySubstitutions.class);
             replacements.registerSubstitutions(MathSubstitutionsX86.class);
             replacements.registerSubstitutions(DoubleSubstitutions.class);
             replacements.registerSubstitutions(FloatSubstitutions.class);

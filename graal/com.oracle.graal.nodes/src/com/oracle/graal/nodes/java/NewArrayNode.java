@@ -23,27 +23,18 @@
 package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.virtual.*;
 
 /**
- * The {@code NewArrayNode} is used for all 1-dimensional array allocations.
+ * The {@code NewArrayNode} is used for all array allocations where the element type is know at
+ * compile time.
  */
-public class NewArrayNode extends FixedWithNextNode implements Canonicalizable, Lowerable, VirtualizableAllocation, ArrayLengthProvider, Node.IterableNodeType {
+public class NewArrayNode extends AbstractNewArrayNode implements VirtualizableAllocation {
 
-    @Input private ValueNode length;
     private final ResolvedJavaType elementType;
-    private final boolean fillContents;
-
-    private final boolean locked;
-
-    @Override
-    public ValueNode length() {
-        return length;
-    }
 
     /**
      * Constructs a new NewArrayNode.
@@ -52,36 +43,10 @@ public class NewArrayNode extends FixedWithNextNode implements Canonicalizable, 
      *            the array itself).
      * @param length the node that produces the length for this allocation.
      * @param fillContents determines whether the array elements should be initialized to zero/null.
-     * @param locked determines whether the array should be locked immediately.
      */
-    public NewArrayNode(ResolvedJavaType elementType, ValueNode length, boolean fillContents, boolean locked) {
-        super(StampFactory.exactNonNull(elementType.getArrayClass()));
-        this.length = length;
+    public NewArrayNode(ResolvedJavaType elementType, ValueNode length, boolean fillContents) {
+        super(StampFactory.exactNonNull(elementType.getArrayClass()), length, fillContents);
         this.elementType = elementType;
-        this.fillContents = fillContents;
-        this.locked = locked;
-    }
-
-    /**
-     * @return <code>true</code> if the elements of the array will be initialized.
-     */
-    public boolean fillContents() {
-        return fillContents;
-    }
-
-    /**
-     * @return <code>true</code> if the array will be locked immediately.
-     */
-    public boolean locked() {
-        return locked;
-    }
-
-    /**
-     * The list of node which produce input for this instruction.
-     */
-    public ValueNode dimension(int index) {
-        assert index == 0;
-        return length();
     }
 
     /**
@@ -91,27 +56,6 @@ public class NewArrayNode extends FixedWithNextNode implements Canonicalizable, 
      */
     public ResolvedJavaType elementType() {
         return elementType;
-    }
-
-    /**
-     * The rank of the array allocated by this node, i.e. how many array dimensions.
-     */
-    public int dimensionCount() {
-        return 1;
-    }
-
-    @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
-        if (usages().isEmpty() && length.integerStamp().isPositive()) {
-            return null;
-        } else {
-            return this;
-        }
-    }
-
-    @Override
-    public void lower(LoweringTool tool) {
-        tool.getRuntime().lower(this, tool);
     }
 
     @Override
@@ -125,7 +69,7 @@ public class NewArrayNode extends FixedWithNextNode implements Canonicalizable, 
                     state[i] = defaultForKind;
                 }
                 VirtualObjectNode virtualObject = new VirtualArrayNode(elementType, constantLength);
-                tool.createVirtualObject(virtualObject, state, 0);
+                tool.createVirtualObject(virtualObject, state, null);
                 tool.replaceWithVirtual(virtualObject);
             }
         }

@@ -22,20 +22,18 @@
  */
 package com.oracle.graal.nodes.extended;
 
-import java.util.*;
-
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.type.*;
 
-public abstract class FloatingAccessNode extends FloatingNode implements Access {
+public abstract class FloatingAccessNode extends FloatingGuardedNode implements Access {
 
     @Input private ValueNode object;
     @Input private LocationNode location;
     @Input private FrameState deoptState;
     private boolean nullCheck;
+    private WriteBarrierType barrierType;
+    private boolean compressible;
 
     public ValueNode object() {
         return object;
@@ -63,20 +61,16 @@ public abstract class FloatingAccessNode extends FloatingNode implements Access 
         this.location = location;
     }
 
-    public FloatingAccessNode(ValueNode object, LocationNode location, Stamp stamp, ValueNode... dependencies) {
-        super(stamp, dependencies);
+    public FloatingAccessNode(ValueNode object, LocationNode location, Stamp stamp, GuardingNode guard, WriteBarrierType barrierType, boolean compressible) {
+        super(stamp, guard);
         this.object = object;
         this.location = location;
-    }
-
-    public FloatingAccessNode(ValueNode object, LocationNode location, Stamp stamp, List<ValueNode> dependencies) {
-        super(stamp, dependencies);
-        this.object = object;
-        this.location = location;
+        this.barrierType = barrierType;
+        this.compressible = compressible;
     }
 
     @Override
-    public Node asNode() {
+    public FloatingAccessNode asNode() {
         return this;
     }
 
@@ -102,8 +96,13 @@ public abstract class FloatingAccessNode extends FloatingNode implements Access 
     }
 
     @Override
-    public boolean isCallSiteDeoptimization() {
-        return false;
+    public WriteBarrierType getWriteBarrierType() {
+        return barrierType;
+    }
+
+    @Override
+    public boolean compressible() {
+        return compressible;
     }
 
     public abstract Access asFixedNode();

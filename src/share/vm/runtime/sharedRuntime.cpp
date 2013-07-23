@@ -83,7 +83,6 @@
 #endif
 
 // Shared stub locations
-RuntimeStub*        SharedRuntime::_deoptimized_installed_code_blob;
 RuntimeStub*        SharedRuntime::_wrong_method_blob;
 RuntimeStub*        SharedRuntime::_ic_miss_blob;
 RuntimeStub*        SharedRuntime::_resolve_opt_virtual_call_blob;
@@ -102,7 +101,6 @@ UncommonTrapBlob*   SharedRuntime::_uncommon_trap_blob;
 
 //----------------------------generate_stubs-----------------------------------
 void SharedRuntime::generate_stubs() {
-  _deoptimized_installed_code_blob     = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_deoptimized_installed_code), "deoptimized_installed_code");
   _wrong_method_blob                   = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method),         "wrong_method_stub");
   _ic_miss_blob                        = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::handle_wrong_method_ic_miss), "ic_miss_stub");
   _resolve_opt_virtual_call_blob       = generate_resolve_blob(CAST_FROM_FN_PTR(address, SharedRuntime::resolve_opt_virtual_call_C),  "resolve_opt_virtual_call");
@@ -484,6 +482,12 @@ address SharedRuntime::raw_exception_handler_for_return_address(JavaThread* thre
   // Reset method handle flag.
   thread->set_is_method_handle_return(false);
 
+#ifdef GRAAL
+  // Graal's ExceptionHandlerStub expects the thread local exception PC to be clear
+  // and other exception handler continuations do not read it
+  thread->set_exception_pc(NULL);
+#endif
+
   // The fastest case first
   CodeBlob* blob = CodeCache::find_blob(return_address);
   nmethod* nm = (blob != NULL) ? blob->as_nmethod_or_null() : NULL;
@@ -746,6 +750,11 @@ JRT_ENTRY(void, SharedRuntime::throw_IncompatibleClassChangeError(JavaThread* th
   throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_IncompatibleClassChangeError(), "vtable stub");
 JRT_END
 
+JRT_ENTRY(void, SharedRuntime::throw_InvalidInstalledCodeException(JavaThread* thread))
+  // These errors occur only at call sites
+  throw_and_post_jvmti_exception(thread, vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException());
+JRT_END
+
 JRT_ENTRY(void, SharedRuntime::throw_ArithmeticException(JavaThread* thread))
   throw_and_post_jvmti_exception(thread, vmSymbols::java_lang_ArithmeticException(), "/ by zero");
 JRT_END
@@ -775,7 +784,7 @@ JRT_END
 #ifdef GRAAL
 address SharedRuntime::deoptimize_for_implicit_exception(JavaThread* thread, address pc, nmethod* nm, int deopt_reason) {
   assert(deopt_reason > Deoptimization::Reason_none && deopt_reason < Deoptimization::Reason_LIMIT, "invalid deopt reason");
-  thread->_ScratchA = (intptr_t)pc;
+  thread->set_graal_implicit_exception_pc(pc);
   thread->set_pending_deoptimization(Deoptimization::make_trap_request((Deoptimization::DeoptReason)deopt_reason, Deoptimization::Action_reinterpret));
   return (SharedRuntime::deopt_blob()->implicit_exception_uncommon_trap());
 }
@@ -931,24 +940,28 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 }
 
 
-JNI_ENTRY(void, throw_unsatisfied_link_error(JNIEnv* env, ...))
+/**
+ * Throws an java/lang/UnsatisfiedLinkError.  The address of this method is
+ * installed in the native function entry of all native Java methods before
+ * they get linked to their actual native methods.
+ *
+ * \note
+ * This method actually never gets called!  The reason is because
+ * the interpreter's native entries call NativeLookup::lookup() which
+ * throws the exception when the lookup fails.  The exception is then
+ * caught and forwarded on the return from NativeLookup::lookup() call
+ * before the call to the native function.  This might change in the future.
+ */
+JNI_ENTRY(void*, throw_unsatisfied_link_error(JNIEnv* env, ...))
 {
-  THROW(vmSymbols::java_lang_UnsatisfiedLinkError());
-}
-JNI_END
-
-JNI_ENTRY(void, throw_unsupported_operation_exception(JNIEnv* env, ...))
-{
-  THROW(vmSymbols::java_lang_UnsupportedOperationException());
+  // We return a bad value here to make sure that the exception is
+  // forwarded before we look at the return value.
+  THROW_(vmSymbols::java_lang_UnsatisfiedLinkError(), (void*)badJNIHandle);
 }
 JNI_END
 
 address SharedRuntime::native_method_throw_unsatisfied_link_error_entry() {
   return CAST_FROM_FN_PTR(address, &throw_unsatisfied_link_error);
-}
-
-address SharedRuntime::native_method_throw_unsupported_operation_exception_entry() {
-  return CAST_FROM_FN_PTR(address, &throw_unsupported_operation_exception);
 }
 
 
@@ -1352,12 +1365,6 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method_ic_miss(JavaThread* 
   return callee_method->verified_code_entry();
 JRT_END
 
-// Installed code has been deoptimized
-JRT_BLOCK_ENTRY(address, SharedRuntime::handle_deoptimized_installed_code(JavaThread* thread))
-  JavaThread* THREAD = thread;
-  ThreadInVMfromJava tiv(THREAD);
-  THROW_(vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
-JRT_END
 
 // Handle call site that has been made non-entrant
 JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method(JavaThread* thread))
@@ -1374,12 +1381,6 @@ JRT_BLOCK_ENTRY(address, SharedRuntime::handle_wrong_method(JavaThread* thread))
   frame stub_frame = thread->last_frame();
   assert(stub_frame.is_runtime_frame(), "sanity check");
   frame caller_frame = stub_frame.sender(&reg_map);
-
-  // MethodHandle invokes don't have a CompiledIC and should always
-  // simply redispatch to the callee_target.
-  address   sender_pc = caller_frame.pc();
-  CodeBlob* sender_cb = caller_frame.cb();
-  nmethod*  sender_nm = sender_cb->as_nmethod_or_null();
 
   if (caller_frame.is_interpreted_frame() ||
       caller_frame.is_entry_frame()) {
@@ -2787,7 +2788,7 @@ VMReg SharedRuntime::name_for_receiver() {
   return regs.first();
 }
 
-VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, int* arg_size) {
+VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, bool has_appendix, int* arg_size) {
   // This method is returning a data structure allocating as a
   // ResourceObject, so do not put any ResourceMarks in here.
   char *s = sig->as_C_string();
@@ -2831,6 +2832,11 @@ VMRegPair *SharedRuntime::find_callee_arguments(Symbol* sig, bool has_receiver, 
     default : ShouldNotReachHere();
     }
   }
+
+  if (has_appendix) {
+    sig_bt[cnt++] = T_OBJECT;
+  }
+
   assert( cnt < 256, "grow table size" );
 
   int comp_args_on_stack;

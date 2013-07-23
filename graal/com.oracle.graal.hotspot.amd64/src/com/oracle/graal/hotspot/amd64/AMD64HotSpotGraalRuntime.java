@@ -30,26 +30,35 @@ import com.oracle.graal.hotspot.meta.*;
 /**
  * AMD64 specific implementation of {@link HotSpotGraalRuntime}.
  */
-final class AMD64HotSpotGraalRuntime extends HotSpotGraalRuntime {
+public class AMD64HotSpotGraalRuntime extends HotSpotGraalRuntime {
 
-    private AMD64HotSpotGraalRuntime() {
+    protected AMD64HotSpotGraalRuntime() {
     }
 
     /**
      * Called from C++ code to retrieve the singleton instance, creating it first if necessary.
      */
     public static HotSpotGraalRuntime makeInstance() {
-        if (getInstance() == null) {
-            setInstance(new AMD64HotSpotGraalRuntime());
+        if (graalRuntime() == null) {
+            HotSpotGraalRuntimeFactory factory = findFactory("AMD64");
+            if (factory != null) {
+                setInstance(factory.createRuntime());
+            } else {
+                setInstance(new AMD64HotSpotGraalRuntime());
+            }
         }
-        return getInstance();
+        return graalRuntime();
+    }
+
+    protected Architecture createArchitecture() {
+        return new AMD64(config.useSSE, config.useAVX);
     }
 
     @Override
     protected TargetDescription createTarget() {
         final int stackFrameAlignment = 16;
         final int implicitNullCheckLimit = 4096;
-        return new TargetDescription(new AMD64(), true, stackFrameAlignment, implicitNullCheckLimit, true);
+        return new TargetDescription(createArchitecture(), true, stackFrameAlignment, implicitNullCheckLimit, true);
     }
 
     @Override

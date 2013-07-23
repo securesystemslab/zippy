@@ -22,9 +22,7 @@
  */
 package com.oracle.graal.compiler.test;
 
-import junit.framework.Assert;
-
-import org.junit.Test;
+import org.junit.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -32,7 +30,10 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 
 public class PushNodesThroughPiTest extends GraalCompilerTest {
 
@@ -63,17 +64,24 @@ public class PushNodesThroughPiTest extends GraalCompilerTest {
             public void run() {
                 StructuredGraph graph = compileTestSnippet(snippet);
 
+                int counter = 0;
                 for (ReadNode rn : graph.getNodes().filter(ReadNode.class)) {
-                    Object locId = rn.location().locationIdentity();
-                    if (locId instanceof ResolvedJavaField) {
-                        ResolvedJavaField field = (ResolvedJavaField) locId;
-                        if (field.getName().equals("x")) {
-                            Assert.assertTrue(rn.object() instanceof LocalNode);
-                        } else {
-                            Assert.assertTrue(rn.object() instanceof UnsafeCastNode);
+                    if (rn.location() instanceof ConstantLocationNode && rn.object().stamp() instanceof ObjectStamp) {
+                        long disp = ((ConstantLocationNode) rn.location()).getDisplacement();
+                        ResolvedJavaType receiverType = rn.object().objectStamp().type();
+                        ResolvedJavaField field = receiverType.findInstanceFieldWithOffset(disp);
+
+                        if (field != null) {
+                            if (field.getName().equals("x")) {
+                                Assert.assertTrue(rn.object() instanceof LocalNode);
+                            } else {
+                                Assert.assertTrue(rn.object().toString(), rn.object() instanceof PiNode);
+                            }
+                            counter++;
                         }
                     }
                 }
+                Assert.assertEquals(2, counter);
 
                 Assert.assertTrue(graph.getNodes().filter(IsNullNode.class).count() == 1);
             }
@@ -82,10 +90,12 @@ public class PushNodesThroughPiTest extends GraalCompilerTest {
 
     private StructuredGraph compileTestSnippet(final String snippet) {
         StructuredGraph graph = parse(snippet);
-        new LoweringPhase(null, runtime(), replacements, new Assumptions(false)).apply(graph);
-        new CanonicalizerPhase.Instance(runtime(), null).apply(graph);
+        HighTierContext context = new HighTierContext(runtime(), new Assumptions(false), replacements);
+        CanonicalizerPhase canonicalizer = new CanonicalizerPhase(true);
+        new LoweringPhase(LoweringType.BEFORE_GUARDS).apply(graph, context);
+        canonicalizer.apply(graph, context);
         new PushThroughPiPhase().apply(graph);
-        new CanonicalizerPhase.Instance(runtime(), null).apply(graph);
+        canonicalizer.apply(graph, context);
 
         return graph;
     }

@@ -22,6 +22,9 @@
  */
 package com.oracle.graal.printer;
 
+import static com.oracle.graal.compiler.GraalDebugConfig.*;
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import java.io.*;
 import java.net.*;
 import java.nio.channels.*;
@@ -32,7 +35,6 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.schedule.*;
 
 /**
@@ -44,6 +46,7 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
 
     private GraphPrinter printer;
     private List<String> previousInlineContext;
+    private int[] dumpIds = {};
     private int failuresCount;
 
     /**
@@ -59,12 +62,20 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
                 return;
             }
             previousInlineContext.clear();
-            if (GraalOptions.PrintIdealGraphFile) {
+            if (PrintIdealGraphFile.getValue()) {
                 initializeFilePrinter();
             } else {
                 initializeNetworkPrinter();
             }
         }
+    }
+
+    private int nextDumpId() {
+        int depth = previousInlineContext.size();
+        if (dumpIds.length < depth) {
+            dumpIds = Arrays.copyOf(dumpIds, depth);
+        }
+        return dumpIds[depth - 1]++;
     }
 
     // This field must be lazily initialized as this class may be loaded in a version
@@ -74,7 +85,7 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
 
     private void initializeFilePrinter() {
         String ext;
-        if (GraalOptions.PrintBinaryGraphs) {
+        if (PrintBinaryGraphs.getValue()) {
             ext = ".bgv";
         } else {
             ext = ".gv.xml";
@@ -90,7 +101,7 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
             num = "-" + Integer.toString(++i);
         }
         try {
-            if (GraalOptions.PrintBinaryGraphs) {
+            if (PrintBinaryGraphs.getValue()) {
                 printer = new BinaryGraphPrinter(FileChannel.open(file.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW));
             } else {
                 printer = new IdealGraphPrinter(new FileOutputStream(file));
@@ -104,10 +115,10 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
     }
 
     private void initializeNetworkPrinter() {
-        String host = GraalOptions.PrintIdealGraphAddress;
-        int port = GraalOptions.PrintBinaryGraphs ? GraalOptions.PrintBinaryGraphPort : GraalOptions.PrintIdealGraphPort;
+        String host = PrintIdealGraphAddress.getValue();
+        int port = PrintBinaryGraphs.getValue() ? PrintBinaryGraphPort.getValue() : PrintIdealGraphPort.getValue();
         try {
-            if (GraalOptions.PrintBinaryGraphs) {
+            if (PrintBinaryGraphs.getValue()) {
                 printer = new BinaryGraphPrinter(SocketChannel.open(new InetSocketAddress(host, port)));
             } else {
                 IdealGraphPrinter xmlPrinter = new IdealGraphPrinter(new Socket(host, port).getOutputStream());
@@ -140,8 +151,8 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
                 // Check for method scopes that must be closed since the previous dump.
                 for (int i = 0; i < previousInlineContext.size(); ++i) {
                     if (i >= inlineContext.size() || !inlineContext.get(i).equals(previousInlineContext.get(i))) {
-                        for (int j = previousInlineContext.size() - 1; j >= i; --j) {
-                            closeScope();
+                        for (int inlineDepth = previousInlineContext.size() - 1; inlineDepth >= i; --inlineDepth) {
+                            closeScope(inlineDepth);
                         }
                         break;
                     }
@@ -150,8 +161,8 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
                 // Check for method scopes that must be opened since the previous dump.
                 for (int i = 0; i < inlineContext.size(); ++i) {
                     if (i >= previousInlineContext.size() || !inlineContext.get(i).equals(previousInlineContext.get(i))) {
-                        for (int j = i; j < inlineContext.size(); ++j) {
-                            openScope(inlineContext.get(j), j == 0);
+                        for (int inlineDepth = i; inlineDepth < inlineContext.size(); ++inlineDepth) {
+                            openScope(inlineContext.get(inlineDepth), inlineDepth);
                         }
                         break;
                     }
@@ -161,13 +172,13 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
                 previousInlineContext = inlineContext;
 
                 final SchedulePhase predefinedSchedule = getPredefinedSchedule();
-                Debug.sandbox("PrintingGraph", new Runnable() {
+                Debug.sandbox("PrintingGraph", null, new Runnable() {
 
                     @Override
                     public void run() {
                         // Finally, output the graph.
                         try {
-                            printer.print(graph, message, predefinedSchedule);
+                            printer.print(graph, nextDumpId() + ":" + message, predefinedSchedule);
                         } catch (IOException e) {
                             failuresCount++;
                             printer = null;
@@ -180,10 +191,18 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
 
     private static List<String> getInlineContext() {
         List<String> result = new ArrayList<>();
+        Object lastMethodOrGraph = null;
         for (Object o : Debug.context()) {
-            if (o instanceof ResolvedJavaMethod) {
-                ResolvedJavaMethod method = (ResolvedJavaMethod) o;
-                result.add(MetaUtil.format("%H::%n(%p)", method));
+            JavaMethod method = asJavaMethod(o);
+            if (method != null) {
+                if (lastMethodOrGraph == null || asJavaMethod(lastMethodOrGraph) != method) {
+                    result.add(MetaUtil.format("%H::%n(%p)", method));
+                } else {
+                    // This prevents multiple adjacent method context objects for the same method
+                    // from resulting in multiple IGV tree levels. This works on the
+                    // assumption that real inlining debug scopes will have a graph
+                    // context object between the inliner and inlinee context objects.
+                }
             } else if (o instanceof DebugDumpScope) {
                 DebugDumpScope debugDumpScope = (DebugDumpScope) o;
                 if (debugDumpScope.decorator && !result.isEmpty()) {
@@ -191,6 +210,9 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
                 } else {
                     result.add(debugDumpScope.name);
                 }
+            }
+            if (o instanceof JavaMethod || o instanceof Graph) {
+                lastMethodOrGraph = o;
             }
         }
         if (result.isEmpty()) {
@@ -209,8 +231,8 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
         return result;
     }
 
-    private void openScope(String name, boolean showThread) {
-        String prefix = showThread ? Thread.currentThread().getName() + ":" : "";
+    private void openScope(String name, int inlineDepth) {
+        String prefix = inlineDepth == 0 ? Thread.currentThread().getName() + ":" : "";
         try {
             printer.beginGroup(prefix + name, name, Debug.contextLookup(ResolvedJavaMethod.class), -1);
         } catch (IOException e) {
@@ -219,7 +241,8 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
         }
     }
 
-    private void closeScope() {
+    private void closeScope(int inlineDepth) {
+        dumpIds[inlineDepth] = 0;
         try {
             printer.endGroup();
         } catch (IOException e) {
@@ -230,8 +253,8 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
 
     @Override
     public void close() {
-        for (int i = 0; i < previousInlineContext.size(); i++) {
-            closeScope();
+        for (int inlineDepth = 0; inlineDepth < previousInlineContext.size(); inlineDepth++) {
+            closeScope(inlineDepth);
         }
         if (printer != null) {
             printer.close();

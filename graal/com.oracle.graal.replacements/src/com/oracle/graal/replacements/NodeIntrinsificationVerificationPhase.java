@@ -24,38 +24,42 @@ package com.oracle.graal.replacements;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.Node.ConstantNodeParameter;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.phases.*;
-import com.oracle.graal.replacements.Snippet.*;
+import com.oracle.graal.replacements.Snippet.Fold;
 
 /**
  * Checks that a graph contains no calls to {@link NodeIntrinsic} or {@link Fold} methods.
  */
 public class NodeIntrinsificationVerificationPhase extends Phase {
 
-    public static boolean verify(StructuredGraph graph) {
+    public static void verify(StructuredGraph graph) {
         new NodeIntrinsificationVerificationPhase().apply(graph);
-        return true;
     }
 
     @Override
     protected void run(StructuredGraph graph) {
-        for (Invoke i : graph.getInvokes()) {
-            if (i.callTarget() instanceof MethodCallTargetNode) {
-                checkInvoke(i);
-            }
+        for (MethodCallTargetNode n : graph.getNodes(MethodCallTargetNode.class)) {
+            checkInvoke(n);
         }
     }
 
-    private static void checkInvoke(Invoke invoke) {
-        ResolvedJavaMethod target = invoke.methodCallTarget().targetMethod();
-        NodeIntrinsic intrinsic = target.getAnnotation(Node.NodeIntrinsic.class);
-        if (intrinsic != null) {
-            throw new GraalInternalError("Illegal call to node intrinsic in " + invoke.graph() + ": " + invoke);
+    private static void checkInvoke(MethodCallTargetNode n) {
+        ResolvedJavaMethod target = n.targetMethod();
+        if (target.getAnnotation(Node.NodeIntrinsic.class) != null) {
+            error(n, "Intrinsification");
         } else if (target.getAnnotation(Fold.class) != null) {
-            throw new GraalInternalError("Illegal call to foldable method in " + invoke.graph() + ": " + invoke);
+            error(n, "Folding");
         }
+    }
+
+    private static void error(MethodCallTargetNode n, String failedAction) throws GraalInternalError {
+        String context = MetaUtil.format("%H.%n", n.graph().method());
+        String target = n.invoke().callTarget().targetName();
+        throw new GraalInternalError(failedAction + " of call to '" + target + "' in '" + context + "' failed, most likely due to a parameter annotated with @" +
+                        ConstantNodeParameter.class.getSimpleName() + " not being resolvable to a constant during compilation");
     }
 }

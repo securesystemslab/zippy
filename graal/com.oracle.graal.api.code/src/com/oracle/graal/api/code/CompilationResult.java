@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.api.code;
 
+import static java.util.Collections.*;
+
 import java.io.*;
 import java.util.*;
 
@@ -141,6 +143,7 @@ public class CompilationResult implements Serializable {
 
         private static final long serialVersionUID = 5771730331604867476L;
         public final Constant constant;
+        public final byte[] rawConstant;
         public final int alignment;
 
         /**
@@ -148,16 +151,29 @@ public class CompilationResult implements Serializable {
          */
         public final boolean inlined;
 
+        DataPatch(int pcOffset, byte[] data, int alignment) {
+            this(pcOffset, null, data, alignment, false);
+        }
+
         DataPatch(int pcOffset, Constant data, int alignment, boolean inlined) {
+            this(pcOffset, data, null, alignment, inlined);
+        }
+
+        private DataPatch(int pcOffset, Constant data, byte[] rawData, int alignment, boolean inlined) {
             super(pcOffset);
             this.constant = data;
+            this.rawConstant = rawData;
             this.alignment = alignment;
             this.inlined = inlined;
         }
 
         @Override
         public String toString() {
-            return String.format("%d[<data patch referring to data %s>]", pcOffset, constant);
+            if (constant == null) {
+                return String.format("%d[<data patch referring to %d bytes raw data>]", pcOffset, rawConstant.length);
+            } else {
+                return String.format("%d[<data patch referring to data %s>]", pcOffset, constant);
+            }
         }
     }
 
@@ -366,7 +382,21 @@ public class CompilationResult implements Serializable {
      */
     public void recordDataReference(int codePos, Constant data, int alignment, boolean inlined) {
         assert codePos >= 0 && data != null;
-        getDataReferences().add(new DataPatch(codePos, data, alignment, inlined));
+        dataReferences.add(new DataPatch(codePos, data, alignment, inlined));
+    }
+
+    /**
+     * Records a reference to the data section in the code section (e.g. to load an integer or
+     * floating point constant).
+     * 
+     * @param codePos the position in the code where the data reference occurs
+     * @param data a byte array containing the raw data that is referenced
+     * @param alignment the alignment requirement of the data or 0 if there is no alignment
+     *            requirement
+     */
+    public void recordDataReference(int codePos, byte[] data, int alignment) {
+        assert codePos >= 0 && data != null && data.length > 0;
+        dataReferences.add(new DataPatch(codePos, data, alignment));
     }
 
     /**
@@ -390,7 +420,7 @@ public class CompilationResult implements Serializable {
      * @param handlerPos the position of the handler
      */
     public void recordExceptionHandler(int codePos, int handlerPos) {
-        getExceptionHandlers().add(new ExceptionHandler(codePos, handlerPos));
+        exceptionHandlers.add(new ExceptionHandler(codePos, handlerPos));
     }
 
     /**
@@ -405,11 +435,11 @@ public class CompilationResult implements Serializable {
 
     private void addInfopoint(Infopoint infopoint) {
         // The infopoints list must always be sorted
-        if (!getInfopoints().isEmpty() && getInfopoints().get(getInfopoints().size() - 1).pcOffset >= infopoint.pcOffset) {
+        if (!infopoints.isEmpty() && infopoints.get(infopoints.size() - 1).pcOffset >= infopoint.pcOffset) {
             // This re-sorting should be very rare
-            Collections.sort(getInfopoints());
+            Collections.sort(infopoints);
         }
-        getInfopoints().add(infopoint);
+        infopoints.add(infopoint);
     }
 
     /**
@@ -421,7 +451,7 @@ public class CompilationResult implements Serializable {
      */
     public Mark recordMark(int codePos, Object id, Mark[] references) {
         Mark mark = new Mark(codePos, id, references);
-        getMarks().add(mark);
+        marks.add(mark);
         return mark;
     }
 
@@ -490,6 +520,9 @@ public class CompilationResult implements Serializable {
      * @return the code annotations or {@code null} if there are none
      */
     public List<CodeAnnotation> getAnnotations() {
+        if (annotations == null) {
+            return Collections.emptyList();
+        }
         return annotations;
     }
 
@@ -505,6 +538,16 @@ public class CompilationResult implements Serializable {
         if (info != null) {
             appendRefMap(sb, "stackMap", info.getFrameRefMap());
             appendRefMap(sb, "registerMap", info.getRegisterRefMap());
+            RegisterSaveLayout calleeSaveInfo = info.getCalleeSaveInfo();
+            if (calleeSaveInfo != null) {
+                sb.append(" callee-save-info[");
+                String sep = "";
+                for (Map.Entry<Register, Integer> e : calleeSaveInfo.registersToSlots(true).entrySet()) {
+                    sb.append(sep).append(e.getKey()).append("->").append(e.getValue());
+                    sep = ", ";
+                }
+                sb.append(']');
+            }
             BytecodePosition codePos = info.getBytecodePosition();
             if (codePos != null) {
                 MetaUtil.appendLocation(sb.append(" "), codePos.getMethod(), codePos.getBCI());
@@ -528,27 +571,39 @@ public class CompilationResult implements Serializable {
      * @return the list of infopoints, sorted by {@link Site#pcOffset}
      */
     public List<Infopoint> getInfopoints() {
-        return infopoints;
+        if (infopoints.isEmpty()) {
+            return emptyList();
+        }
+        return unmodifiableList(infopoints);
     }
 
     /**
      * @return the list of data references
      */
     public List<DataPatch> getDataReferences() {
-        return dataReferences;
+        if (dataReferences.isEmpty()) {
+            return emptyList();
+        }
+        return unmodifiableList(dataReferences);
     }
 
     /**
      * @return the list of exception handlers
      */
     public List<ExceptionHandler> getExceptionHandlers() {
-        return exceptionHandlers;
+        if (exceptionHandlers.isEmpty()) {
+            return emptyList();
+        }
+        return unmodifiableList(exceptionHandlers);
     }
 
     /**
      * @return the list of marks
      */
     public List<Mark> getMarks() {
-        return marks;
+        if (marks.isEmpty()) {
+            return emptyList();
+        }
+        return unmodifiableList(marks);
     }
 }

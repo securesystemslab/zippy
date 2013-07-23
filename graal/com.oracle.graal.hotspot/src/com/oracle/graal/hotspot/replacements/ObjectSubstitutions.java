@@ -22,11 +22,11 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.hotspot.replacements.HotSpotSnippetUtils.*;
+import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.nodes.extended.UnsafeCastNode.*;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
-import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.word.*;
@@ -40,7 +40,7 @@ public class ObjectSubstitutions {
     @MethodSubstitution(isStatic = false)
     public static Class<?> getClass(final Object thisObj) {
         Word hub = loadHub(thisObj);
-        return unsafeCast(hub.readObject(Word.signed(classMirrorOffset()), LocationNode.FINAL_LOCATION), Class.class, true, true);
+        return unsafeCast(hub.readObject(Word.signed(classMirrorOffset()), LocationIdentity.FINAL_LOCATION), Class.class, true, true);
     }
 
     @MethodSubstitution(isStatic = false)
@@ -53,6 +53,6 @@ public class ObjectSubstitutions {
         RegisterFinalizerNode.register(thisObj);
     }
 
-    @MacroSubstitution(macro = ObjectCloneNode.class, isStatic = false)
+    @MacroSubstitution(macro = ObjectCloneNode.class, isStatic = false, forced = true)
     public static native Object clone(Object obj);
 }

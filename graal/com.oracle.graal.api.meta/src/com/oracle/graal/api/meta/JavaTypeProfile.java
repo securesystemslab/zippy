@@ -22,96 +22,26 @@
  */
 package com.oracle.graal.api.meta;
 
-import java.io.*;
+import java.util.*;
 
-import com.oracle.graal.api.meta.ProfilingInfo.*;
+import com.oracle.graal.api.meta.JavaTypeProfile.ProfiledType;
+import com.oracle.graal.api.meta.ProfilingInfo.TriState;
 
 /**
  * This profile object represents the type profile at a specific BCI. The precision of the supplied
  * values may vary, but a runtime that provides this information should be aware that it will be
  * used to guide performance-critical decisions like speculative inlining, etc.
  */
-public final class JavaTypeProfile implements Serializable {
+public final class JavaTypeProfile extends AbstractJavaProfile<ProfiledType, ResolvedJavaType> {
 
     private static final long serialVersionUID = -6877016333706838441L;
-
-    /**
-     * A profiled type that has a probability. Profiled types are naturally sorted in descending
-     * order of their probabilities.
-     */
-    public static final class ProfiledType implements Comparable<ProfiledType>, Serializable {
-
-        private static final long serialVersionUID = 7838575753661305744L;
-
-        private final ResolvedJavaType type;
-        private final double probability;
-
-        public ProfiledType(ResolvedJavaType type, double probability) {
-            assert type != null;
-            assert probability >= 0.0D && probability <= 1.0D;
-            this.type = type;
-            this.probability = probability;
-        }
-
-        /**
-         * Returns the type for this profile entry.
-         */
-        public ResolvedJavaType getType() {
-            return type;
-        }
-
-        /**
-         * Returns the estimated probability of {@link #getType()}.
-         * 
-         * @return double value >= 0.0 and <= 1.0
-         */
-        public double getProbability() {
-            return probability;
-        }
-
-        @Override
-        public int compareTo(ProfiledType o) {
-            if (getProbability() > o.getProbability()) {
-                return -1;
-            } else if (getProbability() < o.getProbability()) {
-                return 1;
-            }
-            return 0;
-        }
-    }
+    private static final ProfiledType[] EMPTY_ARRAY = new ProfiledType[0];
 
     private final TriState nullSeen;
-    private final double notRecordedProbability;
-    private final ProfiledType[] ptypes;
 
-    /**
-     * Determines if an array of profiled types are sorted in descending order of their
-     * probabilities.
-     */
-    private static boolean isSorted(ProfiledType[] ptypes) {
-        for (int i = 1; i < ptypes.length; i++) {
-            if (ptypes[i - 1].getProbability() < ptypes[i].getProbability()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public JavaTypeProfile(TriState nullSeen, double notRecordedProbability, ProfiledType... ptypes) {
+    public JavaTypeProfile(TriState nullSeen, double notRecordedProbability, ProfiledType[] pitems) {
+        super(notRecordedProbability, pitems);
         this.nullSeen = nullSeen;
-        this.ptypes = ptypes;
-        this.notRecordedProbability = notRecordedProbability;
-        assert isSorted(ptypes);
-    }
-
-    /**
-     * Returns the estimated probability of all types that could not be recorded due to profiling
-     * limitations.
-     * 
-     * @return double value >= 0.0 and <= 1.0
-     */
-    public double getNotRecordedProbability() {
-        return notRecordedProbability;
     }
 
     /**
@@ -127,6 +57,118 @@ public final class JavaTypeProfile implements Serializable {
      * type and a negative type is not.
      */
     public ProfiledType[] getTypes() {
-        return ptypes;
+        return getItems();
+    }
+
+    public JavaTypeProfile restrict(JavaTypeProfile otherProfile) {
+        if (otherProfile.getNotRecordedProbability() > 0.0) {
+            // Not useful for restricting since there is an unknown set of types occurring.
+            return this;
+        }
+
+        if (this.getNotRecordedProbability() > 0.0) {
+            // We are unrestricted, so the other profile is always a better estimate.
+            return otherProfile;
+        }
+
+        ArrayList<ProfiledType> result = new ArrayList<>();
+        for (int i = 0; i < getItems().length; i++) {
+            ProfiledType ptype = getItems()[i];
+            ResolvedJavaType type = ptype.getItem();
+            if (otherProfile.isIncluded(type)) {
+                result.add(ptype);
+            }
+        }
+
+        TriState newNullSeen = (otherProfile.getNullSeen() == TriState.FALSE) ? TriState.FALSE : getNullSeen();
+        double newNotRecorded = getNotRecordedProbability();
+        return createAdjustedProfile(result, newNullSeen, newNotRecorded);
+    }
+
+    public JavaTypeProfile restrict(ResolvedJavaType declaredType, boolean nonNull) {
+        ArrayList<ProfiledType> result = new ArrayList<>();
+        for (int i = 0; i < getItems().length; i++) {
+            ProfiledType ptype = getItems()[i];
+            ResolvedJavaType type = ptype.getItem();
+            if (declaredType.isAssignableFrom(type)) {
+                result.add(ptype);
+            }
+        }
+
+        TriState newNullSeen = (nonNull) ? TriState.FALSE : getNullSeen();
+        double newNotRecorded = this.getNotRecordedProbability();
+        // Assume for the types not recorded, the incompatibility rate is the same.
+        if (getItems().length != 0) {
+            newNotRecorded *= ((double) result.size() / (double) getItems().length);
+        }
+        return createAdjustedProfile(result, newNullSeen, newNotRecorded);
+    }
+
+    private JavaTypeProfile createAdjustedProfile(ArrayList<ProfiledType> result, TriState newNullSeen, double newNotRecorded) {
+        if (result.size() != this.getItems().length || newNotRecorded != getNotRecordedProbability() || newNullSeen != getNullSeen()) {
+            if (result.size() == 0) {
+                return new JavaTypeProfile(newNullSeen, 1.0, EMPTY_ARRAY);
+            }
+            double probabilitySum = 0.0;
+            for (int i = 0; i < result.size(); i++) {
+                probabilitySum += result.get(i).getProbability();
+            }
+            probabilitySum += newNotRecorded;
+
+            double factor = 1.0 / probabilitySum; // Normalize to 1.0
+            assert factor > 1.0;
+            ProfiledType[] newResult = new ProfiledType[result.size()];
+            for (int i = 0; i < newResult.length; ++i) {
+                ProfiledType curType = result.get(i);
+                newResult[i] = new ProfiledType(curType.getItem(), Math.min(1.0, curType.getProbability() * factor));
+            }
+            double newNotRecordedTypeProbability = Math.min(1.0, newNotRecorded * factor);
+            return new JavaTypeProfile(newNullSeen, newNotRecordedTypeProbability, newResult);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return super.equals(other) && nullSeen.equals(((JavaTypeProfile) other).nullSeen);
+    }
+
+    @Override
+    public int hashCode() {
+        return nullSeen.hashCode() + super.hashCode();
+    }
+
+    public static class ProfiledType extends AbstractProfiledItem<ResolvedJavaType> {
+
+        private static final long serialVersionUID = 1481773321889860837L;
+
+        public ProfiledType(ResolvedJavaType item, double probability) {
+            super(item, probability);
+        }
+
+        /**
+         * Returns the type for this profile entry.
+         */
+        public ResolvedJavaType getType() {
+            return getItem();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%.6f#%s", probability, item);
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buf = new StringBuilder("JavaTypeProfile<nullSeen=").append(getNullSeen()).append(", types=[");
+        for (int j = 0; j < getTypes().length; j++) {
+            if (j != 0) {
+                buf.append(", ");
+            }
+            ProfiledType ptype = getTypes()[j];
+            buf.append(String.format("%.6f:%s", ptype.getProbability(), ptype.getType()));
+        }
+        return buf.append(String.format("], notRecorded:%.6f>", getNotRecordedProbability())).toString();
     }
 }

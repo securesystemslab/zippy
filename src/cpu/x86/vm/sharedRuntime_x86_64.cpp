@@ -40,6 +40,9 @@
 #ifdef COMPILER2
 #include "opto/runtime.hpp"
 #endif
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 #define __ masm->
 
@@ -1674,9 +1677,22 @@ static void gen_special_dispatch(MacroAssembler* masm,
   if (iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
     // We are called from compiled code here. The three object arguments
     // are already in the correct registers (j_rarg0, jrarg1, jrarg2). The
-    // fourth argument (j_rarg3) is a raw pointer to the nmethod. Make a tail
-    // call to its verified entry point.
-    __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+    // fourth argument (j_rarg3) is a pointer to the HotSpotInstalledCode object.
+
+    // Load the nmethod pointer from the HotSpotInstalledCode object
+    __ movq(j_rarg4, Address(j_rarg3, sizeof(oopDesc)));
+
+    // Check whether the nmethod was invalidated
+    __ testq(j_rarg4, j_rarg4);
+    Label invalid_nmethod;
+    __ jcc(Assembler::zero, invalid_nmethod);
+
+    // Perform a tail call to the verified entry point of the nmethod.
+    __ jmp(Address(j_rarg4, nmethod::verified_entry_point_offset()));
+
+    __ bind(invalid_nmethod);
+
+    __ jump(RuntimeAddress(StubRoutines::throw_InvalidInstalledCodeException_entry()));
     return;
   }
 #endif
@@ -3357,8 +3373,7 @@ void SharedRuntime::generate_deopt_blob() {
 
 #ifdef GRAAL
   int implicit_exception_uncommon_trap_offset = __ pc() - start;
-  // pc where the exception happened is in ScratchA
-  __ pushptr(Address(r15_thread, in_bytes(JavaThread::ScratchA_offset())));
+  __ pushptr(Address(r15_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset())));
 
   int uncommon_trap_offset = __ pc() - start;
 

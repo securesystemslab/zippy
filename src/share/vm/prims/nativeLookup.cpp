@@ -125,6 +125,7 @@ extern "C" {
   void JNICALL JVM_RegisterWhiteBoxMethods(JNIEnv *env, jclass wbclass);
 #ifdef GRAAL
   jobject JNICALL JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass);
+  jobject JNICALL JVM_InitializeTruffleRuntime(JNIEnv *env, jclass graalclass);
 #endif
 }
 
@@ -142,6 +143,7 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_sun_hotspot_WhiteBox_registerNatives",                 NULL, FN_PTR(JVM_RegisterWhiteBoxMethods)     },
 #ifdef GRAAL
   { CC"Java_com_oracle_graal_api_runtime_Graal_initializeRuntime", NULL, FN_PTR(JVM_InitializeGraalRuntime)      },
+  { CC"Java_com_oracle_truffle_api_Truffle_initializeRuntime",     NULL, FN_PTR(JVM_InitializeTruffleRuntime)    },
 #endif
 };
 
@@ -389,10 +391,7 @@ address NativeLookup::lookup_base(methodHandle method, bool& in_base_library, TR
 
 address NativeLookup::lookup(methodHandle method, bool& in_base_library, TRAPS) {
   if (!method->has_native_function()) {
-    address entry =
-        method->intrinsic_id() == vmIntrinsics::_invokeGeneric ?
-            SharedRuntime::native_method_throw_unsupported_operation_exception_entry() :
-            lookup_base(method, in_base_library, CHECK_NULL);
+    address entry = lookup_base(method, in_base_library, CHECK_NULL);
     method->set_native_function(entry,
       Method::native_bind_event_is_interesting);
     // -verbose:jni printing

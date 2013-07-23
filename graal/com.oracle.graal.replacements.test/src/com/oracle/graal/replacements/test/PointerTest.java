@@ -42,7 +42,7 @@ import com.oracle.graal.word.*;
  */
 public class PointerTest extends GraalCompilerTest implements Snippets {
 
-    private static final Object ID = new Object();
+    private static final LocationIdentity ID = new NamedLocationIdentity("ID");
     private static final Kind[] KINDS = new Kind[]{Kind.Byte, Kind.Char, Kind.Short, Kind.Int, Kind.Long, Kind.Float, Kind.Double, Kind.Object};
     private final TargetDescription target;
     private final ReplacementsImpl installer;
@@ -61,48 +61,48 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
     }
 
     @Test
-    public void test_read1() {
+    public void testRead1() {
         for (Kind kind : KINDS) {
             assertRead(parse("read" + kind.name() + "1"), kind, false, ID);
         }
     }
 
     @Test
-    public void test_read2() {
+    public void testRead2() {
         for (Kind kind : KINDS) {
             assertRead(parse("read" + kind.name() + "2"), kind, true, ID);
         }
     }
 
     @Test
-    public void test_read3() {
+    public void testRead3() {
         for (Kind kind : KINDS) {
-            assertRead(parse("read" + kind.name() + "3"), kind, false, LocationNode.ANY_LOCATION);
+            assertRead(parse("read" + kind.name() + "3"), kind, false, LocationIdentity.ANY_LOCATION);
         }
     }
 
     @Test
-    public void test_write1() {
+    public void testWrite1() {
         for (Kind kind : KINDS) {
             assertWrite(parse("write" + kind.name() + "1"), kind, false, ID);
         }
     }
 
     @Test
-    public void test_write2() {
+    public void testWrite2() {
         for (Kind kind : KINDS) {
             assertWrite(parse("write" + kind.name() + "2"), kind, true, ID);
         }
     }
 
     @Test
-    public void test_write3() {
+    public void testWrite3() {
         for (Kind kind : KINDS) {
-            assertWrite(parse("write" + kind.name() + "3"), kind, false, LocationNode.ANY_LOCATION);
+            assertWrite(parse("write" + kind.name() + "3"), kind, false, LocationIdentity.ANY_LOCATION);
         }
     }
 
-    private void assertRead(StructuredGraph graph, Kind kind, boolean indexConvert, Object locationIdentity) {
+    private void assertRead(StructuredGraph graph, Kind kind, boolean indexConvert, LocationIdentity locationIdentity) {
         ReadNode read = (ReadNode) graph.start().next();
         Assert.assertEquals(kind.getStackKind(), read.kind());
 
@@ -112,22 +112,22 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
 
         IndexedLocationNode location = (IndexedLocationNode) read.location();
         Assert.assertEquals(kind, location.getValueKind());
-        Assert.assertEquals(locationIdentity, location.locationIdentity());
-        Assert.assertEquals(1, location.indexScaling());
+        Assert.assertEquals(locationIdentity, location.getLocationIdentity());
+        Assert.assertEquals(1, location.getIndexScaling());
 
         if (indexConvert) {
-            ConvertNode convert = (ConvertNode) location.index();
+            ConvertNode convert = (ConvertNode) location.getIndex();
             Assert.assertEquals(ConvertNode.Op.I2L, convert.opcode);
             Assert.assertEquals(graph.getLocal(1), convert.value());
         } else {
-            Assert.assertEquals(graph.getLocal(1), location.index());
+            Assert.assertEquals(graph.getLocal(1), location.getIndex());
         }
 
         ReturnNode ret = (ReturnNode) read.next();
         Assert.assertEquals(read, ret.result());
     }
 
-    private void assertWrite(StructuredGraph graph, Kind kind, boolean indexConvert, Object locationIdentity) {
+    private void assertWrite(StructuredGraph graph, Kind kind, boolean indexConvert, LocationIdentity locationIdentity) {
         WriteNode write = (WriteNode) graph.start().next();
         Assert.assertEquals(graph.getLocal(2), write.value());
         Assert.assertEquals(Kind.Void, write.kind());
@@ -139,15 +139,15 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
 
         IndexedLocationNode location = (IndexedLocationNode) write.location();
         Assert.assertEquals(kind, location.getValueKind());
-        Assert.assertEquals(locationIdentity, location.locationIdentity());
-        Assert.assertEquals(1, location.indexScaling());
+        Assert.assertEquals(locationIdentity, location.getLocationIdentity());
+        Assert.assertEquals(1, location.getIndexScaling());
 
         if (indexConvert) {
-            ConvertNode convert = (ConvertNode) location.index();
+            ConvertNode convert = (ConvertNode) location.getIndex();
             Assert.assertEquals(ConvertNode.Op.I2L, convert.opcode);
             Assert.assertEquals(graph.getLocal(1), convert.value());
         } else {
-            Assert.assertEquals(graph.getLocal(1), location.index());
+            Assert.assertEquals(graph.getLocal(1), location.getIndex());
         }
 
         AbstractStateSplit stateSplit = (AbstractStateSplit) write.next();

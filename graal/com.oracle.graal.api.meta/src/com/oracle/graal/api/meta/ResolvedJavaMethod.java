@@ -24,7 +24,6 @@ package com.oracle.graal.api.meta;
 
 import java.lang.annotation.*;
 import java.lang.reflect.*;
-import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -57,13 +56,6 @@ public interface ResolvedJavaMethod extends JavaMethod, InvokeTarget {
     int getCompiledCodeSize();
 
     /**
-     * Returns an estimate how complex it is to compile this method.
-     * 
-     * @return A value >= 0, where higher means more complex.
-     */
-    int getCompilationComplexity();
-
-    /**
      * Returns the {@link ResolvedJavaType} object representing the class or interface that declares
      * this method.
      */
@@ -86,6 +78,12 @@ public interface ResolvedJavaMethod extends JavaMethod, InvokeTarget {
      * be included in the returned mask.
      */
     int getModifiers();
+
+    /**
+     * Determines if this method is a synthetic method as defined by the Java Language
+     * Specification.
+     */
+    boolean isSynthetic();
 
     /**
      * Checks whether this method is a class initializer.
@@ -202,4 +200,18 @@ public interface ResolvedJavaMethod extends JavaMethod, InvokeTarget {
      * @return The newly created and initialized object.
      */
     Constant newInstance(Constant[] arguments);
+
+    /**
+     * Gets the encoding of (that is, a constant representing the value of) this method.
+     * 
+     * @return a constant representing a reference to this method
+     */
+    Constant getEncoding();
+
+    /**
+     * Checks if this method is present in the virtual table.
+     * 
+     * @return true is this method is present in the virtual table
+     */
+    boolean isInVirtualMethodTable();
 }

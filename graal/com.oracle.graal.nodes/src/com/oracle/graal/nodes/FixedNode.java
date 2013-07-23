@@ -22,38 +22,12 @@
  */
 package com.oracle.graal.nodes;
 
-import java.util.*;
-
 import com.oracle.graal.nodes.type.*;
 
 public abstract class FixedNode extends ValueNode {
 
-    private double probability;
-
     public FixedNode(Stamp stamp) {
         super(stamp);
-    }
-
-    public FixedNode(Stamp stamp, List<ValueNode> dependencies) {
-        super(stamp, dependencies);
-    }
-
-    public FixedNode(Stamp stamp, ValueNode... dependencies) {
-        super(stamp, dependencies);
-    }
-
-    public double probability() {
-        return probability;
-    }
-
-    public void setProbability(double probability) {
-        assert probability >= 0 : String.format("Invalid argument %f, because the probability of a node must not be negative.", probability);
-        this.probability = probability;
-        assert !Double.isNaN(probability);
-    }
-
-    protected void copyInto(FixedNode newNode) {
-        newNode.setProbability(probability);
     }
 
     @Override

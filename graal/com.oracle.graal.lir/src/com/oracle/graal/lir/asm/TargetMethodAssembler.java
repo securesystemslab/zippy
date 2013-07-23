@@ -27,11 +27,13 @@ import static com.oracle.graal.api.code.ValueUtil.*;
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.code.CompilationResult.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.nodes.*;
 
 public class TargetMethodAssembler {
 
@@ -87,7 +89,7 @@ public class TargetMethodAssembler {
         compilationResult.addAnnotation(new CompilationResult.CodeComment(asm.codeBuffer.position(), s));
     }
 
-    public CompilationResult finishTargetMethod(Object name, boolean isStub) {
+    public CompilationResult finishTargetMethod(StructuredGraph graph) {
         // Install code, data and frame size
         compilationResult.setTargetCode(asm.codeBuffer.close(false), asm.codeBuffer.position());
 
@@ -99,12 +101,24 @@ public class TargetMethodAssembler {
             }
         }
 
-        Debug.metric("TargetMethods").increment();
-        Debug.metric("CodeBytesEmitted").add(compilationResult.getTargetCodeSize());
-        Debug.metric("SafepointsEmitted").add(compilationResult.getInfopoints().size());
-        Debug.metric("DataPatches").add(compilationResult.getDataReferences().size());
-        Debug.metric("ExceptionHandlersEmitted").add(compilationResult.getExceptionHandlers().size());
-        Debug.log("Finished target method %s, isStub %b", name, isStub);
+        if (Debug.isMeterEnabled()) {
+            List<DataPatch> ldp = compilationResult.getDataReferences();
+            DebugMetric[] dms = new DebugMetric[Kind.values().length];
+            for (int i = 0; i < dms.length; i++) {
+                dms[i] = Debug.metric("DataPatches-" + Kind.values()[i].toString());
+            }
+
+            for (DataPatch dp : ldp) {
+                dms[dp.constant.getKind().ordinal()].add(1);
+            }
+
+            Debug.metric("TargetMethods").increment();
+            Debug.metric("CodeBytesEmitted").add(compilationResult.getTargetCodeSize());
+            Debug.metric("InfopointsEmitted").add(compilationResult.getInfopoints().size());
+            Debug.metric("DataPatches").add(ldp.size());
+            Debug.metric("ExceptionHandlersEmitted").add(compilationResult.getExceptionHandlers().size());
+        }
+        Debug.log("Finished compiling %s", graph);
         return compilationResult;
     }
 
@@ -148,6 +162,14 @@ public class TargetMethodAssembler {
         int pos = asm.codeBuffer.position();
         Debug.log("Data reference in code: pos = %d, data = %s", pos, data.toString());
         compilationResult.recordDataReference(pos, data, alignment, inlined);
+        return asm.getPlaceholder();
+    }
+
+    public AbstractAddress recordDataReferenceInCode(byte[] data, int alignment) {
+        assert data != null;
+        int pos = asm.codeBuffer.position();
+        Debug.log("Raw data reference in code: pos = %d, data = %s", pos, data.toString());
+        compilationResult.recordDataReference(pos, data, alignment);
         return asm.getPlaceholder();
     }
 
@@ -197,7 +219,7 @@ public class TargetMethodAssembler {
     }
 
     /**
-     * Returns the address of a float constant that is embedded as a data references into the code.
+     * Returns the address of a float constant that is embedded as a data reference into the code.
      */
     public AbstractAddress asFloatConstRef(Value value) {
         return asFloatConstRef(value, 4);
@@ -209,7 +231,7 @@ public class TargetMethodAssembler {
     }
 
     /**
-     * Returns the address of a double constant that is embedded as a data references into the code.
+     * Returns the address of a double constant that is embedded as a data reference into the code.
      */
     public AbstractAddress asDoubleConstRef(Value value) {
         return asDoubleConstRef(value, 8);
@@ -221,10 +243,18 @@ public class TargetMethodAssembler {
     }
 
     /**
-     * Returns the address of a long constant that is embedded as a data references into the code.
+     * Returns the address of a long constant that is embedded as a data reference into the code.
      */
     public AbstractAddress asLongConstRef(Value value) {
         assert value.getKind() == Kind.Long && isConstant(value);
+        return recordDataReferenceInCode((Constant) value, 8, false);
+    }
+
+    /**
+     * Returns the address of an object constant that is embedded as a data reference into the code.
+     */
+    public AbstractAddress asObjectConstRef(Value value) {
+        assert value.getKind() == Kind.Object && isConstant(value);
         return recordDataReferenceInCode((Constant) value, 8, false);
     }
 

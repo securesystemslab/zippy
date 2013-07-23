@@ -55,7 +55,6 @@ class SharedRuntime: AllStatic {
 
   // Shared stub locations
 
-  static RuntimeStub*        _deoptimized_installed_code_blob;
   static RuntimeStub*        _wrong_method_blob;
   static RuntimeStub*        _ic_miss_blob;
   static RuntimeStub*        _resolve_opt_virtual_call_blob;
@@ -186,6 +185,7 @@ class SharedRuntime: AllStatic {
   };
   static void    throw_AbstractMethodError(JavaThread* thread);
   static void    throw_IncompatibleClassChangeError(JavaThread* thread);
+  static void    throw_InvalidInstalledCodeException(JavaThread* thread);
   static void    throw_ArithmeticException(JavaThread* thread);
   static void    throw_NullPointerException(JavaThread* thread);
   static void    throw_NullPointerException_at_call(JavaThread* thread);
@@ -208,11 +208,6 @@ class SharedRuntime: AllStatic {
   static address get_handle_wrong_method_stub() {
     assert(_wrong_method_blob!= NULL, "oops");
     return _wrong_method_blob->entry_point();
-  }
-
-  static address get_deoptimized_installed_code_stub() {
-    assert(_deoptimized_installed_code_blob!= NULL, "oops");
-    return _deoptimized_installed_code_blob->entry_point();
   }
 
 #ifdef COMPILER2
@@ -419,7 +414,7 @@ class SharedRuntime: AllStatic {
 
   // Convert a sig into a calling convention register layout
   // and find interesting things about it.
-  static VMRegPair* find_callee_arguments(Symbol* sig, bool has_receiver, int *arg_size);
+  static VMRegPair* find_callee_arguments(Symbol* sig, bool has_receiver, bool has_appendix, int *arg_size);
   static VMReg     name_for_receiver();
 
   // "Top of Stack" slots that may be unused by the calling convention but must
@@ -491,9 +486,6 @@ class SharedRuntime: AllStatic {
   // wrong method handling (inline cache misses, zombie methods)
   static address handle_wrong_method(JavaThread* thread);
   static address handle_wrong_method_ic_miss(JavaThread* thread);
-
-  // handle deoptimized installed code
-  static address handle_deoptimized_installed_code(JavaThread* thread);
 
 #ifndef PRODUCT
 

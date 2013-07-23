@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,11 +48,11 @@ void InvocationCounter::set_carry() {
   // executed many more times before re-entering the VM.
   int old_count = count();
   int new_count;
-  if (CompilationPolicyChoice == 4) {
+#ifdef GRAALVM
     new_count = 1;
-  } else {
+#else
     new_count = MIN2(old_count, (int) (CompileThreshold / 2));
-  }
+#endif
   // prevent from going to zero, to distinguish from never-executed methods
   if (new_count == 0)  new_count = 1;
   if (old_count != new_count)  set(state(), new_count);
@@ -109,15 +109,19 @@ const char* InvocationCounter::state_as_short_string(State state) {
 
 static address do_nothing(methodHandle method, TRAPS) {
   // dummy action for inactive invocation counters
-  method->invocation_counter()->set_carry();
-  method->invocation_counter()->set_state(InvocationCounter::wait_for_nothing);
+  MethodCounters* mcs = method->method_counters();
+  assert(mcs != NULL, "");
+  mcs->invocation_counter()->set_carry();
+  mcs->invocation_counter()->set_state(InvocationCounter::wait_for_nothing);
   return NULL;
 }
 
 
 static address do_decay(methodHandle method, TRAPS) {
   // decay invocation counters so compilation gets delayed
-  method->invocation_counter()->decay();
+  MethodCounters* mcs = method->method_counters();
+  assert(mcs != NULL, "");
+  mcs->invocation_counter()->decay();
   return NULL;
 }
 

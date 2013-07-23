@@ -27,46 +27,51 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 /**
  * The {@code InvokeNode} represents all kinds of method calls.
  */
 @NodeInfo(nameTemplate = "Invoke#{p#targetMethod/s}")
-public final class InvokeNode extends AbstractStateSplit implements StateSplit, Node.IterableNodeType, Invoke, LIRLowerable, MemoryCheckpoint {
+public final class InvokeNode extends AbstractStateSplit implements StateSplit, Node.IterableNodeType, Invoke, LIRLowerable, MemoryCheckpoint.Single {
 
-    @Input private final CallTargetNode callTarget;
+    @Input private CallTargetNode callTarget;
     @Input private FrameState deoptState;
+    @Input private GuardingNode guard;
     private final int bci;
     private boolean polymorphic;
     private boolean useForInlining;
-    private double inliningRelevance;
 
     /**
      * Constructs a new Invoke instruction.
      * 
-     * @param bci the bytecode index of the original invoke (used for debug infos)
      * @param callTarget the target method being called
+     * @param bci the bytecode index of the original invoke (used for debug infos)
      */
     public InvokeNode(CallTargetNode callTarget, int bci) {
-        super(callTarget.returnStamp());
+        this(callTarget, bci, callTarget.returnStamp());
+    }
+
+    /**
+     * Constructs a new Invoke instruction.
+     * 
+     * @param callTarget the target method being called
+     * @param bci the bytecode index of the original invoke (used for debug infos)
+     * @param stamp the stamp to be used for this value
+     */
+    public InvokeNode(CallTargetNode callTarget, int bci, Stamp stamp) {
+        super(stamp);
         this.callTarget = callTarget;
         this.bci = bci;
         this.polymorphic = false;
         this.useForInlining = true;
-        this.inliningRelevance = Double.NaN;
     }
 
     @Override
     public CallTargetNode callTarget() {
         return callTarget;
-    }
-
-    @Override
-    public MethodCallTargetNode methodCallTarget() {
-        return (MethodCallTargetNode) callTarget;
     }
 
     @Override
@@ -89,33 +94,21 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     }
 
     @Override
-    public double inliningRelevance() {
-        return inliningRelevance;
-    }
-
-    @Override
-    public void setInliningRelevance(double value) {
-        inliningRelevance = value;
-    }
-
-    @Override
     public Map<Object, Object> getDebugProperties(Map<Object, Object> map) {
         Map<Object, Object> debugProperties = super.getDebugProperties(map);
-        if (callTarget instanceof MethodCallTargetNode && methodCallTarget().targetMethod() != null) {
-            debugProperties.put("targetMethod", methodCallTarget().targetMethod());
-        } else if (callTarget instanceof AbstractCallTargetNode) {
-            debugProperties.put("targetMethod", ((AbstractCallTargetNode) callTarget).target());
+        if (callTarget != null) {
+            debugProperties.put("targetMethod", callTarget.targetName());
         }
         return debugProperties;
     }
 
     @Override
-    public Object[] getLocationIdentities() {
-        return new Object[]{LocationNode.ANY_LOCATION};
+    public LocationIdentity getLocationIdentity() {
+        return LocationIdentity.ANY_LOCATION;
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -165,14 +158,14 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
             stateSplit.setStateAfter(stateAfter);
         }
         if (node instanceof FixedWithNextNode) {
-            ((StructuredGraph) graph()).replaceFixedWithFixed(this, (FixedWithNextNode) node);
-        } else if (node instanceof DeoptimizeNode) {
+            graph().replaceFixedWithFixed(this, (FixedWithNextNode) node);
+        } else if (node instanceof ControlSinkNode) {
             this.replaceAtPredecessor(node);
             this.replaceAtUsages(null);
             GraphUtil.killCFG(this);
             return;
         } else {
-            ((StructuredGraph) graph()).replaceFixed(this, node);
+            graph().replaceFixed(this, node);
         }
         call.safeDelete();
         if (stateAfter.usages().isEmpty()) {
@@ -206,7 +199,13 @@ public final class InvokeNode extends AbstractStateSplit implements StateSplit, 
     }
 
     @Override
-    public boolean isCallSiteDeoptimization() {
-        return true;
+    public GuardingNode getGuard() {
+        return guard;
+    }
+
+    @Override
+    public void setGuard(GuardingNode guard) {
+        updateUsages(this.guard == null ? null : this.guard.asNode(), guard == null ? null : guard.asNode());
+        this.guard = guard;
     }
 }

@@ -34,7 +34,7 @@ import com.oracle.graal.nodes.type.*;
  */
 public abstract class SwitchNode extends ControlSplitNode {
 
-    @Successor protected final NodeSuccessorList<BeginNode> successors;
+    @Successor private final NodeSuccessorList<AbstractBeginNode> successors;
     @Input private ValueNode value;
     private double[] keyProbabilities;
     private int[] keySuccessors;
@@ -45,17 +45,28 @@ public abstract class SwitchNode extends ControlSplitNode {
      * @param value the instruction that provides the value to be switched over
      * @param successors the list of successors of this switch
      */
-    public SwitchNode(ValueNode value, BeginNode[] successors, int[] keySuccessors, double[] keyProbabilities) {
+    public SwitchNode(ValueNode value, AbstractBeginNode[] successors, int[] keySuccessors, double[] keyProbabilities) {
         super(StampFactory.forVoid());
         assert keySuccessors.length == keyProbabilities.length;
         this.successors = new NodeSuccessorList<>(this, successors);
         this.value = value;
         this.keySuccessors = keySuccessors;
         this.keyProbabilities = keyProbabilities;
+        assert assertProbabilities();
+    }
+
+    private boolean assertProbabilities() {
+        double total = 0;
+        for (double d : keyProbabilities) {
+            total += d;
+            assert d >= 0.0 : "Cannot have negative probabilities in switch node: " + d;
+        }
+        assert total > 0.999 && total < 1.001;
+        return true;
     }
 
     @Override
-    public double probability(BeginNode successor) {
+    public double probability(AbstractBeginNode successor) {
         double sum = 0;
         for (int i = 0; i < keySuccessors.length; i++) {
             if (successors.get(keySuccessors[i]) == successor) {
@@ -63,6 +74,33 @@ public abstract class SwitchNode extends ControlSplitNode {
             }
         }
         return sum;
+    }
+
+    @Override
+    public void setProbability(AbstractBeginNode successor, double value) {
+        double changeInProbability = 0;
+        int nonZeroProbabilityCases = 0;
+        for (int i = 0; i < keySuccessors.length; i++) {
+            if (successors.get(keySuccessors[i]) == successor) {
+                changeInProbability += keyProbabilities[i] - value;
+                keyProbabilities[i] = value;
+            } else if (keyProbabilities[i] > 0) {
+                nonZeroProbabilityCases++;
+            }
+        }
+
+        if (nonZeroProbabilityCases > 0) {
+            double changePerEntry = changeInProbability / nonZeroProbabilityCases;
+            if (changePerEntry != 0) {
+                for (int i = 0; i < keyProbabilities.length; i++) {
+                    if (keyProbabilities[i] > 0) {
+                        keyProbabilities[i] = keyProbabilities[i] + changePerEntry;
+                    }
+                }
+            }
+        }
+
+        assertProbabilities();
     }
 
     public ValueNode value() {
@@ -89,7 +127,7 @@ public abstract class SwitchNode extends ControlSplitNode {
     /**
      * Returns the successor for the key at the given index.
      */
-    public BeginNode keySuccessor(int i) {
+    public AbstractBeginNode keySuccessor(int i) {
         return successors.get(keySuccessors[i]);
     }
 
@@ -107,11 +145,11 @@ public abstract class SwitchNode extends ControlSplitNode {
         return keySuccessors[keySuccessors.length - 1];
     }
 
-    public BeginNode blockSuccessor(int i) {
+    public AbstractBeginNode blockSuccessor(int i) {
         return successors.get(i);
     }
 
-    public void setBlockSuccessor(int i, BeginNode s) {
+    public void setBlockSuccessor(int i, AbstractBeginNode s) {
         successors.set(i, s);
     }
 
@@ -124,7 +162,7 @@ public abstract class SwitchNode extends ControlSplitNode {
      * 
      * @return the default successor
      */
-    public BeginNode defaultSuccessor() {
+    public AbstractBeginNode defaultSuccessor() {
         if (defaultSuccessorIndex() == -1) {
             throw new GraalInternalError("unexpected");
         }

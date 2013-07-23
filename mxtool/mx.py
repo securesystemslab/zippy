@@ -125,6 +125,11 @@ Built-in project properties (* = required):
     javaCompliance
         The minimum JDK version (format: x.y) to which the project's
         sources comply (required for non-native projects).
+    
+    workingSets
+        A comma separated list of working set names. The project belongs
+        to the given working sets, for which the eclipseinit command
+        will generate Eclipse configurations.
 
 Other properties can be specified for projects and libraries for use
 by extension commands.
@@ -133,6 +138,7 @@ Property values can use environment variables with Bash syntax (e.g. ${HOME}).
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile
+import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
 from threading import Thread
@@ -145,6 +151,7 @@ _projects = dict()
 _libs = dict()
 _dists = dict()
 _suites = dict()
+_annotationProcessors = None
 _mainSuite = None
 _opts = None
 _java = None
@@ -196,13 +203,14 @@ class Dependency:
         return isinstance(self, Library)
 
 class Project(Dependency):
-    def __init__(self, suite, name, srcDirs, deps, javaCompliance, d):
+    def __init__(self, suite, name, srcDirs, deps, javaCompliance, workingSets, d):
         Dependency.__init__(self, suite, name)
         self.srcDirs = srcDirs
         self.deps = deps
         self.checkstyleProj = name
         self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance is not None else None
         self.native = False
+        self.workingSets = workingSets
         self.dir = d
         
         # Create directories for projects that don't yet exist
@@ -218,8 +226,8 @@ class Project(Dependency):
         libraries if 'includeLibs' is true, to the 'deps' list.
         """
         childDeps = list(self.deps)
-        if includeAnnotationProcessors and hasattr(self, 'annotationProcessors') and len(self.annotationProcessors) > 0:
-            childDeps = self.annotationProcessors + childDeps
+        if includeAnnotationProcessors and len(self.annotation_processors()) > 0:
+            childDeps = self.annotation_processors() + childDeps
         if self in deps:
             return deps
         for name in childDeps:
@@ -407,6 +415,19 @@ class Project(Dependency):
         self._init_packages_and_imports()
         return self._imported_java_packages
 
+    def annotation_processors(self):
+        if not hasattr(self, '_annotationProcessors'):
+            ap = set()
+            if hasattr(self, '_declaredAnnotationProcessors'):
+                ap = set(self._declaredAnnotationProcessors)
+
+            # find dependencies that auto-inject themselves as annotation processors to all dependents                
+            allDeps = self.all_deps([], includeLibs=False, includeSelf=False, includeAnnotationProcessors=False)
+            for p in allDeps:
+                if hasattr(p, 'annotationProcessorForDependents') and p.annotationProcessorForDependents.lower() == 'true':
+                    ap.add(p.name)
+            self._annotationProcessors = list(ap)
+        return self._annotationProcessors
 
 class Library(Dependency):
     def __init__(self, suite, name, path, mustExist, urls, sourcePath, sourceUrls):
@@ -459,7 +480,11 @@ class Suite:
         self._load_env(mxDir)
         self._load_commands(mxDir)
         self._load_includes(mxDir)
+        self.name = d # re-initialized in _load_projects
 
+    def __str__(self):
+        return self.name
+    
     def _load_projects(self, mxDir):
         libsMap = dict()
         projsMap = dict()
@@ -475,8 +500,11 @@ class Suite:
 
                     parts = key.split('@')
 
-                    if len(parts) == 2:
-                        pass
+                    if len(parts) == 1:
+                        if parts[0] != 'suite':
+                            abort('Single part property must be "suite": ' + key)
+                        self.name = value
+                        continue
                     if len(parts) != 3:
                         abort('Property name does not have 3 parts separated by "@": ' + key)
                     kind, name, attr = parts
@@ -508,18 +536,19 @@ class Suite:
             ap = pop_list(attrs, 'annotationProcessors')
             #deps += ap
             javaCompliance = attrs.pop('javaCompliance', None)
-            subDir = attrs.pop('subDir', None);
+            subDir = attrs.pop('subDir', None)
             if subDir is None:
                 d = join(self.dir, name)
             else:
                 d = join(self.dir, subDir, name)
-            p = Project(self, name, srcDirs, deps, javaCompliance, d)
+            workingSets = attrs.pop('workingSets', None)
+            p = Project(self, name, srcDirs, deps, javaCompliance, workingSets, d)
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             if not p.native and p.javaCompliance is None:
                 abort('javaCompliance property required for non-native project ' + name)
             if len(ap) > 0:
-                p.annotationProcessors = ap
+                p._declaredAnnotationProcessors = ap
             p.__dict__.update(attrs)
             self.projects.append(p)
 
@@ -539,6 +568,9 @@ class Suite:
             d = Distribution(self, name, path, deps)
             d.__dict__.update(attrs)
             self.dists.append(d)
+            
+        if self.name is None:
+            abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _load_commands(self, mxDir):
         commands = join(mxDir, 'commands.py')
@@ -547,7 +579,8 @@ class Suite:
             sys.path.insert(0, mxDir)
             mod = __import__('commands')
             
-            sys.modules[join(mxDir, 'commands')] = sys.modules.pop('commands')
+            self.commands = sys.modules.pop('commands')
+            sys.modules[join(mxDir, 'commands')] = self.commands
 
             # revert the Python path
             del sys.path[0]
@@ -573,12 +606,15 @@ class Suite:
         e = join(mxDir, 'env')
         if exists(e):
             with open(e) as f:
+                lineNum = 0
                 for line in f:
+                    lineNum = lineNum + 1
                     line = line.strip()
                     if len(line) != 0 and line[0] != '#':
+                        if not '=' in line:
+                            abort(e + ':' + str(lineNum) + ': line does not match pattern "key=value"')
                         key, value = line.split('=', 1)
                         os.environ[key.strip()] = expandvars_in_property(value.strip())
-
     def _post_init(self, opts):
         mxDir = join(self.dir, 'mx')
         self._load_projects(mxDir)
@@ -692,10 +728,10 @@ def _loadSuite(d, primary=False):
     mxDir = join(d, 'mx')
     if not exists(mxDir) or not isdir(mxDir):
         return None
-    if not _suites.has_key(d):
-        suite = Suite(d, primary)
-        _suites[d] = suite
-        return suite
+    if len([s for s in _suites.itervalues() if s.dir == d]) == 0:
+        s = Suite(d, primary)
+        _suites[s.name] = s
+        return s
 
 def suites():
     """
@@ -703,11 +739,32 @@ def suites():
     """
     return _suites.values()
 
+def suite(name, fatalIfMissing=True):
+    """
+    Get the suite for a given name.
+    """
+    s = _suites.get(name)
+    if s is None and fatalIfMissing:
+        abort('suite named ' + name + ' not found')
+    return s
+
 def projects():
     """
     Get the list of all loaded projects.
     """
     return _projects.values()
+
+def annotation_processors():
+    """
+    Get the list of all loaded projects that define an annotation processor.
+    """
+    global _annotationProcessors
+    if _annotationProcessors is None:
+        ap = set()
+        for p in projects():
+            ap.update(p.annotation_processors())
+        _annotationProcessors = list(ap)
+    return _annotationProcessors
 
 def distribution(name, fatalIfMissing=True):
     """
@@ -959,11 +1016,14 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     for arg in args:
         assert isinstance(arg, types.StringTypes), 'argument is not a string: ' + str(arg)
 
+    if env is None:
+        env = os.environ
+        
     if _opts.verbose:
         if _opts.very_verbose:
             log('Environment variables:')
-            for key in sorted(os.environ.keys()):
-                log('    ' + key + '=' + os.environ[key])
+            for key in sorted(env.keys()):
+                log('    ' + key + '=' + env[key])
         log(' '.join(args))
 
     if timeout is None and _opts.ptimeout != 0:
@@ -1169,6 +1229,10 @@ def get_env(key, default=None):
     value = os.environ.get(key, default)
     return value
 
+def logv(msg=None):
+    if _opts.verbose:
+        log(msg)
+    
 def log(msg=None):
     """
     Write a message to the console.
@@ -1399,7 +1463,6 @@ def build(args, parser=None):
             log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
             continue
 
-
         outputDir = p.output_dir()
         if exists(outputDir):
             if args.clean:
@@ -1472,11 +1535,11 @@ def build(args, parser=None):
                             break
 
         if not mustBuild:
-            log('[all class files for {0} are up to date - skipping]'.format(p.name))
+            logv('[all class files for {0} are up to date - skipping]'.format(p.name))
             continue
 
         if len(javafilelist) == 0:
-            log('[no Java sources for {0} - skipping]'.format(p.name))
+            logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
         built.add(p.name)
@@ -1490,8 +1553,9 @@ def build(args, parser=None):
         if java().debug_port is not None:
             javacArgs += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
 
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
-            processorPath = classpath(p.annotationProcessors, resolve=True)
+        ap = p.annotation_processors()
+        if len(ap) > 0:
+            processorPath = classpath(ap, resolve=True)
             genDir = p.source_gen_dir();
             if exists(genDir):
                 shutil.rmtree(genDir)
@@ -1611,7 +1675,8 @@ def eclipseformat(args):
         batch = Batch(join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs'))
 
         if not exists(batch.path):
-            log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(batch.path))
+            if _opts.verbose:
+                log('[no Eclipse Code Formatter preferences at {0} - skipping]'.format(batch.path))
             continue
 
         for sourceDir in sourceDirs:
@@ -1619,7 +1684,7 @@ def eclipseformat(args):
                 for f in [join(root, name) for name in files if name.endswith('.java')]:
                     batch.javafiles.append(FileInfo(f))
         if len(batch.javafiles) == 0:
-            log('[no Java sources in {0} - skipping]'.format(p.name))
+            logv('[no Java sources in {0} - skipping]'.format(p.name))
             continue
 
         res = batches.setdefault(batch.settings(), batch)
@@ -1647,16 +1712,16 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
-    projects = set()
     
+    projs = set()
     for p in sorted_deps():
         if _isAnnotationProcessorDependency(p):
-            projects.add(p)
+            projs.add(p)
             
-    if len(projects) <= 0:
+    if len(projs) < 0:
         return
     
-    pnames = [p.name for p in projects]
+    pnames = [p.name for p in projs]
     build(['--projects', ",".join(pnames)])
     archive(pnames)
 
@@ -1672,22 +1737,57 @@ def archive(args):
             d = distribution(dname)
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
             services = tempfile.mkdtemp(suffix='', prefix=basename(d.path) + '.', dir=dirname(d.path))
+
+            def overwriteCheck(zf, arcname, source):
+                if arcname in zf.namelist():
+                    log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
+                
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
-                for p in sorted_deps(d.deps):
-                    outputDir = p.output_dir()
-                    for root, _, files in os.walk(outputDir):
-                        relpath = root[len(outputDir) + 1:]
-                        if relpath == join('META-INF', 'services'):
-                            for f in files:
-                                with open(join(services, f), 'a') as outfile:
+                for dep in sorted_deps(d.deps, includeLibs=True):
+                    if dep.isLibrary():
+                        l = dep
+                        # merge library jar into distribution jar
+                        logv('[' + d.path + ': adding library ' + l.name + ']')
+                        lpath = l.get_path(resolve=True)
+                        with zipfile.ZipFile(lpath, 'r') as lp:
+                            for arcname in lp.namelist():
+                                if arcname.startswith('META-INF/services/'):
+                                    f = arcname[len('META-INF/services/'):].replace('/', os.sep)
+                                    with open(join(services, f), 'a') as outfile:
+                                        for line in lp.read(arcname).splitlines():
+                                            outfile.write(line)
+                                else:
+                                    overwriteCheck(zf, arcname, lpath + '!' + arcname)
+                                    zf.writestr(arcname, lp.read(arcname))
+                    else:
+                        p = dep
+                        # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                        if java().javaCompliance < p.javaCompliance:
+                            log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
+                            continue
+    
+                        logv('[' + d.path + ': adding project ' + p.name + ']')
+                        outputDir = p.output_dir()
+                        for root, _, files in os.walk(outputDir):
+                            relpath = root[len(outputDir) + 1:]
+                            if relpath == join('META-INF', 'services'):
+                                for f in files:
+                                    with open(join(services, f), 'a') as outfile:
+                                        with open(join(root, f), 'r') as infile:
+                                            for line in infile:
+                                                outfile.write(line)
+                            elif relpath == join('META-INF', 'providers'):
+                                for f in files:
                                     with open(join(root, f), 'r') as infile:
                                         for line in infile:
-                                            outfile.write(line)
-                        else:
-                            for f in files:
-                                arcname = join(relpath, f).replace(os.sep, '/')
-                                zf.write(join(root, f), arcname)
+                                            with open(join(services, line.strip()), 'a') as outfile:
+                                                outfile.write(f + '\n')
+                            else:
+                                for f in files:
+                                    arcname = join(relpath, f).replace(os.sep, '/')
+                                    overwriteCheck(zf, arcname, join(root, f))
+                                    zf.write(join(root, f), arcname)
                 for f in os.listdir(services):
                     arcname = join('META-INF', 'services', f).replace(os.sep, '/')
                     zf.write(join(services, f), arcname)
@@ -1787,6 +1887,12 @@ def checkstyle(args):
    Run Checkstyle over the Java sources. Any errors or warnings
    produced by Checkstyle result in a non-zero exit code."""
 
+    parser = ArgumentParser(prog='mx checkstyle')
+
+    parser.add_argument('-f', action='store_true', dest='force', help='force checking (disables timestamp checking)')
+    args = parser.parse_args(args)
+    
+    totalErrors = 0
     for p in sorted_deps():
         if p.native:
             continue
@@ -1795,20 +1901,25 @@ def checkstyle(args):
 
         if not exists(dotCheckstyle):
             continue
+        
+        # skip checking this Java project if its Java compliance level is "higher" than the configured JDK
+        if java().javaCompliance < p.javaCompliance:
+            log('Excluding {0} from checking (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
+            continue
 
         for sourceDir in sourceDirs:
             javafilelist = []
             for root, _, files in os.walk(sourceDir):
                 javafilelist += [join(root, name) for name in files if name.endswith('.java') and name != 'package-info.java']
             if len(javafilelist) == 0:
-                log('[no Java sources in {0} - skipping]'.format(sourceDir))
+                logv('[no Java sources in {0} - skipping]'.format(sourceDir))
                 continue
 
             timestampFile = join(p.suite.dir, 'mx', 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp')
             if not exists(dirname(timestampFile)):
                 os.makedirs(dirname(timestampFile))
             mustCheck = False
-            if exists(timestampFile):
+            if not args.force and exists(timestampFile):
                 timestamp = os.path.getmtime(timestampFile)
                 for f in javafilelist:
                     if os.path.getmtime(f) > timestamp:
@@ -1818,7 +1929,8 @@ def checkstyle(args):
                 mustCheck = True
 
             if not mustCheck:
-                log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
+                if _opts.verbose:
+                    log('[all Java sources in {0} already checked - skipping]'.format(sourceDir))
                 continue
 
             dotCheckstyleXML = xml.dom.minidom.parse(dotCheckstyle)
@@ -1836,7 +1948,7 @@ def checkstyle(args):
                 else:
                     config = join(p.dir, configLocation)
             else:
-                log('[unknown Checkstyle configuration type "' + configType + '" in {0} - skipping]'.format(sourceDir))
+                logv('[unknown Checkstyle configuration type "' + configType + '" in {0} - skipping]'.format(sourceDir))
                 continue
 
             exclude = join(p.dir, '.checkstyle.exclude')
@@ -1878,23 +1990,34 @@ def checkstyle(args):
                     batch = javafilelist[:i]
                     javafilelist = javafilelist[i:]
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-c', config, '-o', auditfileName] + batch)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch, nonZeroIsFatal=False)
                     finally:
                         if exists(auditfileName):
-                            with open(auditfileName) as f:
-                                warnings = [line.strip() for line in f if 'warning:' in line]
-                                if len(warnings) != 0:
-                                    map(log, warnings)
-                                    return 1
+                            errors = []
+                            source = None
+                            def start_element(name, attrs):
+                                if name == 'file':
+                                    global source
+                                    source = attrs['name']
+                                elif name == 'error':
+                                    errors.append('{}:{}: {}'.format(source, attrs['line'], attrs['message']))
+
+                            p = xml.parsers.expat.ParserCreate()
+                            p.StartElementHandler = start_element
+                            with open(auditfileName) as fp:
+                                p.ParseFile(fp)
+                            if len(errors) != 0:
+                                map(log, errors)
+                                totalErrors = totalErrors + len(errors)
+                            else:
+                                if exists(timestampFile):
+                                    os.utime(timestampFile, None)
                                 else:
-                                    if exists(timestampFile):
-                                        os.utime(timestampFile, None)
-                                    else:
-                                        file(timestampFile, 'a')
+                                    file(timestampFile, 'a')
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
-    return 0
+    return totalErrors
 
 def clean(args, parser=None):
     """remove all class files, images, and executables
@@ -2095,7 +2218,7 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
 def eclipseinit(args, suite=None, buildProcessorJars=True):
-    """(re)generate Eclipse project configurations"""
+    """(re)generate Eclipse project configurations and working sets"""
 
     if suite is None:
         suite = _mainSuite
@@ -2125,7 +2248,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 os.mkdir(srcDir)
             out.element('classpathentry', {'kind' : 'src', 'path' : src})
 
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             genDir = p.source_gen_dir();
             if not exists(genDir):
                 os.mkdir(genDir)
@@ -2249,22 +2372,22 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
         eclipseSettingsDir = join(suite.dir, 'mx', 'eclipse-settings')
         if exists(eclipseSettingsDir):
             for name in os.listdir(eclipseSettingsDir):
-                if name == "org.eclipse.jdt.apt.core.prefs" and not (hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0):
+                if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
                     continue
                 path = join(eclipseSettingsDir, name)
                 if isfile(path):
                     with open(join(eclipseSettingsDir, name)) as f:
                         content = f.read()
                     content = content.replace('${javaCompliance}', str(p.javaCompliance))
-                    if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+                    if len(p.annotation_processors()) > 0:
                         content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
                     update_file(join(settingsDir, name), content)
         
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             out = XMLDoc()
             out.open('factorypath')
             out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
-            for ap in p.annotationProcessors:
+            for ap in p.annotation_processors():
                 apProject = project(ap)
                 for dep in apProject.all_deps([], True):
                     if dep.isLibrary():
@@ -2283,28 +2406,14 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
 
     make_eclipse_attach('localhost', '8000', deps=projects())
+    generate_eclipse_workingsets(suite)
 
 
 def _isAnnotationProcessorDependency(p):
     """
     Determines if a given project is part of an annotation processor.
     """
-    processors = set()
-    
-    for otherProject in projects():
-        if hasattr(otherProject, 'annotationProcessors') and len(otherProject.annotationProcessors) > 0:
-            for processorName in otherProject.annotationProcessors:
-                processors.add(project(processorName, fatalIfMissing=True))
-                 
-    if p in processors:
-        return True
-    
-    for otherProject in processors:
-        deps = otherProject.all_deps([], True)
-        if p in deps:
-            return True
-    
-    return False
+    return p in sorted_deps(annotation_processors())
 
 def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
     launchOut = XMLDoc();
@@ -2354,6 +2463,124 @@ def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=Fa
     dotProjectDoc.close('dictionary')
     dotProjectDoc.close('arguments')
     dotProjectDoc.close('buildCommand')
+
+def generate_eclipse_workingsets(suite):
+    """
+    Populate the workspace's working set configuration with working sets generated from project data.
+    If the workspace already contains working set definitions, the existing ones will be retained and extended.
+    In case mx/env does not contain a WORKSPACE definition pointing to the workspace root directory, the Graal project root directory will be assumed.
+    If no workspace root directory can be identified, the Graal project root directory is used and the user has to place the workingsets.xml file by hand. 
+    """
+    
+    # identify the location where to look for workingsets.xml
+    wsfilename = 'workingsets.xml'
+    wsroot = suite.dir
+    if os.environ.has_key('WORKSPACE'):
+        wsroot = os.environ['WORKSPACE']
+    wsdir = join(wsroot, '.metadata/.plugins/org.eclipse.ui.workbench')
+    if not exists(wsdir):
+        wsdir = wsroot
+    wspath = join(wsdir, wsfilename)
+    
+    # gather working set info from project data
+    workingSets = dict()
+    for p in projects():
+        if p.workingSets is None:
+            continue
+        for w in p.workingSets.split(","):
+            if not workingSets.has_key(w):
+                workingSets[w] = [p.name]
+            else:
+                workingSets[w].append(p.name)
+    
+    if exists(wspath):
+        wsdoc = _copy_workingset_xml(wspath, workingSets)
+    else:
+        wsdoc = _make_workingset_xml(workingSets)
+    
+    update_file(wspath, wsdoc.xml(newl='\n'))
+
+def _make_workingset_xml(workingSets):
+    wsdoc = XMLDoc()
+    wsdoc.open('workingSetManager')
+    
+    for w in sorted(workingSets.keys()):
+        _workingset_open(wsdoc, w)
+        for p in workingSets[w]:
+            _workingset_element(wsdoc, p)
+        wsdoc.close('workingSet')
+    
+    wsdoc.close('workingSetManager')
+    return wsdoc
+
+def _copy_workingset_xml(wspath, workingSets):
+    target = XMLDoc()
+    target.open('workingSetManager')
+
+    parser = xml.parsers.expat.ParserCreate()
+    
+    class ParserState(object):
+        def __init__(self):
+            self.current_ws_name = 'none yet'
+            self.current_ws = None
+            self.seen_ws = list()
+            self.seen_projects = list()
+    
+    ps = ParserState()
+    
+    # parsing logic
+    def _ws_start(name, attributes):
+        if name == 'workingSet':
+            ps.current_ws_name = attributes['name']
+            if workingSets.has_key(ps.current_ws_name):
+                ps.current_ws = workingSets[ps.current_ws_name]
+                ps.seen_ws.append(ps.current_ws_name)
+                ps.seen_projects = list()
+            else:
+                ps.current_ws = None
+            target.open(name, attributes)
+            parser.StartElementHandler = _ws_item
+    
+    def _ws_end(name):
+        if name == 'workingSet':
+            if not ps.current_ws is None:
+                for p in ps.current_ws:
+                    if not p in ps.seen_projects:
+                        _workingset_element(target, p)
+            target.close('workingSet')
+            parser.StartElementHandler = _ws_start
+        elif name == 'workingSetManager':
+            # process all working sets that are new to the file
+            for w in sorted(workingSets.keys()):
+                if not w in ps.seen_ws:
+                    _workingset_open(target, w)
+                    for p in workingSets[w]:
+                        _workingset_element(target, p)
+                    target.close('workingSet')
+    
+    def _ws_item(name, attributes):
+        if name == 'item':
+            if ps.current_ws is None:
+                target.element(name, attributes)
+            else:
+                p_name = attributes['elementID'][1:] # strip off the leading '='
+                _workingset_element(target, p_name)
+                ps.seen_projects.append(p_name)
+    
+    # process document
+    parser.StartElementHandler = _ws_start
+    parser.EndElementHandler = _ws_end
+    with open(wspath, 'r') as wsfile:
+        parser.ParseFile(wsfile)
+    
+    target.close('workingSetManager')
+    return target
+
+def _workingset_open(wsdoc, ws):
+    wsdoc.open('workingSet', {'editPageID': 'org.eclipse.jdt.ui.JavaWorkingSetPage', 'factoryID': 'org.eclipse.ui.internal.WorkingSetFactory', 'id': 'wsid_' + ws, 'label': ws, 'name': ws})
+
+def _workingset_element(wsdoc, p):
+    wsdoc.element('item', {'elementID': '=' + p, 'factoryID': 'org.eclipse.jdt.ui.PersistableJavaElementFactory'})
     
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
@@ -2399,7 +2626,7 @@ def netbeansinit(args, suite=None):
         out.element('explicit-platform', {'explicit-source-supported' : 'true'})
         out.open('source-roots')
         out.element('root', {'id' : 'src.dir'})
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             out.element('root', {'id' : 'src.ap-source-output.dir'})
         out.close('source-roots')
         out.open('test-roots')
@@ -2439,7 +2666,7 @@ def netbeansinit(args, suite=None):
         annotationProcessorEnabled = "false"
         annotationProcessorReferences = ""
         annotationProcessorSrcFolder = ""
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
+        if len(p.annotation_processors()) > 0:
             annotationProcessorEnabled = "true"
             annotationProcessorSrcFolder = "src.ap-source-output.dir=${build.generated.sources.dir}/ap-source-output"
 
@@ -2531,8 +2758,8 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         
         deps = p.all_deps([], True)
         annotationProcessorOnlyDeps = []
-        if hasattr(p, 'annotationProcessors') and len(p.annotationProcessors) > 0:
-            for ap in p.annotationProcessors:
+        if len(p.annotation_processors()) > 0:
+            for ap in p.annotation_processors():
                 apProject = project(ap)
                 if not apProject in deps:
                     deps.append(apProject)
@@ -2593,6 +2820,7 @@ def ideclean(args, suite=None):
         shutil.rmtree(join(p.dir, 'nbproject'), ignore_errors=True)
         rm(join(p.dir, '.classpath'))
         rm(join(p.dir, '.project'))
+        rm(join(p.dir, '.factorypath'))
         rm(join(p.dir, 'build.xml'))
         rm(join(p.dir, 'eclipse-build.xml'))
         try:
@@ -2679,7 +2907,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                 for d in deps:
                     assess_candidate(d, projects)
             if not assess_candidate(p, projects):
-                log('[package-list file exists - skipping {0}]'.format(p.name))
+                logv('[package-list file exists - skipping {0}]'.format(p.name))
 
 
     def find_packages(sourceDirs, pkgs=set()):
@@ -3091,17 +3319,20 @@ commands = {
 _argParser = ArgParser()
 
 def _findPrimarySuite():
+    def is_suite_dir(d):
+        mxDir = join(d, 'mx')
+        if exists(mxDir) and isdir(mxDir) and exists(join(mxDir, 'projects')):
+            return dirname(mxDir)
+
     # try current working directory first
-    mxDir = join(os.getcwd(), 'mx')
-    if exists(mxDir) and isdir(mxDir):
-        return dirname(mxDir)
+    if is_suite_dir(os.getcwd()):
+        return os.getcwd()
 
     # now search path of my executable
     me = sys.argv[0]
     parent = dirname(me)
     while parent:
-        mxDir = join(parent, 'mx')
-        if exists(mxDir) and isdir(mxDir):
+        if is_suite_dir(parent):
             return parent
         parent = dirname(parent)
     return None

@@ -19,7 +19,7 @@
 # Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
 # or visit www.oracle.com if you need additional information or have any
 # questions.
-#  
+#
 #
 
 # Usage:
@@ -46,11 +46,11 @@
 # Makefile	- for "make foo"
 # flags.make	- with macro settings
 # vm.make	- to support making "$(MAKE) -v vm.make" in makefiles
-# adlc.make	- 
+# adlc.make	-
+# trace.make	- generate tracing event and type definitions
 # jvmti.make	- generate JVMTI bindings from the spec (JSR-163)
 # sa.make	- generate SA jar file and natives
-# env.[ck]sh	- environment settings
-# 
+#
 # The makefiles are split this way so that "make foo" will run faster by not
 # having to read the dependency files for the vm.
 
@@ -69,7 +69,7 @@ PLATFORM_FILE	= $(GAMMADIR)/make/$(OS_FAMILY)/platform_$(BUILDARCH).gcc
 GCC_LIB         = /usr/local/lib
 else
 PLATFORM_FILE	= $(GAMMADIR)/make/$(OS_FAMILY)/platform_$(BUILDARCH)
-GCC_LIB         = 
+GCC_LIB         =
 endif
 
 ifdef FORCE_TIERED
@@ -108,16 +108,16 @@ COMPILER	= $(shell sed -n 's/^compiler[ 	]*=[ 	]*//p' $(PLATFORM_FILE))
 SIMPLE_DIRS	= \
 	$(PLATFORM_DIR)/generated/dependencies \
 	$(PLATFORM_DIR)/generated/adfiles \
-	$(PLATFORM_DIR)/generated/jvmtifiles
+	$(PLATFORM_DIR)/generated/jvmtifiles \
+	$(PLATFORM_DIR)/generated/tracefiles
 
-TARGETS      = debug fastdebug jvmg optimized product profiled
+TARGETS      = debug fastdebug optimized product
 SUBMAKE_DIRS = $(addprefix $(PLATFORM_DIR)/,$(TARGETS))
 
 # For dependencies and recursive makes.
 BUILDTREE_MAKE	= $(GAMMADIR)/make/$(OS_FAMILY)/makefiles/buildtree.make
 
-BUILDTREE_TARGETS = Makefile flags.make flags_vm.make vm.make adlc.make jvmti.make sa.make \
-        env.sh env.csh jdkpath.sh
+BUILDTREE_TARGETS = Makefile flags.make flags_vm.make vm.make adlc.make jvmti.make trace.make sa.make
 
 BUILDTREE_VARS	= GAMMADIR=$(GAMMADIR) OS_FAMILY=$(OS_FAMILY) \
 	ARCH=$(ARCH) BUILDARCH=$(BUILDARCH) LIBARCH=$(LIBARCH) VARIANT=$(VARIANT)
@@ -153,7 +153,7 @@ ifndef OPENJDK
   endif
 endif
 
-BUILDTREE_VARS += HOTSPOT_RELEASE_VERSION=$(HS_BUILD_VER) HOTSPOT_BUILD_VERSION= JRE_RELEASE_VERSION=$(JRE_RELEASE_VERSION) 
+BUILDTREE_VARS += HOTSPOT_RELEASE_VERSION=$(HS_BUILD_VER) HOTSPOT_BUILD_VERSION= JRE_RELEASE_VERSION=$(JRE_RELEASE_VERSION)
 
 BUILDTREE	= \
 	$(MAKE) -f $(BUILDTREE_MAKE) $(BUILDTREE_TARGETS) $(BUILDTREE_VARS)
@@ -172,8 +172,8 @@ $(SIMPLE_DIRS):
 	$(QUIETLY) mkdir -p $@
 
 # Convenience macro which takes a source relative path, applies $(1) to the
-# absolute path, and then replaces $(GAMMADIR) in the result with a 
-# literal "$(GAMMADIR)/" suitable for inclusion in a Makefile.  
+# absolute path, and then replaces $(GAMMADIR) in the result with a
+# literal "$(GAMMADIR)/" suitable for inclusion in a Makefile.
 gamma-path=$(subst $(GAMMADIR),\$$(GAMMADIR),$(call $(1),$(HS_COMMON_SRC)/$(2)))
 
 # This bit is needed to enable local rebuilds.
@@ -229,7 +229,9 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/posix/vm) \\"; \
-	echo "$(call gamma-path,commonsrc,os/posix/vm)"; \
+	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \
+	echo "$(call gamma-path,altsrc,gpu/ptx) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu/ptx)"; \
 	echo; \
 	echo "Src_Dirs_I = \\"; \
 	echo "$(call gamma-path,altsrc,share/vm/prims) \\"; \
@@ -244,8 +246,9 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,commonsrc,os_cpu/$(OS_FAMILY)_$(ARCH)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
-	echo "$(call gamma-path,altsrc,os/posix/vm) \\"; \
-	echo "$(call gamma-path,commonsrc,os/posix/vm)"; \
+	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \
+	echo "$(call gamma-path,altsrc,gpu) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu)"; \
 	[ -n "$(CFLAGS_BROWSE)" ] && \
 	    echo && echo "CFLAGS_BROWSE = $(CFLAGS_BROWSE)"; \
 	[ -n "$(ENABLE_FULL_DEBUG_SYMBOLS)" ] && \
@@ -274,8 +277,6 @@ flags_vm.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	$(QUIETLY) ( \
 	$(BUILDTREE_COMMENT); \
 	echo; \
-	[ "$(TARGET)" = profiled ] && \
-	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/optimized.make"; \
 	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(TARGET).make"; \
 	) > $@
 
@@ -331,7 +332,7 @@ jvmti.make: $(BUILDTREE_MAKE)
 	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(@F)"; \
 	) > $@
 
-sa.make: $(BUILDTREE_MAKE)
+trace.make: $(BUILDTREE_MAKE)
 	@echo Creating $@ ...
 	$(QUIETLY) ( \
 	$(BUILDTREE_COMMENT); \
@@ -341,32 +342,15 @@ sa.make: $(BUILDTREE_MAKE)
 	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(@F)"; \
 	) > $@
 
-env.sh: $(BUILDTREE_MAKE)
+sa.make: $(BUILDTREE_MAKE)
 	@echo Creating $@ ...
 	$(QUIETLY) ( \
 	$(BUILDTREE_COMMENT); \
-	{ echo "JAVA_HOME=$(JDK_IMPORT_PATH)"; }; \
-	{ \
-	echo "CLASSPATH=$${CLASSPATH:+$$CLASSPATH:}.:\$${JAVA_HOME}/jre/lib/rt.jar:$(OUTPUTDIR)/shared/graal.jar:\$${JAVA_HOME}/jre/lib/i18n.jar"; \
-	} | sed s:$${JAVA_HOME:--------}:\$${JAVA_HOME}:g; \
-	echo "HOTSPOT_BUILD_USER=\"$${LOGNAME:-$$USER} in `basename $(GAMMADIR)`\""; \
-	echo "export JAVA_HOME LD_LIBRARY_PATH CLASSPATH HOTSPOT_BUILD_USER"; \
+	echo; \
+	echo include flags.make; \
+	echo; \
+	echo "include \$$(GAMMADIR)/make/$(OS_FAMILY)/makefiles/$(@F)"; \
 	) > $@
-
-env.csh: env.sh
-	@echo Creating $@ ...
-	$(QUIETLY) ( \
-	$(BUILDTREE_COMMENT); \
-	{ echo "setenv JAVA_HOME \"$(JDK_IMPORT_PATH)\""; }; \
-	sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=/setenv \1 /p' $?; \
-	) > $@
-
-jdkpath.sh: $(BUILDTREE_MAKE)
-	@echo Creating $@ ...
-	$(QUIETLY) ( \
-	$(BUILDTREE_COMMENT); \
-	echo "JDK=${JAVA_HOME}"; \
-	) > $@	   
 
 FORCE:
 

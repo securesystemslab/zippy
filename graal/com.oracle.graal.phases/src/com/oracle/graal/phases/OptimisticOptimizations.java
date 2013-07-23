@@ -34,7 +34,7 @@ public final class OptimisticOptimizations {
     private static final DebugMetric disabledOptimisticOptsMetric = Debug.metric("DisabledOptimisticOpts");
 
     public static enum Optimization {
-        RemoveNeverExecutedCode, UseTypeCheckedInlining, UseTypeCheckHints, UseExceptionProbabilityForOperations, UseExceptionProbability
+        RemoveNeverExecutedCode, UseTypeCheckedInlining, UseTypeCheckHints, UseExceptionProbabilityForOperations, UseExceptionProbability, UseLoopLimitChecks
     }
 
     private final Set<Optimization> enabledOpts;
@@ -47,16 +47,13 @@ public final class OptimisticOptimizations {
         addOptimization(method, DeoptimizationReason.TypeCheckedInliningViolated, Optimization.UseTypeCheckedInlining);
         addOptimization(method, DeoptimizationReason.OptimizedTypeCheckViolated, Optimization.UseTypeCheckHints);
         addOptimization(method, DeoptimizationReason.NotCompiledExceptionHandler, Optimization.UseExceptionProbability);
+        addOptimization(method, DeoptimizationReason.LoopLimitCheck, Optimization.UseLoopLimitChecks);
     }
 
     private void addOptimization(ResolvedJavaMethod method, DeoptimizationReason deoptReason, Optimization optimization) {
         if (checkDeoptimizations(method.getProfilingInfo(), deoptReason)) {
             enabledOpts.add(optimization);
         } else {
-            /*
-             * TODO (chaeubl): see GRAAL-75 (remove when we are sure that optimistic optimizations
-             * are not disabled unnecessarily
-             */
             disabledOptimisticOptsMetric.increment();
         }
     }
@@ -82,35 +79,39 @@ public final class OptimisticOptimizations {
     }
 
     public boolean removeNeverExecutedCode() {
-        return GraalOptions.RemoveNeverExecutedCode && enabledOpts.contains(Optimization.RemoveNeverExecutedCode);
+        return GraalOptions.RemoveNeverExecutedCode.getValue() && enabledOpts.contains(Optimization.RemoveNeverExecutedCode);
     }
 
     public boolean useTypeCheckHints() {
-        return GraalOptions.UseTypeCheckHints && enabledOpts.contains(Optimization.UseTypeCheckHints);
+        return GraalOptions.UseTypeCheckHints.getValue() && enabledOpts.contains(Optimization.UseTypeCheckHints);
     }
 
     public boolean inlineMonomorphicCalls() {
-        return GraalOptions.InlineMonomorphicCalls && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
+        return GraalOptions.InlineMonomorphicCalls.getValue() && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
     }
 
     public boolean inlinePolymorphicCalls() {
-        return GraalOptions.InlinePolymorphicCalls && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
+        return GraalOptions.InlinePolymorphicCalls.getValue() && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
     }
 
     public boolean inlineMegamorphicCalls() {
-        return GraalOptions.InlineMegamorphicCalls && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
+        return GraalOptions.InlineMegamorphicCalls.getValue() && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
     }
 
     public boolean devirtualizeInvokes() {
-        return GraalOptions.OptDevirtualizeInvokesOptimistically && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
+        return GraalOptions.OptDevirtualizeInvokesOptimistically.getValue() && enabledOpts.contains(Optimization.UseTypeCheckedInlining);
     }
 
     public boolean useExceptionProbability() {
-        return GraalOptions.UseExceptionProbability && enabledOpts.contains(Optimization.UseExceptionProbability);
+        return GraalOptions.UseExceptionProbability.getValue() && enabledOpts.contains(Optimization.UseExceptionProbability);
     }
 
     public boolean useExceptionProbabilityForOperations() {
-        return GraalOptions.UseExceptionProbabilityForOperations && enabledOpts.contains(Optimization.UseExceptionProbabilityForOperations);
+        return GraalOptions.UseExceptionProbabilityForOperations.getValue() && enabledOpts.contains(Optimization.UseExceptionProbabilityForOperations);
+    }
+
+    public boolean useLoopLimitChecks() {
+        return GraalOptions.UseLoopLimitChecks.getValue() && enabledOpts.contains(Optimization.UseLoopLimitChecks);
     }
 
     public boolean lessOptimisticThan(OptimisticOptimizations other) {
@@ -123,6 +124,6 @@ public final class OptimisticOptimizations {
     }
 
     private static boolean checkDeoptimizations(ProfilingInfo profilingInfo, DeoptimizationReason reason) {
-        return profilingInfo.getDeoptimizationCount(reason) < GraalOptions.DeoptsToDisableOptimisticOptimization;
+        return profilingInfo.getDeoptimizationCount(reason) < GraalOptions.DeoptsToDisableOptimisticOptimization.getValue();
     }
 }

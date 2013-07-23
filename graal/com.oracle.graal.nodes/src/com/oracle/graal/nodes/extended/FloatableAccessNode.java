@@ -22,8 +22,7 @@
  */
 package com.oracle.graal.nodes.extended;
 
-import java.util.*;
-
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -36,13 +35,22 @@ public abstract class FloatableAccessNode extends AccessNode {
         super(object, location, stamp);
     }
 
-    public FloatableAccessNode(ValueNode object, ValueNode location, Stamp stamp, List<ValueNode> dependencies) {
-        super(object, location, stamp, dependencies);
+    public FloatableAccessNode(ValueNode object, ValueNode location, Stamp stamp, GuardingNode guard, WriteBarrierType barrierType, boolean compressible) {
+        super(object, location, stamp, guard, barrierType, compressible);
     }
 
-    public FloatableAccessNode(ValueNode object, ValueNode location, Stamp stamp, ValueNode... dependencies) {
-        super(object, location, stamp, dependencies);
+    public FloatableAccessNode(ValueNode object, ValueNode location, Stamp stamp, WriteBarrierType barrierType, boolean compressible) {
+        super(object, location, stamp, barrierType, compressible);
     }
 
     public abstract FloatingAccessNode asFloatingNode(ValueNode lastLocationAccess);
+
+    /**
+     * AccessNodes can float only if their location identities are not ANY_LOCATION. Furthermore, in
+     * case G1 is enabled any access (read) to the java.lang.ref.Reference.referent field which has
+     * an attached write barrier with pre-semantics can not also float.
+     */
+    public boolean canFloat() {
+        return location().getLocationIdentity() != LocationIdentity.ANY_LOCATION && getWriteBarrierType() == WriteBarrierType.NONE;
+    }
 }

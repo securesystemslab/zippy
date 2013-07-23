@@ -54,7 +54,7 @@ public final class InstanceOfDynamicNode extends LogicNode implements Canonicali
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -80,7 +80,7 @@ public final class InstanceOfDynamicNode extends LogicNode implements Canonicali
     @Override
     public boolean verify() {
         for (Node usage : usages()) {
-            assertTrue(usage instanceof IfNode || usage instanceof ConditionalNode, "unsupported usage: %s", usage);
+            assertTrue(usage instanceof IfNode || usage instanceof FixedGuardNode || usage instanceof ConditionalNode, "unsupported usage: %s", usage);
         }
         return super.verify();
     }

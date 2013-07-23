@@ -31,11 +31,16 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.logging.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
+import com.oracle.graal.phases.tiers.*;
+
+//import static com.oracle.graal.phases.GraalOptions.*;
 
 /**
  * Singleton class holding the instance of the {@link GraalRuntime}.
@@ -47,9 +52,9 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
     private static HotSpotGraalRuntime instance;
 
     /**
-     * Gets the singleton runtime instance object.
+     * Gets the singleton {@link HotSpotGraalRuntime} object.
      */
-    public static HotSpotGraalRuntime getInstance() {
+    public static HotSpotGraalRuntime graalRuntime() {
         return instance;
     }
 
@@ -84,6 +89,49 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         runtime.compilerToVm = toVM;
     }
 
+    // @formatter:off
+    @Option(help = "The runtime configuration to use")
+    private static final OptionValue<String> GraalRuntime = new OptionValue<>("");
+    // @formatter:on
+
+    protected static HotSpotGraalRuntimeFactory findFactory(String architecture) {
+        HotSpotGraalRuntimeFactory basic = null;
+        HotSpotGraalRuntimeFactory selected = null;
+        HotSpotGraalRuntimeFactory nonBasic = null;
+        int nonBasicCount = 0;
+
+        for (HotSpotGraalRuntimeFactory factory : ServiceLoader.loadInstalled(HotSpotGraalRuntimeFactory.class)) {
+            if (factory.getArchitecture().equals(architecture)) {
+                if (factory.getName().equals(GraalRuntime.getValue())) {
+                    assert selected == null;
+                    selected = factory;
+                }
+                if (factory.getName().equals("basic")) {
+                    assert basic == null;
+                    basic = factory;
+                } else {
+                    nonBasic = factory;
+                    nonBasicCount++;
+                }
+            }
+        }
+
+        if (selected != null) {
+            return selected;
+        } else {
+            if (!GraalRuntime.getValue().equals("")) {
+                // Fail fast if a non-default value for GraalRuntime was specified
+                // and the corresponding factory is not available
+                throw new GraalInternalError("Specified runtime \"%s\" not available for the %s architecture", GraalRuntime.getValue(), architecture);
+            } else if (nonBasicCount == 1) {
+                // If there is exactly one non-basic runtime, select this one.
+                return nonBasic;
+            } else {
+                return basic;
+            }
+        }
+    }
+
     private static Kind wordKind;
 
     /**
@@ -105,6 +153,13 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
     }
 
     /**
+     * Reads a klass pointer from a constant object.
+     */
+    public static long unsafeReadKlassPointer(Object object) {
+        return instance.getCompilerToVM().readUnsafeKlassPointer(object);
+    }
+
+    /**
      * Reads a word value from a given object.
      */
     public static long unsafeReadWord(Object object, long offset) {
@@ -115,6 +170,7 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
     }
 
     protected/* final */CompilerToVM compilerToVm;
+    protected/* final */CompilerToGPU compilerToGpu;
     protected/* final */VMToCompiler vmToCompiler;
 
     protected final HotSpotRuntime runtime;
@@ -129,11 +185,13 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
 
     protected HotSpotGraalRuntime() {
         CompilerToVM toVM = new CompilerToVMImpl();
+        CompilerToGPU toGPU = new CompilerToGPUImpl();
 
         // initialize VmToCompiler
         VMToCompiler toCompiler = new VMToCompilerImpl(this);
 
         compilerToVm = toVM;
+        compilerToGpu = toGPU;
         vmToCompiler = toCompiler;
         config = new HotSpotVMConfig();
         compilerToVm.initializeConfiguration(config);
@@ -141,16 +199,16 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
 
         // Set some global options:
         if (config.compileTheWorld) {
-            GraalOptions.CompileTheWorld = CompileTheWorld.SUN_BOOT_CLASS_PATH;
+            GraalOptions.CompileTheWorld.setValue(CompileTheWorld.SUN_BOOT_CLASS_PATH);
         }
         if (config.compileTheWorldStartAt != 1) {
-            GraalOptions.CompileTheWorldStartAt = config.compileTheWorldStartAt;
+            GraalOptions.CompileTheWorldStartAt.setValue(config.compileTheWorldStartAt);
         }
         if (config.compileTheWorldStopAt != Integer.MAX_VALUE) {
-            GraalOptions.CompileTheWorldStopAt = config.compileTheWorldStopAt;
+            GraalOptions.CompileTheWorldStopAt.setValue(config.compileTheWorldStopAt);
         }
-        GraalOptions.HotSpotPrintCompilation = config.printCompilation;
-        GraalOptions.HotSpotPrintInlining = config.printInlining;
+        GraalOptions.HotSpotPrintCompilation.setValue(config.printCompilation);
+        GraalOptions.HotSpotPrintInlining.setValue(config.printInlining);
 
         if (Boolean.valueOf(System.getProperty("graal.printconfig"))) {
             printConfig(config);
@@ -168,8 +226,8 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         replacements = new HotSpotReplacementsImpl(runtime, assumptions, runtime.getGraalRuntime().getTarget());
 
         backend = createBackend();
-        GraalOptions.StackShadowPages = config.stackShadowPages;
-        if (GraalOptions.CacheGraphs) {
+        GraalOptions.StackShadowPages.setValue(config.stackShadowPages);
+        if (GraalOptions.CacheGraphs.getValue()) {
             cache = new HotSpotGraphCache();
         }
     }
@@ -213,6 +271,10 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
 
     public VMToCompiler getVMToCompiler() {
         return vmToCompiler;
+    }
+
+    public CompilerToGPU getCompilerToGPU() {
+        return compilerToGpu;
     }
 
     public JavaType lookupType(String name, HotSpotResolvedObjectType accessingClass, boolean eagerResolve) {
@@ -286,7 +348,7 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
         if (clazz == GraalCodeCacheProvider.class || clazz == CodeCacheProvider.class || clazz == MetaAccessProvider.class) {
             return (T) getRuntime();
         }
-        if (clazz == DisassemblerProvider.class || clazz == BytecodeDisassemblerProvider.class) {
+        if (clazz == DisassemblerProvider.class || clazz == BytecodeDisassemblerProvider.class || clazz == SuitesProvider.class) {
             return (T) getRuntime();
         }
         if (clazz == HotSpotRuntime.class) {

@@ -24,28 +24,29 @@ package com.oracle.graal.nodes.extended;
 
 import static com.oracle.graal.graph.iterators.NodePredicates.*;
 
-import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 /**
  * The ValueAnchor instruction keeps non-CFG (floating) nodes above a certain point in the graph.
  */
-public final class ValueAnchorNode extends FixedWithNextNode implements Canonicalizable, LIRLowerable, Node.IterableNodeType, Virtualizable {
+public final class ValueAnchorNode extends FixedWithNextNode implements Canonicalizable, LIRLowerable, Node.IterableNodeType, Virtualizable, GuardingNode {
+
+    @Input private final NodeInputList<ValueNode> anchored;
 
     public ValueAnchorNode(ValueNode... values) {
         this(false, values);
     }
 
     public ValueAnchorNode(boolean permanent, ValueNode... values) {
-        super(StampFactory.dependency(), values);
+        super(StampFactory.dependency());
         this.permanent = permanent;
+        this.anchored = new NodeInputList<>(this, values);
     }
 
-    private final boolean permanent;
+    private boolean permanent;
 
     @Override
     public void generate(LIRGeneratorTool gen) {
@@ -53,9 +54,25 @@ public final class ValueAnchorNode extends FixedWithNextNode implements Canonica
     }
 
     public void addAnchoredNode(ValueNode value) {
-        if (!this.dependencies().contains(value)) {
-            this.dependencies().add(value);
+        if (!anchored.contains(value)) {
+            this.anchored.add(value);
         }
+    }
+
+    public void removeAnchoredNode(ValueNode value) {
+        this.anchored.remove(value);
+    }
+
+    public NodeInputList<ValueNode> getAnchoredNodes() {
+        return anchored;
+    }
+
+    public void setPermanent(boolean permanent) {
+        this.permanent = permanent;
+    }
+
+    public boolean isPermanent() {
+        return permanent;
     }
 
     @Override
@@ -67,27 +84,16 @@ public final class ValueAnchorNode extends FixedWithNextNode implements Canonica
             ValueAnchorNode previousAnchor = (ValueAnchorNode) this.predecessor();
             if (previousAnchor.usages().isEmpty()) { // avoid creating cycles
                 // transfer values and remove
-                for (ValueNode node : dependencies().nonNull().distinct()) {
+                for (ValueNode node : anchored.nonNull().distinct()) {
                     previousAnchor.addAnchoredNode(node);
                 }
                 return previousAnchor;
             }
         }
-        for (Node node : dependencies().nonNull().and(isNotA(FixedNode.class))) {
-            if (node instanceof ConstantNode) {
-                continue;
+        for (Node node : anchored.nonNull().and(isNotA(FixedNode.class))) {
+            if (!(node instanceof ConstantNode)) {
+                return this; // still necessary
             }
-            if (node instanceof IntegerDivNode || node instanceof IntegerRemNode) {
-                ArithmeticNode arithmeticNode = (ArithmeticNode) node;
-                if (arithmeticNode.y().isConstant()) {
-                    Constant constant = arithmeticNode.y().asConstant();
-                    assert constant.getKind() == arithmeticNode.kind() : constant.getKind() + " != " + arithmeticNode.kind();
-                    if (constant.asLong() != 0) {
-                        continue;
-                    }
-                }
-            }
-            return this; // still necessary
         }
         if (usages().isEmpty()) {
             return null; // no node which require an anchor found
@@ -100,12 +106,17 @@ public final class ValueAnchorNode extends FixedWithNextNode implements Canonica
         if (permanent) {
             return;
         }
-        for (ValueNode node : dependencies().nonNull().and(isNotA(BeginNode.class))) {
+        for (ValueNode node : anchored.nonNull().and(isNotA(AbstractBeginNode.class))) {
             State state = tool.getObjectState(node);
             if (state == null || state.getState() != EscapeState.Virtual) {
                 return;
             }
         }
         tool.delete();
+    }
+
+    @Override
+    public ValueNode asNode() {
+        return this;
     }
 }

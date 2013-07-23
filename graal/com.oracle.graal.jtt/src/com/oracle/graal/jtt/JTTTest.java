@@ -26,6 +26,7 @@ import static com.oracle.graal.api.meta.MetaUtil.*;
 import static java.lang.reflect.Modifier.*;
 
 import java.lang.reflect.*;
+import java.util.*;
 
 import org.junit.*;
 
@@ -60,9 +61,9 @@ public class JTTTest extends GraalCompilerTest {
             Object[] args = argsWithReceiver(receiver, argsToBind);
             JavaType[] parameterTypes = signatureToTypes(runtime.lookupJavaMethod(m));
             assert parameterTypes.length == args.length;
-            for (int i = 0; i < argsToBind.length; i++) {
+            for (int i = 0; i < args.length; i++) {
                 LocalNode local = graph.getLocal(i);
-                Constant c = Constant.forBoxed(parameterTypes[i].getKind(), argsToBind[i]);
+                Constant c = Constant.forBoxed(parameterTypes[i].getKind(), args[i]);
                 ConstantNode replacement = ConstantNode.forConstant(c, runtime, graph);
                 local.replaceAtUsages(replacement);
             }
@@ -93,14 +94,20 @@ public class JTTTest extends GraalCompilerTest {
     }
 
     protected void runTest(String name, Object... args) {
+        runTest(Collections.<DeoptimizationReason> emptySet(), name, args);
+    }
+
+    protected void runTest(Set<DeoptimizationReason> shoutNotDeopt, String name, Object... args) {
         Method method = getMethod(name);
         Object receiver = Modifier.isStatic(method.getModifiers()) ? null : this;
 
         Result expect = executeExpected(method, receiver, args);
 
-        test(method, expect, receiver, args);
-        this.argsToBind = args;
-        test(method, expect, receiver, args);
-        this.argsToBind = null;
+        test(method, expect, shoutNotDeopt, receiver, args);
+        if (args.length > 0) {
+            this.argsToBind = args;
+            test(method, expect, shoutNotDeopt, receiver, args);
+            this.argsToBind = null;
+        }
     }
 }

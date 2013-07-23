@@ -24,10 +24,11 @@ package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
-public class UnboxNode extends FixedWithNextNode implements Virtualizable, Lowerable, Canonicalizable {
+public class UnboxNode extends FloatingNode implements Virtualizable, Lowerable, Canonicalizable {
 
     @Input private ValueNode value;
     private final Kind boxingKind;
@@ -47,7 +48,7 @@ public class UnboxNode extends FixedWithNextNode implements Virtualizable, Lower
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -79,9 +80,9 @@ public class UnboxNode extends FixedWithNextNode implements Virtualizable, Lower
                     case Long:
                         return ConstantNode.forLong((Long) o, graph());
                     case Float:
-                        return ConstantNode.forFloat((Long) o, graph());
+                        return ConstantNode.forFloat((Float) o, graph());
                     case Double:
-                        return ConstantNode.forDouble((Long) o, graph());
+                        return ConstantNode.forDouble((Double) o, graph());
                     default:
                         ValueNodeUtil.shouldNotReachHere();
                 }

@@ -51,6 +51,7 @@ address StubRoutines::_catch_exception_entry                    = NULL;
 address StubRoutines::_forward_exception_entry                  = NULL;
 address StubRoutines::_throw_AbstractMethodError_entry          = NULL;
 address StubRoutines::_throw_IncompatibleClassChangeError_entry = NULL;
+address StubRoutines::_throw_InvalidInstalledCodeException_entry = NULL;
 address StubRoutines::_throw_NullPointerException_at_call_entry = NULL;
 address StubRoutines::_throw_StackOverflowError_entry           = NULL;
 address StubRoutines::_handler_for_unsafe_access_entry          = NULL;
@@ -147,7 +148,7 @@ void StubRoutines::initialize1() {
     TraceTime timer("StubRoutines generation 1", TraceStartupTime);
     _code1 = BufferBlob::create("StubRoutines (1)", code_size1);
     if (_code1 == NULL) {
-      vm_exit_out_of_memory(code_size1, "CodeCache: no room for StubRoutines (1)");
+      vm_exit_out_of_memory(code_size1, OOM_MALLOC_ERROR, "CodeCache: no room for StubRoutines (1)");
     }
     CodeBuffer buffer(_code1);
     StubGenerator_generate(&buffer, false);
@@ -199,7 +200,7 @@ void StubRoutines::initialize2() {
     TraceTime timer("StubRoutines generation 2", TraceStartupTime);
     _code2 = BufferBlob::create("StubRoutines (2)", code_size2);
     if (_code2 == NULL) {
-      vm_exit_out_of_memory(code_size2, "CodeCache: no room for StubRoutines (2)");
+      vm_exit_out_of_memory(code_size2, OOM_MALLOC_ERROR, "CodeCache: no room for StubRoutines (2)");
     }
     CodeBuffer buffer(_code2);
     StubGenerator_generate(&buffer, true);

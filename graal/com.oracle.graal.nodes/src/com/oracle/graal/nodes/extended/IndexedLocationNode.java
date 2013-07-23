@@ -26,72 +26,76 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
 /**
- * Extension of a {@linkplain LocationNode location} to include a scaled index. Can represent
- * locations in the form of [base + index * scale + disp] where base and index are nodes and scale
- * and disp are integer constants.
+ * Location node that has a displacement and a scaled index. Can represent locations in the form of
+ * [base + index * scale + disp] where base and index are nodes and scale and disp are integer
+ * constants.
  */
+@NodeInfo(nameTemplate = "IdxLoc {p#locationIdentity/s}")
 public final class IndexedLocationNode extends LocationNode implements Canonicalizable {
 
+    private final Kind valueKind;
+    private final LocationIdentity locationIdentity;
+    private final long displacement;
     @Input private ValueNode index;
     private final int indexScaling;
 
     /**
      * Gets the index or offset of this location.
      */
-    public ValueNode index() {
+    public ValueNode getIndex() {
         return index;
     }
 
-    public static Object getArrayLocation(Kind elementKind) {
-        return elementKind;
+    public long getDisplacement() {
+        return displacement;
     }
 
     /**
      * @return Constant that is used to scale the index.
      */
-    public int indexScaling() {
+    public int getIndexScaling() {
         return indexScaling;
     }
 
-    public static IndexedLocationNode create(Object identity, Kind kind, int displacement, ValueNode index, Graph graph, int indexScaling) {
-        return graph.unique(new IndexedLocationNode(identity, kind, index, displacement, indexScaling));
+    public static IndexedLocationNode create(LocationIdentity identity, Kind kind, long displacement, ValueNode index, Graph graph, int indexScaling) {
+        return graph.unique(new IndexedLocationNode(identity, kind, displacement, index, indexScaling));
     }
 
-    private IndexedLocationNode(Object identity, Kind kind, ValueNode index, int displacement, int indexScaling) {
-        super(identity, kind, displacement);
+    public IndexedLocationNode(LocationIdentity identity, Kind kind, long displacement, ValueNode index, int indexScaling) {
+        super(StampFactory.extension());
+        assert kind != Kind.Illegal && kind != Kind.Void;
+        this.valueKind = kind;
+        this.locationIdentity = identity;
         this.index = index;
+        this.displacement = displacement;
         this.indexScaling = indexScaling;
     }
 
     @Override
+    public Kind getValueKind() {
+        return valueKind;
+    }
+
+    @Override
+    public LocationIdentity getLocationIdentity() {
+        return locationIdentity;
+    }
+
+    @Override
     public ValueNode canonical(CanonicalizerTool tool) {
-        Constant constantIndex = index.asConstant();
-        if (constantIndex != null) {
-            long constantIndexLong = constantIndex.asLong();
-            constantIndexLong *= indexScaling;
-            constantIndexLong += displacement();
-            int constantIndexInt = (int) constantIndexLong;
-            if (constantIndexLong == constantIndexInt) {
-                return LocationNode.create(locationIdentity(), getValueKind(), constantIndexInt, graph());
-            }
+        if (index == null || indexScaling == 0) {
+            return ConstantLocationNode.create(getLocationIdentity(), getValueKind(), displacement, graph());
+        } else if (index.isConstant()) {
+            return ConstantLocationNode.create(getLocationIdentity(), getValueKind(), index.asConstant().asLong() * indexScaling + displacement, graph());
         }
         return this;
     }
 
     @Override
-    public Value generateLea(LIRGeneratorTool gen, ValueNode base) {
-        return gen.emitLea(gen.operand(base), displacement(), gen.operand(index()), indexScaling());
-    }
-
-    @Override
-    public Value generateLoad(LIRGeneratorTool gen, ValueNode base, DeoptimizingNode deopting) {
-        return gen.emitLoad(getValueKind(), gen.operand(base), displacement(), gen.operand(index()), indexScaling(), deopting);
-    }
-
-    @Override
-    public void generateStore(LIRGeneratorTool gen, ValueNode base, ValueNode value, DeoptimizingNode deopting) {
-        gen.emitStore(getValueKind(), gen.operand(base), displacement(), gen.operand(index()), indexScaling(), gen.operand(value), deopting);
+    public Value generateAddress(LIRGeneratorTool gen, Value base) {
+        return gen.emitAddress(base, displacement, gen.operand(getIndex()), getIndexScaling());
     }
 }

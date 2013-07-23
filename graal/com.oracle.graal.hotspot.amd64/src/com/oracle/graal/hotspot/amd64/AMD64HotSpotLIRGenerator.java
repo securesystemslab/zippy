@@ -23,10 +23,10 @@
 package com.oracle.graal.hotspot.amd64;
 
 import static com.oracle.graal.amd64.AMD64.*;
-import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
-import static com.oracle.graal.hotspot.amd64.AMD64HotSpotUnwindOp.*;
+import static com.oracle.graal.hotspot.HotSpotBackend.*;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.graal.amd64.*;
@@ -43,24 +43,33 @@ import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.ParametersOp;
+import com.oracle.graal.lir.StandardOp.PlaceholderOp;
 import com.oracle.graal.lir.amd64.*;
+import com.oracle.graal.lir.amd64.AMD64ControlFlow.CondMoveOp;
+import com.oracle.graal.lir.amd64.AMD64Move.CompareAndSwapCompressedOp;
 import com.oracle.graal.lir.amd64.AMD64Move.CompareAndSwapOp;
+import com.oracle.graal.lir.amd64.AMD64Move.LoadCompressedPointer;
+import com.oracle.graal.lir.amd64.AMD64Move.LoadOp;
 import com.oracle.graal.lir.amd64.AMD64Move.MoveFromRegOp;
+import com.oracle.graal.lir.amd64.AMD64Move.StoreCompressedPointer;
+import com.oracle.graal.lir.amd64.AMD64Move.StoreConstantOp;
+import com.oracle.graal.lir.amd64.AMD64Move.StoreOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 
 /**
  * LIR generator specialized for AMD64 HotSpot.
  */
-final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpotLIRGenerator {
+public class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpotLIRGenerator {
 
     private HotSpotRuntime runtime() {
         return (HotSpotRuntime) runtime;
     }
 
-    AMD64HotSpotLIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, ResolvedJavaMethod method, LIR lir) {
-        super(graph, runtime, target, frameMap, method, lir);
+    protected AMD64HotSpotLIRGenerator(StructuredGraph graph, CodeCacheProvider runtime, TargetDescription target, FrameMap frameMap, CallingConvention cc, LIR lir) {
+        super(graph, runtime, target, frameMap, cc, lir);
     }
 
     /**
@@ -71,20 +80,56 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
     StackSlot deoptimizationRescueSlot;
 
     /**
-     * The position at which the instruction for saving RBP should be inserted.
+     * Utility for emitting the instruction to save RBP.
      */
-    Block saveRbpBlock;
-    int saveRbpIndex;
+    class SaveRbp {
 
-    /**
-     * The slot reserved for saving RBP.
-     */
-    StackSlot rbpSlot;
+        final PlaceholderOp placeholder;
+
+        /**
+         * The slot reserved for saving RBP.
+         */
+        final StackSlot reservedSlot;
+
+        public SaveRbp(PlaceholderOp placeholder) {
+            this.placeholder = placeholder;
+            this.reservedSlot = frameMap.allocateSpillSlot(Kind.Long);
+            assert reservedSlot.getRawOffset() == -16 : reservedSlot.getRawOffset();
+        }
+
+        /**
+         * Replaces this operation with the appropriate move for saving rbp.
+         * 
+         * @param useStack specifies if rbp must be saved to the stack
+         */
+        public AllocatableValue finalize(boolean useStack) {
+            AllocatableValue dst;
+            if (useStack) {
+                dst = reservedSlot;
+            } else {
+                frameMap.freeSpillSlot(reservedSlot);
+                dst = newVariable(Kind.Long);
+            }
+
+            placeholder.replace(lir, new MoveFromRegOp(dst, rbp.asValue(Kind.Long)));
+            return dst;
+        }
+    }
+
+    private SaveRbp saveRbp;
 
     /**
      * List of epilogue operations that need to restore RBP.
      */
     List<AMD64HotSpotEpilogueOp> epilogueOps = new ArrayList<>(2);
+
+    @Override
+    public void append(LIRInstruction op) {
+        super.append(op);
+        if (op instanceof AMD64HotSpotEpilogueOp) {
+            epilogueOps.add((AMD64HotSpotEpilogueOp) op);
+        }
+    }
 
     @SuppressWarnings("hiding")
     @Override
@@ -102,7 +147,7 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
     @Override
     protected void emitPrologue() {
 
-        CallingConvention incomingArguments = createCallingConvention();
+        CallingConvention incomingArguments = cc;
 
         RegisterValue rbpParam = rbp.asValue(Kind.Long);
         Value[] params = new Value[incomingArguments.getArgumentCount() + 1];
@@ -116,14 +161,12 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
             }
         }
         params[params.length - 1] = rbpParam;
-
         ParametersOp paramsOp = new ParametersOp(params);
+
         append(paramsOp);
-        saveRbpBlock = currentBlock;
-        saveRbpIndex = lir.lir(saveRbpBlock).size();
-        append(paramsOp); // placeholder
-        rbpSlot = frameMap.allocateSpillSlot(Kind.Long);
-        assert rbpSlot.getRawOffset() == -16 : rbpSlot.getRawOffset();
+
+        saveRbp = new SaveRbp(new PlaceholderOp(currentBlock, lir.lir(currentBlock).size()));
+        append(saveRbp.placeholder);
 
         for (LocalNode local : graph.getNodes(LocalNode.class)) {
             Value param = params[local.index()];
@@ -134,29 +177,112 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
 
     @Override
     protected void emitReturn(Value input) {
-        AMD64HotSpotReturnOp op = new AMD64HotSpotReturnOp(input);
-        epilogueOps.add(op);
-        append(op);
+        append(new AMD64HotSpotReturnOp(input));
     }
 
     @Override
     protected boolean needOnlyOopMaps() {
         // Stubs only need oop maps
-        return runtime().asStub(method) != null;
+        return graph.start() instanceof StubStartNode;
+    }
+
+    /**
+     * Map from debug infos that need to be updated with callee save information to the operations
+     * that provide the information.
+     */
+    Map<LIRFrameState, AMD64RegistersPreservationOp> calleeSaveInfo = new HashMap<>();
+
+    private LIRFrameState currentRuntimeCallInfo;
+
+    @Override
+    protected void emitForeignCall(ForeignCallLinkage linkage, Value result, Value[] arguments, Value[] temps, LIRFrameState info) {
+        currentRuntimeCallInfo = info;
+        super.emitForeignCall(linkage, result, arguments, temps, info);
+    }
+
+    protected AMD64SaveRegistersOp emitSaveRegisters(Register[] savedRegisters, StackSlot[] savedRegisterLocations) {
+        AMD64SaveRegistersOp save = new AMD64SaveRegistersOp(savedRegisters, savedRegisterLocations);
+        append(save);
+        return save;
+    }
+
+    protected void emitRestoreRegisters(AMD64SaveRegistersOp save) {
+        append(new AMD64RestoreRegistersOp(save.getSlots().clone(), save));
+    }
+
+    Stub getStub() {
+        if (graph.start() instanceof StubStartNode) {
+            return ((StubStartNode) graph.start()).getStub();
+        }
+        return null;
     }
 
     @Override
-    protected CallingConvention createCallingConvention() {
-        Stub stub = runtime().asStub(method);
-        if (stub != null) {
-            return stub.getLinkage().getCallingConvention();
+    public Variable emitForeignCall(ForeignCallLinkage linkage, DeoptimizingNode info, Value... args) {
+        Stub stub = getStub();
+        boolean destroysRegisters = linkage.destroysRegisters();
+
+        AMD64SaveRegistersOp save = null;
+        StackSlot[] savedRegisterLocations = null;
+        if (destroysRegisters) {
+            if (stub != null) {
+                if (stub.preservesRegisters()) {
+                    Register[] savedRegisters = frameMap.registerConfig.getAllocatableRegisters();
+                    savedRegisterLocations = new StackSlot[savedRegisters.length];
+                    for (int i = 0; i < savedRegisters.length; i++) {
+                        PlatformKind kind = target.arch.getLargestStorableKind(savedRegisters[i].getRegisterCategory());
+                        assert kind != Kind.Illegal;
+                        StackSlot spillSlot = frameMap.allocateSpillSlot(kind);
+                        savedRegisterLocations[i] = spillSlot;
+                    }
+                    save = emitSaveRegisters(savedRegisters, savedRegisterLocations);
+                }
+            }
         }
 
-        if (graph.getEntryBCI() == StructuredGraph.INVOCATION_ENTRY_BCI) {
-            return super.createCallingConvention();
+        Variable result;
+
+        if (linkage.canDeoptimize()) {
+            assert info != null;
+            append(new AMD64HotSpotCRuntimeCallPrologueOp());
+            result = super.emitForeignCall(linkage, info, args);
+            append(new AMD64HotSpotCRuntimeCallEpilogueOp());
         } else {
-            return frameMap.registerConfig.getCallingConvention(JavaCallee, method.getSignature().getReturnType(null), new JavaType[]{runtime.lookupJavaType(long.class)}, target, false);
+            result = super.emitForeignCall(linkage, null, args);
         }
+
+        if (destroysRegisters) {
+            if (stub != null) {
+                if (stub.preservesRegisters()) {
+                    assert !calleeSaveInfo.containsKey(currentRuntimeCallInfo);
+                    calleeSaveInfo.put(currentRuntimeCallInfo, save);
+
+                    emitRestoreRegisters(save);
+                } else {
+                    assert zapRegisters();
+                }
+            }
+        }
+
+        return result;
+    }
+
+    protected AMD64ZapRegistersOp emitZapRegisters(Register[] zappedRegisters, Constant[] zapValues) {
+        AMD64ZapRegistersOp zap = new AMD64ZapRegistersOp(zappedRegisters, zapValues);
+        append(zap);
+        return zap;
+    }
+
+    protected boolean zapRegisters() {
+        Register[] zappedRegisters = frameMap.registerConfig.getAllocatableRegisters();
+        Constant[] zapValues = new Constant[zappedRegisters.length];
+        for (int i = 0; i < zappedRegisters.length; i++) {
+            PlatformKind kind = target.arch.getLargestStorableKind(zappedRegisters[i].getRegisterCategory());
+            assert kind != Kind.Illegal;
+            zapValues[i] = zapValueForKind(kind);
+        }
+        calleeSaveInfo.put(currentRuntimeCallInfo, emitZapRegisters(zappedRegisters, zapValues));
+        return true;
     }
 
     @Override
@@ -197,7 +323,6 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
     @Override
     public void emitTailcall(Value[] args, Value address) {
         append(new AMD64TailcallOp(args, address));
-
     }
 
     @Override
@@ -208,6 +333,7 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
         } else {
             assert invokeKind == InvokeKind.Static || invokeKind == InvokeKind.Special;
             HotSpotResolvedJavaMethod resolvedMethod = (HotSpotResolvedJavaMethod) callTarget.target();
+            assert !Modifier.isAbstract(resolvedMethod.getModifiers()) : "Cannot make direct call to abstract method.";
             Constant metaspaceMethod = resolvedMethod.getMetaspaceMethodConstant();
             append(new AMD64HotspotDirectStaticCallOp(callTarget.target(), result, parameters, temps, callState, invokeKind, metaspaceMethod));
         }
@@ -215,20 +341,25 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
 
     @Override
     protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        Value metaspaceMethod = AMD64.rbx.asValue();
-        emitMove(metaspaceMethod, operand(((HotSpotIndirectCallTargetNode) callTarget).metaspaceMethod()));
-        Value targetAddress = AMD64.rax.asValue();
-        emitMove(targetAddress, operand(callTarget.computedAddress()));
-        append(new AMD64IndirectCallOp(callTarget.target(), result, parameters, temps, metaspaceMethod, targetAddress, callState));
+        if (callTarget instanceof HotSpotIndirectCallTargetNode) {
+            AllocatableValue metaspaceMethod = AMD64.rbx.asValue();
+            emitMove(metaspaceMethod, operand(((HotSpotIndirectCallTargetNode) callTarget).metaspaceMethod()));
+            AllocatableValue targetAddress = AMD64.rax.asValue();
+            emitMove(targetAddress, operand(callTarget.computedAddress()));
+            append(new AMD64IndirectCallOp(callTarget.target(), result, parameters, temps, metaspaceMethod, targetAddress, callState));
+        } else {
+            super.emitIndirectCall(callTarget, result, parameters, temps, callState);
+        }
     }
 
     @Override
     public void emitUnwind(Value exception) {
-        RegisterValue exceptionParameter = EXCEPTION.asValue();
+        ForeignCallLinkage linkage = getRuntime().lookupForeignCall(HotSpotBackend.UNWIND_EXCEPTION_TO_CALLER);
+        CallingConvention linkageCc = linkage.getCallingConvention();
+        assert linkageCc.getArgumentCount() == 2;
+        RegisterValue exceptionParameter = (RegisterValue) linkageCc.getArgument(0);
         emitMove(exceptionParameter, exception);
-        AMD64HotSpotUnwindOp op = new AMD64HotSpotUnwindOp(exceptionParameter);
-        epilogueOps.add(op);
-        append(op);
+        append(new AMD64HotSpotUnwindOp(exceptionParameter));
     }
 
     @Override
@@ -237,24 +368,134 @@ final class AMD64HotSpotLIRGenerator extends AMD64LIRGenerator implements HotSpo
     }
 
     @Override
+    public void emitDeoptimizeCaller(DeoptimizationAction action, DeoptimizationReason reason) {
+        append(new AMD64HotSpotDeoptimizeCallerOp(action, reason));
+    }
+
+    @Override
+    public void emitPatchReturnAddress(ValueNode address) {
+        append(new AMD64HotSpotPatchReturnAddressOp(load(operand(address))));
+    }
+
+    @Override
+    public void emitJumpToExceptionHandlerInCaller(ValueNode handlerInCallerPc, ValueNode exception, ValueNode exceptionPc) {
+        Variable handler = load(operand(handlerInCallerPc));
+        ForeignCallLinkage linkage = getRuntime().lookupForeignCall(EXCEPTION_HANDLER_IN_CALLER);
+        CallingConvention linkageCc = linkage.getCallingConvention();
+        assert linkageCc.getArgumentCount() == 2;
+        RegisterValue exceptionFixed = (RegisterValue) linkageCc.getArgument(0);
+        RegisterValue exceptionPcFixed = (RegisterValue) linkageCc.getArgument(1);
+        emitMove(exceptionFixed, operand(exception));
+        emitMove(exceptionPcFixed, operand(exceptionPc));
+        AMD64HotSpotJumpToExceptionHandlerInCallerOp op = new AMD64HotSpotJumpToExceptionHandlerInCallerOp(handler, exceptionFixed, exceptionPcFixed);
+        append(op);
+    }
+
+    @Override
     public void beforeRegisterAllocation() {
-        assert rbpSlot != null;
-        RegisterValue rbpParam = rbp.asValue(Kind.Long);
-        AllocatableValue savedRbp;
-        LIRInstruction saveRbp;
-        if (lir.hasDebugInfo()) {
-            savedRbp = rbpSlot;
+        boolean hasDebugInfo = lir.hasDebugInfo();
+        AllocatableValue savedRbp = saveRbp.finalize(hasDebugInfo);
+        if (hasDebugInfo) {
             deoptimizationRescueSlot = frameMap.allocateSpillSlot(Kind.Long);
-        } else {
-            frameMap.freeSpillSlot(rbpSlot);
-            savedRbp = newVariable(Kind.Long);
         }
 
         for (AMD64HotSpotEpilogueOp op : epilogueOps) {
             op.savedRbp = savedRbp;
         }
+    }
 
-        saveRbp = new MoveFromRegOp(savedRbp, rbpParam);
-        lir.lir(saveRbpBlock).set(saveRbpIndex, saveRbp);
+    private static boolean isCompressCandidate(DeoptimizingNode access) {
+        return access != null && ((HeapAccess) access).compressible();
+    }
+
+    @Override
+    public Variable emitLoad(Kind kind, Value address, DeoptimizingNode access) {
+        AMD64AddressValue loadAddress = asAddressValue(address);
+        Variable result = newVariable(kind);
+        assert access == null || access instanceof HeapAccess;
+        if (isCompressCandidate(access)) {
+            if (runtime().config.useCompressedOops && kind == Kind.Object) {
+                append(new LoadCompressedPointer(kind, result, loadAddress, access != null ? state(access) : null, runtime().config.narrowOopBase, runtime().config.narrowOopShift,
+                                runtime().config.logMinObjAlignment));
+            } else if (runtime().config.useCompressedKlassPointers && kind == Kind.Long) {
+                append(new LoadCompressedPointer(kind, result, loadAddress, access != null ? state(access) : null, runtime().config.narrowKlassBase, runtime().config.narrowKlassShift,
+                                runtime().config.logKlassAlignment));
+            } else {
+                append(new LoadOp(kind, result, loadAddress, access != null ? state(access) : null));
+            }
+        } else {
+            append(new LoadOp(kind, result, loadAddress, access != null ? state(access) : null));
+        }
+        return result;
+    }
+
+    @Override
+    public void emitStore(Kind kind, Value address, Value inputVal, DeoptimizingNode access) {
+        AMD64AddressValue storeAddress = asAddressValue(address);
+        LIRFrameState state = access != null ? state(access) : null;
+        if (isConstant(inputVal)) {
+            Constant c = asConstant(inputVal);
+            if (canStoreConstant(c)) {
+                if (inputVal.getKind() == Kind.Object) {
+                    append(new StoreConstantOp(kind, storeAddress, c, state, runtime().config.useCompressedOops && isCompressCandidate(access)));
+                } else if (inputVal.getKind() == Kind.Long) {
+                    append(new StoreConstantOp(kind, storeAddress, c, state, runtime().config.useCompressedKlassPointers && isCompressCandidate(access)));
+                } else {
+                    append(new StoreConstantOp(kind, storeAddress, c, state, false));
+                }
+                return;
+            }
+        }
+        Variable input = load(inputVal);
+        if (isCompressCandidate(access)) {
+            if (runtime().config.useCompressedOops && kind == Kind.Object) {
+                if (input.getKind() == Kind.Object) {
+                    Variable scratch = newVariable(Kind.Long);
+                    append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, runtime().config.narrowOopBase, runtime().config.narrowOopShift, runtime().config.logMinObjAlignment));
+                } else {
+                    // the input oop is already compressed
+                    append(new StoreOp(input.getKind(), storeAddress, input, state));
+                }
+            } else if (runtime().config.useCompressedKlassPointers && kind == Kind.Long) {
+                Variable scratch = newVariable(Kind.Long);
+                append(new StoreCompressedPointer(kind, storeAddress, input, scratch, state, runtime().config.narrowKlassBase, runtime().config.narrowKlassShift, runtime().config.logKlassAlignment));
+            } else {
+                append(new StoreOp(kind, storeAddress, input, state));
+            }
+        } else {
+            append(new StoreOp(kind, storeAddress, input, state));
+        }
+    }
+
+    @Override
+    public void visitCompareAndSwap(CompareAndSwapNode node) {
+        Kind kind = node.newValue().kind();
+        assert kind == node.expected().kind();
+
+        Value expected = loadNonConst(operand(node.expected()));
+        Variable newValue = load(operand(node.newValue()));
+
+        AMD64AddressValue address;
+        int displacement = node.displacement();
+        Value index = operand(node.offset());
+        if (isConstant(index) && NumUtil.isInt(asConstant(index).asLong() + displacement)) {
+            assert !runtime.needsDataPatch(asConstant(index));
+            displacement += (int) asConstant(index).asLong();
+            address = new AMD64AddressValue(kind, load(operand(node.object())), displacement);
+        } else {
+            address = new AMD64AddressValue(kind, load(operand(node.object())), load(index), Scale.Times1, displacement);
+        }
+
+        RegisterValue raxRes = AMD64.rax.asValue(kind);
+        emitMove(raxRes, expected);
+        if (runtime().config.useCompressedOops && node.compressible()) {
+            Variable scratch = newVariable(Kind.Long);
+            append(new CompareAndSwapCompressedOp(raxRes, address, raxRes, newValue, scratch, runtime().config.narrowOopBase, runtime().config.narrowOopShift, runtime().config.logMinObjAlignment));
+        } else {
+            append(new CompareAndSwapOp(raxRes, address, raxRes, newValue));
+        }
+        Variable result = newVariable(node.kind());
+        append(new CondMoveOp(result, Condition.EQ, load(Constant.TRUE), Constant.FALSE));
+        setResult(node, result);
     }
 }

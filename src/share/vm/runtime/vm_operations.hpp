@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -178,6 +178,8 @@ class VM_Operation: public CHeapObj<mtInternal> {
            evaluation_mode() == _async_safepoint;
   }
 
+  static const char* mode_to_string(Mode mode);
+
   // Debugging
   void print_on_error(outputStream* st) const;
   const char* name() const { return _names[type()]; }
@@ -303,7 +305,7 @@ class VM_Verify: public VM_Operation {
  private:
   bool _silent;
  public:
-  VM_Verify(bool silent) : _silent(silent) {}
+  VM_Verify(bool silent = VerifySilently) : _silent(silent) {}
   VMOp_Type type() const { return VMOp_Verify; }
   void doit();
 };

@@ -65,13 +65,12 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
     public void lower(FloatingNode instanceOf, LoweringTool tool) {
         assert instanceOf instanceof InstanceOfNode || instanceOf instanceof InstanceOfDynamicNode;
         List<Node> usages = instanceOf.usages().snapshot();
-        int nUsages = usages.size();
 
         Instantiation instantiation = new Instantiation();
         for (Node usage : usages) {
             final StructuredGraph graph = (StructuredGraph) usage.graph();
 
-            InstanceOfUsageReplacer replacer = createReplacer(instanceOf, tool, nUsages, instantiation, usage, graph);
+            InstanceOfUsageReplacer replacer = createReplacer(instanceOf, instantiation, usage, graph);
 
             if (instantiation.isInitialized()) {
                 // No need to re-instantiate the snippet - just re-use its result
@@ -92,25 +91,25 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
      * Gets the specific replacer object used to replace the usage of an instanceof node with the
      * result of an instantiated instanceof snippet.
      */
-    protected InstanceOfUsageReplacer createReplacer(FloatingNode instanceOf, LoweringTool tool, int nUsages, Instantiation instantiation, Node usage, final StructuredGraph graph) {
+    protected InstanceOfUsageReplacer createReplacer(FloatingNode instanceOf, Instantiation instantiation, Node usage, final StructuredGraph graph) {
         InstanceOfUsageReplacer replacer;
-        if (usage instanceof IfNode) {
-            replacer = new IfUsageReplacer(instantiation, ConstantNode.forInt(1, graph), ConstantNode.forInt(0, graph), instanceOf, (IfNode) usage, nUsages == 1, tool);
+        if (usage instanceof IfNode || usage instanceof FixedGuardNode || usage instanceof ShortCircuitBooleanNode || usage instanceof GuardingPiNode) {
+            replacer = new NonMaterializationUsageReplacer(instantiation, ConstantNode.forInt(1, graph), ConstantNode.forInt(0, graph), instanceOf, usage);
         } else {
             assert usage instanceof ConditionalNode : "unexpected usage of " + instanceOf + ": " + usage;
             ConditionalNode c = (ConditionalNode) usage;
-            replacer = new ConditionalUsageReplacer(instantiation, c.trueValue(), c.falseValue(), instanceOf, c);
+            replacer = new MaterializationUsageReplacer(instantiation, c.trueValue(), c.falseValue(), instanceOf, c);
         }
         return replacer;
     }
 
     /**
-     * The result of an instantiating an instanceof snippet. This enables a snippet instantiation to
-     * be re-used which reduces compile time and produces better code.
+     * The result of instantiating an instanceof snippet. This enables a snippet instantiation to be
+     * re-used which reduces compile time and produces better code.
      */
     public static final class Instantiation {
 
-        private PhiNode result;
+        private ValueNode result;
         private CompareNode condition;
         private ValueNode trueValue;
         private ValueNode falseValue;
@@ -122,9 +121,9 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
             return result != null;
         }
 
-        void initialize(PhiNode phi, ValueNode t, ValueNode f) {
+        void initialize(ValueNode r, ValueNode t, ValueNode f) {
             assert !isInitialized();
-            this.result = phi;
+            this.result = r;
             this.trueValue = t;
             this.falseValue = f;
         }
@@ -134,8 +133,12 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
          * 
          * @param testValue the returned condition is true if the result is equal to this value
          */
-        CompareNode asCondition(ValueNode testValue) {
+        LogicNode asCondition(ValueNode testValue) {
             assert isInitialized();
+            if (result.isConstant()) {
+                assert testValue.isConstant();
+                return LogicConstantNode.forBoolean(result.asConstant().equals(testValue.asConstant()), result.graph());
+            }
             if (condition == null || condition.y() != testValue) {
                 // Re-use previously generated condition if the trueValue for the test is the same
                 condition = createCompareNode(Condition.EQ, result, testValue);
@@ -185,19 +188,15 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
     }
 
     /**
-     * Replaces an {@link IfNode} usage of an {@link InstanceOfNode} or
-     * {@link InstanceOfDynamicNode}.
+     * Replaces the usage of an {@link InstanceOfNode} or {@link InstanceOfDynamicNode} that does
+     * not materialize the result of the type test.
      */
-    public static class IfUsageReplacer extends InstanceOfUsageReplacer {
+    public static class NonMaterializationUsageReplacer extends InstanceOfUsageReplacer {
 
-        private final boolean solitaryUsage;
-        private final IfNode usage;
-        private final boolean sameBlock;
+        private final Node usage;
 
-        public IfUsageReplacer(Instantiation instantiation, ValueNode trueValue, ValueNode falseValue, FloatingNode instanceOf, IfNode usage, boolean solitaryUsage, LoweringTool tool) {
+        public NonMaterializationUsageReplacer(Instantiation instantiation, ValueNode trueValue, ValueNode falseValue, FloatingNode instanceOf, Node usage) {
             super(instantiation, instanceOf, trueValue, falseValue);
-            this.sameBlock = tool.getBlockFor(usage) == tool.getBlockFor(instanceOf);
-            this.solitaryUsage = solitaryUsage;
             this.usage = usage;
         }
 
@@ -206,96 +205,25 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
             usage.replaceFirstInput(instanceOf, instantiation.asCondition(trueValue));
         }
 
-        private boolean usageFollowsInstantiation() {
-            return instantiation.result != null && instantiation.result.merge().next() == usage;
-        }
-
         @Override
         public void replace(ValueNode oldNode, ValueNode newNode) {
             assert newNode instanceof PhiNode;
             assert oldNode == instanceOf;
-            if (sameBlock && solitaryUsage && usageFollowsInstantiation()) {
-                removeIntermediateMaterialization(newNode);
-            } else {
-                newNode.inferStamp();
-                instantiation.initialize((PhiNode) newNode, trueValue, falseValue);
-                usage.replaceFirstInput(oldNode, instantiation.asCondition(trueValue));
-            }
-        }
-
-        /**
-         * Directly wires the incoming edges of the merge at the end of the snippet to the outgoing
-         * edges of the IfNode that uses the materialized result.
-         */
-        private void removeIntermediateMaterialization(ValueNode newNode) {
-            IfNode ifNode = usage;
-            PhiNode phi = (PhiNode) newNode;
-            MergeNode merge = phi.merge();
-            assert merge.stateAfter() == null;
-
-            List<EndNode> mergePredecessors = merge.cfgPredecessors().snapshot();
-            assert phi.valueCount() == mergePredecessors.size();
-
-            List<EndNode> falseEnds = new ArrayList<>(mergePredecessors.size());
-            List<EndNode> trueEnds = new ArrayList<>(mergePredecessors.size());
-
-            int endIndex = 0;
-            for (EndNode end : mergePredecessors) {
-                ValueNode endValue = phi.valueAt(endIndex++);
-                if (endValue == trueValue) {
-                    trueEnds.add(end);
-                } else {
-                    assert endValue == falseValue;
-                    falseEnds.add(end);
-                }
-            }
-
-            BeginNode trueSuccessor = ifNode.trueSuccessor();
-            BeginNode falseSuccessor = ifNode.falseSuccessor();
-            ifNode.setTrueSuccessor(null);
-            ifNode.setFalseSuccessor(null);
-
-            connectEnds(merge, trueEnds, trueSuccessor);
-            connectEnds(merge, falseEnds, falseSuccessor);
-
-            GraphUtil.killCFG(merge);
-            GraphUtil.killCFG(ifNode);
-
-            assert !merge.isAlive() : merge;
-            assert !phi.isAlive() : phi;
-        }
-
-        private static void connectEnds(MergeNode merge, List<EndNode> ends, BeginNode successor) {
-            if (ends.size() == 0) {
-                // InstanceOf has been lowered to always true or always false - this successor is
-                // therefore unreachable.
-                GraphUtil.killCFG(successor);
-            } else if (ends.size() == 1) {
-                EndNode end = ends.get(0);
-                ((FixedWithNextNode) end.predecessor()).setNext(successor);
-                merge.removeEnd(end);
-                GraphUtil.killCFG(end);
-            } else {
-                assert ends.size() > 1;
-                MergeNode newMerge = merge.graph().add(new MergeNode());
-
-                for (EndNode end : ends) {
-                    newMerge.addForwardEnd(end);
-                }
-                newMerge.setNext(successor);
-            }
+            newNode.inferStamp();
+            instantiation.initialize(newNode, trueValue, falseValue);
+            usage.replaceFirstInput(oldNode, instantiation.asCondition(trueValue));
         }
     }
 
     /**
-     * Replaces a {@link ConditionalNode} usage of an {@link InstanceOfNode} or
-     * {@link InstanceOfDynamicNode}.
+     * Replaces the usage of an {@link InstanceOfNode} or {@link InstanceOfDynamicNode} that does
+     * materializes the result of the type test.
      */
-    public static class ConditionalUsageReplacer extends InstanceOfUsageReplacer {
+    public static class MaterializationUsageReplacer extends InstanceOfUsageReplacer {
 
         public final ConditionalNode usage;
 
-        public ConditionalUsageReplacer(Instantiation instantiation, ValueNode trueValue, ValueNode falseValue, FloatingNode instanceOf, ConditionalNode usage) {
+        public MaterializationUsageReplacer(Instantiation instantiation, ValueNode trueValue, ValueNode falseValue, FloatingNode instanceOf, ConditionalNode usage) {
             super(instantiation, instanceOf, trueValue, falseValue);
             this.usage = usage;
         }
@@ -314,7 +242,7 @@ public abstract class InstanceOfSnippetsTemplates extends AbstractTemplates {
             assert newNode instanceof PhiNode;
             assert oldNode == instanceOf;
             newNode.inferStamp();
-            instantiation.initialize((PhiNode) newNode, trueValue, falseValue);
+            instantiation.initialize(newNode, trueValue, falseValue);
             usage.replaceAtUsages(newNode);
             usage.clearInputs();
             assert usage.usages().isEmpty();

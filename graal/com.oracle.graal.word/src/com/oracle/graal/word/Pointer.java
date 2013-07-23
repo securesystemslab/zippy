@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.word;
 
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.nodes.HeapAccess.WriteBarrierType;
 import com.oracle.graal.nodes.extended.*;
 
 public interface Pointer extends Unsigned {
@@ -47,7 +49,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    byte readByte(WordBase offset, Object locationIdentity);
+    byte readByte(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -61,7 +63,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    char readChar(WordBase offset, Object locationIdentity);
+    char readChar(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -75,7 +77,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    short readShort(WordBase offset, Object locationIdentity);
+    short readShort(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -89,7 +91,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    int readInt(WordBase offset, Object locationIdentity);
+    int readInt(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -103,7 +105,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    long readLong(WordBase offset, Object locationIdentity);
+    long readLong(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -117,7 +119,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    float readFloat(WordBase offset, Object locationIdentity);
+    float readFloat(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -131,7 +133,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    double readDouble(WordBase offset, Object locationIdentity);
+    double readDouble(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -145,7 +147,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    Word readWord(WordBase offset, Object locationIdentity);
+    Word readWord(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -159,7 +161,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    Object readObject(WordBase offset, Object locationIdentity);
+    Object readObject(WordBase offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -169,7 +171,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    byte readByte(int offset, Object locationIdentity);
+    byte readByte(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -179,7 +181,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    char readChar(int offset, Object locationIdentity);
+    char readChar(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -189,7 +191,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    short readShort(int offset, Object locationIdentity);
+    short readShort(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -199,7 +201,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    int readInt(int offset, Object locationIdentity);
+    int readInt(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -209,7 +211,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    long readLong(int offset, Object locationIdentity);
+    long readLong(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -219,7 +221,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    float readFloat(int offset, Object locationIdentity);
+    float readFloat(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -229,7 +231,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    double readDouble(int offset, Object locationIdentity);
+    double readDouble(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -239,7 +241,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    Word readWord(int offset, Object locationIdentity);
+    Word readWord(int offset, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -249,7 +251,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the read (see {@link LocationNode})
      * @return the result of the memory access
      */
-    Object readObject(int offset, Object locationIdentity);
+    Object readObject(int offset, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -263,7 +265,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeByte(WordBase offset, byte val, Object locationIdentity);
+    void writeByte(WordBase offset, byte val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -277,7 +279,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeChar(WordBase offset, char val, Object locationIdentity);
+    void writeChar(WordBase offset, char val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -291,7 +293,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeShort(WordBase offset, short val, Object locationIdentity);
+    void writeShort(WordBase offset, short val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -305,7 +307,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeInt(WordBase offset, int val, Object locationIdentity);
+    void writeInt(WordBase offset, int val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -319,7 +321,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeLong(WordBase offset, long val, Object locationIdentity);
+    void writeLong(WordBase offset, long val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -333,7 +335,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeFloat(WordBase offset, float val, Object locationIdentity);
+    void writeFloat(WordBase offset, float val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -347,7 +349,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeDouble(WordBase offset, double val, Object locationIdentity);
+    void writeDouble(WordBase offset, double val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -361,7 +363,21 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeWord(WordBase offset, WordBase val, Object locationIdentity);
+    void writeWord(WordBase offset, WordBase val, LocationIdentity locationIdentity);
+
+    /**
+     * Initializes the memory at address {@code (this + offset)}. Both the base address and offset
+     * are in bytes. The memory must be uninitialized or zero prior to this operation.
+     * <p>
+     * The offset is always treated as a {@link Signed} value. However, the static type is
+     * {@link WordBase} to avoid the frequent casts to of {@link Unsigned} values (where the caller
+     * knows that the highest-order bit of the unsigned value is never used).
+     * 
+     * @param offset the signed offset for the memory access
+     * @param locationIdentity the identity of the write (see {@link LocationNode})
+     * @param val the value to be written to memory
+     */
+    void initializeWord(WordBase offset, WordBase val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -375,7 +391,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeObject(WordBase offset, Object val, Object locationIdentity);
+    void writeObject(WordBase offset, Object val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -385,7 +401,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeByte(int offset, byte val, Object locationIdentity);
+    void writeByte(int offset, byte val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -395,7 +411,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeChar(int offset, char val, Object locationIdentity);
+    void writeChar(int offset, char val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -405,7 +421,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeShort(int offset, short val, Object locationIdentity);
+    void writeShort(int offset, short val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -415,7 +431,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeInt(int offset, int val, Object locationIdentity);
+    void writeInt(int offset, int val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -425,7 +441,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeLong(int offset, long val, Object locationIdentity);
+    void writeLong(int offset, long val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -435,7 +451,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeFloat(int offset, float val, Object locationIdentity);
+    void writeFloat(int offset, float val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -445,7 +461,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeDouble(int offset, double val, Object locationIdentity);
+    void writeDouble(int offset, double val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -455,7 +471,17 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeWord(int offset, WordBase val, Object locationIdentity);
+    void writeWord(int offset, WordBase val, LocationIdentity locationIdentity);
+
+    /**
+     * Initializes the memory at address {@code (this + offset)}. Both the base address and offset
+     * are in bytes. The memory must be uninitialized or zero prior to this operation.
+     * 
+     * @param offset the signed offset for the memory access
+     * @param locationIdentity the identity of the write (see {@link LocationNode})
+     * @param val the value to be written to memory
+     */
+    void initializeWord(int offset, WordBase val, LocationIdentity locationIdentity);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -465,7 +491,7 @@ public interface Pointer extends Unsigned {
      * @param locationIdentity the identity of the write (see {@link LocationNode})
      * @param val the value to be written to memory
      */
-    void writeObject(int offset, Object val, Object locationIdentity);
+    void writeObject(int offset, Object val, LocationIdentity locationIdentity);
 
     /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
@@ -585,6 +611,21 @@ public interface Pointer extends Unsigned {
     Object readObject(WordBase offset);
 
     /**
+     * Reads the memory at address {@code (this + offset)}. This particular access can allow
+     * decompression and read barriers (G1 referent field).
+     * <p>
+     * The offset is always treated as a {@link Signed} value. However, the static type is
+     * {@link WordBase} to avoid the frequent casts to of {@link Unsigned} values (where the caller
+     * knows that the highest-order bit of the unsigned value is never used).
+     * 
+     * @param offset the signed offset for the memory access
+     * @param barrierType the type of the read barrier to be added
+     * @param compressible whether or not the object is a decompression candidate
+     * @return the result of the memory access
+     */
+    Object readObject(WordBase offset, WriteBarrierType barrierType, boolean compressible);
+
+    /**
      * Reads the memory at address {@code (this + offset)}. Both the base address and offset are in
      * bytes.
      * 
@@ -664,6 +705,17 @@ public interface Pointer extends Unsigned {
      * @return the result of the memory access
      */
     Object readObject(int offset);
+
+    /**
+     * Reads the memory at address {@code (this + offset)}. This particular access can be
+     * parameterized to allow decompression and read barriers (G1 referent field).
+     * 
+     * @param offset the signed offset for the memory access
+     * @param barrierType the type of the read barrier to be added
+     * @param compressible whether or not the object is a decompression candidate
+     * @return the result of the memory access
+     */
+    Object readObject(int offset, WriteBarrierType barrierType, boolean compressible);
 
     /**
      * Writes the memory at address {@code (this + offset)}. Both the base address and offset are in

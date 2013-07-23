@@ -48,6 +48,11 @@ public final class DefaultProfilingInfo implements ProfilingInfo {
     }
 
     @Override
+    public JavaMethodProfile getMethodProfile(int bci) {
+        return null;
+    }
+
+    @Override
     public double getBranchTakenProbability(int bci) {
         return -1;
     }
@@ -79,6 +84,11 @@ public final class DefaultProfilingInfo implements ProfilingInfo {
     @Override
     public int getDeoptimizationCount(DeoptimizationReason reason) {
         return 0;
+    }
+
+    @Override
+    public boolean isMature() {
+        return false;
     }
 
     @Override

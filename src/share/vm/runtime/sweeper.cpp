@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,7 @@
 #include "runtime/os.hpp"
 #include "runtime/sweeper.hpp"
 #include "runtime/vm_operations.hpp"
+#include "trace/tracing.hpp"
 #include "utilities/events.hpp"
 #include "utilities/xmlstream.hpp"
 
@@ -130,19 +131,30 @@ void NMethodSweeper::record_sweep(nmethod* nm, int line) {
 long      NMethodSweeper::_traversals = 0;   // No. of stack traversals performed
 nmethod*  NMethodSweeper::_current = NULL;   // Current nmethod
 int       NMethodSweeper::_seen = 0 ;        // No. of nmethods we have currently processed in current pass of CodeCache
+int       NMethodSweeper::_flushed_count = 0;   // Nof. nmethods flushed in current sweep
+int       NMethodSweeper::_zombified_count = 0; // Nof. nmethods made zombie in current sweep
+int       NMethodSweeper::_marked_count = 0;    // Nof. nmethods marked for reclaim in current sweep
 
 volatile int NMethodSweeper::_invocations = 0;   // No. of invocations left until we are completed with this pass
 volatile int NMethodSweeper::_sweep_started = 0; // Whether a sweep is in progress.
 
 jint      NMethodSweeper::_locked_seen = 0;
 jint      NMethodSweeper::_not_entrant_seen_on_stack = 0;
-bool      NMethodSweeper::_rescan = false;
-bool      NMethodSweeper::_do_sweep = false;
-bool      NMethodSweeper::_was_full = false;
-jint      NMethodSweeper::_advise_to_sweep = 0;
-jlong     NMethodSweeper::_last_was_full = 0;
-uint      NMethodSweeper::_highest_marked = 0;
-long      NMethodSweeper::_was_full_traversal = 0;
+bool      NMethodSweeper::_resweep = false;
+jint      NMethodSweeper::_flush_token = 0;
+jlong     NMethodSweeper::_last_full_flush_time = 0;
+int       NMethodSweeper::_highest_marked = 0;
+int       NMethodSweeper::_dead_compile_ids = 0;
+long      NMethodSweeper::_last_flush_traversal_id = 0;
+
+int       NMethodSweeper::_number_of_flushes = 0; // Total of full traversals caused by full cache
+int       NMethodSweeper::_total_nof_methods_reclaimed = 0;
+jlong     NMethodSweeper::_total_time_sweeping = 0;
+jlong     NMethodSweeper::_total_time_this_sweep = 0;
+jlong     NMethodSweeper::_peak_sweep_time = 0;
+jlong     NMethodSweeper::_peak_sweep_fraction_time = 0;
+jlong     NMethodSweeper::_total_disconnect_time = 0;
+jlong     NMethodSweeper::_peak_disconnect_time = 0;
 
 class MarkActivationClosure: public CodeBlobClosure {
 public:
@@ -155,20 +167,16 @@ public:
 };
 static MarkActivationClosure mark_activation_closure;
 
+bool NMethodSweeper::sweep_in_progress() {
+  return (_current != NULL);
+}
+
 void NMethodSweeper::scan_stacks() {
   assert(SafepointSynchronize::is_at_safepoint(), "must be executed at a safepoint");
   if (!MethodFlushing) return;
-  _do_sweep = true;
 
   // No need to synchronize access, since this is always executed at a
-  // safepoint.  If we aren't in the middle of scan and a rescan
-  // hasn't been requested then just return. If UseCodeCacheFlushing is on and
-  // code cache flushing is in progress, don't skip sweeping to help make progress
-  // clearing space in the code cache.
-  if ((_current == NULL && !_rescan) && !(UseCodeCacheFlushing && !CompileBroker::should_compile_new_jobs())) {
-    _do_sweep = false;
-    return;
-  }
+  // safepoint.
 
   // Make sure CompiledIC_lock in unlocked, since we might update some
   // inline caches. If it is, we just bail-out and try later.
@@ -176,50 +184,43 @@ void NMethodSweeper::scan_stacks() {
 
   // Check for restart
   assert(CodeCache::find_blob_unsafe(_current) == _current, "Sweeper nmethod cached state invalid");
-  if (_current == NULL) {
+  if (!sweep_in_progress() && _resweep) {
     _seen        = 0;
     _invocations = NmethodSweepFraction;
     _current     = CodeCache::first_nmethod();
     _traversals  += 1;
+    _total_time_this_sweep = 0;
+
     if (PrintMethodFlushing) {
       tty->print_cr("### Sweep: stack traversal %d", _traversals);
     }
     Threads::nmethods_do(&mark_activation_closure);
 
     // reset the flags since we started a scan from the beginning.
-    _rescan = false;
+    _resweep = false;
     _locked_seen = 0;
     _not_entrant_seen_on_stack = 0;
   }
 
   if (UseCodeCacheFlushing) {
-    if (!CodeCache::needs_flushing()) {
-      // scan_stacks() runs during a safepoint, no race with setters
-      _advise_to_sweep = 0;
+    // only allow new flushes after the interval is complete.
+    jlong now           = os::javaTimeMillis();
+    jlong max_interval  = (jlong)MinCodeCacheFlushingInterval * (jlong)1000;
+    jlong curr_interval = now - _last_full_flush_time;
+    if (curr_interval > max_interval) {
+      _flush_token = 0;
     }
 
-    if (was_full()) {
-      // There was some progress so attempt to restart the compiler
-      jlong now           = os::javaTimeMillis();
-      jlong max_interval  = (jlong)MinCodeCacheFlushingInterval * (jlong)1000;
-      jlong curr_interval = now - _last_was_full;
-      if ((!CodeCache::needs_flushing()) && (curr_interval > max_interval)) {
-        CompileBroker::set_should_compile_new_jobs(CompileBroker::run_compilation);
-        set_was_full(false);
-
-        // Update the _last_was_full time so we can tell how fast the
-        // code cache is filling up
-        _last_was_full = os::javaTimeMillis();
-
-        log_sweep("restart_compiler");
-      }
+    if (!CodeCache::needs_flushing() && !CompileBroker::should_compile_new_jobs()) {
+      CompileBroker::set_should_compile_new_jobs(CompileBroker::run_compilation);
+      log_sweep("restart_compiler");
     }
   }
 }
 
 void NMethodSweeper::possibly_sweep() {
   assert(JavaThread::current()->thread_state() == _thread_in_vm, "must run in vm mode");
-  if ((!MethodFlushing) || (!_do_sweep)) return;
+  if (!MethodFlushing || !sweep_in_progress()) return;
 
   if (_invocations > 0) {
     // Only one thread at a time will sweep
@@ -243,14 +244,23 @@ void NMethodSweeper::possibly_sweep() {
 }
 
 void NMethodSweeper::sweep_code_cache() {
-#ifdef ASSERT
-  jlong sweep_start;
-  if (PrintMethodFlushing) {
-    sweep_start = os::javaTimeMillis();
-  }
-#endif
+
+  jlong sweep_start_counter = os::elapsed_counter();
+
+  _flushed_count   = 0;
+  _zombified_count = 0;
+  _marked_count    = 0;
+
   if (PrintMethodFlushing && Verbose) {
     tty->print_cr("### Sweep at %d out of %d. Invocations left: %d", _seen, CodeCache::nof_nmethods(), _invocations);
+  }
+
+  if (!CompileBroker::should_compile_new_jobs()) {
+    // If we have turned off compilations we might as well do full sweeps
+    // in order to reach the clean state faster. Otherwise the sleeping compiler
+    // threads will slow down sweeping. After a few iterations the cache
+    // will be clean and sweeping stops (_resweep will not be set)
+    _invocations = 1;
   }
 
   // We want to visit all nmethods after NmethodSweepFraction
@@ -296,7 +306,7 @@ void NMethodSweeper::sweep_code_cache() {
 
   assert(_invocations > 1 || _current == NULL, "must have scanned the whole cache");
 
-  if (_current == NULL && !_rescan && (_locked_seen || _not_entrant_seen_on_stack)) {
+  if (!sweep_in_progress() && !_resweep && (_locked_seen || _not_entrant_seen_on_stack)) {
     // we've completed a scan without making progress but there were
     // nmethods we were unable to process either because they were
     // locked or were still on stack.  We don't have to aggresively
@@ -308,15 +318,42 @@ void NMethodSweeper::sweep_code_cache() {
     }
   }
 
+  jlong sweep_end_counter = os::elapsed_counter();
+  jlong sweep_time = sweep_end_counter - sweep_start_counter;
+  _total_time_sweeping  += sweep_time;
+  _total_time_this_sweep += sweep_time;
+  _peak_sweep_fraction_time = MAX2(sweep_time, _peak_sweep_fraction_time);
+  _total_nof_methods_reclaimed += _flushed_count;
+
+  EventSweepCodeCache event(UNTIMED);
+  if (event.should_commit()) {
+    event.set_starttime(sweep_start_counter);
+    event.set_endtime(sweep_end_counter);
+    event.set_sweepIndex(_traversals);
+    event.set_sweepFractionIndex(NmethodSweepFraction - _invocations + 1);
+    event.set_sweptCount(todo);
+    event.set_flushedCount(_flushed_count);
+    event.set_markedCount(_marked_count);
+    event.set_zombifiedCount(_zombified_count);
+    event.commit();
+  }
+
 #ifdef ASSERT
   if(PrintMethodFlushing) {
-    jlong sweep_end             = os::javaTimeMillis();
-    tty->print_cr("### sweeper:      sweep time(%d): " INT64_FORMAT, _invocations, sweep_end - sweep_start);
+    tty->print_cr("### sweeper:      sweep time(%d): " INT64_FORMAT, _invocations, (jlong)sweep_time);
   }
 #endif
 
   if (_invocations == 1) {
+    _peak_sweep_time = MAX2(_peak_sweep_time, _total_time_this_sweep);
     log_sweep("finished");
+  }
+
+  // Sweeper is the only case where memory is released,
+  // check here if it is time to restart the compiler.
+  if (UseCodeCacheFlushing && !CompileBroker::should_compile_new_jobs() && !CodeCache::needs_flushing()) {
+    CompileBroker::set_should_compile_new_jobs(CompileBroker::run_compilation);
+    log_sweep("restart_compiler");
   }
 }
 
@@ -395,12 +432,14 @@ void NMethodSweeper::process_nmethod(nmethod *nm) {
         tty->print_cr("### Nmethod %3d/" PTR_FORMAT " (marked for reclamation) being flushed", nm->compile_id(), nm);
       }
       release_nmethod(nm);
+      _flushed_count++;
     } else {
       if (PrintMethodFlushing && Verbose) {
         tty->print_cr("### Nmethod %3d/" PTR_FORMAT " (zombie) being marked for reclamation", nm->compile_id(), nm);
       }
       nm->mark_for_reclamation();
-      _rescan = true;
+      _resweep = true;
+      _marked_count++;
       SWEEP(nm);
     }
   } else if (nm->is_not_entrant()) {
@@ -411,7 +450,8 @@ void NMethodSweeper::process_nmethod(nmethod *nm) {
         tty->print_cr("### Nmethod %3d/" PTR_FORMAT " (not entrant) being made zombie", nm->compile_id(), nm);
       }
       nm->make_zombie();
-      _rescan = true;
+      _resweep = true;
+      _zombified_count++;
       SWEEP(nm);
     } else {
       // Still alive, clean up its inline caches
@@ -427,22 +467,24 @@ void NMethodSweeper::process_nmethod(nmethod *nm) {
     // Unloaded code, just make it a zombie
     if (PrintMethodFlushing && Verbose)
       tty->print_cr("### Nmethod %3d/" PTR_FORMAT " (unloaded) being made zombie", nm->compile_id(), nm);
+
     if (nm->is_osr_method()) {
       SWEEP(nm);
       // No inline caches will ever point to osr methods, so we can just remove it
       release_nmethod(nm);
+      _flushed_count++;
     } else {
       nm->make_zombie();
-      _rescan = true;
+      _resweep = true;
+      _zombified_count++;
       SWEEP(nm);
     }
   } else {
     assert(nm->is_alive(), "should be alive");
 
     if (UseCodeCacheFlushing) {
-      if ((nm->method()->code() != nm) && !(nm->is_locked_by_vm()) && !(nm->is_osr_method()) &&
-          (_traversals > _was_full_traversal+2) && (((uint)nm->compile_id()) < _highest_marked) &&
-          CodeCache::needs_flushing()) {
+      if (nm->is_speculatively_disconnected() && !nm->is_locked_by_vm() && !nm->is_osr_method() &&
+          (_traversals > _last_flush_traversal_id + 2) && (nm->compile_id() < _highest_marked)) {
         // This method has not been called since the forced cleanup happened
         nm->make_not_entrant();
       }
@@ -465,91 +507,79 @@ void NMethodSweeper::process_nmethod(nmethod *nm) {
 // _code field is restored and the Method*/nmethod
 // go back to their normal state.
 void NMethodSweeper::handle_full_code_cache(bool is_full) {
-  // Only the first one to notice can advise us to start early cleaning
-  if (!is_full){
-    jint old = Atomic::cmpxchg( 1, &_advise_to_sweep, 0 );
-    if (old != 0) {
-      return;
-    }
-  }
 
   if (is_full) {
     // Since code cache is full, immediately stop new compiles
-    bool did_set = CompileBroker::set_should_compile_new_jobs(CompileBroker::stop_compilation);
-    if (!did_set) {
-      // only the first to notice can start the cleaning,
-      // others will go back and block
-      return;
+    if (CompileBroker::set_should_compile_new_jobs(CompileBroker::stop_compilation)) {
+      log_sweep("disable_compiler");
     }
-    set_was_full(true);
+  }
 
-    // If we run out within MinCodeCacheFlushingInterval of the last unload time, give up
-    jlong now = os::javaTimeMillis();
-    jlong max_interval = (jlong)MinCodeCacheFlushingInterval * (jlong)1000;
-    jlong curr_interval = now - _last_was_full;
-    if (curr_interval < max_interval) {
-      _rescan = true;
-      log_sweep("disable_compiler", "flushing_interval='" UINT64_FORMAT "'",
-                           curr_interval/1000);
-      return;
-    }
+  // Make sure only one thread can flush
+  // The token is reset after CodeCacheMinimumFlushInterval in scan stacks,
+  // no need to check the timeout here.
+  jint old = Atomic::cmpxchg( 1, &_flush_token, 0 );
+  if (old != 0) {
+    return;
   }
 
   VM_HandleFullCodeCache op(is_full);
   VMThread::execute(&op);
 
-  // rescan again as soon as possible
-  _rescan = true;
+  // resweep again as soon as possible
+  _resweep = true;
 }
 
 void NMethodSweeper::speculative_disconnect_nmethods(bool is_full) {
   // If there was a race in detecting full code cache, only run
   // one vm op for it or keep the compiler shut off
 
-  debug_only(jlong start = os::javaTimeMillis();)
-
-  if ((!was_full()) && (is_full)) {
-    if (!CodeCache::needs_flushing()) {
-      log_sweep("restart_compiler");
-      CompileBroker::set_should_compile_new_jobs(CompileBroker::run_compilation);
-      return;
-    }
-  }
+  jlong disconnect_start_counter = os::elapsed_counter();
 
   // Traverse the code cache trying to dump the oldest nmethods
-  uint curr_max_comp_id = CompileBroker::get_compilation_id();
-  uint flush_target = ((curr_max_comp_id - _highest_marked) >> 1) + _highest_marked;
+  int curr_max_comp_id = CompileBroker::get_compilation_id();
+  int flush_target = ((curr_max_comp_id - _dead_compile_ids) / CodeCacheFlushingFraction) + _dead_compile_ids;
+
   log_sweep("start_cleaning");
 
   nmethod* nm = CodeCache::alive_nmethod(CodeCache::first());
   jint disconnected = 0;
   jint made_not_entrant  = 0;
+  jint nmethod_count = 0;
+
   while ((nm != NULL)){
-    uint curr_comp_id = nm->compile_id();
+    int curr_comp_id = nm->compile_id();
 
     // OSR methods cannot be flushed like this. Also, don't flush native methods
     // since they are part of the JDK in most cases
-    if (nm->is_in_use() && (!nm->is_osr_method()) && (!nm->is_locked_by_vm()) &&
-        (!nm->is_native_method()) && ((curr_comp_id < flush_target))) {
+    if (!nm->is_osr_method() && !nm->is_locked_by_vm() && !nm->is_native_method()) {
 
-      if ((nm->method()->code() == nm)) {
-        // This method has not been previously considered for
-        // unloading or it was restored already
-        CodeCache::speculatively_disconnect(nm);
-        disconnected++;
-      } else if (nm->is_speculatively_disconnected()) {
-        // This method was previously considered for preemptive unloading and was not called since then
-        CompilationPolicy::policy()->delay_compilation(nm->method());
-        nm->make_not_entrant();
-        made_not_entrant++;
-      }
+      // only count methods that can be speculatively disconnected
+      nmethod_count++;
 
-      if (curr_comp_id > _highest_marked) {
-        _highest_marked = curr_comp_id;
+      if (nm->is_in_use() && (curr_comp_id < flush_target)) {
+        if ((nm->method()->code() == nm)) {
+          // This method has not been previously considered for
+          // unloading or it was restored already
+          CodeCache::speculatively_disconnect(nm);
+          disconnected++;
+        } else if (nm->is_speculatively_disconnected()) {
+          // This method was previously considered for preemptive unloading and was not called since then
+          CompilationPolicy::policy()->delay_compilation(nm->method());
+          nm->make_not_entrant();
+          made_not_entrant++;
+        }
+
+        if (curr_comp_id > _highest_marked) {
+          _highest_marked = curr_comp_id;
+        }
       }
     }
     nm = CodeCache::alive_nmethod(CodeCache::next(nm));
   }
+
+  // remember how many compile_ids wheren't seen last flush.
+  _dead_compile_ids = curr_max_comp_id - nmethod_count;
 
   log_sweep("stop_cleaning",
                        "disconnected='" UINT32_FORMAT "' made_not_entrant='" UINT32_FORMAT "'",
@@ -557,17 +587,32 @@ void NMethodSweeper::speculative_disconnect_nmethods(bool is_full) {
 
   // Shut off compiler. Sweeper will start over with a new stack scan and
   // traversal cycle and turn it back on if it clears enough space.
-  if (was_full()) {
-    _last_was_full = os::javaTimeMillis();
-    CompileBroker::set_should_compile_new_jobs(CompileBroker::stop_compilation);
+  if (is_full) {
+    _last_full_flush_time = os::javaTimeMillis();
   }
 
+  jlong disconnect_end_counter = os::elapsed_counter();
+  jlong disconnect_time = disconnect_end_counter - disconnect_start_counter;
+  _total_disconnect_time += disconnect_time;
+  _peak_disconnect_time = MAX2(disconnect_time, _peak_disconnect_time);
+
+  EventCleanCodeCache event(UNTIMED);
+  if (event.should_commit()) {
+    event.set_starttime(disconnect_start_counter);
+    event.set_endtime(disconnect_end_counter);
+    event.set_disconnectedCount(disconnected);
+    event.set_madeNonEntrantCount(made_not_entrant);
+    event.commit();
+  }
+  _number_of_flushes++;
+
   // After two more traversals the sweeper will get rid of unrestored nmethods
-  _was_full_traversal = _traversals;
+  _last_flush_traversal_id = _traversals;
+  _resweep = true;
 #ifdef ASSERT
-  jlong end = os::javaTimeMillis();
+
   if(PrintMethodFlushing && Verbose) {
-    tty->print_cr("### sweeper: unload time: " INT64_FORMAT, end-start);
+    tty->print_cr("### sweeper: unload time: " INT64_FORMAT, (jlong)disconnect_time);
   }
 #endif
 }

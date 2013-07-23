@@ -22,64 +22,68 @@
  */
 package com.oracle.graal.nodes.extended;
 
-import java.util.*;
-
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.nodes.virtual.*;
 
 /**
  * Reads an {@linkplain AccessNode accessed} value.
  */
-public final class ReadNode extends FloatableAccessNode implements Node.IterableNodeType, LIRLowerable, Canonicalizable, PiPushable {
+public final class ReadNode extends FloatableAccessNode implements Node.IterableNodeType, LIRLowerable, Canonicalizable, PiPushable, Virtualizable {
 
-    public ReadNode(ValueNode object, ValueNode location, Stamp stamp) {
-        super(object, location, stamp);
+    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, WriteBarrierType barrierType, boolean compressible) {
+        super(object, location, stamp, barrierType, compressible);
     }
 
-    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, List<ValueNode> dependencies) {
-        super(object, location, stamp, dependencies);
+    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, GuardingNode guard, WriteBarrierType barrierType, boolean compressible) {
+        super(object, location, stamp, guard, barrierType, compressible);
     }
 
-    private ReadNode(ValueNode object, int displacement, Object locationIdentity, Kind kind) {
-        super(object, object.graph().add(new LocationNode(locationIdentity, kind, displacement)), StampFactory.forKind(kind));
+    public ReadNode(ValueNode object, int displacement, LocationIdentity locationIdentity, Kind kind) {
+        super(object, ConstantLocationNode.create(locationIdentity, kind, displacement, object.graph()), StampFactory.forKind(kind));
     }
 
-    private ReadNode(ValueNode object, ValueNode location, ValueNode dependency) {
+    private ReadNode(ValueNode object, ValueNode location, ValueNode guard) {
         /*
          * Used by node intrinsics. Since the initial value for location is a parameter, i.e., a
          * LocalNode, the constructor cannot use the declared type LocationNode.
          */
-        super(object, location, StampFactory.forNodeIntrinsic(), dependency);
+        super(object, location, StampFactory.forNodeIntrinsic(), (GuardingNode) guard, WriteBarrierType.NONE, false);
     }
 
     @Override
     public void generate(LIRGeneratorTool gen) {
-        gen.setResult(this, location().generateLoad(gen, object(), this));
+        Value address = location().generateAddress(gen, gen.operand(object()));
+        gen.setResult(this, gen.emitLoad(location().getValueKind(), address, this));
     }
 
     @Override
     public ValueNode canonical(CanonicalizerTool tool) {
-        return canonicalizeRead(this, location(), object(), tool);
+        return canonicalizeRead(this, location(), object(), tool, compressible());
     }
 
     @Override
     public FloatingAccessNode asFloatingNode(ValueNode lastLocationAccess) {
-        return graph().unique(new FloatingReadNode(object(), location(), lastLocationAccess, stamp(), dependencies()));
+        return graph().unique(new FloatingReadNode(object(), location(), lastLocationAccess, stamp(), getGuard(), getWriteBarrierType(), compressible()));
     }
 
-    public static ValueNode canonicalizeRead(ValueNode read, LocationNode location, ValueNode object, CanonicalizerTool tool) {
+    public static ValueNode canonicalizeRead(ValueNode read, LocationNode location, ValueNode object, CanonicalizerTool tool, boolean compressedPointer) {
         MetaAccessProvider runtime = tool.runtime();
-        if (runtime != null && object != null && object.isConstant()) {
-            if (location.locationIdentity() == LocationNode.FINAL_LOCATION && location.getClass() == LocationNode.class) {
-                long displacement = location.displacement();
+        if (read.usages().count() == 0) {
+            // Read without usages can be savely removed.
+            return null;
+        }
+        if (tool.canonicalizeReads() && runtime != null && object != null && object.isConstant()) {
+            if (location.getLocationIdentity() == LocationIdentity.FINAL_LOCATION && location instanceof ConstantLocationNode) {
+                long displacement = ((ConstantLocationNode) location).getDisplacement();
                 Kind kind = location.getValueKind();
                 if (object.kind() == Kind.Object) {
                     Object base = object.asConstant().asObject();
                     if (base != null) {
-                        Constant constant = tool.runtime().readUnsafeConstant(kind, base, displacement);
+                        Constant constant = tool.runtime().readUnsafeConstant(kind, base, displacement, compressedPointer);
                         if (constant != null) {
                             return ConstantNode.forConstant(constant, runtime, read.graph());
                         }
@@ -87,7 +91,7 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
                 } else if (object.kind() == Kind.Long || object.kind().getStackKind() == Kind.Int) {
                     long base = object.asConstant().asLong();
                     if (base != 0L) {
-                        Constant constant = tool.runtime().readUnsafeConstant(kind, null, base + displacement);
+                        Constant constant = tool.runtime().readUnsafeConstant(kind, null, base + displacement, compressedPointer);
                         if (constant != null) {
                             return ConstantNode.forConstant(constant, runtime, read.graph());
                         }
@@ -100,28 +104,43 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
 
     @Override
     public boolean push(PiNode parent) {
-        Object locId = location().locationIdentity();
-        if (locId instanceof ResolvedJavaField) {
-            ResolvedJavaType fieldType = ((ResolvedJavaField) locId).getDeclaringClass();
-            ResolvedJavaType beforePiType = parent.object().objectStamp().type();
+        if (location() instanceof ConstantLocationNode) {
+            long displacement = ((ConstantLocationNode) location()).getDisplacement();
+            if (parent.stamp() instanceof ObjectStamp) {
+                ObjectStamp piStamp = parent.objectStamp();
+                ResolvedJavaType receiverType = piStamp.type();
+                if (receiverType != null) {
+                    ResolvedJavaField field = receiverType.findInstanceFieldWithOffset(displacement);
 
-            if (beforePiType != null && fieldType.isAssignableFrom(beforePiType)) {
-                replaceFirstInput(parent, parent.object());
-                return true;
+                    if (field != null) {
+                        ResolvedJavaType declaringClass = field.getDeclaringClass();
+                        if (declaringClass.isAssignableFrom(receiverType) && declaringClass != receiverType) {
+                            ObjectStamp piValueStamp = parent.object().objectStamp();
+                            if (piStamp.nonNull() == piValueStamp.nonNull() && piStamp.alwaysNull() == piValueStamp.alwaysNull()) {
+                                replaceFirstInput(parent, parent.object());
+                                return true;
+                            }
+                        }
+                    }
+                }
             }
+
         }
         return false;
     }
 
-    /**
-     * Reads a value from memory.
-     * 
-     * @param base the base pointer for the memory access
-     * @param displacement the displacement of the access
-     * @param locationIdentity the identity of the access
-     * @param kind the kind of the value read
-     * @return the value read from memory
-     */
-    @NodeIntrinsic(setStampFromReturnType = true)
-    public static native <T> T read(Object base, @ConstantNodeParameter int displacement, @ConstantNodeParameter Object locationIdentity, @ConstantNodeParameter Kind kind);
+    @Override
+    public void virtualize(VirtualizerTool tool) {
+        if (location() instanceof ConstantLocationNode) {
+            ConstantLocationNode constantLocation = (ConstantLocationNode) location();
+            State state = tool.getObjectState(object());
+            if (state != null && state.getState() == EscapeState.Virtual) {
+                VirtualObjectNode virtual = state.getVirtualObject();
+                int entryIndex = virtual.entryIndexForOffset(constantLocation.getDisplacement());
+                if (entryIndex != -1 && virtual.entryKind(entryIndex) == constantLocation.getValueKind()) {
+                    tool.replaceWith(state.getEntry(entryIndex));
+                }
+            }
+        }
+    }
 }

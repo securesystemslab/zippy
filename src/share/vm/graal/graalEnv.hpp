@@ -62,7 +62,8 @@ public:
   enum CodeInstallResult {
      ok,
      dependencies_failed,
-     cache_full
+     cache_full,
+     code_too_large
   };
 
   // Look up a klass by name from a particular class loader (the accessor's).
@@ -143,7 +144,6 @@ public:
                        Dependencies*             dependencies,
                        CompileTask*              task,
                        int                       compile_id,
-                       bool                      has_debug_info,
                        bool                      has_unsafe_access,
                        GrowableArray<jlong>*     leaf_graph_ids,
                        Handle                    installed_code,

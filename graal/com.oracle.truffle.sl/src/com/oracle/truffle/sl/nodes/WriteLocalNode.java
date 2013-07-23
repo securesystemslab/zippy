@@ -22,63 +22,40 @@
  */
 package com.oracle.truffle.sl.nodes;
 
-import java.math.*;
-
-import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
+@NodeChild(value = "rightNode", type = TypedNode.class)
 public abstract class WriteLocalNode extends FrameSlotNode {
 
-    @Child protected TypedNode rightNode;
-
-    public WriteLocalNode(FrameSlot slot, TypedNode right) {
+    public WriteLocalNode(FrameSlot slot) {
         super(slot);
-        this.rightNode = adoptChild(right);
     }
 
     public WriteLocalNode(WriteLocalNode node) {
-        this(node.slot, node.rightNode);
+        this(node.slot);
     }
 
-    @Specialization
-    public int write(VirtualFrame frame, int right) {
+    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    public int write(VirtualFrame frame, int right) throws FrameSlotTypeException {
         frame.setInt(slot, right);
         return right;
     }
 
-    @Specialization
-    public BigInteger write(VirtualFrame frame, BigInteger right) {
-        frame.setObject(slot, right);
-        return right;
-    }
-
-    @Specialization
-    public boolean write(VirtualFrame frame, boolean right) {
+    @Specialization(rewriteOn = FrameSlotTypeException.class)
+    public boolean write(VirtualFrame frame, boolean right) throws FrameSlotTypeException {
         frame.setBoolean(slot, right);
         return right;
     }
 
     @Specialization
-    public String write(VirtualFrame frame, String right) {
-        frame.setObject(slot, right);
-        return right;
-    }
-
-    @Generic(useSpecializations = false)
     public Object writeGeneric(VirtualFrame frame, Object right) {
-        frame.setObject(slot, right);
+        try {
+            frame.setObject(slot, right);
+        } catch (FrameSlotTypeException e) {
+            FrameUtil.setObjectSafe(frame, slot, right);
+        }
         return right;
-    }
-
-    @SpecializationListener
-    protected void onSpecialize(VirtualFrame frame, Object value) {
-        slot.setType(value.getClass());
-        frame.updateToLatestVersion();
-    }
-
-    @Override
-    protected FrameSlotNode specialize(Class<?> clazz) {
-        return WriteLocalNodeFactory.createSpecialized(this, clazz);
     }
 
 }

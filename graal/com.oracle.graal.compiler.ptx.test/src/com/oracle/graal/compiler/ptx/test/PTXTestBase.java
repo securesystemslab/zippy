@@ -22,41 +22,71 @@
  */
 package com.oracle.graal.compiler.ptx.test;
 
-import com.oracle.graal.api.code.CodeCacheProvider;
-import com.oracle.graal.api.code.CompilationResult;
-import com.oracle.graal.api.code.SpeculationLog;
-import com.oracle.graal.api.code.TargetDescription;
+import static com.oracle.graal.api.code.CodeUtil.*;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.code.CallingConvention.*;
 import com.oracle.graal.api.runtime.Graal;
 import com.oracle.graal.compiler.GraalCompiler;
 import com.oracle.graal.compiler.ptx.PTXBackend;
 import com.oracle.graal.compiler.test.GraalCompilerTest;
 import com.oracle.graal.debug.Debug;
+import com.oracle.graal.hotspot.meta.HotSpotRuntime;
 import com.oracle.graal.java.GraphBuilderConfiguration;
 import com.oracle.graal.java.GraphBuilderPhase;
-import com.oracle.graal.hotspot.HotSpotGraalRuntime;
 import com.oracle.graal.nodes.StructuredGraph;
+import com.oracle.graal.nodes.spi.GraalCodeCacheProvider;
 import com.oracle.graal.phases.OptimisticOptimizations;
 import com.oracle.graal.phases.PhasePlan;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
+import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.ptx.PTX;
 
 public abstract class PTXTestBase extends GraalCompilerTest {
 
+    private StructuredGraph sg;
+
     protected CompilationResult compile(String test) {
         StructuredGraph graph = parse(test);
+        sg = graph;
         Debug.dump(graph, "Graph");
         TargetDescription target = new TargetDescription(new PTX(), true, 1, 0, true);
-        PTXBackend ptxBackend = new PTXBackend(Graal.getRequiredCapability(CodeCacheProvider.class), target);
+        PTXBackend ptxBackend = new PTXBackend(Graal.getRequiredCapability(GraalCodeCacheProvider.class), target);
         PhasePlan phasePlan = new PhasePlan();
-        GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(),
-                                                                    OptimisticOptimizations.NONE);
+        GraphBuilderPhase graphBuilderPhase = new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getDefault(), OptimisticOptimizations.NONE);
         phasePlan.addPhase(PhasePosition.AFTER_PARSING, graphBuilderPhase);
         phasePlan.addPhase(PhasePosition.AFTER_PARSING, new PTXPhase());
         new PTXPhase().apply(graph);
-        CompilationResult result = GraalCompiler.compileMethod(runtime, HotSpotGraalRuntime.getInstance().getReplacements(),
-                                                               ptxBackend, target, graph.method(), graph, null, phasePlan,
-                                                               OptimisticOptimizations.NONE, new SpeculationLog());
+        CallingConvention cc = getCallingConvention(runtime, Type.JavaCallee, graph.method(), false);
+        /*
+         * Use Suites.createDefaultSuites() instead of GraalCompilerTest.suites. The
+         * GraalCompilerTest.suites variable contains the Suites for the HotSpotRuntime. This code
+         * will not run on hotspot, so it should use the plain Graal default suites, without hotspot
+         * specific phases.
+         *
+         * Ultimately we might want to have both the kernel and the code natively compiled for GPU fallback to CPU in cases
+         * of ECC failure on kernel invocation.  
+         */
+        CompilationResult result = GraalCompiler.compileGraph(graph, cc, graph.method(), runtime,
+                                                              graalRuntime().getReplacements(), ptxBackend, target, null, phasePlan,
+                                                              OptimisticOptimizations.NONE, new SpeculationLog(),
+                                                              Suites.createDefaultSuites(), new ExternalCompilationResult());
         return result;
     }
 
+    protected StructuredGraph getStructuredGraph() {
+        return sg;
+    }
+
+    protected void invoke(CompilationResult result, Object... args) {
+        try {
+            Object[] executeArgs = argsWithReceiver(this, args);
+            HotSpotRuntime hsr = (HotSpotRuntime) runtime;
+            InstalledCode installedCode = hsr.addExternalMethod(sg.method(), result, sg);
+            installedCode.executeVarargs(executeArgs);
+        } catch (Throwable th) {
+            th.printStackTrace();
+        }
+    }
 }

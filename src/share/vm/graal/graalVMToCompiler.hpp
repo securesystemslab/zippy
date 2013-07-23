@@ -44,23 +44,27 @@ private:
 
 public:
   static Handle graalRuntime();
+  static Handle truffleRuntime();
 
   static jobject graalRuntimePermObject() {
     graalRuntime();
     return _graalRuntimePermObject;
   }
 
+  // public static boolean HotSpotOptions.<clinit>();
+  static void initOptions();
+
   // public static boolean HotSpotOptions.setOption(String option);
   static jboolean setOption(Handle option);
 
   // public abstract boolean compileMethod(long vmId, String name, int entry_bci, boolean blocking);
-  static jboolean compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority);
+  static void compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
   
-  // public abstract void startCompiler();
-  static void startCompiler();
+  // public abstract void startCompiler(boolean bootstrapEnabled);
+  static void startCompiler(jboolean bootstrap_enabled);
   
   // public abstract void bootstrap();
   static void bootstrap();
@@ -77,8 +81,8 @@ public:
   // public abstract JavaType createUnresolvedJavaType(String name);
   static oop createUnresolvedJavaType(Handle name, TRAPS);
 
-  // public abstract ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, boolean hasFinalizableSubclass, int sizeOrSpecies);
-  static oop createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jboolean hasFinalizableSubclass, jint sizeOrSpecies, TRAPS);
+  // public abstract ResolvedJavaType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, int sizeOrSpecies);
+  static oop createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jint sizeOrSpecies, TRAPS);
 
   // public abstract JavaType createPrimitiveJavaType(int basicType);
   static oop createPrimitiveJavaType(int basicType, TRAPS);

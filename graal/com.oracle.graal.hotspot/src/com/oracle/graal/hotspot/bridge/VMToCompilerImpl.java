@@ -23,10 +23,12 @@
 
 package com.oracle.graal.hotspot.bridge;
 
+import static com.oracle.graal.compiler.GraalDebugConfig.*;
 import static com.oracle.graal.graph.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.CompilationTask.*;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.java.GraphBuilderPhase.*;
-import static com.oracle.graal.phases.common.InliningUtil.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -46,8 +48,10 @@ import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.debug.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
+import com.oracle.graal.phases.common.*;
 import com.oracle.graal.printer.*;
 import com.oracle.graal.replacements.*;
 
@@ -55,6 +59,35 @@ import com.oracle.graal.replacements.*;
  * Exits from the HotSpot VM into Java code.
  */
 public class VMToCompilerImpl implements VMToCompiler {
+
+    //@formatter:off
+    @Option(help = "File to which compiler logging is sent")
+    private static final OptionValue<String> LogFile = new OptionValue<>(null);
+
+    @Option(help = "Print compilation queue activity periodically")
+    private static final OptionValue<Boolean> PrintQueue = new OptionValue<>(false);
+
+    @Option(help = "")
+    public static final OptionValue<Integer> SlowQueueCutoff = new OptionValue<>(100000);
+
+    @Option(help = "Time limit in milliseconds for bootstrap (-1 for no limit)")
+    private static final OptionValue<Integer> TimedBootstrap = new OptionValue<>(-1);
+
+    @Option(help = "Number of compilation threads to use")
+    private static final StableOptionValue<Integer> Threads = new StableOptionValue<Integer>() {
+
+        @Override
+        public Integer initialValue() {
+            return Runtime.getRuntime().availableProcessors();
+        }
+    };
+
+    @Option(help = "")
+    private static final OptionValue<Boolean> GenericDynamicCounters = new OptionValue<>(false);
+
+    @Option(help = "")
+    private static final OptionValue<String> BenchmarkDynamicCounters = new OptionValue<>(null);
+    //@formatter:on
 
     private final HotSpotGraalRuntime graalRuntime;
 
@@ -69,7 +102,6 @@ public class VMToCompilerImpl implements VMToCompiler {
     public final HotSpotResolvedPrimitiveType typeVoid;
 
     private ThreadPoolExecutor compileQueue;
-    private ThreadPoolExecutor slowCompileQueue;
     private AtomicInteger compileTaskIds = new AtomicInteger();
 
     private volatile boolean bootstrapRunning;
@@ -100,7 +132,9 @@ public class VMToCompilerImpl implements VMToCompiler {
         assert unsafe.getObject(mirror, offset) == type;
     }
 
-    public void startCompiler() throws Throwable {
+    public void startCompiler(boolean bootstrapEnabled) throws Throwable {
+
+        bootstrapRunning = bootstrapEnabled;
 
         HotSpotVMConfig config = graalRuntime.getConfig();
         long offset = config.graalMirrorInClassOffset;
@@ -114,51 +148,50 @@ public class VMToCompilerImpl implements VMToCompiler {
         initMirror(typeLong, offset);
         initMirror(typeVoid, offset);
 
-        if (GraalOptions.LogFile != null) {
+        if (LogFile.getValue() != null) {
             try {
                 final boolean enableAutoflush = true;
-                log = new PrintStream(new FileOutputStream(GraalOptions.LogFile), enableAutoflush);
+                log = new PrintStream(new FileOutputStream(LogFile.getValue()), enableAutoflush);
             } catch (FileNotFoundException e) {
-                throw new RuntimeException("couldn't open log file: " + GraalOptions.LogFile, e);
+                throw new RuntimeException("couldn't open log file: " + LogFile.getValue(), e);
             }
         }
 
         TTY.initialize(log);
 
-        if (GraalOptions.Log == null && GraalOptions.Meter == null && GraalOptions.Time == null && GraalOptions.Dump == null) {
-            if (GraalOptions.MethodFilter != null) {
+        if (Log.getValue() == null && Meter.getValue() == null && Time.getValue() == null && Dump.getValue() == null) {
+            if (MethodFilter.getValue() != null) {
                 TTY.println("WARNING: Ignoring MethodFilter option since Log, Meter, Time and Dump options are all null");
             }
         }
 
         if (config.ciTime) {
-            quietMeterAndTime = (GraalOptions.Meter == null && GraalOptions.Time == null);
-            GraalOptions.Debug = true;
-            GraalOptions.Meter = "";
-            GraalOptions.Time = "";
+            quietMeterAndTime = (Meter.getValue() == null && Time.getValue() == null);
+            DebugEnabled.setValue(true);
+            Meter.setValue("");
+            Time.setValue("");
         }
 
-        if (GraalOptions.Debug) {
-            Debug.enable();
-            if (GraalOptions.DebugReplacements) {
-                DebugEnvironment.initialize(log);
-            }
+        if (DebugEnabled.getValue()) {
+            DebugEnvironment.initialize(log);
         }
+
+        assert VerifyHotSpotOptionsPhase.checkOptions();
 
         // Install intrinsics.
         final HotSpotRuntime runtime = graalRuntime.getCapability(HotSpotRuntime.class);
         final Replacements replacements = graalRuntime.getCapability(Replacements.class);
-        if (GraalOptions.Intrinsify) {
+        if (Intrinsify.getValue()) {
             Debug.scope("RegisterReplacements", new Object[]{new DebugDumpScope("RegisterReplacements")}, new Runnable() {
 
                 @Override
                 public void run() {
                     ServiceLoader<ReplacementsProvider> serviceLoader = ServiceLoader.loadInstalled(ReplacementsProvider.class);
                     for (ReplacementsProvider provider : serviceLoader) {
-                        provider.registerReplacements(replacements);
+                        provider.registerReplacements(runtime, replacements, runtime.getTarget());
                     }
                     runtime.registerReplacements(replacements);
-                    if (GraalOptions.BootstrapReplacements) {
+                    if (BootstrapReplacements.getValue()) {
                         for (ResolvedJavaMethod method : replacements.getAllReplacements()) {
                             replacements.getMacroSubstitution(method);
                             replacements.getMethodSubstitution(method);
@@ -170,31 +203,17 @@ public class VMToCompilerImpl implements VMToCompiler {
 
         }
 
-        if (GraalOptions.DebugReplacements) {
-            phaseTransition("replacements");
-        }
-
         // Create compilation queue.
-        BlockingQueue<Runnable> queue = GraalOptions.PriorityCompileQueue ? new PriorityBlockingQueue<Runnable>() : new LinkedBlockingQueue<Runnable>();
-        compileQueue = new ThreadPoolExecutor(GraalOptions.Threads, GraalOptions.Threads, 0L, TimeUnit.MILLISECONDS, queue, CompilerThread.FACTORY);
-
-        if (GraalOptions.SlowCompileThreads) {
-            BlockingQueue<Runnable> slowQueue = GraalOptions.PriorityCompileQueue ? new PriorityBlockingQueue<Runnable>() : new LinkedBlockingQueue<Runnable>();
-            slowCompileQueue = new ThreadPoolExecutor(GraalOptions.Threads, GraalOptions.Threads, 0L, TimeUnit.MILLISECONDS, slowQueue, CompilerThread.LOW_PRIORITY_FACTORY);
-        }
+        compileQueue = new ThreadPoolExecutor(Threads.getValue(), Threads.getValue(), 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), CompilerThread.FACTORY);
 
         // Create queue status printing thread.
-        if (GraalOptions.PrintQueue) {
+        if (PrintQueue.getValue()) {
             Thread t = new Thread() {
 
                 @Override
                 public void run() {
                     while (true) {
-                        if (slowCompileQueue == null) {
-                            TTY.println(compileQueue.toString());
-                        } else {
-                            TTY.println("fast: " + compileQueue.toString() + " slow: " + slowCompileQueue);
-                        }
+                        TTY.println(compileQueue.toString());
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException e) {
@@ -206,8 +225,8 @@ public class VMToCompilerImpl implements VMToCompiler {
             t.start();
         }
 
-        if (GraalOptions.BenchmarkDynamicCounters != null) {
-            String[] arguments = GraalOptions.BenchmarkDynamicCounters.split(",");
+        if (BenchmarkDynamicCounters.getValue() != null) {
+            String[] arguments = BenchmarkDynamicCounters.getValue().split(",");
             if (arguments.length == 0 || (arguments.length % 3) != 0) {
                 throw new GraalInternalError("invalid arguments to BenchmarkDynamicCounters: (err|out),start,end,(err|out),start,end,... (~ matches multiple digits)");
             }
@@ -225,7 +244,7 @@ public class VMToCompilerImpl implements VMToCompiler {
             DynamicCounterNode.excludedClassPrefix = "Lcom/oracle/graal/";
             DynamicCounterNode.enabled = true;
         }
-        if (GraalOptions.GenericDynamicCounters) {
+        if (GenericDynamicCounters.getValue()) {
             DynamicCounterNode.enabled = true;
         }
         compilerStartTime = System.nanoTime();
@@ -318,7 +337,7 @@ public class VMToCompilerImpl implements VMToCompiler {
         CompilationStatistics.clear(phase);
         if (graalRuntime.getConfig().ciTime) {
             parsedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, parsedBytecodesPerSecond, BytecodesParsed, CompilationTime, TimeUnit.SECONDS);
-            inlinedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, inlinedBytecodesPerSecond, InlinedBytecodes, CompilationTime, TimeUnit.SECONDS);
+            inlinedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, inlinedBytecodesPerSecond, InliningUtil.InlinedBytecodes, CompilationTime, TimeUnit.SECONDS);
         }
     }
 
@@ -338,7 +357,6 @@ public class VMToCompilerImpl implements VMToCompiler {
         TTY.flush();
         long startTime = System.currentTimeMillis();
 
-        bootstrapRunning = true;
         boolean firstRun = true;
         do {
             // Initialize compile queue with a selected set of methods.
@@ -360,14 +378,8 @@ public class VMToCompilerImpl implements VMToCompiler {
                 try {
                     assert !CompilationTask.withinEnqueue.get();
                     CompilationTask.withinEnqueue.set(Boolean.TRUE);
-                    if (slowCompileQueue == null) {
-                        if (compileQueue.getCompletedTaskCount() >= Math.max(3, compileQueue.getTaskCount())) {
-                            break;
-                        }
-                    } else {
-                        if (compileQueue.getCompletedTaskCount() + slowCompileQueue.getCompletedTaskCount() >= Math.max(3, compileQueue.getTaskCount() + slowCompileQueue.getTaskCount())) {
-                            break;
-                        }
+                    if (compileQueue.getCompletedTaskCount() >= Math.max(3, compileQueue.getTaskCount())) {
+                        break;
                     }
                 } finally {
                     CompilationTask.withinEnqueue.set(Boolean.FALSE);
@@ -380,7 +392,7 @@ public class VMToCompilerImpl implements VMToCompiler {
                     TTY.flush();
                 }
             }
-        } while ((System.currentTimeMillis() - startTime) <= GraalOptions.TimedBootstrap);
+        } while ((System.currentTimeMillis() - startTime) <= TimedBootstrap.getValue());
 
         phaseTransition("bootstrap");
 
@@ -393,7 +405,7 @@ public class VMToCompilerImpl implements VMToCompiler {
         System.gc();
         phaseTransition("bootstrap2");
 
-        if (GraalOptions.CompileTheWorld != null) {
+        if (CompileTheWorld.getValue() != null) {
             new CompileTheWorld().compile();
             System.exit(0);
         }
@@ -405,13 +417,13 @@ public class VMToCompilerImpl implements VMToCompiler {
     private void enqueue(Method m) throws Throwable {
         JavaMethod javaMethod = graalRuntime.getRuntime().lookupJavaMethod(m);
         assert !Modifier.isAbstract(((HotSpotResolvedJavaMethod) javaMethod).getModifiers()) && !Modifier.isNative(((HotSpotResolvedJavaMethod) javaMethod).getModifiers()) : javaMethod;
-        compileMethod((HotSpotResolvedJavaMethod) javaMethod, StructuredGraph.INVOCATION_ENTRY_BCI, false, 10);
+        compileMethod((HotSpotResolvedJavaMethod) javaMethod, StructuredGraph.INVOCATION_ENTRY_BCI, false);
     }
 
     private static void shutdownCompileQueue(ThreadPoolExecutor queue) throws InterruptedException {
         if (queue != null) {
             queue.shutdown();
-            if (Debug.isEnabled() && GraalOptions.Dump != null) {
+            if (Debug.isEnabled() && Dump.getValue() != null) {
                 // Wait 2 seconds to flush out all graph dumps that may be of interest
                 queue.awaitTermination(2, TimeUnit.SECONDS);
             }
@@ -423,7 +435,6 @@ public class VMToCompilerImpl implements VMToCompiler {
             assert !CompilationTask.withinEnqueue.get();
             CompilationTask.withinEnqueue.set(Boolean.TRUE);
             shutdownCompileQueue(compileQueue);
-            shutdownCompileQueue(slowCompileQueue);
         } finally {
             CompilationTask.withinEnqueue.set(Boolean.FALSE);
         }
@@ -435,9 +446,9 @@ public class VMToCompilerImpl implements VMToCompiler {
                 ArrayList<DebugValue> sortedValues = new ArrayList<>(debugValues);
                 Collections.sort(sortedValues);
 
-                if (GraalOptions.SummarizeDebugValues) {
+                if (SummarizeDebugValues.getValue()) {
                     printSummary(topLevelMaps, sortedValues);
-                } else if (GraalOptions.PerThreadDebugValues) {
+                } else if (PerThreadDebugValues.getValue()) {
                     for (DebugValueMap map : topLevelMaps) {
                         TTY.println("Showing the results for thread: " + map.getName());
                         map.group();
@@ -447,13 +458,13 @@ public class VMToCompilerImpl implements VMToCompiler {
                 } else {
                     DebugValueMap globalMap = new DebugValueMap("Global");
                     for (DebugValueMap map : topLevelMaps) {
-                        if (GraalOptions.SummarizePerPhase) {
+                        if (SummarizePerPhase.getValue()) {
                             flattenChildren(map, globalMap);
                         } else {
                             globalMap.addChild(map);
                         }
                     }
-                    if (!GraalOptions.SummarizePerPhase) {
+                    if (!SummarizePerPhase.getValue()) {
                         globalMap.group();
                     }
                     globalMap.normalize();
@@ -469,7 +480,7 @@ public class VMToCompilerImpl implements VMToCompiler {
         }
 
         SnippetCounter.printGroups(TTY.out().out());
-        if (GraalOptions.GenericDynamicCounters) {
+        if (GenericDynamicCounters.getValue()) {
             DynamicCounterNode.dump(System.out, (System.nanoTime() - compilerStartTime) / 1000000000d);
         }
     }
@@ -541,24 +552,20 @@ public class VMToCompilerImpl implements VMToCompiler {
     }
 
     @Override
-    public boolean compileMethod(long metaspaceMethod, final HotSpotResolvedObjectType holder, final int entryBCI, boolean blocking, int priority) throws Throwable {
+    public void compileMethod(long metaspaceMethod, final HotSpotResolvedObjectType holder, final int entryBCI, boolean blocking) throws Throwable {
         HotSpotResolvedJavaMethod method = holder.createMethod(metaspaceMethod);
-        return compileMethod(method, entryBCI, blocking, priority);
+        compileMethod(method, entryBCI, blocking);
     }
 
     /**
      * Compiles a method to machine code.
-     * 
-     * @return true if the method is in the queue (either added to the queue or already in the
-     *         queue)
      */
-    public boolean compileMethod(final HotSpotResolvedJavaMethod method, final int entryBCI, boolean blocking, int priority) throws Throwable {
-        CompilationTask current = method.currentTask();
+    public void compileMethod(final HotSpotResolvedJavaMethod method, final int entryBCI, boolean blocking) throws Throwable {
         boolean osrCompilation = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
         if (osrCompilation && bootstrapRunning) {
             // no OSR compilations during bootstrap - the compiler is just too slow at this point,
             // and we know that there are no endless loops
-            return current != null && (current.isInProgress() || !current.isCancelled());
+            return;
         }
 
         if (CompilationTask.withinEnqueue.get()) {
@@ -566,51 +573,27 @@ public class VMToCompilerImpl implements VMToCompiler {
             // java.util.concurrent.BlockingQueue is used to implement the compilation worker
             // queues. If a compiler thread triggers a compilation, then it may be blocked trying
             // to add something to its own queue.
-            return current != null && (current.isInProgress() || !current.isCancelled());
+            return;
         }
+
         CompilationTask.withinEnqueue.set(Boolean.TRUE);
-
         try {
-            if (!blocking && current != null) {
-                if (current.isInProgress()) {
-                    if (current.getEntryBCI() == entryBCI) {
-                        // a compilation with the correct bci is already in progress, so just return
-                        // true
-                        return true;
-                    }
-                } else {
-                    if (GraalOptions.PriorityCompileQueue) {
-                        // normally compilation tasks will only be re-queued when they get a
-                        // priority boost, so cancel the old task and add a new one
-                        current.cancel();
-                    } else if (!current.isCancelled()) {
-                        // without a prioritizing compile queue it makes no sense to re-queue the
-                        // compilation task
-                        return true;
-                    }
-                }
-            }
+            if (method.tryToQueueForCompilation()) {
+                assert method.isQueuedForCompilation();
 
-            final OptimisticOptimizations optimisticOpts = new OptimisticOptimizations(method);
-            int id = compileTaskIds.incrementAndGet();
-            // OSR compilations need to be finished quickly, so they get max priority
-            int queuePriority = osrCompilation ? -1 : priority;
-            CompilationTask task = CompilationTask.create(graalRuntime, createPhasePlan(optimisticOpts, osrCompilation), optimisticOpts, method, entryBCI, id, queuePriority);
-            if (blocking) {
-                task.runCompilation();
-                return false;
-            } else {
-                try {
-                    method.setCurrentTask(task);
-                    if (GraalOptions.SlowCompileThreads && priority > GraalOptions.SlowQueueCutoff) {
-                        slowCompileQueue.execute(task);
-                    } else {
+                final OptimisticOptimizations optimisticOpts = new OptimisticOptimizations(method);
+                int id = compileTaskIds.incrementAndGet();
+                CompilationTask task = CompilationTask.create(graalRuntime, createPhasePlan(optimisticOpts, osrCompilation), optimisticOpts, method, entryBCI, id);
+
+                if (blocking) {
+                    task.runCompilation();
+                } else {
+                    try {
+                        method.setCurrentTask(task);
                         compileQueue.execute(task);
+                    } catch (RejectedExecutionException e) {
+                        // The compile queue was already shut down.
                     }
-                    return true;
-                } catch (RejectedExecutionException e) {
-                    // The compile queue was already shut down.
-                    return false;
                 }
             }
         } finally {
@@ -683,10 +666,10 @@ public class VMToCompilerImpl implements VMToCompiler {
     }
 
     @Override
-    public HotSpotResolvedObjectType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, boolean hasFinalizableSubclass, int sizeOrSpecies) {
-        HotSpotResolvedObjectType type = new HotSpotResolvedObjectType(metaspaceKlass, name, simpleName, javaMirror, hasFinalizableSubclass, sizeOrSpecies);
+    public HotSpotResolvedObjectType createResolvedJavaType(long metaspaceKlass, String name, String simpleName, Class javaMirror, int sizeOrSpecies) {
+        HotSpotResolvedObjectType type = new HotSpotResolvedObjectType(metaspaceKlass, name, simpleName, javaMirror, sizeOrSpecies);
 
-        long offset = HotSpotGraalRuntime.getInstance().getConfig().graalMirrorInClassOffset;
+        long offset = graalRuntime().getConfig().graalMirrorInClassOffset;
         if (!unsafe.compareAndSwapObject(javaMirror, offset, null, type)) {
             // lost the race - return the existing value instead
             type = (HotSpotResolvedObjectType) unsafe.getObject(javaMirror, offset);
@@ -739,7 +722,6 @@ public class VMToCompilerImpl implements VMToCompiler {
         if (onStackReplacement) {
             phasePlan.addPhase(PhasePosition.AFTER_PARSING, new OnStackReplacementPhase());
         }
-        phasePlan.addPhase(PhasePosition.LOW_LEVEL, new WriteBarrierAdditionPhase());
         return phasePlan;
     }
 

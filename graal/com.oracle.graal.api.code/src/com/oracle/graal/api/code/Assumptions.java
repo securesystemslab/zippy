@@ -57,10 +57,7 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
 
         @Override
         public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + receiverType.hashCode();
-            return result;
+            return 31 + receiverType.hashCode();
         }
 
         @Override
@@ -195,10 +192,7 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
 
         @Override
         public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + method.hashCode();
-            return result;
+            return 31 + method.hashCode();
         }
 
         @Override
@@ -265,6 +259,7 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
 
     public Assumptions(boolean useOptimisticAssumptions) {
         this.useOptimisticAssumptions = useOptimisticAssumptions;
+        list = new Assumption[4];
     }
 
     /**
@@ -286,10 +281,12 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
 
             int index;
 
+            @Override
             public void remove() {
                 throw new UnsupportedOperationException();
             }
 
+            @Override
             public Assumption next() {
                 if (index >= count) {
                     throw new NoSuchElementException();
@@ -297,6 +294,7 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
                 return list[index++];
             }
 
+            @Override
             public boolean hasNext() {
                 return index < count;
             }
@@ -368,4 +366,30 @@ public final class Assumptions implements Serializable, Iterable<Assumptions.Ass
         count++;
     }
 
+    public Assumption[] getAssumptions() {
+        return list;
+    }
+
+    public void record(Assumptions assumptions) {
+        for (int i = 0; i < assumptions.count; i++) {
+            record(assumptions.list[i]);
+        }
+    }
+
+    public void print(PrintStream out) {
+        List<Assumption> nonNullList = new ArrayList<>();
+        if (list != null) {
+            for (int i = 0; i < list.length; ++i) {
+                Assumption a = list[i];
+                if (a != null) {
+                    nonNullList.add(a);
+                }
+            }
+        }
+
+        out.printf("%d assumptions:\n", nonNullList.size());
+        for (Assumption a : nonNullList) {
+            out.println(a.toString());
+        }
+    }
 }

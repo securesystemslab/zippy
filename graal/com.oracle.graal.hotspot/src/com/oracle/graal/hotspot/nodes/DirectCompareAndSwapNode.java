@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot.nodes;
 
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.*;
@@ -32,19 +33,20 @@ import com.oracle.graal.word.*;
 
 /**
  * A special purpose store node that differs from {@link CompareAndSwapNode} in that it is not a
- * {@link StateSplit} and it {@linkplain #compareAndSwap(Object, long, Word, Word, Object)} returns
- * either the expected value or the compared against value instead of a boolean.
+ * {@link StateSplit} and it
+ * {@linkplain #compareAndSwap(Object, long, Word, Word, LocationIdentity)} returns either the
+ * expected value or the compared against value instead of a boolean.
  */
-public class DirectCompareAndSwapNode extends FixedWithNextNode implements LIRGenLowerable, MemoryCheckpoint {
+public class DirectCompareAndSwapNode extends FixedWithNextNode implements LIRGenLowerable, MemoryCheckpoint.Single {
 
     @Input private ValueNode object;
     @Input private ValueNode offset;
     @Input private ValueNode expectedValue;
     @Input private ValueNode newValue;
 
-    private final Object locationIdentity;
+    private final LocationIdentity locationIdentity;
 
-    public DirectCompareAndSwapNode(ValueNode object, ValueNode offset, ValueNode expected, ValueNode newValue, Object locationIdentity) {
+    public DirectCompareAndSwapNode(ValueNode object, ValueNode offset, ValueNode expected, ValueNode newValue, LocationIdentity locationIdentity) {
         super(expected.stamp());
         this.object = object;
         this.offset = offset;
@@ -70,8 +72,8 @@ public class DirectCompareAndSwapNode extends FixedWithNextNode implements LIRGe
     }
 
     @Override
-    public Object[] getLocationIdentities() {
-        return new Object[]{locationIdentity};
+    public LocationIdentity getLocationIdentity() {
+        return locationIdentity;
     }
 
     @Override
@@ -92,5 +94,5 @@ public class DirectCompareAndSwapNode extends FixedWithNextNode implements LIRGe
      * @return either {@code expectedValue} or the actual value
      */
     @NodeIntrinsic
-    public static native Word compareAndSwap(Object object, long offset, Word expectedValue, Word newValue, @ConstantNodeParameter Object locationIdentity);
+    public static native Word compareAndSwap(Object object, long offset, Word expectedValue, Word newValue, @ConstantNodeParameter LocationIdentity locationIdentity);
 }

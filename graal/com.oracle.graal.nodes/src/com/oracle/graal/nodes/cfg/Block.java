@@ -29,9 +29,10 @@ import com.oracle.graal.nodes.java.*;
 
 public final class Block {
 
+    protected final AbstractBeginNode beginNode;
+
     protected int id;
 
-    protected BeginNode beginNode;
     protected FixedNode endNode;
     protected Loop loop;
 
@@ -45,8 +46,10 @@ public final class Block {
     private boolean align;
     private int linearScanNumber;
 
-    protected Block() {
-        id = ControlFlowGraph.BLOCK_ID_INITIAL;
+    protected Block(AbstractBeginNode node) {
+        this.beginNode = node;
+
+        this.id = ControlFlowGraph.BLOCK_ID_INITIAL;
         this.linearScanNumber = -1;
     }
 
@@ -54,7 +57,7 @@ public final class Block {
         return id;
     }
 
-    public BeginNode getBeginNode() {
+    public AbstractBeginNode getBeginNode() {
         return beginNode;
     }
 
@@ -147,7 +150,7 @@ public final class Block {
             } else {
                 cur = ((FixedWithNextNode) cur).next();
             }
-            assert !(cur instanceof BeginNode);
+            assert !(cur instanceof AbstractBeginNode);
             return result;
         }
 
@@ -204,10 +207,6 @@ public final class Block {
             return false;
         }
         return dominator.isDominatedBy(block);
-    }
-
-    public double getProbability() {
-        return getBeginNode().probability();
     }
 
     public int getLinearScanNumber() {

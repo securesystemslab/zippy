@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -128,6 +128,7 @@ class StubRoutines: AllStatic {
   static address _catch_exception_entry;
   static address _throw_AbstractMethodError_entry;
   static address _throw_IncompatibleClassChangeError_entry;
+  static address _throw_InvalidInstalledCodeException_entry;
   static address _throw_NullPointerException_at_call_entry;
   static address _throw_StackOverflowError_entry;
   static address _handler_for_unsafe_access_entry;
@@ -223,6 +224,8 @@ class StubRoutines: AllStatic {
   static void    initialize1();                            // must happen before universe::genesis
   static void    initialize2();                            // must happen after  universe::genesis
 
+  static bool is_stub_code(address addr)                   { return contains(addr); }
+
   static bool contains(address addr) {
     return
       (_code1 != NULL && _code1->blob_contains(addr)) ||
@@ -259,6 +262,7 @@ class StubRoutines: AllStatic {
   // Implicit exceptions
   static address throw_AbstractMethodError_entry()         { return _throw_AbstractMethodError_entry; }
   static address throw_IncompatibleClassChangeError_entry(){ return _throw_IncompatibleClassChangeError_entry; }
+  static address throw_InvalidInstalledCodeException_entry(){ return _throw_InvalidInstalledCodeException_entry; }
   static address throw_NullPointerException_at_call_entry(){ return _throw_NullPointerException_at_call_entry; }
   static address throw_StackOverflowError_entry()          { return _throw_StackOverflowError_entry; }
 

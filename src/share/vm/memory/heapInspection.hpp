@@ -26,6 +26,7 @@
 #define SHARE_VM_MEMORY_HEAPINSPECTION_HPP
 
 #include "memory/allocation.inline.hpp"
+#include "memory/klassInfoClosure.hpp"
 #include "oops/oop.inline.hpp"
 #include "oops/annotations.hpp"
 #include "utilities/macros.hpp"
@@ -189,24 +190,18 @@ class KlassInfoEntry: public CHeapObj<mtInternal> {
   KlassInfoEntry(Klass* k, KlassInfoEntry* next) :
     _klass(k), _instance_count(0), _instance_words(0), _next(next), _index(-1)
   {}
-  KlassInfoEntry* next()     { return _next; }
-  bool is_equal(Klass* k)  { return k == _klass; }
-  Klass* klass()           { return _klass; }
-  long count()               { return _instance_count; }
+  KlassInfoEntry* next() const   { return _next; }
+  bool is_equal(const Klass* k)  { return k == _klass; }
+  Klass* klass()  const      { return _klass; }
+  long count()    const      { return _instance_count; }
   void set_count(long ct)    { _instance_count = ct; }
-  size_t words()             { return _instance_words; }
+  size_t words()  const      { return _instance_words; }
   void set_words(size_t wds) { _instance_words = wds; }
   void set_index(long index) { _index = index; }
-  long index()               { return _index; }
+  long index()    const      { return _index; }
   int compare(KlassInfoEntry* e1, KlassInfoEntry* e2);
   void print_on(outputStream* st) const;
   const char* name() const;
-};
-
-class KlassInfoClosure: public StackObj {
- public:
-  // Called for each KlassInfoEntry.
-  virtual void do_cinfo(KlassInfoEntry* cie) = 0;
 };
 
 class KlassInfoBucket: public CHeapObj<mtInternal> {
@@ -215,7 +210,7 @@ class KlassInfoBucket: public CHeapObj<mtInternal> {
   KlassInfoEntry* list()           { return _list; }
   void set_list(KlassInfoEntry* l) { _list = l; }
  public:
-  KlassInfoEntry* lookup(Klass* const k);
+  KlassInfoEntry* lookup(Klass* k);
   void initialize() { _list = NULL; }
   void empty();
   void iterate(KlassInfoClosure* cic);
@@ -224,6 +219,8 @@ class KlassInfoBucket: public CHeapObj<mtInternal> {
 class KlassInfoTable: public StackObj {
  private:
   int _size;
+  static const int _num_buckets = 20011;
+  size_t _size_of_instances_in_words;
 
   // An aligned reference address (typically the least
   // address in the perm gen) used for hashing klass
@@ -231,8 +228,8 @@ class KlassInfoTable: public StackObj {
   HeapWord* _ref;
 
   KlassInfoBucket* _buckets;
-  uint hash(Klass* p);
-  KlassInfoEntry* lookup(Klass* const k); // allocates if not found!
+  uint hash(const Klass* p);
+  KlassInfoEntry* lookup(Klass* k); // allocates if not found!
 
   class AllClassesFinder : public KlassClosure {
     KlassInfoTable *_table;
@@ -242,21 +239,19 @@ class KlassInfoTable: public StackObj {
   };
 
  public:
-  // Table size
-  enum {
-    cit_size = 20011
-  };
-  KlassInfoTable(int size, HeapWord* ref, bool need_class_stats);
+  KlassInfoTable(bool need_class_stats);
   ~KlassInfoTable();
   bool record_instance(const oop obj);
   void iterate(KlassInfoClosure* cic);
   bool allocation_failed() { return _buckets == NULL; }
+  size_t size_of_instances_in_words() const;
 
   friend class KlassInfoHisto;
 };
 
 class KlassInfoHisto : public StackObj {
  private:
+  static const int _histo_initial_size = 1000;
   KlassInfoTable *_cit;
   GrowableArray<KlassInfoEntry*>* _elements;
   GrowableArray<KlassInfoEntry*>* elements() const { return _elements; }
@@ -334,11 +329,7 @@ class KlassInfoHisto : public StackObj {
   }
 
  public:
-  enum {
-    histo_initial_size = 1000
-  };
-  KlassInfoHisto(KlassInfoTable* cit, const char* title,
-             int estimatedCount);
+  KlassInfoHisto(KlassInfoTable* cit, const char* title);
   ~KlassInfoHisto();
   void add(KlassInfoEntry* cie);
   void print_histo_on(outputStream* st, bool print_class_stats, bool csv_format, const char *columns);
@@ -346,6 +337,11 @@ class KlassInfoHisto : public StackObj {
 };
 
 #endif // INCLUDE_SERVICES
+
+// These declarations are needed since teh declaration of KlassInfoTable and
+// KlassInfoClosure are guarded by #if INLCUDE_SERVICES
+class KlassInfoTable;
+class KlassInfoClosure;
 
 class HeapInspection : public StackObj {
   bool _csv_format; // "comma separated values" format for spreadsheet.
@@ -357,8 +353,11 @@ class HeapInspection : public StackObj {
                  bool print_class_stats, const char *columns) :
       _csv_format(csv_format), _print_help(print_help),
       _print_class_stats(print_class_stats), _columns(columns) {}
-  void heap_inspection(outputStream* st, bool need_prologue) NOT_SERVICES_RETURN;
+  void heap_inspection(outputStream* st) NOT_SERVICES_RETURN;
+  size_t populate_table(KlassInfoTable* cit, BoolObjectClosure* filter = NULL) NOT_SERVICES_RETURN;
   static void find_instances_at_safepoint(Klass* k, GrowableArray<oop>* result) NOT_SERVICES_RETURN;
+ private:
+  void iterate_over_heap(KlassInfoTable* cit, BoolObjectClosure* filter = NULL);
 };
 
 #endif // SHARE_VM_MEMORY_HEAPINSPECTION_HPP

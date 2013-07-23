@@ -32,9 +32,7 @@ public abstract class Value implements Serializable {
 
     private static final long serialVersionUID = -6909397188697766469L;
 
-    public static final Value[] NONE = {};
-
-    @SuppressWarnings("serial") public static final Value ILLEGAL = new Value(Kind.Illegal) {
+    @SuppressWarnings("serial") public static final AllocatableValue ILLEGAL = new AllocatableValue(Kind.Illegal) {
 
         @Override
         public String toString() {
@@ -43,14 +41,20 @@ public abstract class Value implements Serializable {
     };
 
     private final Kind kind;
+    private final PlatformKind platformKind;
 
     /**
      * Initializes a new value of the specified kind.
      * 
-     * @param kind the kind
+     * @param platformKind the kind
      */
-    protected Value(Kind kind) {
-        this.kind = kind;
+    protected Value(PlatformKind platformKind) {
+        this.platformKind = platformKind;
+        if (platformKind instanceof Kind) {
+            this.kind = (Kind) platformKind;
+        } else {
+            this.kind = Kind.Illegal;
+        }
     }
 
     /**
@@ -66,5 +70,26 @@ public abstract class Value implements Serializable {
      */
     public final Kind getKind() {
         return kind;
+    }
+
+    /**
+     * Returns the platform specific kind used to store this value.
+     */
+    public final PlatformKind getPlatformKind() {
+        return platformKind;
+    }
+
+    @Override
+    public int hashCode() {
+        return 41 + platformKind.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Value) {
+            Value other = (Value) obj;
+            return kind.equals(other.kind) && platformKind.equals(platformKind);
+        }
+        return false;
     }
 }

@@ -47,7 +47,8 @@ dacapoSanityWarmup = {
 }
 
 dacapoScalaSanityWarmup = {
-    'actors':     [0, 0, 2,  8, 10],
+# (tw) actors sometimes fails verification; hardly reproducible
+    'actors':     [0, 0, 0,  0,  0],
 # (lstadler) apparat was disabled due to a deadlock which I think is the benchmarks fault.
     'apparat':    [0, 0, 0,  0,  0],
     'factorie':   [0, 0, 2,  5,  5],
@@ -219,6 +220,34 @@ def getBootstraps():
     tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     return tests
+
+class CTWMode:
+    Full, NoInline, NoComplex = range(3)
+
+def getCTW(vm,mode):
+    time = re.compile(r"CompileTheWorld : Done \([0-9]+ classes, [0-9]+ methods, (?P<time>[0-9]+) ms\)")
+    scoreMatcher = ValuesMatcher(time, {'group' : 'CompileTheWorld', 'name' : 'CompileTime', 'score' : '<time>'})
+    
+    jre = os.environ.get('JAVA_HOME')
+    if exists(join(jre, 'jre')):
+        jre = join(jre, 'jre')
+    rtjar = join(jre, 'lib', 'rt.jar')
+
+    
+    args = ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
+    if commands.isGraalEnabled(vm):
+        args += ['-XX:+BootstrapGraal', '-G:-Debug']
+    if mode >= CTWMode.NoInline:
+        if not commands.isGraalEnabled(vm):
+            args.append('-XX:-Inline')
+        else:
+            args.append('-G:-Inline')
+    if mode >= CTWMode.NoComplex:
+        if commands.isGraalEnabled(vm):
+            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+        
+    return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
+    
 
 class Tee:
     def __init__(self):

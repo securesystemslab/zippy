@@ -99,11 +99,18 @@ public class IntegerDivNode extends FixedBinaryNode implements Canonicalizable, 
             }
         }
 
+        if (next() instanceof IntegerDivNode) {
+            NodeClass nodeClass = NodeClass.get(this.getClass());
+            if (next().getClass() == this.getClass() && nodeClass.inputsEqual(this, next()) && nodeClass.valueEqual(this, next())) {
+                return next();
+            }
+        }
+
         return this;
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 

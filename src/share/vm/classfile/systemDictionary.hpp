@@ -31,8 +31,10 @@
 #include "oops/symbol.hpp"
 #include "runtime/java.hpp"
 #include "runtime/reflectionUtils.hpp"
+#include "trace/traceTime.hpp"
 #include "utilities/hashtable.hpp"
 #include "utilities/hashtable.inline.hpp"
+
 
 // The system dictionary stores all loaded classes and maps:
 //
@@ -183,12 +185,16 @@ class SymbolPropertyTable;
   do_klass(Long_klass,                                  java_lang_Long,                            Pre                 ) \
                                                                                                                          \
   /* Support for Graal */                                                                                                \
-  do_klass(GraalBitMap_klass,                     java_util_BitSet,                                             Opt) \
+  do_klass(BitSet_klass,                          java_util_BitSet,                                             Opt) \
   /* graal.hotspot */                                                                                                \
-  do_klass(HotSpotCompilationResult_klass,        com_oracle_graal_hotspot_HotSpotCompilationResult,            Opt) \
-  do_klass(HotSpotRuntimeCallTarget_klass,        com_oracle_graal_hotspot_HotSpotRuntimeCallTarget,            Opt) \
+  do_klass(HotSpotCompiledCode_klass,             com_oracle_graal_hotspot_HotSpotCompiledCode,                 Opt) \
+  do_klass(HotSpotCompiledCode_Comment_klass,     com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,         Opt) \
+  do_klass(HotSpotCompiledNmethod_klass,          com_oracle_graal_hotspot_HotSpotCompiledNmethod,              Opt) \
+  do_klass(HotSpotCompiledRuntimeStub_klass,      com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,          Opt) \
+  do_klass(HotSpotForeignCallLinkage_klass,       com_oracle_graal_hotspot_HotSpotForeignCallLinkage,           Opt) \
   do_klass(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
   do_klass(HotSpotInstalledCode_klass,            com_oracle_graal_hotspot_meta_HotSpotInstalledCode,           Opt) \
+  do_klass(HotSpotNmethod_klass,                  com_oracle_graal_hotspot_meta_HotSpotNmethod,                 Opt) \
   do_klass(HotSpotJavaType_klass,                 com_oracle_graal_hotspot_meta_HotSpotJavaType,                Opt) \
   do_klass(HotSpotMethodData_klass,               com_oracle_graal_hotspot_meta_HotSpotMethodData,              Opt) \
   do_klass(HotSpotResolvedJavaField_klass,        com_oracle_graal_hotspot_meta_HotSpotResolvedJavaField,       Opt) \
@@ -205,6 +211,7 @@ class SymbolPropertyTable;
   do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Opt) \
   do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
   do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
+  do_klass(RegisterSaveLayout_klass,              com_oracle_graal_api_code_RegisterSaveLayout,                 Opt) \
   do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
   do_klass(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Opt) \
   do_klass(CompilationResult_Call_klass,          com_oracle_graal_api_code_CompilationResult_Call,             Opt) \
@@ -213,6 +220,7 @@ class SymbolPropertyTable;
   do_klass(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Opt) \
   do_klass(CompilationResult_Infopoint_klass,     com_oracle_graal_api_code_CompilationResult_Infopoint,        Opt) \
   do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
+  do_klass(ExternalCompilationResult_klass,       com_oracle_graal_api_code_ExternalCompilationResult,          Opt) \
   do_klass(InfopointReason_klass,                 com_oracle_graal_api_code_InfopointReason,                    Opt) \
   do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
@@ -358,10 +366,7 @@ public:
   static void classes_do(void f(Klass*, TRAPS), TRAPS);
   //   All classes, and their class loaders
   static void classes_do(void f(Klass*, ClassLoaderData*));
-  //   All classes, and their class loaders
-  //   (added for helpers that use HandleMarks and ResourceMarks)
-  static void classes_do(void f(Klass*, ClassLoaderData*, TRAPS), TRAPS);
-  // All entries in the placeholder table and their class loaders
+
   static void placeholders_do(void f(Symbol*));
 
   // Iterate over all methods in all klasses in dictionary
@@ -684,6 +689,9 @@ private:
   // Setup link to hierarchy
   static void add_to_hierarchy(instanceKlassHandle k, TRAPS);
 
+  // event based tracing
+  static void post_class_load_event(TracingTime start_time, instanceKlassHandle k,
+                                    Handle initiating_loader);
   // We pass in the hashtable index so we can calculate it outside of
   // the SystemDictionary_lock.
 

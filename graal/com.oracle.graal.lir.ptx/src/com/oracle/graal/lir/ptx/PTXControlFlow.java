@@ -22,28 +22,19 @@
  */
 package com.oracle.graal.lir.ptx;
 
-import static com.oracle.graal.api.code.ValueUtil.asIntReg;
-import static com.oracle.graal.api.code.ValueUtil.asLongReg;
-import static com.oracle.graal.api.code.ValueUtil.asObjectReg;
+import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
-import com.oracle.graal.api.code.Register;
 import com.oracle.graal.api.code.CompilationResult.JumpTable;
-import com.oracle.graal.api.meta.Constant;
-import com.oracle.graal.api.meta.Kind;
-import com.oracle.graal.api.meta.Value;
-import com.oracle.graal.asm.Buffer;
-import com.oracle.graal.asm.Label;
-import com.oracle.graal.asm.NumUtil;
-import com.oracle.graal.asm.ptx.AbstractPTXAssembler;
-import com.oracle.graal.asm.ptx.PTXAssembler;
-import com.oracle.graal.graph.GraalInternalError;
-import com.oracle.graal.lir.LabelRef;
-import com.oracle.graal.lir.StandardOp;
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.asm.*;
+import com.oracle.graal.asm.ptx.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.FallThroughOp;
-import com.oracle.graal.lir.Variable;
-import com.oracle.graal.lir.asm.TargetMethodAssembler;
-import com.oracle.graal.nodes.calc.Condition;
+import com.oracle.graal.lir.asm.*;
+import com.oracle.graal.nodes.calc.*;
 
 public class PTXControlFlow {
 
@@ -77,10 +68,7 @@ public class PTXControlFlow {
         @Override
         public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
             masm.at();
-            Label l = destination.label();
-            // l.addPatchAt(tasm.asm.codeBuffer.position());
-            String target = l.isBound() ? "L" + l.toString() : AbstractPTXAssembler.UNBOUND_TARGET;
-            masm.bra(target);
+            masm.bra(masm.nameOf(destination.label()));
         }
 
         @Override
@@ -97,6 +85,7 @@ public class PTXControlFlow {
 
     @SuppressWarnings("unused")
     public static class CondMoveOp extends PTXLIRInstruction {
+
         @Def({REG, HINT}) protected Value result;
         @Alive({REG}) protected Value trueValue;
         @Use({REG, STACK, CONST}) protected Value falseValue;
@@ -119,6 +108,7 @@ public class PTXControlFlow {
 
     @SuppressWarnings("unused")
     public static class FloatCondMoveOp extends PTXLIRInstruction {
+
         @Def({REG}) protected Value result;
         @Alive({REG}) protected Value trueValue;
         @Alive({REG}) protected Value falseValue;
@@ -142,14 +132,14 @@ public class PTXControlFlow {
     }
 
     public static class SequentialSwitchOp extends PTXLIRInstruction implements FallThroughOp {
+
         @Use({CONST}) protected Constant[] keyConstants;
         private final LabelRef[] keyTargets;
         private LabelRef defaultTarget;
         @Alive({REG}) protected Value key;
         @Temp({REG, ILLEGAL}) protected Value scratch;
 
-        public SequentialSwitchOp(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget,
-                                  Value key, Value scratch) {
+        public SequentialSwitchOp(Constant[] keyConstants, LabelRef[] keyTargets, LabelRef defaultTarget, Value key, Value scratch) {
             assert keyConstants.length == keyTargets.length;
             this.keyConstants = keyConstants;
             this.keyTargets = keyTargets;
@@ -170,20 +160,14 @@ public class PTXControlFlow {
                     assert NumUtil.isInt(lc);
                     masm.setp_eq_s32((int) lc, intKey);
                     masm.at();
-                    Label l = keyTargets[i].label();
-                    l.addPatchAt(tasm.asm.codeBuffer.position());
-                    String target = l.isBound() ? "L" + l.toString() : AbstractPTXAssembler.UNBOUND_TARGET;
-                    masm.bra(target);
+                    masm.bra(masm.nameOf(keyTargets[i].label()));
                 }
             } else if (key.getKind() == Kind.Long) {
                 Register longKey = asLongReg(key);
                 for (int i = 0; i < keyConstants.length; i++) {
                     masm.setp_eq_s64(tasm.asLongConst(keyConstants[i]), longKey);
                     masm.at();
-                    Label l = keyTargets[i].label();
-                    l.addPatchAt(tasm.asm.codeBuffer.position());
-                    String target = l.isBound() ? "L" + l.toString() : AbstractPTXAssembler.UNBOUND_TARGET;
-                    masm.bra(target);
+                    masm.bra(masm.nameOf(keyTargets[i].label()));
                 }
             } else if (key.getKind() == Kind.Object) {
                 Register intKey = asObjectReg(key);
@@ -216,14 +200,14 @@ public class PTXControlFlow {
     }
 
     public static class TableSwitchOp extends PTXLIRInstruction {
+
         private final int lowKey;
         private final LabelRef defaultTarget;
         private final LabelRef[] targets;
         @Alive protected Value index;
         @Temp protected Value scratch;
 
-        public TableSwitchOp(final int lowKey, final LabelRef defaultTarget, final LabelRef[] targets,
-                             Variable index, Variable scratch) {
+        public TableSwitchOp(final int lowKey, final LabelRef defaultTarget, final LabelRef[] targets, Variable index, Variable scratch) {
             this.lowKey = lowKey;
             this.defaultTarget = defaultTarget;
             this.targets = targets;
@@ -238,9 +222,7 @@ public class PTXControlFlow {
     }
 
     @SuppressWarnings("unused")
-    private static void tableswitch(TargetMethodAssembler tasm, PTXAssembler masm, int lowKey,
-                                    LabelRef defaultTarget, LabelRef[] targets,
-                                    Register value, Register scratch) {
+    private static void tableswitch(TargetMethodAssembler tasm, PTXAssembler masm, int lowKey, LabelRef defaultTarget, LabelRef[] targets, Register value, Register scratch) {
         Buffer buf = masm.codeBuffer;
         // Compare index against jump table bounds
         int highKey = lowKey + targets.length - 1;

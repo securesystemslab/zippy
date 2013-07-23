@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,6 @@ package com.oracle.graal.compiler.test.ea;
 
 import static org.junit.Assert.*;
 
-import java.util.concurrent.*;
-
 import org.junit.*;
 
 import com.oracle.graal.api.code.*;
@@ -39,11 +37,11 @@ import com.oracle.graal.virtual.phases.ea.*;
 
 public class PEAReadEliminationTest extends GraalCompilerTest {
 
-    private StructuredGraph graph;
+    protected StructuredGraph graph;
 
     public static Object staticField;
 
-    public static class TestObject implements Callable<Integer> {
+    public static class TestObject {
 
         public int x;
         public int y;
@@ -51,11 +49,6 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
         public TestObject(int x, int y) {
             this.x = x;
             this.y = y;
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            return x;
         }
     }
 
@@ -67,6 +60,16 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
         public TestObject2(Object x, Object y) {
             this.x = x;
             this.y = y;
+        }
+    }
+
+    public static class TestObject3 extends TestObject {
+
+        public int z;
+
+        public TestObject3(int x, int y, int z) {
+            super(x, y);
+            this.z = z;
         }
     }
 
@@ -213,18 +216,36 @@ public class PEAReadEliminationTest extends GraalCompilerTest {
         assertEquals(1, graph.getNodes().filter(StoreFieldNode.class).count());
     }
 
+    public static int testValueProxySnippet(boolean b, TestObject o) {
+        int sum = 0;
+        if (b) {
+            sum += o.x;
+        } else {
+            TestObject3 p = (TestObject3) o;
+            sum += p.x;
+        }
+        sum += o.x;
+        return sum;
+    }
+
+    @Test
+    public void testValueProxy() {
+        processMethod("testValueProxySnippet");
+        assertEquals(2, graph.getNodes().filter(LoadFieldNode.class).count());
+    }
+
     final ReturnNode getReturn(String snippet) {
         processMethod(snippet);
         assertEquals(1, graph.getNodes(ReturnNode.class).count());
         return graph.getNodes(ReturnNode.class).first();
     }
 
-    private void processMethod(final String snippet) {
+    protected void processMethod(final String snippet) {
         graph = parse(snippet);
-        new ComputeProbabilityPhase().apply(graph);
         Assumptions assumptions = new Assumptions(false);
-        HighTierContext context = new HighTierContext(runtime(), assumptions);
+        HighTierContext context = new HighTierContext(runtime(), assumptions, replacements);
         new InliningPhase(runtime(), null, replacements, assumptions, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL).apply(graph);
-        new PartialEscapeAnalysisPhase(false, true).apply(graph, context);
+        CanonicalizerPhase canonicalizer = new CanonicalizerPhase(true);
+        new PartialEscapePhase(false, true, canonicalizer).apply(graph, context);
     }
 }

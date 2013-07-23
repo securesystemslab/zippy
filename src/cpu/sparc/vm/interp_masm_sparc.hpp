@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,8 @@
 #include "interpreter/invocationCounter.hpp"
 
 // This file specializes the assember with interpreter-specific macros
+
+typedef ByteSize (*OffsetFunction)(uint);
 
 REGISTER_DECLARATION(     Register, Otos_i , O0); // tos for ints, etc
 REGISTER_DECLARATION(     Register, Otos_l , O0); // for longs
@@ -263,8 +265,9 @@ class InterpreterMacroAssembler: public MacroAssembler {
   void compute_stack_base( Register Rdest );
 
 #endif /* CC_INTERP */
-  void increment_invocation_counter( Register Rtmp, Register Rtmp2 );
-  void increment_backedge_counter( Register Rtmp, Register Rtmp2 );
+  void get_method_counters(Register method, Register Rcounters, Label& skip);
+  void increment_invocation_counter( Register Rcounters, Register Rtmp, Register Rtmp2 );
+  void increment_backedge_counter( Register Rcounters, Register Rtmp, Register Rtmp2 );
 #ifndef CC_INTERP
   void test_backedge_count_for_osr( Register backedge_count, Register branch_bcp, Register Rtmp );
 
@@ -299,7 +302,11 @@ class InterpreterMacroAssembler: public MacroAssembler {
 
   void record_klass_in_profile(Register receiver, Register scratch, bool is_virtual_call);
   void record_klass_in_profile_helper(Register receiver, Register scratch,
-                                      int start_row, Label& done, bool is_virtual_call);
+                                      Label& done, bool is_virtual_call);
+  void record_item_in_profile_helper(Register item,
+                                     Register scratch, int start_row, Label& done, int total_rows,
+                                     OffsetFunction item_offset_fn, OffsetFunction item_count_offset_fn,
+                                     int non_profiled_offset);
 
   void update_mdp_by_offset(int offset_of_disp, Register scratch);
   void update_mdp_by_offset(Register reg, int offset_of_disp,
@@ -312,6 +319,7 @@ class InterpreterMacroAssembler: public MacroAssembler {
   void profile_call(Register scratch);
   void profile_final_call(Register scratch);
   void profile_virtual_call(Register receiver, Register scratch, bool receiver_can_be_null = false);
+  void profile_called_method(Register method, Register scratch);
   void profile_ret(TosState state, Register return_bci, Register scratch);
   void profile_null_seen(Register scratch);
   void profile_typecheck(Register klass, Register scratch);

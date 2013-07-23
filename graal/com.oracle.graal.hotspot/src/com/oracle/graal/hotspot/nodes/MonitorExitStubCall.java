@@ -23,34 +23,26 @@
 package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.code.*;
-import com.oracle.graal.api.code.RuntimeCallTarget.Descriptor;
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.word.*;
 
 /**
- * Node implementing a call to HotSpot's {@code graal_monitorexit} stub.
+ * Node implementing a call to {@code GraalRuntime::monitorexit}.
  */
-public class MonitorExitStubCall extends DeoptimizingStubCall implements LIRGenLowerable, MonitorReference {
+public class MonitorExitStubCall extends DeoptimizingStubCall implements LIRGenLowerable {
 
-    @Input private final ValueNode object;
+    @Input private ValueNode object;
     private int lockDepth;
-    public static final Descriptor MONITOREXIT = new Descriptor("monitorexit", true, void.class, Object.class, Word.class);
+    public static final ForeignCallDescriptor MONITOREXIT = new ForeignCallDescriptor("monitorexit", void.class, Object.class, Word.class);
 
-    public MonitorExitStubCall(ValueNode object) {
+    public MonitorExitStubCall(ValueNode object, int lockDepth) {
         super(StampFactory.forVoid());
         this.object = object;
-    }
-
-    public int getLockDepth() {
-        return lockDepth;
-    }
-
-    public void setLockDepth(int lockDepth) {
         this.lockDepth = lockDepth;
     }
 
@@ -59,10 +51,10 @@ public class MonitorExitStubCall extends DeoptimizingStubCall implements LIRGenL
         assert lockDepth != -1;
         HotSpotLIRGenerator hsGen = (HotSpotLIRGenerator) gen;
         StackSlot slot = hsGen.getLockSlot(lockDepth);
-        RuntimeCallTarget stub = gen.getRuntime().lookupRuntimeCall(MonitorExitStubCall.MONITOREXIT);
-        gen.emitCall(stub, stub.getCallingConvention(), this, gen.operand(object), gen.emitLea(slot));
+        ForeignCallLinkage linkage = gen.getRuntime().lookupForeignCall(MonitorExitStubCall.MONITOREXIT);
+        gen.emitForeignCall(linkage, this, gen.operand(object), gen.emitAddress(slot));
     }
 
     @NodeIntrinsic
-    public static native void call(Object hub);
+    public static native void call(Object object, @ConstantNodeParameter int lockDepth);
 }

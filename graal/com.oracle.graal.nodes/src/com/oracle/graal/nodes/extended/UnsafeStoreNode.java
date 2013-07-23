@@ -25,7 +25,6 @@ package com.oracle.graal.nodes.extended;
 import static com.oracle.graal.graph.UnsafeAccess.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -35,7 +34,7 @@ import com.oracle.graal.nodes.type.*;
  * Store of a value at a location specified as an offset relative to an object. No null check is
  * performed before the store.
  */
-public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Lowerable, Virtualizable, Canonicalizable, MemoryCheckpoint {
+public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Lowerable, Virtualizable, MemoryCheckpoint.Single {
 
     @Input private ValueNode value;
     @Input(notDataflow = true) private FrameState stateAfter;
@@ -69,13 +68,13 @@ public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Low
     }
 
     @Override
-    public void lower(LoweringTool tool) {
+    public void lower(LoweringTool tool, LoweringType loweringType) {
         tool.getRuntime().lower(this, tool);
     }
 
     @Override
-    public Object[] getLocationIdentities() {
-        return new Object[]{LocationNode.ANY_LOCATION};
+    public LocationIdentity getLocationIdentity() {
+        return LocationIdentity.ANY_LOCATION;
     }
 
     @Override
@@ -95,29 +94,17 @@ public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Low
     }
 
     @Override
-    public ValueNode canonical(CanonicalizerTool tool) {
-        if (offset().isConstant()) {
-            long constantOffset = offset().asConstant().asLong();
-            if (constantOffset != 0) {
-                int intDisplacement = (int) (constantOffset + displacement());
-                if (constantOffset == intDisplacement) {
-                    Graph graph = this.graph();
-                    return graph.add(new UnsafeStoreNode(this.stamp(), object(), intDisplacement, graph.unique(ConstantNode.forInt(0, graph)), value(), accessKind()));
-                }
-            } else if (object().stamp() instanceof ObjectStamp) { // TODO (gd) remove that once
-                                                                  // UnsafeAccess only have an
-                                                                  // object base
-                ObjectStamp receiverStamp = object().objectStamp();
-                if (receiverStamp.nonNull()) {
-                    ResolvedJavaType receiverType = receiverStamp.type();
-                    ResolvedJavaField field = receiverType.findInstanceFieldWithOffset(displacement());
-                    if (field != null) {
-                        return this.graph().add(new StoreFieldNode(object(), field, value()));
-                    }
-                }
-            }
-        }
-        return this;
+    protected ValueNode cloneAsFieldAccess(ResolvedJavaField field) {
+        StoreFieldNode storeFieldNode = graph().add(new StoreFieldNode(object(), field, value()));
+        storeFieldNode.setStateAfter(stateAfter());
+        return storeFieldNode;
+    }
+
+    @Override
+    protected ValueNode cloneWithZeroOffset(int intDisplacement) {
+        UnsafeStoreNode unsafeStoreNode = graph().add(new UnsafeStoreNode(stamp(), object(), intDisplacement, ConstantNode.forInt(0, graph()), value(), accessKind()));
+        unsafeStoreNode.setStateAfter(stateAfter());
+        return unsafeStoreNode;
     }
 
     // specialized on value type until boxing/unboxing is sorted out in intrinsification

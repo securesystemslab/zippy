@@ -33,10 +33,12 @@ public final class HotSpotVMConfig extends CompilerObject {
     }
 
     // os information, register layout, code generation, ...
-    public boolean windowsOs;
+    public boolean cAssertions;
+    public final boolean windowsOs = System.getProperty("os.name", "").startsWith("Windows");
     public int codeEntryAlignment;
     public boolean verifyOops;
     public boolean ciTime;
+    public int compileThreshold;
     public boolean compileTheWorld;
     public int compileTheWorldStartAt;
     public int compileTheWorldStopAt;
@@ -48,6 +50,21 @@ public final class HotSpotVMConfig extends CompilerObject {
     public boolean usePopCountInstruction;
     public boolean useAESIntrinsics;
     public boolean useG1GC;
+    public long gcTotalCollectionsAddress;
+
+    // Compressed Oops related values.
+    public boolean useCompressedOops;
+    public boolean useCompressedKlassPointers;
+    public long narrowOopBase;
+    public int narrowOopShift;
+    public int logMinObjAlignment;
+    public long narrowKlassBase;
+    public int narrowKlassShift;
+    public int logKlassAlignment;
+
+    // CPU capabilities
+    public int useSSE;
+    public int useAVX;
 
     // offsets, ...
     public int stackShadowPages;
@@ -132,6 +149,9 @@ public final class HotSpotVMConfig extends CompilerObject {
      */
     public int threadTlabEndOffset;
 
+    /**
+     * The value of JavaThread::threadObj_offset().
+     */
     public int threadObjectOffset;
 
     /**
@@ -175,6 +195,14 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int uninitializedIdentityHashCodeValue;
 
     /**
+     * Offset of the _pending_exception field in ThreadShadow (defined in exceptions.hpp). This
+     * field is used to propagate exceptions through C/C++ calls.
+     * <p>
+     * <b>NOTE: This is not the same as {@link #threadExceptionOopOffset}.</b>
+     */
+    public int pendingExceptionOffset;
+
+    /**
      * Offset of the pending deoptimization field.
      */
     public int pendingDeoptimizationOffset;
@@ -188,6 +216,12 @@ public final class HotSpotVMConfig extends CompilerObject {
      * Offset of _access_flags in a metaspace Method object.
      */
     public int methodAccessFlagsOffset;
+
+    /**
+     * JVM_ACC_QUEUED defined in accessFlags.hpp and used for marking a Method object as queued for
+     * compilation.
+     */
+    public int methodQueuedForCompilationBit;
 
     /**
      * Offset of _intrinsic_id in a metaspace Method object.
@@ -210,6 +244,16 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int constMethodMaxStackOffset;
 
     /**
+     * Offset of _constants in a metaspace ConstMethod object.
+     */
+    public int constMethodConstantsOffset;
+
+    /**
+     * Offset of _pool_holder in a metaspace ConstantPool object.
+     */
+    public int constantPoolHolderOffset;
+
+    /**
      * Value of extra_stack_entries() in method.hpp.
      */
     public int extraStackEntries;
@@ -219,7 +263,30 @@ public final class HotSpotVMConfig extends CompilerObject {
      */
     public int klassHasFinalizerFlag;
 
+    /**
+     * The value of JavaThread::is_method_handle_return_offset().
+     */
+    public int threadIsMethodHandleReturnOffset;
+
+    /**
+     * Bit pattern that represents a non-oop. Neither the high bits nor the low bits of this value
+     * are allowed to look like (respectively) the high or low bits of a real oop.
+     */
+    public long nonOopBits;
+
+    public long verifyOopCounterAddress;
+    public long verifyOopMask;
+    public long verifyOopBits;
+
+    /**
+     * Offset of the _exception_oop field in Thread (defined in thread.hpp). This field is used to
+     * pass exception objects into and out of the runtime system during exception handling for
+     * compiled code.
+     * <p>
+     * <b>NOTE: This is not the same as {@link #pendingExceptionOffset}.</b>
+     */
     public int threadExceptionOopOffset;
+
     public int threadExceptionPcOffset;
     public long cardtableStartAddress;
     public int cardtableShift;
@@ -279,6 +346,11 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int klassOffset;
 
     /**
+     * The offset of the injected array klass field in a {@link Class}.
+     */
+    public int arrayKlassOffset;
+
+    /**
      * The offset of the injected graal_mirror field in a {@link Class}.
      */
     public int graalMirrorInClassOffset;
@@ -298,6 +370,10 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int threadTlabStartOffset;
     public int threadTlabSizeOffset;
     public int threadAllocatedBytesOffset;
+    public int threadLastJavaSpOffset;
+    public int threadLastJavaFpOffset;
+    public int threadLastJavaPcOffset;
+    public int threadObjectResultOffset;
     public int tlabRefillWasteLimitOffset;
     public int tlabRefillWasteIncrement;
     public int tlabAlignmentReserve;
@@ -328,45 +404,46 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int dataLayoutCellSize;
     public int bciProfileWidth;
     public int typeProfileWidth;
+    public int methodProfileWidth;
 
-    // runtime stubs
-    public long newInstanceStub;
-    public long newArrayStub;
-    public long newMultiArrayStub;
     public long inlineCacheMissStub;
-    public long handleExceptionStub;
     public long handleDeoptStub;
-    public long monitorEnterStub;
-    public long monitorExitStub;
-    public long wbPreCallStub;
-    public long wbPostCallStub;
+    public long uncommonTrapStub;
 
-    public long verifyOopStub;
-    public long vmErrorStub;
-    public long deoptimizeStub;
-    public long unwindExceptionStub;
-    public long osrMigrationEndStub;
-    public long registerFinalizerStub;
-    public long createNullPointerExceptionStub;
-    public long createOutOfBoundsExceptionStub;
-    public long javaTimeMillisStub;
-    public long javaTimeNanosStub;
-    public long arithmeticFremStub;
-    public long arithmeticDremStub;
-    public long arithmeticSinStub;
-    public long arithmeticCosStub;
-    public long arithmeticTanStub;
-    public long logPrimitiveStub;
-    public long logObjectStub;
-    public long logPrintfStub;
-    public int deoptReasonNone;
-    public long threadIsInterruptedStub;
-    public long identityHashCodeStub;
     public long aescryptEncryptBlockStub;
     public long aescryptDecryptBlockStub;
     public long cipherBlockChainingEncryptAESCryptStub;
     public long cipherBlockChainingDecryptAESCryptStub;
 
+    public long newInstanceAddress;
+    public long newArrayAddress;
+    public long newMultiArrayAddress;
+    public long dynamicNewArrayAddress;
+    public long registerFinalizerAddress;
+    public long threadIsInterruptedAddress;
+    public long vmMessageAddress;
+    public long identityHashCodeAddress;
+    public long exceptionHandlerForPcAddress;
+    public long exceptionHandlerForReturnAddressAddress;
+    public long osrMigrationEndAddress;
+    public long monitorenterAddress;
+    public long monitorexitAddress;
+    public long createNullPointerExceptionAddress;
+    public long createOutOfBoundsExceptionAddress;
+    public long logPrimitiveAddress;
+    public long logObjectAddress;
+    public long logPrintfAddress;
+    public long vmErrorAddress;
+    public long writeBarrierPreAddress;
+    public long writeBarrierPostAddress;
+    public long javaTimeMillisAddress;
+    public long javaTimeNanosAddress;
+    public long arithmeticSinAddress;
+    public long arithmeticCosAddress;
+    public long arithmeticTanAddress;
+    public long loadAndClearExceptionAddress;
+
+    public int deoptReasonNone;
     public int deoptReasonNullCheck;
     public int deoptReasonRangeCheck;
     public int deoptReasonClassCheck;
@@ -379,6 +456,7 @@ public final class HotSpotVMConfig extends CompilerObject {
     public int deoptReasonJsrMismatch;
     public int deoptReasonDiv0Check;
     public int deoptReasonConstraint;
+    public int deoptReasonLoopLimitCheck;
 
     public int deoptActionNone;
     public int deoptActionMaybeRecompile;

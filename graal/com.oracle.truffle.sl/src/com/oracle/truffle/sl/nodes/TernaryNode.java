@@ -11,7 +11,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * version 2 for more details (a copy is included in the LICENSE file that
  * accompanied this code).
- *
+ *  
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -24,27 +24,11 @@ package com.oracle.truffle.sl.nodes;
 
 import java.math.*;
 
-import com.oracle.truffle.api.codegen.*;
+import com.oracle.truffle.api.dsl.*;
 
 @SuppressWarnings("unused")
-@ExecuteChildren({"conditionNode", "ifPartNode", "elsePartNode"})
+@NodeChildren({@NodeChild(value = "conditionNode", type = ConditionNode.class), @NodeChild("ifPartNode"), @NodeChild("elsePartNode")})
 public abstract class TernaryNode extends TypedNode {
-
-    @Child protected ConditionNode conditionNode;
-
-    @Child protected TypedNode ifPartNode;
-
-    @Child protected TypedNode elsePartNode;
-
-    public TernaryNode(ConditionNode condition, TypedNode ifPart, TypedNode elsePart) {
-        this.conditionNode = adoptChild(condition);
-        this.ifPartNode = adoptChild(ifPart);
-        this.elsePartNode = adoptChild(elsePart);
-    }
-
-    public TernaryNode(TernaryNode condition) {
-        this(condition.conditionNode, condition.ifPartNode, condition.elsePartNode);
-    }
 
     @ShortCircuit("ifPartNode")
     public boolean needsIfPart(boolean condition) {
@@ -66,8 +50,8 @@ public abstract class TernaryNode extends TypedNode {
         return hasIfPart ? ifPart : elsePart;
     }
 
-    @Generic
-    public Object doGeneric(boolean condition, boolean hasIfPart, Object ifPart, boolean hasElsePart, Object elsePart) {
+    @Specialization
+    public Object doObject(boolean condition, boolean hasIfPart, Object ifPart, boolean hasElsePart, Object elsePart) {
         return hasIfPart ? ifPart : elsePart;
     }
 }

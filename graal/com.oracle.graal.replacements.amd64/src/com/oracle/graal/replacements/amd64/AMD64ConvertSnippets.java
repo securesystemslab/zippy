@@ -22,12 +22,13 @@
  */
 package com.oracle.graal.replacements.amd64;
 
+import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
 import static com.oracle.graal.replacements.SnippetTemplate.*;
-import static com.oracle.graal.replacements.nodes.BranchProbabilityNode.*;
 
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
@@ -57,8 +58,7 @@ public class AMD64ConvertSnippets implements Snippets {
      */
     @Snippet
     public static int f2i(float input, int result) {
-        if (result == Integer.MIN_VALUE) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (probability(SLOW_PATH_PROBABILITY, result == Integer.MIN_VALUE)) {
             if (Float.isNaN(input)) {
                 // input is NaN -> return 0
                 return 0;
@@ -83,8 +83,7 @@ public class AMD64ConvertSnippets implements Snippets {
      */
     @Snippet
     public static long f2l(float input, long result) {
-        if (result == Long.MIN_VALUE) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (probability(SLOW_PATH_PROBABILITY, result == Long.MIN_VALUE)) {
             if (Float.isNaN(input)) {
                 // input is NaN -> return 0
                 return 0;
@@ -109,8 +108,7 @@ public class AMD64ConvertSnippets implements Snippets {
      */
     @Snippet
     public static int d2i(double input, int result) {
-        if (result == Integer.MIN_VALUE) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (probability(SLOW_PATH_PROBABILITY, result == Integer.MIN_VALUE)) {
             if (Double.isNaN(input)) {
                 // input is NaN -> return 0
                 return 0;
@@ -135,8 +133,7 @@ public class AMD64ConvertSnippets implements Snippets {
      */
     @Snippet
     public static long d2l(double input, long result) {
-        if (result == Long.MIN_VALUE) {
-            probability(NOT_FREQUENT_PROBABILITY);
+        if (probability(SLOW_PATH_PROBABILITY, result == Long.MIN_VALUE)) {
             if (Double.isNaN(input)) {
                 // input is NaN -> return 0
                 return 0;
@@ -152,7 +149,7 @@ public class AMD64ConvertSnippets implements Snippets {
 
         private final EnumMap<Op, SnippetInfo> snippets;
 
-        public Templates(CodeCacheProvider runtime, Replacements replacements, TargetDescription target) {
+        public Templates(MetaAccessProvider runtime, Replacements replacements, TargetDescription target) {
             super(runtime, replacements, target);
 
             snippets = new EnumMap<>(Op.class);
@@ -168,7 +165,7 @@ public class AMD64ConvertSnippets implements Snippets {
                 return;
             }
 
-            StructuredGraph graph = (StructuredGraph) convert.graph();
+            StructuredGraph graph = convert.graph();
 
             // Insert a unique placeholder node in place of the Convert node so that the
             // Convert node can be used as an input to the snippet. All usage of the

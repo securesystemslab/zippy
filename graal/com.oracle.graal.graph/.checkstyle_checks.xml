@@ -22,7 +22,7 @@
       <property name="format" value="^(([a-z][a-zA-Z0-9]*$)|(_[A-Z][a-zA-Z0-9]*_[a-z][a-zA-Z0-9]*$))"/>
     </module>
     <module name="MethodName">
-      <property name="format" value="^[a-z][a-z_A-Z0-9]*$"/>
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
     </module>
     <module name="PackageName"/>
     <module name="ParameterName"/>
@@ -170,16 +170,6 @@
     <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="Disable all checks"/>
   </module>
   <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="// START GENERATED RAW ASSEMBLER METHODS"/>
-    <property name="onCommentFormat" value="// END GENERATED RAW ASSEMBLER METHODS"/>
-    <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="Disable all checks for generated raw assembler methods"/>
-  </module>
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="// START GENERATED LABEL ASSEMBLER METHODS"/>
-    <property name="onCommentFormat" value="// END GENERATED LABEL ASSEMBLER METHODS"/>
-    <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="Disable all checks for generated label assembler methods"/>
-  </module>
-  <module name="SuppressionCommentFilter">
     <property name="offCommentFormat" value="CheckStyle: stop inner assignment check"/>
     <property name="onCommentFormat" value="CheckStyle: resume inner assignment check"/>
     <property name="checkFormat" value="InnerAssignment"/>
@@ -202,6 +192,12 @@
     <property name="onCommentFormat" value="CheckStyle: resume system..print check"/>
     <property name="checkFormat" value="RegexpSingleline"/>
     <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="Disable System.(out|err).print checks"/>
+  </module>
+  <module name="SuppressionCommentFilter">
+    <property name="offCommentFormat" value="CheckStyle: stop header check"/>
+    <property name="onCommentFormat" value="CheckStyle: resume header check"/>
+    <property name="checkFormat" value=".*Header"/>
+    <metadata name="com.atlassw.tools.eclipse.checkstyle.comment" value="Disable header checks"/>
   </module>
   <module name="RegexpSingleline">
     <property name="format" value="System\.(out|err)\.print"/>

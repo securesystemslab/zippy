@@ -23,21 +23,16 @@
 package com.oracle.graal.nodes;
 
 import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 
-public interface Invoke extends StateSplit, Lowerable, DeoptimizingNode {
+public interface Invoke extends StateSplit, Lowerable, DeoptimizingNode, GuardedNode {
 
     FixedNode next();
 
     void setNext(FixedNode x);
 
     CallTargetNode callTarget();
-
-    /**
-     * Utility method that returns the {@link #callTarget()} cast to a {@link MethodCallTargetNode}.
-     */
-    MethodCallTargetNode methodCallTarget();
 
     int bci();
 
@@ -50,16 +45,6 @@ public interface Invoke extends StateSplit, Lowerable, DeoptimizingNode {
     Node predecessor();
 
     void intrinsify(Node node);
-
-    Graph graph();
-
-    double probability();
-
-    void setProbability(double value);
-
-    double inliningRelevance();
-
-    void setInliningRelevance(double value);
 
     boolean useForInlining();
 

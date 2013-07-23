@@ -91,7 +91,7 @@ public final class EdgeMoveOptimizer {
         if (op1 instanceof MoveOp && op2 instanceof MoveOp) {
             MoveOp move1 = (MoveOp) op1;
             MoveOp move2 = (MoveOp) op2;
-            if (move1.getInput() == move2.getInput() && move1.getResult() == move2.getResult()) {
+            if (move1.getInput().equals(move2.getInput()) && move1.getResult().equals(move2.getResult())) {
                 // these moves are exactly equal and can be optimized
                 return true;
             }
@@ -190,10 +190,13 @@ public final class EdgeMoveOptimizer {
         }
 
         LIRInstruction branch = instructions.get(instructions.size() - 2);
-        if (!(branch instanceof StandardOp.BranchOp) || branch.hasState()) {
-            // not a valid case for optimization
-            // currently, only blocks that end with two branches (conditional branch followed
-            // by unconditional branch) are optimized
+        if (!(branch instanceof StandardOp.BranchOp) || branch.hasOperands()) {
+            // Only blocks that end with two branches (conditional branch followed
+            // by unconditional branch) are optimized.
+            // In addition, a conditional branch with operands (including state) cannot
+            // be optimized. Moving a successor instruction before such a branch may
+            // interfere with the operands of the branch. For example, a successive move
+            // instruction may redefine an input operand of the branch.
             return;
         }
 

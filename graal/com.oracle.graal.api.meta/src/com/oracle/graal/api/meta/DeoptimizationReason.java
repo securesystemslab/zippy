@@ -25,7 +25,6 @@ package com.oracle.graal.api.meta;
 /**
  * Enumeration of reasons for why a deoptimization is happening.
  */
-// @formatter:off
 public enum DeoptimizationReason {
     None,
     NullCheckException,
@@ -39,5 +38,6 @@ public enum DeoptimizationReason {
     Unresolved,
     JavaSubroutineMismatch,
     ArithmeticException,
-    RuntimeConstraint
+    RuntimeConstraint,
+    LoopLimitCheck,
 }

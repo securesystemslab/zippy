@@ -68,16 +68,16 @@ VMReg get_hotspot_reg(jint graal_reg) {
 
 const int MapWordBits = 64;
 
-static bool is_bit_set(oop bit_map, int i) {
-  jint extra_idx = i / MapWordBits;
-  arrayOop extra = (arrayOop) GraalBitMap::words(bit_map);
-  assert(extra_idx >= 0 && extra_idx < extra->length(), "unexpected index");
-  jlong word = ((jlong*) extra->base(T_LONG))[extra_idx];
+static bool is_bit_set(oop bitset, int i) {
+  jint words_idx = i / MapWordBits;
+  arrayOop words = (arrayOop) BitSet::words(bitset);
+  assert(words_idx >= 0 && words_idx < words->length(), "unexpected index");
+  jlong word = ((jlong*) words->base(T_LONG))[words_idx];
   return (word & (1LL << (i % MapWordBits))) != 0;
 }
 
-static int bitmap_size(oop bit_map) {
-  arrayOop arr = (arrayOop) GraalBitMap::words(bit_map);
+static int bitset_size(oop bitset) {
+  arrayOop arr = (arrayOop) BitSet::words(bitset);
   return arr->length() * MapWordBits;
 }
 
@@ -86,27 +86,48 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
   OopMap* map = new OopMap(total_frame_size, parameter_count);
   oop register_map = (oop) DebugInfo::registerRefMap(debug_info);
   oop frame_map = (oop) DebugInfo::frameRefMap(debug_info);
+  oop callee_save_info = (oop) DebugInfo::calleeSaveInfo(debug_info);
 
   if (register_map != NULL) {
     for (jint i = 0; i < RegisterImpl::number_of_registers; i++) {
       bool is_oop = is_bit_set(register_map, i);
-      VMReg reg = get_hotspot_reg(i);
+      VMReg hotspot_reg = get_hotspot_reg(i);
       if (is_oop) {
-        map->set_oop(reg);
+        map->set_oop(hotspot_reg);
       } else {
-        map->set_value(reg);
+        map->set_value(hotspot_reg);
       }
     }
   }
 
-  for (jint i = 0; i < bitmap_size(frame_map); i++) {
+  for (jint i = 0; i < bitset_size(frame_map); i++) {
     bool is_oop = is_bit_set(frame_map, i);
     // HotSpot stack slots are 4 bytes
-    VMReg reg = VMRegImpl::stack2reg(i * 2);
+    VMReg reg = VMRegImpl::stack2reg(i * VMRegImpl::slots_per_word);
     if (is_oop) {
       map->set_oop(reg);
     } else {
       map->set_value(reg);
+    }
+  }
+
+  if (callee_save_info != NULL) {
+    objArrayOop registers = (objArrayOop) RegisterSaveLayout::registers(callee_save_info);
+    arrayOop slots = (arrayOop) RegisterSaveLayout::slots(callee_save_info);
+    for (jint i = 0; i < slots->length(); i++) {
+      oop graal_reg = registers->obj_at(i);
+      jint graal_reg_number = code_Register::number(graal_reg);
+      VMReg hotspot_reg = get_hotspot_reg(graal_reg_number);
+      // HotSpot stack slots are 4 bytes
+      jint graal_slot = ((jint*) slots->base(T_INT))[i];
+      jint hotspot_slot = graal_slot * VMRegImpl::slots_per_word;
+      VMReg hotspot_slot_as_reg = VMRegImpl::stack2reg(hotspot_slot);
+      map->set_callee_saved(hotspot_slot_as_reg, hotspot_reg);
+#ifdef _LP64
+      // (copied from generate_oop_map() in c1_Runtime1_x86.cpp)
+      VMReg hotspot_slot_hi_as_reg = VMRegImpl::stack2reg(hotspot_slot + 1);
+      map->set_callee_saved(hotspot_slot_hi_as_reg, hotspot_reg->next());
+#endif
     }
   }
 
@@ -150,7 +171,7 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
 
   if (value->is_a(RegisterValue::klass())) {
     jint number = code_Register::number(RegisterValue::reg(value));
-    if (number < 16) {
+    if (number < RegisterImpl::number_of_registers) {
       if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
         locationType = Location::int_in_long;
       } else if (type == T_LONG) {
@@ -178,7 +199,15 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
       }
       return value;
 #else
+#ifdef TARGET_ARCH_sparc
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(number)->as_VMReg()));
+      if (type == T_DOUBLE) {
+        second = value;
+      }
+      return value;
+#else
       ShouldNotReachHere("Platform currently does not support floating point values.");
+#endif
 #endif
     }
   } else if (value->is_a(StackSlot::klass())) {
@@ -235,7 +264,8 @@ static ScopeValue* get_hotspot_value(oop value, int total_frame_size, GrowableAr
     arrayOop values = (arrayOop) VirtualObject::values(value);
     for (jint i = 0; i < values->length(); i++) {
       ScopeValue* cur_second = NULL;
-      ScopeValue* value = get_hotspot_value(((oop*) values->base(T_OBJECT))[i], total_frame_size, objects, cur_second, oop_recorder);
+      oop object = ((objArrayOop) (values))->obj_at(i);
+      ScopeValue* value = get_hotspot_value(object, total_frame_size, objects, cur_second, oop_recorder);
 
       if (isLongArray && cur_second == NULL) {
         // we're trying to put ints into a long array... this isn't really valid, but it's used for some optimizations.
@@ -282,10 +312,10 @@ static MonitorValue* get_monitor_value(oop value, int total_frame_size, Growable
   return new MonitorValue(owner_value, lock_data_loc, eliminated);
 }
 
-void CodeInstaller::initialize_assumptions(oop target_method) {
+void CodeInstaller::initialize_assumptions(oop compiled_code) {
   _oop_recorder = new OopRecorder(&_arena);
   _dependencies = new Dependencies(&_arena, _oop_recorder);
-  Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompilationResult::comp(target_method));
+  Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompiledCode::comp(compiled_code));
   if (!assumptions_handle.is_null()) {
     objArrayHandle assumptions(Thread::current(), (objArrayOop)Assumptions::list(assumptions_handle()));
     int length = assumptions->length();
@@ -311,8 +341,8 @@ void CodeInstaller::initialize_assumptions(oop target_method) {
   }
 }
 
-GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
-  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompilationResult::comp(comp_result));
+GrowableArray<jlong>* get_leaf_graph_ids(Handle& compiled_code) {
+  arrayOop leafGraphArray = (arrayOop) CompilationResult::leafGraphIds(HotSpotCompiledCode::comp(compiled_code));
 
   jint length;
   if (leafGraphArray == NULL) {
@@ -330,70 +360,87 @@ GrowableArray<jlong>* get_leaf_graph_ids(Handle& comp_result) {
 }
 
 // constructor used to create a method
-CodeInstaller::CodeInstaller(Handle& comp_result, methodHandle method, GraalEnv::CodeInstallResult& result, nmethod*& nm, Handle installed_code, Handle triggered_deoptimizations) {
+CodeInstaller::CodeInstaller(Handle& compiled_code, GraalEnv::CodeInstallResult& result, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations) {
   GraalCompiler::initialize_buffer_blob();
   CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  jobject comp_result_obj = JNIHandles::make_local(comp_result());
-  jint entry_bci = HotSpotCompilationResult::entryBCI(comp_result);
-  initialize_assumptions(JNIHandles::resolve(comp_result_obj));
+  jobject compiled_code_obj = JNIHandles::make_local(compiled_code());
+  initialize_assumptions(JNIHandles::resolve(compiled_code_obj));
+
+  // Get instructions and constants CodeSections early because we need it.
+  _instructions = buffer.insts();
+  _constants = buffer.consts();
 
   {
     No_Safepoint_Verifier no_safepoint;
-    initialize_fields(JNIHandles::resolve(comp_result_obj), method);
-    initialize_buffer(buffer);
+    initialize_fields(JNIHandles::resolve(compiled_code_obj));
+    if (!initialize_buffer(buffer)) {
+      result = GraalEnv::code_too_large;
+      return;
+    }
     process_exception_handlers();
   }
 
   int stack_slots = _total_frame_size / HeapWordSize; // conversion to words
-  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(comp_result);
+  GrowableArray<jlong>* leaf_graph_ids = get_leaf_graph_ids(compiled_code);
 
-  result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-    GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, true, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
+  if (compiled_code->is_a(HotSpotCompiledRuntimeStub::klass())) {
+    oop stubName = HotSpotCompiledRuntimeStub::stubName(compiled_code);
+    char* name = strdup(java_lang_String::as_utf8_string(stubName));
+    cb = RuntimeStub::new_runtime_stub(name,
+                                       &buffer,
+                                       CodeOffsets::frame_never_safe,
+                                       stack_slots,
+                                       _debug_recorder->_oopmaps,
+                                       false);
+    result = GraalEnv::ok;
+  } else {
+    nmethod* nm = NULL;
+    methodHandle method = getMethodFromHotSpotMethod(HotSpotCompiledNmethod::method(compiled_code));
+    jint entry_bci = HotSpotCompiledNmethod::entryBCI(compiled_code);
+    result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
+        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, -1, false, leaf_graph_ids, installed_code, triggered_deoptimizations);
+    cb = nm;
+  }
+
+  if (cb != NULL) {
+    // Make sure the pre-calculated constants section size was correct.
+    guarantee((cb->code_begin() - cb->content_begin()) == _constants_size, err_msg("%d != %d", cb->code_begin() - cb->content_begin(), _constants_size));
+  }
 }
 
-// constructor used to create a stub
-CodeInstaller::CodeInstaller(Handle& target_method, BufferBlob*& blob, jlong& id) {
-  No_Safepoint_Verifier no_safepoint;
-
-  _oop_recorder = new OopRecorder(&_arena);
-  initialize_fields(target_method(), NULL);
-  assert(_name != NULL, "installMethod needs NON-NULL name");
-
-  // (very) conservative estimate: each site needs a relocation
-  GraalCompiler::initialize_buffer_blob();
-  CodeBuffer buffer(JavaThread::current()->get_buffer_blob());
-  initialize_buffer(buffer);
-
-  const char* cname = java_lang_String::as_utf8_string(_name);
-  blob = BufferBlob::create(strdup(cname), &buffer); // this is leaking strings... but only a limited number of stubs will be created
-  IF_TRACE_graal_3 Disassembler::decode((CodeBlob*) blob);
-  id = (jlong)blob->code_begin();
-}
-
-void CodeInstaller::initialize_fields(oop comp_result, methodHandle method) {
-  _comp_result = HotSpotCompilationResult::comp(comp_result);
-  if (!method.is_null()) {
+void CodeInstaller::initialize_fields(oop compiled_code) {
+  oop comp_result = HotSpotCompiledCode::comp(compiled_code);
+  if (compiled_code->is_a(HotSpotCompiledNmethod::klass())) {
+    oop hotspotJavaMethod = HotSpotCompiledNmethod::method(compiled_code);
+    methodHandle method = getMethodFromHotSpotMethod(hotspotJavaMethod);
     _parameter_count = method->size_of_parameters();
     TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
+  } else {
+    assert(compiled_code->is_a(HotSpotCompiledRuntimeStub::klass()), "CCE");
+    // TODO (ds) not sure if this is correct - only used in OopMap constructor for non-product builds
+    _parameter_count = 0;
   }
-  _name = HotSpotCompilationResult::name(comp_result);
-  _sites = (arrayOop) HotSpotCompilationResult::sites(comp_result);
-  _exception_handlers = (arrayOop) HotSpotCompilationResult::exceptionHandlers(comp_result);
+  _sites = (arrayOop) HotSpotCompiledCode::sites(compiled_code);
+  _exception_handlers = (arrayOop) HotSpotCompiledCode::exceptionHandlers(compiled_code);
 
-  _code = (arrayOop) CompilationResult::targetCode(_comp_result);
-  _code_size = CompilationResult::targetCodeSize(_comp_result);
+  _code = (arrayOop) CompilationResult::targetCode(comp_result);
+  _code_size = CompilationResult::targetCodeSize(comp_result);
   // The frame size we get from the target method does not include the return address, so add one word for it here.
-  _total_frame_size = CompilationResult::frameSize(_comp_result) + HeapWordSize;
-  _custom_stack_area_offset = CompilationResult::customStackAreaOffset(_comp_result);
+  _total_frame_size = CompilationResult::frameSize(comp_result) + HeapWordSize;  // FIXME this is an x86-ism
+  _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
-  // (very) conservative estimate: each site needs a constant section entry
-  _constants_size = _sites->length() * (BytesPerLong*2);
+  // Pre-calculate the constants section size.  This is required for PC-relative addressing.
+  _constants_size = calculate_constants_size();
+
+#ifndef PRODUCT
+  _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
+#endif
 
   _next_call_type = MARK_INVOKE_INVALID;
 }
 
 // perform data and call relocation on the CodeBuffer
-void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
+bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   int locs_buffer_size = _sites->length() * (relocInfo::length_limit + sizeof(relocInfo));
   char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
   buffer.insts()->initialize_shared_locs((relocInfo*)locs_buffer, locs_buffer_size / sizeof(relocInfo));
@@ -405,16 +452,16 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
 
   buffer.initialize_oop_recorder(_oop_recorder);
 
-  _instructions = buffer.insts();
-  _constants = buffer.consts();
-
   // copy the code into the newly created CodeBuffer
+  address end_pc = _instructions->start() + _code_size;
+  if (!_instructions->allocates2(end_pc)) {
+    return false;
+  }
   memcpy(_instructions->start(), _code->base(T_BYTE), _code_size);
-  _instructions->set_end(_instructions->start() + _code_size);
+  _instructions->set_end(end_pc);
 
-  oop* sites = (oop*) _sites->base(T_OBJECT);
   for (int i = 0; i < _sites->length(); i++) {
-    oop site = sites[i];
+    oop site = ((objArrayOop) (_sites))->obj_at(i);
     jint pc_offset = CompilationResult_Site::pcOffset(site);
 
     if (site->is_a(CompilationResult_Call::klass())) {
@@ -441,6 +488,52 @@ void CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       fatal("unexpected Site subclass");
     }
   }
+
+#ifndef PRODUCT
+  if (_comments != NULL) {
+    for (int i = 0; i < _comments->length(); i++) {
+      oop comment = ((objArrayOop) (_comments))->obj_at(i);
+      assert(comment->is_a(HotSpotCompiledCode_Comment::klass()), "cce");
+      jint offset = HotSpotCompiledCode_Comment::pcOffset(comment);
+      char* text = java_lang_String::as_utf8_string(HotSpotCompiledCode_Comment::text(comment));
+      buffer.block_comment(offset, text);
+    }
+  }
+#endif
+  return true;
+}
+
+/**
+ * Calculate the constants section size by iterating over all DataPatches.
+ * Knowing the size of the constants section before patching instructions
+ * is necessary for PC-relative addressing.
+ */
+int CodeInstaller::calculate_constants_size() {
+  int size = 0;
+
+  for (int i = 0; i < _sites->length(); i++) {
+    oop site = ((objArrayOop) (_sites))->obj_at(i);
+    jint pc_offset = CompilationResult_Site::pcOffset(site);
+
+    if (site->is_a(CompilationResult_DataPatch::klass())) {
+      int alignment = CompilationResult_DataPatch::alignment(site);
+      bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
+
+      if (!inlined) {
+        if (alignment > 0) {
+          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+          size = align_size_up(size, alignment);
+        }
+        if (CompilationResult_DataPatch::constant(site) != NULL) {
+          size = size + sizeof(int64_t);
+        } else {
+          arrayOop rawConstant = arrayOop(CompilationResult_DataPatch::rawConstant(site));
+          size = size + rawConstant->length();
+        }
+      }
+    }
+  }
+  return size == 0 ? 0 : align_size_up(size, _constants->alignment());
 }
 
 void CodeInstaller::assumption_MethodContents(Handle assumption) {
@@ -493,9 +586,8 @@ void CodeInstaller::process_exception_handlers() {
   GrowableArray<intptr_t>* pcos = new GrowableArray<intptr_t> (num_handlers);
 
   if (_exception_handlers != NULL) {
-    oop* exception_handlers = (oop*) _exception_handlers->base(T_OBJECT);
     for (int i = 0; i < _exception_handlers->length(); i++) {
-      oop exc = exception_handlers[i];
+      oop exc=((objArrayOop) (_exception_handlers))->obj_at(i);
       jint pc_offset = CompilationResult_Site::pcOffset(exc);
       jint handler_offset = CompilationResult_ExceptionHandler::handlerPos(exc);
 
@@ -567,8 +659,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
 
   for (jint i = 0; i < values->length(); i++) {
     ScopeValue* second = NULL;
-    oop value = ((oop*) values->base(T_OBJECT))[i];
-
+    oop value=((objArrayOop) (values))->obj_at(i);
     if (i < local_count) {
       ScopeValue* first = get_hotspot_value(value, _total_frame_size, objects, second, _oop_recorder);
       if (second != NULL) {
@@ -587,9 +678,10 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
     if (second != NULL) {
       i++;
       assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
-      assert(((oop*) values->base(T_OBJECT))[i] == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
+      assert(((objArrayOop) (values))->obj_at(i) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
     }
   }
+
 
   _debug_recorder->dump_object_pool(objects);
 
@@ -625,43 +717,28 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   InstanceKlass* target_klass = InstanceKlass::cast(target->klass());
 
   oop hotspot_method = NULL; // JavaMethod
-  oop global_stub = NULL;
+  oop foreign_call = NULL;
 
-  if (target_klass->is_subclass_of(SystemDictionary::HotSpotRuntimeCallTarget_klass())) {
-    global_stub = target;
+  if (target_klass->is_subclass_of(SystemDictionary::HotSpotForeignCallLinkage_klass())) {
+    foreign_call = target;
   } else {
     hotspot_method = target;
   }
 
   oop debug_info = CompilationResult_Call::debugInfo(site);
 
-  assert((hotspot_method ? 1 : 0) + (global_stub ? 1 : 0) == 1, "Call site needs exactly one type");
+  assert((hotspot_method ? 1 : 0) + (foreign_call ? 1 : 0) == 1, "Call site needs exactly one type");
 
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
-  jint next_pc_offset = 0x0;
-  if (inst->is_call() || inst->is_jump()) {
-    assert(NativeCall::instruction_size == (int)NativeJump::instruction_size, "unexpected size");
-    next_pc_offset = pc_offset + NativeCall::instruction_size;
-  } else if (inst->is_mov_literal64()) {
-    // mov+call instruction pair
-    next_pc_offset = pc_offset + NativeMovConstReg::instruction_size;
-    u_char* call = (u_char*) (_instructions->start() + next_pc_offset);
-    assert((call[0] == 0x40 || call[0] == 0x41) && call[1] == 0xFF, "expected call with rex/rexb prefix byte");
-    next_pc_offset += 3; /* prefix byte + opcode byte + modrm byte */
-  } else if (inst->is_call_reg()) {
-    // the inlined vtable stub contains a "call register" instruction
-    assert(hotspot_method != NULL, "only valid for virtual calls");
-    next_pc_offset = pc_offset + ((NativeCallReg *) inst)->next_instruction_offset();
-  } else {
-    fatal("unsupported type of instruction for call site");
-  }
-
+  jint next_pc_offset = CodeInstaller::pd_next_offset(inst, pc_offset, hotspot_method);
+  
   if (target->is_a(SystemDictionary::HotSpotInstalledCode_klass())) {
     assert(inst->is_jump(), "jump expected");
 
-    nmethod* nm = (nmethod*) HotSpotInstalledCode::nmethod(target);
-    nativeJump_at((address)inst)->set_jump_destination(nm->verified_entry_point());
-    _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
+    CodeBlob* cb = (CodeBlob*) (address) HotSpotInstalledCode::codeBlob(target);
+    assert(cb != NULL, "npe");
+    
+    CodeInstaller::pd_relocate_CodeBlob(cb, inst);
 
     return;
   }
@@ -676,67 +753,16 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     }
   }
 
-  if (global_stub != NULL) {
-    jlong global_stub_destination = HotSpotRuntimeCallTarget::address(global_stub);
-    if (inst->is_call()) {
-      // NOTE: for call without a mov, the offset must fit a 32-bit immediate
-      //       see also CompilerToVM.getMaxCallTargetOffset()
-      NativeCall* call = nativeCall_at((address) (inst));
-      call->set_destination((address) global_stub_destination);
-      _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec(), Assembler::call32_operand);
-    } else if (inst->is_mov_literal64()) {
-      NativeMovConstReg* mov = nativeMovConstReg_at((address) (inst));
-      mov->set_data((intptr_t) global_stub_destination);
-      _instructions->relocate(mov->instruction_address(), runtime_call_Relocation::spec(), Assembler::imm_operand);
-    } else {
-      NativeJump* jump = nativeJump_at((address) (inst));
-      jump->set_jump_destination((address) global_stub_destination);
-      _instructions->relocate((address)inst, runtime_call_Relocation::spec(), Assembler::call32_operand);
-    }
-    TRACE_graal_3("relocating (stub)  at %p", inst);
+  if (foreign_call != NULL) {
+    jlong foreign_call_destination = HotSpotForeignCallLinkage::address(foreign_call);
+
+    CodeInstaller::pd_relocate_ForeignCall(inst, foreign_call_destination);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");
-#ifdef ASSERT
-    Method* method = NULL;
-    // we need to check, this might also be an unresolved method
-    if (hotspot_method->is_a(HotSpotResolvedJavaMethod::klass())) {
-      method = getMethodFromHotSpotMethod(hotspot_method);
-    }
-#endif
     assert(debug_info != NULL, "debug info expected");
 
     TRACE_graal_3("method call");
-    switch (_next_call_type) {
-      case MARK_INLINE_INVOKE:
-        break;
-      case MARK_INVOKEVIRTUAL:
-      case MARK_INVOKEINTERFACE: {
-        assert(method == NULL || !method->is_static(), "cannot call static method with invokeinterface");
-
-        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-        call->set_destination(SharedRuntime::get_resolve_virtual_call_stub());
-        _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc), Assembler::call32_operand);
-        break;
-      }
-      case MARK_INVOKESTATIC: {
-        assert(method == NULL || method->is_static(), "cannot call non-static method with invokestatic");
-
-        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-        call->set_destination(SharedRuntime::get_resolve_static_call_stub());
-        _instructions->relocate(call->instruction_address(), relocInfo::static_call_type, Assembler::call32_operand);
-        break;
-      }
-      case MARK_INVOKESPECIAL: {
-        assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
-        NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
-        call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
-        _instructions->relocate(call->instruction_address(), relocInfo::opt_virtual_call_type, Assembler::call32_operand);
-        break;
-      }
-      default:
-        fatal("invalid _next_call_type value");
-        break;
-    }
+    CodeInstaller::pd_relocate_JavaMethod(hotspot_method, pc_offset);
   }
   _next_call_type = MARK_INVOKE_INVALID;
   if (debug_info != NULL) {
@@ -746,64 +772,18 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
 void CodeInstaller::site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site) {
   oop constant = CompilationResult_DataPatch::constant(site);
-  int alignment = CompilationResult_DataPatch::alignment(site);
-  bool inlined = CompilationResult_DataPatch::inlined(site) == JNI_TRUE;
-  oop kind = Constant::kind(constant);
-
-  address instruction = _instructions->start() + pc_offset;
-
-  char typeChar = Kind::typeChar(kind);
-  switch (typeChar) {
-    case 'z':
-    case 'b':
-    case 's':
-    case 'c':
-    case 'i':
-      fatal("int-sized values not expected in DataPatch");
-      break;
-    case 'f':
-    case 'j':
-    case 'd': {
-      record_metadata_in_constant(constant, _oop_recorder);
-      if (inlined) {
-        address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-        *((jlong*) operand) = Constant::primitive(constant);
-      } else {
-        address operand = Assembler::locate_operand(instruction, Assembler::disp32_operand);
-        address next_instruction = Assembler::locate_next_instruction(instruction);
-        int size = _constants->size();
-        if (alignment > 0) {
-          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-          size = align_size_up(size, alignment);
-        }
-        // we don't care if this is a long/double/etc., the primitive field contains the right bits
-        address dest = _constants->start() + size;
-        _constants->set_end(dest + BytesPerLong);
-        *(jlong*) dest = Constant::primitive(constant);
-
-        long disp = dest - next_instruction;
-        assert(disp == (jint) disp, "disp doesn't fit in 32 bits");
-        *((jint*) operand) = (jint) disp;
-
-        _instructions->relocate(instruction, section_word_Relocation::spec((address) dest, CodeBuffer::SECT_CONSTS), Assembler::disp32_operand);
-        TRACE_graal_3("relocating (%c) at %p/%p with destination at %p (%d)", typeChar, instruction, operand, dest, size);
-      }
-      break;
+  if (constant != NULL) {
+    oop kind = Constant::kind(constant);
+    char typeChar = Kind::typeChar(kind);
+    switch (typeChar) {
+      case 'f':
+      case 'j':
+      case 'd':
+        record_metadata_in_constant(constant, _oop_recorder);
+        break;
     }
-    case 'a': {
-      address operand = Assembler::locate_operand(instruction, Assembler::imm_operand);
-      Handle obj = Constant::object(constant);
-
-      jobject value = JNIHandles::make_local(obj());
-      *((jobject*) operand) = value;
-      _instructions->relocate(instruction, oop_Relocation::spec_for_immediate(), Assembler::imm_operand);
-      TRACE_graal_3("relocating (oop constant) at %p/%p", instruction, operand);
-      break;
-    }
-    default:
-      fatal(err_msg("unexpected Kind (%d) in DataPatch", typeChar));
-      break;
   }
+  CodeInstaller::pd_site_DataPatch(pc_offset, site);
 }
 
 void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
@@ -814,7 +794,7 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
     assert(java_lang_boxing_object::is_instance(id_obj, T_INT), "Integer id expected");
     jint id = id_obj->int_field(java_lang_boxing_object::value_offset_in_bytes(T_INT));
 
-    address instruction = _instructions->start() + pc_offset;
+    address pc = _instructions->start() + pc_offset;
 
     switch (id) {
       case MARK_UNVERIFIED_ENTRY:
@@ -833,38 +813,34 @@ void CodeInstaller::site_Mark(CodeBuffer& buffer, jint pc_offset, oop site) {
         _offsets.set_value(CodeOffsets::Deopt, pc_offset);
         break;
       case MARK_INVOKEVIRTUAL:
-      case MARK_INVOKEINTERFACE: {
-        // Convert the initial value of the Klass* slot in an inline cache
-        // from 0L to Universe::non_oop_word().
-        NativeMovConstReg* n_copy = nativeMovConstReg_at(instruction);
-        assert(n_copy->data() == 0, "inline cache Klass* initial value should be 0L");
-        n_copy->set_data((intptr_t)Universe::non_oop_word());
-      }
+      case MARK_INVOKEINTERFACE:
       case MARK_INLINE_INVOKE:
       case MARK_INVOKESTATIC:
       case MARK_INVOKESPECIAL:
         _next_call_type = (MarkId) id;
-        _invoke_mark_pc = instruction;
+        _invoke_mark_pc = pc;
         break;
       case MARK_POLL_NEAR: {
-        NativeInstruction* ni = nativeInstruction_at(instruction);
-        int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
+        NativeInstruction* ni = nativeInstruction_at(pc);
+        int32_t* disp = (int32_t*) pd_locate_operand(pc);
+        // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
         int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
         intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
         *disp = (int32_t)new_disp;
       }
       case MARK_POLL_FAR:
-        _instructions->relocate(instruction, relocInfo::poll_type);
+        _instructions->relocate(pc, relocInfo::poll_type);
         break;
       case MARK_POLL_RETURN_NEAR: {
-        NativeInstruction* ni = nativeInstruction_at(instruction);
-        int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
+        NativeInstruction* ni = nativeInstruction_at(pc);
+        int32_t* disp = (int32_t*) pd_locate_operand(pc);
+        // int32_t* disp = (int32_t*) Assembler::locate_operand(instruction, Assembler::disp32_operand);
         int32_t offset = *disp; // The Java code installed the polling page offset into the disp32 operand
         intptr_t new_disp = (intptr_t) (os::get_polling_page() + offset) - (intptr_t) ni;
         *disp = (int32_t)new_disp;
       }
       case MARK_POLL_RETURN_FAR:
-        _instructions->relocate(instruction, relocInfo::poll_return_type);
+        _instructions->relocate(pc, relocInfo::poll_return_type);
         break;
       default:
         ShouldNotReachHere();

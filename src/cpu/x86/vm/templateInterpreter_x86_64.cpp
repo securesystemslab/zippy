@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,9 @@
 #include "runtime/vframeArray.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 #define __ _masm->
 
@@ -301,16 +304,6 @@ address TemplateInterpreterGenerator::generate_safept_entry_for(
 // Helpers for commoning out cases in the various type of method entries.
 //
 
-#ifdef GRAAL
-
-void graal_initialize_time(JavaThread* thread) {
-  frame fr = thread->last_frame();
-  assert(fr.is_interpreted_frame(), "must come from interpreter");
-  fr.interpreter_frame_method()->set_graal_invocation_time(os::javaTimeNanos());
-}
-
-#endif // GRAAL
-
 // increment invocation count & check for overflow
 //
 // Note: checking for negative value instead of overflow
@@ -323,13 +316,12 @@ void InterpreterGenerator::generate_counter_incr(
         Label* overflow,
         Label* profile_method,
         Label* profile_method_continue) {
-  const Address invocation_counter(rbx, in_bytes(Method::invocation_counter_offset()) +
-                                        in_bytes(InvocationCounter::counter_offset()));
+  Label done;
   // Note: In tiered we increment either counters in Method* or in MDO depending if we're profiling or not.
   if (TieredCompilation) {
     int increment = InvocationCounter::count_increment;
     int mask = ((1 << Tier0InvokeNotifyFreqLog)  - 1) << InvocationCounter::count_shift;
-    Label no_mdo, done;
+    Label no_mdo;
     if (ProfileInterpreter) {
       // Are we profiling?
       __ movptr(rax, Address(rbx, Method::method_data_offset()));
@@ -339,49 +331,40 @@ void InterpreterGenerator::generate_counter_incr(
       const Address mdo_invocation_counter(rax, in_bytes(MethodData::invocation_counter_offset()) +
                                                 in_bytes(InvocationCounter::counter_offset()));
       __ increment_mask_and_jump(mdo_invocation_counter, increment, mask, rcx, false, Assembler::zero, overflow);
-      __ jmpb(done);
+      __ jmp(done);
     }
     __ bind(no_mdo);
-    // Increment counter in Method* (we don't need to load it, it's in ecx).
-    __ increment_mask_and_jump(invocation_counter, increment, mask, rcx, true, Assembler::zero, overflow);
+    // Increment counter in MethodCounters
+    const Address invocation_counter(rax,
+                  MethodCounters::invocation_counter_offset() +
+                  InvocationCounter::counter_offset());
+    __ get_method_counters(rbx, rax, done);
+    __ increment_mask_and_jump(invocation_counter, increment, mask, rcx,
+                               false, Assembler::zero, overflow);
     __ bind(done);
   } else {
-    const Address backedge_counter(rbx,
-                                   Method::backedge_counter_offset() +
-                                   InvocationCounter::counter_offset());
+    const Address backedge_counter(rax,
+                  MethodCounters::backedge_counter_offset() +
+                  InvocationCounter::counter_offset());
+    const Address invocation_counter(rax,
+                  MethodCounters::invocation_counter_offset() +
+                  InvocationCounter::counter_offset());
 
-    if (ProfileInterpreter) { // %%% Merge this into MethodData*
-      __ incrementl(Address(rbx,
-                            Method::interpreter_invocation_counter_offset()));
+    __ get_method_counters(rbx, rax, done);
+
+    if (ProfileInterpreter) {
+      __ incrementl(Address(rax,
+              MethodCounters::interpreter_invocation_counter_offset()));
     }
-
-#ifdef GRAAL
-    if (CompilationPolicyChoice == 4) {
-      Label not_zero;
-      __ testl(rcx, InvocationCounter::count_mask_value);
-      __ jcc(Assembler::notZero, not_zero);
-
-      __ push(rcx);
-      __ call_VM(noreg, CAST_FROM_FN_PTR(address, graal_initialize_time), rdx, false);
-      __ set_method_data_pointer_for_bcp();
-      __ get_method(rbx);
-      __ pop(rcx);
-
-      __ testl(rcx, InvocationCounter::count_mask_value);
-      __ jcc(Assembler::zero, not_zero);
-      __ stop("unexpected counter value in rcx");
-
-      __ bind(not_zero);
-    }
-#endif // GRAAL
 
     // Update standard invocation counters
-    __ movl(rax, backedge_counter);   // load backedge counter
-
+    __ movl(rcx, invocation_counter);
     __ incrementl(rcx, InvocationCounter::count_increment);
+    __ movl(invocation_counter, rcx); // save invocation count
+
+    __ movl(rax, backedge_counter);   // load backedge counter
     __ andl(rax, InvocationCounter::count_mask_value); // mask out the status bits
 
-    __ movl(invocation_counter, rcx); // save invocation count
     __ addl(rcx, rax);                // add both counters
 
     // profile_method is non-null only for interpreted method so
@@ -398,6 +381,7 @@ void InterpreterGenerator::generate_counter_incr(
 
     __ cmp32(rcx, ExternalAddress((address)&InvocationCounter::InterpreterInvocationLimit));
     __ jcc(Assembler::aboveEqual, *overflow);
+    __ bind(done);
   }
 }
 
@@ -886,6 +870,27 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
   // we need to align the outgoing SP for compiled code.
   __ movptr(r11, rsp);
 
+  // Move first object argument from interpreter calling convention to compiled
+  // code calling convention.
+  __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*4));
+
+  // Move second object argument.
+  __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*3));
+
+  // Move third object argument.
+  __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*2));
+
+  // Load the raw pointer to the HotSpotInstalledCode object.
+  __ movq(j_rarg3, Address(r11, Interpreter::stackElementSize));
+
+  // Load the nmethod pointer from the HotSpotInstalledCode object
+  __ movq(j_rarg3, Address(j_rarg3, sizeof(oopDesc)));
+
+  // Check whether the nmethod was invalidated
+  __ testq(j_rarg3, j_rarg3);
+  Label invalid_nmethod;
+  __ jcc(Assembler::zero, invalid_nmethod);
+
   // Ensure compiled code always sees stack at proper alignment
   __ andptr(rsp, -16);
 
@@ -893,21 +898,18 @@ address InterpreterGenerator::generate_execute_compiled_method_entry() {
   // as far as the placement of the call instruction
   __ push(rax);
 
-  // Move first object argument from interpreter calling convention to compiled
-  // code calling convention.
-  __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*5));
-
-  // Move second object argument.
-  __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*4));
-
-  // Move third object argument.
-  __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*3));
-
-  // Load the raw pointer to the nmethod.
-  __ movq(j_rarg3, Address(r11, Interpreter::stackElementSize));
-
   // Perform a tail call to the verified entry point of the nmethod.
   __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
+
+  __ bind(invalid_nmethod);
+
+  //  pop return address, reset last_sp to NULL
+  __ empty_expression_stack();
+  __ restore_bcp();      // rsi must be correct for exception handler   (was destroyed)
+  __ restore_locals();   // make sure locals pointer is correct as well (was destroyed)
+  __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::throw_InvalidInstalledCodeException));
+  // the call_VM checks for exception, so we should never return here.
+  __ should_not_reach_here();
 
   return entry_point;
 }
@@ -927,9 +929,6 @@ address InterpreterGenerator::generate_native_entry(bool synchronized) {
   address entry_point = __ pc();
 
   const Address constMethod       (rbx, Method::const_offset());
-  const Address invocation_counter(rbx, Method::
-                                        invocation_counter_offset() +
-                                        InvocationCounter::counter_offset());
   const Address access_flags      (rbx, Method::access_flags_offset());
   const Address size_of_parameters(rcx, ConstMethod::
                                         size_of_parameters_offset());
@@ -959,10 +958,6 @@ address InterpreterGenerator::generate_native_entry(bool synchronized) {
   // slot for oop temp
   // (static native method holder mirror/jni oop result)
   __ push((int) NULL_WORD);
-
-  if (inc_counter) {
-    __ movl(rcx, invocation_counter);  // (pre-)fetch invocation count
-  }
 
   // initialize fixed part of activation frame
   generate_fixed_frame(true);
@@ -1380,9 +1375,6 @@ address InterpreterGenerator::generate_normal_entry(bool synchronized) {
   address entry_point = __ pc();
 
   const Address constMethod(rbx, Method::const_offset());
-  const Address invocation_counter(rbx,
-                                   Method::invocation_counter_offset() +
-                                   InvocationCounter::counter_offset());
   const Address access_flags(rbx, Method::access_flags_offset());
   const Address size_of_parameters(rdx,
                                    ConstMethod::size_of_parameters_offset());
@@ -1427,10 +1419,6 @@ address InterpreterGenerator::generate_normal_entry(bool synchronized) {
     __ bind(exit);
   }
 
-  // (pre-)fetch invocation count
-  if (inc_counter) {
-    __ movl(rcx, invocation_counter);
-  }
   // initialize fixed part of activation frame
   generate_fixed_frame(false);
 
@@ -1664,8 +1652,7 @@ int AbstractInterpreter::size_top_interpreter_activation(Method* method) {
     -(frame::interpreter_frame_initial_sp_offset) + entry_size;
 
   const int stub_code = frame::entry_frame_after_call_words;
-  const int extra_stack = Method::extra_stack_entries();
-  const int method_stack = (method->max_locals() + method->max_stack() + extra_stack) *
+  const int method_stack = (method->max_locals() + method->max_stack()) *
                            Interpreter::stackElementWords;
   return (overhead_size + method_stack + stub_code);
 }

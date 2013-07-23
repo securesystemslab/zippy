@@ -33,6 +33,7 @@ import mx
 import sanitycheck
 import json, textwrap
 
+# This works because when mx loads this file, it makes sure __file__ gets an absolute path
 _graal_home = dirname(dirname(__file__))
 
 """ Used to distinguish an exported GraalVM (see 'mx export'). """
@@ -46,13 +47,17 @@ _vmChoices = ['graal', 'server', 'client', 'server-nograal', 'client-nograal', '
 _vm = _vmChoices[0]
 
 """ The VM builds that will be run by the 'vm' command - default is first in list """
-_vmbuildChoices = ['product', 'fastdebug', 'debug']
+_vmbuildChoices = ['product', 'fastdebug', 'debug', 'optimized']
 
 """ The VM build that will be run by the 'vm' command.
     This can be set via the global '--product', '--fastdebug' and '--debug' options. """
 _vmbuild = _vmbuildChoices[0]
 
 _jacoco = 'off'
+
+_workdir = None
+
+_vmdir = None
 
 _native_dbg = None
 
@@ -126,47 +131,6 @@ def export(args):
     shutil.rmtree(tmp)
 
     mx.log('Created distribution in ' + zfName)
-
-def example(args):
-    """run some or all Graal examples"""
-    examples = {
-        'safeadd': ['com.oracle.graal.examples.safeadd', 'com.oracle.graal.examples.safeadd.Main'],
-        'vectorlib': ['com.oracle.graal.examples.vectorlib', 'com.oracle.graal.examples.vectorlib.Main'],
-    }
-
-    def run_example(verbose, project, mainClass):
-        cp = mx.classpath(project)
-        sharedArgs = ['-Xcomp', '-XX:CompileOnly=Main', mainClass]
-
-        res = []
-        mx.log("=== Server VM ===")
-        printArg = '-XX:+PrintCompilation' if verbose else '-XX:-PrintCompilation'
-        res.append(vm(['-cp', cp, printArg] + sharedArgs, vm='server'))
-        mx.log("=== Graal VM ===")
-        printArg = '-G:+PrintCompilation' if verbose else '-G:-PrintCompilation'
-        res.append(vm(['-cp', cp, printArg, '-G:-Extend', '-G:-Inline'] + sharedArgs))
-        mx.log("=== Graal VM with extensions ===")
-        res.append(vm(['-cp', cp, printArg, '-G:+Extend', '-G:-Inline'] + sharedArgs))
-
-        if len([x for x in res if x != 0]) != 0:
-            return 1
-        return 0
-
-    verbose = False
-    if '-v' in args:
-        verbose = True
-        args = [a for a in args if a != '-v']
-
-    if len(args) == 0:
-        args = examples.keys()
-    for a in args:
-        config = examples.get(a)
-        if config is None:
-            mx.log('unknown example: ' + a + '  {available examples = ' + str(examples.keys()) + '}')
-        else:
-            mx.log('--------- ' + a + ' ------------')
-            project, mainClass = config
-            run_example(verbose, project, mainClass)
 
 def dacapo(args):
     """run one or all DaCapo benchmarks
@@ -273,6 +237,8 @@ def _arch():
     machine = platform.uname()[4]
     if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
         return 'amd64'
+    if machine in ['sun4v']:
+        return 'sparc'
     if machine == 'i386' and mx.get_os() == 'darwin':
         try:
             # Support for Snow Leopard and earlier version of MacOSX
@@ -303,20 +269,20 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
-    return join(_graal_home, 'jdk' + str(mx.java().version))
+    return os.path.abspath(_vmdir if _vmdir else join(_graal_home, 'jdk' + str(mx.java().version)))
 
-def _jdk(build='product', vmToCheck=None, create=False):
+def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
     jdk = join(_jdksDir(), build)
-    srcJdk = mx.java().jdk
-    jdkContents = ['bin', 'include', 'jre', 'lib']
-    if exists(join(srcJdk, 'db')):
-        jdkContents.append('db')
-    if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
-        jdkContents.append('man')
     if create:
+        srcJdk = mx.java().jdk
+        jdkContents = ['bin', 'include', 'jre', 'lib']
+        if exists(join(srcJdk, 'db')):
+            jdkContents.append('db')
+        if mx.get_os() != 'windows' and exists(join(srcJdk, 'man')):
+            jdkContents.append('man')
         if not exists(jdk):
             mx.log('Creating ' + jdk + ' from ' + srcJdk)
             os.makedirs(jdk)
@@ -364,9 +330,11 @@ def _jdk(build='product', vmToCheck=None, create=False):
                 pass
     else:
         if not exists(jdk):
-            mx.abort('The ' + build + ' VM has not been created - run "mx build ' + build + '"')
+            vmOption = ' --vm ' + vmToCheck if vmToCheck else ''
+            mx.abort('The ' + build + ' VM has not been created - run "mx' + vmOption + ' build ' + build + '"')
             
-    _installGraalJarInJdks(mx.distribution('GRAAL'))
+    if installGraalJar:
+        _installGraalJarInJdks(mx.distribution('GRAAL'))
     
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -383,7 +351,8 @@ def _jdk(build='product', vmToCheck=None, create=False):
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
-    jdks = join(_graal_home, 'jdk' + str(mx.java().version))
+    graalOptions = join(_graal_home, 'graal.options')
+    jdks = _jdksDir()
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
@@ -393,6 +362,9 @@ def _installGraalJarInJdks(graalDist):
                 shutil.copyfile(graalJar, tmp)
                 os.close(fd)
                 shutil.move(tmp, join(jreLibDir, 'graal.jar'))
+                
+                if exists(graalOptions):
+                    shutil.copy(graalOptions, join(jreLibDir, 'graal.options'))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
@@ -456,82 +428,7 @@ def jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
 
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    print join(_graal_home, 'jdk' + str(mx.java().version), build)
-
-def initantbuild(args):
-    """(re)generates an ant build file for producing graal.jar"""
-    parser=ArgumentParser(prog='mx initantbuild')
-    parser.add_argument('-f', '--buildfile', help='file to generate', default=join(_graal_home, 'make', 'build-graal.xml'))
-
-    args = parser.parse_args(args)
-    
-    out = mx.XMLDoc()
-    
-    out.comment("""
- Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
- DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-
- This code is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License version 2 only, as
- published by the Free Software Foundation.  Oracle designates this
- particular file as subject to the "Classpath" exception as provided
- by Oracle in the LICENSE file that accompanied this code.
-
- This code is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- version 2 for more details (a copy is included in the LICENSE file that
- accompanied this code).
-
- You should have received a copy of the GNU General Public License version
- 2 along with this work; if not, write to the Free Software Foundation,
- Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-
- Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- or visit www.oracle.com if you need additional information or have any
- questions.
-""")
-    
-    out.open('project', {'name' : 'graal', 'default' : 'main', 'basedir' : '.'})
-    out.element('property', {'name' : 'src.dir', 'value' : '${gamma.dir}/graal'})
-    out.element('property', {'name' : 'classes.dir', 'value' : '${shared.dir}/graal'})
-    out.element('property', {'name' : 'jar.dir', 'value' : '${shared.dir}'})
-    out.element('property', {'name' : 'jar.file', 'value' : '${jar.dir}/graal.jar'})
-    
-    out.element('target', {'name' : 'main', 'depends' : 'jar'})
-
-    out.open('target', {'name' : 'compile', 'depends' : 'cleanclasses'})
-    out.element('mkdir', {'dir' : '${classes.dir}'})
-    out.open('javac', {'destdir' : '${classes.dir}', 'debug' : 'on', 'includeantruntime' : 'false', })
-    for p in mx.sorted_deps(mx.distribution('GRAAL').deps):
-        out.element('src', {'path' : '${src.dir}/' + p.name})
-    out.element('compilerarg', {'value' : '-XDignore.symbol.file'})
-    
-    out.open('classpath')
-    out.open('fileset', {'dir' : '${java.home}/../lib'})
-    out.element('include', {'name' : 'tools.jar'})
-    out.close('fileset')
-    out.close('classpath')
-    
-    out.close('javac')
-    out.close('target')
-
-    out.open('target', {'name' : 'jar', 'depends' : 'compile'})
-    out.element('mkdir', {'dir' : '${jar.dir}'})
-    out.element('jar', {'destfile' : '${jar.file}', 'basedir' : '${classes.dir}'})
-    out.close('target')
-    
-    out.open('target', {'name' : 'cleanclasses'})
-    out.element('delete', {'dir' : '${classes.dir}'})
-    out.close('target')
-
-    out.open('target', {'name' : 'clean', 'depends' : 'cleanclasses'})
-    out.element('delete', {'file' : '${jar.file}'})
-    out.close('target')
-
-    out.close('project')
-    
-    mx.update_file(args.buildfile, out.xml(indent='  ', newl='\n'))
+    print _jdk(build, installGraalJar=False)
 
 def buildvars(args):
     """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
@@ -542,7 +439,6 @@ def buildvars(args):
         'HOTSPOT_BUILD_JOBS' : 'Number of CPUs used by make (default: ' + str(multiprocessing.cpu_count()) + ')',
         'INSTALL' : 'Install the built VM into the JDK? (default: y)',
         'ZIP_DEBUGINFO_FILES' : 'Install zipped debug symbols file? (default: 0)',
-        'TEST_IN_BUILD' : 'Run the Queens test as part of build (default: false)'
     }
     
     mx.log('HotSpot build variables that can be set by the -D option to "mx build":')
@@ -564,8 +460,20 @@ def build(args, vm=None):
 
     # Call mx.build to compile the Java sources
     parser=ArgumentParser(prog='mx build')
+    parser.add_argument('--export-dir', help='directory to which graal.jar and graal.options will be copied', metavar='<path>')
     parser.add_argument('-D', action='append', help='set a HotSpot build variable (run \'mx buildvars\' to list variables)', metavar='name=value')
     opts2 = mx.build(['--source', '1.7'] + args, parser=parser)
+
+    if opts2.export_dir is not None:
+        if not exists(opts2.export_dir):
+            os.makedirs(opts2.export_dir)
+        else:
+            assert os.path.isdir(opts2.export_dir), '{} is not a directory'.format(opts2.export_dir)
+
+        shutil.copy(mx.distribution('GRAAL').path, opts2.export_dir)
+        graalOptions = join(_graal_home, 'graal.options')
+        if exists(graalOptions):
+            shutil.copy(graalOptions, opts2.export_dir)
 
     if not _vmSourcesAvailable or not opts2.native:
         return
@@ -587,13 +495,11 @@ def build(args, vm=None):
         assert vm == 'graal', vm
         buildSuffix = 'graal'
         
-    initantbuild([])
-
     for build in builds:
         if build == 'ide-build-target':
             build = os.environ.get('IDE_BUILD_TARGET', 'product')
             if len(build) == 0:
-                mx.log('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
+                mx.logv('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
                 continue
 
         jdk = _jdk(build, create=True)
@@ -634,7 +540,7 @@ def build(args, vm=None):
                     break
 
         if not mustBuild:
-            mx.log('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
+            mx.logv('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
             continue
 
         if platform.system() == 'Windows':
@@ -657,8 +563,6 @@ def build(args, vm=None):
         else:
             cpus = multiprocessing.cpu_count()
             runCmd = [mx.gmake_cmd()]
-            if build == 'debug':
-                build = 'jvmg'
             runCmd.append(build + buildSuffix) 
             env = os.environ.copy()
             
@@ -671,12 +575,14 @@ def build(args, vm=None):
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
+            if not mx._opts.verbose:
+                runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
             if vm.endswith('nograal'):
-                env['OMIT_GRAAL'] = 'true'
+                env['INCLUDE_GRAAL'] = 'false'
                 env.setdefault('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()))
             else:
-                env['GRAAL'] = join(_graal_home, 'graal') # needed for TEST_IN_BUILD
+                env['INCLUDE_GRAAL'] = 'true'
             env.setdefault('INSTALL', 'y')
             if mx.get_os() == 'solaris' :
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
@@ -692,9 +598,6 @@ def build(args, vm=None):
                         runCmd.append('STRIP_POLICY=no_strip')
             # This removes the need to unzip the *.diz files before debugging in gdb
             env.setdefault('ZIP_DEBUGINFO_FILES', '0')
-
-            # We don't need to run the Queens test (i.e. test_gamma)
-            env.setdefault('TEST_IN_BUILD', 'false')
 
             # Clear these 2 variables as having them set can cause very confusing build problems
             env.pop('LD_LIBRARY_PATH', None)
@@ -748,6 +651,11 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     if vm is None:
         vm = _vm
 
+    if cwd is None:
+        cwd = _workdir
+    elif _workdir is not None:
+        mx.abort("conflicting working directories: do not set --workdir for this command")
+
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm)
     mx.expand_project_in_args(args)
@@ -765,7 +673,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
             excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True).keys()
             excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True).keys()
             
-        includes = ['com.oracle.graal.*', 'com.oracle.max.*']
+        includes = ['com.oracle.graal.*']
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
                         'bootclasspath' : 'true',
@@ -779,6 +687,12 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
 
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
     dbg = _native_dbg.split() if _native_dbg is not None else []
+    
+    if '-version' in args:
+        ignoredArgs = args[args.index('-version')+1:]
+        if  len(ignoredArgs) > 0:
+            mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
+    
     return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=False):
@@ -792,8 +706,7 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
 def _run_tests(args, harness, annotations, testfile):
-    pos = [a for a in args if a[0] != '-' and a[0] != '@' ]
-    neg = [a[1:] for a in args if a[0] == '-']
+    tests = [a for a in args if a[0] != '@' ]
     vmArgs = [a[1:] for a in args if a[0] == '@']
 
     def containsAny(c, substrings):
@@ -801,17 +714,30 @@ def _run_tests(args, harness, annotations, testfile):
             if s in c:
                 return True
         return False
+    
+    candidates = []
+    for p in mx.projects():
+        if mx.java().javaCompliance < p.javaCompliance:
+            continue
+        candidates += _find_classes_with_annotations(p, None, annotations).keys()
 
     classes = []
-    for p in mx.projects():
-        classes += _find_classes_with_annotations(p, None, annotations).keys()
+    if len(tests) == 0:
+        classes = candidates
+    else:
+        for t in tests:
+            if t.startswith('-'):
+                mx.abort('VM option needs @ prefix (i.e., @' + t + ')')
+                
+            found = False
+            for c in candidates:
+                if t in c:
+                    found = True
+                    classes.append(c)
+            if not found:
+                mx.log('warning: no tests matched by substring "' + t)
 
-        if len(pos) != 0:
-            classes = [c for c in classes if containsAny(c, pos)]
-        if len(neg) != 0:
-            classes = [c for c in classes if not containsAny(c, neg)]
-
-    projectscp = mx.classpath([pcp.name for pcp in mx.projects()])
+    projectscp = mx.classpath([pcp.name for pcp in mx.projects() if pcp.javaCompliance <= mx.java().javaCompliance])
 
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
@@ -828,11 +754,12 @@ def _unittest(args, annotations):
     testfile = os.environ.get('MX_TESTFILE', None)
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
+        os.close(_)
 
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        if _vm == 'original' or _vm.endswith('nograal'):
+        if not isGraalEnabled(_vm):
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
@@ -844,30 +771,46 @@ def _unittest(args, annotations):
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
 
-def unittest(args):
-    """run the JUnit tests (all testcases)
+_unittestHelpSuffix = """
 
     If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
+    includes a filter as a substring are run.
+    
+    Options with a '@' prefix are passed to the VM.
+    
+    For example, this command line:
+    
+       mx unittest BC_aload @-G:Dump= @-G:MethodFilter=BC_aload.* @-G:+PrintCFG
+    
+    will run all JUnit test classes that contain 'BC_aload' in their
+    fully qualified name and will pass these options to the VM: 
+    
+        -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG
+
+    To get around command line length limitations on some OSes, the
+    JUnit class names to be executed are written to a file that a
+    custom JUnit wrapper reads and passes onto JUnit proper. The
+    MX_TESTFILE environment variable can be set to specify a
+    file which will not be deleted once the unittests are done
+    (unlike the temporary file otherwise used).
+
+    As with all other commands, using the global '-v' before 'unittest'
+    command will cause mx to show the complete shell command line
+    it uses to run the VM.
+""" 
+
+def unittest(args):
+    """run the JUnit tests (all testcases){0}"""
 
     _unittest(args, ['@Test', '@LongTest'])
 
 def shortunittest(args):
-    """run the JUnit tests (short testcases only)
-
-    If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
+    """run the JUnit tests (short testcases only){0}"""
 
     _unittest(args, ['@Test'])
 
 def longunittest(args):
-    """run the JUnit tests (long testcases only)
-
-    If filters are supplied, only tests whose fully qualified name
-    include a filter as a substring are run. Negative filters are
-    those with a '-' prefix. VM args should have a @ prefix."""
+    """run the JUnit tests (long testcases only){0}"""
 
     _unittest(args, ['@LongTest'])
 
@@ -963,6 +906,11 @@ def gate(args):
         clean(cleanArgs)
         tasks.append(t.stop())
 
+        t = Task('IDEConfigCheck')
+        mx.ideclean([])
+        mx.ideinit([])
+        tasks.append(t.stop())
+
         eclipse_exe = os.environ.get('ECLIPSE_EXE')
         if eclipse_exe is not None:
             t = Task('CodeFormatCheck')
@@ -979,7 +927,7 @@ def gate(args):
         t = Task('BuildJava')
         build(['--no-native', '--jdt-warning-as-error'])
         tasks.append(t.stop())
-        
+
         t = Task('Checkstyle')
         if mx.checkstyle([]) != 0:
             t.abort('Checkstyle warnings were found')
@@ -1003,8 +951,18 @@ def gate(args):
         tasks.append(t.stop())
 
         _vmbuild = 'product'
+        t = Task('BootstrapWithGCVerification:product')
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+        tasks.append(t.stop())
+
+        _vmbuild = 'product'
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        tasks.append(t.stop())
+
+        _vmbuild = 'product'
+        t = Task('BootstrapWithAOTConfiguration:product')
+        vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
         originalVm = _vm
@@ -1089,17 +1047,17 @@ def longtests(args):
 def gv(args):
     """run the Graal Visualizer"""
     with open(join(_graal_home, '.graal_visualizer.log'), 'w') as fp:
-        mx.log('[Graal Visualizer log is in ' + fp.name + ']')
+        mx.logv('[Graal Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'visualizer', 'build.xml')):
-            mx.log('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
+            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'visualizer', 'build.xml'), '-l', fp.name, 'run'])
 
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
-        mx.log('[Ideal Graph Visualizer log is in ' + fp.name + ']')
+        mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         if not exists(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')):
-            mx.log('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
+            mx.logv('[This initial execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'])
 
 def bench(args):
@@ -1166,6 +1124,13 @@ def bench(args):
         
     if ('specjbb2013' in args): # or 'all' in args //currently not in default set
         benchmarks += [sanitycheck.getSPECjbb2013()]
+        
+    if ('ctw-full' in args):
+        benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.Full))
+    if ('ctw-noinline' in args):
+        benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoInline))
+    if ('ctw-nocomplex' in args):
+        benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, opts=vmArgs).items():
@@ -1310,6 +1275,9 @@ def jacocoreport(args):
         mx.abort('jacocoreport takes only one argument : an output directory')
     mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
 
+def isGraalEnabled(vm):
+    return vm != 'original' and not vm.endswith('nograal')
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1324,7 +1292,6 @@ def site(args):
                     '--dot-output-base', 'projects'] + args)
 
 def mx_init():
-    _vmbuild = 'product'
     commands = {
         'build': [build, '[-options]'],
         'buildvars': [buildvars, ''],
@@ -1332,7 +1299,6 @@ def mx_init():
         'clean': [clean, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
-        'initantbuild' : [initantbuild, '[-options]'],
         'igv' : [igv, ''],
         'jdkhome': [jdkhome, ''],
         'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
@@ -1340,13 +1306,12 @@ def mx_init():
         'specjvm2008': [specjvm2008, '[VM options|specjvm2008 options (-v, -ikv, -ict, -wt, -it)]'],
         'specjbb2013': [specjbb2013, '[VM options]'],
         'specjbb2005': [specjbb2005, '[VM options]'],
-        #'example': [example, '[-v] example names...'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
-        'unittest' : [unittest, '[filters...]'],
-        'longunittest' : [longunittest, '[filters...]'],
-        'shortunittest' : [shortunittest, '[filters...]'],
+        'unittest' : [unittest, '[filters...|@VM options]', _unittestHelpSuffix],
+        'longunittest' : [longunittest, '[filters...|@VM options]', _unittestHelpSuffix],
+        'shortunittest' : [shortunittest, '[filters...|@VM options]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
@@ -1357,6 +1322,8 @@ def mx_init():
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
+    mx.add_argument('--workdir', help='runs the VM in the given directory', default=None)
+    mx.add_argument('--vmdir', help='specify where the directory in which the vms should be', default=None)
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=_vmChoices, help='the VM to build/run (default: ' + _vmChoices[0] + ')')
@@ -1364,7 +1331,7 @@ def mx_init():
             mx.add_argument('--' + c, action='store_const', dest='vmbuild', const=c, help='select the ' + c + ' build of the VM')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
         mx.add_argument('--native-dbg', action='store', dest='native_dbg', help='Start the vm inside a debugger', metavar='<debugger>')
-        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb -- args')
+        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb --args')
 
         commands.update({
             'export': [export, '[-options] [zipfile]'],
@@ -1389,6 +1356,10 @@ def mx_post_parse_cmd_line(opts):#
         _make_eclipse_launch = getattr(opts, 'make_eclipse_launch', False)
     global _jacoco
     _jacoco = opts.jacoco
+    global _workdir
+    _workdir = opts.workdir
+    global _vmdir
+    _vmdir = opts.vmdir
     global _native_dbg
     _native_dbg = opts.native_dbg
 

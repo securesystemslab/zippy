@@ -27,10 +27,11 @@ import java.util.concurrent.*;
 
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.loop.InductionVariable.*;
+import com.oracle.graal.loop.InductionVariable.Direction;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
+import com.oracle.graal.nodes.extended.*;
 
 public class LoopsData {
 
@@ -39,7 +40,6 @@ public class LoopsData {
     private ControlFlowGraph cfg;
 
     public LoopsData(final StructuredGraph graph) {
-
         cfg = Debug.scope("ControlFlowGraph", new Callable<ControlFlowGraph>() {
 
             @Override
@@ -93,6 +93,9 @@ public class LoopsData {
             InductionVariables ivs = new InductionVariables(loop);
             LoopBeginNode loopBegin = loop.loopBegin();
             FixedNode next = loopBegin.next();
+            while (next instanceof FixedGuardNode || next instanceof ValueAnchorNode) {
+                next = ((FixedWithNextNode) next).next();
+            }
             if (next instanceof IfNode) {
                 IfNode ifNode = (IfNode) next;
                 boolean negated = false;
@@ -151,12 +154,26 @@ public class LoopsData {
                     default:
                         throw GraalInternalError.shouldNotReachHere();
                 }
-                loop.setCounted(new CountedLoopInfo(loop, iv, limit, oneOff));
+                loop.setCounted(new CountedLoopInfo(loop, iv, limit, oneOff, negated ? ifNode.falseSuccessor() : ifNode.trueSuccessor()));
             }
         }
     }
 
     public ControlFlowGraph controlFlowGraph() {
         return cfg;
+    }
+
+    public InductionVariable getInductionVariable(ValueNode value) {
+        InductionVariable match = null;
+        for (LoopEx loop : loops()) {
+            InductionVariable iv = loop.getInductionVariables().get(value);
+            if (iv != null) {
+                if (match != null) {
+                    return null;
+                }
+                match = iv;
+            }
+        }
+        return match;
     }
 }

@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/systemDictionary.hpp"
 #include "graal/graalVMToCompiler.hpp"
 
 // this is a *global* handle
@@ -30,7 +31,7 @@ jobject VMToCompiler::_vmToCompilerPermObject = NULL;
 Klass* VMToCompiler::_vmToCompilerPermKlass = NULL;
 
 static Klass* loadClass(Symbol* name) {
-  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), NULL, Thread::current());
+  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), Handle(), Thread::current());
   if (klass == NULL) {
     tty->print_cr("Could not load class %s", name->as_C_string());
     vm_abort(false);
@@ -46,10 +47,23 @@ KlassHandle VMToCompiler::vmToCompilerKlass() {
   return _vmToCompilerPermKlass;
 }
 
+Handle VMToCompiler::truffleRuntime() {
+  Symbol* name = vmSymbols::com_oracle_graal_truffle_GraalTruffleRuntime();
+  KlassHandle klass = loadClass(name);
+
+  JavaValue result(T_OBJECT);
+  JavaCalls::call_static(&result, klass, vmSymbols::makeInstance_name(), vmSymbols::getTruffleRuntimeInstance_signature(), Thread::current());
+  check_pending_exception("Couldn't initialize GraalTruffleRuntime");
+  return Handle((oop) result.get_jobject());
+}
+
 Handle VMToCompiler::graalRuntime() {
   if (JNIHandles::resolve(_graalRuntimePermObject) == NULL) {
 #ifdef AMD64
     Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
+#endif
+#ifdef SPARC
+    Symbol* name = vmSymbols::com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime();
 #endif
     KlassHandle klass = loadClass(name);
 
@@ -75,6 +89,13 @@ Handle VMToCompiler::instance() {
   return Handle(JNIHandles::resolve_non_null(_vmToCompilerPermObject));
 }
 
+void VMToCompiler::initOptions() {
+  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
+  Thread* THREAD = Thread::current();
+  compilerKlass->initialize(THREAD);
+  check_pending_exception("Error while calling initOptions");
+}
+
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
   KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
@@ -86,21 +107,19 @@ jboolean VMToCompiler::setOption(Handle option) {
   return result.get_jboolean();
 }
 
-jboolean VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking, int priority) {
+void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking) {
   assert(method != NULL, "just checking");
   assert(!holder.is_null(), "just checking");
   Thread* THREAD = Thread::current();
-  JavaValue result(T_BOOLEAN);
+  JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
   args.push_long((jlong) (address) method);
   args.push_oop(holder());
   args.push_int(entry_bci);
   args.push_int(blocking);
-  args.push_int(priority);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");
-  return result.get_jboolean();
 }
 
 void VMToCompiler::shutdownCompiler() {
@@ -123,12 +142,13 @@ void VMToCompiler::shutdownCompiler() {
   }
 }
 
-void VMToCompiler::startCompiler() {
+void VMToCompiler::startCompiler(jboolean bootstrap_enabled) {
   JavaThread* THREAD = JavaThread::current();
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(instance());
-  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::startCompiler_name(), vmSymbols::void_method_signature(), &args, THREAD);
+  args.push_int(bootstrap_enabled);
+  JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::startCompiler_name(), vmSymbols::bool_void_signature(), &args, THREAD);
   check_pending_exception("Error while calling startCompiler");
 }
 
@@ -208,7 +228,7 @@ oop VMToCompiler::createUnresolvedJavaType(Handle name, TRAPS) {
   return (oop) result.get_jobject();
 }
 
-oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jboolean hasFinalizableSubclass, jint sizeOrSpecies, TRAPS) {
+oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpleName, Handle java_mirror, jint sizeOrSpecies, TRAPS) {
   assert(!name.is_null(), "just checking");
   assert(!simpleName.is_null(), "just checking");
   JavaValue result(T_OBJECT);
@@ -218,7 +238,6 @@ oop VMToCompiler::createResolvedJavaType(Klass* klass, Handle name, Handle simpl
   args.push_oop(name);
   args.push_oop(simpleName);
   args.push_oop(java_mirror);
-  args.push_int(hasFinalizableSubclass);
   args.push_int(sizeOrSpecies);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::createResolvedJavaType_name(), vmSymbols::createResolvedJavaType_signature(), &args, THREAD);
   check_pending_exception("Error while calling createResolvedJavaType");
@@ -282,4 +301,5 @@ oop VMToCompiler::createLocal(Handle name, Handle typeInfo, int bci_start, int b
   return (oop) result.get_jobject();
 
 }
+
 

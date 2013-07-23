@@ -22,6 +22,9 @@
  */
 package com.oracle.graal.hotspot;
 
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+import static com.oracle.graal.phases.GraalOptions.*;
+
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -50,7 +53,7 @@ public final class CompileTheWorld {
     public static final String SUN_BOOT_CLASS_PATH = "sun.boot.class.path";
 
     // Some runtime instances we need.
-    private final HotSpotGraalRuntime graalRuntime = HotSpotGraalRuntime.getInstance();
+    private final HotSpotGraalRuntime graalRuntime = graalRuntime();
     private final VMToCompilerImpl vmToCompiler = (VMToCompilerImpl) graalRuntime.getVMToCompiler();
 
     /** List of Zip/Jar files to compile (see {@link GraalOptions#CompileTheWorld}. */
@@ -73,7 +76,7 @@ public final class CompileTheWorld {
      * {@link GraalOptions#CompileTheWorldStopAt}.
      */
     public CompileTheWorld() {
-        this(GraalOptions.CompileTheWorld, GraalOptions.CompileTheWorldStartAt, GraalOptions.CompileTheWorldStopAt);
+        this(CompileTheWorld.getValue(), CompileTheWorldStartAt.getValue(), CompileTheWorldStopAt.getValue());
     }
 
     /**
@@ -89,7 +92,7 @@ public final class CompileTheWorld {
         this.stopAt = stopAt;
 
         // We don't want the VM to exit when a method fails to compile.
-        GraalOptions.ExitVMOnException = false;
+        ExitVMOnException.setValue(false);
     }
 
     /**
@@ -162,12 +165,11 @@ public final class CompileTheWorld {
                 }
 
                 String className = je.getName().substring(0, je.getName().length() - ".class".length());
-                className = className.replace('/', '.');
                 classFileCounter++;
 
                 try {
                     // Load and initialize class
-                    Class<?> javaClass = Class.forName(className, true, loader);
+                    Class<?> javaClass = Class.forName(className.replace('/', '.'), true, loader);
 
                     // Pre-load all classes in the constant pool.
                     try {
@@ -178,7 +180,7 @@ public final class CompileTheWorld {
                         }
                     } catch (Throwable t) {
                         // If something went wrong during pre-loading we just ignore it.
-                        TTY.println("CompileTheWorld (%d) : Preloading failed for %s", classFileCounter, className);
+                        TTY.println("Preloading failed for (%d) %s", classFileCounter, className);
                     }
 
                     // Are we compiling this class?
@@ -216,7 +218,7 @@ public final class CompileTheWorld {
     private void compileMethod(HotSpotResolvedJavaMethod method) {
         try {
             long start = System.currentTimeMillis();
-            vmToCompiler.compileMethod(method, StructuredGraph.INVOCATION_ENTRY_BCI, true, 10);
+            vmToCompiler.compileMethod(method, StructuredGraph.INVOCATION_ENTRY_BCI, true);
             compileTime += (System.currentTimeMillis() - start);
             compiledMethodsCounter++;
             method.reprofile();  // makes the method also not-entrant

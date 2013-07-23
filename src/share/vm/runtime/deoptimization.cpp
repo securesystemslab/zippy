@@ -667,17 +667,21 @@ JRT_LEAF(BasicType, Deoptimization::unpack_frames(JavaThread* thread, int exec_m
       // at an uncommon trap for an invoke (where the compiler
       // generates debug info before the invoke has executed)
       Bytecodes::Code cur_code = str.next();
-      if (cur_code == Bytecodes::_invokevirtual ||
-          cur_code == Bytecodes::_invokespecial ||
-          cur_code == Bytecodes::_invokestatic  ||
-          cur_code == Bytecodes::_invokeinterface) {
+      if (cur_code == Bytecodes::_invokevirtual   ||
+          cur_code == Bytecodes::_invokespecial   ||
+          cur_code == Bytecodes::_invokestatic    ||
+          cur_code == Bytecodes::_invokeinterface ||
+          cur_code == Bytecodes::_invokedynamic) {
         Bytecode_invoke invoke(mh, iframe->interpreter_frame_bci());
         Symbol* signature = invoke.signature();
         ArgumentSizeComputer asc(signature);
         cur_invoke_parameter_size = asc.size();
-        if (cur_code != Bytecodes::_invokestatic) {
+        if (invoke.has_receiver()) {
           // Add in receiver
           ++cur_invoke_parameter_size;
+        }
+        if (i != 0 && !invoke.is_invokedynamic() && MethodHandles::has_member_arg(invoke.klass(), invoke.name())) {
+          callee_size_of_parameters++;
         }
       }
       if (str.bci() < max_bci) {
@@ -693,6 +697,7 @@ JRT_LEAF(BasicType, Deoptimization::unpack_frames(JavaThread* thread, int exec_m
             case Bytecodes::_invokespecial:
             case Bytecodes::_invokestatic:
             case Bytecodes::_invokeinterface:
+            case Bytecodes::_invokedynamic:
             case Bytecodes::_athrow:
               break;
             default: {
@@ -1295,8 +1300,8 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
   nmethodLocker nl(fr.pc());
 
   // Log a message
-  Events::log(thread, "Uncommon trap: trap_request=" PTR32_FORMAT " fr.pc=" INTPTR_FORMAT,
-              trap_request, fr.pc());
+  Events::log(thread, "Uncommon trap: trap_request=" PTR32_FORMAT " fr.pc=" INTPTR_FORMAT " relative=" INTPTR_FORMAT,
+              trap_request, fr.pc(), fr.pc() - fr.cb()->code_begin());
 
   {
     ResourceMark rm;
@@ -1344,8 +1349,19 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     // Ensure that we can record deopt. history:
     bool create_if_missing = ProfileTraps;
 
+    methodHandle profiled_method;
+#ifdef GRAAL
+    if (nm->is_compiled_by_graal()) {
+      profiled_method = nm->method();
+    } else {
+      profiled_method = trap_method;
+    }
+#else
+    profiled_method = trap_method;
+#endif
+
     MethodData* trap_mdo =
-      get_method_data(thread, trap_method, create_if_missing);
+      get_method_data(thread, profiled_method, create_if_missing);
 
     // Log a message
     Events::log_deopt_message(thread, "Uncommon trap: reason=%s action=%s pc=" INTPTR_FORMAT " method=%s @ %d",
@@ -1538,7 +1554,6 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     bool inc_recompile_count = false;
     ProfileData* pdata = NULL;
     if (ProfileTraps && update_trap_state && trap_mdo != NULL) {
-      assert(trap_mdo == get_method_data(thread, trap_method, false), "sanity");
       uint this_trap_count = 0;
       bool maybe_prior_trap = false;
       bool maybe_prior_recompile = false;

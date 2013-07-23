@@ -98,7 +98,12 @@ public class CustomFilter extends AbstractFilter {
 
     private static String getJsHelperText() {
         InputStream is = null;
-        StringBuilder sb = new StringBuilder("importPackage(Packages.com.sun.hotspot.igv.filter);importPackage(Packages.com.sun.hotspot.igv.graph);importPackage(Packages.com.sun.hotspot.igv.data);importPackage(Packages.com.sun.hotspot.igv.util);importPackage(java.awt);");
+        StringBuilder sb = new StringBuilder("if (typeof importPackage === 'undefined') { try { load('nashorn:mozilla_compat.js'); } catch (e) {} }"
+                + "importPackage(Packages.com.sun.hotspot.igv.filter);"
+                + "importPackage(Packages.com.sun.hotspot.igv.graph);"
+                + "importPackage(Packages.com.sun.hotspot.igv.data);"
+                + "importPackage(Packages.com.sun.hotspot.igv.util);"
+                + "importPackage(java.awt);");
         try {
             FileObject fo = FileUtil.getConfigRoot().getFileObject(JAVASCRIPT_HELPER_ID);
             is = fo.getInputStream();

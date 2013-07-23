@@ -51,7 +51,7 @@ public class NodeFactory {
     }
 
     public void startFunction() {
-        frameDescriptor = new FrameDescriptor(SLTypesGen.SLTYPES);
+        frameDescriptor = new FrameDescriptor();
     }
 
     public void createFunction(StatementNode body, String name) {
@@ -59,7 +59,7 @@ public class NodeFactory {
     }
 
     public TypedNode createLocal(String name) {
-        return ReadLocalNodeFactory.create(frameDescriptor.findOrAddFrameSlot(name));
+        return ReadLocalNodeFactory.create(frameDescriptor.findOrAddFrameSlot(name, FrameSlotKind.Int));
     }
 
     public TypedNode createStringLiteral(String value) {
@@ -67,14 +67,14 @@ public class NodeFactory {
     }
 
     public StatementNode createAssignment(String name, TypedNode right) {
-        return WriteLocalNodeFactory.create(frameDescriptor.findOrAddFrameSlot(name), right);
+        return WriteLocalNodeFactory.create(frameDescriptor.findOrAddFrameSlot(name, FrameSlotKind.Int), right);
     }
 
     public StatementNode createPrint(List<TypedNode> expressions) {
         if (expressions.size() >= 1) {
             StatementNode[] nodes = new StatementNode[expressions.size() + 1];
             for (int i = 0; i < expressions.size(); i++) {
-                nodes[i] = PrintNodeFactory.create(expressions.get(i), printOutput);
+                nodes[i] = PrintNodeFactory.create(printOutput, expressions.get(i));
             }
             nodes[expressions.size()] = new PrintLineNode(printOutput);
             return new BlockNode(nodes);
@@ -123,7 +123,7 @@ public class NodeFactory {
     }
 
     public StatementNode createReturn(TypedNode value) {
-        FrameSlot slot = frameDescriptor.findOrAddFrameSlot("<retval>");
+        FrameSlot slot = frameDescriptor.findOrAddFrameSlot("<retval>", FrameSlotKind.Int);
         if (returnValue == null) {
             returnValue = ReadLocalNodeFactory.create(slot);
         }

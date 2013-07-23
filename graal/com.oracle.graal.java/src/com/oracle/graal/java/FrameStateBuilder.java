@@ -49,6 +49,10 @@ public class FrameStateBuilder {
     private ValueNode[] locks;
 
     private int stackSize;
+
+    /**
+     * @see BytecodeFrame#rethrowException
+     */
     private boolean rethrowException;
 
     public FrameStateBuilder(ResolvedJavaMethod method, StructuredGraph graph, boolean eagerResolve) {
@@ -82,7 +86,7 @@ public class FrameStateBuilder {
             if (kind == Kind.Object && type instanceof ResolvedJavaType) {
                 stamp = StampFactory.declared((ResolvedJavaType) type);
             } else {
-                stamp = StampFactory.forKind(kind);
+                stamp = StampFactory.forKind(type.getKind());
             }
             LocalNode local = graph.unique(new LocalNode(index, stamp));
             storeLocal(javaIndex, local);
@@ -144,7 +148,7 @@ public class FrameStateBuilder {
         for (int i = 0; i < stackSize(); i++) {
             ValueNode x = stackAt(i);
             ValueNode y = other.stackAt(i);
-            if (x != y && ValueNodeUtil.typeMismatch(x, y)) {
+            if (x != y && (x == null || x.isDeleted() || y == null || y.isDeleted() || x.kind() != y.kind())) {
                 return false;
             }
         }
@@ -168,14 +172,17 @@ public class FrameStateBuilder {
         for (int i = 0; i < stackSize(); i++) {
             storeStack(i, merge(stackAt(i), other.stackAt(i), block));
         }
+        for (int i = 0; i < locks.length; i++) {
+            locks[i] = merge(locks[i], other.locks[i], block);
+        }
     }
 
     private ValueNode merge(ValueNode currentValue, ValueNode otherValue, MergeNode block) {
-        if (currentValue == null) {
+        if (currentValue == null || currentValue.isDeleted()) {
             return null;
 
         } else if (block.isPhiAtMerge(currentValue)) {
-            if (otherValue == null || currentValue.kind() != otherValue.kind()) {
+            if (otherValue == null || otherValue.isDeleted() || currentValue.kind() != otherValue.kind()) {
                 propagateDelete((PhiNode) currentValue);
                 return null;
             }
@@ -184,7 +191,7 @@ public class FrameStateBuilder {
 
         } else if (currentValue != otherValue) {
             assert !(block instanceof LoopBeginNode) : "Phi functions for loop headers are create eagerly for all locals and stack slots";
-            if (otherValue == null || currentValue.kind() != otherValue.kind()) {
+            if (otherValue == null || otherValue.isDeleted() || currentValue.kind() != otherValue.kind()) {
                 return null;
             }
 
@@ -253,7 +260,7 @@ public class FrameStateBuilder {
         }
     }
 
-    public void insertProxies(BeginNode begin) {
+    public void insertProxies(AbstractBeginNode begin) {
         for (int i = 0; i < localsSize(); i++) {
             ValueNode value = localAt(i);
             if (value != null) {
@@ -308,10 +315,16 @@ public class FrameStateBuilder {
         }
     }
 
+    /**
+     * @see BytecodeFrame#rethrowException
+     */
     public boolean rethrowException() {
         return rethrowException;
     }
 
+    /**
+     * @see BytecodeFrame#rethrowException
+     */
     public void setRethrowException(boolean b) {
         rethrowException = b;
     }
@@ -358,6 +371,7 @@ public class FrameStateBuilder {
      * @param object the object whose monitor will be locked.
      */
     public void pushLock(ValueNode object) {
+        assert object.isAlive() && object.kind() == Kind.Object : "unexpected value: " + object;
         locks = Arrays.copyOf(locks, locks.length + 1);
         locks[locks.length - 1] = object;
     }
@@ -406,7 +420,7 @@ public class FrameStateBuilder {
      * @param x the instruction which produces the value for the local
      */
     public void storeLocal(int i, ValueNode x) {
-        assert x == null || x.kind() != Kind.Void && x.kind() != Kind.Illegal : "unexpected value: " + x;
+        assert x == null || x.isAlive() && x.kind() != Kind.Void && x.kind() != Kind.Illegal : "unexpected value: " + x;
         locals[i] = x;
         if (x != null && isTwoSlot(x.kind())) {
             // if this is a double word, then kill i+1
@@ -422,7 +436,7 @@ public class FrameStateBuilder {
     }
 
     private void storeStack(int i, ValueNode x) {
-        assert x == null || stack[i] == null || x.kind() == stack[i].kind() : "Method does not handle changes from one-slot to two-slot values";
+        assert x == null || x.isAlive() && (stack[i] == null || x.kind() == stack[i].kind()) : "Method does not handle changes from one-slot to two-slot values or non-alive values";
         stack[i] = x;
     }
 
@@ -433,7 +447,7 @@ public class FrameStateBuilder {
      * @param x the instruction to push onto the stack
      */
     public void push(Kind kind, ValueNode x) {
-        assert !x.isDeleted() && x.kind() != Kind.Void && x.kind() != Kind.Illegal;
+        assert x.isAlive() && x.kind() != Kind.Void && x.kind() != Kind.Illegal;
         xpush(assertKind(kind, x));
         if (isTwoSlot(kind)) {
             xpush(null);
@@ -446,7 +460,7 @@ public class FrameStateBuilder {
      * @param x the instruction to push onto the stack
      */
     public void xpush(ValueNode x) {
-        assert x == null || (!x.isDeleted() && x.kind() != Kind.Void && x.kind() != Kind.Illegal);
+        assert x == null || (x.isAlive() && x.kind() != Kind.Void && x.kind() != Kind.Illegal);
         stack[stackSize++] = x;
     }
 
