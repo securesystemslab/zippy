@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -2206,16 +2205,6 @@ bool Arguments::check_vm_args_consistency() {
 #endif
   }
 #ifdef GRAAL
-  if (UseCompressedKlassPointers) {
-    if (IgnoreUnrecognizedVMOptions) {
-      FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, true);
-    } else {
-      status = true;
-    }
-  } else {
-    // This prevents the flag being set to true by set_ergonomics_flags()
-    FLAG_SET_CMDLINE(bool, UseCompressedKlassPointers, false);
-  }
   if (UseG1GC) {
       if (IgnoreUnrecognizedVMOptions) {
         warning("UseG1GC is still experimental in Graal, use SerialGC instead ");
@@ -2224,10 +2213,10 @@ bool Arguments::check_vm_args_consistency() {
         warning("UseG1GC is still experimental in Graal, use SerialGC instead ");
         status = true;
       }
-    } else {
+  } else {
       // This prevents the flag being set to true by set_ergonomics_flags()
       FLAG_SET_CMDLINE(bool, UseG1GC, false);
-    }
+  }
 
   if (!ScavengeRootsInCode) {
       warning("forcing ScavengeRootsInCode non-zero because Graal is enabled");
