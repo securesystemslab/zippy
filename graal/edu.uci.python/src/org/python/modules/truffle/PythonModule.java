@@ -67,7 +67,6 @@ public class PythonModule extends PObject {
         Object value;
 
         // Look in this module
-
         value = constants.get(constantName);
 
         if (value != null) {
@@ -75,7 +74,6 @@ public class PythonModule extends PObject {
         }
 
         // Nothing found
-
         return null;
     }
 

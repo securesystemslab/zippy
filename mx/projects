@@ -27,6 +27,9 @@ library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/be
 library@OKRA@path=lib/okra-1.jar
 library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.jar
 
+library@JLINE@path=lib/jline-2.10.jar
+library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.10/jline-2.10.jar
+
 library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
 library@JYTHON@urls:http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
 
@@ -613,13 +616,19 @@ project@com.oracle.graal.truffle.printer@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.printer@javaCompliance=1.7
 project@com.oracle.graal.truffle.printer@workingSets=Graal,Truffle
 
-# zippy
-project@edu.uci.zippy@subDir=graal
-project@edu.uci.zippy@sourceDirs=src
-project@edu.uci.zippy@dependencies=com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
-project@edu.uci.zippy@checkstyle=edu.uci.zippy
-project@edu.uci.zippy@javaCompliance=1.7
-project@edu.uci.zippy@annotationProcessors=com.oracle.truffle.dsl.processor
-project@edu.uci.zippy@workingSets=Truffle,Python
+# python
+project@edu.uci.python@subDir=graal
+project@edu.uci.python@sourceDirs=src
+project@edu.uci.python@dependencies=com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python@checkstyle=edu.uci.python
+project@edu.uci.python@javaCompliance=1.7
+project@edu.uci.python@annotationProcessors=com.oracle.truffle.dsl.processor
+project@edu.uci.python@workingSets=Truffle,Python
 
-
+# python.shell
+project@edu.uci.python.shell@subDir=graal
+project@edu.uci.python.shell@sourceDirs=src
+project@edu.uci.python.shell@dependencies=JLINE,edu.uci.python
+project@edu.uci.python.shell@checkstyle=edu.uci.python
+project@edu.uci.python.shell@javaCompliance=1.7
+project@edu.uci.python.shell@workingSets=Truffle,Python
