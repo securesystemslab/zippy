@@ -734,12 +734,9 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   
   if (target->is_a(SystemDictionary::HotSpotInstalledCode_klass())) {
     assert(inst->is_jump(), "jump expected");
-
     CodeBlob* cb = (CodeBlob*) (address) HotSpotInstalledCode::codeBlob(target);
     assert(cb != NULL, "npe");
-    
     CodeInstaller::pd_relocate_CodeBlob(cb, inst);
-
     return;
   }
 
@@ -755,7 +752,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   if (foreign_call != NULL) {
     jlong foreign_call_destination = HotSpotForeignCallLinkage::address(foreign_call);
-
     CodeInstaller::pd_relocate_ForeignCall(inst, foreign_call_destination);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");
@@ -764,7 +760,9 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     TRACE_graal_3("method call");
     CodeInstaller::pd_relocate_JavaMethod(hotspot_method, pc_offset);
   }
+
   _next_call_type = MARK_INVOKE_INVALID;
+
   if (debug_info != NULL) {
     _debug_recorder->end_safepoint(next_pc_offset);
   }
