@@ -75,10 +75,3 @@ rebuild-launch.out
 coverage
 jacoco.exec
 workingsets.xml
-
-# zippy
-graal/zippy/bin
-graal/zippy/build
-graal/zippy/dist
-graal/zippy/src_gen
-*.pydevproject
