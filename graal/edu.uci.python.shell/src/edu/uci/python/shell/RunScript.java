@@ -26,7 +26,6 @@ package edu.uci.python.shell;
 
 import java.io.*;
 
-import org.python.*;
 import org.python.core.*;
 import org.python.core.imp;
 import org.python.core.util.*;

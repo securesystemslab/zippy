@@ -627,6 +627,14 @@ project@edu.uci.python@javaCompliance=1.7
 project@edu.uci.python@annotationProcessors=com.oracle.truffle.dsl.processor
 project@edu.uci.python@workingSets=Truffle,Python
 
+# python.parser
+project@edu.uci.python.parser@subDir=graal
+project@edu.uci.python.parser@sourceDirs=src
+project@edu.uci.python.parser@dependencies=JYTHON
+project@edu.uci.python.parser@checkstyle=edu.uci.python
+project@edu.uci.python.parser@javaCompliance=1.7
+project@edu.uci.python.parser@workingSets=Truffle,Python
+
 # python.shell
 project@edu.uci.python.shell@subDir=graal
 project@edu.uci.python.shell@sourceDirs=src
