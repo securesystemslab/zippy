@@ -125,7 +125,7 @@ public class RunScript {
                 // fall through
             }
         }
-        return new JLineConsole();
+        return new CustomConsole();
     }
 
     /**
