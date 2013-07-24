@@ -24,6 +24,26 @@
  */
 package edu.uci.python.shell;
 
+import static java.lang.System.*;
+
 public class Shell {
+
+    static void usage() {
+        out.println("usage: zippy [option] file [arg] ...");
+        out.println("Options and arguments");
+        out.println("-h     : print this help message and exit (also --help)");
+        out.println("arg ...: arguments passed to program in sys.argv[1:]");
+    }
+
+    public static void main(String[] args) {
+        if (args.length >= 1) {
+            RunScript.main(args);
+        } else {
+            // nothing yet
+            out.println("ZipPy");
+            out.println("Interactive shell is not supported yet.");
+            usage();
+        }
+    }
 
 }

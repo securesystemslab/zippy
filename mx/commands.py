@@ -1278,6 +1278,22 @@ def jacocoreport(args):
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
+def pythonShellCp():
+    return mx.classpath("edu.uci.python.shell");
+
+def pythonShellClass():
+    return "edu.uci.python.shell.Shell";
+
+def python(args):
+    """run a Python program or shell
+    
+    VM args should have a @ prefix."""
+    
+    vmArgs = [a[1:] for a in args if a[0] == '@']
+    pythonArgs = [a for a in args if a[0] != '@']
+
+    vm(vmArgs + ['-cp', pythonShellCp(), pythonShellClass()] + pythonArgs)
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -1313,6 +1329,7 @@ def mx_init():
         'longunittest' : [longunittest, '[filters...|@VM options]', _unittestHelpSuffix],
         'shortunittest' : [shortunittest, '[filters...|@VM options]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
+        'python' : [python, '[Python args|@VM options]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
         'vmg': [vmg, '[-options] class [args...]'],
