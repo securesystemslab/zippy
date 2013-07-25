@@ -119,14 +119,11 @@ inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlon
     call->set_destination((address) foreign_call_destination);
     _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec());
   } else if (inst->is_sethi()) {
-    NativeFarCall* call = nativeFarCall_at(pc);
-    call->set_destination((address) foreign_call_destination);
-    _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec());
-  } else {
-    NativeJump* jump = nativeJump_at((address) (inst));
+    NativeJump* jump = nativeJump_at(pc);
     jump->set_jump_destination((address) foreign_call_destination);
-    _instructions->relocate((address)inst, runtime_call_Relocation::spec());
-    fatal("CodeInstaller::pd_relocate_ForeignCall - verify me!");
+    _instructions->relocate(jump->instruction_address(), runtime_call_Relocation::spec());
+  } else {
+    fatal(err_msg("unknown call or jump instruction at %p", pc));
   }
   TRACE_graal_3("relocating (foreign call) at %p", inst);
 }
