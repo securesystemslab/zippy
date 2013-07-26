@@ -26,6 +26,8 @@
 #include "runtime/gpu.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
+#include "memory/allocation.hpp"
+#include "memory/allocation.inline.hpp"
 
 void * gpu::Ptx::_device_context;
 
