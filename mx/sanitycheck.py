@@ -244,7 +244,7 @@ def getCTW(vm,mode):
             args.append('-G:-Inline')
     if mode >= CTWMode.NoComplex:
         if commands.isGraalEnabled(vm):
-            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
         
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
     
