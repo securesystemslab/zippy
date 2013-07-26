@@ -269,34 +269,38 @@ static char const cuda_library_name[] = "/usr/local/cuda/lib/libcuda.dylib";
 static char const cuda_library_name[] = "";
 #endif
 
+#define STD_BUFFER_SIZE 1024
+
 bool gpu::Ptx::probe_linkage() {
   if (cuda_library_name != NULL) {
-    void *handle = dlopen(cuda_library_name, RTLD_LAZY);
+    char *buffer = (char*)malloc(STD_BUFFER_SIZE);
+    void *handle = os::dll_load(cuda_library_name, buffer, STD_BUFFER_SIZE);
+	free(buffer);
     if (handle != NULL) {
       _cuda_cu_init =
-        CAST_TO_FN_PTR(cuda_cu_init_func_t, dlsym(handle, "cuInit"));
+        CAST_TO_FN_PTR(cuda_cu_init_func_t, os::dll_lookup(handle, "cuInit"));
       _cuda_cu_ctx_create =
-        CAST_TO_FN_PTR(cuda_cu_ctx_create_func_t, dlsym(handle, "cuCtxCreate"));
+        CAST_TO_FN_PTR(cuda_cu_ctx_create_func_t, os::dll_lookup(handle, "cuCtxCreate"));
       _cuda_cu_ctx_detach =
-        CAST_TO_FN_PTR(cuda_cu_ctx_detach_func_t, dlsym(handle, "cuCtxDetach"));
+        CAST_TO_FN_PTR(cuda_cu_ctx_detach_func_t, os::dll_lookup(handle, "cuCtxDetach"));
       _cuda_cu_ctx_synchronize =
-        CAST_TO_FN_PTR(cuda_cu_ctx_synchronize_func_t, dlsym(handle, "cuCtxSynchronize"));
+        CAST_TO_FN_PTR(cuda_cu_ctx_synchronize_func_t, os::dll_lookup(handle, "cuCtxSynchronize"));
       _cuda_cu_device_get_count =
-        CAST_TO_FN_PTR(cuda_cu_device_get_count_func_t, dlsym(handle, "cuDeviceGetCount"));
+        CAST_TO_FN_PTR(cuda_cu_device_get_count_func_t, os::dll_lookup(handle, "cuDeviceGetCount"));
       _cuda_cu_device_get_name =
-        CAST_TO_FN_PTR(cuda_cu_device_get_name_func_t, dlsym(handle, "cuDeviceGetName"));
+        CAST_TO_FN_PTR(cuda_cu_device_get_name_func_t, os::dll_lookup(handle, "cuDeviceGetName"));
       _cuda_cu_device_get =
-        CAST_TO_FN_PTR(cuda_cu_device_get_func_t, dlsym(handle, "cuDeviceGet"));
+        CAST_TO_FN_PTR(cuda_cu_device_get_func_t, os::dll_lookup(handle, "cuDeviceGet"));
       _cuda_cu_device_compute_capability =
-        CAST_TO_FN_PTR(cuda_cu_device_compute_capability_func_t, dlsym(handle, "cuDeviceComputeCapability"));
+        CAST_TO_FN_PTR(cuda_cu_device_compute_capability_func_t, os::dll_lookup(handle, "cuDeviceComputeCapability"));
       _cuda_cu_device_get_attribute =
-        CAST_TO_FN_PTR(cuda_cu_device_get_attribute_func_t, dlsym(handle, "cuDeviceGetAttribute"));
+        CAST_TO_FN_PTR(cuda_cu_device_get_attribute_func_t, os::dll_lookup(handle, "cuDeviceGetAttribute"));
       _cuda_cu_module_get_function =
-        CAST_TO_FN_PTR(cuda_cu_module_get_function_func_t, dlsym(handle, "cuModuleGetFunction"));
+        CAST_TO_FN_PTR(cuda_cu_module_get_function_func_t, os::dll_lookup(handle, "cuModuleGetFunction"));
       _cuda_cu_module_load_data_ex =
-        CAST_TO_FN_PTR(cuda_cu_module_load_data_ex_func_t, dlsym(handle, "cuModuleLoadDataEx"));
+        CAST_TO_FN_PTR(cuda_cu_module_load_data_ex_func_t, os::dll_lookup(handle, "cuModuleLoadDataEx"));
       _cuda_cu_launch_kernel =
-        CAST_TO_FN_PTR(cuda_cu_launch_kernel_func_t, dlsym(handle, "cuLaunchKernel"));
+        CAST_TO_FN_PTR(cuda_cu_launch_kernel_func_t, os::dll_lookup(handle, "cuLaunchKernel"));
       if (TraceGPUInteraction) {
         tty->print_cr("[CUDA] Success: library linkage");
       }
