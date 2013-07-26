@@ -260,7 +260,7 @@ class Tee:
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[], benchmarkCompilationRate=True):
+    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[], benchmarkCompilationRate=False):
 
         self.name = name
         self.successREs = successREs
