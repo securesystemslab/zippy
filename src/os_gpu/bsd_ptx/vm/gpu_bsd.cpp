@@ -33,11 +33,11 @@
 void gpu::probe_gpu() {
 #ifdef __APPLE__
   set_available(gpu::Bsd::probe_gpu_apple());
-  if (TraceWarpLoading) {
+  if (TraceGPUInteraction) {
     tty->print_cr("gpu_bsd::probe_gpu(APPLE): %d", gpu::is_available());
   }
 #else
-  if (TraceWarpLoading) {
+  if (TraceGPUInteraction) {
     tty->print_cr("gpu_bsd::probe_gpu(not APPLE)");
   }
   set_available(false);
@@ -69,7 +69,7 @@ bool gpu::Bsd::probe_gpu_apple() {
                                                kCFAllocatorDefault, options);
 	model = (CFDataRef)IORegistryEntrySearchCFProperty(displayPort, kIOServicePlane, CFSTR("model"),
                                             kCFAllocatorDefault, options);
-    if (TraceWarpLoading) {
+    if (TraceGPUInteraction) {
       tty->print_cr("vendor: 0x%08X", *((UInt32*)CFDataGetBytePtr(vendorID)));
       tty->print_cr("device: 0x%08X", *((UInt32*)CFDataGetBytePtr(deviceID)));
       tty->print_cr("model: %s", CFDataGetBytePtr(model));

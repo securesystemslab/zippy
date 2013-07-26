@@ -950,7 +950,7 @@ nmethod::nmethod(
 
     // we use the information of entry points to find out if a method is
     // static or non static
-    assert(compiler->is_c2() ||
+    assert(compiler->is_c2() || compiler->is_graal() ||
            _method->is_static() == (entry_point() == _verified_entry_point),
            " entry points must be same for static methods and vice versa");
   }

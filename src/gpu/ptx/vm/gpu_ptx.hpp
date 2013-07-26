@@ -25,20 +25,30 @@
 #ifndef GPU_PTX_HPP
 #define GPU_PTX_HPP
 
+/* 
+ * Some useful macro definitions from publicly available cuda.h.
+ * These definitions are for convenience.
+ */
+#define GRAAL_CUDA_SUCCESS                                   0
+#define GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR  75
+#define GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR  76
+#define GRAAL_CU_JIT_MAX_REGISTERS                           0
+#define GRAAL_CU_JIT_THREADS_PER_BLOCK                       1
+#define GRAAL_CU_JIT_INFO_LOG_BUFFER                         3
+#define GRAAL_CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES              4
+#define GRAAL_CUDA_ERROR_NO_BINARY_FOR_GPU                 209
+
 class Ptx {
   friend class gpu;
 
  protected:
-  static void probe_linkage();
-#ifdef __APPLE__
-  static bool probe_linkage_apple();
-#endif
+  static bool probe_linkage();
   static bool initialize_gpu();
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
   static bool execute_kernel(address kernel);
   
 private:
-  typedef int (*cuda_cu_init_func_t)(unsigned int, int);
+  typedef int (*cuda_cu_init_func_t)(unsigned int);
   typedef int (*cuda_cu_ctx_create_func_t)(void *, int, int);
   typedef int (*cuda_cu_ctx_detach_func_t)(int *);
   typedef int (*cuda_cu_ctx_synchronize_func_t)(int *);
@@ -46,12 +56,13 @@ private:
   typedef int (*cuda_cu_device_get_name_func_t)(char *, int, int);
   typedef int (*cuda_cu_device_get_func_t)(int *, int);
   typedef int (*cuda_cu_device_compute_capability_func_t)(int *, int *, int);
+  typedef int (*cuda_cu_device_get_attribute_func_t)(int *, int, int);
   typedef int (*cuda_cu_launch_kernel_func_t)(void *,
                                               unsigned int, unsigned int, unsigned int,
                                               unsigned int, unsigned int, unsigned int,
                                               unsigned int, void *, void **, void **);
   typedef int (*cuda_cu_module_get_function_func_t)(void *, void *, const char *);
-  typedef int (*cuda_cu_module_load_data_ex_func_t)(void *, void *, unsigned int, int *, void **);
+  typedef int (*cuda_cu_module_load_data_ex_func_t)(void *, void *, unsigned int, void *, void **);
 
   static cuda_cu_init_func_t                      _cuda_cu_init;
   static cuda_cu_ctx_create_func_t                _cuda_cu_ctx_create;
@@ -60,7 +71,8 @@ private:
   static cuda_cu_device_get_count_func_t          _cuda_cu_device_get_count;
   static cuda_cu_device_get_name_func_t           _cuda_cu_device_get_name;
   static cuda_cu_device_get_func_t                _cuda_cu_device_get;
-  static cuda_cu_device_compute_capability_func_t _cuda_cu_device_compute_capability;
+  static cuda_cu_device_compute_capability_func_t _cuda_cu_device_compute_capability; /* Deprecated as of CUDA 5.0 */
+  static cuda_cu_device_get_attribute_func_t      _cuda_cu_device_get_attribute;
   static cuda_cu_launch_kernel_func_t             _cuda_cu_launch_kernel;
   static cuda_cu_module_get_function_func_t       _cuda_cu_module_get_function;
   static cuda_cu_module_load_data_ex_func_t       _cuda_cu_module_load_data_ex;
@@ -68,5 +80,4 @@ private:
 protected:
   static void * _device_context;
 };
-
 #endif // GPU_PTX_HPP

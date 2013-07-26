@@ -3312,7 +3312,8 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // Initialize the os module before using TLS
   os::init();
 
-  // probe for warp capability
+  // Probe for existance of supported GPU and initialize it if one
+  // exists.
   gpu::init();
 
   // Initialize system properties.

@@ -946,7 +946,7 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
       HotSpotInstalledCode::set_codeBlob(installed_code_handle, (jlong) cb);
       oop comp_result = HotSpotCompiledCode::comp(compiled_code_handle);
       if (comp_result->is_a(ExternalCompilationResult::klass())) {
-        if (TraceWarpLoading) {
+        if (TraceGPUInteraction) {
           tty->print_cr("installCode0: ExternalCompilationResult");
         }
         HotSpotInstalledCode::set_start(installed_code_handle, ExternalCompilationResult::entryPoint(comp_result));

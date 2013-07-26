@@ -22,17 +22,15 @@
  *
  */
 
-#include "precompiled.hpp"
-#include "runtime/gpu.hpp"
+#ifndef OS_BSD_VM_GPU_LINUX_HPP
+#define OS_BSD_VM_GPU_LINUX_HPP
 
-bool gpu::_available = false;   // does the hardware exist?
-bool gpu::_gpu_linkage = false; // is the driver library to access the GPU installed
-bool gpu::_initialized = false; // is the GPU device initialized
 
-void gpu::init() {
-#if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
-  gpu::probe_gpu();
-#endif
-  // need multi-gpu TARGET ifdef
-  gpu::probe_linkage();
-}
+class Linux {
+  friend class gpu;
+
+ protected:
+  static bool probe_gpu();
+};
+
+#endif // OS_BSD_VM_GPU_LINUX_HPP
