@@ -663,31 +663,11 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
 #define set_address(name, value) do { set_long(name, (jlong) value); } while (0)
 #define set_object(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "Ljava/lang/Object;"), value); } while (0)
-#define set_int_array(name, value) do { env->SetObjectField(config, getFieldID(env, config, name, "[I"), value); } while (0)
 
   guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
 
   set_boolean("cAssertions", DEBUG_ONLY(true) NOT_DEBUG(false));
-  set_boolean("verifyOops", VerifyOops);
-  set_boolean("ciTime", CITime);
-  set_int("compileThreshold", CompileThreshold);
-  set_boolean("compileTheWorld", CompileTheWorld);
-  set_int("compileTheWorldStartAt", CompileTheWorldStartAt);
-  set_int("compileTheWorldStopAt", CompileTheWorldStopAt);
-  set_boolean("printCompilation", PrintCompilation);
-  set_boolean("printInlining", PrintInlining);
-  set_boolean("useFastLocking", GraalUseFastLocking);
-  set_boolean("useBiasedLocking", UseBiasedLocking);
-  set_boolean("usePopCountInstruction", UsePopCountInstruction);
-  set_boolean("useAESIntrinsics", UseAESIntrinsics);
-  set_boolean("useTLAB", UseTLAB);
-  set_boolean("useG1GC", UseG1GC);
-#ifdef TARGET_ARCH_x86
-  set_int("useSSE", UseSSE);
-  set_int("useAVX", UseAVX);
-#endif
   set_int("codeEntryAlignment", CodeEntryAlignment);
-  set_int("stackShadowPages", StackShadowPages);
   set_int("hubOffset", oopDesc::klass_offset_in_bytes());
   set_int("markOffset", oopDesc::mark_offset_in_bytes());
   set_int("prototypeMarkWordOffset", in_bytes(Klass::prototype_header_offset()));
@@ -760,9 +740,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("dataLayoutBCIOffset", in_bytes(DataLayout::bci_offset()));
   set_int("dataLayoutCellsOffset", in_bytes(DataLayout::cell_offset(0)));
   set_int("dataLayoutCellSize", DataLayout::cell_size);
-  set_int("bciProfileWidth", BciProfileWidth);
-  set_int("typeProfileWidth", TypeProfileWidth);
-  set_int("methodProfileWidth", MethodProfileWidth);
 
   set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
   set_long("tlabIntArrayMarkWord", (intptr_t)markOopDesc::prototype()->copy_set_hash(0x2));
@@ -772,10 +749,13 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("threadTlabSizeOffset", in_bytes(JavaThread::tlab_size_offset()));
   set_int("threadAllocatedBytesOffset", in_bytes(JavaThread::allocated_bytes_offset()));
   set_int("threadLastJavaSpOffset", in_bytes(JavaThread::last_Java_sp_offset()));
+  set_int("threadLastJavaPcOffset", in_bytes(JavaThread::last_Java_pc_offset()));
 #ifdef TARGET_ARCH_x86
   set_int("threadLastJavaFpOffset", in_bytes(JavaThread::last_Java_fp_offset()));
 #endif
-  set_int("threadLastJavaPcOffset", in_bytes(JavaThread::last_Java_pc_offset()));
+#ifdef TARGET_ARCH_sparc
+  set_int("threadJavaFrameAnchorFlagsOffset", in_bytes(JavaThread::frame_anchor_offset() + JavaFrameAnchor::flags_offset()));
+#endif
   set_int("threadObjectResultOffset", in_bytes(JavaThread::vm_result_offset()));
   set_int("tlabSlowAllocationsOffset", in_bytes(JavaThread::tlab_slow_allocations_offset()));
   set_int("tlabFastRefillWasteOffset", in_bytes(JavaThread::tlab_fast_refill_waste_offset()));
@@ -783,7 +763,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("tlabRefillWasteLimitOffset", in_bytes(JavaThread::tlab_refill_waste_limit_offset()));
   set_int("tlabRefillWasteIncrement", (int32_t) ThreadLocalAllocBuffer::refill_waste_limit_increment());
   set_int("klassInstanceSizeOffset", in_bytes(Klass::layout_helper_offset()));
-  set_boolean("tlabStats", TLABStats);
   set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
 
   set_address("nonOopBits", Universe::non_oop_word());
@@ -863,11 +842,8 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("vmIntrinsicLinkToSpecial", vmIntrinsics::_linkToSpecial);
   set_int("vmIntrinsicLinkToInterface", vmIntrinsics::_linkToInterface);
 
-  set_boolean("useCompressedOops", UseCompressedOops);
-  set_boolean("useCompressedKlassPointers", UseCompressedKlassPointers);
   set_address("narrowOopBase", Universe::narrow_oop_base());
   set_int("narrowOopShift", Universe::narrow_oop_shift());
-  set_int("logMinObjAlignment", LogMinObjAlignmentInBytes);
   set_address("narrowKlassBase", Universe::narrow_klass_base());
   set_int("narrowKlassShift", Universe::narrow_klass_shift());
   set_int("logKlassAlignment", LogKlassAlignmentInBytes);
@@ -912,7 +888,6 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
 #undef set_int
 #undef set_long
 #undef set_object
-#undef set_int_array
 
 C2V_END
 
