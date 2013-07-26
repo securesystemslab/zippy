@@ -309,7 +309,6 @@ bool gpu::Ptx::probe_linkage() {
       return true;
     } else {
       // Unable to dlopen libcuda
-      tty->print_cr("Use LD_LIBRARY_PATH (or other means) to specify installed location of CUDA library");
       return false;
     }
   } else {
