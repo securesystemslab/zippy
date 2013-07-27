@@ -194,9 +194,9 @@ COMPILER2_PATHS += $(HS_COMMON_SRC)/share/vm/libadt
 COMPILER2_PATHS +=  $(GENERATED)/adfiles
 
 GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/share/vm/graal)
-GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/gpu/ptx)
+GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/gpu/ptx/vm)
 GRAAL_PATHS += $(HS_COMMON_SRC)/share/vm/graal
-GRAAL_PATHS += $(HS_COMMON_SRC)/gpu/ptx
+GRAAL_PATHS += $(HS_COMMON_SRC)/gpu/ptx/vm
 
 # Include dirs per type.
 Src_Dirs/CORE      := $(CORE_PATHS)
