@@ -702,6 +702,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_int("klassHasFinalizerFlag", JVM_ACC_HAS_FINALIZER);
   set_int("threadExceptionOopOffset", in_bytes(JavaThread::exception_oop_offset()));
   set_int("threadExceptionPcOffset", in_bytes(JavaThread::exception_pc_offset()));
+  set_long("safepointPollingAddress", (jlong)(os::get_polling_page()));
 #ifdef TARGET_ARCH_x86
   set_boolean("isPollingPageFar", Assembler::is_polling_page_far());
   set_int("runtimeCallStackSize", (jint)frame::arg_reg_save_area_bytes);
