@@ -1549,9 +1549,7 @@ def build(args, parser=None):
         argfile.write('\n'.join(javafilelist))
         argfile.close()
 
-        javacArgs = []
-        if java().debug_port is not None:
-            javacArgs += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+        processorArgs = []
 
         ap = p.annotation_processors()
         if len(ap) > 0:
@@ -1560,25 +1558,40 @@ def build(args, parser=None):
             if exists(genDir):
                 shutil.rmtree(genDir)
             os.mkdir(genDir)
-            javacArgs += ['-processorpath', join(processorPath), '-s', genDir] 
+            processorArgs += ['-processorpath', join(processorPath), '-s', genDir] 
         else:
-            javacArgs += ['-proc:none']
+            processorArgs += ['-proc:none']
 
         toBeDeleted = [argfileName]
         try:
             compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
+                
+                
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir]
+                if java().debug_port is not None:
+                    javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+                javacCmd += processorArgs
+                javacCmd += ['@' + argfile.name]
+                
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
-                jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
+                                
+                jdtArgs = [java().java, '-Xmx1g']
+                if java().debug_port is not None:
+                    jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+
+                jdtArgs += [ '-jar', jdtJar,
                          '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
-                         '-d', outputDir] + javacArgs
+                         '-d', outputDir]
+                jdtArgs += processorArgs
+                         
+                         
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 rootJdtProperties = join(p.suite.dir, 'mx', 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
@@ -1599,6 +1612,7 @@ def build(args, parser=None):
                     else:
                         jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
+                
                 run(jdtArgs)
         finally:
             for n in toBeDeleted:
