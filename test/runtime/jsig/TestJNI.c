@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,29 +19,41 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
 
-#include "precompiled.hpp"
-#include "asm/macroAssembler.hpp"
-#include "runtime/os.hpp"
-#include "runtime/threadLocalStorage.hpp"
+#define _GNU_SOURCE // for the definition of REG_RIP in ucontext.h
+#include <stdio.h>
+#include <jni.h>
+#include <signal.h>
+#include <sys/ucontext.h>
 
-#include <asm-sparc/traps.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void MacroAssembler::read_ccr_trap(Register ccr_save) {
-  // No implementation
-  breakpoint_trap();
+void sig_handler(int sig, siginfo_t *info, ucontext_t *context) {
+    int thrNum;
+
+    printf( " HANDLER (1) " );
+    // Move forward RIP to skip failing instruction
+    context->uc_mcontext.gregs[REG_RIP] += 6;
 }
 
-void MacroAssembler::write_ccr_trap(Register ccr_save, Register scratch1, Register scratch2) {
-  // No implementation
-  breakpoint_trap();
+JNIEXPORT void JNICALL Java_TestJNI_doSomething(JNIEnv *env, jclass klass, jint val) {
+    struct sigaction act;
+    struct sigaction oact;
+
+    act.sa_flags = SA_ONSTACK|SA_RESTART|SA_SIGINFO;
+    sigfillset(&act.sa_mask);
+    act.sa_handler = SIG_DFL;
+    act.sa_sigaction = (void (*)())sig_handler;
+    sigaction(0x20+val, &act, &oact);
+
+    printf( " doSomething(%d) " , val);
+    printf( " old handler = %p " , oact.sa_handler);
 }
 
-void MacroAssembler::flush_windows_trap() { trap(SP_TRAP_FWIN); }
-void MacroAssembler::clean_windows_trap() { trap(SP_TRAP_CWIN); }
+#ifdef __cplusplus
+}
+#endif
 
-// Use software breakpoint trap until we figure out how to do this on Linux
-void MacroAssembler::get_psr_trap()       { trap(SP_TRAP_SBPT); }
-void MacroAssembler::set_psr_trap()       { trap(SP_TRAP_SBPT); }
