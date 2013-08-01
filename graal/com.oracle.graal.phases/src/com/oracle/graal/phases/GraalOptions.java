@@ -43,7 +43,7 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Integer> MaximumDesiredSize = new OptionValue<>(20000);
     @Option(help = "")
-    public static final OptionValue<Integer> MaximumRecursiveInlining = new OptionValue<>(1);
+    public static final OptionValue<Integer> MaximumRecursiveInlining = new OptionValue<>(5);
 
     // inlining settings
     @Option(help = "")
@@ -230,13 +230,11 @@ public final class GraalOptions {
     public static final OptionValue<Boolean> ResolveClassBeforeStaticInvoke = new OptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> CanOmitFrame = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Integer> SafepointPollOffset = new OptionValue<>(256);
 
     @Option(help = "")
-    public static final OptionValue<Boolean> MemoryAwareScheduling = new OptionValue<>(true);
+    public static final OptionValue<Boolean> MemoryAwareScheduling = new OptionValue<>(false);
     @Option(help = "")
-    public static final OptionValue<Boolean> NewMemoryAwareScheduling = new OptionValue<>(false);
+    public static final OptionValue<Boolean> NewMemoryAwareScheduling = new OptionValue<>(true);
 
     // Translating tableswitch instructions
     @Option(help = "")
