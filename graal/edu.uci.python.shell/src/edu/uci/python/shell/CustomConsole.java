@@ -63,10 +63,11 @@ public class CustomConsole extends JLineConsole {
      */
     public static RootNode parseToAST(InputStream istream, String filename, CompileMode kind, CompilerFlags cflags) {
         mod node = ParserFacade.parse(istream, kind, filename, cflags);
-        PythonTreeProcessor ptp = new PythonTreeProcessor();
+        TranslationEnvironment environment = new TranslationEnvironment(node);
+        PythonTreeProcessor ptp = new PythonTreeProcessor(environment);
         node = ptp.process(node);
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator();
+        PythonTreeTranslator ptt = new PythonTreeTranslator(environment);
         RootNode rootNode = ptt.translate(node);
         return rootNode;
     }

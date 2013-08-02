@@ -45,21 +45,24 @@ public class PythonTreeProcessor extends Visitor {
     private Stack<FrameDescriptor> frames;
     private FrameDescriptor globalFrame;
     private FrameDescriptor currentFrame;
-    private NodeFactory nodeFactory = new NodeFactory();
+    private final NodeFactory nodeFactory = new NodeFactory();
+
+    private final TranslationEnvironment environment;
 
     public StringBuilder output = null;
 
     /*
      * used to keep track of explicitly declared globals in the current scope
      */
-    private List<String> localGlobals = new ArrayList<String>();
+    private List<String> localGlobals = new ArrayList<>();
 
     public static String internalReturnValueSymbol = "<return_val>";
 
     private int scopeLevel = 0;
 
-    public PythonTreeProcessor() {
-        this.frames = new Stack<FrameDescriptor>();
+    public PythonTreeProcessor(TranslationEnvironment environment) {
+        this.frames = new Stack<>();
+        this.environment = environment;
     }
 
     public void beginScope() {
@@ -103,12 +106,11 @@ public class PythonTreeProcessor extends Visitor {
         suite(node.getInternalBody());
 
         FrameDescriptor fd = endScope();
-        node.setFrameDescriptor(fd);
+        setFrameDescriptor(node, fd);
         return node;
     }
 
     public void suite(List<stmt> stmts) throws Exception {
-
         for (int i = 0; i < stmts.size(); i++) {
             visit(stmts.get(i));
         }
@@ -126,10 +128,18 @@ public class PythonTreeProcessor extends Visitor {
         return globalFrame.findOrAddFrameSlot(name);
     }
 
+    private void setFrameDescriptor(PythonTree scopeEntity, FrameDescriptor descriptor) {
+        environment.setFrameDescriptor(scopeEntity, descriptor);
+    }
+
+    private void setFrameSlot(PythonTree symbol, FrameSlot slot) {
+        environment.setFrameSlot(symbol, slot);
+    }
+
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         FrameSlot slot = def(node.getInternalName());
-        node.getInternalNameNode().setSlot(slot);
+        setFrameSlot(node.getInternalNameNode(), slot);
 
         ArgListCompiler ac = new ArgListCompiler();
         ac.visitArgs(node.getInternalArgs());
@@ -150,24 +160,24 @@ public class PythonTreeProcessor extends Visitor {
             def(ac.names.get(i));
         }
 
-        if (Options.specialize) {
-            visitArgs(node.getInternalArgs(), ac);
-            List<PythonTree> argsInit = nodeFactory.castToPythonTreeList(ac.init_code);
-            node.addChildren(argsInit);
-            node.getInternalBody().addAll(0, ac.init_code);
-        } else {
-            for (int i = 0; i < ac.init_code.size(); i++) {
-                visit(ac.init_code.get(i));
-            }
-        }
+// if (Options.specialize) {
+        visitArgs(node.getInternalArgs(), ac);
+        List<PythonTree> argsInit = nodeFactory.castToPythonTreeList(ac.init_code);
+        node.addChildren(argsInit);
+        node.getInternalBody().addAll(0, ac.init_code);
+// } else {
+// for (int i = 0; i < ac.init_code.size(); i++) {
+// visit(ac.init_code.get(i));
+// }
+// }
 
         suite(node.getInternalBody());
         FrameDescriptor fd = endScope();
-        node.setFrameDescriptor(fd);
-
+        setFrameDescriptor(node, fd);
         return null;
     }
 
+    @SuppressWarnings("unused")
     public void visitArgs(arguments node, ArgListCompiler ac) throws Exception {
         for (int i = 0; i < node.getInternalArgs().size(); i++) {
             expr arg = node.getInternalArgs().get(i);
@@ -206,13 +216,13 @@ public class PythonTreeProcessor extends Visitor {
 
             if (node.getInternalNames().get(i).getInternalAsname() != null) {
                 String name = a.getInternalAsname();
-                a.setSlot(def(name));
+                setFrameSlot(a, def(name));
             } else {
                 String name = a.getInternalName();
                 if (name.indexOf('.') > 0) {
                     name = name.substring(0, name.indexOf('.'));
                 }
-                a.setSlot(def(name));
+                setFrameSlot(a, def(name));
             }
         }
 
@@ -233,10 +243,10 @@ public class PythonTreeProcessor extends Visitor {
             alias a = node.getInternalNames().get(i);
             if (node.getInternalNames().get(i).getInternalAsname() != null) {
                 String name = a.getInternalAsname();
-                a.setSlot(def(name));
+                setFrameSlot(a, def(name));
             } else {
                 String name = a.getInternalName();
-                a.setSlot(def(name));
+                setFrameSlot(a, def(name));
             }
         }
 
@@ -258,7 +268,7 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitClassDef(ClassDef node) throws Exception {
-        node.setSlot(def(node.getInternalName()));
+        setFrameSlot(node, def(node.getInternalName()));
         int n = node.getInternalBases().size();
 
         for (int i = 0; i < n; i++) {
@@ -285,11 +295,11 @@ public class PythonTreeProcessor extends Visitor {
                  * set for variables in module's scope WriteGlobal or ReadGlobal
                  */
                 if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
-                    node.setSlot(def(name));
+                    setFrameSlot(node, def(name));
                 }
             } else if (!localGlobals.contains(name)) {
                 // function scope
-                node.setSlot(def(name));
+                setFrameSlot(node, def(name));
             }
         } else {
             FrameSlot slot = find(name);
@@ -298,7 +308,7 @@ public class PythonTreeProcessor extends Visitor {
                 slot = probeEnclosingScopes(name);
             }
 
-            node.setSlot(slot);
+            setFrameSlot(node, slot);
         }
 
         return null;
@@ -327,7 +337,7 @@ public class PythonTreeProcessor extends Visitor {
     public Object visitListComp(ListComp node) throws Exception {
         String tmp = "_[" + node.getLine() + "_" + node.getCharPositionInLine() + "]";
         traverse(node);
-        node.setSlot(def(tmp));
+        setFrameSlot(node, def(tmp));
         transformComprehensions(node.getInternalGenerators(), node.getInternalElt());
         return null;
     }
@@ -336,9 +346,9 @@ public class PythonTreeProcessor extends Visitor {
         for (int i = 0; i < generators.size(); i++) {
             comprehension c = generators.get(i);
             if (i + 1 <= generators.size() - 1) { // has next
-                c.setInnerLoop(generators.get(i + 1));
+                environment.setInnerLoop(c, generators.get(i + 1));
             } else { // last/inner most
-                c.setLoopBody(body);
+                environment.setLoopBody(c, body);
             }
         }
 
@@ -368,12 +378,12 @@ public class PythonTreeProcessor extends Visitor {
 // if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
 // visit(node.getInternalGenerators().get(0).getInternalIter());
 // }
-        String bound_exp = "_(x)";
+        String boundexp = "_(x)";
         String tmp = "_(" + node.getLine() + "_" + node.getCharPositionInLine() + ")";
         def(tmp);
         ArgListCompiler ac = new ArgListCompiler();
-        List<expr> args = new ArrayList<expr>();
-        args.add(new Name(node.getToken(), bound_exp, expr_contextType.Param));
+        List<expr> args = new ArrayList<>();
+        args.add(new Name(node.getToken(), boundexp, expr_contextType.Param));
         ac.visitArgs(new arguments(node, args, null, null, new ArrayList<expr>()));
         beginScope();
 
@@ -420,7 +430,7 @@ public class PythonTreeProcessor extends Visitor {
         }
 
         FrameDescriptor fd = endScope();
-        node.setFrameDescriptor(fd);
+        setFrameDescriptor(node, fd);
         return null;
     }
 
@@ -429,7 +439,7 @@ public class PythonTreeProcessor extends Visitor {
         traverse(node);
 
         if (output != null) {
-            node.setOutStream(output);
+// node.setOutStream(output);
         }
 
         return null;
