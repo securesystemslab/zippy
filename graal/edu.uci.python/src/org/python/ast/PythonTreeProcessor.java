@@ -103,14 +103,14 @@ public class PythonTreeProcessor extends Visitor {
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         beginScope();
-        suite(node.getInternalBody());
+        visitStatements(node.getInternalBody());
 
         FrameDescriptor fd = endScope();
         setFrameDescriptor(node, fd);
         return node;
     }
 
-    public void suite(List<stmt> stmts) throws Exception {
+    public void visitStatements(List<stmt> stmts) throws Exception {
         for (int i = 0; i < stmts.size(); i++) {
             visit(stmts.get(i));
         }
@@ -171,7 +171,7 @@ public class PythonTreeProcessor extends Visitor {
 // }
 // }
 
-        suite(node.getInternalBody());
+        visitStatements(node.getInternalBody());
         FrameDescriptor fd = endScope();
         setFrameDescriptor(node, fd);
         return null;
@@ -276,7 +276,7 @@ public class PythonTreeProcessor extends Visitor {
         }
 
         beginScope();
-        suite(node.getInternalBody());
+        visitStatements(node.getInternalBody());
         endScope();
         return null;
     }

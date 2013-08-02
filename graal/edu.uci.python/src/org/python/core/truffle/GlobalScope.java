@@ -24,10 +24,9 @@
  */
 package org.python.core.truffle;
 
-import org.python.core.Options;
-import org.python.core.Py;
-import org.python.core.PyStringMap;
-import org.python.core.PySystemState;
+import java.util.*;
+
+import org.python.core.*;
 import org.python.modules.truffle.BuiltInModule;
 
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -47,6 +46,12 @@ public final class GlobalScope {
     private static GlobalScope instance;
 
     private static final BuiltInModule truffleBuiltIns = new BuiltInModule();
+
+    /**
+     * Augment PyStringMap to accommodate non-PyObject types. <br>
+     * TODO: this should be gone!
+     */
+    Map<String, Object> scopeTable = new HashMap<>();
 
     private GlobalScope(PyStringMap globals, MaterializedFrame frame) {
         jythonGlobals = globals;
@@ -120,7 +125,7 @@ public final class GlobalScope {
             return truffleBuiltIn;
         }
 
-        Object ret = jythonGlobals.tryGetTruffleObject(name);
+        Object ret = tryGetTruffleObject(name);
         if (ret != null) {
             return ret;
         }
@@ -138,16 +143,39 @@ public final class GlobalScope {
                 FrameUtil.setObjectSafe(cachedGlobalFrame, cached, value);
             }
         } else {
-            if (Options.specialize) {
-                value = PythonTypesUtil.adaptToPyObject(value);
-            }
-
-            jythonGlobals.setTruffleOrJythonObject(name, value);
+            setTruffleOrJythonObject(name, PythonTypesUtil.adaptToPyObject(value));
         }
     }
 
     public FrameSlot findCachedGlobalFrameSlot(String id) {
         return cachedGlobalFrame.getFrameDescriptor().findFrameSlot(id);
+    }
+
+    /*
+     * Should only use when setting non-PyObject values
+     */
+    public Object tryGetTruffleObject(String key) {
+        Object val = scopeTable.get(key);
+
+        if (val == null) {
+            val = jythonGlobals.__finditem__(key);
+        }
+        return val;
+    }
+
+    boolean trySetTruffleObject(String key, Object value) {
+        if (scopeTable.containsKey(key)) {
+            scopeTable.put(key, value);
+            return true;
+        }
+
+        return false;
+    }
+
+    public void setTruffleOrJythonObject(String key, Object value) {
+        if (!trySetTruffleObject(key, value)) {
+            jythonGlobals.__setitem__(key, (PyObject) value);
+        }
     }
 
 }

@@ -128,13 +128,13 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         beginScope(getFrameDescriptor(node));
 
-        List<PNode> body = suite(node.getInternalBody());
+        List<PNode> body = visitStatements(node.getInternalBody());
         RootNode newNode = new NodeFactory().createModule(body, getFrameDescriptor(node));
         endScope();
         return newNode;
     }
 
-    public List<PNode> suite(List<stmt> stmts) throws Exception {
+    public List<PNode> visitStatements(List<stmt> stmts) throws Exception {
         List<PNode> statements = new ArrayList<>();
 
         for (int i = 0; i < stmts.size(); i++) {
@@ -161,7 +161,7 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = nodeFactory.createFunctionRoot(parameters, null);
         funcRoots.push(funcRoot);
 
-        List<PNode> statements = suite(node.getInternalBody());
+        List<PNode> statements = visitStatements(node.getInternalBody());
 
         String name = node.getInternalName();
         FrameSlot slot = getFrameSlot(node.getInternalNameNode());
@@ -790,8 +790,8 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitIf(If node) throws Exception {
-        List<PNode> then = suite(node.getInternalBody());
-        List<PNode> orelse = suite(node.getInternalOrelse());
+        List<PNode> then = visitStatements(node.getInternalBody());
+        List<PNode> orelse = visitStatements(node.getInternalOrelse());
         PNode test = (PNode) visit(node.getInternalTest());
         BlockNode thenPart = nodeFactory.createBlock(then);
         BlockNode elsePart = nodeFactory.createBlock(orelse);
@@ -820,7 +820,7 @@ public class PythonTreeTranslator extends Visitor {
 
             loopHeaders.push(whileTrueNode);
 
-            List<PNode> body = suite(node.getInternalBody());
+            List<PNode> body = visitStatements(node.getInternalBody());
             BlockNode bodyPart = nodeFactory.createBlock(body);
 
             bodyPart.setLoopHeader(getCurrentLoopHeader());
@@ -837,8 +837,8 @@ public class PythonTreeTranslator extends Visitor {
 
             loopHeaders.push(whileNode);
 
-            List<PNode> body = suite(node.getInternalBody());
-            List<PNode> orelse = suite(node.getInternalOrelse());
+            List<PNode> body = visitStatements(node.getInternalBody());
+            List<PNode> orelse = visitStatements(node.getInternalOrelse());
             BlockNode bodyPart = nodeFactory.createBlock(body);
             BlockNode orelsePart = nodeFactory.createBlock(orelse);
 
@@ -875,8 +875,8 @@ public class PythonTreeTranslator extends Visitor {
 
         loopHeaders.push(forNode);
 
-        List<PNode> body = suite(node.getInternalBody());
-        List<PNode> orelse = suite(node.getInternalOrelse());
+        List<PNode> body = visitStatements(node.getInternalBody());
+        List<PNode> orelse = visitStatements(node.getInternalOrelse());
         body.addAll(0, targets);
         BlockNode bodyPart = nodeFactory.createBlock(body);
         BlockNode orelsePart = nodeFactory.createBlock(orelse);
@@ -974,10 +974,10 @@ public class PythonTreeTranslator extends Visitor {
         return nodeFactory.createIfExpNode(test, body, orelse);
     }
 
-    @Override
-    protected Object unhandled_node(PythonTree node) throws Exception {
-        throw new RuntimeException("Unhandled node " + node);
-    }
+// @Override
+// protected Object unhandled_node(PythonTree node) throws Exception {
+// throw new RuntimeException("Unhandled node " + node);
+// }
 
     @SuppressWarnings("serial")
     class NotCovered extends RuntimeException {
