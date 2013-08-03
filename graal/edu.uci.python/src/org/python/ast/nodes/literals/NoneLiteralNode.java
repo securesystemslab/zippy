@@ -24,6 +24,8 @@
  */
 package org.python.ast.nodes.literals;
 
+import org.python.ast.datatypes.*;
+
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
@@ -36,12 +38,12 @@ public abstract class NoneLiteralNode extends LiteralNode {
 
     @Specialization
     public Object doGeneric() {
-        return null;
+        return PNone.NONE;
     }
 
     @Override
     public String toString() {
-        return "none(" + null + ")";
+        return "None";
     }
 
 }

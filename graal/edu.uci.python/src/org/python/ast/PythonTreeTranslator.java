@@ -340,6 +340,12 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitName(Name node) throws Exception {
+        String name = node.getInternalId();
+
+        if (name.equals("None")) {
+            return nodeFactory.createNoneLiteral();
+        }
+
         expr_contextType context = node.getInternalCtx();
 
         if (context == expr_contextType.Param) {
@@ -973,11 +979,6 @@ public class PythonTreeTranslator extends Visitor {
 
         return nodeFactory.createIfExpNode(test, body, orelse);
     }
-
-// @Override
-// protected Object unhandled_node(PythonTree node) throws Exception {
-// throw new RuntimeException("Unhandled node " + node);
-// }
 
     @SuppressWarnings("serial")
     class NotCovered extends RuntimeException {

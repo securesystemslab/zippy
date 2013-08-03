@@ -115,7 +115,7 @@ public abstract class AttributeCallNode extends PNode {
             i++;
         }
 
-        return unboxPyObject(((PyObject) callable).__call__(pyargs));
+        return unboxPyObject(callable.__call__(pyargs));
     }
 
     private Object[] doArguments(VirtualFrame frame) {

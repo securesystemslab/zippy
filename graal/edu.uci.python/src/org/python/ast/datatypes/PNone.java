@@ -22,13 +22,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package org.python.ast.datatypes;
 
-public class Options {
+/**
+ * Represent None object.
+ * 
+ */
+public final class PNone {
 
-    // Debug flags
-    public static boolean PrintAST = true;
+    public static final PNone NONE = new PNone();
 
-    public static boolean OptimizeNode = true;
+    private PNone() {
+    }
+
+    @Override
+    public String toString() {
+        return "None";
+    }
 
 }

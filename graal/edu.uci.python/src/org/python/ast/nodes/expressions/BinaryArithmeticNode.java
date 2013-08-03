@@ -82,7 +82,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 7)
         PList doPList(PList left, PList right) {
-            List<Object> list = new ArrayList<Object>();
+            List<Object> list = new ArrayList<>();
             List<Object> leftList = left.getList();
             for (int i = 0; i < leftList.size(); i++) {
                 list.add(leftList.get(i));
@@ -154,6 +154,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return new PCharArray(newArray);
         }
 
+        @SuppressWarnings("unused")
         @Generic
         Object doGeneric(Object left, Object right) {
             throw new RuntimeException("Invalid generic!");

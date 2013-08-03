@@ -160,16 +160,10 @@ public class PythonTreeProcessor extends Visitor {
             def(ac.names.get(i));
         }
 
-// if (Options.specialize) {
         visitArgs(node.getInternalArgs(), ac);
         List<PythonTree> argsInit = nodeFactory.castToPythonTreeList(ac.init_code);
         node.addChildren(argsInit);
         node.getInternalBody().addAll(0, ac.init_code);
-// } else {
-// for (int i = 0; i < ac.init_code.size(); i++) {
-// visit(ac.init_code.get(i));
-// }
-// }
 
         visitStatements(node.getInternalBody());
         FrameDescriptor fd = endScope();

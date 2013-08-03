@@ -63,6 +63,12 @@ public class ASTInterpreter {
 
     public static void trace(String message) {
         // CheckStyle: stop system..print check
+        System.out.print(message);
+        // CheckStyle: resume system..print check
+    }
+
+    public static void traceln(String message) {
+        // CheckStyle: stop system..print check
         System.out.println(message);
         // CheckStyle: resume system..print check
     }

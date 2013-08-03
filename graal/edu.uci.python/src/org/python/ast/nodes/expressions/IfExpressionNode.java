@@ -100,7 +100,7 @@ public abstract class IfExpressionNode extends StatementNode {
         return runIfExp(condition, body, orelse);
     }
 
-    private Object runIfExp(boolean test, Object body, Object orelse) {
+    private static Object runIfExp(boolean test, Object body, Object orelse) {
         if (test) {
             return body;
         } else {
