@@ -104,6 +104,7 @@ public abstract class ReadEnvironmentNode extends FrameSlotNode implements ReadN
     }
 
     // TODO: need to materialize parent frame
+    @SuppressWarnings("hiding")
     private VirtualFrame getParentFrame(VirtualFrame frame, int level) {
         if (level == 0) {
             return frame;

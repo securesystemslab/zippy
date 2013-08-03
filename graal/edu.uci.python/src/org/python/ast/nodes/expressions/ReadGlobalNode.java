@@ -28,7 +28,6 @@ import org.python.ast.nodes.PNode;
 import org.python.core.truffle.*;
 
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
 
 public abstract class ReadGlobalNode extends PNode {
 
@@ -42,7 +41,7 @@ public abstract class ReadGlobalNode extends PNode {
      * TODO: should throw error when return null.
      */
     @Specialization
-    public Object doObject(VirtualFrame frame) {
+    public Object doObject() {
         Object ret = GlobalScope.getInstance().get(name);
         return ret;
     }
