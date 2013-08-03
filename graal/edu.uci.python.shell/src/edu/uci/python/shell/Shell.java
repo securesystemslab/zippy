@@ -33,10 +33,12 @@ public class Shell {
         out.println("Options and arguments");
         out.println("-h     : print this help message and exit (also --help)");
         out.println("arg ...: arguments passed to program in sys.argv[1:]");
+        out.println("-print-ast: print ast before and after interpretation");
     }
 
     public static void main(String[] args) {
         if (args.length >= 1) {
+            CommandLineParser.parse(args);
             RunScript.main(args);
         } else {
             // nothing yet

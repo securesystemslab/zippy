@@ -22,13 +22,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime;
+package edu.uci.python.shell;
 
-public class Options {
+import edu.uci.python.runtime.*;
 
-    // Debug flags
-    public static boolean PrintAST = false;
+public class CommandLineParser {
 
-    public static boolean OptimizeNode = true;
+    public static void parse(String[] args) {
+        int index = 0;
 
+        while (index < args.length) {
+            String arg = args[index];
+
+            if (!args[index].startsWith("-")) {
+                index++;
+                continue;
+            }
+
+            if (arg.equals("-print-ast")) {
+                Options.PrintAST = true;
+            }
+
+            index++;
+        }
+
+    }
 }
