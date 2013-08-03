@@ -238,7 +238,7 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> targets = new ArrayList<>();
 
         for (keyword source : keywords) {
-            targets.add((PNode) visit(source));
+            targets.add(visitKeyword(source));
         }
 
         return targets;
@@ -280,10 +280,8 @@ public class PythonTreeTranslator extends Visitor {
         return nodeFactory.createImport(slots, node.getInternalModule(), names);
     }
 
-// @Override
-    public Object visitKeyword(keyword node) throws Exception {
+    protected PNode visitKeyword(keyword node) throws Exception {
         PNode value = (PNode) visit(node.getInternalValue());
-
         return nodeFactory.createKeywordLiteral(value, node.getInternalArg());
     }
 
@@ -968,6 +966,14 @@ public class PythonTreeTranslator extends Visitor {
 
         return nodeFactory.createIfExpNode(test, body, orelse);
     }
+
+    // Checkstyle: stop
+    @Override
+    protected Object unhandled_node(PythonTree node) throws Exception {
+        throw new RuntimeException("Unhandled node " + node);
+    }
+
+    // Checkstyle: resume
 
     @SuppressWarnings("serial")
     class NotCovered extends RuntimeException {

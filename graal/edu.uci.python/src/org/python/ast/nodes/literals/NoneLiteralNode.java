@@ -38,7 +38,8 @@ public abstract class NoneLiteralNode extends LiteralNode {
 
     @Specialization
     public Object doGeneric() {
-        return PNone.NONE;
+// return PNone.NONE;
+        return null;
     }
 
     @Override

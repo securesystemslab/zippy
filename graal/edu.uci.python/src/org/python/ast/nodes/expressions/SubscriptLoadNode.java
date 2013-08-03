@@ -118,7 +118,7 @@ public abstract class SubscriptLoadNode extends BinaryOpNode {
 
     @Generic
     public Object doGeneric(Object primary, Object slice) {
-        throw new RuntimeException("Unsupported Type!");
+        throw new RuntimeException("Unsupported primary Type " + primary.getClass().getSimpleName());
     }
 
     @Override
