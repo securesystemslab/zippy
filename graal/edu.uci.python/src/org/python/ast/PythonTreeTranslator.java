@@ -344,6 +344,10 @@ public class PythonTreeTranslator extends Visitor {
 
         if (name.equals("None")) {
             return nodeFactory.createNoneLiteral();
+        } else if (name.equals("True")) {
+            return nodeFactory.createBooleanLiteral(true);
+        } else if (name.equals("False")) {
+            return nodeFactory.createBooleanLiteral(false);
         }
 
         expr_contextType context = node.getInternalCtx();
@@ -360,21 +364,6 @@ public class PythonTreeTranslator extends Visitor {
 
         return convertRead(node);
     }
-
-// @Override
-// public Object visitNone(None node) throws Exception {
-// return nodeFactory.createNoneLiteral();
-// }
-//
-// @Override
-// public Object visitTrue(True node) throws Exception {
-// return nodeFactory.createBooleanLiteral(true);
-// }
-//
-// @Override
-// public Object visitFalse(False node) throws Exception {
-// return nodeFactory.createBooleanLiteral(false);
-// }
 
     PNode convertRead(Name node) {
         String name = node.getInternalId();
