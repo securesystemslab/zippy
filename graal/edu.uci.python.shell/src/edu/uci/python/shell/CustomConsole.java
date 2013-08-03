@@ -27,11 +27,12 @@ package edu.uci.python.shell;
 import java.io.*;
 
 import org.python.antlr.base.*;
-import org.python.ast.*;
-import org.python.ast.nodes.*;
 import org.python.core.*;
-import org.python.core.truffle.*;
 import org.python.util.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.translation.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.Options;
 
 import com.oracle.truffle.api.nodes.*;

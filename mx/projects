@@ -619,26 +619,34 @@ project@com.oracle.graal.truffle.printer@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.printer@javaCompliance=1.7
 project@com.oracle.graal.truffle.printer@workingSets=Graal,Truffle
 
-# python
-project@edu.uci.python@subDir=graal
-project@edu.uci.python@sourceDirs=src
-project@edu.uci.python@dependencies=com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
-project@edu.uci.python@javaCompliance=1.7
-project@edu.uci.python@annotationProcessors=com.oracle.truffle.dsl.processor
-project@edu.uci.python@workingSets=Truffle,Python
+# python.runtime
+project@edu.uci.python.runtime@subDir=graal
+project@edu.uci.python.runtime@sourceDirs=src
+project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.runtime@javaCompliance=1.7
+project@edu.uci.python.runtime@workingSets=Truffle,Python
+
+# python.nodes
+project@edu.uci.python.nodes@subDir=graal
+project@edu.uci.python.nodes@sourceDirs=src
+project@edu.uci.python.nodes@dependencies=edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.nodes@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.nodes@javaCompliance=1.7
+project@edu.uci.python.nodes@annotationProcessors=com.oracle.truffle.dsl.processor
+project@edu.uci.python.nodes@workingSets=Truffle,Python
 
 # python.parser
 project@edu.uci.python.parser@subDir=graal
 project@edu.uci.python.parser@sourceDirs=src
 project@edu.uci.python.parser@dependencies=JYTHON
-project@edu.uci.python.parser@checkstyle=edu.uci.python
+project@edu.uci.python.parser@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.parser@javaCompliance=1.7
 project@edu.uci.python.parser@workingSets=Truffle,Python
 
 # python.shell
 project@edu.uci.python.shell@subDir=graal
 project@edu.uci.python.shell@sourceDirs=src
-project@edu.uci.python.shell@dependencies=JLINE09,edu.uci.python,JYTHON
-project@edu.uci.python.shell@checkstyle=edu.uci.python
+project@edu.uci.python.shell@dependencies=JLINE09,edu.uci.python.nodes,edu.uci.python.runtime,JYTHON
+project@edu.uci.python.shell@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.shell@javaCompliance=1.7
 project@edu.uci.python.shell@workingSets=Truffle,Python
