@@ -304,15 +304,6 @@ void CodeCache::alive_nmethods_do(void f(nmethod* nm)) {
   }
 }
 
-#ifdef GRAAL
-void CodeCache::alive_nmethods_do_graal_methods(OopClosure* closure) {
-  assert_locked_or_safepoint(CodeCache_lock);
-  FOR_ALL_ALIVE_NMETHODS(nm) {
-    nm->mark_graal_reference(closure);
-  }
-}
-#endif
-
 int CodeCache::alignment_unit() {
   return (int)_heap->alignment_unit();
 }

@@ -34,10 +34,6 @@
 #include "oops/oop.inline.hpp"
 #include "runtime/java.hpp"
 #include "runtime/jniHandles.hpp"
-#ifdef GRAAL
-#include "code/codeCache.hpp"
-#include "code/nmethod.hpp"
-#endif
 
 ReferencePolicy* ReferenceProcessor::_always_clear_soft_ref_policy = NULL;
 ReferencePolicy* ReferenceProcessor::_default_soft_ref_policy      = NULL;
@@ -267,9 +263,6 @@ ReferenceProcessorStats ReferenceProcessor::process_discovered_references(
       task_executor->set_single_threaded_mode();
     }
     process_phaseJNI(is_alive, keep_alive, complete_gc);
-#ifdef GRAAL
-    process_phaseGraalNMethods(keep_alive, complete_gc);
-#endif
   }
 
   return ReferenceProcessorStats(soft_count, weak_count, final_count, phantom_count);
@@ -311,15 +304,6 @@ void ReferenceProcessor::process_phaseJNI(BoolObjectClosure* is_alive,
   JNIHandles::weak_oops_do(is_alive, keep_alive);
   complete_gc->do_void();
 }
-
-#ifdef GRAAL
-void ReferenceProcessor::process_phaseGraalNMethods(OopClosure*  keep_alive,
-                                                    VoidClosure* complete_gc) {
-  CodeCache::alive_nmethods_do_graal_methods(keep_alive);
-  complete_gc->do_void();
-}
-
-#endif
 
 template <class T>
 bool enqueue_discovered_ref_helper(ReferenceProcessor* ref,
