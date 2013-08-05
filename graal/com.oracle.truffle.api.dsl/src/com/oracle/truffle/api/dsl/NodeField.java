@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,19 +20,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.dsl.processor.compiler;
+package com.oracle.truffle.api.dsl;
 
-import java.util.*;
+import java.lang.annotation.*;
 
-import javax.annotation.processing.*;
-import javax.lang.model.element.*;
+import com.oracle.truffle.api.nodes.*;
 
-public interface Compiler {
+/**
+ * A {@link NodeField} element defines a field for the generated {@link Node}. A {@link Node}
+ * contains multiple {@link NodeFields} specified in linear declaration order. The field can be
+ * accessed by declaring an abstract getter named
+ * <code>"get" + firstLetterUpperCase({@link #name()})()</code>.
+ */
+@Retention(RetentionPolicy.CLASS)
+@Target({ElementType.TYPE})
+public @interface NodeField {
 
-    String getMethodBody(ProcessingEnvironment env, ExecutableElement method);
+    String name();
 
-    String getHeaderComment(ProcessingEnvironment env, Element type);
-
-    List<? extends Element> getEnclosedElementsDeclarationOrder(TypeElement type);
+    Class<?> type();
 
 }
