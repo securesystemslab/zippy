@@ -54,7 +54,6 @@
 #include "memory/referenceProcessor.hpp"
 #include "oops/oop.inline.hpp"
 #include "oops/oop.pcgc.inline.hpp"
-#include "runtime/aprofiler.hpp"
 #include "runtime/vmThread.hpp"
 
 size_t G1CollectedHeap::_humongous_object_threshold_in_words = 0;
@@ -2675,11 +2674,6 @@ void G1CollectedHeap::object_iterate(ObjectClosure* cl) {
   heap_region_iterate(&blk);
 }
 
-void G1CollectedHeap::object_iterate_since_last_GC(ObjectClosure* cl) {
-  // FIXME: is this right?
-  guarantee(false, "object_iterate_since_last_GC not supported by G1 heap");
-}
-
 // Calls a SpaceClosure on a HeapRegion.
 
 class SpaceClosureRegionClosure: public HeapRegionClosure {
@@ -3608,8 +3602,6 @@ G1CollectedHeap* G1CollectedHeap::heap() {
 void G1CollectedHeap::gc_prologue(bool full /* Ignored */) {
   // always_do_update_barrier = false;
   assert(InlineCacheBuffer::is_empty(), "should have cleaned up ICBuffer");
-  // Call allocation profiler
-  AllocationProfiler::iterate_since_last_gc();
   // Fill TLAB's and such
   ensure_parsability(true);
 }
@@ -5127,12 +5119,20 @@ g1_process_strong_roots(bool is_scavenging,
 
   // Walk the code cache w/o buffering, because StarTask cannot handle
   // unaligned oop locations.
-  G1FilteredCodeBlobToOopClosure eager_scan_code_roots(this, scan_non_heap_roots);
+  G1FilteredCodeBlobToOopClosure eager_scan_cs_code_roots(this, scan_non_heap_roots);
+
+  // Scan all code roots from stack
+  CodeBlobToOopClosure eager_scan_all_code_roots(scan_non_heap_roots, true);
+  CodeBlobToOopClosure* blobs = &eager_scan_cs_code_roots;
+  if (UseNewCode && g1_policy()->during_initial_mark_pause()) {
+    // during initial-mark we need to take care to follow all code roots
+    blobs = &eager_scan_all_code_roots;
+  }
 
   process_strong_roots(false, // no scoping; this is parallel code
                        is_scavenging, so,
                        &buf_scan_non_heap_roots,
-                       &eager_scan_code_roots,
+                       blobs,
                        scan_klasses
                        );
 

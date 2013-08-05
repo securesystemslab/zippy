@@ -1139,11 +1139,6 @@ void nmethod::fix_oop_relocations(address begin, address end, bool initialize_im
       metadata_Relocation* reloc = iter.metadata_reloc();
       reloc->fix_metadata_relocation();
     }
-
-    // There must not be any interfering patches or breakpoints.
-    assert(!(iter.type() == relocInfo::breakpoint_type
-             && iter.breakpoint_reloc()->active()),
-           "no active breakpoint");
   }
 }
 
@@ -1860,14 +1855,6 @@ void nmethod::verify_metadata_loaders(address low_boundary, BoolObjectClosure* i
   CheckClass::do_check_class(is_alive, this);
 #endif
 }
-
-#ifdef GRAAL
-void nmethod::mark_graal_reference(OopClosure* f) {
-  if (_graal_installed_code != NULL) {
-    f->do_oop((oop*) &_graal_installed_code);
-  }
-}
-#endif
 
 // Iterate over metadata calling this function.   Used by RedefineClasses
 void nmethod::metadata_do(void f(Metadata*)) {
@@ -2726,7 +2713,8 @@ void nmethod::print_relocations() {
                       relocation_begin()-1+ip[1]);
       for (; ip < index_end; ip++)
         tty->print_cr("  (%d ?)", ip[0]);
-      tty->print_cr("          @" INTPTR_FORMAT ": index_size=%d", ip, *ip++);
+      tty->print_cr("          @" INTPTR_FORMAT ": index_size=%d", ip, *ip);
+      ip++;
       tty->print_cr("reloc_end @" INTPTR_FORMAT ":", ip);
     }
   }

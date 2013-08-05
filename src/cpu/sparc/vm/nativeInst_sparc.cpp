@@ -164,7 +164,7 @@ void NativeCall::replace_mt_safe(address instr_addr, address code_buffer) {
    int i1 = ((int*)code_buffer)[1];
    int* contention_addr = (int*) n_call->addr_at(1*BytesPerInstWord);
    assert(inv_op(*contention_addr) == Assembler::arith_op ||
-          *contention_addr == nop_instruction() || !VM_Version::v9_instructions_work(),
+          *contention_addr == nop_instruction(),
           "must not interfere with original call");
    // The set_long_at calls do the ICacheInvalidate so we just need to do them in reverse order
    n_call->set_long_at(1*BytesPerInstWord, i1);
@@ -183,7 +183,7 @@ void NativeCall::replace_mt_safe(address instr_addr, address code_buffer) {
    // Make sure the first-patched instruction, which may co-exist
    // briefly with the call, will do something harmless.
    assert(inv_op(*contention_addr) == Assembler::arith_op ||
-          *contention_addr == nop_instruction() || !VM_Version::v9_instructions_work(),
+          *contention_addr == nop_instruction(),
           "must not interfere with original call");
 }
 
@@ -935,11 +935,7 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
   int code_size = 1 * BytesPerInstWord;
   CodeBuffer cb(verified_entry, code_size + 1);
   MacroAssembler* a = new MacroAssembler(&cb);
-  if (VM_Version::v9_instructions_work()) {
-    a->ldsw(G0, 0, O7); // "ld" must agree with code in the signal handler
-  } else {
-    a->lduw(G0, 0, O7); // "ld" must agree with code in the signal handler
-  }
+  a->ldsw(G0, 0, O7); // "ld" must agree with code in the signal handler
   ICache::invalidate_range(verified_entry, code_size);
 }
 
@@ -1026,7 +1022,7 @@ void NativeGeneralJump::replace_mt_safe(address instr_addr, address code_buffer)
    int i1 = ((int*)code_buffer)[1];
    int* contention_addr = (int*) h_jump->addr_at(1*BytesPerInstWord);
    assert(inv_op(*contention_addr) == Assembler::arith_op ||
-          *contention_addr == nop_instruction() || !VM_Version::v9_instructions_work(),
+          *contention_addr == nop_instruction(),
           "must not interfere with original call");
    // The set_long_at calls do the ICacheInvalidate so we just need to do them in reverse order
    h_jump->set_long_at(1*BytesPerInstWord, i1);
@@ -1045,6 +1041,6 @@ void NativeGeneralJump::replace_mt_safe(address instr_addr, address code_buffer)
    // Make sure the first-patched instruction, which may co-exist
    // briefly with the call, will do something harmless.
    assert(inv_op(*contention_addr) == Assembler::arith_op ||
-          *contention_addr == nop_instruction() || !VM_Version::v9_instructions_work(),
+          *contention_addr == nop_instruction(),
           "must not interfere with original call");
 }

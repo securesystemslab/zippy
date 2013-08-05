@@ -954,6 +954,11 @@ def gate(args):
         t = Task('BootstrapWithGCVerification:product')
         vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
         tasks.append(t.stop())
+    
+        _vmbuild = 'product'
+        t = Task('BootstrapWithG1GCVerification:product')
+        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC','-XX:+UseG1GC','-XX:+UseNewCode','-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+        tasks.append(t.stop())
 
         _vmbuild = 'product'
         t = Task('BootstrapWithRegisterPressure:product')
