@@ -372,6 +372,21 @@ JRT_LEAF(void, GraalRuntime::write_barrier_post(JavaThread* thread, void* card_a
   thread->dirty_card_queue().enqueue(card_addr);
 JRT_END
 
+JRT_LEAF(jboolean, GraalRuntime::validate_object(JavaThread* thread,oopDesc* parent, oopDesc* child))
+  bool ret = true;
+  if(!Universe::heap()->is_in_closed_subset(parent)) {
+    tty->print_cr("Parent Object "INTPTR_FORMAT" not in heap", parent);
+    parent->print();
+    ret=false;
+  }
+  if(!Universe::heap()->is_in_closed_subset(child)) {
+    tty->print_cr("Child Object "INTPTR_FORMAT" not in heap", child);
+    child->print();
+    ret=false;
+  }
+  return (jint)ret;
+JRT_END
+
 JRT_ENTRY(void, GraalRuntime::vm_error(JavaThread* thread, oop where, oop format, jlong value))
   ResourceMark rm;
   assert(where == NULL || java_lang_String::is_instance(where), "must be");

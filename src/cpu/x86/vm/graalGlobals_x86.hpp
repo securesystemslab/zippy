@@ -31,8 +31,6 @@
 // Sets the default values for platform dependent flags used by the Graal compiler.
 // (see graalGlobals.hpp)
 
-define_pd_global(intx, GraalSafepointPollOffset,     256  );
-
 #if !defined(COMPILER1) && !defined(COMPILER2)
 define_pd_global(bool, BackgroundCompilation,        true );
 define_pd_global(bool, UseTLAB,                      true );
