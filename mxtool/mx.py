@@ -3264,6 +3264,26 @@ def findclass(args, logToConsole=True):
                         log(classname)
     return matches
 
+def select_items(candidates):
+    """
+    Presents a command line interface for selecting one or more items from a sequence.
+    """
+    if len(candidates) == 0:
+        return []
+    elif len(candidates) > 1:
+        log('[0] <all>')
+        for i in range(0, len(candidates)):
+            log('[{0}] {1}'.format(i + 1, candidates[i]))
+        s = raw_input('Enter number of selection: ')
+        try:
+            si = int(s)
+        except:
+            si = 0
+        if si == 0 or si not in range(1, len(candidates) + 1):
+            return candidates
+        else:
+            return [candidates[si - 1]]
+
 def javap(args):
     """disassemble classes matching given pattern with javap"""
 
@@ -3271,7 +3291,11 @@ def javap(args):
     if not exists(javap):
         abort('The javap executable does not exists: ' + javap)
     else:
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + findclass(args, logToConsole=False))
+        candidates = findclass(args, logToConsole=False)
+        if len(candidates) == 0:
+            log('no matches')
+        selection = select_items(candidates)
+        run([javap, '-private', '-verbose', '-classpath', classpath()] + selection)
 
 def show_projects(args):
     """show all loaded projects"""
