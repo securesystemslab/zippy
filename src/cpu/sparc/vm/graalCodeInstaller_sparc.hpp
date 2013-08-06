@@ -31,6 +31,8 @@
 inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
   if (inst->is_call() || inst->is_jump()) {
     return pc_offset + NativeCall::instruction_size;
+  } else if (inst->is_call_reg()) {
+    return pc_offset + NativeCallReg::instruction_size;
   } else if (inst->is_sethi()) {
     return pc_offset + NativeFarCall::instruction_size;
   } else {
@@ -83,23 +85,36 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
       break;
     }
     case 'a': {
-      int size = _constants->size();
-      if (alignment > 0) {
-        guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-        size = align_size_up(size, alignment);
+      if (inlined) {
+        NativeMovConstReg* move = nativeMovConstReg_at(pc);
+        Handle obj = Constant::object(constant);
+        jobject value = JNIHandles::make_local(obj());
+        move->set_data((intptr_t) value);
+
+        // We need two relocations:  one on the sethi and one on the add.
+        int oop_index = _oop_recorder->find_index(value);
+        RelocationHolder rspec = oop_Relocation::spec(oop_index);
+        _instructions->relocate(pc + NativeMovConstReg::sethi_offset, rspec);
+        _instructions->relocate(pc + NativeMovConstReg::add_offset, rspec);
+      } else {
+        int size = _constants->size();
+        if (alignment > 0) {
+          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+          size = align_size_up(size, alignment);
+        }
+        address dest = _constants->start() + size;
+        _constants->set_end(dest);
+        Handle obj = Constant::object(constant);
+        jobject value = JNIHandles::make_local(obj());
+        _constants->emit_address((address) value);
+
+        NativeMovRegMem* load = nativeMovRegMem_at(pc);
+        int disp = _constants_size + pc_offset - size - BytesPerInstWord;
+        load->set_offset(-disp);
+
+        int oop_index = _oop_recorder->find_index(value);
+        _constants->relocate(dest, oop_Relocation::spec(oop_index));
       }
-      address dest = _constants->start() + size;
-      _constants->set_end(dest);
-      Handle obj = Constant::object(constant);
-      jobject value = JNIHandles::make_local(obj());
-      _constants->emit_address((address) value);
-
-      NativeMovRegMem* load = nativeMovRegMem_at(pc);
-      int disp = _constants_size + pc_offset - size - BytesPerInstWord;
-      load->set_offset(-disp);
-
-      int oop_index = _oop_recorder->find_index(value);
-      _constants->relocate(dest, oop_Relocation::spec(oop_index));
       break;
     }
     default:
