@@ -995,20 +995,24 @@ address InterpreterGenerator::generate_CRC32_updateBytes_entry(AbstractInterpret
     const Register crc = c_rarg0;  // crc
     const Register buf = c_rarg1;  // source java byte array address
     const Register len = c_rarg2;  // length
+    const Register off = len;      // offset (never overlaps with 'len')
 
     // Arguments are reversed on java expression stack
-    __ movl(len,   Address(rsp,   wordSize)); // Length
     // Calculate address of start element
     if (kind == Interpreter::java_util_zip_CRC32_updateByteBuffer) {
       __ movptr(buf, Address(rsp, 3*wordSize)); // long buf
-      __ addptr(buf, Address(rsp, 2*wordSize)); // + offset
+      __ movl(len,   Address(rsp, 2*wordSize)); // offset
+      __ addq(buf, len); // + offset
       __ movl(crc,   Address(rsp, 5*wordSize)); // Initial CRC
     } else {
       __ movptr(buf, Address(rsp, 3*wordSize)); // byte[] array
       __ addptr(buf, arrayOopDesc::base_offset_in_bytes(T_BYTE)); // + header size
-      __ addptr(buf, Address(rsp, 2*wordSize)); // + offset
+      __ movl(len,   Address(rsp, 2*wordSize)); // offset
+      __ addq(buf, len); // + offset
       __ movl(crc,   Address(rsp, 4*wordSize)); // Initial CRC
     }
+    // Can now load 'len' since we're finished with 'off'
+    __ movl(len,   Address(rsp,   wordSize)); // Length
 
     __ super_call_VM_leaf(CAST_FROM_FN_PTR(address, StubRoutines::updateBytesCRC32()), crc, buf, len);
     // result in rax
