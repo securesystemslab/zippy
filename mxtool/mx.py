@@ -1549,9 +1549,7 @@ def build(args, parser=None):
         argfile.write('\n'.join(javafilelist))
         argfile.close()
 
-        javacArgs = []
-        if java().debug_port is not None:
-            javacArgs += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+        processorArgs = []
 
         ap = p.annotation_processors()
         if len(ap) > 0:
@@ -1560,25 +1558,40 @@ def build(args, parser=None):
             if exists(genDir):
                 shutil.rmtree(genDir)
             os.mkdir(genDir)
-            javacArgs += ['-processorpath', join(processorPath), '-s', genDir] 
+            processorArgs += ['-processorpath', join(processorPath), '-s', genDir] 
         else:
-            javacArgs += ['-proc:none']
+            processorArgs += ['-proc:none']
 
         toBeDeleted = [argfileName]
         try:
             compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
+                
+                
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir]
+                if java().debug_port is not None:
+                    javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+                javacCmd += processorArgs
+                javacCmd += ['@' + argfile.name]
+                
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
-                jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
+                                
+                jdtArgs = [java().java, '-Xmx1g']
+                if java().debug_port is not None:
+                    jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+
+                jdtArgs += [ '-jar', jdtJar,
                          '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
-                         '-d', outputDir] + javacArgs
+                         '-d', outputDir]
+                jdtArgs += processorArgs
+                         
+                         
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 rootJdtProperties = join(p.suite.dir, 'mx', 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
@@ -1599,6 +1612,7 @@ def build(args, parser=None):
                     else:
                         jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
+                
                 run(jdtArgs)
         finally:
             for n in toBeDeleted:
@@ -3264,6 +3278,26 @@ def findclass(args, logToConsole=True):
                         log(classname)
     return matches
 
+def select_items(candidates):
+    """
+    Presents a command line interface for selecting one or more items from a sequence.
+    """
+    if len(candidates) == 0:
+        return []
+    elif len(candidates) > 1:
+        log('[0] <all>')
+        for i in range(0, len(candidates)):
+            log('[{0}] {1}'.format(i + 1, candidates[i]))
+        s = raw_input('Enter number of selection: ')
+        try:
+            si = int(s)
+        except:
+            si = 0
+        if si == 0 or si not in range(1, len(candidates) + 1):
+            return candidates
+        else:
+            return [candidates[si - 1]]
+
 def javap(args):
     """disassemble classes matching given pattern with javap"""
 
@@ -3271,7 +3305,11 @@ def javap(args):
     if not exists(javap):
         abort('The javap executable does not exists: ' + javap)
     else:
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + findclass(args, logToConsole=False))
+        candidates = findclass(args, logToConsole=False)
+        if len(candidates) == 0:
+            log('no matches')
+        selection = select_items(candidates)
+        run([javap, '-private', '-verbose', '-classpath', classpath()] + selection)
 
 def show_projects(args):
     """show all loaded projects"""

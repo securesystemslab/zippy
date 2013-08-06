@@ -998,6 +998,7 @@ def gate(args):
             t = Task('BuildHotSpotVarieties')
             buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
             buildvms(['--vms', 'server-nograal', '--builds', 'product'])
+            buildvms(['--vms', 'server-nograal', '--builds', 'optimized'])
             tasks.append(t.stop())
 
             for vmbuild in ['product', 'fastdebug']:

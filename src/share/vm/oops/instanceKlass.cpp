@@ -48,6 +48,7 @@
 #include "oops/symbol.hpp"
 #include "prims/jvmtiExport.hpp"
 #include "prims/jvmtiRedefineClassesTrace.hpp"
+#include "prims/jvmtiRedefineClasses.hpp"
 #include "prims/methodComparator.hpp"
 #include "runtime/fieldDescriptor.hpp"
 #include "runtime/handles.inline.hpp"
@@ -291,7 +292,7 @@ InstanceKlass::InstanceKlass(int vtable_len,
   set_initial_method_idnum(0);
   _dependencies = NULL;
   set_jvmti_cached_class_field_map(NULL);
-  set_cached_class_file(NULL, 0);
+  set_cached_class_file(NULL);
   set_initial_method_idnum(0);
   set_minor_version(0);
   set_major_version(0);
@@ -1319,12 +1320,6 @@ void InstanceKlass::array_klasses_do(void f(Klass* k, TRAPS), TRAPS) {
 void InstanceKlass::array_klasses_do(void f(Klass* k)) {
   if (array_klasses() != NULL)
     ArrayKlass::cast(array_klasses())->array_klasses_do(f);
-}
-
-
-void InstanceKlass::with_array_klasses_do(void f(Klass* k)) {
-  f(this);
-  array_klasses_do(f);
 }
 
 #ifdef ASSERT
@@ -2363,10 +2358,9 @@ void InstanceKlass::release_C_heap_structures() {
   }
 
   // deallocate the cached class file
-  if (_cached_class_file_bytes != NULL) {
-    os::free(_cached_class_file_bytes, mtClass);
-    _cached_class_file_bytes = NULL;
-    _cached_class_file_len = 0;
+  if (_cached_class_file != NULL) {
+    os::free(_cached_class_file, mtClass);
+    _cached_class_file = NULL;
   }
 
   // Decrement symbol reference counts associated with the unloaded class.
@@ -3088,27 +3082,26 @@ class VerifyFieldClosure: public OopClosure {
   virtual void do_oop(narrowOop* p) { VerifyFieldClosure::do_oop_work(p); }
 };
 
-void InstanceKlass::verify_on(outputStream* st) {
-  Klass::verify_on(st);
-  Thread *thread = Thread::current();
-
+void InstanceKlass::verify_on(outputStream* st, bool check_dictionary) {
 #ifndef PRODUCT
-  // Avoid redundant verifies
+  // Avoid redundant verifies, this really should be in product.
   if (_verify_count == Universe::verify_count()) return;
   _verify_count = Universe::verify_count();
 #endif
-  // Verify that klass is present in SystemDictionary
-  if (is_loaded() && !is_anonymous()) {
+
+  // Verify Klass
+  Klass::verify_on(st, check_dictionary);
+
+  // Verify that klass is present in SystemDictionary if not already
+  // verifying the SystemDictionary.
+  if (is_loaded() && !is_anonymous() && check_dictionary) {
     Symbol* h_name = name();
     SystemDictionary::verify_obj_klass_present(h_name, class_loader_data());
   }
 
-  // Verify static fields
-  VerifyFieldClosure blk;
-
   // Verify vtables
   if (is_linked()) {
-    ResourceMark rm(thread);
+    ResourceMark rm;
     // $$$ This used to be done only for m/s collections.  Doing it
     // always seemed a valid generalization.  (DLD -- 6/00)
     vtable()->verify(st);
@@ -3116,7 +3109,6 @@ void InstanceKlass::verify_on(outputStream* st) {
 
   // Verify first subklass
   if (subklass_oop() != NULL) {
-    guarantee(subklass_oop()->is_metadata(), "should be in metaspace");
     guarantee(subklass_oop()->is_klass(), "should be klass");
   }
 
@@ -3128,7 +3120,6 @@ void InstanceKlass::verify_on(outputStream* st) {
       fatal(err_msg("subclass points to itself " PTR_FORMAT, sib));
     }
 
-    guarantee(sib->is_metadata(), "should be in metaspace");
     guarantee(sib->is_klass(), "should be klass");
     guarantee(sib->super() == super, "siblings should have same superklass");
   }
@@ -3164,7 +3155,6 @@ void InstanceKlass::verify_on(outputStream* st) {
   if (methods() != NULL) {
     Array<Method*>* methods = this->methods();
     for (int j = 0; j < methods->length(); j++) {
-      guarantee(methods->at(j)->is_metadata(), "should be in metaspace");
       guarantee(methods->at(j)->is_method(), "non-method in methods array");
     }
     for (int j = 0; j < methods->length() - 1; j++) {
@@ -3202,16 +3192,13 @@ void InstanceKlass::verify_on(outputStream* st) {
 
   // Verify other fields
   if (array_klasses() != NULL) {
-    guarantee(array_klasses()->is_metadata(), "should be in metaspace");
     guarantee(array_klasses()->is_klass(), "should be klass");
   }
   if (constants() != NULL) {
-    guarantee(constants()->is_metadata(), "should be in metaspace");
     guarantee(constants()->is_constantPool(), "should be constant pool");
   }
   const Klass* host = host_klass();
   if (host != NULL) {
-    guarantee(host->is_metadata(), "should be in metaspace");
     guarantee(host->is_klass(), "should be klass");
   }
 }
@@ -3541,6 +3528,14 @@ Method* InstanceKlass::method_with_idnum(int idnum) {
     }
   }
   return m;
+}
+
+jint InstanceKlass::get_cached_class_file_len() {
+  return VM_RedefineClasses::get_cached_class_file_len(_cached_class_file);
+}
+
+unsigned char * InstanceKlass::get_cached_class_file_bytes() {
+  return VM_RedefineClasses::get_cached_class_file_bytes(_cached_class_file);
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,18 +19,23 @@
  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
  * or visit www.oracle.com if you need additional information or have any
  * questions.
- *
  */
+package com.oracle.truffle.api.dsl;
 
-#ifndef SHARE_VM_MEMORY_KLASSINFOCLOSURE_HPP
-#define SHARE_VM_MEMORY_KLASSINFOCLOSURE_HPP
+import java.lang.annotation.*;
 
-class KlassInfoEntry;
+import com.oracle.truffle.api.nodes.*;
 
-class KlassInfoClosure : public StackObj {
- public:
-  // Called for each KlassInfoEntry.
-  virtual void do_cinfo(KlassInfoEntry* cie) = 0;
-};
+/**
+ * A {@link NodeFields} element defines a field for the generated {@link Node}. A {@link Node}
+ * contains multiple {@link NodeFields} specified in linear declaration order. The field can be
+ * accessed by declaring an abstract getter named
+ * <code>"get" + firstLetterUpperCase({@link #value()})()</code>.
+ */
+@Retention(RetentionPolicy.CLASS)
+@Target({ElementType.TYPE})
+public @interface NodeFields {
 
-#endif // SHARE_VM_MEMORY_KLASSINFOCLOSURE_HPP
+    NodeField[] value() default {};
+
+}
