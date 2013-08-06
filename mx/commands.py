@@ -763,7 +763,14 @@ def _unittest(args, annotations):
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
-        vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
+        with open(testfile) as fp:
+            testclasses = [l.rstrip() for l in fp.readlines()]
+        if len(testclasses) == 1:
+            # Execute Junit directly when one test is being run. This simplifies
+            # replaying the VM execution in a native debugger (e.g., gdb).
+            vm(prefixArgs + vmArgs + ['-cp', projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
+        else:
+            vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
         _run_tests(args, harness, annotations, testfile)
