@@ -925,7 +925,7 @@ address InterpreterGenerator::generate_CRC32_update_entry() {
     address entry = __ pc();
 
     // rbx,: Method*
-    // rsi: senderSP must preserved for slow path, set SP to it on fast path
+    // r13: senderSP must preserved for slow path, set SP to it on fast path
     // rdx: scratch
     // rdi: scratch
 
@@ -956,7 +956,7 @@ address InterpreterGenerator::generate_CRC32_update_entry() {
 
     // _areturn
     __ pop(rdi);                // get return address
-    __ mov(rsp, rsi);           // set sp to sender sp
+    __ mov(rsp, r13);           // set sp to sender sp
     __ jmp(rdi);
 
     // generate a vanilla native entry as the slow path
