@@ -809,7 +809,7 @@ _unittestHelpSuffix = """
 def unittest(args):
     """run the JUnit tests (all testcases){0}"""
 
-    _unittest(args, ['@Test', '@LongTest'])
+    _unittest(args, ['@Test', '@LongTest', '@Parameters'])
 
 def shortunittest(args):
     """run the JUnit tests (short testcases only){0}"""
@@ -819,7 +819,7 @@ def shortunittest(args):
 def longunittest(args):
     """run the JUnit tests (long testcases only){0}"""
 
-    _unittest(args, ['@LongTest'])
+    _unittest(args, ['@LongTest', '@Parameters'])
 
 def buildvms(args):
     """build one or more VMs in various configurations"""
