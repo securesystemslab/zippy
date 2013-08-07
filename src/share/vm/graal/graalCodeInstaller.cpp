@@ -638,7 +638,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   }
 
   if (TraceGraal >= 2) {
-    tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
+    tty->print_cr("Recording scope pc_offset=%d bci=%d method=%s", pc_offset, bci, method->name_and_sig_as_C_string());
   }
 
   jint local_count = BytecodeFrame::numLocals(frame);
