@@ -348,14 +348,15 @@ class Project(Dependency):
                             assert pkg is not None
                             if pkgRoot is None or pkg.startswith(pkgRoot):
                                 pkgOutputDir = join(outputDir, pkg.replace('.', os.path.sep))
-                                for e in os.listdir(pkgOutputDir):
-                                    if includeInnerClasses:
-                                        if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
-                                            className = pkg + '.' + e[:-len('.class')]
-                                            result[className] = source 
-                                    elif e == basename + '.class':
-                                        className = pkg + '.' + basename
-                                        result[className] = source 
+                                if exists(pkgOutputDir):
+                                    for e in os.listdir(pkgOutputDir):
+                                        if includeInnerClasses:
+                                            if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
+                                                className = pkg + '.' + e[:-len('.class')]
+                                                result[className] = source
+                                        elif e == basename + '.class':
+                                            className = pkg + '.' + basename
+                                            result[className] = source
         return result
     
     def _init_packages_and_imports(self):
