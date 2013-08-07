@@ -1001,13 +1001,13 @@ address InterpreterGenerator::generate_CRC32_updateBytes_entry(AbstractInterpret
     // Calculate address of start element
     if (kind == Interpreter::java_util_zip_CRC32_updateByteBuffer) {
       __ movptr(buf, Address(rsp, 3*wordSize)); // long buf
-      __ movl(len,   Address(rsp, 2*wordSize)); // offset
+      __ movslq(len,   Address(rsp, 2*wordSize)); // offset
       __ addq(buf, len); // + offset
       __ movl(crc,   Address(rsp, 5*wordSize)); // Initial CRC
     } else {
       __ movptr(buf, Address(rsp, 3*wordSize)); // byte[] array
       __ addptr(buf, arrayOopDesc::base_offset_in_bytes(T_BYTE)); // + header size
-      __ movl(len,   Address(rsp, 2*wordSize)); // offset
+      __ movslq(len,   Address(rsp, 2*wordSize)); // offset
       __ addq(buf, len); // + offset
       __ movl(crc,   Address(rsp, 4*wordSize)); // Initial CRC
     }

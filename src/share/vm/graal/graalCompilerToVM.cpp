@@ -788,6 +788,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("aescryptDecryptBlockStub", StubRoutines::aescrypt_decryptBlock());
   set_address("cipherBlockChainingEncryptAESCryptStub", StubRoutines::cipherBlockChaining_encryptAESCrypt());
   set_address("cipherBlockChainingDecryptAESCryptStub", StubRoutines::cipherBlockChaining_decryptAESCrypt());
+  set_address("updateBytesCRC32Stub", StubRoutines::updateBytesCRC32());
 
   set_address("newInstanceAddress", GraalRuntime::new_instance);
   set_address("newArrayAddress", GraalRuntime::new_array);
@@ -815,6 +816,7 @@ C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
   set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
   set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
   set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
+  set_address("crcTableAddress", StubRoutines::crc_table_addr());
 
   set_int("deoptReasonNone", Deoptimization::Reason_none);
   set_int("deoptReasonNullCheck", Deoptimization::Reason_null_check);
