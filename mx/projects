@@ -293,6 +293,14 @@ project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
 
+# graal.nodes.test
+project@com.oracle.graal.nodes.test@subDir=graal
+project@com.oracle.graal.nodes.test@sourceDirs=src
+project@com.oracle.graal.nodes.test@dependencies=com.oracle.graal.compiler.test
+project@com.oracle.graal.nodes.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nodes.test@javaCompliance=1.7
+project@com.oracle.graal.nodes.test@workingSets=Graal,Graph
+
 # graal.phases
 project@com.oracle.graal.phases@subDir=graal
 project@com.oracle.graal.phases@sourceDirs=src
