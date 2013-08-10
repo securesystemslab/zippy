@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "runtime/javaCalls.hpp"
 #include "runtime/gpu.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
