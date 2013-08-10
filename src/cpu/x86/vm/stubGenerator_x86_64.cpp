@@ -3647,8 +3647,8 @@ class StubGenerator: public StubCodeGenerator {
     const Register crc   = c_rarg0;  // crc
     const Register buf   = c_rarg1;  // source java byte array address
     const Register len   = c_rarg2;  // length
-    const Register table = rscratch1;// crc_table address
-    const Register tmp   = rscratch2;
+    const Register table = c_rarg3;  // crc_table address (reuse register)
+    const Register tmp   = r11;
     assert_different_registers(crc, buf, len, table, tmp, rax);
 
     BLOCK_COMMENT("Entry:");
