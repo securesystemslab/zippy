@@ -66,9 +66,9 @@ void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name)
   }
 }
 
-bool gpu::execute_kernel(address kernel) {
+bool gpu::execute_kernel(address kernel, JavaCallArguments * jca) {
   if (gpu::has_gpu_linkage()) {
-    return (gpu::Ptx::execute_kernel(kernel));
+    return (gpu::Ptx::execute_kernel(kernel, jca));
   } else {
     return false;
   }
@@ -120,7 +120,7 @@ bool gpu::Ptx::initialize_gpu() {
   }
 
   /* Get device attributes */
-  int minor, major;
+  int minor, major, unified_addressing;
   status = _cuda_cu_device_get_attribute(&minor, GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, cu_device);
 
   if (status != GRAAL_CUDA_SUCCESS) {
@@ -138,6 +138,18 @@ bool gpu::Ptx::initialize_gpu() {
   if (TraceGPUInteraction) {
     tty->print_cr("[CUDA] Compatibility version of device %d: %d.%d", cu_device, major, minor);
   }
+
+  status = _cuda_cu_device_get_attribute(&unified_addressing, GRAAL_CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, cu_device);
+
+  if (status != GRAAL_CUDA_SUCCESS) {
+    tty->print_cr("[CUDA] Failed to query unified addressing mode of device: %d", cu_device);
+    return false;
+  }
+
+  if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Unified addressing support on device %d: %d", cu_device, unified_addressing);
+  }
+
 
   /* Get device name */
   char device_name[256];
@@ -218,7 +230,7 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   status = _cuda_cu_module_get_function(&cu_function, cu_module, name);
 
   if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to get function %s", name);
+    tty->print_cr("[CUDA] *** Error: Failed to get function %s", name);
     return NULL;
   }
 
@@ -228,7 +240,7 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   return cu_function;
 }
 
-bool gpu::Ptx::execute_kernel(address kernel) {
+bool gpu::Ptx::execute_kernel(address kernel, JavaCallArguments * jca) {
   // grid dimensionality
   unsigned int gridX = 1;
   unsigned int gridY = 1;
@@ -241,6 +253,15 @@ bool gpu::Ptx::execute_kernel(address kernel) {
   
   int *cu_function = (int *)kernel;
 
+  char * paramBuffer = (char *) jca->parameters();
+  size_t paramBufferSz = (size_t) jca->size_of_parameters();
+
+  void * config[] = {
+    GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER, paramBuffer,
+    GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE, &paramBufferSz,
+    GRAAL_CU_LAUNCH_PARAM_END
+  };
+
   if (kernel == NULL) {
     return false;
   }
@@ -251,7 +272,7 @@ bool gpu::Ptx::execute_kernel(address kernel) {
   int status = _cuda_cu_launch_kernel(cu_function,
                                       gridX, gridY, gridZ,
                                       blockX, blockY, blockZ,
-                                      0, NULL, NULL, NULL);
+                                      0, NULL, NULL, config);
   if (status != GRAAL_CUDA_SUCCESS) {
     tty->print_cr("[CUDA] Failed to launch kernel");
     return false;

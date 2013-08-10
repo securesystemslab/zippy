@@ -43,7 +43,7 @@ public:
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
 
-  static bool execute_kernel(address kernel);
+  static bool execute_kernel(address kernel, JavaCallArguments * jca);
 
   static void set_available(bool value) {
     _available = value;

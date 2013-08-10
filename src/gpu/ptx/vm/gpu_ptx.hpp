@@ -30,6 +30,8 @@
  * These definitions are for convenience.
  */
 #define GRAAL_CUDA_SUCCESS                                   0
+/**< Device shares a unified address space with the host */
+#define GRAAL_CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING        41
 #define GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR  75
 #define GRAAL_CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR  76
 #define GRAAL_CU_JIT_MAX_REGISTERS                           0
@@ -38,6 +40,33 @@
 #define GRAAL_CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES              4
 #define GRAAL_CUDA_ERROR_NO_BINARY_FOR_GPU                 209
 
+/**
+ * End of array terminator for the extra parameter to
+ * ::cuLaunchKernel
+ */
+#define GRAAL_CU_LAUNCH_PARAM_END            ((void*)0x00)
+
+/**
+ * Indicator that the next value in the  extra parameter to
+ * ::cuLaunchKernel will be a pointer to a buffer containing all kernel
+ * parameters used for launching kernel f.  This buffer needs to
+ * honor all alignment/padding requirements of the individual parameters.
+ * If ::GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE is not also specified in the
+ *  extra array, then ::GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER will have no
+ * effect.
+ */
+#define GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER ((void*)0x01)
+
+/**
+ * Indicator that the next value in the  extra parameter to
+ * ::cuLaunchKernel will be a pointer to a size_t which contains the
+ * size of the buffer specified with ::GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER.
+ * It is required that ::GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER also be specified
+ * in the extra array if the value associated with
+ * ::GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE is not zero.
+ */
+#define GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE    ((void*)0x02)
+
 class Ptx {
   friend class gpu;
 
@@ -45,7 +74,7 @@ class Ptx {
   static bool probe_linkage();
   static bool initialize_gpu();
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
-  static bool execute_kernel(address kernel);
+  static bool execute_kernel(address kernel, JavaCallArguments *);
   
 private:
   typedef int (*cuda_cu_init_func_t)(unsigned int);
