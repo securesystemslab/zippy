@@ -269,7 +269,7 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
-    return os.path.abspath(_vmdir if _vmdir else join(_graal_home, 'jdk' + str(mx.java().version)))
+    return os.path.abspath(join(_vmdir if _vmdir else _graal_home, 'jdk' + str(mx.java().version)))
 
 def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
