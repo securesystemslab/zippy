@@ -44,7 +44,7 @@
  * End of array terminator for the extra parameter to
  * ::cuLaunchKernel
  */
-#define GRAAL_CU_LAUNCH_PARAM_END            ((void*)0x00)
+#define GRAAL_CU_LAUNCH_PARAM_END            ((void *) 0x00)
 
 /**
  * Indicator that the next value in the  extra parameter to
@@ -55,7 +55,7 @@
  *  extra array, then ::GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER will have no
  * effect.
  */
-#define GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER ((void*)0x01)
+#define GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER ((void *) 0x01)
 
 /**
  * Indicator that the next value in the  extra parameter to
@@ -65,7 +65,7 @@
  * in the extra array if the value associated with
  * ::GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE is not zero.
  */
-#define GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE    ((void*)0x02)
+#define GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE    ((void *) 0x02)
 
 class Ptx {
   friend class gpu;
