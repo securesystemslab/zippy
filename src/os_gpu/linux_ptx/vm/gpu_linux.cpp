@@ -43,11 +43,11 @@ static unsigned int nvidia_gk110_dev_id = 0x1005;
 
 bool gpu::Linux::probe_gpu() {
   /* 
-     Open /proc/bus/pci/devices to look for the first CUDA enabled
-     device. For now, finding the first CUDA device. Will need to
-     revisit this wo support execution on multiple CUDA devices if
-     they exist.
-  */
+   * Open /proc/bus/pci/devices to look for the first CUDA enabled
+   * device. For now, finding the first CUDA device. Will need to
+   * revisit this to support execution on multiple CUDA devices if
+   * they exist.
+   */
   FILE *pci_devices = fopen("/proc/bus/pci/devices", "r");
   char contents[4096];
   unsigned int bus_num_devfn_ign;
