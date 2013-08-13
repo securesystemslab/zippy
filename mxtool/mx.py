@@ -870,6 +870,47 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
         p.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
     return deps
 
+def _handle_missing_java_home():
+    if not sys.stdout.isatty():
+        abort('Could not find bootstrap JDK. Use --java-home option or ensure JAVA_HOME environment variable is set.')
+ 
+    candidateJdks = []
+    if get_os() == 'darwin':
+        base = '/Library/Java/JavaVirtualMachines'
+        candidateJdks = [join(base, n, 'Contents/Home') for n in os.listdir(base) if exists(join(base, n, 'Contents/Home'))]
+    elif get_os() == 'linux':
+        base = '/usr/lib/jvm'
+        candidateJdks = [join(base, n) for n in os.listdir(base) if exists(join(base, n, 'jre/lib/rt.jar'))]
+    elif get_os() == 'solaris':
+        base = '/usr/jdk/instances'
+        candidateJdks = [join(base, n) for n in os.listdir(base) if exists(join(base, n, 'jre/lib/rt.jar'))]
+    elif get_os() == 'windows':
+        base = r'C:\Program Files\Java'
+        candidateJdks = [join(base, n) for n in os.listdir(base) if exists(join(base, n, r'jre\lib\rt.jar'))]
+
+    javaHome = None
+    if len(candidateJdks) != 0:
+        javaHome = select_items(candidateJdks + ['<other>'], allowMultiple=False)
+        if javaHome == '<other>':
+            javaHome = None
+            
+    while javaHome is None:
+        javaHome = raw_input('Enter path of bootstrap JDK: ')
+        rtJarPath = join(javaHome, 'jre', 'lib', 'rt.jar')
+        if not exists(rtJarPath):
+            log('Does not appear to be a valid JDK as ' + rtJarPath + ' does not exist')
+            javaHome = None
+        else:
+            break
+    
+    envPath = join(_mainSuite.dir, 'mx', 'env')
+    answer = raw_input('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath + '? [Yn]: ')
+    if not answer.lower().startswith('n'):
+        with open(envPath, 'a') as fp:
+            print >> fp, 'JAVA_HOME=' + javaHome
+            
+    return javaHome
+
 class ArgParser(ArgumentParser):
 
     # Override parent to append the list of available commands
@@ -917,7 +958,7 @@ class ArgParser(ArgumentParser):
             opts.java_home = os.environ.get('JAVA_HOME')
 
         if opts.java_home is None or opts.java_home == '':
-            abort('Could not find Java home. Use --java-home option or ensure JAVA_HOME environment variable is set.')
+            opts.java_home = _handle_missing_java_home()
 
         if opts.user_home is None or opts.user_home == '':
             abort('Could not find user home. Use --user-home option or ensure HOME environment variable is set.')
