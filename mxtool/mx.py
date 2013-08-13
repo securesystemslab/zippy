@@ -138,6 +138,7 @@ Property values can use environment variables with Bash syntax (e.g. ${HOME}).
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile
+import textwrap
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
@@ -3279,25 +3280,49 @@ def findclass(args, logToConsole=True):
                         log(classname)
     return matches
 
-def select_items(candidates):
+def select_items(items, descriptions=None, allowMultiple=True):
     """
-    Presents a command line interface for selecting one or more items from a sequence.
+    Presents a command line interface for selecting one or more (if allowMultiple is true) items.
+    
     """
-    if len(candidates) == 0:
+    if len(items) == 0:
         return []
-    elif len(candidates) > 1:
-        log('[0] <all>')
-        for i in range(0, len(candidates)):
-            log('[{0}] {1}'.format(i + 1, candidates[i]))
-        s = raw_input('Enter number of selection: ')
-        try:
-            si = int(s)
-        except:
-            si = 0
-        if si == 0 or si not in range(1, len(candidates) + 1):
-            return candidates
-        else:
-            return [candidates[si - 1]]
+    elif len(items) > 1:
+        if allowMultiple:
+            log('[0] <all>')
+        for i in range(0, len(items)):
+            if descriptions is None:
+                log('[{0}] {1}'.format(i + 1, items[i]))
+            else:
+                assert len(items) == len(descriptions)
+                wrapper = textwrap.TextWrapper(subsequent_indent='    ')
+                log('\n'.join(wrapper.wrap('[{0}] {1} - {2}'.format(i + 1, items[i], descriptions[i]))))
+        while True:
+            if allowMultiple:
+                s = raw_input('Enter number(s) of selection (separate multiple choices with spaces): ').split()
+            else:
+                s = [raw_input('Enter number of selection: ')]
+            try:
+                s = [int(x) for x in s]
+            except:
+                log('Selection contains non-numeric characters: "' + ' '.join(s) + '"')
+                continue
+            
+            if allowMultiple and 0 in s:
+                return items
+            
+            indexes = []
+            for n in s:
+                if n not in range(1, len(items) + 1):
+                    log('Invalid selection: ' + str(n))
+                    continue
+                else:
+                    indexes.append(n - 1)
+            if allowMultiple:
+                return [items[i] for i in indexes]
+            if len(indexes) == 1:
+                return items[indexes[0]]
+            return None
 
 def javap(args):
     """disassemble classes matching given pattern with javap"""
