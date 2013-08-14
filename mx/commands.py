@@ -564,9 +564,8 @@ def build(args, vm=None):
         
     for build in builds:
         if build == 'ide-build-target':
-            build = os.environ.get('IDE_BUILD_TARGET', 'product')
-            if len(build) == 0:
-                mx.logv('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
+            build = os.environ.get('IDE_BUILD_TARGET', None)
+            if build is None or len(build) == 0:
                 continue
 
         jdk = _jdk(build, create=True)
