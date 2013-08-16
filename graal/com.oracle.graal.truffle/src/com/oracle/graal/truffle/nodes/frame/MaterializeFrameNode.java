@@ -20,25 +20,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.nodes;
+package com.oracle.graal.truffle.nodes.frame;
 
+import com.oracle.graal.graph.Node.IterableNodeType;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.replacements.nodes.*;
+import com.oracle.graal.truffle.*;
 
-public class NeverPartOfCompilationNode extends MacroNode implements com.oracle.graal.graph.Node.IterableNodeType {
+/**
+ * Intrinsic node for materializing a Truffle frame.
+ */
+@NodeInfo(nameTemplate = "MaterializeFrame{p#frame/s}")
+public class MaterializeFrameNode extends FixedWithNextNode implements IterableNodeType {
 
-    private final String message;
+    @Input private ValueNode frame;
 
-    public NeverPartOfCompilationNode(Invoke invoke) {
-        this(invoke, "This code path should never be part of a compilation.");
+    public MaterializeFrameNode(ValueNode frame) {
+        super(frame.stamp());
+        this.frame = frame;
     }
 
-    public NeverPartOfCompilationNode(Invoke invoke, String message) {
-        super(invoke);
-        this.message = message;
+    public ValueNode getFrame() {
+        return frame;
     }
 
-    public final String getMessage() {
-        return message;
-    }
+    @NodeIntrinsic
+    public static native <T> T materialize(FrameWithoutBoxing frame);
 }

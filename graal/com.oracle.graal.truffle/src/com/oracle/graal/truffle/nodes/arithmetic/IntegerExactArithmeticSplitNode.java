@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle.nodes;
+package com.oracle.graal.truffle.nodes.arithmetic;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -29,6 +29,7 @@ import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.spi.Lowerable.*;
 import com.oracle.graal.nodes.type.*;
 
 public abstract class IntegerExactArithmeticSplitNode extends ControlSplitNode implements LIRGenLowerable {
@@ -81,15 +82,17 @@ public abstract class IntegerExactArithmeticSplitNode extends ControlSplitNode i
     protected abstract Value generateArithmetic(LIRGeneratorTool generator);
 
     static void lower(LoweringTool tool, IntegerExactArithmeticNode node) {
-        FloatingNode floatingNode = (FloatingNode) node;
-        FixedWithNextNode previous = tool.lastFixedNode();
-        FixedNode next = previous.next();
-        previous.setNext(null);
-        DeoptimizeNode deopt = floatingNode.graph().add(new DeoptimizeNode(DeoptimizationAction.InvalidateReprofile, DeoptimizationReason.ArithmeticException));
-        BeginNode normalBegin = floatingNode.graph().add(new BeginNode());
-        normalBegin.setNext(next);
-        IntegerExactArithmeticSplitNode split = node.createSplit(normalBegin, BeginNode.begin(deopt));
-        previous.setNext(split);
-        floatingNode.replaceAndDelete(split);
+        if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            FloatingNode floatingNode = (FloatingNode) node;
+            FixedWithNextNode previous = tool.lastFixedNode();
+            FixedNode next = previous.next();
+            previous.setNext(null);
+            DeoptimizeNode deopt = floatingNode.graph().add(new DeoptimizeNode(DeoptimizationAction.InvalidateReprofile, DeoptimizationReason.ArithmeticException));
+            BeginNode normalBegin = floatingNode.graph().add(new BeginNode());
+            normalBegin.setNext(next);
+            IntegerExactArithmeticSplitNode split = node.createSplit(normalBegin, BeginNode.begin(deopt));
+            previous.setNext(split);
+            floatingNode.replaceAndDelete(split);
+        }
     }
 }
