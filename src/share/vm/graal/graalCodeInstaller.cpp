@@ -732,14 +732,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = CodeInstaller::pd_next_offset(inst, pc_offset, hotspot_method);
   
-  if (target->is_a(SystemDictionary::HotSpotInstalledCode_klass())) {
-    assert(inst->is_jump(), "jump expected");
-    CodeBlob* cb = (CodeBlob*) (address) HotSpotInstalledCode::codeBlob(target);
-    assert(cb != NULL, "npe");
-    CodeInstaller::pd_relocate_CodeBlob(cb, inst);
-    return;
-  }
-
   if (debug_info != NULL) {
     oop frame = DebugInfo::bytecodePosition(debug_info);
     _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
