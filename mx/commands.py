@@ -771,9 +771,29 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
+def _extract_VM_args(args, allowClasspath=False):
+    """
+    Partitions a command line into a leading sequence of HotSpot VM options and the rest.
+    """
+    for i in range(0, len(args)):
+        if not args[i].startswith('-'):
+            if i != 0 and (args[i - 1] == '-cp' or args[i - 1] == '-classpath'):
+                if not allowClasspath:
+                    mx.abort('Cannot supply explicit class path option')
+                else:
+                    continue
+            vmArgs = args[:i]
+            remainder = args[i:] 
+            return vmArgs, remainder
+    return args, []
+    
 def _run_tests(args, harness, annotations, testfile):
-    tests = [a for a in args if a[0] != '@' ]
-    vmArgs = [a[1:] for a in args if a[0] == '@']
+    
+    
+    vmArgs, tests = _extract_VM_args(args)
+    for t in tests:
+        if t.startswith('-'):
+            mx.abort('VM option ' + t + ' must precede first test name')
 
     def containsAny(c, substrings):
         for s in substrings:
@@ -792,9 +812,6 @@ def _run_tests(args, harness, annotations, testfile):
         classes = candidates
     else:
         for t in tests:
-            if t.startswith('-'):
-                mx.abort('VM option needs @ prefix (i.e., @' + t + ')')
-                
             found = False
             for c in candidates:
                 if t in c:
@@ -849,11 +866,9 @@ _unittestHelpSuffix = """
     If filters are supplied, only tests whose fully qualified name
     includes a filter as a substring are run.
     
-    Options with a '@' prefix are passed to the VM.
-    
     For example, this command line:
     
-       mx unittest BC_aload @-G:Dump= @-G:MethodFilter=BC_aload.* @-G:+PrintCFG
+       mx unittest -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG BC_aload @
     
     will run all JUnit test classes that contain 'BC_aload' in their
     fully qualified name and will pass these options to the VM: 
@@ -868,7 +883,7 @@ _unittestHelpSuffix = """
     (unlike the temporary file otherwise used).
 
     As with all other commands, using the global '-v' before 'unittest'
-    command will cause mx to show the complete shell command line
+    command will cause mx to show the complete command line
     it uses to run the VM.
 """ 
 
@@ -1077,7 +1092,7 @@ def gate(args):
                         tasks.append(t.stop())
     
                         t = Task('UnitTests:' + theVm + ':' + vmbuild)
-                        unittest(['@-XX:CompileCommand=exclude,*::run*', 'graal.api'])
+                        unittest(['-XX:CompileCommand=exclude,*::run*', 'graal.api'])
                         tasks.append(t.stop())
 
     except KeyboardInterrupt:
@@ -1381,9 +1396,9 @@ def mx_init():
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
-        'unittest' : [unittest, '[filters...|@VM options]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[filters...|@VM options]', _unittestHelpSuffix],
-        'shortunittest' : [shortunittest, '[filters...|@VM options]', _unittestHelpSuffix],
+        'unittest' : [unittest, '[VM options] [filters...]', _unittestHelpSuffix],
+        'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
+        'shortunittest' : [shortunittest, '[VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
