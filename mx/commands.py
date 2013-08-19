@@ -31,6 +31,7 @@ from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
+import itertools
 import json, textwrap
 
 # This works because when mx loads this file, it makes sure __file__ gets an absolute path
@@ -191,106 +192,49 @@ def export(args):
 
     mx.log('Created distribution in ' + zfName)
 
-def dacapo(args):
-    """run one or all DaCapo benchmarks
+def _run_benchmark(args, availableBenchmarks, runBenchmark):
 
-    DaCapo options are distinguished from VM options by a '@' prefix.
-    For example, '@-n @5' will pass '-n 5' to the
-    DaCapo harness."""
+    vmOpts, benchmarksAndOptions = _extract_VM_args(args, useDoubleDash=availableBenchmarks is None)
 
-    numTests = {}
-    if len(args) > 0:
-        level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
-        if level is not None:
-            del args[0]
-            for (bench, ns) in sanitycheck.dacapoSanityWarmup.items():
-                if ns[level] > 0:
-                    numTests[bench] = ns[level]
-        else:
-            while len(args) != 0 and args[0][0] not in ['-', '@']:
-                n = 1
-                if args[0].isdigit():
-                    n = int(args[0])
-                    assert len(args) > 1 and args[1][0] not in ['-', '@'] and not args[1].isdigit()
-                    bm = args[1]
-                    del args[0]
-                else:
-                    bm = args[0]
+    if availableBenchmarks is None:
+        harnessArgs = benchmarksAndOptions 
+        return runBenchmark(None, harnessArgs, vmOpts)
 
-                del args[0]
-                if bm not in sanitycheck.dacapoSanityWarmup.keys():
-                    mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoSanityWarmup.keys()))
-                numTests[bm] = n
+    if len(benchmarksAndOptions) == 0:
+        mx.abort('at least one benchmark name or "all" must be specified')
+    benchmarks = list(itertools.takewhile(lambda x: not x.startswith('-'), benchmarksAndOptions))
+    harnessArgs = benchmarksAndOptions[len(benchmarks):] 
 
-    if len(numTests) is 0:
-        for bench in sanitycheck.dacapoSanityWarmup.keys():
-            numTests[bench] = 1
-
-    # Extract DaCapo options
-    dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
-
-    # The remainder are VM options
-    vmOpts = [arg for arg in args if not arg.startswith('@')]
-    vm = _get_vm()
+    if 'all' in benchmarks:
+        benchmarks = availableBenchmarks
+    else:
+        for bm in benchmarks:
+            if bm not in availableBenchmarks:
+                mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(availableBenchmarks))
 
     failed = []
-    for (test, n) in numTests.items():
-        if not sanitycheck.getDacapo(test, n, dacapoArgs).test(vm, opts=vmOpts):
-            failed.append(test)
+    for bm in benchmarks:
+        if not runBenchmark(bm, harnessArgs, vmOpts):
+            failed.append(bm)
 
     if len(failed) != 0:
-        mx.abort('DaCapo failures: ' + str(failed))
+        mx.abort('Benchmark failures: ' + str(failed))
+
+def dacapo(args):
+    """run one or more DaCapo benchmarks"""
+
+    def launcher(bm, harnessArgs, extraVmOpts):
+        return sanitycheck.getDacapo(bm, harnessArgs).test(_get_vm(), extraVmOpts=extraVmOpts)
+        
+    _run_benchmark(args, sanitycheck.dacapoSanityWarmup.keys(), launcher)
 
 def scaladacapo(args):
-    """run one or all Scala DaCapo benchmarks
+    """run one or more Scala DaCapo benchmarks"""
 
-    Scala DaCapo options are distinguished from VM options by a '@' prefix.
-    For example, '@--iterations @5' will pass '--iterations 5' to the
-    DaCapo harness."""
+    def launcher(bm, harnessArgs, extraVmOpts):
+        return sanitycheck.getScalaDacapo(bm, harnessArgs).test(_get_vm(), extraVmOpts=extraVmOpts)
 
-    numTests = {}
-
-    if len(args) > 0:
-        level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
-        if level is not None:
-            del args[0]
-            for (bench, ns) in sanitycheck.dacapoScalaSanityWarmup.items():
-                if ns[level] > 0:
-                    numTests[bench] = ns[level]
-        else:
-            while len(args) != 0 and args[0][0] not in ['-', '@']:
-                n = 1
-                if args[0].isdigit():
-                    n = int(args[0])
-                    assert len(args) > 1 and args[1][0] not in ['-', '@'] and not args[1].isdigit()
-                    bm = args[1]
-                    del args[0]
-                else:
-                    bm = args[0]
-
-                del args[0]
-                if bm not in sanitycheck.dacapoScalaSanityWarmup.keys():
-                    mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoScalaSanityWarmup.keys()))
-                numTests[bm] = n
-
-    if len(numTests) is 0:
-        for bench in sanitycheck.dacapoScalaSanityWarmup.keys():
-            numTests[bench] = 1
-
-    # Extract DaCapo options
-    dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
-
-    # The remainder are VM options
-    vmOpts = [arg for arg in args if not arg.startswith('@')]
-    vm = _get_vm()
-
-    failed = []
-    for (test, n) in numTests.items():
-        if not sanitycheck.getScalaDacapo(test, n, dacapoArgs).test(vm, opts=vmOpts):
-            failed.append(test)
-
-    if len(failed) != 0:
-        mx.abort('Scala DaCapo failures: ' + str(failed))
+    _run_benchmark(args, sanitycheck.dacapoScalaSanityWarmup.keys(), launcher)
 
 def _arch():
     machine = platform.uname()[4]
@@ -771,20 +715,27 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _extract_VM_args(args, allowClasspath=False):
+def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
     """
     Partitions a command line into a leading sequence of HotSpot VM options and the rest.
     """
     for i in range(0, len(args)):
-        if not args[i].startswith('-'):
-            if i != 0 and (args[i - 1] == '-cp' or args[i - 1] == '-classpath'):
-                if not allowClasspath:
-                    mx.abort('Cannot supply explicit class path option')
-                else:
-                    continue
-            vmArgs = args[:i]
-            remainder = args[i:] 
-            return vmArgs, remainder
+        if useDoubleDash:
+            if args[i] == '--':
+                vmArgs = args[:i]
+                remainder = args[i + 1:] 
+                return vmArgs, remainder
+        else:
+            if not args[i].startswith('-'):
+                if i != 0 and (args[i - 1] == '-cp' or args[i - 1] == '-classpath'):
+                    if not allowClasspath:
+                        mx.abort('Cannot supply explicit class path option')
+                    else:
+                        continue
+                vmArgs = args[:i]
+                remainder = args[i:] 
+                return vmArgs, remainder
+            
     return args, []
     
 def _run_tests(args, harness, annotations, testfile):
@@ -868,7 +819,7 @@ _unittestHelpSuffix = """
     
     For example, this command line:
     
-       mx unittest -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG BC_aload @
+       mx unittest -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG BC_aload
     
     will run all JUnit test classes that contain 'BC_aload' in their
     fully qualified name and will pass these options to the VM: 
@@ -1193,7 +1144,7 @@ def bench(args):
                 mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
             iterations = sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark]
             if (iterations > 0):
-                benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, iterations)]
+                benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, ['-n', str(iterations)])]
 
     #Bootstrap
     if ('bootstrap' in args or 'all' in args):
@@ -1220,7 +1171,7 @@ def bench(args):
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
     for test in benchmarks:
-        for (groupName, res) in test.bench(vm, opts=vmArgs).items():
+        for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
             group = results.setdefault(groupName, {})
             group.update(res)
     mx.log(json.dumps(results))
@@ -1229,61 +1180,30 @@ def bench(args):
             f.write(json.dumps(results))
 
 def specjvm2008(args):
-    """run one or all SPECjvm2008 benchmarks
-
-    All options begining with - will be passed to the vm except for -ikv -ict -wt and -it.
-    Other options are supposed to be benchmark names and will be passed to SPECjvm2008."""
-    benchArgs = [a for a in args if a[0] != '-']
-    vmArgs = [a for a in args if a[0] == '-']
-    wt = None
-    it = None
-    skipValid = False
-    skipCheck = False
-    if '-v' in vmArgs:
-        vmArgs.remove('-v')
-        benchArgs.append('-v')
-    if '-ict' in vmArgs:
-        skipCheck = True
-        vmArgs.remove('-ict')
-    if '-ikv' in vmArgs:
-        skipValid = True
-        vmArgs.remove('-ikv')
-    if '-wt' in vmArgs:
-        wtIdx = args.index('-wt')
-        try:
-            wt = int(args[wtIdx+1])
-        except:
-            mx.abort('-wt (Warmup time) needs a numeric value (seconds)')
-        vmArgs.remove('-wt')
-        benchArgs.remove(args[wtIdx+1])
-    if '-it' in vmArgs:
-        itIdx = args.index('-it')
-        try:
-            it = int(args[itIdx+1])
-        except:
-            mx.abort('-it (Iteration time) needs a numeric value (seconds)')
-        vmArgs.remove('-it')
-        benchArgs.remove(args[itIdx+1])
-    vm = _get_vm();
-    sanitycheck.getSPECjvm2008(benchArgs, skipCheck, skipValid, wt, it).bench(vm, opts=vmArgs)
+    """run one or more SPECjvm2008 benchmarks"""
+    
+    def launcher(bm, harnessArgs, extraVmOpts):
+        return sanitycheck.getSPECjvm2008(harnessArgs + [bm]).bench(_get_vm(), extraVmOpts=extraVmOpts)
+    
+    _run_benchmark(args, sanitycheck.specjvm2008Names, launcher)
     
 def specjbb2013(args):
-    """runs the composite SPECjbb2013 benchmark
-
-    All options begining with - will be passed to the vm"""
-    benchArgs = [a for a in args if a[0] != '-']
-    vmArgs = [a for a in args if a[0] == '-']
-    vm = _get_vm();
-    sanitycheck.getSPECjbb2013(benchArgs).bench(vm, opts=vmArgs)
+    """runs the composite SPECjbb2013 benchmark"""
+    
+    def launcher(bm, harnessArgs, extraVmOpts):
+        assert bm is None
+        return sanitycheck.getSPECjbb2013(harnessArgs).bench(_get_vm(), extraVmOpts=extraVmOpts)
+    
+    _run_benchmark(args, None, launcher)
 
 def specjbb2005(args):
-    """runs the composite SPECjbb2005 benchmark
-        
-        All options begining with - will be passed to the vm"""
-    benchArgs = [a for a in args if a[0] != '-']
-    vmArgs = [a for a in args if a[0] == '-']
-    vm = _get_vm();
-    sanitycheck.getSPECjbb2005(benchArgs).bench(vm, opts=vmArgs)
+    """runs the composite SPECjbb2005 benchmark"""
+    
+    def launcher(bm, harnessArgs, extraVmOpts):
+        assert bm is None
+        return sanitycheck.getSPECjbb2005(harnessArgs).bench(_get_vm(), extraVmOpts=extraVmOpts)
+    
+    _run_benchmark(args, None, launcher)
 
 def hsdis(args, copyToDir=None):
     """download the hsdis library
@@ -1388,11 +1308,11 @@ def mx_init():
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [jdkhome, ''],
-        'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
-        'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
-        'specjvm2008': [specjvm2008, '[VM options|specjvm2008 options (-v, -ikv, -ict, -wt, -it)]'],
-        'specjbb2013': [specjbb2013, '[VM options]'],
-        'specjbb2005': [specjbb2005, '[VM options]'],
+        'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
+        'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
+        'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
+        'specjbb2013': [specjbb2013, '[VM options] [-- [SPECjbb2013 options]]'],
+        'specjbb2005': [specjbb2005, '[VM options] [-- [SPECjbb2005 options]]'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],

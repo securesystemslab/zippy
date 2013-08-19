@@ -96,6 +96,47 @@ dacapoScalaGateBuildLevels = {
     'tmt':        ['product', 'fastdebug', 'debug'],
 }
 
+specjvm2008Names = [
+    'startup.helloworld',
+    'startup.compiler.compiler',
+    'startup.compiler.sunflow',
+    'startup.compress',
+    'startup.crypto.aes',
+    'startup.crypto.rsa',
+    'startup.crypto.signverify',
+    'startup.mpegaudio',
+    'startup.scimark.fft',
+    'startup.scimark.lu',
+    'startup.scimark.monte_carlo',
+    'startup.scimark.sor',
+    'startup.scimark.sparse',
+    'startup.serial',
+    'startup.sunflow',
+    'startup.xml.transform',
+    'startup.xml.validation',
+    'compiler.compiler',
+    'compiler.sunflow',
+    'compress',
+    'crypto.aes',
+    'crypto.rsa',
+    'crypto.signverify',
+    'derby',
+    'mpegaudio',
+    'scimark.fft.large',
+    'scimark.lu.large',
+    'scimark.sor.large',
+    'scimark.sparse.large',
+    'scimark.fft.small',
+    'scimark.lu.small',
+    'scimark.sor.small',
+    'scimark.sparse.small',
+    'scimark.monte_carlo',
+    'serial',
+    'sunflow',
+    'xml.transform',
+    'xml.validation'
+]
+
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
     
@@ -125,7 +166,7 @@ def getSPECjbb2013(benchArgs = []):
     matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
     return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xmx6g', '-Xms6g', '-Xmn3g', '-XX:+UseParallelOldGC', '-XX:-UseAdaptiveSizePolicy', '-XX:-UseBiasedLocking', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
     
-def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, warmupTime=None, iterationTime=None):
+def getSPECjvm2008(benchArgs=[]):
     
     specjvm2008 = mx.get_env('SPECJVM2008')
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
@@ -137,17 +178,7 @@ def getSPECjvm2008(benchArgs = [], skipCheck=False, skipKitValidation=False, war
     success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+((,|\.)[0-9]+)?( SPECjvm2008 (Base|Peak))? ops/m$", re.MULTILINE)
     matcher = ValuesMatcher(score, {'group' : 'SPECjvm2008', 'name' : '<benchmark>', 'score' : '<score>'})
     
-    opts = []
-    if warmupTime is not None:
-        opts += ['-wt', str(warmupTime)]
-    if iterationTime is not None:
-        opts += ['-it', str(iterationTime)]
-    if skipKitValidation:
-        opts += ['-ikv']
-    if skipCheck:
-        opts += ['-ict']
-    
-    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + opts + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+'+gc, '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
+    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+'+gc, '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
 
 def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -155,11 +186,11 @@ def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]
     for (bench, ns) in dacapoSanityWarmup.items():
         if ns[level] > 0:
             if gateBuildLevel is None or gateBuildLevel in dacapoGateBuildLevels[bench]:
-                checks.append(getDacapo(bench, ns[level], dacapoArgs))
+                checks.append(getDacapo(bench, ['-n', str(ns[level])] + dacapoArgs))
     
     return checks
 
-def getDacapo(name, n, dacapoArgs=[]):
+def getDacapo(name, dacapoArgs=[]):
     dacapo = mx.get_env('DACAPO_CP')
     if dacapo is None:
         l = mx.library('DACAPO', False)
@@ -179,7 +210,7 @@ def getDacapo(name, n, dacapoArgs=[]):
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : 'DaCapo', 'name' : '<benchmark>', 'score' : '<time>'})
     dacapoMatcher1 = ValuesMatcher(dacapoTime1, {'group' : 'DaCapo-1stRun', 'name' : '<benchmark>', 'score' : '<time>'})
     
-    return Test("DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
+    return Test("DaCapo-" + name, ['-jar', dacapo, name] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
     checks = []
@@ -187,11 +218,11 @@ def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoAr
     for (bench, ns) in dacapoScalaSanityWarmup.items():
         if ns[level] > 0:
             if gateBuildLevel is None or gateBuildLevel in dacapoScalaGateBuildLevels[bench]:
-                checks.append(getScalaDacapo(bench, ns[level], dacapoArgs))
+                checks.append(getScalaDacapo(bench, ['-n', str(ns[level])] + dacapoArgs))
     
     return checks
 
-def getScalaDacapo(name, n, dacapoArgs=[]):
+def getScalaDacapo(name, dacapoArgs=[]):
     dacapo = mx.get_env('DACAPO_SCALA_CP')
     if dacapo is None:
         l = mx.library('DACAPO_SCALA', False)
@@ -209,7 +240,7 @@ def getScalaDacapo(name, n, dacapoArgs=[]):
     
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : "Scala-DaCapo", 'name' : '<benchmark>', 'score' : '<time>'})
     
-    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name, '-n', str(n), ] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
+    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
@@ -277,7 +308,7 @@ class Test:
     def __str__(self):
         return self.name
     
-    def test(self, vm, cwd=None, opts=[], vmbuild=None):
+    def test(self, vm, cwd=None, extraVmOpts=[], vmbuild=None):
         """
         Run this program as a sanity test.
         """
@@ -295,7 +326,7 @@ class Test:
             parser.addMatcher(ValuesMatcher(failureRE, {'failed' : '1'}))
 
         tee = Tee()
-        retcode = commands.vm(self.vmOpts + opts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+        retcode = commands.vm(self.vmOpts + extraVmOpts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
         output = tee.output.getvalue()
         valueMaps = parser.parse(output)
 
@@ -322,7 +353,7 @@ class Test:
         
         return retcode == 0 and record.get('passed') == '1'
     
-    def bench(self, vm, cwd=None, opts=[], vmbuild=None):
+    def bench(self, vm, cwd=None, extraVmOpts=[], vmbuild=None):
         """
         Run this program as a benchmark.
         """
@@ -368,7 +399,7 @@ class Test:
         else:
             tee = Tee()
             mx.log(startDelim)
-            if commands.vm(self.vmOpts + opts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+            if commands.vm(self.vmOpts + extraVmOpts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
                 mx.abort("Benchmark failed (non-zero retcode)")
             mx.log(endDelim)
             output = tee.output.getvalue()
