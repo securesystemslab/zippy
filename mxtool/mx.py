@@ -3326,9 +3326,9 @@ def select_items(items, descriptions=None, allowMultiple=True):
     Presents a command line interface for selecting one or more (if allowMultiple is true) items.
     
     """
-    if len(items) == 0:
-        return []
-    elif len(items) > 1:
+    if len(items) <= 1:
+        return items
+    else:
         if allowMultiple:
             log('[0] <all>')
         for i in range(0, len(items)):
