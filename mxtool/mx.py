@@ -202,6 +202,9 @@ class Dependency:
 
     def isLibrary(self):
         return isinstance(self, Library)
+    
+    def isProject(self):
+        return isinstance(self, Project)
 
 class Project(Dependency):
     def __init__(self, suite, name, srcDirs, deps, javaCompliance, workingSets, d):
@@ -233,18 +236,9 @@ class Project(Dependency):
             return deps
         for name in childDeps:
             assert name != self.name
-            dep = _libs.get(name, None)
-            if dep is not None:
-                if includeLibs and not dep in deps:
-                    deps.append(dep)
-            else:
-                dep = _projects.get(name, None)
-                if dep is None:
-                    if name in _opts.ignored_projects:
-                        abort('project named ' + name + ' required by ' + self.name + ' is ignored')
-                    abort('dependency named ' + name + ' required by ' + self.name + ' is not found')
-                if not dep in deps:
-                    dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+            dep = dependency(name)
+            if not dep in deps and (includeLibs or not dep.isLibrary()):
+                dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
         if not self in deps and includeSelf:
             deps.append(self)
         return deps
@@ -468,6 +462,12 @@ class Library(Dependency):
         path = self.get_path(resolve)
         if exists(path) or not resolve:
             cp.append(path)
+            
+    def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
+        if not includeLibs or not includeSelf:
+            return deps
+        deps.append(self)
+        return deps
 
 class Suite:
     def __init__(self, d, primary):
@@ -762,10 +762,12 @@ def annotation_processors():
     """
     global _annotationProcessors
     if _annotationProcessors is None:
-        ap = set()
+        aps = set()
         for p in projects():
-            ap.update(p.annotation_processors())
-        _annotationProcessors = list(ap)
+            for ap in p.annotation_processors():
+                if project(ap, False):
+                    aps.add(ap)
+        _annotationProcessors = list(aps)
     return _annotationProcessors
 
 def distribution(name, fatalIfMissing=True):
@@ -776,6 +778,20 @@ def distribution(name, fatalIfMissing=True):
     d = _dists.get(name)
     if d is None and fatalIfMissing:
         abort('distribution named ' + name + ' not found')
+    return d
+
+def dependency(name, fatalIfMissing=True):
+    """
+    Get the project or library for a given name. This will abort if a project  or library does
+    not exist for 'name' and 'fatalIfMissing' is true.
+    """
+    d = _projects.get(name)
+    if d is None:
+        d = _libs.get(name)
+    if d is None and fatalIfMissing:
+        if name in _opts.ignored_projects:
+            abort('project named ' + name + ' is ignored')
+        abort('project or library named ' + name + ' not found')
     return d
 
 def project(name, fatalIfMissing=True):
@@ -812,7 +828,7 @@ def _as_classpath(deps, resolve):
 
 def classpath(names=None, resolve=True, includeSelf=True, includeBootClasspath=False):
     """
-    Get the class path for a list of given projects, resolving each entry in the
+    Get the class path for a list of given dependencies, resolving each entry in the
     path (e.g. downloading a missing library) if 'resolve' is true.
     """
     if names is None:
@@ -820,10 +836,9 @@ def classpath(names=None, resolve=True, includeSelf=True, includeBootClasspath=F
     else:
         deps = []
         if isinstance(names, types.StringTypes):
-            project(names).all_deps(deps, True, includeSelf)
-        else:
-            for n in names:
-                project(n).all_deps(deps, True, includeSelf)
+            names = [names]
+        for n in names:
+            dependency(n).all_deps(deps, True, includeSelf)
         result = _as_classpath(deps, resolve)
     if includeBootClasspath:
         result = os.pathsep.join([java().bootclasspath(), result])
@@ -2445,8 +2460,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
             out.open('factorypath')
             out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             for ap in p.annotation_processors():
-                apProject = project(ap)
-                for dep in apProject.all_deps([], True):
+                for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
                         if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
                             if dep.mustExist:
@@ -2817,10 +2831,10 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         annotationProcessorOnlyDeps = []
         if len(p.annotation_processors()) > 0:
             for ap in p.annotation_processors():
-                apProject = project(ap)
-                if not apProject in deps:
-                    deps.append(apProject)
-                    annotationProcessorOnlyDeps.append(apProject)
+                apDep = dependency(ap)
+                if not apDep in deps:
+                    deps.append(apDep)
+                    annotationProcessorOnlyDeps.append(apDep)
         
         annotationProcessorReferences = [];
         
