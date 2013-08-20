@@ -1185,7 +1185,16 @@ def specjvm2008(args):
     def launcher(bm, harnessArgs, extraVmOpts):
         return sanitycheck.getSPECjvm2008(harnessArgs + [bm]).bench(_get_vm(), extraVmOpts=extraVmOpts)
     
-    _run_benchmark(args, sanitycheck.specjvm2008Names, launcher)
+    availableBenchmarks = set(sanitycheck.specjvm2008Names)
+    for name in sanitycheck.specjvm2008Names:
+        parts = name.rsplit('.', 1)
+        if len(parts) > 1:
+            assert len(parts) == 2
+            group = parts[0]
+            print group
+            availableBenchmarks.add(group)
+
+    _run_benchmark(args, sorted(availableBenchmarks), launcher)
     
 def specjbb2013(args):
     """runs the composite SPECjbb2013 benchmark"""
