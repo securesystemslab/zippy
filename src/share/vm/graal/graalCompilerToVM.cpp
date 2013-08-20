@@ -928,35 +928,17 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
         if (TraceGPUInteraction) {
           tty->print_cr("installCode0: ExternalCompilationResult");
         }
-        HotSpotInstalledCode::set_start(installed_code_handle, ExternalCompilationResult::entryPoint(comp_result));
+        HotSpotInstalledCode::set_codeStart(installed_code_handle, ExternalCompilationResult::entryPoint(comp_result));
       } else {
-        HotSpotInstalledCode::set_start(installed_code_handle, (jlong) cb->code_begin());
+        HotSpotInstalledCode::set_size(installed_code_handle, cb->size());
+        HotSpotInstalledCode::set_codeStart(installed_code_handle, (jlong) cb->code_begin());
+        HotSpotInstalledCode::set_codeSize(installed_code_handle, cb->code_size());
       }
       nmethod* nm = cb->as_nmethod_or_null();
       assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
     }
   }
   return result;
-C2V_END
-
-C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong codeBlob))
-  ResourceMark rm;
-  HandleMark hm;
-
-  CodeBlob* cb = (CodeBlob*) (address) codeBlob;
-  if (cb == NULL) {
-    return NULL;
-  }
-  if (cb->is_nmethod()) {
-    nmethod* nm = (nmethod*) cb;
-    if (!nm->is_alive()) {
-      return NULL;
-    }
-  }
-  int length = cb->code_size();
-  arrayOop codeCopy = oopFactory::new_byteArray(length, CHECK_0);
-  memcpy(codeCopy->base(T_BYTE), cb->code_begin(), length);
-  return JNIHandles::make_local(codeCopy);
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBlob))
@@ -1244,7 +1226,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
-  {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},

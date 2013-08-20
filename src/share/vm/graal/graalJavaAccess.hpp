@@ -78,11 +78,13 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
-    long_field(HotSpotInstalledCode, start)                                                                                                                    \
+    int_field(HotSpotInstalledCode, size)                                                                                                                      \
+    long_field(HotSpotInstalledCode, codeStart)                                                                                                                \
+    int_field(HotSpotInstalledCode, codeSize)                                                                                                                  \
   end_class                                                                                                                                                    \
   start_class(HotSpotNmethod)                                                                                                                                  \
     boolean_field(HotSpotNmethod, isDefault)                                                                                                                   \
-    boolean_field(HotSpotNmethod, isExternal)                                                                                                                   \
+    boolean_field(HotSpotNmethod, isExternal)                                                                                                                  \
   end_class                                                                                                                                                    \
   start_class(HotSpotCompiledCode)                                                                                                                             \
     oop_field(HotSpotCompiledCode, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                      \
