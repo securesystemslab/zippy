@@ -444,7 +444,7 @@ def jdkhome(args, vm=None):
     print _jdk(build, installGraalJar=False)
 
 def buildvars(args):
-    """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
+    """describe the variables that can be set by the -D option to the 'mx build' commmand"""
 
     buildVars = {
         'ALT_BOOTDIR' : 'The location of the bootstrap JDK installation (default: ' + mx.java().jdk + ')',
@@ -1063,7 +1063,7 @@ def gate(args):
     mx.log('  ' + str(total.duration))
     
 def deoptalot(args):
-    """Bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
+    """bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
 
     If the first argument is a number, the process will be repeated
     this number of times. All other arguments are passed to the VM."""
