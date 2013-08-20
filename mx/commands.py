@@ -1151,11 +1151,11 @@ def bench(args):
         benchmarks += sanitycheck.getBootstraps()
     #SPECjvm2008
     if ('specjvm2008' in args or 'all' in args):
-        benchmarks += [sanitycheck.getSPECjvm2008([], False, True, 120, 120)]
+        benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', 120, '-it', 120])]
     else:
         specjvms = benchmarks_in_group('specjvm2008')
         for specjvm in specjvms:
-            benchmarks += [sanitycheck.getSPECjvm2008([specjvm], False, True, 120, 120)]
+            benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', 120, '-it', 120, specjvm])]
             
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
