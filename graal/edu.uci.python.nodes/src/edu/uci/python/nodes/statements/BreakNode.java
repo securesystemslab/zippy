@@ -30,13 +30,13 @@ public class BreakNode extends StatementNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        this.loopHeader.setBreak(true);
+        this.getLoopHeader().setBreak(true);
         // throw BreakException.breakException;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        this.loopHeader.setBreak(true);
+        this.getLoopHeader().setBreak(true);
         return null;
     }
 

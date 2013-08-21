@@ -99,7 +99,7 @@ public class ForNode extends StatementNode {
             try {
                 body.executeVoid(frame);
                 if (reachedReturn() || isBreak()) {
-                    this.isBreak = false;
+                    this.setBreak(false);
                     return;
                 }
             } catch (ContinueException ex) {
@@ -128,7 +128,7 @@ public class ForNode extends StatementNode {
             try {
                 body.executeVoid(frame);
                 if (reachedReturn() || isBreak()) {
-                    this.isBreak = false;
+                    this.setBreak(false);
                     return;
                 }
             } catch (ContinueException ex) {

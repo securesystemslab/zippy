@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
@@ -58,7 +57,7 @@ public class WhileNode extends StatementNode {
             try {
                 body.executeVoid(frame);
                 if (reachedReturn() || isBreak()) {
-                    this.isBreak = false;
+                    this.setBreak(false);
                     return;
                 }
             } catch (ContinueException ex) {
@@ -85,7 +84,7 @@ public class WhileNode extends StatementNode {
             try {
                 body.executeVoid(frame);
                 if (reachedReturn() || isBreak()) {
-                    this.isBreak = false;
+                    this.setBreak(false);
                     return null;
                 }
             } catch (ContinueException ex) {

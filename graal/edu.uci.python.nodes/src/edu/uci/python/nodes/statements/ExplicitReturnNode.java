@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -42,7 +41,7 @@ public class ExplicitReturnNode extends ReturnNode {
     public void executeVoid(VirtualFrame frame) {
         Object returnValue = right.execute(frame);
         // throw new ExplicitReturnException(returnValue);
-        funcRoot.setReturn(true, returnValue);
+        getFuncRootNode().setReturn(true, returnValue);
     }
 
     @Override

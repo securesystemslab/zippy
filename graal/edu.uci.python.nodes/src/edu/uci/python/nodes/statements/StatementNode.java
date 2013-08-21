@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
 
@@ -41,14 +40,18 @@ public abstract class StatementNode extends PNode {
      */
     private StatementNode next;
 
-    protected FunctionRootNode funcRoot = null;
+    private FunctionRootNode funcRoot = null;
 
-    protected StatementNode loopHeader = null;
+    private StatementNode loopHeader = null;
 
-    protected boolean isBreak = false;
+    private boolean isBreak = false;
 
     public void setBreak(boolean isBreak) {
         this.isBreak = isBreak;
+    }
+
+    public StatementNode getLoopHeader() {
+        return loopHeader;
     }
 
     public void setLoopHeader(StatementNode loopHeader) {
