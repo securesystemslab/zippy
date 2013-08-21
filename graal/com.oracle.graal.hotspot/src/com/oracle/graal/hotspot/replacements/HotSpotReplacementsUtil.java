@@ -434,6 +434,11 @@ public class HotSpotReplacementsUtil {
     }
 
     @Fold
+    public static boolean useCompressedOops() {
+        return config().useCompressedOops;
+    }
+
+    @Fold
     static int uninitializedIdentityHashCodeValue() {
         return config().uninitializedIdentityHashCodeValue;
     }
@@ -447,7 +452,7 @@ public class HotSpotReplacementsUtil {
      * Loads the hub of an object (without null checking it first).
      */
     public static Word loadHub(Object object) {
-        return loadHubIntrinsic(object, getWordKind());
+        return loadHubIntrinsic(object, getWordKind(), null);
     }
 
     public static Object verifyOop(Object object) {
@@ -485,16 +490,13 @@ public class HotSpotReplacementsUtil {
     @SuppressWarnings("unused")
     @NodeIntrinsic(value = UnsafeLoadNode.class, setStampFromReturnType = true)
     private static Word loadWordFromObjectIntrinsic(Object object, @ConstantNodeParameter int displacement, long offset, @ConstantNodeParameter Kind wordKind) {
-        return Word.box(unsafeReadWord(object, offset + displacement));
+        return Word.unsigned(unsafeReadWord(object, offset + displacement));
     }
 
     @SuppressWarnings("unused")
     @NodeIntrinsic(value = LoadHubNode.class, setStampFromReturnType = true)
-    static Word loadHubIntrinsic(Object object, @ConstantNodeParameter Kind word) {
-        if (wordKind() == Kind.Int) {
-            return Word.box((int) unsafeReadKlassPointer(object));
-        }
-        return Word.box(unsafeReadKlassPointer(object));
+    public static Word loadHubIntrinsic(Object object, @ConstantNodeParameter Kind word, GuardingNode anchor) {
+        return Word.unsigned(unsafeReadKlassPointer(object));
     }
 
     @Fold

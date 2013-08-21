@@ -36,8 +36,8 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.schedule.*;
 import com.oracle.graal.virtual.phases.ea.ReadEliminationBlockState.CacheEntry;
-import com.oracle.graal.virtual.phases.ea.ReadEliminationBlockState.ReadCacheEntry;
 import com.oracle.graal.virtual.phases.ea.ReadEliminationBlockState.LoadCacheEntry;
+import com.oracle.graal.virtual.phases.ea.ReadEliminationBlockState.ReadCacheEntry;
 
 public class ReadEliminationClosure extends EffectsClosure<ReadEliminationBlockState> {
 
@@ -55,29 +55,37 @@ public class ReadEliminationClosure extends EffectsClosure<ReadEliminationBlockS
         boolean deleted = false;
         if (node instanceof LoadFieldNode) {
             LoadFieldNode load = (LoadFieldNode) node;
-            ValueNode object = GraphUtil.unproxify(load.object());
-            LoadCacheEntry identifier = new LoadCacheEntry(object, load.field());
-            ValueNode cachedValue = state.getCacheEntry(identifier);
-            if (cachedValue != null) {
-                effects.replaceAtUsages(load, cachedValue);
-                state.addScalarAlias(load, cachedValue);
-                deleted = true;
+            if (!load.isVolatile()) {
+                ValueNode object = GraphUtil.unproxify(load.object());
+                LoadCacheEntry identifier = new LoadCacheEntry(object, load.field());
+                ValueNode cachedValue = state.getCacheEntry(identifier);
+                if (cachedValue != null) {
+                    effects.replaceAtUsages(load, cachedValue);
+                    state.addScalarAlias(load, cachedValue);
+                    deleted = true;
+                } else {
+                    state.addCacheEntry(identifier, load);
+                }
             } else {
-                state.addCacheEntry(identifier, load);
+                processIdentity(state, ANY_LOCATION);
             }
         } else if (node instanceof StoreFieldNode) {
             StoreFieldNode store = (StoreFieldNode) node;
-            ValueNode object = GraphUtil.unproxify(store.object());
-            LoadCacheEntry identifier = new LoadCacheEntry(object, store.field());
-            ValueNode cachedValue = state.getCacheEntry(identifier);
+            if (!store.isVolatile()) {
+                ValueNode object = GraphUtil.unproxify(store.object());
+                LoadCacheEntry identifier = new LoadCacheEntry(object, store.field());
+                ValueNode cachedValue = state.getCacheEntry(identifier);
 
-            ValueNode value = state.getScalarAlias(store.value());
-            if (GraphUtil.unproxify(value) == GraphUtil.unproxify(cachedValue)) {
-                effects.deleteFixedNode(store);
-                deleted = true;
+                ValueNode value = state.getScalarAlias(store.value());
+                if (GraphUtil.unproxify(value) == GraphUtil.unproxify(cachedValue)) {
+                    effects.deleteFixedNode(store);
+                    deleted = true;
+                }
+                state.killReadCache((LocationIdentity) store.field());
+                state.addCacheEntry(identifier, value);
+            } else {
+                processIdentity(state, ANY_LOCATION);
             }
-            state.killReadCache((LocationIdentity) store.field());
-            state.addCacheEntry(identifier, value);
         } else if (node instanceof ReadNode) {
             ReadNode read = (ReadNode) node;
             if (read.location() instanceof ConstantLocationNode) {
@@ -104,11 +112,14 @@ public class ReadEliminationClosure extends EffectsClosure<ReadEliminationBlockS
                     effects.deleteFixedNode(write);
                     deleted = true;
                 }
-                state.killReadCache(write.location().getLocationIdentity());
+                processIdentity(state, write.location().getLocationIdentity());
                 state.addCacheEntry(identifier, value);
+            } else {
+                processIdentity(state, write.location().getLocationIdentity());
             }
         } else if (node instanceof MemoryCheckpoint.Single) {
-            processIdentity(state, ((MemoryCheckpoint.Single) node).getLocationIdentity());
+            LocationIdentity identity = ((MemoryCheckpoint.Single) node).getLocationIdentity();
+            processIdentity(state, identity);
         } else if (node instanceof MemoryCheckpoint.Multi) {
             for (LocationIdentity identity : ((MemoryCheckpoint.Multi) node).getLocationIdentities()) {
                 processIdentity(state, identity);

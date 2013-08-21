@@ -24,17 +24,15 @@
 
 #include "precompiled.hpp"
 #include "runtime/gpu.hpp"
-#include "ptx/gpu_ptx.hpp"
 
 bool gpu::_available = false;   // does the hardware exist?
 bool gpu::_gpu_linkage = false; // is the driver library to access the GPU installed
-bool gpu::_initialized = false; // is the GPU defvice initialized
+bool gpu::_initialized = false; // is the GPU device initialized
 
 void gpu::init() {
-#ifdef TARGET_OS_FAMILY_bsd
+#if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
   gpu::probe_gpu();
 #endif
   // need multi-gpu TARGET ifdef
   gpu::probe_linkage();
 }
-

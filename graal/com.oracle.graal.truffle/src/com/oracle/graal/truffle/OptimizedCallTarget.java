@@ -29,6 +29,7 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.hotspot.meta.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
@@ -37,7 +38,7 @@ import com.oracle.truffle.api.nodes.*;
 /**
  * Call target that is optimized by Graal upon surpassing a specific invocation threshold.
  */
-public final class OptimizedCallTarget extends DefaultCallTarget implements LoopCountReceiver, FrameFactory {
+public final class OptimizedCallTarget extends DefaultCallTarget implements FrameFactory, LoopCountReceiver, ReplaceObserver {
 
     private static final PrintStream OUT = TTY.out().out();
     private static final int MIN_INVOKES_AFTER_INLINING = 2;
@@ -50,22 +51,22 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
         this.originalInvokeCounter = compilationThreshold;
         this.rootNode.setCallTarget(this);
 
-        if (TruffleProfiling.getValue()) {
+        if (TruffleCallTargetProfiling.getValue()) {
             registerCallTarget(this);
         }
     }
 
-    private InstalledCode compiledMethod;
+    private HotSpotNmethod compiledMethod;
     private final TruffleCompiler compiler;
+
     private int invokeCounter;
     private int originalInvokeCounter;
     private int loopAndInvokeCounter;
     private boolean disableCompilation;
 
-    // TruffleProfiling
     private int callCount;
-
-    // TraceTruffleCompilation
+    private int invalidationCount;
+    private int replaceCount;
     long timeCompilationStarted;
     long timePartialEvaluationFinished;
     long timeCompilationFinished;
@@ -75,7 +76,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
 
     @Override
     public Object call(PackedFrame caller, Arguments args) {
-        if (TruffleProfiling.getValue()) {
+        if (TruffleCallTargetProfiling.getValue()) {
             callCount++;
         }
         if (CompilerDirectives.injectBranchProbability(CompilerDirectives.FASTPATH_PROBABILITY, compiledMethod != null)) {
@@ -90,33 +91,41 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
     }
 
     private Object compiledCodeInvalidated(PackedFrame caller, Arguments args) {
+        CompilerAsserts.neverPartOfCompilation();
         compiledMethod = null;
         int invalidationReprofileCount = TruffleInvalidationReprofileCount.getValue();
         invokeCounter = invalidationReprofileCount;
+        invalidationCount++;
         if (TruffleFunctionInlining.getValue()) {
             originalInvokeCounter += invalidationReprofileCount;
         }
         if (TraceTruffleCompilation.getValue()) {
-            OUT.printf("[truffle] invalidated %-48s |Alive %5.0fms\n", rootNode, (System.nanoTime() - timeCompilationFinished) / 1e6);
+            OUT.printf("[truffle] invalidated %-48s |Alive %5.0fms |Inv# %d                                     |Replace# %d\n", rootNode, (System.nanoTime() - timeCompilationFinished) / 1e6,
+                            invalidationCount, replaceCount);
         }
         return call(caller, args);
     }
 
     private Object interpreterCall(PackedFrame caller, Arguments args) {
+        CompilerAsserts.neverPartOfCompilation();
         invokeCounter--;
         loopAndInvokeCounter--;
         if (disableCompilation || loopAndInvokeCounter > 0 || invokeCounter > 0) {
             return executeHelper(caller, args);
         } else {
-            if (TruffleFunctionInlining.getValue() && inline()) {
-                invokeCounter = MIN_INVOKES_AFTER_INLINING;
-                int inliningReprofileCount = TruffleInliningReprofileCount.getValue();
-                loopAndInvokeCounter = inliningReprofileCount;
-                originalInvokeCounter = inliningReprofileCount;
-            } else {
-                compile();
-            }
+            compileOrInline();
             return call(caller, args);
+        }
+    }
+
+    private void compileOrInline() {
+        if (TruffleFunctionInlining.getValue() && inline()) {
+            invokeCounter = MIN_INVOKES_AFTER_INLINING;
+            int inliningReprofileCount = TruffleInliningReprofileCount.getValue();
+            loopAndInvokeCounter = inliningReprofileCount;
+            originalInvokeCounter = inliningReprofileCount;
+        } else {
+            compile();
         }
     }
 
@@ -128,7 +137,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
     public void compile() {
         CompilerAsserts.neverPartOfCompilation();
         try {
-            compiledMethod = compiler.compile(this);
+            compiledMethod = (HotSpotNmethod) compiler.compile(this);
             if (compiledMethod == null) {
                 throw new BailoutException(String.format("code installation failed (codeSize=%s)", codeSize));
             } else {
@@ -138,7 +147,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
                                     (timeCompilationFinished - timeCompilationStarted) / 1e6, (timePartialEvaluationFinished - timeCompilationStarted) / 1e6,
                                     (timeCompilationFinished - timePartialEvaluationFinished) / 1e6, nodeCountPartialEval, nodeCountLowered, codeSize);
                 }
-                if (TruffleProfiling.getValue()) {
+                if (TruffleCallTargetProfiling.getValue()) {
                     resetProfiling();
                 }
             }
@@ -177,6 +186,17 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
     @Override
     public void reportLoopCount(int count) {
         loopAndInvokeCounter -= count;
+    }
+
+    @Override
+    public void nodeReplaced() {
+        replaceCount++;
+
+        // delay compilation until tree is deemed stable enough
+        int replaceBackoff = TruffleReplaceReprofileCount.getValue();
+        if (loopAndInvokeCounter < replaceBackoff) {
+            loopAndInvokeCounter = replaceBackoff;
+        }
     }
 
     private static class InliningHelper {
@@ -237,16 +257,16 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
             return inlined;
         }
 
-        private void printCallSiteInfo(InliningPolicy policy, List<InlinableCallSiteInfo> inlinableCallSites, String msg) {
+        private static void printCallSiteInfo(InliningPolicy policy, List<InlinableCallSiteInfo> inlinableCallSites, String msg) {
             for (InlinableCallSiteInfo candidate : inlinableCallSites) {
                 printCallSiteInfo(policy, candidate, msg);
             }
         }
 
-        private void printCallSiteInfo(InliningPolicy policy, InlinableCallSiteInfo callSite, String msg) {
+        private static void printCallSiteInfo(InliningPolicy policy, InlinableCallSiteInfo callSite, String msg) {
             String calls = String.format("%4s/%4s", callSite.getCallCount(), policy.callerInvocationCount);
             String nodes = String.format("%3s/%3s", callSite.getInlineNodeCount(), policy.callerNodeCount);
-            OUT.printf("[truffle] %-9s %-50s |Nodes %6s |Calls %6s %7.3f |into %s\n", msg, callSite.getCallSite(), nodes, calls, policy.metric(callSite), target.getRootNode());
+            OUT.printf("[truffle] %-9s %-50s |Nodes %6s |Calls %6s %7.3f |%s\n", msg, callSite.getCallSite(), nodes, calls, policy.metric(callSite), callSite.getCallSite().getCallTarget());
         }
 
         private static final class InliningPolicy {
@@ -377,9 +397,10 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
         int totalInlinedCallSiteCount = 0;
         int totalNotInlinedCallSiteCount = 0;
         int totalNodeCount = 0;
+        int totalInvalidationCount = 0;
 
         OUT.println();
-        OUT.printf("%-50s | %-10s | %s / %s | %s\n", "Call Target", "Call Count", "Calls Sites Inlined", "Not Inlined", "Node Count");
+        OUT.printf("%-50s | %-10s | %s / %s | %s | %s\n", "Call Target", "Call Count", "Calls Sites Inlined", "Not Inlined", "Node Count", "Inv");
         for (OptimizedCallTarget callTarget : sortedCallTargets) {
             if (callTarget.callCount == 0) {
                 continue;
@@ -389,14 +410,17 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
             int nodeCount = NodeUtil.countNodes(callTarget.rootNode);
             int inlinedCallSiteCount = NodeUtil.countNodes(callTarget.rootNode, InlinedCallSite.class);
             String comment = callTarget.compiledMethod == null ? " int" : "";
-            OUT.printf("%-50s | %10s | %15s | %15s | %10s%s\n", callTarget.getRootNode(), callTarget.callCount, inlinedCallSiteCount, notInlinedCallSiteCount, nodeCount, comment);
+            comment += callTarget.disableCompilation ? " fail" : "";
+            OUT.printf("%-50s | %10d | %15d | %15d | %10d | %3d%s\n", callTarget.getRootNode(), callTarget.callCount, inlinedCallSiteCount, notInlinedCallSiteCount, nodeCount,
+                            callTarget.invalidationCount, comment);
 
             totalCallCount += callTarget.callCount;
             totalInlinedCallSiteCount += inlinedCallSiteCount;
             totalNotInlinedCallSiteCount += notInlinedCallSiteCount;
             totalNodeCount += nodeCount;
+            totalInvalidationCount += callTarget.invalidationCount;
         }
-        OUT.printf("%-50s | %10s | %15s | %15s | %10s\n", "Total", totalCallCount, totalInlinedCallSiteCount, totalNotInlinedCallSiteCount, totalNodeCount);
+        OUT.printf("%-50s | %10d | %15d | %15d | %10d | %3d\n", "Total", totalCallCount, totalInlinedCallSiteCount, totalNotInlinedCallSiteCount, totalNodeCount, totalInvalidationCount);
     }
 
     private static void registerCallTarget(OptimizedCallTarget callTarget) {
@@ -405,7 +429,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
 
     private static Map<OptimizedCallTarget, Integer> callTargets;
     static {
-        if (TruffleProfiling.getValue()) {
+        if (TruffleCallTargetProfiling.getValue()) {
             callTargets = new WeakHashMap<>();
 
             Runtime.getRuntime().addShutdownHook(new Thread() {

@@ -138,6 +138,7 @@ Property values can use environment variables with Bash syntax (e.g. ${HOME}).
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile
+import textwrap
 import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 from collections import Callable
@@ -348,14 +349,15 @@ class Project(Dependency):
                             assert pkg is not None
                             if pkgRoot is None or pkg.startswith(pkgRoot):
                                 pkgOutputDir = join(outputDir, pkg.replace('.', os.path.sep))
-                                for e in os.listdir(pkgOutputDir):
-                                    if includeInnerClasses:
-                                        if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
-                                            className = pkg + '.' + e[:-len('.class')]
-                                            result[className] = source 
-                                    elif e == basename + '.class':
-                                        className = pkg + '.' + basename
-                                        result[className] = source 
+                                if exists(pkgOutputDir):
+                                    for e in os.listdir(pkgOutputDir):
+                                        if includeInnerClasses:
+                                            if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
+                                                className = pkg + '.' + e[:-len('.class')]
+                                                result[className] = source
+                                        elif e == basename + '.class':
+                                            className = pkg + '.' + basename
+                                            result[className] = source
         return result
     
     def _init_packages_and_imports(self):
@@ -868,6 +870,47 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
         p.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
     return deps
 
+def _handle_missing_java_home():
+    if not sys.stdout.isatty():
+        abort('Could not find bootstrap JDK. Use --java-home option or ensure JAVA_HOME environment variable is set.')
+ 
+    candidateJdks = []
+    if get_os() == 'darwin':
+        base = '/Library/Java/JavaVirtualMachines'
+        candidateJdks = [join(base, n, 'Contents/Home') for n in os.listdir(base) if exists(join(base, n, 'Contents/Home'))]
+    elif get_os() == 'linux':
+        base = '/usr/lib/jvm'
+        candidateJdks = [join(base, n) for n in os.listdir(base) if exists(join(base, n, 'jre/lib/rt.jar'))]
+    elif get_os() == 'solaris':
+        base = '/usr/jdk/instances'
+        candidateJdks = [join(base, n) for n in os.listdir(base) if exists(join(base, n, 'jre/lib/rt.jar'))]
+    elif get_os() == 'windows':
+        base = r'C:\Program Files\Java'
+        candidateJdks = [join(base, n) for n in os.listdir(base) if exists(join(base, n, r'jre\lib\rt.jar'))]
+
+    javaHome = None
+    if len(candidateJdks) != 0:
+        javaHome = select_items(candidateJdks + ['<other>'], allowMultiple=False)
+        if javaHome == '<other>':
+            javaHome = None
+            
+    while javaHome is None:
+        javaHome = raw_input('Enter path of bootstrap JDK: ')
+        rtJarPath = join(javaHome, 'jre', 'lib', 'rt.jar')
+        if not exists(rtJarPath):
+            log('Does not appear to be a valid JDK as ' + rtJarPath + ' does not exist')
+            javaHome = None
+        else:
+            break
+    
+    envPath = join(_mainSuite.dir, 'mx', 'env')
+    answer = raw_input('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath + '? [Yn]: ')
+    if not answer.lower().startswith('n'):
+        with open(envPath, 'a') as fp:
+            print >> fp, 'JAVA_HOME=' + javaHome
+            
+    return javaHome
+
 class ArgParser(ArgumentParser):
 
     # Override parent to append the list of available commands
@@ -915,7 +958,7 @@ class ArgParser(ArgumentParser):
             opts.java_home = os.environ.get('JAVA_HOME')
 
         if opts.java_home is None or opts.java_home == '':
-            abort('Could not find Java home. Use --java-home option or ensure JAVA_HOME environment variable is set.')
+            opts.java_home = _handle_missing_java_home()
 
         if opts.user_home is None or opts.user_home == '':
             abort('Could not find user home. Use --user-home option or ensure HOME environment variable is set.')
@@ -1549,9 +1592,7 @@ def build(args, parser=None):
         argfile.write('\n'.join(javafilelist))
         argfile.close()
 
-        javacArgs = []
-        if java().debug_port is not None:
-            javacArgs += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+        processorArgs = []
 
         ap = p.annotation_processors()
         if len(ap) > 0:
@@ -1560,25 +1601,40 @@ def build(args, parser=None):
             if exists(genDir):
                 shutil.rmtree(genDir)
             os.mkdir(genDir)
-            javacArgs += ['-processorpath', join(processorPath), '-s', genDir] 
+            processorArgs += ['-processorpath', join(processorPath), '-s', genDir] 
         else:
-            javacArgs += ['-proc:none']
+            processorArgs += ['-proc:none']
 
         toBeDeleted = [argfileName]
         try:
             compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir] + javacArgs + ['@' + argfile.name]
+                
+                
+                javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir]
+                if java().debug_port is not None:
+                    javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+                javacCmd += processorArgs
+                javacCmd += ['@' + argfile.name]
+                
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
-                jdtArgs = [java().java, '-Xmx1g', '-jar', jdtJar,
+                                
+                jdtArgs = [java().java, '-Xmx1g']
+                if java().debug_port is not None:
+                    jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
+
+                jdtArgs += [ '-jar', jdtJar,
                          '-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
-                         '-d', outputDir] + javacArgs
+                         '-d', outputDir]
+                jdtArgs += processorArgs
+                         
+                         
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 rootJdtProperties = join(p.suite.dir, 'mx', 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
@@ -1599,6 +1655,7 @@ def build(args, parser=None):
                     else:
                         jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
+                
                 run(jdtArgs)
         finally:
             for n in toBeDeleted:
@@ -3264,6 +3321,50 @@ def findclass(args, logToConsole=True):
                         log(classname)
     return matches
 
+def select_items(items, descriptions=None, allowMultiple=True):
+    """
+    Presents a command line interface for selecting one or more (if allowMultiple is true) items.
+    
+    """
+    if len(items) <= 1:
+        return items
+    else:
+        if allowMultiple:
+            log('[0] <all>')
+        for i in range(0, len(items)):
+            if descriptions is None:
+                log('[{0}] {1}'.format(i + 1, items[i]))
+            else:
+                assert len(items) == len(descriptions)
+                wrapper = textwrap.TextWrapper(subsequent_indent='    ')
+                log('\n'.join(wrapper.wrap('[{0}] {1} - {2}'.format(i + 1, items[i], descriptions[i]))))
+        while True:
+            if allowMultiple:
+                s = raw_input('Enter number(s) of selection (separate multiple choices with spaces): ').split()
+            else:
+                s = [raw_input('Enter number of selection: ')]
+            try:
+                s = [int(x) for x in s]
+            except:
+                log('Selection contains non-numeric characters: "' + ' '.join(s) + '"')
+                continue
+            
+            if allowMultiple and 0 in s:
+                return items
+            
+            indexes = []
+            for n in s:
+                if n not in range(1, len(items) + 1):
+                    log('Invalid selection: ' + str(n))
+                    continue
+                else:
+                    indexes.append(n - 1)
+            if allowMultiple:
+                return [items[i] for i in indexes]
+            if len(indexes) == 1:
+                return items[indexes[0]]
+            return None
+
 def javap(args):
     """disassemble classes matching given pattern with javap"""
 
@@ -3271,7 +3372,11 @@ def javap(args):
     if not exists(javap):
         abort('The javap executable does not exists: ' + javap)
     else:
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + findclass(args, logToConsole=False))
+        candidates = findclass(args, logToConsole=False)
+        if len(candidates) == 0:
+            log('no matches')
+        selection = select_items(candidates)
+        run([javap, '-private', '-verbose', '-classpath', classpath()] + selection)
 
 def show_projects(args):
     """show all loaded projects"""

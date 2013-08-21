@@ -195,7 +195,7 @@ public class FrameStateBuilder {
                 return null;
             }
 
-            PhiNode phi = graph.unique(new PhiNode(currentValue.kind(), block));
+            PhiNode phi = graph.add(new PhiNode(currentValue.kind(), block));
             for (int i = 0; i < block.phiPredecessorCount(); i++) {
                 phi.addInput(currentValue);
             }
@@ -233,6 +233,9 @@ public class FrameStateBuilder {
         }
         for (int i = 0; i < stackSize(); i++) {
             storeStack(i, createLoopPhi(loopBegin, stackAt(i)));
+        }
+        for (int i = 0; i < locks.length; i++) {
+            locks[i] = createLoopPhi(loopBegin, locks[i]);
         }
     }
 
@@ -290,7 +293,7 @@ public class FrameStateBuilder {
         }
         assert !block.isPhiAtMerge(value) : "phi function for this block already created";
 
-        PhiNode phi = graph.unique(new PhiNode(value.kind(), block));
+        PhiNode phi = graph.add(new PhiNode(value.kind(), block));
         phi.addInput(value);
         return phi;
     }

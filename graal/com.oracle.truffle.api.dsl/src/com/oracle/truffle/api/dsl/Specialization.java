@@ -4,7 +4,9 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -38,8 +40,10 @@ public @interface Specialization {
 
     /**
      * Defines the assumptions to check for this specialization. When the specialization method is
-     * invoked it is guaranteed that the assigned assumptions still hold. To declare assumptions use
-     * the {@link NodeAssumptions} annotation at class level.
+     * invoked it is guaranteed that these assumptions still hold. It is not guaranteed that they
+     * are checked before the {@link #guards()} methods. They may be checked before after or in
+     * between {@link #guards()}. To declare assumptions use the {@link NodeAssumptions} annotation
+     * at class level.
      */
     String[] assumptions() default {};
 

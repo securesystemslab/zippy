@@ -48,15 +48,17 @@ public class TruffleCompilerOptions {
     @Option(help = "")
     public static final OptionValue<Integer> TruffleInvalidationReprofileCount = new OptionValue<>(3);
     @Option(help = "")
+    public static final OptionValue<Integer> TruffleReplaceReprofileCount = new OptionValue<>(10);
+    @Option(help = "")
     public static final OptionValue<Integer> TruffleInliningReprofileCount = new OptionValue<>(100);
     @Option(help = "")
     public static final OptionValue<Boolean> TruffleFunctionInlining = new OptionValue<>(true);
     @Option(help = "")
     public static final OptionValue<Integer> TruffleConstantUnrollLimit = new OptionValue<>(32);
     @Option(help = "")
-    public static final OptionValue<Integer> TruffleOperationCacheMaxNodes = new OptionValue<>(200);
+    public static final OptionValue<Integer> TruffleOperationCacheMaxNodes = new OptionValue<>(350);
     @Option(help = "")
-    public static final OptionValue<Integer> TruffleGraphMaxNodes = new OptionValue<>(12000);
+    public static final OptionValue<Integer> TruffleGraphMaxNodes = new OptionValue<>(20000);
     @Option(help = "")
     public static final OptionValue<Integer> TruffleInliningMaxRecursiveDepth = new OptionValue<>(2);
     @Option(help = "")
@@ -88,6 +90,6 @@ public class TruffleCompilerOptions {
     @Option(help = "")
     public static final OptionValue<Boolean> TraceTruffleInliningDetails = new OptionValue<>(false);
     @Option(help = "")
-    public static final OptionValue<Boolean> TruffleProfiling = new StableOptionValue<>(false);
+    public static final OptionValue<Boolean> TruffleCallTargetProfiling = new StableOptionValue<>(false);
     // @formatter:on
 }

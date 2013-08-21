@@ -30,8 +30,10 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.*;
@@ -207,6 +209,20 @@ public class EscapeAnalysisTest extends GraalCompilerTest {
         return obj2.o instanceof TestObject2;
     }
 
+    @SuppressWarnings("unused")
+    public static void testNewNodeSnippet() {
+        new IntegerAddNode(Kind.Int, null, null);
+    }
+
+    /**
+     * This test makes sure that the allocation of a {@link Node} can be removed. It therefore also
+     * tests the intrinsification of {@link Object#getClass()}.
+     */
+    @Test
+    public void testNewNode() {
+        testEscapeAnalysis("testNewNodeSnippet", null, false);
+    }
+
     private ReturnNode testEscapeAnalysis(String snippet, final Constant expectedConstantResult, final boolean iterativeEscapeAnalysis) {
         ResolvedJavaMethod method = runtime.lookupJavaMethod(getMethod(snippet));
         final StructuredGraph graph = new StructuredGraph(method);
@@ -217,8 +233,8 @@ public class EscapeAnalysisTest extends GraalCompilerTest {
                 new GraphBuilderPhase(runtime, GraphBuilderConfiguration.getEagerDefault(), OptimisticOptimizations.ALL).apply(graph);
 
                 Assumptions assumptions = new Assumptions(false);
-                HighTierContext context = new HighTierContext(runtime(), assumptions, replacements);
-                new InliningPhase(runtime(), null, replacements, assumptions, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL).apply(graph);
+                HighTierContext context = new HighTierContext(runtime(), assumptions, replacements, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
+                new InliningPhase().apply(graph, context);
                 new DeadCodeEliminationPhase().apply(graph);
                 new PartialEscapePhase(iterativeEscapeAnalysis, new CanonicalizerPhase(true)).apply(graph, context);
                 Assert.assertEquals(1, graph.getNodes(ReturnNode.class).count());

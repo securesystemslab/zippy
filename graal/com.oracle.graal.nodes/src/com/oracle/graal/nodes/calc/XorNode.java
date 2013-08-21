@@ -29,7 +29,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "^")
-public final class XorNode extends BitLogicNode implements Canonicalizable, LIRLowerable {
+public final class XorNode extends BitLogicNode implements Canonicalizable {
 
     public XorNode(Kind kind, ValueNode x, ValueNode y) {
         super(kind, x, y);
@@ -37,7 +37,7 @@ public final class XorNode extends BitLogicNode implements Canonicalizable, LIRL
 
     @Override
     public boolean inferStamp() {
-        return updateStamp(StampTool.xor(x().integerStamp(), y().integerStamp()));
+        return updateStamp(StampTool.xor(x().stamp(), y().stamp()));
     }
 
     @Override
@@ -74,7 +74,7 @@ public final class XorNode extends BitLogicNode implements Canonicalizable, LIRL
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(ArithmeticLIRGenerator gen) {
         gen.setResult(this, gen.emitXor(gen.operand(x()), gen.operand(y())));
     }
 }

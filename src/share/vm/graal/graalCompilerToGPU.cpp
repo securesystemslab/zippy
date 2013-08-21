@@ -47,7 +47,7 @@
 #define C2V_END }
 
 
-C2V_VMENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstring name))
+C2V_ENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstring name))
   if (gpu::is_available() == false || gpu::has_gpu_linkage() == false && gpu::is_initialized()) {
     tty->print_cr("generateKernel - not available / no linkage / not initialized");
     return 0;
@@ -57,7 +57,12 @@ C2V_VMENTRY(jlong, generateKernel, (JNIEnv *env, jobject, jbyteArray code, jstri
   jint len = env->GetArrayLength(code);
   const char *namestr = env->GetStringUTFChars(name, &is_copy);
   void *kernel = gpu::generate_kernel((unsigned char *)bytes, len, namestr);
-  tty->print_cr("generateKernel: %x", kernel);
+  if (kernel == NULL) {
+    tty->print_cr("[CUDA] *** Error: Failed to compile kernel");
+  }
+  else if (TraceGPUInteraction) {
+    tty->print_cr("[CUDA] Generated kernel");
+  }
   env->ReleaseByteArrayElements(code, bytes, 0);
   env->ReleaseStringUTFChars(name, namestr);
 
@@ -85,9 +90,9 @@ C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobjec
   // start value is the kernel
   jlong startValue = HotSpotInstalledCode::start(hotspotInstalledCode);
 
-  // JavaCalls::call(&result, mh, &jca, CHECK_NULL);
-  tty->print_cr("executeExternalMethodVarargs: start: %x", (address)startValue);
-  gpu::execute_kernel((address)startValue);
+  if (!gpu::execute_kernel((address)startValue, &jca)) {
+    return NULL;
+  }
 
   if (jap.get_ret_type() == T_VOID) {
     return NULL;

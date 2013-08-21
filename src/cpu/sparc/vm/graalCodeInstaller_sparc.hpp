@@ -29,8 +29,16 @@
 #include "graal/graalJavaAccess.hpp"
 
 inline jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
-  assert(inst->is_call() || inst->is_jump(), "sanity");
-  return pc_offset + NativeCall::instruction_size;
+  if (inst->is_call() || inst->is_jump()) {
+    return pc_offset + NativeCall::instruction_size;
+  } else if (inst->is_call_reg()) {
+    return pc_offset + NativeCallReg::instruction_size;
+  } else if (inst->is_sethi()) {
+    return pc_offset + NativeFarCall::instruction_size;
+  } else {
+    fatal("unsupported type of instruction for call site");
+    return 0;
+  }
 }
 
 inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
@@ -77,23 +85,36 @@ inline void CodeInstaller::pd_site_DataPatch(int pc_offset, oop site) {
       break;
     }
     case 'a': {
-      int size = _constants->size();
-      if (alignment > 0) {
-        guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-        size = align_size_up(size, alignment);
+      if (inlined) {
+        NativeMovConstReg* move = nativeMovConstReg_at(pc);
+        Handle obj = Constant::object(constant);
+        jobject value = JNIHandles::make_local(obj());
+        move->set_data((intptr_t) value);
+
+        // We need two relocations:  one on the sethi and one on the add.
+        int oop_index = _oop_recorder->find_index(value);
+        RelocationHolder rspec = oop_Relocation::spec(oop_index);
+        _instructions->relocate(pc + NativeMovConstReg::sethi_offset, rspec);
+        _instructions->relocate(pc + NativeMovConstReg::add_offset, rspec);
+      } else {
+        int size = _constants->size();
+        if (alignment > 0) {
+          guarantee(alignment <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+          size = align_size_up(size, alignment);
+        }
+        address dest = _constants->start() + size;
+        _constants->set_end(dest);
+        Handle obj = Constant::object(constant);
+        jobject value = JNIHandles::make_local(obj());
+        _constants->emit_address((address) value);
+
+        NativeMovRegMem* load = nativeMovRegMem_at(pc);
+        int disp = _constants_size + pc_offset - size - BytesPerInstWord;
+        load->set_offset(-disp);
+
+        int oop_index = _oop_recorder->find_index(value);
+        _constants->relocate(dest, oop_Relocation::spec(oop_index));
       }
-      address dest = _constants->start() + size;
-      _constants->set_end(dest);
-      Handle obj = Constant::object(constant);
-      jobject value = JNIHandles::make_local(obj());
-      _constants->emit_address((address) value);
-
-      NativeMovRegMem* load = nativeMovRegMem_at(pc);
-      int disp = _constants_size + pc_offset - size - BytesPerInstWord;
-      load->set_offset(-disp);
-
-      int oop_index = _oop_recorder->find_index(value);
-      _constants->relocate(dest, oop_Relocation::spec(oop_index));
       break;
     }
     default:
@@ -107,7 +128,19 @@ inline void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction*
 }
 
 inline void CodeInstaller::pd_relocate_ForeignCall(NativeInstruction* inst, jlong foreign_call_destination) {
-  fatal("CodeInstaller::pd_relocate_ForeignCall - sparc unimp");
+  address pc = (address) inst;
+  if (inst->is_call()) {
+    NativeCall* call = nativeCall_at(pc);
+    call->set_destination((address) foreign_call_destination);
+    _instructions->relocate(call->instruction_address(), runtime_call_Relocation::spec());
+  } else if (inst->is_sethi()) {
+    NativeJump* jump = nativeJump_at(pc);
+    jump->set_jump_destination((address) foreign_call_destination);
+    _instructions->relocate(jump->instruction_address(), runtime_call_Relocation::spec());
+  } else {
+    fatal(err_msg("unknown call or jump instruction at %p", pc));
+  }
+  TRACE_graal_3("relocating (foreign call) at %p", inst);
 }
 
 inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_offset) {
@@ -127,7 +160,6 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_virtual_call_stub());
       _instructions->relocate(call->instruction_address(), virtual_call_Relocation::spec(_invoke_mark_pc));
-      /*, Assembler::call32_operand); */
       break;
     }
     case MARK_INVOKESTATIC: {
@@ -135,16 +167,13 @@ inline void CodeInstaller::pd_relocate_JavaMethod(oop hotspot_method, jint pc_of
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_static_call_stub());
       _instructions->relocate(call->instruction_address(), relocInfo::static_call_type);
-      /*, Assembler::call32_operand); */
       break;
     }
     case MARK_INVOKESPECIAL: {
       assert(method == NULL || !method->is_static(), "cannot call static method with invokespecial");
       NativeCall* call = nativeCall_at(_instructions->start() + pc_offset);
       call->set_destination(SharedRuntime::get_resolve_opt_virtual_call_stub());
-//      _instructions->relocate(call->instruction_address(),
-//                              relocInfo::opt_virtual_call_type, Assembler::call32_operand);
-      fatal("NYI");
+      _instructions->relocate(call->instruction_address(), relocInfo::opt_virtual_call_type);
       break;
     }
     default:

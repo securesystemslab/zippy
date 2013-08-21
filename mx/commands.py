@@ -39,18 +39,28 @@ _graal_home = dirname(dirname(__file__))
 """ Used to distinguish an exported GraalVM (see 'mx export'). """
 _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_home, 'src'))
 
-""" The VMs that can be built and run - default is first in list """
-_vmChoices = ['graal', 'server', 'client', 'server-nograal', 'client-nograal', 'original']
+""" The VMs that can be built and run along with an optional description. Only VMs with a
+    description are listed in the dialogue for setting the default VM (see _get_vm()). """
+_vmChoices = {
+    'graal' : 'All compilation is performed with Graal. This includes bootstrapping Graal itself unless -XX:-BootstrapGraal is used.',
+    'server' : 'Normal compilation is performed with the tiered system (i.e., client + server), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
+    'client' : None, # normal compilation with client compiler, explicit compilation (e.g., by Truffle) with Graal
+    'server-nograal' : None, # all compilation with tiered system (i.e., client + server), Graal omitted
+    'client-nograal' : None, # all compilation with client compiler, Graal omitted
+    'original' : None, # default VM copied from bootstrap JDK
+}
 
 """ The VM that will be run by the 'vm' command and built by default by the 'build' command.
-    This can be set via the global '--vm' option. """
-_vm = _vmChoices[0]
+    This can be set via the global '--vm' option or the DEFAULT_VM environment variable.
+    It can also be temporarily set by using of a VM context manager object in a 'with' statement. """
+_vm = None
 
 """ The VM builds that will be run by the 'vm' command - default is first in list """
 _vmbuildChoices = ['product', 'fastdebug', 'debug', 'optimized']
 
 """ The VM build that will be run by the 'vm' command.
-    This can be set via the global '--product', '--fastdebug' and '--debug' options. """
+    This can be set via the global '--product', '--fastdebug' and '--debug' options.
+    It can also be temporarily set by using of a VM context manager object in a 'with' statement. """
 _vmbuild = _vmbuildChoices[0]
 
 _jacoco = 'off'
@@ -65,6 +75,55 @@ _make_eclipse_launch = False
 
 _minVersion = mx.JavaVersion('1.7.0_04')
 
+def _get_vm():
+    """
+    Gets the configured VM, presenting a dialogue if there is no currently configured VM.
+    """
+    global _vm
+    if _vm:
+        return _vm
+    vm = mx.get_env('DEFAULT_VM')
+    if vm is None:
+        if not sys.stdout.isatty():
+            mx.abort('Need to specify VM with --vm option or DEFAULT_VM environment variable')
+        envPath = join(_graal_home, 'mx', 'env')
+        mx.log('Please select the VM to be executed from the following: ')
+        items = [k for k in _vmChoices.keys() if _vmChoices[k] is not None]
+        descriptions = [_vmChoices[k] for k in _vmChoices.keys() if _vmChoices[k] is not None]
+        vm = mx.select_items(items, descriptions, allowMultiple=False)
+        answer = raw_input('Persist this choice by adding "DEFAULT_VM=' + vm + '" to ' + envPath + '? [Yn]: ')
+        if not answer.lower().startswith('n'):
+            with open(envPath, 'a') as fp:
+                print >> fp, 'DEFAULT_VM=' + vm
+    _vm = vm
+    return vm
+
+""" 
+A context manager that can be used with the 'with' statement to set the VM
+used by all VM executions within the scope of the 'with' statement. For example:
+
+    with VM('server'):
+        dacapo(['pmd'])
+"""
+class VM:
+    def __init__(self, vm=None, build=None):
+        assert vm is None or vm in _vmChoices.keys()
+        assert build is None or build in _vmbuildChoices
+        self.vm = vm if vm else _vm
+        self.build = build if build else _vmbuild
+        self.previousVm = _vm
+        self.previousBuild = _vmbuild
+        
+    def __enter__(self):
+        global _vm, _vmbuild
+        _vm = self.vm
+        _vmbuild = self.build
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        global _vm, _vmbuild
+        _vm = self.previousVm
+        _vmbuild = self.previousBuild
+    
 def _chmodDir(chmodFlags, dirname, fnames):
     os.chmod(dirname, chmodFlags)
     for name in fnames:
@@ -172,7 +231,7 @@ def dacapo(args):
 
     # The remainder are VM options
     vmOpts = [arg for arg in args if not arg.startswith('@')]
-    vm = _vm
+    vm = _get_vm()
 
     failed = []
     for (test, n) in numTests.items():
@@ -223,7 +282,7 @@ def scaladacapo(args):
 
     # The remainder are VM options
     vmOpts = [arg for arg in args if not arg.startswith('@')]
-    vm = _vm;
+    vm = _get_vm()
 
     failed = []
     for (test, n) in numTests.items():
@@ -269,7 +328,16 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
-    return os.path.abspath(_vmdir if _vmdir else join(_graal_home, 'jdk' + str(mx.java().version)))
+    return os.path.abspath(join(_vmdir if _vmdir else _graal_home, 'jdk' + str(mx.java().version)))
+
+def _handle_missing_VM(bld, vm):
+    mx.log('The ' + bld + ' ' + vm + ' VM has not been created')
+    if sys.stdout.isatty():
+        answer = raw_input('Build it now? [Yn]: ')
+        if not answer.lower().startswith('n'):
+            build([bld], vm=vm)
+            return
+    mx.abort('You need to run "mx --vm ' + vm + ' build ' + bld + '" to build the selected VM')
 
 def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
@@ -330,8 +398,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 pass
     else:
         if not exists(jdk):
-            vmOption = ' --vm ' + vmToCheck if vmToCheck else ''
-            mx.abort('The ' + build + ' VM has not been created - run "mx' + vmOption + ' build ' + build + '"')
+            _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
             
     if installGraalJar:
         _installGraalJarInJdks(mx.distribution('GRAAL'))
@@ -345,7 +412,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                     found = True
                     break
         if not found:
-            mx.abort('The ' + build + ' ' + vmToCheck + ' VM has not been created - run "mx --vm ' + vmToCheck + ' build ' + build + '"')
+            _handle_missing_VM(build, vmToCheck)
         
     return jdk
 
@@ -483,7 +550,7 @@ def build(args, vm=None):
         builds = ['product']
 
     if vm is None:
-        vm = _vm
+        vm = _get_vm()
 
     if vm == 'original':
         pass
@@ -497,9 +564,8 @@ def build(args, vm=None):
         
     for build in builds:
         if build == 'ide-build-target':
-            build = os.environ.get('IDE_BUILD_TARGET', 'product')
-            if len(build) == 0:
-                mx.logv('[skipping build from IDE as IDE_BUILD_TARGET environment variable is ""]')
+            build = os.environ.get('IDE_BUILD_TARGET', None)
+            if build is None or len(build) == 0:
                 continue
 
         jdk = _jdk(build, create=True)
@@ -649,7 +715,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
     """run the VM selected by the '--vm' option"""
 
     if vm is None:
-        vm = _vm
+        vm = _get_vm()
 
     if cwd is None:
         cwd = _workdir
@@ -657,7 +723,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         mx.abort("conflicting working directories: do not set --workdir for this command")
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
-    jdk = _jdk(build, vmToCheck=vm)
+    jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
@@ -759,11 +825,18 @@ def _unittest(args, annotations):
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
-        if not isGraalEnabled(_vm):
+        if not isGraalEnabled(_get_vm()):
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
-        vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
+        with open(testfile) as fp:
+            testclasses = [l.rstrip() for l in fp.readlines()]
+        if len(testclasses) == 1:
+            # Execute Junit directly when one test is being run. This simplifies
+            # replaying the VM execution in a native debugger (e.g., gdb).
+            vm(prefixArgs + vmArgs + ['-cp', projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
+        else:
+            vm(prefixArgs + vmArgs + ['-cp', projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
         _run_tests(args, harness, annotations, testfile)
@@ -802,7 +875,7 @@ _unittestHelpSuffix = """
 def unittest(args):
     """run the JUnit tests (all testcases){0}"""
 
-    _unittest(args, ['@Test', '@LongTest'])
+    _unittest(args, ['@Test', '@LongTest', '@Parameters'])
 
 def shortunittest(args):
     """run the JUnit tests (short testcases only){0}"""
@@ -812,12 +885,12 @@ def shortunittest(args):
 def longunittest(args):
     """run the JUnit tests (long testcases only){0}"""
 
-    _unittest(args, ['@LongTest'])
+    _unittest(args, ['@LongTest', '@Parameters'])
 
 def buildvms(args):
     """build one or more VMs in various configurations"""
 
-    vmsDefault = ','.join(_vmChoices)
+    vmsDefault = ','.join(_vmChoices.keys())
     vmbuildsDefault = ','.join(_vmbuildChoices)
     
     parser = ArgumentParser(prog='mx buildvms');
@@ -845,9 +918,8 @@ def buildvms(args):
                 duration = datetime.timedelta(seconds=time.time() - start)
                 mx.log('END:   ' + v + '-' + vmbuild + '\t[' + str(duration) + ']')
             else:
-                global _vm
-                _vm = v
-                build([vmbuild])
+                with VM(v):
+                    build([vmbuild])
             if not args.no_check:
                 vmargs = ['-version']
                 if v == 'graal':
@@ -889,8 +961,6 @@ def gate(args):
 
     args = parser.parse_args(args)
 
-    global _vmbuild
-    global _vm
     global _jacoco
     
     tasks = []
@@ -945,32 +1015,35 @@ def gate(args):
         buildvms(['--vms', 'graal,server', '--builds', 'fastdebug,product'])
         tasks.append(t.stop())
 
-        _vmbuild = 'fastdebug'
-        t = Task('BootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-version'])
-        tasks.append(t.stop())
+        with VM('graal', 'fastdebug'):
+            t = Task('BootstrapWithSystemAssertions:fastdebug')
+            vm(['-esa', '-version'])
+            tasks.append(t.stop())
 
-        _vmbuild = 'product'
-        t = Task('BootstrapWithGCVerification:product')
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
-        tasks.append(t.stop())
+        with VM('graal', 'product'):
+            t = Task('BootstrapWithGCVerification:product')
+            vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+            tasks.append(t.stop())
+    
+        with VM('graal', 'product'):
+            t = Task('BootstrapWithG1GCVerification:product')
+            vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC','-XX:+UseG1GC','-XX:+UseNewCode','-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+            tasks.append(t.stop())
 
-        _vmbuild = 'product'
-        t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
-        tasks.append(t.stop())
+        with VM('graal', 'product'):
+            t = Task('BootstrapWithRegisterPressure:product')
+            vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+            tasks.append(t.stop())
 
-        _vmbuild = 'product'
-        t = Task('BootstrapWithAOTConfiguration:product')
-        vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
-        tasks.append(t.stop())
+        with VM('graal', 'product'):
+            t = Task('BootstrapWithAOTConfiguration:product')
+            vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
+            tasks.append(t.stop())
 
-        originalVm = _vm
-        _vm = 'server' # hosted mode
-        t = Task('UnitTests:hosted-product')
-        unittest([])
-        tasks.append(t.stop())
-        _vm = originalVm
+        with VM('server', 'product'): # hosted mode
+            t = Task('UnitTests:hosted-product')
+            unittest([])
+            tasks.append(t.stop())
 
         for vmbuild in ['fastdebug', 'product']:
             for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
@@ -993,20 +1066,19 @@ def gate(args):
             t = Task('BuildHotSpotVarieties')
             buildvms(['--vms', 'client,server', '--builds', 'fastdebug,product'])
             buildvms(['--vms', 'server-nograal', '--builds', 'product'])
+            buildvms(['--vms', 'server-nograal', '--builds', 'optimized'])
             tasks.append(t.stop())
 
             for vmbuild in ['product', 'fastdebug']:
-                _vmbuild = vmbuild
                 for theVm in ['client', 'server']:
-                    _vm = theVm
-
-                    t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
-                    dacapo(['pmd'])
-                    tasks.append(t.stop())
-
-                    t = Task('UnitTests:' + theVm + ':' + vmbuild)
-                    unittest(['@-XX:CompileCommand=exclude,*::run*', 'graal.api'])
-                    tasks.append(t.stop())
+                    with VM(theVm, vmbuild):
+                        t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
+                        dacapo(['pmd'])
+                        tasks.append(t.stop())
+    
+                        t = Task('UnitTests:' + theVm + ':' + vmbuild)
+                        unittest(['@-XX:CompileCommand=exclude,*::run*', 'graal.api'])
+                        tasks.append(t.stop())
 
     except KeyboardInterrupt:
         total.abort(1)
@@ -1073,7 +1145,7 @@ def bench(args):
             del args[index]
         else:
             mx.abort('-resultfile must be followed by a file name')
-    vm = _vm
+    vm = _get_vm()
     if len(args) is 0:
         args = ['all']
     
@@ -1177,7 +1249,7 @@ def specjvm2008(args):
             mx.abort('-it (Iteration time) needs a numeric value (seconds)')
         vmArgs.remove('-it')
         benchArgs.remove(args[itIdx+1])
-    vm = _vm;
+    vm = _get_vm();
     sanitycheck.getSPECjvm2008(benchArgs, skipCheck, skipValid, wt, it).bench(vm, opts=vmArgs)
     
 def specjbb2013(args):
@@ -1186,7 +1258,7 @@ def specjbb2013(args):
     All options begining with - will be passed to the vm"""
     benchArgs = [a for a in args if a[0] != '-']
     vmArgs = [a for a in args if a[0] == '-']
-    vm = _vm;
+    vm = _get_vm();
     sanitycheck.getSPECjbb2013(benchArgs).bench(vm, opts=vmArgs)
 
 def specjbb2005(args):
@@ -1195,7 +1267,7 @@ def specjbb2005(args):
         All options begining with - will be passed to the vm"""
     benchArgs = [a for a in args if a[0] != '-']
     vmArgs = [a for a in args if a[0] == '-']
-    vm = _vm;
+    vm = _get_vm();
     sanitycheck.getSPECjbb2005(benchArgs).bench(vm, opts=vmArgs)
 
 def hsdis(args, copyToDir=None):
@@ -1343,7 +1415,7 @@ def mx_init():
     mx.add_argument('--vmdir', help='specify where the directory in which the vms should be', default=None)
 
     if (_vmSourcesAvailable):
-        mx.add_argument('--vm', action='store', dest='vm', default='graal', choices=_vmChoices, help='the VM to build/run (default: ' + _vmChoices[0] + ')')
+        mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM to build/run')
         for c in _vmbuildChoices:
             mx.add_argument('--' + c, action='store_const', dest='vmbuild', const=c, help='select the ' + c + ' build of the VM')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')

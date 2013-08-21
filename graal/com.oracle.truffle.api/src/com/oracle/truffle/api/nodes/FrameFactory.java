@@ -4,7 +4,9 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -25,8 +27,18 @@ package com.oracle.truffle.api.nodes;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+/**
+ * Factory for virtual frame creation.
+ */
 public interface FrameFactory {
 
+    /**
+     * Creates a new virtual frame from the given frame descriptor and arguments.
+     * 
+     * @param descriptor describes the frame to be created
+     * @param caller the packed caller frame or {@code null}
+     * @param args {@link Arguments} object to be stored in the frame
+     * @return a new virtual frame
+     */
     VirtualFrame create(FrameDescriptor descriptor, PackedFrame caller, Arguments args);
-
 }

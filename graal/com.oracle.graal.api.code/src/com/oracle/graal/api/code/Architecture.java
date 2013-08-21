@@ -63,6 +63,11 @@ public abstract class Architecture {
     private final ByteOrder byteOrder;
 
     /**
+     * Whether the architecture supports unaligned memory accesses.
+     */
+    private final boolean unalignedMemoryAccess;
+
+    /**
      * Mask of the barrier constants denoting the barriers that are not required to be explicitly
      * inserted under this architecture.
      */
@@ -79,12 +84,13 @@ public abstract class Architecture {
      */
     private final int returnAddressSize;
 
-    protected Architecture(String name, int wordSize, ByteOrder byteOrder, Register[] registers, int implicitMemoryBarriers, int nativeCallDisplacementOffset, int registerReferenceMapBitCount,
-                    int returnAddressSize) {
+    protected Architecture(String name, int wordSize, ByteOrder byteOrder, boolean unalignedMemoryAccess, Register[] registers, int implicitMemoryBarriers, int nativeCallDisplacementOffset,
+                    int registerReferenceMapBitCount, int returnAddressSize) {
         this.name = name;
         this.registers = registers;
         this.wordSize = wordSize;
         this.byteOrder = byteOrder;
+        this.unalignedMemoryAccess = unalignedMemoryAccess;
         this.implicitMemoryBarriers = implicitMemoryBarriers;
         this.machineCodeCallDisplacementOffset = nativeCallDisplacementOffset;
         this.registerReferenceMapBitCount = registerReferenceMapBitCount;
@@ -133,6 +139,13 @@ public abstract class Architecture {
     }
 
     /**
+     * @return true if the architecture supports unaligned memory accesses.
+     */
+    public boolean supportsUnalignedMemoryAccess() {
+        return unalignedMemoryAccess;
+    }
+
+    /**
      * Gets the size of the return address pushed to the stack by a call instruction. A value of 0
      * denotes that call linkage uses registers instead.
      */
@@ -175,11 +188,11 @@ public abstract class Architecture {
      * 
      * @param kind the kind of the individual vector elements
      * @param maxLength the maximum length that should be returned
-     * @param arithmetic whether the vector length needs to support arithmetic operations or just
-     *            load and store
+     * @param arithmetic the arithmetic operation for which the vector size should be determined, or
+     *            null if no arithmetic needs to be performed on the vector
      * @return a supported vector size, but at most {@code maxLength}
      */
-    public int getSupportedVectorLength(Kind kind, int maxLength, boolean arithmetic) {
+    public int getSupportedVectorLength(Kind kind, int maxLength, ArithmeticOperation arithmetic) {
         return 1;
     }
 

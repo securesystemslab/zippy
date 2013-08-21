@@ -35,7 +35,7 @@ import com.oracle.graal.nodes.type.*;
 public final class CheckCastDynamicNode extends FixedWithNextNode implements Canonicalizable, Lowerable, Node.IterableNodeType {
 
     @Input private ValueNode object;
-    @Input private ValueNode type;
+    @Input private ValueNode hub;
 
     /**
      * Determines the exception thrown by this node if the check fails: {@link ClassCastException}
@@ -44,12 +44,12 @@ public final class CheckCastDynamicNode extends FixedWithNextNode implements Can
     private final boolean forStoreCheck;
 
     /**
-     * @param type the type being cast to
-     * @param object the instruction producing the object
+     * @param hub the type being cast to
+     * @param object the object being cast
      */
-    public CheckCastDynamicNode(ValueNode type, ValueNode object, boolean forStoreCheck) {
+    public CheckCastDynamicNode(ValueNode hub, ValueNode object, boolean forStoreCheck) {
         super(object.stamp());
-        this.type = type;
+        this.hub = hub;
         this.object = object;
         this.forStoreCheck = forStoreCheck;
     }
@@ -65,22 +65,18 @@ public final class CheckCastDynamicNode extends FixedWithNextNode implements Can
 
     @Override
     public boolean inferStamp() {
-        if (object().stamp().nonNull() && !stamp().nonNull()) {
-            setStamp(StampFactory.objectNonNull());
-            return true;
-        }
-        return super.inferStamp();
+        return updateStamp(object().stamp());
     }
 
     @Override
     public ValueNode canonical(CanonicalizerTool tool) {
         assert object() != null : this;
 
-        if (object().objectStamp().alwaysNull()) {
+        if (ObjectStamp.isObjectAlwaysNull(object())) {
             return object();
         }
-        if (type().isConstant() && type().kind() == Kind.Object && type().asConstant().asObject() instanceof Class) {
-            Class clazz = (Class) type().asConstant().asObject();
+        if (hub.isConstant() && hub.kind() == Kind.Object && hub.asConstant().asObject() instanceof Class) {
+            Class clazz = (Class) hub.asConstant().asObject();
             ResolvedJavaType t = tool.runtime().lookupJavaType(clazz);
             return graph().add(new CheckCastNode(t, object(), null, forStoreCheck));
         }
@@ -94,8 +90,8 @@ public final class CheckCastDynamicNode extends FixedWithNextNode implements Can
     /**
      * Gets the runtime-loaded type being cast to.
      */
-    public ValueNode type() {
-        return type;
+    public ValueNode hub() {
+        return hub;
     }
 
     @NodeIntrinsic

@@ -230,8 +230,8 @@ flags.make: $(BUILDTREE_MAKE) ../shared_dirs.lst
 	echo "$(call gamma-path,commonsrc,os/$(OS_FAMILY)/vm) \\"; \
 	echo "$(call gamma-path,altsrc,os/posix/vm) \\"; \
 	echo "$(call gamma-path,commonsrc,os/posix/vm) \\"; \
-	echo "$(call gamma-path,altsrc,gpu/ptx) \\"; \
-	echo "$(call gamma-path,commonsrc,gpu/ptx)"; \
+	echo "$(call gamma-path,altsrc,gpu/ptx/vm) \\"; \
+	echo "$(call gamma-path,commonsrc,gpu/ptx/vm)"; \
 	echo; \
 	echo "Src_Dirs_I = \\"; \
 	echo "$(call gamma-path,altsrc,share/vm/prims) \\"; \

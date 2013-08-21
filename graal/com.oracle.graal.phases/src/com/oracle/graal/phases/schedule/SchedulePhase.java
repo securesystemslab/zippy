@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -70,6 +70,10 @@ public final class SchedulePhase extends Phase {
 
     public static enum SchedulingStrategy {
         EARLIEST, LATEST, LATEST_OUT_OF_LOOPS
+    }
+
+    public static enum MemoryScheduling {
+        NONE, CONSERVATIVE, OPTIMAL
     }
 
     /**
@@ -169,6 +173,88 @@ public final class SchedulePhase extends Phase {
         }
     }
 
+    private class NewMemoryScheduleClosure extends BlockIteratorClosure<Map<LocationIdentity, Node>> {
+
+        @Override
+        protected Map<LocationIdentity, Node> getInitialState() {
+            return cloneState(blockToKillMap.get(getCFG().getStartBlock()));
+        }
+
+        @Override
+        protected Map<LocationIdentity, Node> processBlock(Block block, Map<LocationIdentity, Node> currentState) {
+            Map<LocationIdentity, Node> initKillMap = getBlockToKillMap().get(block);
+            initKillMap.putAll(currentState);
+
+            for (Node node : block.getNodes()) {
+                if (node instanceof MemoryCheckpoint.Single) {
+                    LocationIdentity identity = ((MemoryCheckpoint.Single) node).getLocationIdentity();
+                    initKillMap.put(identity, node);
+                } else if (node instanceof MemoryCheckpoint.Multi) {
+                    for (LocationIdentity identity : ((MemoryCheckpoint.Multi) node).getLocationIdentities()) {
+                        initKillMap.put(identity, node);
+                    }
+                }
+                assert MemoryCheckpoint.TypeAssertion.correctType(node);
+            }
+
+            return cloneState(initKillMap);
+        }
+
+        @Override
+        protected Map<LocationIdentity, Node> merge(Block merge, List<Map<LocationIdentity, Node>> states) {
+            return merge(merge, states, false);
+        }
+
+        protected Map<LocationIdentity, Node> merge(Block merge, List<Map<LocationIdentity, Node>> states, boolean loopbegin) {
+            assert merge.getBeginNode() instanceof MergeNode;
+            MergeNode mergeNode = (MergeNode) merge.getBeginNode();
+
+            Map<LocationIdentity, Node> initKillMap = new HashMap<>();
+            if (loopbegin) {
+                initKillMap.putAll(getBlockToKillMap().get(merge));
+            }
+            for (Map<LocationIdentity, Node> state : states) {
+                for (LocationIdentity locid : state.keySet()) {
+                    if (initKillMap.containsKey(locid)) {
+                        if (!initKillMap.get(locid).equals(state.get(locid))) {
+                            initKillMap.put(locid, mergeNode);
+                        }
+                    } else {
+                        initKillMap.put(locid, state.get(locid));
+                    }
+                }
+            }
+
+            getMergeToKillMap().set(mergeNode, cloneState(initKillMap));
+            if (!loopbegin) {
+                initKillMap.putAll(getBlockToKillMap().get(merge));
+            }
+            return initKillMap;
+        }
+
+        @Override
+        protected Map<LocationIdentity, Node> cloneState(Map<LocationIdentity, Node> state) {
+            return new HashMap<>(state);
+        }
+
+        @Override
+        protected List<Map<LocationIdentity, Node>> processLoop(Loop loop, Map<LocationIdentity, Node> state) {
+            LoopInfo<Map<LocationIdentity, Node>> info = ReentrantBlockIterator.processLoop(this, loop, new HashMap<>(state));
+
+            assert loop.header.getBeginNode() instanceof LoopBeginNode;
+            Map<LocationIdentity, Node> headerState = merge(loop.header, info.endStates, true);
+            getBlockToKillMap().put(loop.header, headerState);
+
+            for (Map<LocationIdentity, Node> exitState : info.exitStates) {
+                for (LocationIdentity key : headerState.keySet()) {
+                    exitState.put(key, headerState.get(key));
+                }
+            }
+
+            return info.exitStates;
+        }
+    }
+
     private ControlFlowGraph cfg;
     private NodeMap<Block> earliestCache;
 
@@ -176,16 +262,34 @@ public final class SchedulePhase extends Phase {
      * Map from blocks to the nodes in each block.
      */
     private BlockMap<List<ScheduledNode>> blockToNodesMap;
+    private BlockMap<Map<LocationIdentity, Node>> blockToKillMap;
+    private NodeMap<Map<LocationIdentity, Node>> mergeToKillMap;
     private final Map<FloatingNode, List<FixedNode>> phantomUsages = new IdentityHashMap<>();
     private final Map<FixedNode, List<FloatingNode>> phantomInputs = new IdentityHashMap<>();
     private final SchedulingStrategy selectedStrategy;
+    private final MemoryScheduling memsched;
 
     public SchedulePhase() {
         this(OptScheduleOutOfLoops.getValue() ? SchedulingStrategy.LATEST_OUT_OF_LOOPS : SchedulingStrategy.LATEST);
     }
 
     public SchedulePhase(SchedulingStrategy strategy) {
+        if (MemoryAwareScheduling.getValue() && NewMemoryAwareScheduling.getValue()) {
+            throw new SchedulingError("cannot enable both: MemoryAware- and NewMemoryAwareScheduling");
+        }
+        if (MemoryAwareScheduling.getValue()) {
+            this.memsched = MemoryScheduling.CONSERVATIVE;
+        } else if (NewMemoryAwareScheduling.getValue()) {
+            this.memsched = MemoryScheduling.OPTIMAL;
+        } else {
+            this.memsched = MemoryScheduling.NONE;
+        }
         this.selectedStrategy = strategy;
+    }
+
+    public SchedulePhase(SchedulingStrategy strategy, MemoryScheduling memsched) {
+        this.selectedStrategy = strategy;
+        this.memsched = memsched;
     }
 
     @Override
@@ -194,8 +298,7 @@ public final class SchedulePhase extends Phase {
         earliestCache = graph.createNodeMap();
         blockToNodesMap = new BlockMap<>(cfg);
 
-        if (MemoryAwareScheduling.getValue() && selectedStrategy != SchedulingStrategy.EARLIEST && graph.getNodes(FloatingReadNode.class).isNotEmpty()) {
-
+        if (memsched == MemoryScheduling.CONSERVATIVE && selectedStrategy != SchedulingStrategy.EARLIEST && graph.getNodes(FloatingReadNode.class).isNotEmpty()) {
             assignBlockToNodes(graph, SchedulingStrategy.EARLIEST);
             sortNodesWithinBlocks(graph, SchedulingStrategy.EARLIEST);
 
@@ -204,10 +307,99 @@ public final class SchedulePhase extends Phase {
 
             cfg.clearNodeToBlock();
             blockToNodesMap = new BlockMap<>(cfg);
-        }
 
-        assignBlockToNodes(graph, selectedStrategy);
-        sortNodesWithinBlocks(graph, selectedStrategy);
+            assignBlockToNodes(graph, selectedStrategy);
+            sortNodesWithinBlocks(graph, selectedStrategy);
+            printSchedule("after sorting nodes within blocks");
+        } else if (memsched == MemoryScheduling.OPTIMAL && selectedStrategy != SchedulingStrategy.EARLIEST && graph.getNodes(FloatingReadNode.class).isNotEmpty()) {
+            mergeToKillMap = graph.createNodeMap();
+
+            blockToKillMap = new BlockMap<>(cfg);
+            for (Block b : cfg.getBlocks()) {
+                blockToKillMap.put(b, new HashMap<LocationIdentity, Node>());
+            }
+
+            // initialize killMaps with lastLocationAccess
+            for (FloatingReadNode n : graph.getNodes(FloatingReadNode.class)) {
+                if (n.location().getLocationIdentity() == FINAL_LOCATION) {
+                    continue;
+                }
+                Node first = n.lastLocationAccess();
+                assert first != null;
+
+                Map<LocationIdentity, Node> killMap = blockToKillMap.get(forKillLocation(first));
+                killMap.put(n.location().getLocationIdentity(), first);
+            }
+
+            // distribute and compute killMaps for all blocks
+            NewMemoryScheduleClosure closure = new NewMemoryScheduleClosure();
+            ReentrantBlockIterator.apply(closure, getCFG().getStartBlock());
+            printSchedule("after computing killMaps");
+
+            assignBlockToNodes(graph, selectedStrategy);
+            printSchedule("after assign nodes to blocks");
+
+            sortNodesWithinBlocks(graph, selectedStrategy);
+            printSchedule("after sorting nodes within blocks");
+        } else {
+            assignBlockToNodes(graph, selectedStrategy);
+            sortNodesWithinBlocks(graph, selectedStrategy);
+        }
+    }
+
+    private Block forKillLocation(Node n) {
+        Block b = cfg.getNodeToBlock().get(n);
+        assert b != null : "all lastAccess locations should have a block assignment from CFG";
+        return b;
+    }
+
+    private void printSchedule(String desc) {
+        Debug.printf("=== %s / %s / %s (%s) ===\n", getCFG().getStartBlock().getBeginNode().graph(), selectedStrategy, memsched, desc);
+        for (Block b : getCFG().getBlocks()) {
+            Debug.printf("==== b: %s. ", b);
+            Debug.printf("dom: %s. ", b.getDominator());
+            Debug.printf("post-dom: %s. ", b.getPostdominator());
+            Debug.printf("preds: %s. ", b.getPredecessors());
+            Debug.printf("succs: %s ====\n", b.getSuccessors());
+            BlockMap<Map<LocationIdentity, Node>> killMaps = getBlockToKillMap();
+            if (killMaps != null) {
+                Debug.printf("X block kills: \n");
+                for (LocationIdentity locId : killMaps.get(b).keySet()) {
+                    Debug.printf("X %s killed by %s\n", locId, killMaps.get(b).get(locId));
+                }
+            }
+
+            if (getBlockToNodesMap().get(b) != null) {
+                for (Node n : nodesFor(b)) {
+                    printNode(n);
+                }
+            } else {
+                for (Node n : b.getNodes()) {
+                    printNode(n);
+                }
+            }
+        }
+        Debug.printf("\n\n");
+    }
+
+    private static void printNode(Node n) {
+        Debug.printf("%s", n);
+        if (n instanceof MemoryCheckpoint.Single) {
+            Debug.printf(" // kills %s", ((MemoryCheckpoint.Single) n).getLocationIdentity());
+        } else if (n instanceof MemoryCheckpoint.Multi) {
+            Debug.printf(" // kills ");
+            for (LocationIdentity locid : ((MemoryCheckpoint.Multi) n).getLocationIdentities()) {
+                Debug.printf("%s, ", locid);
+            }
+        } else if (n instanceof FloatingReadNode) {
+            FloatingReadNode frn = (FloatingReadNode) n;
+            Debug.printf(" // from %s", frn.location().getLocationIdentity());
+            Debug.printf(", lastAccess: %s", frn.lastLocationAccess());
+            Debug.printf(", object: %s", frn.object());
+        } else if (n instanceof GuardNode) {
+            Debug.printf(", guard: %s", ((GuardNode) n).getGuard());
+        }
+        Debug.printf("\n");
     }
 
     public ControlFlowGraph getCFG() {
@@ -219,6 +411,14 @@ public final class SchedulePhase extends Phase {
      */
     public BlockMap<List<ScheduledNode>> getBlockToNodesMap() {
         return blockToNodesMap;
+    }
+
+    public BlockMap<Map<LocationIdentity, Node>> getBlockToKillMap() {
+        return blockToKillMap;
+    }
+
+    public NodeMap<Map<LocationIdentity, Node>> getMergeToKillMap() {
+        return mergeToKillMap;
     }
 
     /**
@@ -258,9 +458,9 @@ public final class SchedulePhase extends Phase {
         if (prevBlock != null) {
             return;
         }
-        // PhiNodes and FixedNodes should already have been placed in blocks by
+        // PhiNodes, ProxyNodes and FixedNodes should already have been placed in blocks by
         // ControlFlowGraph.identifyBlocks
-        if (node instanceof PhiNode || node instanceof FixedNode) {
+        if (node instanceof PhiNode || node instanceof ProxyNode || node instanceof FixedNode) {
             throw new SchedulingError("%s should already have been placed in a block", node);
         }
 
@@ -271,24 +471,142 @@ public final class SchedulePhase extends Phase {
                 break;
             case LATEST:
             case LATEST_OUT_OF_LOOPS:
-                block = latestBlock(node, strategy);
-                if (block == null) {
-                    block = earliestBlock(node);
-                } else if (strategy == SchedulingStrategy.LATEST_OUT_OF_LOOPS && !(node instanceof VirtualObjectNode)) {
-                    // schedule at the latest position possible in the outermost loop possible
-                    Block earliestBlock = earliestBlock(node);
-                    block = scheduleOutOfLoops(node, block, earliestBlock);
-                    if (!earliestBlock.dominates(block)) {
-                        throw new SchedulingError("%s: Graph cannot be scheduled : inconsistent for %s, %d usages, (%s needs to dominate %s)", node.graph(), node, node.usages().count(),
-                                        earliestBlock, block);
+                if (memsched == MemoryScheduling.OPTIMAL && node instanceof FloatingReadNode && ((FloatingReadNode) node).location().getLocationIdentity() != FINAL_LOCATION) {
+                    block = optimalBlock((FloatingReadNode) node, strategy);
+                } else {
+                    block = latestBlock(node, strategy);
+                    if (block == null) {
+                        block = earliestBlock(node);
+                    } else if (strategy == SchedulingStrategy.LATEST_OUT_OF_LOOPS && !(node instanceof VirtualObjectNode)) {
+                        // schedule at the latest position possible in the outermost loop possible
+                        Block earliestBlock = earliestBlock(node);
+                        Block before = block;
+                        block = scheduleOutOfLoops(node, block, earliestBlock);
+                        if (!earliestBlock.dominates(block)) {
+                            throw new SchedulingError("%s: Graph cannot be scheduled : inconsistent for %s, %d usages, (%s needs to dominate %s (before %s))", node.graph(), node,
+                                            node.usages().count(), earliestBlock, block, before);
+                        }
                     }
                 }
                 break;
             default:
                 throw new GraalInternalError("unknown scheduling strategy");
         }
+        assert earliestBlock(node).dominates(block) : "node " + node + " in block " + block + " is not dominated by earliest " + earliestBlock(node);
         cfg.getNodeToBlock().set(node, block);
         blockToNodesMap.get(block).add(node);
+    }
+
+    /**
+     * this method tries to find the latest position for a read, by taking the information gathered
+     * by {@link NewMemoryScheduleClosure} into account.
+     * 
+     * The idea is to iterate the dominator tree starting with the latest schedule of the read.
+     * 
+     * <pre>
+     *    U      upperbound block, defined by last access location of the floating read
+     *    &#9650;
+     *    E      earliest block
+     *    &#9650;
+     *    O      optimal block, first block that contains a kill of the read's location
+     *    &#9650;
+     *    L      latest block
+     * </pre>
+     * 
+     * i.e. <code>upperbound `dom` earliest `dom` optimal `dom` latest</code>. However, there're
+     * cases where <code>earliest `dom` optimal</code> is not true, because the position is
+     * (impliclitly) bounded by an anchor of the read's guard. In such cases, the earliest schedule
+     * is taken.
+     * 
+     */
+    private Block optimalBlock(FloatingReadNode n, SchedulingStrategy strategy) {
+        assert memsched == MemoryScheduling.OPTIMAL;
+
+        LocationIdentity locid = n.location().getLocationIdentity();
+        assert locid != FINAL_LOCATION;
+
+        Node upperBound = n.lastLocationAccess();
+        Block upperBoundBlock = forKillLocation(upperBound);
+        Block earliestBlock = earliestBlock(n);
+        assert upperBoundBlock.dominates(earliestBlock) : "upper bound (" + upperBoundBlock + ") should dominate earliest (" + earliestBlock + ")";
+
+        Block currentBlock = latestBlock(n, strategy);
+        assert currentBlock != null && earliestBlock.dominates(currentBlock) : "earliest (" + earliestBlock + ") should dominate latest block (" + currentBlock + ")";
+        Block previousBlock = currentBlock;
+
+        Debug.printf("processing %s (accessing %s): latest %s, earliest %s, upper bound %s (%s)\n", n, locid, currentBlock, earliestBlock, upperBoundBlock, upperBound);
+
+        int iterations = 0;
+        // iterate the dominator tree
+        while (true) {
+            iterations++;
+            assert earliestBlock.dominates(previousBlock) : "iterations: " + iterations;
+            Node lastKill = blockToKillMap.get(currentBlock).get(locid);
+            boolean isAtEarliest = earliestBlock == previousBlock && previousBlock != currentBlock;
+
+            if (lastKill.equals(upperBound)) {
+                // assign node to the block which kills the location
+
+                boolean outOfLoop = false;
+
+                // schedule read out of the loop if possible, in terms of killMaps and earliest
+                // schedule
+                if (currentBlock != earliestBlock && previousBlock != earliestBlock) {
+                    assert earliestBlock.dominates(currentBlock);
+                    Block t = currentBlock;
+                    while (t.getLoop() != null && t.getDominator() != null && earliestBlock.dominates(t)) {
+                        Block dom = t.getDominator();
+                        if (dom.getLoopDepth() < currentBlock.getLoopDepth() && blockToKillMap.get(dom).get(locid) == upperBound && earliestBlock.dominates(dom)) {
+                            printIterations(iterations, "moved out of loop, from " + currentBlock + " to " + dom);
+                            previousBlock = currentBlock = dom;
+                            outOfLoop = true;
+                        }
+                        t = dom;
+                    }
+                }
+
+                if (!outOfLoop && previousBlock.getBeginNode() instanceof MergeNode) {
+                    // merges kill locations right at the beginning of a block. if a merge is the
+                    // killing node, we assign it to the dominating node.
+
+                    MergeNode merge = (MergeNode) previousBlock.getBeginNode();
+                    Node killer = getMergeToKillMap().get(merge).get(locid);
+
+                    if (killer != null && killer == merge) {
+                        // check if we violate earliest schedule condition
+                        if (isAtEarliest) {
+                            printIterations(iterations, "earliest bound in merge: " + earliestBlock);
+                            return earliestBlock;
+                        }
+                        printIterations(iterations, "kill by merge: " + currentBlock);
+                        return currentBlock;
+                    }
+                }
+
+                // current block matches last access, that means the previous (dominated) block
+                // kills the location, therefore schedule read to previous block.
+                printIterations(iterations, "regular kill: " + previousBlock);
+                return previousBlock;
+            }
+
+            if (isAtEarliest) {
+                printIterations(iterations, "earliest bound: " + earliestBlock);
+                return earliestBlock;
+            }
+
+            if (upperBoundBlock == currentBlock) {
+                printIterations(iterations, "upper bound: " + currentBlock + ", previous: " + previousBlock);
+                return currentBlock;
+            }
+
+            previousBlock = currentBlock;
+            currentBlock = currentBlock.getDominator();
+            assert currentBlock != null;
+        }
+    }
+
+    private static void printIterations(int iterations, String desc) {
+        Debug.printf("iterations: %d,  %s\n", iterations, desc);
     }
 
     /**
@@ -319,6 +637,7 @@ public final class SchedulePhase extends Phase {
             }
         }
 
+        assert cdbc.block == null || earliestBlock(node).dominates(cdbc.block) : "failed to find correct latest schedule for " + node + ". cdbc: " + cdbc.block + ", earliest: " + earliestBlock(node);
         return cdbc.block;
     }
 
@@ -490,12 +809,20 @@ public final class SchedulePhase extends Phase {
 
     private void sortNodesWithinBlocks(StructuredGraph graph, SchedulingStrategy strategy) {
         NodeBitMap visited = graph.createNodeBitMap();
+        NodeBitMap beforeLastLocation = graph.createNodeBitMap();
         for (Block b : cfg.getBlocks()) {
-            sortNodesWithinBlock(b, visited, strategy);
+            sortNodesWithinBlock(b, visited, beforeLastLocation, strategy);
+            assert noDuplicatedNodesInBlock(b) : "duplicated nodes in " + b;
         }
     }
 
-    private void sortNodesWithinBlock(Block b, NodeBitMap visited, SchedulingStrategy strategy) {
+    private boolean noDuplicatedNodesInBlock(Block b) {
+        List<ScheduledNode> list = blockToNodesMap.get(b);
+        HashSet<ScheduledNode> hashset = new HashSet<>(list);
+        return list.size() == hashset.size();
+    }
+
+    private void sortNodesWithinBlock(Block b, NodeBitMap visited, NodeBitMap beforeLastLocation, SchedulingStrategy strategy) {
         if (visited.isMarked(b.getBeginNode()) || cfg.blockFor(b.getBeginNode()) != b) {
             throw new SchedulingError();
         }
@@ -510,12 +837,57 @@ public final class SchedulePhase extends Phase {
                 break;
             case LATEST:
             case LATEST_OUT_OF_LOOPS:
-                sortedInstructions = sortNodesWithinBlockLatest(b, visited);
+                sortedInstructions = sortNodesWithinBlockLatest(b, visited, beforeLastLocation);
                 break;
             default:
                 throw new GraalInternalError("unknown scheduling strategy");
         }
+        assert filterSchedulableNodes(blockToNodesMap.get(b)).size() == removeProxies(sortedInstructions).size() : "sorted block does not contain the same amount of nodes: " +
+                        filterSchedulableNodes(blockToNodesMap.get(b)) + " vs. " + removeProxies(sortedInstructions);
+        assert sameOrderForFixedNodes(blockToNodesMap.get(b), sortedInstructions) : "fixed nodes in sorted block are not in the same order";
         blockToNodesMap.put(b, sortedInstructions);
+    }
+
+    private static List<ScheduledNode> removeProxies(List<ScheduledNode> list) {
+        List<ScheduledNode> result = new ArrayList<>();
+        for (ScheduledNode n : list) {
+            if (!(n instanceof ProxyNode)) {
+                result.add(n);
+            }
+        }
+        return result;
+    }
+
+    private static List<ScheduledNode> filterSchedulableNodes(List<ScheduledNode> list) {
+        List<ScheduledNode> result = new ArrayList<>();
+        for (ScheduledNode n : list) {
+            if (!(n instanceof LocalNode) && !(n instanceof PhiNode)) {
+                result.add(n);
+            }
+        }
+        return result;
+    }
+
+    private static boolean sameOrderForFixedNodes(List<ScheduledNode> fixed, List<ScheduledNode> sorted) {
+        Iterator<ScheduledNode> fixedIterator = fixed.iterator();
+        Iterator<ScheduledNode> sortedIterator = sorted.iterator();
+
+        while (sortedIterator.hasNext()) {
+            ScheduledNode sortedCurrent = sortedIterator.next();
+            if (sortedCurrent instanceof FixedNode) {
+                if (!(fixedIterator.hasNext() && fixedIterator.next() == sortedCurrent)) {
+                    return false;
+                }
+            }
+        }
+
+        while (fixedIterator.hasNext()) {
+            if (fixedIterator.next() instanceof FixedNode) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -523,13 +895,33 @@ public final class SchedulePhase extends Phase {
      * all inputs. This means that a node is added to the list after all its inputs have been
      * processed.
      */
-    private List<ScheduledNode> sortNodesWithinBlockLatest(Block b, NodeBitMap visited) {
+    private List<ScheduledNode> sortNodesWithinBlockLatest(Block b, NodeBitMap visited, NodeBitMap beforeLastLocation) {
         List<ScheduledNode> instructions = blockToNodesMap.get(b);
         List<ScheduledNode> sortedInstructions = new ArrayList<>(blockToNodesMap.get(b).size() + 2);
+        List<FloatingReadNode> reads = new ArrayList<>();
 
-        for (ScheduledNode i : instructions) {
-            addToLatestSorting(b, i, sortedInstructions, visited);
+        if (memsched == MemoryScheduling.OPTIMAL) {
+            /*
+             * TODO: add assert for invariant
+             * "floatingreads occur always after memory checkpoints in unsorted list"
+             */
+            for (ScheduledNode i : instructions) {
+                if (i instanceof FloatingReadNode) {
+                    FloatingReadNode frn = (FloatingReadNode) i;
+                    if (frn.location().getLocationIdentity() != FINAL_LOCATION) {
+                        reads.add(frn);
+                        if (nodesFor(b).contains(frn.lastLocationAccess())) {
+                            assert !beforeLastLocation.isMarked(frn);
+                            beforeLastLocation.mark(frn);
+                        }
+                    }
+                }
+            }
         }
+        for (ScheduledNode i : instructions) {
+            addToLatestSorting(b, i, sortedInstructions, visited, reads, beforeLastLocation);
+        }
+        assert reads.size() == 0 : "not all reads are scheduled";
 
         // Make sure that last node gets really last (i.e. when a frame state successor hangs off
         // it).
@@ -558,7 +950,23 @@ public final class SchedulePhase extends Phase {
         return sortedInstructions;
     }
 
-    private void addUnscheduledToLatestSorting(Block b, VirtualState state, List<ScheduledNode> sortedInstructions, NodeBitMap visited) {
+    private void processKillLocation(Block b, Node node, LocationIdentity identity, List<ScheduledNode> sortedInstructions, NodeBitMap visited, List<FloatingReadNode> reads,
+                    NodeBitMap beforeLastLocation) {
+        for (FloatingReadNode frn : new ArrayList<>(reads)) { // TODO: change to iterator?
+            LocationIdentity readLocation = frn.location().getLocationIdentity();
+            assert readLocation != FINAL_LOCATION;
+            if (frn.lastLocationAccess() == node) {
+                assert identity == ANY_LOCATION || readLocation == identity : "location doesn't match: " + readLocation + ", " + identity;
+                beforeLastLocation.clear(frn);
+            } else if (!beforeLastLocation.isMarked(frn) && (readLocation == identity || (!(node instanceof StartNode) && ANY_LOCATION == identity))) {
+                // TODO: replace instanceof check with object identity check
+                reads.remove(frn);
+                addToLatestSorting(b, frn, sortedInstructions, visited, reads, beforeLastLocation);
+            }
+        }
+    }
+
+    private void addUnscheduledToLatestSorting(Block b, VirtualState state, List<ScheduledNode> sortedInstructions, NodeBitMap visited, List<FloatingReadNode> reads, NodeBitMap beforeLastLocation) {
         if (state != null) {
             // UnscheduledNodes should never be marked as visited.
             if (visited.isMarked(state)) {
@@ -567,47 +975,59 @@ public final class SchedulePhase extends Phase {
 
             for (Node input : state.inputs()) {
                 if (input instanceof VirtualState) {
-                    addUnscheduledToLatestSorting(b, (VirtualState) input, sortedInstructions, visited);
+                    addUnscheduledToLatestSorting(b, (VirtualState) input, sortedInstructions, visited, reads, beforeLastLocation);
                 } else {
-                    addToLatestSorting(b, (ScheduledNode) input, sortedInstructions, visited);
+                    addToLatestSorting(b, (ScheduledNode) input, sortedInstructions, visited, reads, beforeLastLocation);
                 }
             }
         }
     }
 
-    private void addToLatestSorting(Block b, ScheduledNode i, List<ScheduledNode> sortedInstructions, NodeBitMap visited) {
+    private void addToLatestSorting(Block b, ScheduledNode i, List<ScheduledNode> sortedInstructions, NodeBitMap visited, List<FloatingReadNode> reads, NodeBitMap beforeLastLocation) {
         if (i == null || visited.isMarked(i) || cfg.getNodeToBlock().get(i) != b || i instanceof PhiNode || i instanceof LocalNode) {
             return;
         }
 
         FrameState state = null;
-        WriteNode write = null;
         for (Node input : i.inputs()) {
-            if (input instanceof WriteNode && !visited.isMarked(input) && cfg.getNodeToBlock().get(input) == b) {
-                assert write == null;
-                write = (WriteNode) input;
-            } else if (input instanceof FrameState) {
+            if (input instanceof FrameState) {
                 assert state == null;
                 state = (FrameState) input;
             } else {
-                addToLatestSorting(b, (ScheduledNode) input, sortedInstructions, visited);
+                addToLatestSorting(b, (ScheduledNode) input, sortedInstructions, visited, reads, beforeLastLocation);
             }
         }
         List<FloatingNode> inputs = phantomInputs.get(i);
         if (inputs != null) {
             for (FloatingNode input : inputs) {
-                addToLatestSorting(b, input, sortedInstructions, visited);
+                addToLatestSorting(b, input, sortedInstructions, visited, reads, beforeLastLocation);
             }
         }
 
-        addToLatestSorting(b, (ScheduledNode) i.predecessor(), sortedInstructions, visited);
+        if (memsched == MemoryScheduling.OPTIMAL && reads.size() != 0) {
+            if (i instanceof MemoryCheckpoint.Single) {
+                LocationIdentity identity = ((MemoryCheckpoint.Single) i).getLocationIdentity();
+                processKillLocation(b, i, identity, sortedInstructions, visited, reads, beforeLastLocation);
+            } else if (i instanceof MemoryCheckpoint.Multi) {
+                for (LocationIdentity identity : ((MemoryCheckpoint.Multi) i).getLocationIdentities()) {
+                    processKillLocation(b, i, identity, sortedInstructions, visited, reads, beforeLastLocation);
+                }
+            }
+            assert MemoryCheckpoint.TypeAssertion.correctType(i);
+        }
+
+        addToLatestSorting(b, (ScheduledNode) i.predecessor(), sortedInstructions, visited, reads, beforeLastLocation);
         visited.mark(i);
-        addUnscheduledToLatestSorting(b, state, sortedInstructions, visited);
-        assert write == null || !visited.isMarked(write);
-        addToLatestSorting(b, write, sortedInstructions, visited);
+        addUnscheduledToLatestSorting(b, state, sortedInstructions, visited, reads, beforeLastLocation);
 
         // Now predecessors and inputs are scheduled => we can add this node.
-        sortedInstructions.add(i);
+        if (!sortedInstructions.contains(i)) {
+            sortedInstructions.add(i);
+        }
+
+        if (i instanceof FloatingReadNode) {
+            reads.remove(i);
+        }
     }
 
     /**

@@ -638,7 +638,7 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   }
 
   if (TraceGraal >= 2) {
-    tty->print_cr("Recording scope pc_offset=%d bci=%d frame=%d", pc_offset, bci, frame);
+    tty->print_cr("Recording scope pc_offset=%d bci=%d method=%s", pc_offset, bci, method->name_and_sig_as_C_string());
   }
 
   jint local_count = BytecodeFrame::numLocals(frame);
@@ -732,17 +732,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
   NativeInstruction* inst = nativeInstruction_at(_instructions->start() + pc_offset);
   jint next_pc_offset = CodeInstaller::pd_next_offset(inst, pc_offset, hotspot_method);
   
-  if (target->is_a(SystemDictionary::HotSpotInstalledCode_klass())) {
-    assert(inst->is_jump(), "jump expected");
-
-    CodeBlob* cb = (CodeBlob*) (address) HotSpotInstalledCode::codeBlob(target);
-    assert(cb != NULL, "npe");
-    
-    CodeInstaller::pd_relocate_CodeBlob(cb, inst);
-
-    return;
-  }
-
   if (debug_info != NULL) {
     oop frame = DebugInfo::bytecodePosition(debug_info);
     _debug_recorder->add_safepoint(next_pc_offset, create_oop_map(_total_frame_size, _parameter_count, debug_info));
@@ -755,7 +744,6 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
 
   if (foreign_call != NULL) {
     jlong foreign_call_destination = HotSpotForeignCallLinkage::address(foreign_call);
-
     CodeInstaller::pd_relocate_ForeignCall(inst, foreign_call_destination);
   } else { // method != NULL
     assert(hotspot_method != NULL, "unexpected JavaMethod");
@@ -764,7 +752,9 @@ void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
     TRACE_graal_3("method call");
     CodeInstaller::pd_relocate_JavaMethod(hotspot_method, pc_offset);
   }
+
   _next_call_type = MARK_INVOKE_INVALID;
+
   if (debug_info != NULL) {
     _debug_recorder->end_safepoint(next_pc_offset);
   }

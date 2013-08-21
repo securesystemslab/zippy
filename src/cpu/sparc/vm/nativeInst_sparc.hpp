@@ -55,6 +55,7 @@ class NativeInstruction VALUE_OBJ_CLASS_SPEC {
   bool is_dtrace_trap();
   bool is_nop()                        { return long_at(0) == nop_instruction(); }
   bool is_call()                       { return is_op(long_at(0), Assembler::call_op); }
+  bool is_call_reg()                   { return is_op(long_at(0), Assembler::arith_op); }
   bool is_sethi()                      { return (is_op2(long_at(0), Assembler::sethi_op2)
                                           && inv_rd(long_at(0)) != G0); }
 
@@ -70,8 +71,7 @@ class NativeInstruction VALUE_OBJ_CLASS_SPEC {
   bool is_zombie() {
     int x = long_at(0);
     return is_op3(x,
-                  VM_Version::v9_instructions_work() ?
-                    Assembler::ldsw_op3 : Assembler::lduw_op3,
+                  Assembler::ldsw_op3,
                   Assembler::ldst_op)
         && Assembler::inv_rs1(x) == G0
         && Assembler::inv_rd(x) == O7;
@@ -417,6 +417,19 @@ inline NativeCall* nativeCall_at(address instr) {
 #endif
   return call;
 }
+
+class NativeCallReg: public NativeInstruction {
+ public:
+  enum Sparc_specific_constants {
+    instruction_size      = 8,
+    return_address_offset = 8,
+    instruction_offset    = 0
+  };
+
+  address next_instruction_address() const {
+    return addr_at(instruction_size);
+  }
+};
 
 // The NativeFarCall is an abstraction for accessing/manipulating native call-anywhere
 // instructions in the sparcv9 vm.  Used to call native methods which may be loaded

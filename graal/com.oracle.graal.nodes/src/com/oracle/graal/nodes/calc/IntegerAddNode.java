@@ -29,7 +29,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "+")
-public class IntegerAddNode extends IntegerArithmeticNode implements Canonicalizable, LIRLowerable {
+public class IntegerAddNode extends IntegerArithmeticNode implements Canonicalizable {
 
     public IntegerAddNode(Kind kind, ValueNode x, ValueNode y) {
         super(kind, x, y);
@@ -37,7 +37,7 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
 
     @Override
     public boolean inferStamp() {
-        return updateStamp(StampTool.add(x().integerStamp(), y().integerStamp()));
+        return updateStamp(StampTool.add(x().stamp(), y().stamp()));
     }
 
     @Override
@@ -112,7 +112,7 @@ public class IntegerAddNode extends IntegerArithmeticNode implements Canonicaliz
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(ArithmeticLIRGenerator gen) {
         Value op1 = gen.operand(x());
         assert op1 != null : x() + ", this=" + this;
         Value op2 = gen.operand(y());

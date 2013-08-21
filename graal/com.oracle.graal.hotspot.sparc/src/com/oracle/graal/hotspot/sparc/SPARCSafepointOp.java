@@ -24,14 +24,11 @@ package com.oracle.graal.hotspot.sparc;
 
 import static com.oracle.graal.asm.sparc.SPARCMacroAssembler.*;
 import static com.oracle.graal.sparc.SPARC.*;
-import static com.oracle.graal.phases.GraalOptions.*;
-import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.sparc.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.sparc.*;
 import com.oracle.graal.lir.asm.*;
@@ -42,8 +39,6 @@ import com.oracle.graal.nodes.spi.*;
  */
 @Opcode("SAFEPOINT")
 public class SPARCSafepointOp extends SPARCLIRInstruction {
-
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
 
     @State protected LIRFrameState state;
     @Temp({OperandFlag.REG}) private AllocatableValue temp;
@@ -59,10 +54,8 @@ public class SPARCSafepointOp extends SPARCLIRInstruction {
     @Override
     public void emitCode(TargetMethodAssembler tasm, SPARCMacroAssembler masm) {
         final int pos = masm.codeBuffer.position();
-        final int offset = SafepointPollOffset.getValue() % unsafe.pageSize();
         Register scratch = ((RegisterValue) temp).getRegister();
-        new Setx(config.safepointPollingAddress + offset, scratch).emit(masm);
-        tasm.recordMark(config.isPollingPageFar ? Marks.MARK_POLL_FAR : Marks.MARK_POLL_NEAR);
+        new Setx(config.safepointPollingAddress, scratch).emit(masm);
         tasm.recordInfopoint(pos, state, InfopointReason.SAFEPOINT);
         new Ldx(new SPARCAddress(scratch, 0), g0).emit(masm);
     }

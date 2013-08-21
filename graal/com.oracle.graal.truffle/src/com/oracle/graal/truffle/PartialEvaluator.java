@@ -47,8 +47,9 @@ import com.oracle.graal.phases.PhasePlan.PhasePosition;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.common.CanonicalizerPhase.CustomCanonicalizer;
 import com.oracle.graal.phases.tiers.*;
-import com.oracle.graal.truffle.nodes.*;
-import com.oracle.graal.truffle.nodes.NewFrameNode.VirtualOnlyInstanceNode;
+import com.oracle.graal.truffle.nodes.asserts.*;
+import com.oracle.graal.truffle.nodes.frame.*;
+import com.oracle.graal.truffle.nodes.frame.NewFrameNode.VirtualOnlyInstanceNode;
 import com.oracle.graal.truffle.phases.*;
 import com.oracle.graal.truffle.printer.*;
 import com.oracle.graal.truffle.printer.method.*;
@@ -160,9 +161,9 @@ public class PartialEvaluator {
                 canonicalizerPhase.apply(graph);
                 new DeadCodeEliminationPhase().apply(graph);
 
-                InliningPhase inliningPhase = new InliningPhase(metaAccessProvider, null, replacements, assumptions, cache, plan, OptimisticOptimizations.NONE);
-                inliningPhase.setCustomCanonicalizer(customCanonicalizer);
-                inliningPhase.apply(graph);
+                HighTierContext context = new HighTierContext(metaAccessProvider, assumptions, replacements, cache, plan, OptimisticOptimizations.NONE);
+                InliningPhase inliningPhase = new InliningPhase(customCanonicalizer);
+                inliningPhase.apply(graph, context);
 
                 // Convert deopt to guards.
                 new ConvertDeoptimizeToGuardPhase().apply(graph);
@@ -177,7 +178,7 @@ public class PartialEvaluator {
 
                 // EA frame and clean up.
                 new VerifyFrameDoesNotEscapePhase().apply(graph, false);
-                new PartialEscapePhase(false, new CanonicalizerPhase(!AOTCompilation.getValue())).apply(graph, new HighTierContext(metaAccessProvider, assumptions, replacements));
+                new PartialEscapePhase(false, new CanonicalizerPhase(!AOTCompilation.getValue())).apply(graph, context);
                 new VerifyNoIntrinsicsLeftPhase().apply(graph, false);
                 for (MaterializeFrameNode materializeNode : graph.getNodes(MaterializeFrameNode.class).snapshot()) {
                     materializeNode.replaceAtUsages(materializeNode.getFrame());

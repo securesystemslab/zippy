@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -199,7 +199,7 @@ int LinuxAttachListener::init() {
   ::unlink(initial_path);
   int res = ::bind(listener, (struct sockaddr*)&addr, sizeof(addr));
   if (res == -1) {
-    RESTARTABLE(::close(listener), res);
+    ::close(listener);
     return -1;
   }
 
@@ -212,7 +212,7 @@ int LinuxAttachListener::init() {
       }
   }
   if (res == -1) {
-    RESTARTABLE(::close(listener), res);
+    ::close(listener);
     ::unlink(initial_path);
     return -1;
   }
@@ -340,24 +340,21 @@ LinuxAttachOperation* LinuxAttachListener::dequeue() {
     struct ucred cred_info;
     socklen_t optlen = sizeof(cred_info);
     if (::getsockopt(s, SOL_SOCKET, SO_PEERCRED, (void*)&cred_info, &optlen) == -1) {
-      int res;
-      RESTARTABLE(::close(s), res);
+      ::close(s);
       continue;
     }
     uid_t euid = geteuid();
     gid_t egid = getegid();
 
     if (cred_info.uid != euid || cred_info.gid != egid) {
-      int res;
-      RESTARTABLE(::close(s), res);
+      ::close(s);
       continue;
     }
 
     // peer credential look okay so we read the request
     LinuxAttachOperation* op = read_request(s);
     if (op == NULL) {
-      int res;
-      RESTARTABLE(::close(s), res);
+      ::close(s);
       continue;
     } else {
       return op;
@@ -408,7 +405,7 @@ void LinuxAttachOperation::complete(jint result, bufferedStream* st) {
   }
 
   // done
-  RESTARTABLE(::close(this->socket()), rc);
+  ::close(this->socket());
 
   // were we externally suspended while we were waiting?
   thread->check_and_wait_while_suspended();
@@ -433,6 +430,30 @@ AttachOperation* AttachListener::dequeue() {
   thread->check_and_wait_while_suspended();
 
   return op;
+}
+
+
+// Performs initialization at vm startup
+// For Linux we remove any stale .java_pid file which could cause
+// an attaching process to think we are ready to receive on the
+// domain socket before we are properly initialized
+
+void AttachListener::vm_start() {
+  char fn[UNIX_PATH_MAX];
+  struct stat64 st;
+  int ret;
+
+  int n = snprintf(fn, UNIX_PATH_MAX, "%s/.java_pid%d",
+           os::get_temp_directory(), os::current_process_id());
+  assert(n < (int)UNIX_PATH_MAX, "java_pid file name buffer overflow");
+
+  RESTARTABLE(::stat64(fn, &st), ret);
+  if (ret == 0) {
+    ret = ::unlink(fn);
+    if (ret == -1) {
+      debug_only(warning("failed to remove stale attach pid file at %s", fn));
+    }
+  }
 }
 
 int AttachListener::pd_init() {

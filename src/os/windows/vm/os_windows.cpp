@@ -1420,34 +1420,40 @@ static int _locate_module_by_addr(int pid, char * mod_fname, address base_addr,
 
 bool os::dll_address_to_library_name(address addr, char* buf,
                                      int buflen, int* offset) {
+  // buf is not optional, but offset is optional
+  assert(buf != NULL, "sanity check");
+
 // NOTE: the reason we don't use SymGetModuleInfo() is it doesn't always
 //       return the full path to the DLL file, sometimes it returns path
 //       to the corresponding PDB file (debug info); sometimes it only
 //       returns partial path, which makes life painful.
 
-   struct _modinfo mi;
-   mi.addr      = addr;
-   mi.full_path = buf;
-   mi.buflen    = buflen;
-   int pid = os::current_process_id();
-   if (enumerate_modules(pid, _locate_module_by_addr, (void *)&mi)) {
-      // buf already contains path name
-      if (offset) *offset = addr - mi.base_addr;
-      return true;
-   } else {
-      if (buf) buf[0] = '\0';
-      if (offset) *offset = -1;
-      return false;
-   }
+  struct _modinfo mi;
+  mi.addr      = addr;
+  mi.full_path = buf;
+  mi.buflen    = buflen;
+  int pid = os::current_process_id();
+  if (enumerate_modules(pid, _locate_module_by_addr, (void *)&mi)) {
+    // buf already contains path name
+    if (offset) *offset = addr - mi.base_addr;
+    return true;
+  }
+
+  buf[0] = '\0';
+  if (offset) *offset = -1;
+  return false;
 }
 
 bool os::dll_address_to_function_name(address addr, char *buf,
                                       int buflen, int *offset) {
+  // buf is not optional, but offset is optional
+  assert(buf != NULL, "sanity check");
+
   if (Decoder::decode(addr, buf, buflen, offset)) {
     return true;
   }
   if (offset != NULL)  *offset  = -1;
-  if (buf != NULL) buf[0] = '\0';
+  buf[0] = '\0';
   return false;
 }
 
@@ -2334,6 +2340,11 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
 #endif
   Thread* t = ThreadLocalStorage::get_thread_slow();          // slow & steady
 
+  // Handle SafeFetch32 and SafeFetchN exceptions.
+  if (StubRoutines::is_safefetch_fault(pc)) {
+    return Handle_Exception(exceptionInfo, StubRoutines::continuation_for_safefetch_fault(pc));
+  }
+
 #ifndef _WIN64
   // Execution protection violation - win32 running on AMD64 only
   // Handled first to avoid misdiagnosis as a "normal" access violation;
@@ -2541,7 +2552,7 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
                   addr = (address)((uintptr_t)addr &
                          (~((uintptr_t)os::vm_page_size() - (uintptr_t)1)));
                   os::commit_memory((char *)addr, thread->stack_base() - addr,
-                                    false );
+                                    !ExecMem);
                   return EXCEPTION_CONTINUE_EXECUTION;
           }
           else
@@ -2703,6 +2714,19 @@ address os::win32::fast_jni_accessor_wrapper(BasicType type) {
     default:        ShouldNotReachHere();
   }
   return (address)-1;
+}
+#endif
+
+#ifndef PRODUCT
+void os::win32::call_test_func_with_wrapper(void (*funcPtr)(void)) {
+  // Install a win32 structured exception handler around the test
+  // function call so the VM can generate an error dump if needed.
+  __try {
+    (*funcPtr)();
+  } __except(topLevelExceptionFilter(
+             (_EXCEPTION_POINTERS*)_exception_info())) {
+    // Nothing to do.
+  }
 }
 #endif
 
@@ -2892,7 +2916,7 @@ static char* allocate_pages_individually(size_t bytes, char* addr, DWORD flags, 
                                 PAGE_READWRITE);
   // If reservation failed, return NULL
   if (p_buf == NULL) return NULL;
-  MemTracker::record_virtual_memory_reserve((address)p_buf, size_of_reserve, CALLER_PC);
+  MemTracker::record_virtual_memory_reserve((address)p_buf, size_of_reserve, mtNone, CALLER_PC);
   os::release_memory(p_buf, bytes + chunk_size);
 
   // we still need to round up to a page boundary (in case we are using large pages)
@@ -2958,7 +2982,7 @@ static char* allocate_pages_individually(size_t bytes, char* addr, DWORD flags, 
         // need to create a dummy 'reserve' record to match
         // the release.
         MemTracker::record_virtual_memory_reserve((address)p_buf,
-          bytes_to_release, CALLER_PC);
+          bytes_to_release, mtNone, CALLER_PC);
         os::release_memory(p_buf, bytes_to_release);
       }
 #ifdef ASSERT
@@ -2978,9 +3002,10 @@ static char* allocate_pages_individually(size_t bytes, char* addr, DWORD flags, 
   // Although the memory is allocated individually, it is returned as one.
   // NMT records it as one block.
   address pc = CALLER_PC;
-  MemTracker::record_virtual_memory_reserve((address)p_buf, bytes, pc);
   if ((flags & MEM_COMMIT) != 0) {
-    MemTracker::record_virtual_memory_commit((address)p_buf, bytes, pc);
+    MemTracker::record_virtual_memory_reserve_and_commit((address)p_buf, bytes, mtNone, pc);
+  } else {
+    MemTracker::record_virtual_memory_reserve((address)p_buf, bytes, mtNone, pc);
   }
 
   // made it this far, success
@@ -3171,8 +3196,7 @@ char* os::reserve_memory_special(size_t bytes, char* addr, bool exec) {
     char * res = (char *)VirtualAlloc(NULL, bytes, flag, prot);
     if (res != NULL) {
       address pc = CALLER_PC;
-      MemTracker::record_virtual_memory_reserve((address)res, bytes, pc);
-      MemTracker::record_virtual_memory_commit((address)res, bytes, pc);
+      MemTracker::record_virtual_memory_reserve_and_commit((address)res, bytes, mtNone, pc);
     }
 
     return res;
@@ -3181,12 +3205,19 @@ char* os::reserve_memory_special(size_t bytes, char* addr, bool exec) {
 
 bool os::release_memory_special(char* base, size_t bytes) {
   assert(base != NULL, "Sanity check");
-  // Memory allocated via reserve_memory_special() is committed
-  MemTracker::record_virtual_memory_uncommit((address)base, bytes);
   return release_memory(base, bytes);
 }
 
 void os::print_statistics() {
+}
+
+static void warn_fail_commit_memory(char* addr, size_t bytes, bool exec) {
+  int err = os::get_last_error();
+  char buf[256];
+  size_t buf_len = os::lasterror(buf, sizeof(buf));
+  warning("INFO: os::commit_memory(" PTR_FORMAT ", " SIZE_FORMAT
+          ", %d) failed; error='%s' (DOS error/errno=%d)", addr, bytes,
+          exec, buf_len != 0 ? buf : "<no_error_string>", err);
 }
 
 bool os::pd_commit_memory(char* addr, size_t bytes, bool exec) {
@@ -3203,11 +3234,17 @@ bool os::pd_commit_memory(char* addr, size_t bytes, bool exec) {
   // is always within a reserve covered by a single VirtualAlloc
   // in that case we can just do a single commit for the requested size
   if (!UseNUMAInterleaving) {
-    if (VirtualAlloc(addr, bytes, MEM_COMMIT, PAGE_READWRITE) == NULL) return false;
+    if (VirtualAlloc(addr, bytes, MEM_COMMIT, PAGE_READWRITE) == NULL) {
+      NOT_PRODUCT(warn_fail_commit_memory(addr, bytes, exec);)
+      return false;
+    }
     if (exec) {
       DWORD oldprot;
       // Windows doc says to use VirtualProtect to get execute permissions
-      if (!VirtualProtect(addr, bytes, PAGE_EXECUTE_READWRITE, &oldprot)) return false;
+      if (!VirtualProtect(addr, bytes, PAGE_EXECUTE_READWRITE, &oldprot)) {
+        NOT_PRODUCT(warn_fail_commit_memory(addr, bytes, exec);)
+        return false;
+      }
     }
     return true;
   } else {
@@ -3222,12 +3259,20 @@ bool os::pd_commit_memory(char* addr, size_t bytes, bool exec) {
       MEMORY_BASIC_INFORMATION alloc_info;
       VirtualQuery(next_alloc_addr, &alloc_info, sizeof(alloc_info));
       size_t bytes_to_rq = MIN2(bytes_remaining, (size_t)alloc_info.RegionSize);
-      if (VirtualAlloc(next_alloc_addr, bytes_to_rq, MEM_COMMIT, PAGE_READWRITE) == NULL)
+      if (VirtualAlloc(next_alloc_addr, bytes_to_rq, MEM_COMMIT,
+                       PAGE_READWRITE) == NULL) {
+        NOT_PRODUCT(warn_fail_commit_memory(next_alloc_addr, bytes_to_rq,
+                                            exec);)
         return false;
+      }
       if (exec) {
         DWORD oldprot;
-        if (!VirtualProtect(next_alloc_addr, bytes_to_rq, PAGE_EXECUTE_READWRITE, &oldprot))
+        if (!VirtualProtect(next_alloc_addr, bytes_to_rq,
+                            PAGE_EXECUTE_READWRITE, &oldprot)) {
+          NOT_PRODUCT(warn_fail_commit_memory(next_alloc_addr, bytes_to_rq,
+                                              exec);)
           return false;
+        }
       }
       bytes_remaining -= bytes_to_rq;
       next_alloc_addr += bytes_to_rq;
@@ -3239,7 +3284,24 @@ bool os::pd_commit_memory(char* addr, size_t bytes, bool exec) {
 
 bool os::pd_commit_memory(char* addr, size_t size, size_t alignment_hint,
                        bool exec) {
-  return commit_memory(addr, size, exec);
+  // alignment_hint is ignored on this OS
+  return pd_commit_memory(addr, size, exec);
+}
+
+void os::pd_commit_memory_or_exit(char* addr, size_t size, bool exec,
+                                  const char* mesg) {
+  assert(mesg != NULL, "mesg must be specified");
+  if (!pd_commit_memory(addr, size, exec)) {
+    warn_fail_commit_memory(addr, size, exec);
+    vm_exit_out_of_memory(size, OOM_MMAP_ERROR, mesg);
+  }
+}
+
+void os::pd_commit_memory_or_exit(char* addr, size_t size,
+                                  size_t alignment_hint, bool exec,
+                                  const char* mesg) {
+  // alignment_hint is ignored on this OS
+  pd_commit_memory_or_exit(addr, size, exec, mesg);
 }
 
 bool os::pd_uncommit_memory(char* addr, size_t bytes) {
@@ -3257,7 +3319,7 @@ bool os::pd_release_memory(char* addr, size_t bytes) {
 }
 
 bool os::pd_create_stack_guard_pages(char* addr, size_t size) {
-  return os::commit_memory(addr, size);
+  return os::commit_memory(addr, size, !ExecMem);
 }
 
 bool os::remove_stack_guard_pages(char* addr, size_t size) {
@@ -3281,8 +3343,9 @@ bool os::protect_memory(char* addr, size_t bytes, ProtType prot,
 
   // Strange enough, but on Win32 one can change protection only for committed
   // memory, not a big deal anyway, as bytes less or equal than 64K
-  if (!is_committed && !commit_memory(addr, bytes, prot == MEM_PROT_RWX)) {
-    fatal("cannot commit protection page");
+  if (!is_committed) {
+    commit_memory_or_exit(addr, bytes, prot == MEM_PROT_RWX,
+                          "cannot commit protection page");
   }
   // One cannot use os::guard_memory() here, as on Win32 guard page
   // have different (one-shot) semantics, from MSDN on PAGE_GUARD:
@@ -4641,6 +4704,34 @@ void os::pause() {
     jio_fprintf(stderr,
       "Could not open pause file '%s', continuing immediately.\n", filename);
   }
+}
+
+os::WatcherThreadCrashProtection::WatcherThreadCrashProtection() {
+  assert(Thread::current()->is_Watcher_thread(), "Must be WatcherThread");
+}
+
+/*
+ * See the caveats for this class in os_windows.hpp
+ * Protects the callback call so that raised OS EXCEPTIONS causes a jump back
+ * into this method and returns false. If no OS EXCEPTION was raised, returns
+ * true.
+ * The callback is supposed to provide the method that should be protected.
+ */
+bool os::WatcherThreadCrashProtection::call(os::CrashProtectionCallback& cb) {
+  assert(Thread::current()->is_Watcher_thread(), "Only for WatcherThread");
+  assert(!WatcherThread::watcher_thread()->has_crash_protection(),
+      "crash_protection already set?");
+
+  bool success = true;
+  __try {
+    WatcherThread::watcher_thread()->set_crash_protection(this);
+    cb.call();
+  } __except(EXCEPTION_EXECUTE_HANDLER) {
+    // only for protection, nothing to do
+    success = false;
+  }
+  WatcherThread::watcher_thread()->set_crash_protection(NULL);
+  return success;
 }
 
 // An Event wraps a win32 "CreateEvent" kernel handle.

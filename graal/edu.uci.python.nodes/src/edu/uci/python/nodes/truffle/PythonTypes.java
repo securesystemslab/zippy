@@ -26,15 +26,14 @@ package edu.uci.python.nodes.truffle;
 
 import java.math.BigInteger;
 
-
 import com.oracle.truffle.api.dsl.TypeCast;
 import com.oracle.truffle.api.dsl.TypeCheck;
 import com.oracle.truffle.api.dsl.TypeSystem;
 
 import edu.uci.python.runtime.datatypes.*;
 
-@TypeSystem({int.class, BigInteger.class, double.class, PComplex.class, char.class, String.class, PDictionary.class, PList.class, PTuple.class, PSequence.class, PSet.class, PFrozenSet.class,
-                PBaseSet.class, PIntegerArray.class, PDoubleArray.class, PCharArray.class, PArray.class, PSlice.class, PObject.class, boolean.class, PCallable.class})
+@TypeSystem({int.class, BigInteger.class, double.class, PComplex.class, char.class, boolean.class, String.class, PDictionary.class, PList.class, PTuple.class, PSequence.class, PSet.class,
+                PFrozenSet.class, PBaseSet.class, PIntegerArray.class, PDoubleArray.class, PCharArray.class, PArray.class, PSlice.class, PObject.class, PCallable.class})
 public class PythonTypes {
 
     @TypeCheck

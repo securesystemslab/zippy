@@ -4,7 +4,9 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -344,7 +346,11 @@ public class NodeUtil {
         for (long fieldOffset : nodeClass.childrenOffsets) {
             Node[] children = (Node[]) unsafe.getObject(node, fieldOffset);
             if (children != null) {
-                nodes.addAll(Arrays.asList(children));
+                for (Node child : children) {
+                    if (child != null) {
+                        nodes.add(child);
+                    }
+                }
             }
         }
 
@@ -545,23 +551,25 @@ public class NodeUtil {
     }
 
     public static int countNodes(Node root, Class<?> clazz) {
-        NodeCountVisitor nodeCount = new NodeCountVisitor(clazz);
+        NodeCountVisitor nodeCount = new NodeCountVisitor(root, clazz);
         root.accept(nodeCount);
         return nodeCount.nodeCount;
     }
 
     private static final class NodeCountVisitor implements NodeVisitor {
 
-        private final Class<?> clazz;
         int nodeCount;
+        private final Node root;
+        private final Class<?> clazz;
 
-        private NodeCountVisitor(Class<?> clazz) {
+        private NodeCountVisitor(Node root, Class<?> clazz) {
+            this.root = root;
             this.clazz = clazz;
         }
 
         @Override
         public boolean visit(Node node) {
-            if (node instanceof RootNode && nodeCount > 0) {
+            if (node instanceof RootNode && node != root) {
                 return false;
             }
             if (clazz == null || clazz.isInstance(node)) {
@@ -589,7 +597,7 @@ public class NodeUtil {
             p.print("  ");
         }
         if (parent == null) {
-            p.println(node.getClass().getSimpleName());
+            p.println(nodeName(node));
         } else {
             String fieldName = "unknownField";
             NodeField[] fields = NodeClass.get(parent.getClass()).fields;
@@ -611,7 +619,7 @@ public class NodeUtil {
             }
             p.print(fieldName);
             p.print(" = ");
-            p.println(node.getClass().getSimpleName());
+            p.println(nodeName(node));
         }
 
         for (Node child : node.getChildren()) {
@@ -649,7 +657,7 @@ public class NodeUtil {
             return;
         }
 
-        p.print(node.getClass().getSimpleName());
+        p.print(nodeName(node));
 
         ArrayList<NodeField> childFields = new ArrayList<>();
         String sep = "";
@@ -704,4 +712,7 @@ public class NodeUtil {
         }
     }
 
+    private static String nodeName(Node node) {
+        return node.getClass().getSimpleName();
+    }
 }

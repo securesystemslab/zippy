@@ -244,7 +244,7 @@ def getCTW(vm,mode):
             args.append('-G:-Inline')
     if mode >= CTWMode.NoComplex:
         if commands.isGraalEnabled(vm):
-            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
         
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
     
@@ -260,7 +260,7 @@ class Tee:
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[], benchmarkCompilationRate=True):
+    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[], benchmarkCompilationRate=False):
 
         self.name = name
         self.successREs = successREs

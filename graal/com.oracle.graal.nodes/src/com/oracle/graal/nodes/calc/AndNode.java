@@ -29,7 +29,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "&")
-public final class AndNode extends BitLogicNode implements Canonicalizable, LIRLowerable {
+public final class AndNode extends BitLogicNode implements Canonicalizable {
 
     public AndNode(Kind kind, ValueNode x, ValueNode y) {
         super(kind, x, y);
@@ -37,7 +37,7 @@ public final class AndNode extends BitLogicNode implements Canonicalizable, LIRL
 
     @Override
     public boolean inferStamp() {
-        return updateStamp(StampTool.and(x().integerStamp(), y().integerStamp()));
+        return updateStamp(StampTool.and(x().stamp(), y().stamp()));
     }
 
     @Override
@@ -80,7 +80,7 @@ public final class AndNode extends BitLogicNode implements Canonicalizable, LIRL
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(ArithmeticLIRGenerator gen) {
         gen.setResult(this, gen.emitAnd(gen.operand(x()), gen.operand(y())));
     }
 }

@@ -29,7 +29,9 @@ import java.lang.reflect.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
+import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.word.*;
 
 /**
@@ -38,6 +40,7 @@ import com.oracle.graal.word.*;
 @ClassSubstitution(java.lang.Class.class)
 public class ClassSubstitutions {
 
+    @MacroSubstitution(macro = ClassGetModifiersNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static int getModifiers(final Class<?> thisObj) {
         Word klass = loadWordFromObject(thisObj, klassOffset());
@@ -49,6 +52,7 @@ public class ClassSubstitutions {
         }
     }
 
+    @MacroSubstitution(macro = ClassIsInterfaceNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static boolean isInterface(final Class<?> thisObj) {
         Word klass = loadWordFromObject(thisObj, klassOffset());
@@ -60,6 +64,7 @@ public class ClassSubstitutions {
         }
     }
 
+    @MacroSubstitution(macro = ClassIsArrayNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static boolean isArray(final Class<?> thisObj) {
         Word klass = loadWordFromObject(thisObj, klassOffset());
@@ -70,12 +75,14 @@ public class ClassSubstitutions {
         }
     }
 
+    @MacroSubstitution(macro = ClassIsPrimitiveNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static boolean isPrimitive(final Class<?> thisObj) {
         Word klass = loadWordFromObject(thisObj, klassOffset());
         return klass.equal(0);
     }
 
+    @MacroSubstitution(macro = ClassGetSuperclassNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static Class<?> getSuperclass(final Class<?> thisObj) {
         Word klass = loadWordFromObject(thisObj, klassOffset());
@@ -97,6 +104,7 @@ public class ClassSubstitutions {
         return null;
     }
 
+    @MacroSubstitution(macro = ClassGetComponentTypeNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static Class<?> getComponentType(final Class<?> thisObj) {
         Word klass = loadWordFromObject(thisObj, klassOffset());
@@ -108,6 +116,7 @@ public class ClassSubstitutions {
         return null;
     }
 
+    @MacroSubstitution(macro = ClassIsInstanceNode.class, isStatic = false)
     @MethodSubstitution(isStatic = false)
     public static boolean isInstance(final Class<?> thisObj, Object obj) {
         return !isPrimitive(thisObj) && ConditionalNode.materializeIsInstance(thisObj, obj);

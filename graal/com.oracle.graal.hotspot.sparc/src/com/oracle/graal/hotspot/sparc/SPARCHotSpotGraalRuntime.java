@@ -23,6 +23,8 @@
 package com.oracle.graal.hotspot.sparc;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.sparc.*;
@@ -53,7 +55,7 @@ final class SPARCHotSpotGraalRuntime extends HotSpotGraalRuntime {
     protected TargetDescription createTarget() {
         final int stackFrameAlignment = 16;
         final int implicitNullCheckLimit = 4096;
-        final boolean inlineObjects = false;  // TODO We might want to change this later.
+        final boolean inlineObjects = true;
         return new TargetDescription(createArchitecture(), true, stackFrameAlignment, implicitNullCheckLimit, inlineObjects);
     }
 
@@ -65,5 +67,10 @@ final class SPARCHotSpotGraalRuntime extends HotSpotGraalRuntime {
     @Override
     protected HotSpotRuntime createRuntime() {
         return new SPARCHotSpotRuntime(config, this);
+    }
+
+    @Override
+    protected Value[] getNativeABICallerSaveRegisters() {
+        throw GraalInternalError.unimplemented();
     }
 }

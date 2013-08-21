@@ -27,7 +27,7 @@ import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.truffle.*;
-import com.oracle.graal.truffle.nodes.*;
+import com.oracle.graal.truffle.nodes.frame.*;
 
 /**
  * Verification phase for checking that no frame intrinsic nodes introduced by the

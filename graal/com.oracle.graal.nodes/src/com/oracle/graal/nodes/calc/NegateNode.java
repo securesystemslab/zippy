@@ -29,7 +29,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * The {@code NegateNode} node negates its operand.
  */
-public final class NegateNode extends FloatingNode implements Canonicalizable, LIRLowerable {
+public final class NegateNode extends FloatingNode implements Canonicalizable, ArithmeticLIRLowerable {
 
     @Input private ValueNode x;
 
@@ -77,7 +77,7 @@ public final class NegateNode extends FloatingNode implements Canonicalizable, L
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(ArithmeticLIRGenerator gen) {
         gen.setResult(this, gen.emitNegate(gen.operand(x())));
     }
 }

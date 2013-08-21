@@ -253,6 +253,11 @@ public abstract class HotSpotGraalRuntime implements GraalRuntime {
 
     protected abstract HotSpotRuntime createRuntime();
 
+    /**
+     * Gets the registers that must be saved across a foreign call into the runtime.
+     */
+    protected abstract Value[] getNativeABICallerSaveRegisters();
+
     public HotSpotVMConfig getConfig() {
         return config;
     }

@@ -26,7 +26,7 @@ package edu.uci.python.nodes.expressions;
 
 import java.math.BigInteger;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 
 import static edu.uci.python.nodes.expressions.ArithmeticUtil.*;
 
@@ -57,22 +57,22 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
     public abstract static class OrNode extends BinaryBooleanNode {
 
-        @Specialization
+        @Specialization(order = 1)
         int doInteger(int left, int right) {
             return isNotZero(left) ? left : right;
         }
 
-        @Specialization
+        @Specialization(order = 2)
         BigInteger doBitInteger(BigInteger left, BigInteger right) {
             return isNotZero(left) ? left : right;
         }
 
-        @Specialization
+        @Specialization(order = 3)
         double doDouble(double left, double right) {
             return isNotZero(left) ? left : right;
         }
 
-        @Specialization
+        @Specialization(order = 4)
         boolean doBoolean(boolean left, boolean right) {
             return left || right;
         }

@@ -4,7 +4,9 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -42,6 +44,15 @@ public class CompilerDirectives {
      * insert a transfer to the interpreter.
      */
     public static void transferToInterpreter() {
+    }
+
+    /**
+     * Returns a boolean value indicating whether the method is executed in the interpreter.
+     * 
+     * @return {@code true} when executed in the interpreter, {@code false} in compiled code.
+     */
+    public static boolean inInterpreter() {
+        return true;
     }
 
     /**
@@ -134,10 +145,57 @@ public class CompilerDirectives {
      * @param clazz the specified type of the value
      * @return the value
      */
-    @SuppressWarnings("unchecked")
     @Unsafe
     public static <T> T unsafeCast(Object value, Class<T> clazz) {
+        return unsafeCast(value, clazz, null, null);
+    }
+
+    /**
+     * Associates the given type token with the given value for the case that condition is true.
+     * 
+     * @param condition the custom type check
+     * @param value the value that is of the given custom type after the check
+     * @param customType the custom type that should be associated with the value
+     * @return the type check condition
+     */
+    public static boolean customTypeCheck(boolean condition, Object value, Object customType) {
+        return condition;
+    }
+
+    /**
+     * Treats the given value as a value of the given class. The class must evaluate to a constant.
+     * If the compiler can prove that the given value is of the given custom type, the cast is safe.
+     * 
+     * @param value the value that is known to have the specified type
+     * @param clazz the specified type of the value
+     * @param receiver the receiver on which the custom type is tested
+     * @param customType the custom type that if present on a value makes this unsafe cast safe
+     * @return the value
+     */
+    @SuppressWarnings("unchecked")
+    @Unsafe
+    public static <T> T unsafeCast(Object value, Class<T> clazz, Object receiver, Object customType) {
         return (T) value;
+    }
+
+    /**
+     * Proxies an object instance into an instance that adds a custom location identity on its
+     * accesses via sun.misc.Unsafe. This means that the accesses on these kind of location
+     * identities can only alias among themselves. It also allows to specify a custom type for the
+     * receiver values of follow-up unsafe accesses. Both the custom type and the location identity
+     * must evaluate to a constant. Furthermore, you should use the proxied receiver object
+     * immediately for one read or write access via a sun.misc.Unsafe method and not store it
+     * anywhere.
+     * 
+     * @param receiver the object that is accessed via sun.misc.Unsafe
+     * @param customType the expected type of the receiver object of follow-up unsafe accesses
+     * @param locationIdentity the location identity token that can be used for improved global
+     *            value numbering or null
+     * @return the accessed value
+     */
+    @Unsafe
+    public static Object unsafeCustomization(Object receiver, Object customType, Object locationIdentity) {
+        return receiver;
     }
 
     /**

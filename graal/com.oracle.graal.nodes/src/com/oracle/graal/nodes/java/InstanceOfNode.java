@@ -23,7 +23,6 @@
 package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
@@ -58,19 +57,20 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
 
     @Override
     public LogicNode canonical(CanonicalizerTool tool) {
-        assert object() != null : this;
-
-        ObjectStamp stamp = object().objectStamp();
-        if (object().objectStamp().alwaysNull()) {
+        Stamp stamp = object().stamp();
+        if (!(stamp instanceof ObjectStamp)) {
+            return this;
+        }
+        ObjectStamp objectStamp = (ObjectStamp) stamp;
+        if (objectStamp.alwaysNull()) {
             return LogicConstantNode.contradiction(graph());
         }
 
-        ResolvedJavaType stampType = stamp.type();
-        if (stamp.isExactType() || stampType != null) {
+        ResolvedJavaType stampType = objectStamp.type();
+        if (stampType != null) {
             boolean subType = type().isAssignableFrom(stampType);
-
             if (subType) {
-                if (stamp.nonNull()) {
+                if (objectStamp.nonNull()) {
                     // the instanceOf matches, so return true
                     return LogicConstantNode.tautology(graph());
                 } else {
@@ -80,7 +80,7 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
                     return graph().unique(new IsNullNode(object()));
                 }
             } else {
-                if (stamp.isExactType()) {
+                if (objectStamp.isExactType()) {
                     // since this type check failed for an exact type we know that it can never
                     // succeed at run time. we also don't care about null values, since they will
                     // also make the check fail.
@@ -115,15 +115,6 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
 
     public void setProfile(JavaTypeProfile profile) {
         this.profile = profile;
-    }
-
-    @Override
-    public boolean verify() {
-        for (Node usage : usages()) {
-            assertTrue(usage instanceof IfNode || usage instanceof FixedGuardNode || usage instanceof GuardingPiNode || usage instanceof ConditionalNode || usage instanceof ShortCircuitBooleanNode,
-                            "unsupported usage: %s", usage);
-        }
-        return super.verify();
     }
 
     @Override

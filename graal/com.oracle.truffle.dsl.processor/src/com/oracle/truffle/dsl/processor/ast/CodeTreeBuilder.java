@@ -97,6 +97,9 @@ public class CodeTreeBuilder {
 
     private CodeTreeBuilder push(BuilderCodeTree tree) {
         if (currentElement != null) {
+            if (!removeLastIfEnqueued(tree)) {
+                return this;
+            }
             currentElement.add(tree);
         }
         switch (tree.getCodeKind()) {
@@ -110,9 +113,30 @@ public class CodeTreeBuilder {
         return this;
     }
 
+    private boolean removeLastIfEnqueued(BuilderCodeTree tree) {
+        if (tree.getCodeKind() == REMOVE_LAST) {
+            return !clearLastRec(tree.removeLast, currentElement.getEnclosedElements());
+        }
+        List<CodeTree> childTree = tree.getEnclosedElements();
+        if (!childTree.isEmpty()) {
+            CodeTree last = childTree.get(0);
+            if (last instanceof BuilderCodeTree) {
+                if (!removeLastIfEnqueued((BuilderCodeTree) last)) {
+                    childTree.remove(0);
+                }
+            }
+        }
+        return true;
+    }
+
     private void clearLast(CodeTreeKind kind) {
         if (clearLastRec(kind, currentElement.getEnclosedElements())) {
             treeCount--;
+        } else {
+            // delay clearing the last
+            BuilderCodeTree tree = new BuilderCodeTree(REMOVE_LAST, null, null);
+            tree.removeLast = kind;
+            push(tree);
         }
     }
 
@@ -299,6 +323,15 @@ public class CodeTreeBuilder {
         return startGroup().string("while ").startParanthesesCommaGroup().endAndWhitespaceAfter().startGroup().endAfter();
     }
 
+    public CodeTreeBuilder startDoBlock() {
+        return startGroup().string("do ").startBlock();
+    }
+
+    public CodeTreeBuilder startDoWhile() {
+        clearLast(CodeTreeKind.NEW_LINE);
+        return startStatement().string(" while ").startParanthesesCommaGroup().endAfter().startGroup().endAfter();
+    }
+
     public CodeTreeBuilder startIf() {
         return startGroup().string("if ").startParanthesesCommaGroup().endAndWhitespaceAfter().startGroup().endAfter();
     }
@@ -480,6 +513,23 @@ public class CodeTreeBuilder {
         return declaration(type, name, singleString(init));
     }
 
+    public CodeTreeBuilder declaration(String type, String name, CodeTree init) {
+        startStatement();
+        string(type);
+        string(" ");
+        string(name);
+        if (init != null) {
+            string(" = ");
+            tree(init);
+        }
+        end(); // statement
+        return this;
+    }
+
+    public CodeTreeBuilder declaration(String type, String name, String init) {
+        return declaration(type, name, singleString(init));
+    }
+
     public CodeTreeBuilder declaration(TypeMirror type, String name, CodeTree init) {
         if (Utils.isVoid(type)) {
             startStatement();
@@ -500,6 +550,13 @@ public class CodeTreeBuilder {
     }
 
     public CodeTreeBuilder declaration(TypeMirror type, String name, CodeTreeBuilder init) {
+        if (init == this) {
+            throw new IllegalArgumentException("Recursive builder usage.");
+        }
+        return declaration(type, name, init.getTree());
+    }
+
+    public CodeTreeBuilder declaration(String type, String name, CodeTreeBuilder init) {
         if (init == this) {
             throw new IllegalArgumentException("Recursive builder usage.");
         }
@@ -680,6 +737,7 @@ public class CodeTreeBuilder {
     private static class BuilderCodeTree extends CodeTree {
 
         private EndCallback atEndListener;
+        private CodeTreeKind removeLast;
 
         public BuilderCodeTree(CodeTreeKind kind, TypeMirror type, String string) {
             super(kind, type, string);

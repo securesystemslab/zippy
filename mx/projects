@@ -24,17 +24,17 @@ library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
 
-library@OKRA@path=lib/okra-1.jar
-library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.jar
+library@OKRA@path=lib/okra-1.2.jar
+library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.2.jar
 
 library@JLINE@path=lib/jline-2.10.jar
 library@JLINE@urls=http://repo1.maven.org/maven2/jline/jline/2.10/jline-2.10.jar
 
 library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
-library@JLINE09@urls=http://http://repo1.maven.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
+library@JLINE09@urls=http://search.maven.org/remotecontent?filepath=jline/jline/0.9.94/jline-0.9.94.jar
 
 library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
-library@JYTHON@urls:http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
+library@JYTHON@urls=http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
 
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@dependencies=com.oracle.graal.hotspot.amd64,com.oracle.graal.truffle,com.oracle.graal.truffle.printer,com.oracle.graal.hotspot.sparc,com.oracle.graal.hotspot,com.oracle.graal.compiler.hsail
@@ -158,6 +158,14 @@ project@com.oracle.graal.hotspot.test@dependencies=com.oracle.graal.replacements
 project@com.oracle.graal.hotspot.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.test@javaCompliance=1.7
 project@com.oracle.graal.hotspot.test@workingSets=Graal,HotSpot,Test
+
+# graal.hotspot.test
+project@com.oracle.graal.hotspot.jdk8.test@subDir=graal
+project@com.oracle.graal.hotspot.jdk8.test@sourceDirs=src
+project@com.oracle.graal.hotspot.jdk8.test@dependencies=com.oracle.graal.compiler.test
+project@com.oracle.graal.hotspot.jdk8.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.jdk8.test@javaCompliance=1.8
+project@com.oracle.graal.hotspot.jdk8.test@workingSets=Graal,HotSpot,Test
 
 # graal.hotspot.amd64.test
 project@com.oracle.graal.hotspot.amd64.test@subDir=graal
@@ -293,6 +301,14 @@ project@com.oracle.graal.nodes@dependencies=com.oracle.graal.api.code,com.oracle
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
+
+# graal.nodes.test
+project@com.oracle.graal.nodes.test@subDir=graal
+project@com.oracle.graal.nodes.test@sourceDirs=src
+project@com.oracle.graal.nodes.test@dependencies=com.oracle.graal.compiler.test
+project@com.oracle.graal.nodes.test@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nodes.test@javaCompliance=1.7
+project@com.oracle.graal.nodes.test@workingSets=Graal,Graph
 
 # graal.phases
 project@com.oracle.graal.phases@subDir=graal
@@ -541,7 +557,6 @@ project@com.oracle.graal.asm.sparc@workingSets=Graal,Assembler,SPARC
 project@com.oracle.truffle.api@subDir=graal
 project@com.oracle.truffle.api@sourceDirs=src
 project@com.oracle.truffle.api@dependencies=
-project@com.oracle.truffle.api@checkstyle=com.oracle.graal.graph
 project@com.oracle.truffle.api@javaCompliance=1.7
 project@com.oracle.truffle.api@workingSets=API,Truffle
 
@@ -557,7 +572,7 @@ project@com.oracle.truffle.api.test@workingSets=API,Truffle,Test
 project@com.oracle.truffle.api.dsl@subDir=graal
 project@com.oracle.truffle.api.dsl@sourceDirs=src
 project@com.oracle.truffle.api.dsl@dependencies=com.oracle.truffle.api
-project@com.oracle.truffle.api.dsl@checkstyle=com.oracle.graal.graph
+project@com.oracle.truffle.api.dsl@checkstyle=com.oracle.truffle.api
 project@com.oracle.truffle.api.dsl@javaCompliance=1.7
 project@com.oracle.truffle.api.dsl@workingSets=API,Truffle,Codegen
 

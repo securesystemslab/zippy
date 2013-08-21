@@ -546,7 +546,7 @@ public class GraphBuilderPhase extends Phase {
         ValueNode y = frameState.pop(result);
         ValueNode x = frameState.pop(result);
         boolean isStrictFP = isStrict(method.getModifiers());
-        ArithmeticNode v;
+        BinaryNode v;
         switch (opcode) {
             case IADD:
             case LADD:
@@ -696,6 +696,14 @@ public class GraphBuilderPhase extends Phase {
             probability = 0.5;
         }
 
+        if (!optimisticOpts.removeNeverExecutedCode()) {
+            if (probability == 0) {
+                probability = 0.0000001;
+            } else if (probability == 1) {
+                probability = 0.999999;
+            }
+        }
+
         // the mirroring and negation operations get the condition into canonical form
         boolean mirror = cond.canonicalMirror();
         boolean negate = cond.canonicalNegate();
@@ -812,7 +820,7 @@ public class GraphBuilderPhase extends Phase {
         if (type instanceof ResolvedJavaType) {
             ResolvedJavaType resolvedType = (ResolvedJavaType) type;
             InstanceOfNode instanceOfNode = new InstanceOfNode((ResolvedJavaType) type, object, getProfileForTypeCheck(resolvedType));
-            frameState.ipush(append(new ConditionalNode(currentGraph.unique(instanceOfNode), ConstantNode.forInt(1, currentGraph), ConstantNode.forInt(0, currentGraph))));
+            frameState.ipush(append(new ConditionalNode(currentGraph.unique(instanceOfNode))));
         } else {
             handleUnresolvedInstanceOf(type, object);
         }
@@ -914,7 +922,7 @@ public class GraphBuilderPhase extends Phase {
     }
 
     private void emitNullCheck(ValueNode receiver) {
-        if (receiver.stamp().nonNull()) {
+        if (ObjectStamp.isObjectNonNull(receiver.stamp())) {
             return;
         }
         BlockPlaceholderNode trueSucc = currentGraph.add(new BlockPlaceholderNode());
@@ -1103,8 +1111,11 @@ public class GraphBuilderPhase extends Phase {
         }
         // 1. check if the exact type of the receiver can be determined
         ResolvedJavaType exact = klass.asExactType();
-        if (exact == null && receiver.objectStamp().isExactType()) {
-            exact = receiver.objectStamp().type();
+        if (exact == null && receiver.stamp() instanceof ObjectStamp) {
+            ObjectStamp receiverStamp = (ObjectStamp) receiver.stamp();
+            if (receiverStamp.isExactType()) {
+                exact = receiverStamp.type();
+            }
         }
         if (exact != null) {
             // either the holder class is exact, or the receiver object has an exact type
@@ -1134,9 +1145,12 @@ public class GraphBuilderPhase extends Phase {
         if (graphBuilderConfig.eagerResolving()) {
             returnType = returnType.resolve(targetMethod.getDeclaringClass());
         }
-        if (invokeKind != InvokeKind.Static && invokeKind != InvokeKind.Special) {
-            JavaTypeProfile profile = profilingInfo.getTypeProfile(bci());
-            args[0] = TypeProfileProxyNode.create(args[0], profile);
+        if (invokeKind != InvokeKind.Static) {
+            emitExplicitExceptions(args[0], null);
+            if (invokeKind != InvokeKind.Special) {
+                JavaTypeProfile profile = profilingInfo.getTypeProfile(bci());
+                args[0] = TypeProfileProxyNode.create(args[0], profile);
+            }
         }
         MethodCallTargetNode callTarget = currentGraph.add(new MethodCallTargetNode(invokeKind, targetMethod, args, returnType));
         createInvokeNode(callTarget, resultType);

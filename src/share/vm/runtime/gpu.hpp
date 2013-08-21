@@ -43,7 +43,7 @@ public:
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
 
-  static bool execute_kernel(address kernel);
+  static bool execute_kernel(address kernel, JavaCallArguments * jca);
 
   static void set_available(bool value) {
     _available = value;
@@ -70,6 +70,7 @@ protected:
 
   // Platform dependent stuff
 #ifdef TARGET_OS_FAMILY_linux
+# include "gpu_linux.hpp"
 #endif
 #ifdef TARGET_OS_FAMILY_solaris
 #endif
@@ -79,7 +80,7 @@ protected:
 # include "gpu_bsd.hpp"
 #endif
 
-# include "ptx/gpu_ptx.hpp"
+# include "ptx/vm/gpu_ptx.hpp"
 
 };
 

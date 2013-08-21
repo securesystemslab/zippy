@@ -29,6 +29,7 @@ import org.junit.Test;
  * Tests 2D array access for Matrix Multiplication.
  */
 public class Float2DMatrixMultiplyTest extends Float2DMatrixBase {
+
     int range = 20;
 
     public void run(int gid) {
@@ -40,6 +41,7 @@ public class Float2DMatrixMultiplyTest extends Float2DMatrixBase {
             outMatrix[gid][j] = sum;
         }
     }
+
     @Override
     public void runTest() {
         setupArrays(range);

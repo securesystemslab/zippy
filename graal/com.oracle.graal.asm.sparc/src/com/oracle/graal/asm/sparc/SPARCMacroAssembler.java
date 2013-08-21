@@ -53,7 +53,7 @@ public class SPARCMacroAssembler extends SPARCAssembler {
     @Override
     public void jmp(Label l) {
         new Bpa(l).emit(this);
-        new Nop().emit(this);
+        new Nop().emit(this);  // delay slot
     }
 
     @Override
@@ -74,6 +74,10 @@ public class SPARCMacroAssembler extends SPARCAssembler {
         return Placeholder;
     }
 
+    public final void ensureUniquePC() {
+        new Nop().emit(this);
+    }
+
     public static class Bclr extends Andn {
 
         public Bclr(Register src, Register dst) {
@@ -92,6 +96,17 @@ public class SPARCMacroAssembler extends SPARCAssembler {
         }
 
         public Bpgeu(CC cc, Label label) {
+            super(cc, label);
+        }
+    }
+
+    public static class Bplu extends Bpcs {
+
+        public Bplu(CC cc, int simm19) {
+            super(cc, simm19);
+        }
+
+        public Bplu(CC cc, Label label) {
             super(cc, label);
         }
     }
@@ -240,7 +255,6 @@ public class SPARCMacroAssembler extends SPARCAssembler {
 
         public Neg(Register src2, Register dst) {
             super(g0, src2, dst);
-            assert src2.encoding() != dst.encoding();
         }
 
         public Neg(Register dst) {
@@ -324,19 +338,24 @@ public class SPARCMacroAssembler extends SPARCAssembler {
         }
     }
 
-    public static class Setx {
+    /**
+     * This instruction is like sethi but for 64-bit values.
+     */
+    public static class Sethix {
+
+        private static final int INSTRUCTION_SIZE = 7;
 
         private long value;
         private Register dst;
         private boolean forceRelocatable;
 
-        public Setx(long value, Register dst, boolean forceRelocatable) {
+        public Sethix(long value, Register dst, boolean forceRelocatable) {
             this.value = value;
             this.dst = dst;
             this.forceRelocatable = forceRelocatable;
         }
 
-        public Setx(long value, Register dst) {
+        public Sethix(long value, Register dst) {
             this(value, dst, false);
         }
 
@@ -344,39 +363,17 @@ public class SPARCMacroAssembler extends SPARCAssembler {
             int hi = (int) (value >> 32);
             int lo = (int) (value & ~0);
 
-// if (isSimm13(lo) && value == lo) {
-// new Or(g0, lo, dst).emit(masm);
-// } else if (hi == 0) {
-// new Sethi(lo, dst).emit(masm); // hardware version zero-extends to upper 32
-// if (lo10(lo) != 0) {
-// new Or(dst, lo10(lo), dst).emit(masm);
-// }
-// } else if (hi == -1) {
-// new Sethi(~lo, dst).emit(masm); // hardware version zero-extends to upper 32
-// new Xor(dst, ~lo10(~0), dst).emit(masm);
-// new Add(dst, lo10(lo), dst).emit(masm);
-// } else if (lo == 0) {
-// if (isSimm13(hi)) {
-// new Or(g0, hi, dst).emit(masm);
-// } else {
-// new Sethi(hi, dst).emit(masm); // hardware version zero-extends to upper 32
-// if (lo10(hi) != 0) {
-// new Or(dst, lo10(hi), dst).emit(masm);
-// }
-// }
-// new Sllx(dst, 32, dst).emit(masm);
-
             // This is the same logic as MacroAssembler::internal_set.
             final int startPc = masm.codeBuffer.position();
 
             if (hi == 0 && lo >= 0) {
-                new Sethi(lo, dst).emit(masm);
+                new Sethi(hi22(lo), dst).emit(masm);
             } else if (hi == -1) {
-                new Sethi(~lo, dst).emit(masm);
+                new Sethi(hi22(~lo), dst).emit(masm);
                 new Xor(dst, ~lo10(~0), dst).emit(masm);
             } else {
                 int shiftcnt = 0;
-                new Sethi(hi, dst).emit(masm);
+                new Sethi(hi22(hi), dst).emit(masm);
                 if ((hi & 0x3ff) != 0) {                                       // Any bits?
                     new Or(dst, hi & 0x3ff, dst).emit(masm);                   // msb 32-bits are now in lsb 32
                 }
@@ -402,10 +399,32 @@ public class SPARCMacroAssembler extends SPARCAssembler {
             }
             // Pad out the instruction sequence so it can be patched later.
             if (forceRelocatable) {
-                while (masm.codeBuffer.position() < (startPc + (7 * 4))) {
+                while (masm.codeBuffer.position() < (startPc + (INSTRUCTION_SIZE * 4))) {
                     new Nop().emit(masm);
                 }
             }
+        }
+    }
+
+    public static class Setx {
+
+        private long value;
+        private Register dst;
+        private boolean forceRelocatable;
+
+        public Setx(long value, Register dst, boolean forceRelocatable) {
+            this.value = value;
+            this.dst = dst;
+            this.forceRelocatable = forceRelocatable;
+        }
+
+        public Setx(long value, Register dst) {
+            this(value, dst, false);
+        }
+
+        public void emit(SPARCMacroAssembler masm) {
+            new Sethix(value, dst, forceRelocatable).emit(masm);
+            int lo = (int) (value & ~0);
             if (lo10(lo) != 0 || forceRelocatable) {
                 new Add(dst, lo10(lo), dst).emit(masm);
             }
@@ -416,7 +435,6 @@ public class SPARCMacroAssembler extends SPARCAssembler {
 
         public Signx(Register src1, Register dst) {
             super(src1, g0, dst);
-            assert src1.encoding() != dst.encoding();
         }
 
         public Signx(Register dst) {

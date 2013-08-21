@@ -69,10 +69,6 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
         return forStoreCheck;
     }
 
-    // TODO (ds) remove once performance regression in compiler.sunflow (and other benchmarks)
-    // caused by new lowering is fixed
-    private static final boolean useNewLowering = true; // Boolean.getBoolean("graal.checkcast.useNewLowering");
-
     /**
      * Lowers a {@link CheckCastNode} to a {@link GuardingPiNode}. That is:
      * 
@@ -101,60 +97,55 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
      */
     @Override
     public void lower(LoweringTool tool, LoweringType loweringType) {
-        if (useNewLowering) {
-            InstanceOfNode typeTest = graph().add(new InstanceOfNode(type, object, profile));
-            Stamp stamp = StampFactory.declared(type).join(object.stamp());
-            ValueNode condition;
-            if (stamp == null) {
-                // This is a check cast that will always fail
-                condition = LogicConstantNode.contradiction(graph());
-                stamp = StampFactory.declared(type);
-            } else if (object.stamp().nonNull()) {
-                condition = typeTest;
-            } else {
-                if (profile != null && profile.getNullSeen() == TriState.FALSE) {
-                    FixedGuardNode nullGuard = graph().add(new FixedGuardNode(graph().unique(new IsNullNode(object)), UnreachedCode, DeoptimizationAction.InvalidateReprofile, true));
-                    graph().addBeforeFixed(this, nullGuard);
-                    condition = typeTest;
-                    stamp = stamp.join(StampFactory.objectNonNull());
-                } else {
-                    double shortCircuitProbability;
-                    if (profile == null) {
-                        shortCircuitProbability = NOT_FREQUENT_PROBABILITY;
-                    } else {
-                        // Tell the instanceof it does not need to do a null check
-                        typeTest.setProfile(new JavaTypeProfile(TriState.FALSE, profile.getNotRecordedProbability(), profile.getTypes()));
-
-                        // TODO (ds) replace with probability of null-seen when available
-                        shortCircuitProbability = NOT_FREQUENT_PROBABILITY;
-                    }
-                    condition = graph().unique(new ShortCircuitOrNode(graph().unique(new IsNullNode(object)), false, typeTest, false, shortCircuitProbability));
-                }
-            }
-            GuardingPiNode checkedObject = graph().add(new GuardingPiNode(object, condition, false, forStoreCheck ? ArrayStoreException : ClassCastException, InvalidateReprofile, stamp));
-            graph().replaceFixedWithFixed(this, checkedObject);
-        } else {
-            tool.getRuntime().lower(this, tool);
+        InstanceOfNode typeTest = graph().add(new InstanceOfNode(type, object, profile));
+        Stamp stamp = StampFactory.declared(type);
+        if (stamp() instanceof ObjectStamp && object().stamp() instanceof ObjectStamp) {
+            stamp = ((ObjectStamp) object().stamp()).castTo((ObjectStamp) stamp);
         }
+        ValueNode condition;
+        if (stamp == StampFactory.illegal()) {
+            // This is a check cast that will always fail
+            condition = LogicConstantNode.contradiction(graph());
+            stamp = StampFactory.declared(type);
+        } else if (ObjectStamp.isObjectNonNull(object)) {
+            condition = typeTest;
+        } else {
+            if (profile != null && profile.getNullSeen() == TriState.FALSE) {
+                FixedGuardNode nullGuard = graph().add(new FixedGuardNode(graph().unique(new IsNullNode(object)), UnreachedCode, DeoptimizationAction.InvalidateReprofile, true));
+                graph().addBeforeFixed(this, nullGuard);
+                condition = typeTest;
+                stamp = stamp.join(StampFactory.objectNonNull());
+            } else {
+                // TODO (ds) replace with probability of null-seen when available
+                double shortCircuitProbability = NOT_FREQUENT_PROBABILITY;
+                condition = graph().unique(new ShortCircuitOrNode(graph().unique(new IsNullNode(object)), false, typeTest, false, shortCircuitProbability));
+            }
+        }
+        GuardingPiNode checkedObject = graph().add(new GuardingPiNode(object, condition, false, forStoreCheck ? ArrayStoreException : ClassCastException, InvalidateReprofile, stamp));
+        graph().replaceFixedWithFixed(this, checkedObject);
     }
 
     @Override
     public boolean inferStamp() {
-        return updateStamp(stamp().join(object().stamp()));
+        if (stamp() instanceof ObjectStamp && object().stamp() instanceof ObjectStamp) {
+            return updateStamp(((ObjectStamp) object().stamp()).castTo((ObjectStamp) stamp()));
+        }
+        return false;
     }
 
     @Override
     public ValueNode canonical(CanonicalizerTool tool) {
         assert object() != null : this;
 
-        ResolvedJavaType objectType = object().objectStamp().type();
+        ResolvedJavaType objectType = ObjectStamp.typeOrNull(object());
         if (objectType != null && type.isAssignableFrom(objectType)) {
             // we don't have to check for null types here because they will also pass the
             // checkcast.
             return object();
         }
 
-        // remove checkcast if next node is a more specific checkcast
+        // if the previous node is also a checkcast, with a less precise and compatible type,
+        // replace both with one checkcast checking the more specific type.
         if (predecessor() instanceof CheckCastNode) {
             CheckCastNode ccn = (CheckCastNode) predecessor();
             if (ccn != null && ccn.type != null && ccn == object && ccn.forStoreCheck == forStoreCheck && ccn.type.isAssignableFrom(type)) {
@@ -165,7 +156,7 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
             }
         }
 
-        if (object().objectStamp().alwaysNull()) {
+        if (ObjectStamp.isObjectAlwaysNull(object())) {
             return object();
         }
         if (tool.assumptions().useOptimisticAssumptions()) {

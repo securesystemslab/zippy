@@ -34,11 +34,11 @@ import com.oracle.graal.nodes.virtual.*;
  */
 public final class ReadNode extends FloatableAccessNode implements Node.IterableNodeType, LIRLowerable, Canonicalizable, PiPushable, Virtualizable {
 
-    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, WriteBarrierType barrierType, boolean compressible) {
+    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, BarrierType barrierType, boolean compressible) {
         super(object, location, stamp, barrierType, compressible);
     }
 
-    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, GuardingNode guard, WriteBarrierType barrierType, boolean compressible) {
+    public ReadNode(ValueNode object, ValueNode location, Stamp stamp, GuardingNode guard, BarrierType barrierType, boolean compressible) {
         super(object, location, stamp, guard, barrierType, compressible);
     }
 
@@ -51,7 +51,7 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
          * Used by node intrinsics. Since the initial value for location is a parameter, i.e., a
          * LocalNode, the constructor cannot use the declared type LocationNode.
          */
-        super(object, location, StampFactory.forNodeIntrinsic(), (GuardingNode) guard, WriteBarrierType.NONE, false);
+        super(object, location, StampFactory.forNodeIntrinsic(), (GuardingNode) guard, BarrierType.NONE, false);
     }
 
     @Override
@@ -62,15 +62,15 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
 
     @Override
     public ValueNode canonical(CanonicalizerTool tool) {
-        return canonicalizeRead(this, location(), object(), tool, compressible());
+        return canonicalizeRead(this, location(), object(), tool, isCompressible());
     }
 
     @Override
     public FloatingAccessNode asFloatingNode(ValueNode lastLocationAccess) {
-        return graph().unique(new FloatingReadNode(object(), location(), lastLocationAccess, stamp(), getGuard(), getWriteBarrierType(), compressible()));
+        return graph().unique(new FloatingReadNode(object(), location(), lastLocationAccess, stamp(), getGuard(), getBarrierType(), isCompressible()));
     }
 
-    public static ValueNode canonicalizeRead(ValueNode read, LocationNode location, ValueNode object, CanonicalizerTool tool, boolean compressedPointer) {
+    public static ValueNode canonicalizeRead(ValueNode read, LocationNode location, ValueNode object, CanonicalizerTool tool, boolean compressible) {
         MetaAccessProvider runtime = tool.runtime();
         if (read.usages().count() == 0) {
             // Read without usages can be savely removed.
@@ -83,7 +83,7 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
                 if (object.kind() == Kind.Object) {
                     Object base = object.asConstant().asObject();
                     if (base != null) {
-                        Constant constant = tool.runtime().readUnsafeConstant(kind, base, displacement, compressedPointer);
+                        Constant constant = tool.runtime().readUnsafeConstant(kind, base, displacement, compressible);
                         if (constant != null) {
                             return ConstantNode.forConstant(constant, runtime, read.graph());
                         }
@@ -91,7 +91,7 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
                 } else if (object.kind() == Kind.Long || object.kind().getStackKind() == Kind.Int) {
                     long base = object.asConstant().asLong();
                     if (base != 0L) {
-                        Constant constant = tool.runtime().readUnsafeConstant(kind, null, base + displacement, compressedPointer);
+                        Constant constant = tool.runtime().readUnsafeConstant(kind, null, base + displacement, compressible);
                         if (constant != null) {
                             return ConstantNode.forConstant(constant, runtime, read.graph());
                         }
@@ -107,15 +107,15 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
         if (location() instanceof ConstantLocationNode) {
             long displacement = ((ConstantLocationNode) location()).getDisplacement();
             if (parent.stamp() instanceof ObjectStamp) {
-                ObjectStamp piStamp = parent.objectStamp();
+                ObjectStamp piStamp = (ObjectStamp) parent.stamp();
                 ResolvedJavaType receiverType = piStamp.type();
                 if (receiverType != null) {
                     ResolvedJavaField field = receiverType.findInstanceFieldWithOffset(displacement);
 
                     if (field != null) {
                         ResolvedJavaType declaringClass = field.getDeclaringClass();
-                        if (declaringClass.isAssignableFrom(receiverType) && declaringClass != receiverType) {
-                            ObjectStamp piValueStamp = parent.object().objectStamp();
+                        if (declaringClass.isAssignableFrom(receiverType) && declaringClass != receiverType && parent.object().stamp() instanceof ObjectStamp) {
+                            ObjectStamp piValueStamp = (ObjectStamp) parent.object().stamp();
                             if (piStamp.nonNull() == piValueStamp.nonNull() && piStamp.alwaysNull() == piValueStamp.alwaysNull()) {
                                 replaceFirstInput(parent, parent.object());
                                 return true;
