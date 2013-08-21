@@ -665,3 +665,19 @@ project@edu.uci.python.shell@dependencies=JLINE09,edu.uci.python.nodes,edu.uci.p
 project@edu.uci.python.shell@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.shell@javaCompliance=1.7
 project@edu.uci.python.shell@workingSets=Truffle,Python
+
+# python.benchmark
+project@edu.uci.python.benchmark@subDir=graal
+project@edu.uci.python.benchmark@sourceDirs=src
+project@edu.uci.python.benchmark@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,JUNIT
+project@edu.uci.python.benchmark@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.benchmark@javaCompliance=1.7
+project@edu.uci.python.benchmark@workingSets=Truffle,Python
+
+# python.test
+project@edu.uci.python.test@subDir=graal
+project@edu.uci.python.test@sourceDirs=src
+project@edu.uci.python.test@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,JUNIT
+project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
+project@edu.uci.python.test@javaCompliance=1.7
+project@edu.uci.python.test@workingSets=Truffle,Python
