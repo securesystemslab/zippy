@@ -344,6 +344,8 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 pass
     else:
         if not exists(jdk):
+            if _vmdir and mx._opts.verbose:
+                mx.log("Cound not find jdk dir at " + jdk)
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
             
     if installGraalJar:
