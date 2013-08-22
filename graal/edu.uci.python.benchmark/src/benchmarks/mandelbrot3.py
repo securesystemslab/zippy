@@ -48,3 +48,4 @@ def main():
 
 main()
 print()
+print("mandelbrot: " + '0')

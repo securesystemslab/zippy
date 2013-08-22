@@ -38,3 +38,4 @@ for depth in range(min_depth, stretch_depth, 2):
     iterations //= 4
 
 print("long lived tree of depth %d\t check:" % max_depth, check_tree(long_lived_tree))
+print("binarytrees: " + '0')

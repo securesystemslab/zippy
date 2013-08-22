@@ -114,3 +114,5 @@ def main(n, ref='sun'):
 
 if __name__ == '__main__':
     main(int(sys.argv[1]))
+
+print("nbody: " + str(0))

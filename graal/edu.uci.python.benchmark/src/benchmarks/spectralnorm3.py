@@ -71,3 +71,4 @@ def main():
     print("%0.9f" % (sqrt(vBv/vv)))
 
 main()
+print("spectralnorm: " + '0')

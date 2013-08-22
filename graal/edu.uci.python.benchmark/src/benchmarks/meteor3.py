@@ -140,3 +140,4 @@ def main(n):
     for i in (0, -1): print_board(solutions[i])
 
 main(int(sys.argv[1]))
+print("meteor: " + '0')

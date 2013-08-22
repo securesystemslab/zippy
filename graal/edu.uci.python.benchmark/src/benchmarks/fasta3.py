@@ -102,3 +102,4 @@ def main():
     randomFasta(homosapiens, n*5)
     
 main()
+print('fasta: 0')

@@ -1204,6 +1204,10 @@ def bench(args):
     if ('ctw-nocomplex' in args):
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
+    # Python
+    if 'python' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, opts=vmArgs).items():
             group = results.setdefault(groupName, {})
