@@ -420,7 +420,7 @@ public class NodeFactory {
     }
 
     public List<PythonTree> castToPythonTreeList(List<stmt> argsInit) {
-        List<PythonTree> pythonTreeList = new ArrayList<PythonTree>();
+        List<PythonTree> pythonTreeList = new ArrayList<>();
 
         for (stmt s : argsInit) {
             pythonTreeList.add(s);

@@ -35,12 +35,9 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 
 public class PythonTreeProcessor extends Visitor {
-
-    private final NodeFactory nodeFactory = new NodeFactory();
 
     private final TranslationContext context;
 
@@ -117,7 +114,7 @@ public class PythonTreeProcessor extends Visitor {
         }
 
         visitArgs(node.getInternalArgs(), ac);
-        List<PythonTree> argsInit = nodeFactory.castToPythonTreeList(ac.init_code);
+        List<PythonTree> argsInit = TranslationUtil.castToPythonTreeList(ac.init_code);
         node.addChildren(argsInit);
         node.getInternalBody().addAll(0, ac.init_code);
 
@@ -233,8 +230,6 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitName(Name node) throws Exception {
-        traverse(node);
-
         String name = node.getInternalId();
 
         if (node.getInternalCtx() != expr_contextType.Load) {
