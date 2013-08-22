@@ -466,13 +466,28 @@ def buildvars(args):
 def build(args, vm=None):
     """build the VM binary
 
-    The global '--vm' and '--vmbuild' options select which VM type and build to build."""
+    The global '--vm' and '--vmbuild' options select which VM type and build target to build."""
+
+    # Override to fail quickly if extra arguments are given
+    # at the end of the command line. This allows for a more
+    # helpful error message.
+    class AP(ArgumentParser):
+        def __init__(self):
+            ArgumentParser.__init__(self, prog='mx build')
+        def parse_args(self, args):
+            result = ArgumentParser.parse_args(self, args)
+            if len(result.remainder) != 0:
+                firstBuildTarget = result.remainder[0]
+                mx.abort('To specify the ' + firstBuildTarget + ' VM build target, you need to use the global "--vmbuild" option. For example:\n' +
+                         '    mx --vmbuild ' + firstBuildTarget + ' build')
+            return result
 
     # Call mx.build to compile the Java sources
-    parser=ArgumentParser(prog='mx build')
+    parser=AP()
     parser.add_argument('--export-dir', help='directory to which graal.jar and graal.options will be copied', metavar='<path>')
     parser.add_argument('-D', action='append', help='set a HotSpot build variable (run \'mx buildvars\' to list variables)', metavar='name=value')
     opts2 = mx.build(['--source', '1.7'] + args, parser=parser)
+    assert len(opts2.remainder) == 0
 
     if opts2.export_dir is not None:
         if not exists(opts2.export_dir):
@@ -487,9 +502,6 @@ def build(args, vm=None):
 
     if not _vmSourcesAvailable or not opts2.native:
         return
-
-    if len(opts2.remainder) != 0:
-        mx.abort('specify ' + opts2.remainder[0] + ' build with the global option "--vmbuild ' + opts2.remainder[0] + '"')
 
     builds = [_vmbuild]
 
@@ -1343,7 +1355,7 @@ def mx_init():
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM type to build/run')
-        mx.add_argument('--vmbuild', action='store', dest='vmbuild', choices=_vmbuildChoices, help='the VM build to build/run')
+        mx.add_argument('--vmbuild', action='store', dest='vmbuild', choices=_vmbuildChoices, help='the VM build to build/run (default: ' + _vmbuildChoices[0] +')')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
         mx.add_argument('--native-dbg', action='store', dest='native_dbg', help='Start the vm inside a debugger', metavar='<debugger>')
         mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb --args')
