@@ -363,11 +363,6 @@ public class PythonTreeProcessor extends Visitor {
     @Override
     public Object visitPrint(Print node) throws Exception {
         traverse(node);
-
-        if (output != null) {
-// node.setOutStream(output);
-        }
-
         return null;
     }
 

@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -36,15 +35,9 @@ public class PrintNode extends StatementNode {
 
     private final boolean nl;
 
-    private StringBuilder out = null;
-
     public PrintNode(PNode[] values, boolean nl) {
         this.values = adoptChildren(values);
         this.nl = nl;
-    }
-
-    public void setOutStream(StringBuilder out) {
-        this.out = out;
     }
 
     @Override
@@ -59,14 +52,9 @@ public class PrintNode extends StatementNode {
         if (nl) {
             sb.append(System.getProperty("line.separator"));
         }
-
         // CheckStyle: stop system..print check
         System.out.print(sb.toString());
         // CheckStyle: resume system..print check
-
-        if (out != null) {
-            out.append(sb.toString());
-        }
     }
 
     @Override
@@ -81,15 +69,9 @@ public class PrintNode extends StatementNode {
         if (nl) {
             sb.append(System.getProperty("line.separator"));
         }
-
         // CheckStyle: stop system..print check
         System.out.print(sb.toString());
         // CheckStyle: resume system..print check
-
-        if (out != null) {
-            out.append(sb.toString());
-        }
-
         return null;
     }
 

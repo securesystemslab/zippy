@@ -885,14 +885,23 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitPrint(Print node) throws Exception {
-        List<PNode> values = walkExprList(node.getInternalValues());
-        StatementNode newNode = nodeFactory.createPrint(values, node.getInternalNl());
-
-// if (node.getOutStream() != null) {
-// ((PrintNode) newNode).setOutStream(node.getOutStream());
-// }
-
-        return newNode;
+        /**
+         * This is a workaround for what produced by Jython's parser. <br>
+         * It parses print to a statement with multiple arguments nested in a tuple. It causes the
+         * output to always be a tuple string. Therefore, unwrap the tuple is necessary. <br>
+         * However, we cannot distinguish between a real tuple parameter and an artificial one. The
+         * real fix should be in the parser.
+         */
+        List<expr> exprs = node.getInternalValues();
+        if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {
+            Tuple tuple = (Tuple) exprs.get(0);
+            List<PNode> values = walkExprList(tuple.getInternalElts());
+            return nodeFactory.createPrint(values, node.getInternalNl());
+        } else {
+            List<PNode> values = walkExprList(node.getInternalValues());
+            StatementNode newNode = nodeFactory.createPrint(values, node.getInternalNl());
+            return newNode;
+        }
     }
 
     @Override
