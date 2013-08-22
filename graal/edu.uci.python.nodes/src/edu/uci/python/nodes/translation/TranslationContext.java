@@ -25,14 +25,18 @@
 package edu.uci.python.nodes.translation;
 
 import java.util.*;
+import java.util.List;
 
 import org.python.antlr.*;
 import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.impl.*;
 
-public class TranslationEnvironment {
+import edu.uci.python.nodes.truffle.*;
+
+public class TranslationContext {
 
     private final mod module;
 
@@ -44,12 +48,110 @@ public class TranslationEnvironment {
 
     private Map<comprehension, expr> generatorToLoopBody = new HashMap<>();
 
-    public TranslationEnvironment(mod module) {
+    private Stack<FrameDescriptor> frames;
+
+    private int scopeLevel;
+
+    private FrameDescriptor currentFrame;
+
+    private FrameDescriptor globalFrame;
+
+    /*
+     * used to keep track of explicitly declared globals in the current scope
+     */
+    private List<String> localGlobals = new ArrayList<>();
+
+    public TranslationContext(mod module) {
         this.module = module;
+    }
+
+    public TranslationContext reset() {
+        frames = new Stack<>();
+        scopeLevel = 0;
+        return this;
     }
 
     protected mod getModule() {
         return module;
+    }
+
+    protected int getScopeLevel() {
+        return scopeLevel;
+    }
+
+    public void beginScope(PythonTree scopeEntity) {
+        scopeLevel++;
+
+        if (currentFrame != null) {
+            frames.push(currentFrame);
+        }
+
+        // FIXME: temporary fix!
+        FrameDescriptor fd = ptreeToFrameDescriptor.get(scopeEntity);
+        if (fd != null) {
+            currentFrame = fd;
+        } else {
+            currentFrame = new FrameDescriptor(DefaultFrameTypeConversion.getInstance());
+        }
+
+        if (globalFrame == null) {
+            globalFrame = currentFrame;
+        }
+    }
+
+    public FrameDescriptor endScope() throws Exception {
+        scopeLevel--;
+        FrameDescriptor fd = currentFrame;
+        if (!frames.empty()) {
+            currentFrame = frames.pop();
+        }
+
+        // reset locally declared globals
+        localGlobals.clear();
+        return fd;
+    }
+
+    public FrameSlot findOrAddFrameSlot(String name) {
+        return currentFrame.findOrAddFrameSlot(name);
+    }
+
+    public FrameSlot findFrameSlot(String name) {
+        return currentFrame.findFrameSlot(name);
+    }
+
+    public FrameSlot defGlobal(String name) {
+        return globalFrame.findOrAddFrameSlot(name);
+    }
+
+    public void addLocalGlobals(String name) {
+        localGlobals.add(name);
+    }
+
+    public boolean isLocalGlobals(String name) {
+        return localGlobals.contains(name);
+    }
+
+    protected FrameSlot probeEnclosingScopes(String name) {
+        int level = 0;
+        for (int i = frames.size() - 1; i > 0; i--) {
+            FrameDescriptor fd = frames.get(i);
+            level++;
+
+            if (fd == globalFrame) {
+                break;
+            }
+
+            FrameSlot candidate = fd.findFrameSlot(name);
+            if (candidate != null) {
+                return EnvironmentFrameSlot.pack(candidate, level);
+            }
+        }
+
+        return null;
+    }
+
+    public int getCurrentFrameSize() {
+        return currentFrame.getSize();
     }
 
     protected void setFrameDescriptor(PythonTree scopeEntity, FrameDescriptor descriptor) {

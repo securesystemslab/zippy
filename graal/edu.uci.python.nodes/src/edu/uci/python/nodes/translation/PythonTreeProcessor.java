@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.translation;
 
 import java.util.List;
-import java.util.Stack;
 import java.util.ArrayList;
 
 import org.python.antlr.*;
@@ -35,61 +34,22 @@ import org.python.compiler.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.DefaultFrameTypeConversion;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 
 public class PythonTreeProcessor extends Visitor {
 
-    private Stack<FrameDescriptor> frames;
-    private FrameDescriptor globalFrame;
-    private FrameDescriptor currentFrame;
     private final NodeFactory nodeFactory = new NodeFactory();
 
-    private final TranslationEnvironment environment;
+    private final TranslationContext context;
 
     public StringBuilder output = null;
 
-    /*
-     * used to keep track of explicitly declared globals in the current scope
-     */
-    private List<String> localGlobals = new ArrayList<>();
-
     public static String internalReturnValueSymbol = "<return_val>";
 
-    private int scopeLevel = 0;
-
-    public PythonTreeProcessor(TranslationEnvironment environment) {
-        this.frames = new Stack<>();
-        this.environment = environment;
-    }
-
-    public void beginScope() {
-        scopeLevel++;
-
-        if (currentFrame != null) {
-            frames.push(currentFrame);
-        }
-
-        // temporary fix!
-        currentFrame = new FrameDescriptor(DefaultFrameTypeConversion.getInstance());
-
-        if (globalFrame == null) {
-            globalFrame = currentFrame;
-        }
-    }
-
-    public FrameDescriptor endScope() throws Exception {
-        scopeLevel--;
-        FrameDescriptor fd = currentFrame;
-        if (!frames.empty()) {
-            currentFrame = frames.pop();
-        }
-
-        // reset locally declared globals
-        localGlobals.clear();
-        return fd;
+    public PythonTreeProcessor(TranslationContext environment) {
+        this.context = environment.reset();
     }
 
     public mod process(PythonTree node) {
@@ -102,11 +62,11 @@ public class PythonTreeProcessor extends Visitor {
 
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
-        beginScope();
+        context.beginScope(node);
         visitStatements(node.getInternalBody());
 
-        FrameDescriptor fd = endScope();
-        setFrameDescriptor(node, fd);
+        FrameDescriptor fd = context.endScope();
+        context.setFrameDescriptor(node, fd);
         return node;
     }
 
@@ -117,23 +77,19 @@ public class PythonTreeProcessor extends Visitor {
     }
 
     private FrameSlot def(String name) {
-        return currentFrame.findOrAddFrameSlot(name);
+        return context.findOrAddFrameSlot(name);
     }
 
     private FrameSlot find(String name) {
-        return currentFrame.findFrameSlot(name);
+        return context.findFrameSlot(name);
     }
 
     private FrameSlot defGlobal(String name) {
-        return globalFrame.findOrAddFrameSlot(name);
-    }
-
-    private void setFrameDescriptor(PythonTree scopeEntity, FrameDescriptor descriptor) {
-        environment.setFrameDescriptor(scopeEntity, descriptor);
+        return context.defGlobal(name);
     }
 
     private void setFrameSlot(PythonTree symbol, FrameSlot slot) {
-        environment.setFrameSlot(symbol, slot);
+        context.setFrameSlot(symbol, slot);
     }
 
     @Override
@@ -154,7 +110,7 @@ public class PythonTreeProcessor extends Visitor {
             visit(decs.get(i));
         }
 
-        beginScope();
+        context.beginScope(node);
         int n = ac.names.size();
         for (int i = 0; i < n; i++) {
             def(ac.names.get(i));
@@ -166,8 +122,8 @@ public class PythonTreeProcessor extends Visitor {
         node.getInternalBody().addAll(0, ac.init_code);
 
         visitStatements(node.getInternalBody());
-        FrameDescriptor fd = endScope();
-        setFrameDescriptor(node, fd);
+        FrameDescriptor fd = context.endScope();
+        context.setFrameDescriptor(node, fd);
         return null;
     }
 
@@ -192,14 +148,14 @@ public class PythonTreeProcessor extends Visitor {
             visit(defaults.get(i));
         }
 
-        beginScope();
+        context.beginScope(node);
 
         for (Object o : ac.init_code) {
             visit((stmt) o);
         }
 
         visit(node.getInternalBody());
-        endScope();
+        context.endScope();
         return null;
     }
 
@@ -254,7 +210,7 @@ public class PythonTreeProcessor extends Visitor {
         for (int i = 0; i < n; i++) {
             String name = node.getInternalNames().get(i);
             defGlobal(name);
-            localGlobals.add(name);
+            context.addLocalGlobals(name);
         }
 
         return null;
@@ -269,9 +225,9 @@ public class PythonTreeProcessor extends Visitor {
             visit(node.getInternalBases().get(i));
         }
 
-        beginScope();
+        context.beginScope(node);
         visitStatements(node.getInternalBody());
-        endScope();
+        context.endScope();
         return null;
     }
 
@@ -282,7 +238,7 @@ public class PythonTreeProcessor extends Visitor {
         String name = node.getInternalId();
 
         if (node.getInternalCtx() != expr_contextType.Load) {
-            if (scopeLevel == 1) {
+            if (context.getScopeLevel() == 1) {
                 // Module global scope
                 /**
                  * Variables in module's scope are also treated as globals This is why slot is not
@@ -291,37 +247,18 @@ public class PythonTreeProcessor extends Visitor {
                 if (!GlobalScope.getInstance().isGlobalOrBuiltin(name)) {
                     setFrameSlot(node, def(name));
                 }
-            } else if (!localGlobals.contains(name)) {
+            } else if (!context.isLocalGlobals(name)) {
                 // function scope
                 setFrameSlot(node, def(name));
             }
         } else {
             FrameSlot slot = find(name);
 
-            if (slot == null && scopeLevel > 1) {
-                slot = probeEnclosingScopes(name);
+            if (slot == null && context.getScopeLevel() > 1) {
+                slot = context.probeEnclosingScopes(name);
             }
 
             setFrameSlot(node, slot);
-        }
-
-        return null;
-    }
-
-    private FrameSlot probeEnclosingScopes(String name) {
-        int level = 0;
-        for (int i = frames.size() - 1; i > 0; i--) {
-            FrameDescriptor fd = frames.get(i);
-            level++;
-
-            if (fd == globalFrame) {
-                break;
-            }
-
-            FrameSlot candidate = fd.findFrameSlot(name);
-            if (candidate != null) {
-                return EnvironmentFrameSlot.pack(candidate, level);
-            }
         }
 
         return null;
@@ -340,9 +277,9 @@ public class PythonTreeProcessor extends Visitor {
         for (int i = 0; i < generators.size(); i++) {
             comprehension c = generators.get(i);
             if (i + 1 <= generators.size() - 1) { // has next
-                environment.setInnerLoop(c, generators.get(i + 1));
+                context.setInnerLoop(c, generators.get(i + 1));
             } else { // last/inner most
-                environment.setLoopBody(c, body);
+                context.setLoopBody(c, body);
             }
         }
 
@@ -379,7 +316,7 @@ public class PythonTreeProcessor extends Visitor {
         List<expr> args = new ArrayList<>();
         args.add(new Name(node.getToken(), boundexp, expr_contextType.Param));
         ac.visitArgs(new arguments(node, args, null, null, new ArrayList<expr>()));
-        beginScope();
+        context.beginScope(node);
 
         // visit first iterator in the new scope
         if (node.getInternalGenerators() != null && node.getInternalGenerators().size() > 0) {
@@ -423,8 +360,8 @@ public class PythonTreeProcessor extends Visitor {
             visit(node.getInternalElt());
         }
 
-        FrameDescriptor fd = endScope();
-        setFrameDescriptor(node, fd);
+        FrameDescriptor fd = context.endScope();
+        context.setFrameDescriptor(node, fd);
         return null;
     }
 

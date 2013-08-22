@@ -49,10 +49,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private final NodeFactory nodeFactory = new NodeFactory();
 
-    private final TranslationEnvironment environment;
-
-    private Stack<FrameDescriptor> frames = new Stack<>();
-    private FrameDescriptor currentFrame;
+    private final TranslationContext context;
 
     private boolean isLeftHandSide = false;
 
@@ -64,8 +61,8 @@ public class PythonTreeTranslator extends Visitor {
 
     private static final String TEMP_LOCAL_PREFIX = "temp_";
 
-    public PythonTreeTranslator(TranslationEnvironment environment) {
-        this.environment = environment;
+    public PythonTreeTranslator(TranslationContext environment) {
+        this.context = environment.reset();
     }
 
     public RootNode translate(PythonTree root) {
@@ -93,35 +90,21 @@ public class PythonTreeTranslator extends Visitor {
         }
     }
 
-    protected void beginScope(FrameDescriptor fd) {
-        if (currentFrame != null) {
-            frames.push(currentFrame);
-        }
-
-        currentFrame = fd;
-    }
-
-    public void endScope() throws Exception {
-        if (!frames.empty()) {
-            currentFrame = frames.pop();
-        }
-    }
-
     private FrameDescriptor getFrameDescriptor(PythonTree scopeEntity) {
-        return environment.getFrameDescriptor(scopeEntity);
+        return context.getFrameDescriptor(scopeEntity);
     }
 
     private FrameSlot getFrameSlot(PythonTree symbol) {
-        return environment.getFrameSlot(symbol);
+        return context.getFrameSlot(symbol);
     }
 
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
-        beginScope(getFrameDescriptor(node));
+        context.beginScope(node);
 
         List<PNode> body = visitStatements(node.getInternalBody());
         RootNode newNode = new NodeFactory().createModule(body, getFrameDescriptor(node));
-        endScope();
+        context.endScope();
         return newNode;
     }
 
@@ -142,7 +125,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
-        beginScope(getFrameDescriptor(node));
+        context.beginScope(node);
         isGenerator = false;
 
         FrameDescriptor fd = getFrameDescriptor(node);
@@ -172,7 +155,7 @@ public class PythonTreeTranslator extends Visitor {
         funcRoots.pop();
         funcRoot.setBody(body);
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
-        endScope();
+        context.endScope();
         return nodeFactory.createFunctionDef(slot, name, parameters, ct, funcRoot);
     }
 
@@ -339,9 +322,9 @@ public class PythonTreeTranslator extends Visitor {
             return nodeFactory.createBooleanLiteral(false);
         }
 
-        expr_contextType context = node.getInternalCtx();
+        expr_contextType econtext = node.getInternalCtx();
 
-        if (context == expr_contextType.Param) {
+        if (econtext == expr_contextType.Param) {
             FrameSlot slot = getFrameSlot(node);
             ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
             return nodeFactory.createWriteLocal(right, getFrameSlot(node));
@@ -596,8 +579,8 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     private PNode makeTemporaryWrite() {
-        String tempName = TEMP_LOCAL_PREFIX + currentFrame.getSize();
-        FrameSlot tempSlot = currentFrame.addFrameSlot(tempName);
+        String tempName = TEMP_LOCAL_PREFIX + context.getCurrentFrameSize();
+        FrameSlot tempSlot = context.findOrAddFrameSlot(tempName);
         PNode tempWrite = nodeFactory.createWriteLocal(PNode.DUMMY_NODE, tempSlot);
         return tempWrite;
     }
@@ -715,13 +698,13 @@ public class PythonTreeTranslator extends Visitor {
         PNode iterator = (PNode) visit(node.getInternalIter());
 
         // inner loop
-        comprehension inner = environment.getInnerLoop(node);
+        comprehension inner = context.getInnerLoop(node);
         PNode innerLoop = inner != null ? (PNode) visitComprehension(inner) : null;
         isInner = inner != null ? false : true;
 
         // transformed loop body (only exist if it's inner most comprehension)
-        expr body = environment.getLoopBody(node);
-        PNode loopBody = body != null ? (PNode) visit(environment.getLoopBody(node)) : null;
+        expr body = context.getLoopBody(node);
+        PNode loopBody = body != null ? (PNode) visit(context.getLoopBody(node)) : null;
         isInner = body != null ? true : false;
 
         // Just deal with one condition.
@@ -739,10 +722,10 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
-        beginScope(getFrameDescriptor(node));
+        context.beginScope(node);
         ComprehensionNode comprehension = (ComprehensionNode) visitComprehension(node.getInternalGenerators().get(0));
         GeneratorNode gnode = nodeFactory.createGenerator(comprehension);
-        endScope();
+        context.endScope();
         return nodeFactory.createGeneratorExpression(gnode, getFrameDescriptor(node));
     }
 
