@@ -947,12 +947,12 @@ class ArgParser(ArgumentParser):
         self.add_argument('--Jp', action='append', dest='java_args_pfx', help='prefix Java VM arguments (e.g. --Jp @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
-        self.add_argument('--java-home', help='JDK installation directory (must be JDK 6 or later)', metavar='<path>')
+        self.add_argument('--java-home', help='bootstrap JDK installation directory (must be JDK 6 or later)', metavar='<path>')
         self.add_argument('--ignore-project', action='append', dest='ignored_projects', help='name of project to ignore', metavar='<name>', default=[])
         if get_os() != 'windows':
             # Time outs are (currently) implemented with Unix specific functionality
-            self.add_argument('--timeout', help='Timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
-            self.add_argument('--ptimeout', help='Timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
+            self.add_argument('--timeout', help='timeout (in seconds) for command', type=int, default=0, metavar='<secs>')
+            self.add_argument('--ptimeout', help='timeout (in seconds) for subprocesses', type=int, default=0, metavar='<secs>')
 
     def _parse_cmd_line(self, args=None):
         if args is None:
@@ -1155,9 +1155,18 @@ def exe_suffix(name):
         return name + '.exe'
     return name
 
-def lib_suffix(name):
+def add_lib_prefix(name):
     """
-    Gets the platform specific suffix for a library
+    Adds the platform specific library prefix to a name
+    """
+    os = get_os();
+    if os == 'linux' or os == 'solaris' or os == 'darwin':
+        return 'lib' + name
+    return name
+
+def add_lib_suffix(name):
+    """
+    Adds the platform specific library suffix to a name
     """
     os = get_os();
     if os == 'windows':

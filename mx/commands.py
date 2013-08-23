@@ -66,11 +66,14 @@ _vmbuild = _vmbuildChoices[0]
 
 _jacoco = 'off'
 
-_workdir = None
+""" The current working directory to switch to before running the VM. """
+_vm_cwd = None
 
-_vmdir = None
+""" The base directory in which the JDKs cloned from $JAVA_HOME exist. """
+_installed_jdks = None
 
-_native_dbg = None
+""" Prefix for running the VM. """
+_vm_prefix = None
 
 _make_eclipse_launch = False
 
@@ -273,7 +276,7 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
-    return os.path.abspath(join(_vmdir if _vmdir else _graal_home, 'jdk' + str(mx.java().version)))
+    return os.path.abspath(join(_installed_jdks if _installed_jdks else _graal_home, 'jdk' + str(mx.java().version)))
 
 def _handle_missing_VM(bld, vm):
     mx.log('The ' + bld + ' ' + vm + ' VM has not been created')
@@ -344,8 +347,8 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 pass
     else:
         if not exists(jdk):
-            if _vmdir and mx._opts.verbose:
-                mx.log("Cound not find jdk dir at " + jdk)
+            if _installed_jdks and mx._opts.verbose:
+                mx.log("Could not find JDK directory at " + jdk)
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
             
     if installGraalJar:
@@ -676,9 +679,9 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         vm = _get_vm()
 
     if cwd is None:
-        cwd = _workdir
-    elif _workdir is not None:
-        mx.abort("conflicting working directories: do not set --workdir for this command")
+        cwd = _vm_cwd
+    elif _vm_cwd != cwd:
+        mx.abort("conflicting working directories: do not set --vmcwd for this command")
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
@@ -710,14 +713,14 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-d64'] + args
 
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
-    dbg = _native_dbg.split() if _native_dbg is not None else []
+    pfx = _vm_prefix.split() if _vm_prefix is not None else []
     
     if '-version' in args:
         ignoredArgs = args[args.index('-version')+1:]
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
     
-    return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+    return mx.run(pfx + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=False):
     """
@@ -1236,7 +1239,7 @@ def hsdis(args, copyToDir=None):
     flavor = 'intel'
     if 'att' in args:
         flavor = 'att'
-    lib = mx.lib_suffix('hsdis-' + _arch())
+    lib = mx.add_lib_suffix('hsdis-' + _arch())
     path = join(_graal_home, 'lib', lib)
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
@@ -1352,15 +1355,17 @@ def mx_init():
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
-    mx.add_argument('--workdir', help='runs the VM in the given directory', default=None)
-    mx.add_argument('--vmdir', help='specify where the directory in which the vms should be', default=None)
+    mx.add_argument('--vmcwd', dest='vm_cwd', help='current directory will be changed to <path> before the VM is executed', default=None, metavar='<path>')
+    mx.add_argument('--installed-jdks', help='the base directory in which the JDKs cloned from $JAVA_HOME exist. ' +
+                    'The VM selected by --vm and --vmbuild options is under this directory (i.e., ' +
+                    join('<path>', '<vmbuild>', 'jre', 'lib', '<vm>', mx.add_lib_prefix(mx.add_lib_suffix('jvm'))) + ')', default=None, metavar='<path>')
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM type to build/run')
         mx.add_argument('--vmbuild', action='store', dest='vmbuild', choices=_vmbuildChoices, help='the VM build to build/run (default: ' + _vmbuildChoices[0] +')')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
-        mx.add_argument('--native-dbg', action='store', dest='native_dbg', help='Start the vm inside a debugger', metavar='<debugger>')
-        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb --args')
+        mx.add_argument('--vmprefix', action='store', dest='vm_prefix', help='prefix for running the VM (e.g. "/usr/bin/gdb --args")', metavar='<prefix>')
+        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='vm_prefix', help='alias for --vmprefix "/usr/bin/gdb --args"')
 
         commands.update({
             'export': [export, '[-options] [zipfile]'],
@@ -1384,11 +1389,11 @@ def mx_post_parse_cmd_line(opts):#
         _make_eclipse_launch = getattr(opts, 'make_eclipse_launch', False)
     global _jacoco
     _jacoco = opts.jacoco
-    global _workdir
-    _workdir = opts.workdir
-    global _vmdir
-    _vmdir = opts.vmdir
-    global _native_dbg
-    _native_dbg = opts.native_dbg
+    global _vm_cwd
+    _vm_cwd = opts.vm_cwd
+    global _installed_jdks
+    _installed_jdks = opts.installed_jdks
+    global _vm_prefix
+    _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
