@@ -758,7 +758,7 @@ def _run_tests(args, harness, annotations, testfile):
     vmArgs, tests = _extract_VM_args(args)
     for t in tests:
         if t.startswith('-'):
-            mx.abort('VM option ' + t + ' must precede first test name')
+            mx.abort('VM option ' + t + ' must precede ' + tests[0])
 
     def containsAny(c, substrings):
         for s in substrings:
