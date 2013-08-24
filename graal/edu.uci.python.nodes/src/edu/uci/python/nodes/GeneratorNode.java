@@ -42,7 +42,7 @@ public class GeneratorNode extends FunctionRootNode {
         try {
             return body.execute(frame);
         } catch (ExplicitReturnException ere) {
-            return returnValue.execute(frame);
+            return ere.getValue();
         } catch (ImplicitReturnException ire) {
             return null;
         }
