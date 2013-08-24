@@ -40,7 +40,7 @@ public class TranslationEnvironment {
 
     private final mod module;
 
-    private Map<PythonTree, FrameDescriptor> ptreeToFrameDescriptor = new HashMap<>();
+    private Map<PythonTree, FrameDescriptor> frameDescriptors = new HashMap<>();
 
     private Map<PythonTree, FrameSlot> nameToFrameSlot = new HashMap<>();
 
@@ -67,7 +67,7 @@ public class TranslationEnvironment {
         this.module = module;
     }
 
-    public TranslationEnvironment reset() {
+    public TranslationEnvironment resetScopeLevel() {
         frames = new Stack<>();
         scopeLevel = 0;
         return this;
@@ -89,7 +89,7 @@ public class TranslationEnvironment {
         }
 
         // FIXME: temporary fix!
-        FrameDescriptor fd = ptreeToFrameDescriptor.get(scopeEntity);
+        FrameDescriptor fd = frameDescriptors.get(scopeEntity);
         if (fd != null) {
             currentFrame = fd;
         } else {
@@ -157,11 +157,11 @@ public class TranslationEnvironment {
     }
 
     protected void setFrameDescriptor(PythonTree scopeEntity, FrameDescriptor descriptor) {
-        ptreeToFrameDescriptor.put(scopeEntity, descriptor);
+        frameDescriptors.put(scopeEntity, descriptor);
     }
 
     protected FrameDescriptor getFrameDescriptor(PythonTree scopeEntity) {
-        return ptreeToFrameDescriptor.get(scopeEntity);
+        return frameDescriptors.get(scopeEntity);
     }
 
     protected void setFrameSlot(PythonTree symbol, FrameSlot slot) {

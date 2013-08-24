@@ -42,7 +42,7 @@ public class PythonTreeProcessor extends Visitor {
     private final TranslationEnvironment environment;
 
     public PythonTreeProcessor(TranslationEnvironment environment) {
-        this.environment = environment.reset();
+        this.environment = environment.resetScopeLevel();
     }
 
     public mod process(PythonTree node) {

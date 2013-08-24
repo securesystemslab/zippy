@@ -40,8 +40,6 @@ public abstract class StatementNode extends PNode {
      */
     private StatementNode next;
 
-    private FunctionRootNode funcRoot = null;
-
     private StatementNode loopHeader = null;
 
     private boolean isBreak = false;
@@ -70,14 +68,6 @@ public abstract class StatementNode extends PNode {
         }
     }
 
-    public void setFuncRootNode(FunctionRootNode funcRoot) {
-        this.funcRoot = funcRoot;
-    }
-
-    public FunctionRootNode getFuncRootNode() {
-        return this.funcRoot;
-    }
-
     protected void setNext(StatementNode next) {
         this.next = next;
     }
@@ -89,11 +79,6 @@ public abstract class StatementNode extends PNode {
 
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitStatementNode(this);
-    }
-
-    @Override
-    public void accept(PNodeVisitor visitor) {
-        visitor.visitStatementNode(this);
     }
 
     @Override

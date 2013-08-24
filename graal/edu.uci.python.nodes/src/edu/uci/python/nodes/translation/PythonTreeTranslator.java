@@ -55,15 +55,13 @@ public class PythonTreeTranslator extends Visitor {
 
     private boolean isGenerator = false;
 
-    private Stack<FunctionRootNode> funcRoots = new Stack<>();
-
     private Stack<StatementNode> loopHeaders = new Stack<>();
 
     private static final String TEMP_LOCAL_PREFIX = "temp_";
 
     public PythonTreeTranslator(TranslationEnvironment environment) {
         this.factory = new NodeFactory();
-        this.environment = environment.reset();
+        this.environment = environment.resetScopeLevel();
     }
 
     public RootNode translate(PythonTree root) {
@@ -71,14 +69,6 @@ public class PythonTreeTranslator extends Visitor {
             return (RootNode) visit(root);
         } catch (Throwable t) {
             throw new RuntimeException("Failed in " + this + " with error " + t);
-        }
-    }
-
-    private FunctionRootNode getCurrentFuncRoot() {
-        if (funcRoots.isEmpty()) {
-            return null;
-        } else {
-            return funcRoots.peek();
         }
     }
 
@@ -130,19 +120,10 @@ public class PythonTreeTranslator extends Visitor {
 
         FrameDescriptor fd = getFrameDescriptor(node);
         ParametersNode parameters = visitArgs(node.getInternalArgs());
-
-        // cache
-        FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, null, factory.createReadLocal(environment.getReturnSlot()));
-        funcRoots.push(funcRoot);
-
         List<PNode> statements = visitStatements(node.getInternalBody());
-
         String name = node.getInternalName();
         FrameSlot slot = getFrameSlot(node.getInternalNameNode());
         StatementNode body = factory.createBlock(statements);
-
-        // cache
-        body.setFuncRootNode(getCurrentFuncRoot());
 
         if (isGenerator) {
             body = new ASTLinearizer((BlockNode) body).linearize();
@@ -151,9 +132,7 @@ public class PythonTreeTranslator extends Visitor {
             return factory.createFunctionDef(slot, name, parameters, ct, genRoot);
         }
 
-        // cache
-        funcRoots.pop();
-        funcRoot.setBody(body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
         CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
         environment.endScope();
         return factory.createFunctionDef(slot, name, parameters, ct, funcRoot);
@@ -747,7 +726,6 @@ public class PythonTreeTranslator extends Visitor {
             returnNode = factory.createExplicitReturn(value);
         }
 
-        returnNode.setFuncRootNode(getCurrentFuncRoot());
         return returnNode;
     }
 
@@ -767,10 +745,6 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode elsePart = factory.createBlock(orelse);
 
         StatementNode ifNode = factory.createIf(factory.toBooleanCastNode(test), thenPart, elsePart);
-
-        ifNode.setFuncRootNode(getCurrentFuncRoot());
-        thenPart.setFuncRootNode(getCurrentFuncRoot());
-        elsePart.setFuncRootNode(getCurrentFuncRoot());
 
         thenPart.setLoopHeader(getCurrentLoopHeader());
         elsePart.setLoopHeader(getCurrentLoopHeader());
@@ -795,9 +769,6 @@ public class PythonTreeTranslator extends Visitor {
 
             bodyPart.setLoopHeader(getCurrentLoopHeader());
 
-            bodyPart.setFuncRootNode(getCurrentFuncRoot());
-            whileTrueNode.setFuncRootNode(getCurrentFuncRoot());
-
             ((WhileTrueNode) whileTrueNode).setInternal(bodyPart);
             loopHeaders.pop();
 
@@ -814,10 +785,6 @@ public class PythonTreeTranslator extends Visitor {
 
             bodyPart.setLoopHeader(getCurrentLoopHeader());
             orelsePart.setLoopHeader(getCurrentLoopHeader());
-
-            bodyPart.setFuncRootNode(getCurrentFuncRoot());
-            orelsePart.setFuncRootNode(getCurrentFuncRoot());
-            whileNode.setFuncRootNode(getCurrentFuncRoot());
 
             ((WhileNode) whileNode).setInternal(bodyPart, orelsePart);
             loopHeaders.pop();
@@ -841,7 +808,6 @@ public class PythonTreeTranslator extends Visitor {
 
         PNode iter = (PNode) visit(node.getInternalIter());
         StatementNode forNode = dirtySpecialization(iteratorWrite, iter);
-        forNode.setFuncRootNode(getCurrentFuncRoot());
 
         loopHeaders.push(forNode);
 
@@ -853,10 +819,6 @@ public class PythonTreeTranslator extends Visitor {
 
         bodyPart.setLoopHeader(getCurrentLoopHeader());
         orelsePart.setLoopHeader(getCurrentLoopHeader());
-
-        bodyPart.setFuncRootNode(getCurrentFuncRoot());
-        orelsePart.setFuncRootNode(getCurrentFuncRoot());
-        forNode.setFuncRootNode(getCurrentFuncRoot());
 
         if (forNode instanceof ForNode) {
             ((ForNode) forNode).setInternal(bodyPart, orelsePart);

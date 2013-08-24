@@ -36,7 +36,6 @@ import com.oracle.truffle.api.ExactMath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 
-import edu.uci.python.nodes.translation.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
@@ -159,13 +158,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         Object doGeneric(Object left, Object right) {
             throw new RuntimeException("Invalid generic!");
         }
-
-        // TODO doSequenceConcatenation
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitAddNode(this);
-        }
     }
 
     public abstract static class SubNode extends BinaryArithmeticNode {
@@ -205,11 +197,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization(order = 6)
         PBaseSet doPBaseSet(PBaseSet left, PBaseSet right) {
             return left.difference(right);
-        }
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitSubNode(this);
         }
     }
 
@@ -257,13 +244,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
                 throw new RuntimeException("Invalid generic!");
             }
         }
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitMulNode(this);
-        }
-
-        // TODO doSequenceRepetition
     }
 
     public abstract static class DivNode extends BinaryArithmeticNode {
@@ -318,11 +298,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             double imagPart = left.getReal() * conjugate.getImag() + left.getImag() * conjugate.getReal();
             return new PComplex(realPart / opNormSq, imagPart / opNormSq);
         }
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitDivNode(this);
-        }
     }
 
     public abstract static class FloorDivNode extends BinaryArithmeticNode {
@@ -340,11 +315,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.floor(left / right);
-        }
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitFloorDivNode(this);
         }
     }
 
@@ -374,11 +344,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
                 throw new RuntimeException("Invalid generic!");
             }
         }
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitModuloNode(this);
-        }
     }
 
     public abstract static class PowerNode extends BinaryArithmeticNode {
@@ -397,11 +362,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.pow(left, right);
-        }
-
-        @Override
-        public void accept(PNodeVisitor visitor) {
-            visitor.visitPowerNode(this);
         }
     }
 
