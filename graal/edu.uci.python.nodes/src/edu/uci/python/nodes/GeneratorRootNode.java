@@ -24,41 +24,39 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.datatypes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.utils.*;
-import edu.uci.python.runtime.datatypes.*;
 
 public class GeneratorRootNode extends FunctionRootNode {
 
-    StatementNode resumingNode = null;
+    private StatementNode continuingNode;
 
-    VirtualFrame frame;
+    private VirtualFrame continuingFrame;
 
-    public GeneratorRootNode(ParametersNode parameters, StatementNode body) {
-        super(parameters, body);
+    public GeneratorRootNode(ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(parameters, body, returnValue);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.executeVoid(frame);
-        resumingNode = body;
-        this.frame = frame;
+        continuingNode = body;
+        this.continuingFrame = frame;
         return new PGenerator(this);
     }
 
     public Object next() throws ImplicitReturnException {
-        StatementNode current = resumingNode;
+        StatementNode current = continuingNode;
 
         while (current != null) {
             try {
-                current.executeVoid(frame);
+                current.executeVoid(continuingFrame);
                 current = current.next();
             } catch (ExplicitYieldException eye) {
-                resumingNode = eye.getResumingNode();
+                continuingNode = eye.getResumingNode();
                 return eye.getValue();
             }
         }

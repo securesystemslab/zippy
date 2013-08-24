@@ -56,7 +56,7 @@ public class WhileNode extends StatementNode {
         while (condition.executeBoolean(frame)) {
             try {
                 body.executeVoid(frame);
-                if (reachedReturn() || isBreak()) {
+                if (isBreak()) {
                     this.setBreak(false);
                     return;
                 }
@@ -83,7 +83,7 @@ public class WhileNode extends StatementNode {
         while (condition.executeBoolean(frame)) {
             try {
                 body.executeVoid(frame);
-                if (reachedReturn() || isBreak()) {
+                if (isBreak()) {
                     this.setBreak(false);
                     return null;
                 }

@@ -36,7 +36,7 @@ import com.oracle.truffle.api.impl.*;
 
 import edu.uci.python.nodes.truffle.*;
 
-public class TranslationContext {
+public class TranslationEnvironment {
 
     private final mod module;
 
@@ -56,16 +56,18 @@ public class TranslationContext {
 
     private FrameDescriptor globalFrame;
 
+    public static final String RETURN_SLOT_ID = "<return_val>";
+
     /*
      * used to keep track of explicitly declared globals in the current scope
      */
     private List<String> localGlobals = new ArrayList<>();
 
-    public TranslationContext(mod module) {
+    public TranslationEnvironment(mod module) {
         this.module = module;
     }
 
-    public TranslationContext reset() {
+    public TranslationEnvironment reset() {
         frames = new Stack<>();
         scopeLevel = 0;
         return this;
@@ -184,6 +186,10 @@ public class TranslationContext {
 
     protected expr getLoopBody(comprehension outer) {
         return generatorToLoopBody.get(outer);
+    }
+
+    public FrameSlot getReturnSlot() {
+        return currentFrame.findOrAddFrameSlot(RETURN_SLOT_ID);
     }
 
 }

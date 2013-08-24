@@ -637,7 +637,7 @@ project@com.oracle.graal.truffle.printer@workingSets=Graal,Truffle
 # python.runtime
 project@edu.uci.python.runtime@subDir=graal
 project@edu.uci.python.runtime@sourceDirs=src
-project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON
 project@edu.uci.python.runtime@javaCompliance=1.7
 project@edu.uci.python.runtime@workingSets=Truffle,Python
 

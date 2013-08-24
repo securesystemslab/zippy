@@ -24,12 +24,12 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.nodes.utils.*;
 
 /**
  * RootNode of a Python Function body. It should invoked by a CallTarget Object.
@@ -39,17 +39,16 @@ import edu.uci.python.nodes.truffle.*;
  */
 public class FunctionRootNode extends RootNode implements Visualizable {
 
-    @Child protected ParametersNode parameters;
+    @Child protected final ParametersNode parameters;
 
     @Child protected StatementNode body;
 
-    private boolean reachedReturn = false;
+    @Child protected PNode returnValue;
 
-    private Object returnVal = null;
-
-    public FunctionRootNode(ParametersNode parameters, StatementNode body) {
+    public FunctionRootNode(ParametersNode parameters, StatementNode body, PNode returnValue) {
         this.parameters = adoptChild(parameters);
         this.body = adoptChild(body);
+        this.returnValue = adoptChild(returnValue);
     }
 
     public void setBody(StatementNode body) {
@@ -60,19 +59,13 @@ public class FunctionRootNode extends RootNode implements Visualizable {
     public Object execute(VirtualFrame frame) {
         parameters.executeVoid(frame);
 
-        body.executeVoid(frame);
-
-        this.reachedReturn = false;
-        return this.returnVal;
-    }
-
-    public boolean reachedReturn() {
-        return this.reachedReturn;
-    }
-
-    public void setReturn(boolean reachedReturn, Object returnVal) {
-        this.reachedReturn = reachedReturn;
-        this.returnVal = returnVal;
+        try {
+            return body.execute(frame);
+        } catch (ImplicitReturnException ire) {
+            return null;
+        } catch (ExplicitReturnException ere) {
+            return returnValue.execute(frame);
+        }
     }
 
     @Override

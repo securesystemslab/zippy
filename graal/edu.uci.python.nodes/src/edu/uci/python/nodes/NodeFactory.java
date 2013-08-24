@@ -62,12 +62,12 @@ public class NodeFactory {
         return new FunctionDefNode(slot, name, parameters, callTarget, funcRoot);
     }
 
-    public FunctionRootNode createFunctionRoot(ParametersNode parameters, StatementNode body) {
-        return new FunctionRootNode(parameters, body);
+    public FunctionRootNode createFunctionRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
+        return new FunctionRootNode(parameters, body, returnValue);
     }
 
-    public RootNode createGeneratorRoot(ParametersNode parameters, StatementNode body) {
-        return new GeneratorRootNode(parameters, body);
+    public RootNode createGeneratorRoot(ParametersNode parameters, StatementNode body, PNode returnValue) {
+        return new GeneratorRootNode(parameters, body, returnValue);
     }
 
     public ParametersNode createParametersOfSizeOne(PNode parameter, List<String> paramNames) {
@@ -147,7 +147,11 @@ public class NodeFactory {
     }
 
     public StatementNode createExplicitReturn(PNode value) {
-        return new ExplicitReturnNode(value);
+        return new ReturnNode.ExplicitReturnNode(value);
+    }
+
+    public StatementNode createFrameReturn(PNode value) {
+        return new ReturnNode.FrameReturnNode(value);
     }
 
     public StatementNode createBreak() {
@@ -214,8 +218,8 @@ public class NodeFactory {
         return GeneratorExpressionNodeFactory.create(generator, descriptor);
     }
 
-    public GeneratorNode createGenerator(ComprehensionNode comprehension) {
-        return new GeneratorNode(ParametersNode.EMPTY_PARAMS, comprehension, "<generator_exp>");
+    public GeneratorNode createGenerator(ComprehensionNode comprehension, PNode returnValue) {
+        return new GeneratorNode(ParametersNode.EMPTY_PARAMS, comprehension, returnValue);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {

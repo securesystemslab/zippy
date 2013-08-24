@@ -22,37 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statements;
+package edu.uci.python.nodes.translation;
 
-import com.oracle.truffle.api.frame.*;
+public class TranslationOptions {
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
-
-public class ExplicitReturnNode extends ReturnNode {
-
-    @Child protected final PNode right;
-
-    public ExplicitReturnNode(PNode right) {
-        this.right = adoptChild(right);
-    }
-
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        Object returnValue = right.execute(frame);
-        // throw new ExplicitReturnException(returnValue);
-        getFuncRootNode().setReturn(true, returnValue);
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        right.visualize(level);
-    }
+    public static final boolean RETURN_VALUE_IN_FRAME = true;
 
 }

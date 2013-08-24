@@ -70,14 +70,6 @@ public abstract class StatementNode extends PNode {
         }
     }
 
-    public final boolean reachedReturn() {
-        if (funcRoot != null) {
-            return funcRoot.reachedReturn();
-        } else {
-            return false;
-        }
-    }
-
     public void setFuncRootNode(FunctionRootNode funcRoot) {
         this.funcRoot = funcRoot;
     }

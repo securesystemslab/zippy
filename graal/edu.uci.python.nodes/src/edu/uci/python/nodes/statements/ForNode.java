@@ -98,7 +98,7 @@ public class ForNode extends StatementNode {
 
             try {
                 body.executeVoid(frame);
-                if (reachedReturn() || isBreak()) {
+                if (isBreak()) {
                     this.setBreak(false);
                     return;
                 }
@@ -116,18 +116,18 @@ public class ForNode extends StatementNode {
     }
 
     private void loopOnPyObject(VirtualFrame frame, PyObject sequence) {
-        PyObject iterator = sequence.__iter__();
+        PyObject pyIterator = sequence.__iter__();
         PyObject itValue;
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         // try {
-        while ((itValue = iterator.__iternext__()) != null) {
+        while ((itValue = pyIterator.__iternext__()) != null) {
             rvn.setValue(unboxPyObject(itValue));
             target.execute(frame);
 
             try {
                 body.executeVoid(frame);
-                if (reachedReturn() || isBreak()) {
+                if (isBreak()) {
                     this.setBreak(false);
                     return;
                 }
@@ -179,7 +179,7 @@ public class ForNode extends StatementNode {
         public void executeVoid(VirtualFrame frame) {
             if (iter == null) {
                 Iterable<?> it = (Iterable<?>) this.iterator.execute(frame);
-                iter = (Iterator<?>) it.iterator();
+                iter = it.iterator();
             }
 
             RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();

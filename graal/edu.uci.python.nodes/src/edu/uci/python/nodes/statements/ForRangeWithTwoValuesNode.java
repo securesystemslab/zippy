@@ -69,7 +69,7 @@ public class ForRangeWithTwoValuesNode extends StatementNode {
 
             try {
                 body.executeVoid(frame);
-                if (reachedReturn() || isBreak()) {
+                if (isBreak()) {
                     this.setBreak(false);
                     return;
                 }
@@ -98,7 +98,7 @@ public class ForRangeWithTwoValuesNode extends StatementNode {
 
             try {
                 body.executeVoid(frame);
-                if (reachedReturn() || isBreak()) {
+                if (isBreak()) {
                     this.setBreak(false);
                     return null;
                 }

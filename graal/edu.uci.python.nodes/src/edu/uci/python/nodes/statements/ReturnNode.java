@@ -26,19 +26,21 @@ package edu.uci.python.nodes.statements;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.nodes.utils.*;
 
 public class ReturnNode extends StatementNode {
 
+    private static final ImplicitReturnException IMPLICIT_RETURN = new ImplicitReturnException();
+
     @Override
     public void executeVoid(VirtualFrame frame) {
-        getFuncRootNode().setReturn(true, null);
-        // throw new ImplicitReturnException();
+        throw IMPLICIT_RETURN;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        getFuncRootNode().setReturn(true, null);
         return null;
     }
 
@@ -48,6 +50,48 @@ public class ReturnNode extends StatementNode {
             ASTInterpreter.trace("    ");
         }
         ASTInterpreter.trace(this);
+    }
+
+    public static class ExplicitReturnNode extends ReturnNode {
+
+        @Child protected final PNode right;
+
+        public ExplicitReturnNode(PNode right) {
+            this.right = adoptChild(right);
+        }
+
+        @Override
+        public void executeVoid(VirtualFrame frame) {
+            Object returnValue = right.execute(frame);
+            throw new ExplicitReturnException(returnValue);
+        }
+
+        @Override
+        public void visualize(int level) {
+            for (int i = 0; i < level; i++) {
+                ASTInterpreter.trace("    ");
+            }
+            ASTInterpreter.trace(this);
+
+            level++;
+            right.visualize(level);
+        }
+
+    }
+
+    public static class FrameReturnNode extends ExplicitReturnNode {
+
+        private static final ExplicitReturnException RETURN_EXCEPTION = new ExplicitReturnException(null);
+
+        public FrameReturnNode(PNode right) {
+            super(right);
+        }
+
+        @Override
+        public void executeVoid(VirtualFrame frame) {
+            right.execute(frame);
+            throw RETURN_EXCEPTION;
+        }
 
     }
 

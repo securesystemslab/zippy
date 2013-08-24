@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
@@ -46,7 +45,7 @@ public class BlockNode extends StatementNode {
         for (int i = 0; i < statements.length; i++) {
             statements[i].executeVoid(frame);
 
-            if (reachedReturn() || reachedBreak()) {
+            if (reachedBreak()) {
                 break;
             }
         }
@@ -58,7 +57,7 @@ public class BlockNode extends StatementNode {
         for (int i = 0; i < statements.length; i++) {
             statements[i].executeVoid(frame);
 
-            if (reachedReturn() || reachedBreak()) {
+            if (reachedBreak()) {
                 break;
             }
         }

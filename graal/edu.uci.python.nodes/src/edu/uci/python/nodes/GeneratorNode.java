@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.statements.*;
@@ -32,8 +31,8 @@ import edu.uci.python.nodes.utils.*;
 
 public class GeneratorNode extends FunctionRootNode {
 
-    public GeneratorNode(ParametersNode parameters, StatementNode body, String name) {
-        super(parameters, body);
+    public GeneratorNode(ParametersNode parameters, StatementNode body, PNode returnValue) {
+        super(parameters, body, returnValue);
     }
 
     @Override
@@ -41,14 +40,12 @@ public class GeneratorNode extends FunctionRootNode {
         parameters.executeVoid(frame);
 
         try {
-            body.executeVoid(frame);
+            return body.execute(frame);
         } catch (ExplicitReturnException ere) {
-            return ere.getValue();
+            return returnValue.execute(frame);
         } catch (ImplicitReturnException ire) {
-
+            return null;
         }
-
-        return null;
     }
 
 }
