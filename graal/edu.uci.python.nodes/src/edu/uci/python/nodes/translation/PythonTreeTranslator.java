@@ -84,10 +84,6 @@ public class PythonTreeTranslator extends Visitor {
         return environment.getFrameDescriptor(scopeEntity);
     }
 
-    private FrameSlot getFrameSlot(PythonTree symbol) {
-        return environment.getFrameSlot(symbol);
-    }
-
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         environment.beginScope(node);
@@ -115,42 +111,41 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
+        /**
+         * translate default arguments in FunctionDef's enclosing scope.
+         */
+        List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
+        environment.setDefaultArgs(defaultArgs);
+
+        String name = node.getInternalName();
+        FrameSlot slot = environment.findSlot(name);
         environment.beginScope(node);
         isGenerator = false;
 
-        FrameDescriptor fd = getFrameDescriptor(node);
         ParametersNode parameters = visitArgs(node.getInternalArgs());
         List<PNode> statements = visitStatements(node.getInternalBody());
-        String name = node.getInternalName();
-        FrameSlot slot = getFrameSlot(node.getInternalNameNode());
         StatementNode body = factory.createBlock(statements);
 
         if (isGenerator) {
             body = new ASTLinearizer((BlockNode) body).linearize();
             RootNode genRoot = factory.createGeneratorRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
-            CallTarget ct = Truffle.getRuntime().createCallTarget(genRoot, fd);
+            CallTarget ct = Truffle.getRuntime().createCallTarget(genRoot, environment.getCurrentFrame());
             return factory.createFunctionDef(slot, name, parameters, ct, genRoot);
         }
 
         FunctionRootNode funcRoot = factory.createFunctionRoot(parameters, body, factory.createReadLocal(environment.getReturnSlot()));
-        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, fd);
+        CallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot, environment.getCurrentFrame());
         environment.endScope();
         return factory.createFunctionDef(slot, name, parameters, ct, funcRoot);
     }
 
     public ParametersNode visitArgs(arguments node) throws Exception {
-        isLeftHandSide = true;
-
         // parse arguments
-        ArgListCompiler ac = new ArgListCompiler();
-        ac.visitArgs(node);
-
-        List<PNode> defaults = walkExprList(node.getInternalDefaults());
+        new ArgListCompiler().visitArgs(node);
 
         List<PNode> args = new ArrayList<>();
-
         List<String> paramNames = new ArrayList<>();
-
+        isLeftHandSide = true;
         for (int i = 0; i < node.getInternalArgs().size(); i++) {
             expr arg = node.getInternalArgs().get(i);
 
@@ -161,10 +156,10 @@ public class PythonTreeTranslator extends Visitor {
                 throw new RuntimeException("Unexpected parameter type " + arg.getClass().getSimpleName());
             }
         }
-
         isLeftHandSide = false;
 
-        if (defaults.isEmpty()) {
+        int defaultArgsSize = node.getInternalDefaults().size();
+        if (defaultArgsSize == 0) {
             if (args.size() == 1) {
                 return factory.createParametersOfSizeOne(args.get(0), paramNames);
             } else if (args.size() == 2) {
@@ -174,7 +169,7 @@ public class PythonTreeTranslator extends Visitor {
             }
         }
 
-        return factory.createParametersWithDefaults(args, defaults, paramNames);
+        return factory.createParametersWithDefaults(args, environment.getDefaultArgs(), paramNames);
     }
 
     List<PNode> walkExprList(List<expr> exprs) throws Exception {
@@ -201,7 +196,7 @@ public class PythonTreeTranslator extends Visitor {
         FrameSlot[] slots = new FrameSlot[aliases.size()];
 
         for (int i = 0; i < aliases.size(); i++) {
-            slots[i] = getFrameSlot(aliases.get(i));
+            slots[i] = environment.findSlot(aliases.get(i).getInternalName());
         }
 
         return slots;
@@ -304,9 +299,9 @@ public class PythonTreeTranslator extends Visitor {
         expr_contextType econtext = node.getInternalCtx();
 
         if (econtext == expr_contextType.Param) {
-            FrameSlot slot = getFrameSlot(node);
+            FrameSlot slot = environment.findSlot(node.getInternalId());
             ReadArgumentNode right = new ReadArgumentNode(slot.getIndex());
-            return factory.createWriteLocal(right, getFrameSlot(node));
+            return factory.createWriteLocal(right, slot);
         }
 
         if (node.getInternalCtx() != expr_contextType.Load) {
@@ -318,7 +313,7 @@ public class PythonTreeTranslator extends Visitor {
 
     PNode convertRead(Name node) {
         String name = node.getInternalId();
-        FrameSlot slot = getFrameSlot(node);
+        FrameSlot slot = environment.findSlot(name);
 
         if (slot != null) {
             if (slot instanceof EnvironmentFrameSlot) {
@@ -332,7 +327,7 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     PNode convertWrite(Name node) {
-        FrameSlot slot = getFrameSlot(node);
+        FrameSlot slot = environment.findSlot(node.getInternalId());
 
         if (slot != null) {
             return factory.createWriteLocal(PNode.DUMMY_NODE, slot);
@@ -559,7 +554,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private PNode makeTemporaryWrite() {
         String tempName = TEMP_LOCAL_PREFIX + environment.getCurrentFrameSize();
-        FrameSlot tempSlot = environment.findOrAddFrameSlot(tempName);
+        FrameSlot tempSlot = environment.createLocal(tempName);
         PNode tempWrite = factory.createWriteLocal(PNode.DUMMY_NODE, tempSlot);
         return tempWrite;
     }

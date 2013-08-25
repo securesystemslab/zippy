@@ -34,6 +34,7 @@ import org.python.antlr.base.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 
 public class TranslationEnvironment {
@@ -41,8 +42,6 @@ public class TranslationEnvironment {
     private final mod module;
 
     private Map<PythonTree, FrameDescriptor> frameDescriptors = new HashMap<>();
-
-    private Map<PythonTree, FrameSlot> nameToFrameSlot = new HashMap<>();
 
     private Map<comprehension, comprehension> generatorToInnerLoop = new HashMap<>();
 
@@ -55,6 +54,8 @@ public class TranslationEnvironment {
     private FrameDescriptor currentFrame;
 
     private FrameDescriptor globalFrame;
+
+    private List<PNode> defaultArgs;
 
     public static final String RETURN_SLOT_ID = "<return_val>";
 
@@ -113,27 +114,38 @@ public class TranslationEnvironment {
         return fd;
     }
 
-    public FrameSlot findOrAddFrameSlot(String name) {
+    public FrameDescriptor getCurrentFrame() {
+        return currentFrame;
+    }
+
+    public FrameSlot createLocal(String name) {
+        assert name != null : "name is null!";
         return currentFrame.findOrAddFrameSlot(name);
     }
 
-    public FrameSlot findFrameSlot(String name) {
-        return currentFrame.findFrameSlot(name);
+    public FrameSlot findSlot(String name) {
+        assert name != null : "name is null!";
+        FrameSlot slot = currentFrame.findFrameSlot(name);
+        return slot != null ? slot : probeEnclosingScopes(name);
     }
 
-    public FrameSlot defGlobal(String name) {
+    public FrameSlot createGlobal(String name) {
+        assert name != null : "name is null!";
         return globalFrame.findOrAddFrameSlot(name);
     }
 
     public void addLocalGlobals(String name) {
+        assert name != null : "name is null!";
         localGlobals.add(name);
     }
 
     public boolean isLocalGlobals(String name) {
+        assert name != null : "name is null!";
         return localGlobals.contains(name);
     }
 
     protected FrameSlot probeEnclosingScopes(String name) {
+        assert name != null : "name is null!";
         int level = 0;
         for (int i = frames.size() - 1; i > 0; i--) {
             FrameDescriptor fd = frames.get(i);
@@ -164,12 +176,14 @@ public class TranslationEnvironment {
         return frameDescriptors.get(scopeEntity);
     }
 
-    protected void setFrameSlot(PythonTree symbol, FrameSlot slot) {
-        nameToFrameSlot.put(symbol, slot);
+    // TODO: Not pretty. Probably to be removed...
+    protected void setDefaultArgs(List<PNode> defaultArgs) {
+        this.defaultArgs = defaultArgs;
     }
 
-    protected FrameSlot getFrameSlot(PythonTree symbol) {
-        return nameToFrameSlot.get(symbol);
+    protected List<PNode> getDefaultArgs() {
+        assert defaultArgs != null : "default args is null";
+        return defaultArgs;
     }
 
     protected void setInnerLoop(comprehension outer, comprehension inner) {
