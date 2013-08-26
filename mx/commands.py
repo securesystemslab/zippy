@@ -286,7 +286,7 @@ def _handle_missing_VM(bld, vm):
             with VM(vm, bld):
                 build([])
             return
-    mx.abort('You need to run "mx --vm ' + vm + ' build ' + bld + '" to build the selected VM')
+    mx.abort('You need to run "mx --vm ' + vm + '--vmbuild ' + bld + ' build" to build the selected VM')
 
 def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
