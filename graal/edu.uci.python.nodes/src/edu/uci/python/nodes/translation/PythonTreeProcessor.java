@@ -237,22 +237,8 @@ public class PythonTreeProcessor extends Visitor {
         String tmp = "_[" + node.getLine() + "_" + node.getCharPositionInLine() + "]";
         traverse(node);
         environment.createLocal(tmp);
-        transformComprehensions(node.getInternalGenerators(), node.getInternalElt());
+        visit(node.getInternalElt());
         return null;
-    }
-
-    private void transformComprehensions(List<comprehension> generators, expr body) throws Exception {
-        for (int i = 0; i < generators.size(); i++) {
-            comprehension c = generators.get(i);
-            if (i + 1 <= generators.size() - 1) { // has next
-                environment.setInnerLoop(c, generators.get(i + 1));
-            } else { // last/inner most
-                environment.setLoopBody(c, body);
-            }
-        }
-
-        // re-process inner most body
-        visit(body);
     }
 
     @Override
@@ -322,8 +308,6 @@ public class PythonTreeProcessor extends Visitor {
          * Why is generator targets parsed after the first elt? Answer: Elt need to be parsed after
          * generators. This is logical and in line with the interpretation order.
          */
-        transformComprehensions(node.getInternalGenerators(), node.getInternalElt());
-
         if (node.getInternalElt() != null) {
             visit(node.getInternalElt());
         }

@@ -32,6 +32,7 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 import org.python.compiler.*;
 import org.python.core.*;
+import org.python.google.common.collect.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
@@ -660,44 +661,48 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitListComp(ListComp node) throws Exception {
         assert node.getInternalGenerators().size() <= 1 : "More than one generator!";
-        ComprehensionNode comprehension = (ComprehensionNode) visitComprehension(node.getInternalGenerators().get(0));
-        return factory.createListComprehension(comprehension);
+        ComprehensionNode comp = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
+        return factory.createListComprehension(comp);
     }
 
-    public Object visitComprehension(comprehension node) throws Exception {
-        boolean isInner = true;
+    private Object visitComprehensions(List<comprehension> generators, expr body) throws Exception {
+        assert body != null;
+        List<comprehension> reversed = Lists.reverse(generators);
+        PNode current = null;
 
-        Amendable incomplete = (Amendable) visit(node.getInternalTarget());
-        StatementNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
-        PNode iterator = (PNode) visit(node.getInternalIter());
+        for (int i = 0; i < reversed.size(); i++) {
+            comprehension comp = reversed.get(i);
 
-        // inner loop
-        comprehension inner = environment.getInnerLoop(node);
-        PNode innerLoop = inner != null ? (PNode) visitComprehension(inner) : null;
-        isInner = inner != null ? false : true;
+            // target and iterator
+            Amendable incomplete = (Amendable) visit(comp.getInternalTarget());
+            StatementNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
+            PNode iterator = (PNode) visit(comp.getInternalIter());
 
-        // transformed loop body (only exist if it's inner most comprehension)
-        expr body = environment.getLoopBody(node);
-        PNode loopBody = body != null ? (PNode) visit(environment.getLoopBody(node)) : null;
-        isInner = body != null ? true : false;
+            // Just deal with one condition.
+            List<expr> conditions = comp.getInternalIfs();
+            PNode condition = (conditions == null || conditions.isEmpty()) ? null : (PNode) visit(conditions.get(0));
 
-        // Just deal with one condition.
-        List<expr> conditions = node.getInternalIfs();
-        PNode condition = (conditions == null || conditions.isEmpty()) ? null : (PNode) visit(conditions.get(0));
-
-        assert inner == null || body == null : "Cannot be inner and outer at the same time";
-
-        if (isInner) {
-            return factory.createInnerComprehension(target, iterator, factory.toBooleanCastNode(condition), loopBody);
-        } else {
-            return factory.createOuterComprehension(target, iterator, factory.toBooleanCastNode(condition), innerLoop);
+            if (i == 0) {
+                // inner most
+                PNode loopBody = (PNode) visit(body);
+                current = factory.createInnerComprehension(target, iterator, factory.toBooleanCastNode(condition), loopBody);
+            } else if (i < reversed.size() - 1) {
+                // inner
+                current = factory.createInnerComprehension(target, iterator, factory.toBooleanCastNode(condition), current);
+            } else {
+                // outer
+                current = factory.createOuterComprehension(target, iterator, factory.toBooleanCastNode(condition), current);
+            }
         }
+
+        assert current != null;
+        return current;
     }
 
     @Override
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         environment.beginScope(node);
-        ComprehensionNode comprehension = (ComprehensionNode) visitComprehension(node.getInternalGenerators().get(0));
+        ComprehensionNode comprehension = (ComprehensionNode) visitComprehensions(node.getInternalGenerators(), node.getInternalElt());
         GeneratorNode gnode = factory.createGenerator(comprehension, factory.createReadLocal(environment.getReturnSlot()));
         environment.endScope();
         return factory.createGeneratorExpression(gnode, getFrameDescriptor(node));

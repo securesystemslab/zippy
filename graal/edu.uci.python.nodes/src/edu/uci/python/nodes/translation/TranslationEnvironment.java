@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.List;
 
 import org.python.antlr.*;
-import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
 import com.oracle.truffle.api.frame.*;
@@ -42,10 +41,6 @@ public class TranslationEnvironment {
     private final mod module;
 
     private Map<PythonTree, FrameDescriptor> frameDescriptors = new HashMap<>();
-
-    private Map<comprehension, comprehension> generatorToInnerLoop = new HashMap<>();
-
-    private Map<comprehension, expr> generatorToLoopBody = new HashMap<>();
 
     private Stack<FrameDescriptor> frames;
 
@@ -184,22 +179,6 @@ public class TranslationEnvironment {
     protected List<PNode> getDefaultArgs() {
         assert defaultArgs != null : "default args is null";
         return defaultArgs;
-    }
-
-    protected void setInnerLoop(comprehension outer, comprehension inner) {
-        generatorToInnerLoop.put(outer, inner);
-    }
-
-    protected comprehension getInnerLoop(comprehension outer) {
-        return generatorToInnerLoop.get(outer);
-    }
-
-    protected void setLoopBody(comprehension outer, expr body) {
-        generatorToLoopBody.put(outer, body);
-    }
-
-    protected expr getLoopBody(comprehension outer) {
-        return generatorToLoopBody.get(outer);
     }
 
     public FrameSlot getReturnSlot() {
