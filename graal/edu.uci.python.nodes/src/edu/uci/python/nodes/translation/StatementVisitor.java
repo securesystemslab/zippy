@@ -38,6 +38,4 @@ public interface StatementVisitor<R> {
 
     R visitWhileNode(WhileNode node);
 
-    R visitWhileTrueNode(WhileTrueNode node);
-
 }

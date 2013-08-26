@@ -53,58 +53,23 @@ public class ForRangeWithOneValueNode extends StatementNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        // TODO need to check for bigInteger
-        int stop = (int) this.stop.execute(frame);
-        RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-
-        for (int i = 0; i < stop; i++) {
-            // try {
-            rvn.setValue(i);
-            target.execute(frame);
-
-            try {
-                body.executeVoid(frame);
-                if (isBreak()) {
-                    this.setBreak(false);
-                    return;
-                }
-            } catch (ContinueException ex) {
-                // Fall through to next loop iteration.
-            }
-            // } catch (BreakException ex) {
-            // Done executing this loop.
-            // If there is a break, orelse should not be executed
-            // return;
-            // }
-            orelse.executeVoid(frame);
-        }
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
         int stop = (int) this.stop.execute(frame);
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
         for (int i = 0; i < stop; i++) {
-            // try {
-            rvn.setValue(i);
-            target.execute(frame);
-
             try {
-                body.executeVoid(frame);
-                if (isBreak()) {
-                    this.setBreak(false);
-                    return null;
+                rvn.setValue(i);
+                target.execute(frame);
+
+                try {
+                    body.executeVoid(frame);
+                } catch (ContinueException ex) {
+                    // Fall through to next loop iteration.
                 }
-            } catch (ContinueException ex) {
-                // Fall through to next loop iteration.
+            } catch (BreakException ex) {
+                return null;
             }
-            // } catch (BreakException ex) {
-            // Done executing this loop.
-            // If there is a break, orelse should not be executed
-            // return;
-            // }
             orelse.executeVoid(frame);
         }
 

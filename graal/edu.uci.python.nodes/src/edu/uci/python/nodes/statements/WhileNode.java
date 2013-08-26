@@ -51,56 +51,19 @@ public class WhileNode extends StatementNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        // try {
-        while (condition.executeBoolean(frame)) {
-            try {
-                body.executeVoid(frame);
-                if (isBreak()) {
-                    this.setBreak(false);
-                    return;
-                }
-            } catch (ContinueException ex) {
-                // Fall through to next loop iteration.
-            }
-        }
-        // } catch (BreakException ex) {
-        // Done executing this loop, exit method to execute statement
-        // following the loop.
-        // return;
-        // }
-
-        /**
-         * while for might have an orelse part which is only executed when loop terminates
-         * regularly(without break)
-         */
-        orelse.executeVoid(frame);
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
-        // try {
-        while (condition.executeBoolean(frame)) {
-            try {
-                body.executeVoid(frame);
-                if (isBreak()) {
-                    this.setBreak(false);
-                    return null;
+        try {
+            while (condition.executeBoolean(frame)) {
+                try {
+                    body.executeVoid(frame);
+                } catch (ContinueException ex) {
+                    // Fall through to next loop iteration.
                 }
-            } catch (ContinueException ex) {
-                // Fall through to next loop iteration.
             }
+        } catch (BreakException ex) {
+            return null;
         }
-        // } catch (BreakException ex) {
-        // Done executing this loop, exit method to execute statement
-        // following the loop.
-        // return;
-        // }
 
-        /**
-         * while for might have an orelse part which is only executed when loop terminates
-         * regularly(without break)
-         */
         orelse.executeVoid(frame);
         return null;
     }

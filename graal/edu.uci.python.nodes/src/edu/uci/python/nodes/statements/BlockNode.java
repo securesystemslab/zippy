@@ -44,10 +44,6 @@ public class BlockNode extends StatementNode {
     public void executeVoid(VirtualFrame frame) {
         for (int i = 0; i < statements.length; i++) {
             statements[i].executeVoid(frame);
-
-            if (reachedBreak()) {
-                break;
-            }
         }
     }
 
@@ -56,10 +52,6 @@ public class BlockNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         for (int i = 0; i < statements.length; i++) {
             statements[i].executeVoid(frame);
-
-            if (reachedBreak()) {
-                break;
-            }
         }
 
         return null;

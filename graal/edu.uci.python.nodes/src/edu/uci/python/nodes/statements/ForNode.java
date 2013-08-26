@@ -60,19 +60,6 @@ public class ForNode extends StatementNode {
     }
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        Object evaluatedIterator = iterator.execute(frame);
-
-        if (evaluatedIterator instanceof Iterable) {
-            loopOnIterable(frame, (Iterable<?>) evaluatedIterator);
-        } else if (evaluatedIterator instanceof PyObject) {
-            loopOnPyObject(frame, (PyObject) evaluatedIterator);
-        } else {
-            throw new RuntimeException("Unexpected iterator type " + evaluatedIterator.getClass());
-        }
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
         Object evaluatedIterator = iterator.execute(frame);
 
@@ -91,26 +78,22 @@ public class ForNode extends StatementNode {
         Iterator<?> iter = iterable.iterator();
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
-        // try {
-        while (iter.hasNext()) {
-            rvn.setValue(iter.next());
-            target.execute(frame);
+        try {
+            while (iter.hasNext()) {
+                rvn.setValue(iter.next());
+                target.execute(frame);
 
-            try {
-                body.executeVoid(frame);
-                if (isBreak()) {
-                    this.setBreak(false);
-                    return;
+                try {
+                    body.executeVoid(frame);
+                } catch (ContinueException ex) {
+                    // Fall through to next loop iteration.
                 }
-            } catch (ContinueException ex) {
-                // Fall through to next loop iteration.
             }
+        } catch (BreakException ex) {
+            // Done executing this loop.
+            // If there is a break, orelse should not be executed
+            return;
         }
-        // } catch (BreakException ex) {
-        // Done executing this loop.
-        // If there is a break, orelse should not be executed
-        // return;
-        // }
 
         orelse.executeVoid(frame);
     }
@@ -120,26 +103,22 @@ public class ForNode extends StatementNode {
         PyObject itValue;
         RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
 
-        // try {
-        while ((itValue = pyIterator.__iternext__()) != null) {
-            rvn.setValue(unboxPyObject(itValue));
-            target.execute(frame);
+        try {
+            while ((itValue = pyIterator.__iternext__()) != null) {
+                rvn.setValue(unboxPyObject(itValue));
+                target.execute(frame);
 
-            try {
-                body.executeVoid(frame);
-                if (isBreak()) {
-                    this.setBreak(false);
-                    return;
+                try {
+                    body.executeVoid(frame);
+                } catch (ContinueException ex) {
+                    // Fall through to next loop iteration.
                 }
-            } catch (ContinueException ex) {
-                // Fall through to next loop iteration.
             }
+        } catch (BreakException ex) {
+            // Done executing this loop
+            // If there is a break, orelse should not be executed
+            return;
         }
-        // } catch (BreakException ex) {
-        // Done executing this loop
-        // If there is a break, orelse should not be executed
-        // return;
-        // }
 
         orelse.executeVoid(frame);
     }

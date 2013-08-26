@@ -26,7 +26,6 @@ package edu.uci.python.nodes.statements;
 
 import java.util.*;
 
-
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
@@ -132,18 +131,6 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         return loopEnd;
     }
 
-    @Override
-    public StatementNode visitWhileTrueNode(WhileTrueNode node) {
-        append(node);
-        StatementNode loopEnd = getDummy();
-        StatementNode bodyLast = visitBlockNode(node.body);
-
-        setNext(bodyLast, node);
-        setNext(node, loopEnd);
-        append(loopEnd);
-        return loopEnd;
-    }
-
     private StatementNode getDummy() {
         return (StatementNode) PNode.DUMMY_NODE.copy();
     }
@@ -233,14 +220,5 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
             visitStatementNode(next);
             return null;
         }
-
-        @Override
-        public StatementNode visitWhileTrueNode(WhileTrueNode node) {
-            visitStatementNode(node);
-            StatementNode next = visit(node.body).next();
-            visitStatementNode(next);
-            return null;
-        }
     }
-
 }

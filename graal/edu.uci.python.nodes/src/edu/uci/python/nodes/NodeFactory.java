@@ -122,10 +122,6 @@ public class NodeFactory {
         return new WhileNode(condition, body, orelse);
     }
 
-    public StatementNode createWhileTrue(BlockNode body) {
-        return new WhileTrueNode(body);
-    }
-
     public StatementNode createIf(BooleanCastNode condition, BlockNode thenPart, BlockNode elsePart) {
         return new IfNode(condition, thenPart, elsePart);
     }

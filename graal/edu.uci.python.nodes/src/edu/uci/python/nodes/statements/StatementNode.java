@@ -40,33 +40,15 @@ public abstract class StatementNode extends PNode {
      */
     private StatementNode next;
 
-    private StatementNode loopHeader = null;
+// private StatementNode loopHeader = null;
 
-    private boolean isBreak = false;
+// public StatementNode getLoopHeader() {
+// return loopHeader;
+// }
 
-    public void setBreak(boolean isBreak) {
-        this.isBreak = isBreak;
-    }
-
-    public StatementNode getLoopHeader() {
-        return loopHeader;
-    }
-
-    public void setLoopHeader(StatementNode loopHeader) {
-        this.loopHeader = loopHeader;
-    }
-
-    public final boolean isBreak() {
-        return isBreak;
-    }
-
-    protected final boolean reachedBreak() {
-        if (loopHeader != null) {
-            return loopHeader.isBreak();
-        } else {
-            return false;
-        }
-    }
+// public void setLoopHeader(StatementNode loopHeader) {
+// this.loopHeader = loopHeader;
+// }
 
     protected void setNext(StatementNode next) {
         this.next = next;

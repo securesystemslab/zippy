@@ -26,18 +26,13 @@ package edu.uci.python.nodes.statements;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.utils.*;
+
 public class BreakNode extends StatementNode {
 
     @Override
-    public void executeVoid(VirtualFrame frame) {
-        this.getLoopHeader().setBreak(true);
-        // throw BreakException.breakException;
-    }
-
-    @Override
     public Object execute(VirtualFrame frame) {
-        this.getLoopHeader().setBreak(true);
-        return null;
+        throw BreakException.instance;
     }
 
     @Override

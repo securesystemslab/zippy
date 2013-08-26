@@ -1,5 +1,6 @@
 import sys
 from array import array
+import time
 
 def fannkuch(n):
     p = array('i', range(n))
@@ -59,6 +60,9 @@ def fannkuch(n):
                 p[i + 1] = t
                 i += 1
 
+start = time.time()
 sum, maxflips = fannkuch(int(sys.argv[1]))
 print(sum)
 print("Pfannkuchen(%d) = %d" % (int(sys.argv[1]), maxflips))
+duration = "%.3f\n" % (time.time() - start)
+print("fannkuchredux: " + duration)

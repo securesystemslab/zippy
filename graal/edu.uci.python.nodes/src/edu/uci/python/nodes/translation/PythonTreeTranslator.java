@@ -56,8 +56,6 @@ public class PythonTreeTranslator extends Visitor {
 
     private boolean isGenerator = false;
 
-    private Stack<StatementNode> loopHeaders = new Stack<>();
-
     private static final String TEMP_LOCAL_PREFIX = "temp_";
 
     public PythonTreeTranslator(TranslationEnvironment environment) {
@@ -70,14 +68,6 @@ public class PythonTreeTranslator extends Visitor {
             return (RootNode) visit(root);
         } catch (Throwable t) {
             throw new RuntimeException("Failed in " + this + " with error " + t);
-        }
-    }
-
-    private StatementNode getCurrentLoopHeader() {
-        if (loopHeaders.isEmpty()) {
-            return null;
-        } else {
-            return loopHeaders.peek();
         }
     }
 
@@ -732,7 +722,6 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitBreak(Break node) throws Exception {
         StatementNode breakNode = factory.createBreak();
-        breakNode.setLoopHeader(getCurrentLoopHeader());
         return breakNode;
     }
 
@@ -743,54 +732,17 @@ public class PythonTreeTranslator extends Visitor {
         PNode test = (PNode) visit(node.getInternalTest());
         BlockNode thenPart = factory.createBlock(then);
         BlockNode elsePart = factory.createBlock(orelse);
-
-        StatementNode ifNode = factory.createIf(factory.toBooleanCastNode(test), thenPart, elsePart);
-
-        thenPart.setLoopHeader(getCurrentLoopHeader());
-        elsePart.setLoopHeader(getCurrentLoopHeader());
-
-        return ifNode;
+        return factory.createIf(factory.toBooleanCastNode(test), thenPart, elsePart);
     }
 
     @Override
     public Object visitWhile(While node) throws Exception {
         PNode test = (PNode) visit(node.getInternalTest());
-
-        /**
-         * Special case for while true
-         */
-        if (test instanceof BooleanLiteralNode && ((BooleanLiteralNode) test).getValue()) {
-            StatementNode whileTrueNode = factory.createWhileTrue(null);
-
-            loopHeaders.push(whileTrueNode);
-
-            List<PNode> body = visitStatements(node.getInternalBody());
-            BlockNode bodyPart = factory.createBlock(body);
-
-            bodyPart.setLoopHeader(getCurrentLoopHeader());
-
-            ((WhileTrueNode) whileTrueNode).setInternal(bodyPart);
-            loopHeaders.pop();
-
-            return whileTrueNode;
-        } else {
-            StatementNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), null, null);
-
-            loopHeaders.push(whileNode);
-
-            List<PNode> body = visitStatements(node.getInternalBody());
-            List<PNode> orelse = visitStatements(node.getInternalOrelse());
-            BlockNode bodyPart = factory.createBlock(body);
-            BlockNode orelsePart = factory.createBlock(orelse);
-
-            bodyPart.setLoopHeader(getCurrentLoopHeader());
-            orelsePart.setLoopHeader(getCurrentLoopHeader());
-
-            ((WhileNode) whileNode).setInternal(bodyPart, orelsePart);
-            loopHeaders.pop();
-
-            return whileNode;
-        }
+        List<PNode> body = visitStatements(node.getInternalBody());
+        List<PNode> orelse = visitStatements(node.getInternalOrelse());
+        BlockNode bodyPart = factory.createBlock(body);
+        BlockNode orelsePart = factory.createBlock(orelse);
+        return factory.createWhile(factory.toBooleanCastNode(test), bodyPart, orelsePart);
     }
 
     @Override
@@ -807,43 +759,26 @@ public class PythonTreeTranslator extends Visitor {
         StatementNode iteratorWrite = incomplete.updateRhs(runtimeValue);
 
         PNode iter = (PNode) visit(node.getInternalIter());
-        StatementNode forNode = dirtySpecialization(iteratorWrite, iter);
-
-        loopHeaders.push(forNode);
-
         List<PNode> body = visitStatements(node.getInternalBody());
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         body.addAll(0, targets);
         BlockNode bodyPart = factory.createBlock(body);
         BlockNode orelsePart = factory.createBlock(orelse);
-
-        bodyPart.setLoopHeader(getCurrentLoopHeader());
-        orelsePart.setLoopHeader(getCurrentLoopHeader());
-
-        if (forNode instanceof ForNode) {
-            ((ForNode) forNode).setInternal(bodyPart, orelsePart);
-        } else if (forNode instanceof ForRangeWithOneValueNode) {
-            ((ForRangeWithOneValueNode) forNode).setInternal(bodyPart, orelsePart);
-        } else {
-            ((ForRangeWithTwoValuesNode) forNode).setInternal(bodyPart, orelsePart);
-        }
-
-        loopHeaders.pop();
-        return forNode;
+        return dirtySpecialization(iteratorWrite, iter, bodyPart, orelsePart);
     }
 
-    private StatementNode dirtySpecialization(StatementNode target, PNode iter) {
+    private StatementNode dirtySpecialization(StatementNode target, PNode iter, BlockNode body, BlockNode orelse) {
         StatementNode forNode;
         if (Options.OptimizeNode) {
             if (iter instanceof CallBuiltInWithOneArgNoKeywordNode && ((CallBuiltInWithOneArgNoKeywordNode) iter).getName().equals("range")) {
-                forNode = factory.createForRangeWithOneValue(target, ((CallBuiltInWithOneArgNoKeywordNode) iter).getArgument(), null, null);
+                forNode = factory.createForRangeWithOneValue(target, ((CallBuiltInWithOneArgNoKeywordNode) iter).getArgument(), body, orelse);
             } else if (iter instanceof CallBuiltInWithTwoArgsNoKeywordNode && ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getName().equals("range")) {
-                forNode = factory.createForRangeWithTwoValues(target, ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getArg0(), ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getArg1(), null, null);
+                forNode = factory.createForRangeWithTwoValues(target, ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getArg0(), ((CallBuiltInWithTwoArgsNoKeywordNode) iter).getArg1(), body, orelse);
             } else {
-                forNode = factory.createFor(target, iter, null, null);
+                forNode = factory.createFor(target, iter, body, orelse);
             }
         } else {
-            forNode = factory.createFor(target, iter, null, null);
+            forNode = factory.createFor(target, iter, body, orelse);
         }
         return forNode;
     }
