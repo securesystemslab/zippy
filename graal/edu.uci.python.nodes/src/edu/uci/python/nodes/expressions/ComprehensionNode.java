@@ -46,9 +46,9 @@ public abstract class ComprehensionNode extends StatementNode {
 
     @Child protected BooleanCastNode condition;
 
-    @Child protected StatementNode target;
+    @Child protected PNode target;
 
-    public ComprehensionNode(StatementNode target, BooleanCastNode condition) {
+    public ComprehensionNode(PNode target, BooleanCastNode condition) {
         this.target = adoptChild(target);
         this.condition = adoptChild(condition);
     }
@@ -124,7 +124,7 @@ public abstract class ComprehensionNode extends StatementNode {
 
         @Child protected PNode loopBody;
 
-        public InnerComprehensionNode(StatementNode target, BooleanCastNode condition, PNode loopBody) {
+        public InnerComprehensionNode(PNode target, BooleanCastNode condition, PNode loopBody) {
             super(target, condition);
             this.loopBody = adoptChild(loopBody);
         }
@@ -160,7 +160,7 @@ public abstract class ComprehensionNode extends StatementNode {
 
         @Child protected PNode innerLoop;
 
-        public OuterComprehensionNode(StatementNode target, BooleanCastNode condition, PNode innerLoop) {
+        public OuterComprehensionNode(PNode target, BooleanCastNode condition, PNode innerLoop) {
             super(target, condition);
             this.innerLoop = adoptChild(innerLoop);
         }

@@ -24,8 +24,8 @@
  */
 package edu.uci.python.nodes.literals;
 
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.*;
 
-public abstract class LiteralNode extends StatementNode {
+public abstract class LiteralNode extends PNode {
 
 }

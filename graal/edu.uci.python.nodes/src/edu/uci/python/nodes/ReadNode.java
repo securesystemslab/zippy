@@ -24,10 +24,8 @@
  */
 package edu.uci.python.nodes;
 
-import edu.uci.python.nodes.statements.*;
-
 public interface ReadNode {
 
-    StatementNode makeWriteNode(PNode rhs);
+    PNode makeWriteNode(PNode rhs);
 
 }

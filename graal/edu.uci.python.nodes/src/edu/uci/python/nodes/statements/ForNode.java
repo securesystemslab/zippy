@@ -39,7 +39,7 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
 public class ForNode extends StatementNode {
 
-    @Child protected StatementNode target;
+    @Child protected PNode target;
 
     @Child protected PNode iterator;
 
@@ -47,7 +47,7 @@ public class ForNode extends StatementNode {
 
     @Child protected BlockNode orelse;
 
-    public ForNode(StatementNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public ForNode(PNode target, PNode iterator, BlockNode body, BlockNode orelse) {
         this.target = adoptChild(target);
         this.iterator = adoptChild(iterator);
         this.body = adoptChild(body);

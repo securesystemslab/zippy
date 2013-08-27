@@ -28,7 +28,9 @@ import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
 
-public class ParametersNode extends StatementNode {
+import edu.uci.python.nodes.*;
+
+public class ParametersNode extends PNode {
 
     public static final ParametersNode EMPTY_PARAMS = new ParametersNode(null);
 

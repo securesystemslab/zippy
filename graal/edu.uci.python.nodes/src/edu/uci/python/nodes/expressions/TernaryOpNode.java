@@ -24,16 +24,14 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.truffle.*;
 
 @NodeChildren({@NodeChild(value = "first", type = PNode.class), @NodeChild(value = "second", type = PNode.class), @NodeChild(value = "third", type = PNode.class)})
-public abstract class TernaryOpNode extends StatementNode {
+public abstract class TernaryOpNode extends PNode {
 
     public abstract PNode getFirst();
 

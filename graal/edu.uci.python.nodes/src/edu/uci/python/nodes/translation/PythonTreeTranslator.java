@@ -233,9 +233,9 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> keywords = walkKeywordList(node.getInternalKeywords());
         PNode[] keywordsArray = keywords.toArray(new PNode[keywords.size()]);
 
-        if (callee instanceof AttributeRefNode) {
-            AttributeRefNode attr = (AttributeRefNode) callee;
-            return factory.createAttributeCall(attr.getOperand(), argumentsArray, attr.getName());
+        if (callee instanceof AttributeLoadNode) {
+            AttributeLoadNode attr = (AttributeLoadNode) callee;
+            return factory.createAttributeCall(attr.getPrimary(), argumentsArray, attr.getName());
         }
 
         // Specializing call node.
@@ -462,7 +462,7 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < targets.size(); i++) {
             if (i < lhs.size()) {
                 PNode read = ((WriteNode) tempWrites.get(i)).makeReadNode();
-                StatementNode tempWrite = ((Amendable) targets.get(i)).updateRhs(read);
+                PNode tempWrite = ((Amendable) targets.get(i)).updateRhs(read);
                 tempWrites.add(tempWrite);
             } else {
                 tempWrites.add(targets.get(i));
@@ -523,7 +523,7 @@ public class PythonTreeTranslator extends Visitor {
                     transformedRhs = ((WriteNode) tempWrite).makeReadNode();
                 }
 
-                StatementNode write = ((Amendable) nestedWrites.get(idx)).updateRhs(transformedRhs);
+                PNode write = ((Amendable) nestedWrites.get(idx)).updateRhs(transformedRhs);
                 nestedWrites.set(idx, write);
             }
         }
@@ -536,7 +536,7 @@ public class PythonTreeTranslator extends Visitor {
 
         for (int i = 0; i < rights.size(); i++) {
             PNode right = rights.get(i);
-            StatementNode tempWrite = ((Amendable) makeTemporaryWrite()).updateRhs(right);
+            PNode tempWrite = ((Amendable) makeTemporaryWrite()).updateRhs(right);
             tempWrites.add(tempWrite);
         }
 
@@ -665,7 +665,7 @@ public class PythonTreeTranslator extends Visitor {
 
             // target and iterator
             Amendable incomplete = (Amendable) visit(comp.getInternalTarget());
-            StatementNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
+            PNode target = incomplete.updateRhs(factory.createRuntimeValueNode());
             PNode iterator = (PNode) visit(comp.getInternalIter());
 
             // Just deal with one condition.
@@ -756,7 +756,7 @@ public class PythonTreeTranslator extends Visitor {
 
         Amendable incomplete = (Amendable) targets.remove(0);
         PNode runtimeValue = factory.createRuntimeValueNode();
-        StatementNode iteratorWrite = incomplete.updateRhs(runtimeValue);
+        PNode iteratorWrite = incomplete.updateRhs(runtimeValue);
 
         PNode iter = (PNode) visit(node.getInternalIter());
         List<PNode> body = visitStatements(node.getInternalBody());
@@ -767,7 +767,7 @@ public class PythonTreeTranslator extends Visitor {
         return dirtySpecialization(iteratorWrite, iter, bodyPart, orelsePart);
     }
 
-    private StatementNode dirtySpecialization(StatementNode target, PNode iter, BlockNode body, BlockNode orelse) {
+    private StatementNode dirtySpecialization(PNode target, PNode iter, BlockNode body, BlockNode orelse) {
         StatementNode forNode;
         if (Options.OptimizeNode) {
             if (iter instanceof CallBuiltInWithOneArgNoKeywordNode && ((CallBuiltInWithOneArgNoKeywordNode) iter).getName().equals("range")) {

@@ -24,15 +24,13 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
 import com.oracle.truffle.api.dsl.NodeChild;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.truffle.*;
 
 @NodeChild(value = "operand", type = PNode.class)
-public abstract class UnaryOpNode extends StatementNode {
+public abstract class UnaryOpNode extends PNode {
 
     public abstract PNode getOperand();
 

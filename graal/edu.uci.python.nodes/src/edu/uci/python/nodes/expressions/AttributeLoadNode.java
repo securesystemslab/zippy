@@ -24,35 +24,66 @@
  */
 package edu.uci.python.nodes.expressions;
 
-import org.python.core.PyObject;
+import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
+import edu.uci.python.nodes.truffle.*;
+import edu.uci.python.runtime.datatypes.*;
 
-public abstract class AttributeUpdateNode extends BinaryOpNode implements Amendable {
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
-    private final String name;
+@NodeChild(value = "primary", type = PNode.class)
+public abstract class AttributeLoadNode extends PNode {
 
-    public AttributeUpdateNode(String name) {
-        this.name = name;
+    private final String attributeId;
+
+    public AttributeLoadNode(String name) {
+        this.attributeId = name;
     }
 
-    protected AttributeUpdateNode(AttributeUpdateNode node) {
-        this.name = node.name;
+    protected AttributeLoadNode(AttributeLoadNode node) {
+        this.attributeId = node.attributeId;
     }
 
-    @Override
-    public StatementNode updateRhs(PNode newRhs) {
-        return AttributeUpdateNodeFactory.create(name, getLeftNode(), newRhs);
+    public abstract PNode getPrimary();
+
+    public String getName() {
+        return attributeId;
     }
 
     @Specialization
-    public Object doGeneric(Object primary, Object value) {
-        PyObject prim = (PyObject) primary;
-        prim.__setattr__(name, (PyObject) value);
-        return null;
+    public Object doPObject(PObject operand) {
+        return operand.findAttribute(attributeId);
+    }
+
+    @Specialization
+    public Object doString(String operand) {
+        PString primString = new PString(operand);
+        return primString.findAttribute(attributeId);
+    }
+
+    @Generic
+    public Object doGeneric(Object operand) {
+        PyObject primary = (PyObject) operand;
+        return unboxPyObject(primary.__findattr__(attributeId));
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + " ( " + getPrimary() + ", " + attributeId + ")";
+    }
+
+    @Override
+    public void visualize(int level) {
+        for (int i = 0; i < level; i++) {
+            ASTInterpreter.trace("    ");
+        }
+        ASTInterpreter.trace(this);
+
+        level++;
+        getPrimary().visualize(level);
     }
 
 }

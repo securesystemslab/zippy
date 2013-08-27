@@ -40,16 +40,6 @@ public abstract class StatementNode extends PNode {
      */
     private StatementNode next;
 
-// private StatementNode loopHeader = null;
-
-// public StatementNode getLoopHeader() {
-// return loopHeader;
-// }
-
-// public void setLoopHeader(StatementNode loopHeader) {
-// this.loopHeader = loopHeader;
-// }
-
     protected void setNext(StatementNode next) {
         this.next = next;
     }

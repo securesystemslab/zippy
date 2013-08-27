@@ -26,7 +26,6 @@ package edu.uci.python.nodes.expressions;
 
 import java.math.BigInteger;
 
-
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -34,7 +33,6 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
@@ -62,7 +60,7 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
     }
 
     @Override
-    public StatementNode updateRhs(PNode newRhs) {
+    public PNode updateRhs(PNode newRhs) {
         return WriteLocalNodeFactory.create(this.slot, newRhs);
     }
 

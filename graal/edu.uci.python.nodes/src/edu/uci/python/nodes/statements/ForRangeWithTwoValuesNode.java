@@ -32,7 +32,7 @@ import edu.uci.python.nodes.utils.*;
 
 public class ForRangeWithTwoValuesNode extends StatementNode {
 
-    @Child protected StatementNode target;
+    @Child protected PNode target;
 
     @Child protected PNode stop;
 
@@ -42,7 +42,7 @@ public class ForRangeWithTwoValuesNode extends StatementNode {
 
     @Child protected BlockNode orelse;
 
-    public ForRangeWithTwoValuesNode(StatementNode target, PNode start, PNode stop, BlockNode body, BlockNode orelse) {
+    public ForRangeWithTwoValuesNode(PNode target, PNode start, PNode stop, BlockNode body, BlockNode orelse) {
         this.target = adoptChild(target);
         this.stop = adoptChild(stop);
         this.start = adoptChild(start);

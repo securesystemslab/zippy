@@ -24,10 +24,8 @@
  */
 package edu.uci.python.nodes;
 
-import edu.uci.python.nodes.statements.*;
-
 public interface Amendable {
 
-    StatementNode updateRhs(PNode newRhs);
+    PNode updateRhs(PNode newRhs);
 
 }

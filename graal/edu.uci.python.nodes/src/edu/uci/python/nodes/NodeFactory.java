@@ -126,15 +126,15 @@ public class NodeFactory {
         return new IfNode(condition, thenPart, elsePart);
     }
 
-    public StatementNode createFor(StatementNode target, PNode iterator, BlockNode body, BlockNode orelse) {
+    public StatementNode createFor(PNode target, PNode iterator, BlockNode body, BlockNode orelse) {
         return new ForNode(target, iterator, body, orelse);
     }
 
-    public StatementNode createForRangeWithOneValue(StatementNode target, PNode start, BlockNode body, BlockNode orelse) {
+    public StatementNode createForRangeWithOneValue(PNode target, PNode start, BlockNode body, BlockNode orelse) {
         return new ForRangeWithOneValueNode(target, start, body, orelse);
     }
 
-    public StatementNode createForRangeWithTwoValues(StatementNode target, PNode start, PNode stop, BlockNode body, BlockNode orelse) {
+    public StatementNode createForRangeWithTwoValues(PNode target, PNode start, PNode stop, BlockNode body, BlockNode orelse) {
         return new ForRangeWithTwoValuesNode(target, start, stop, body, orelse);
     }
 
@@ -202,11 +202,11 @@ public class NodeFactory {
         return ListComprehensionNodeFactory.create(comprehension);
     }
 
-    public PNode createOuterComprehension(StatementNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {
+    public PNode createOuterComprehension(PNode target, PNode iterator, BooleanCastNode condition, PNode innerLoop) {
         return OuterComprehensionNodeFactory.create(target, condition, innerLoop, iterator);
     }
 
-    public PNode createInnerComprehension(StatementNode target, PNode iterator, BooleanCastNode condition, PNode loopBody) {
+    public PNode createInnerComprehension(PNode target, PNode iterator, BooleanCastNode condition, PNode loopBody) {
         return InnerComprehensionNodeFactory.create(target, condition, loopBody, iterator);
     }
 
@@ -340,11 +340,11 @@ public class NodeFactory {
     }
 
     public PNode createAttributeRef(PNode operand, String name) {
-        return AttributeRefNodeFactory.create(name, operand);
+        return AttributeLoadNodeFactory.create(name, operand);
     }
 
     public PNode createAttributeUpdate(PNode primary, String name, PNode value) {
-        return AttributeUpdateNodeFactory.create(name, primary, value);
+        return AttributeStoreNodeFactory.create(name, primary, value);
     }
 
     public PNode createSlice(PNode lower, PNode upper, PNode step) {

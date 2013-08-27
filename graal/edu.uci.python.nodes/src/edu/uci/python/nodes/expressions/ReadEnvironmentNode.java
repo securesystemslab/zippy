@@ -26,14 +26,12 @@ package edu.uci.python.nodes.expressions;
 
 import java.math.BigInteger;
 
-
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public abstract class ReadEnvironmentNode extends FrameSlotNode implements ReadNode {
@@ -50,7 +48,7 @@ public abstract class ReadEnvironmentNode extends FrameSlotNode implements ReadN
     }
 
     @Override
-    public StatementNode makeWriteNode(PNode rhs) {
+    public PNode makeWriteNode(PNode rhs) {
         return WriteLocalNodeFactory.create(slot, rhs);
     }
 

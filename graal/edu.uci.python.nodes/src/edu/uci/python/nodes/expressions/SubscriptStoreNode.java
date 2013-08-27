@@ -24,20 +24,25 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
-public abstract class SubscriptStoreNode extends TernaryOpNode implements Amendable {
+@NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "slice", type = PNode.class), @NodeChild(value = "right", type = PNode.class)})
+public abstract class SubscriptStoreNode extends StatementNode implements Amendable {
 
     @Override
     public StatementNode updateRhs(PNode newRhs) {
-        return SubscriptStoreNodeFactory.create(getFirst(), getSecond(), newRhs);
+        return SubscriptStoreNodeFactory.create(getPrimary(), getSlice(), newRhs);
     }
+
+    public abstract PNode getPrimary();
+
+    public abstract PNode getSlice();
+
+    public abstract PNode getRight();
 
     /*
      * As a right hand side expression
@@ -120,7 +125,7 @@ public abstract class SubscriptStoreNode extends TernaryOpNode implements Amenda
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + " = " + getFirst() + "[" + getSecond() + "]";
+        return this.getClass().getSimpleName() + " = " + getPrimary() + "[" + getSlice() + "]";
     }
 
 }

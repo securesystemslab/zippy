@@ -24,63 +24,38 @@
  */
 package edu.uci.python.nodes.expressions;
 
-import org.python.core.*;
+import org.python.core.PyObject;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.datatypes.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.statements.*;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+@NodeChildren({@NodeChild(value = "primary", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
+public abstract class AttributeStoreNode extends StatementNode implements Amendable {
 
-public abstract class AttributeRefNode extends UnaryOpNode {
+    private final String attributeId;
 
-    private final String name;
-
-    public AttributeRefNode(String name) {
-        this.name = name;
+    public AttributeStoreNode(String name) {
+        this.attributeId = name;
     }
 
-    protected AttributeRefNode(AttributeRefNode node) {
-        this.name = node.name;
+    protected AttributeStoreNode(AttributeStoreNode node) {
+        this.attributeId = node.attributeId;
     }
 
-    public String getName() {
-        return name;
+    public abstract PNode getPrimary();
+
+    @Override
+    public StatementNode updateRhs(PNode newRhs) {
+        return AttributeStoreNodeFactory.create(attributeId, getPrimary(), newRhs);
     }
 
     @Specialization
-    public Object doPObject(PObject operand) {
-        return operand.findAttribute(name);
-    }
-
-    @Specialization
-    public Object doString(String operand) {
-        PString primString = new PString(operand);
-        return primString.findAttribute(name);
-    }
-
-    @Generic
-    public Object doGeneric(Object operand) {
-        PyObject primary = (PyObject) operand;
-        return unboxPyObject(primary.__findattr__(name));
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " ( " + getOperand() + ", " + name + ")";
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getOperand().visualize(level);
+    public Object doGeneric(Object primary, Object value) {
+        PyObject prim = (PyObject) primary;
+        prim.__setattr__(attributeId, (PyObject) value);
+        return null;
     }
 
 }
