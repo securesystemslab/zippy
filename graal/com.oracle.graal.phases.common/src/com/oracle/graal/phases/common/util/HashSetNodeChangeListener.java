@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,8 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.frame;
+package com.oracle.graal.phases.common.util;
 
-public enum FrameSlotKind {
-    Illegal, Object, Long, Int, Double, Float, Boolean, Byte;
+import java.util.*;
+
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.Graph.*;
+
+/**
+ * A simple {@link NodeChangedListener} implementation that accumulates the changed nodes in a
+ * {@link HashSet}.
+ */
+public class HashSetNodeChangeListener implements NodeChangedListener {
+
+    private final Set<Node> changedNodes;
+
+    public HashSetNodeChangeListener() {
+        this.changedNodes = new HashSet<>();
+    }
+
+    @Override
+    public void nodeChanged(Node node) {
+        changedNodes.add(node);
+    }
+
+    public Set<Node> getChangedNodes() {
+        return changedNodes;
+    }
 }
