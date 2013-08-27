@@ -131,7 +131,7 @@ public class ASTLinearizer implements StatementVisitor<StatementNode> {
         return loopEnd;
     }
 
-    private StatementNode getDummy() {
+    private static StatementNode getDummy() {
         return (StatementNode) PNode.DUMMY_NODE.copy();
     }
 

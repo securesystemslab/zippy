@@ -27,7 +27,6 @@ package edu.uci.python.nodes.expressions;
 import com.oracle.truffle.api.dsl.NodeChild;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 
 @NodeChild(value = "operand", type = PNode.class)
 public abstract class UnaryOpNode extends PNode {
@@ -38,16 +37,4 @@ public abstract class UnaryOpNode extends PNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + getOperand() + ")";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getOperand().visualize(level);
-    }
-
 }

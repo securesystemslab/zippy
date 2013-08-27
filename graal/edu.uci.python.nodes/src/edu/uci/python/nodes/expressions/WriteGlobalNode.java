@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
@@ -52,6 +51,7 @@ public abstract class WriteGlobalNode extends StatementNode implements Amendable
         return WriteGlobalNodeFactory.create(this.name, newRhs);
     }
 
+    @SuppressWarnings("unused")
     @Specialization
     public Object doGeneric(VirtualFrame frame, Object value) {
         GlobalScope.getInstance().set(name, value);
@@ -66,14 +66,4 @@ public abstract class WriteGlobalNode extends StatementNode implements Amendable
     public String toString() {
         return this.getClass().getSimpleName() + "(" + name + ")";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-
-        ASTInterpreter.trace(this);
-    }
-
 }

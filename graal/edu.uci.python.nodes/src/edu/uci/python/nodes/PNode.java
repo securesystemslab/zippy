@@ -34,7 +34,7 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @TypeSystemReference(PythonTypes.class)
-public abstract class PNode extends Node implements Visualizable {
+public abstract class PNode extends Node {
 
     public abstract Object execute(VirtualFrame frame);
 
@@ -159,14 +159,5 @@ public abstract class PNode extends Node implements Visualizable {
         }
 
     };
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-
-        ASTInterpreter.trace(this);
-    }
 
 }

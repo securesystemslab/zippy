@@ -24,12 +24,10 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "argument")
@@ -62,16 +60,5 @@ public abstract class CallBuiltInWithOneArgNoKeywordNode extends PNode {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "(callee=" + name + ")";
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getArgument().visualize(level);
     }
 }

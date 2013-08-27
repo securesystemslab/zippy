@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 
 /**
@@ -37,7 +36,7 @@ import edu.uci.python.nodes.utils.*;
  * @author zwei
  * 
  */
-public class FunctionRootNode extends RootNode implements Visualizable {
+public class FunctionRootNode extends RootNode {
 
     @Child protected final ParametersNode parameters;
 
@@ -67,17 +66,4 @@ public class FunctionRootNode extends RootNode implements Visualizable {
             return returnValue.execute(frame);
         }
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        parameters.visualize(level);
-        body.visualize(level);
-    }
-
 }

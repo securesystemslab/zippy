@@ -26,12 +26,10 @@ package edu.uci.python.nodes.statements;
 
 import java.util.List;
 
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public final class ParametersWithDefaultsNode extends ParametersNode {
@@ -87,27 +85,4 @@ public final class ParametersWithDefaultsNode extends ParametersNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + parameterNames + ")";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-
-        for (PNode statement : defaultReads) {
-            statement.visualize(level);
-        }
-
-        for (PNode statement : parameters) {
-            statement.visualize(level);
-        }
-
-        for (PNode statement : defaultWrites) {
-            statement.visualize(level);
-        }
-    }
-
 }

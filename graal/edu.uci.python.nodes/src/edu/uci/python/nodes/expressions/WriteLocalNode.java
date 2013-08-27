@@ -33,7 +33,6 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 @NodeChild(value = "rightNode", type = PNode.class)
@@ -104,17 +103,6 @@ public abstract class WriteLocalNode extends FrameSlotNode implements WriteNode,
     public Object write(VirtualFrame frame, Object right) {
         setObject(frame, right);
         return right;
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getRightNode().visualize(level);
     }
 
 }

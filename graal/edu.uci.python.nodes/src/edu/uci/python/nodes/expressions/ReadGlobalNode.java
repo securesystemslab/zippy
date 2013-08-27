@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.*;
@@ -55,14 +54,4 @@ public abstract class ReadGlobalNode extends PNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + name + ")";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-
-        ASTInterpreter.trace(this);
-    }
-
 }

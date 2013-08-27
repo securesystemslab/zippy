@@ -31,7 +31,6 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -78,7 +77,7 @@ public abstract class CallNode extends PNode {
         }
     }
 
-    private Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+    private static Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         Object[] evaluated = new Object[arguments.length];
         int index = 0;
 
@@ -100,18 +99,4 @@ public abstract class CallNode extends PNode {
     public String toString() {
         return getClass().getSimpleName() + "(callee=" + getCallee() + ")";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        for (PNode a : arguments) {
-            a.visualize(level);
-        }
-    }
-
 }

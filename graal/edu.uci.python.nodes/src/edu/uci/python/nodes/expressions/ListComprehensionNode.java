@@ -24,12 +24,10 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 
 public abstract class ListComprehensionNode extends PNode {
@@ -53,17 +51,6 @@ public abstract class ListComprehensionNode extends PNode {
         }
 
         return null;
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        comprehension.visualize(level);
     }
 
 }

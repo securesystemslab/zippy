@@ -29,7 +29,6 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.truffle.*;
 
 public class BlockNode extends StatementNode {
 
@@ -60,20 +59,6 @@ public class BlockNode extends StatementNode {
     @Override
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitBlockNode(this);
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-
-        for (PNode statement : statements) {
-            statement.visualize(level);
-        }
     }
 
 }

@@ -32,7 +32,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.*;
 
@@ -59,19 +58,6 @@ public abstract class AttributeCallNode extends PNode {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "(callee=" + getPrimary() + "," + name + ")";
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        for (PNode e : arguments) {
-            e.visualize(level);
-        }
     }
 
     @Specialization

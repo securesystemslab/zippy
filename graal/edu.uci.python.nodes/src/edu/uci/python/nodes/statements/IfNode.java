@@ -24,12 +24,10 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.truffle.*;
 
 public class IfNode extends StatementNode {
 
@@ -74,18 +72,4 @@ public class IfNode extends StatementNode {
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitIfNode(this);
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        condition.visualize(level);
-        then.visualize(level);
-        orelse.visualize(level);
-    }
-
 }

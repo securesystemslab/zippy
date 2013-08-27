@@ -24,10 +24,7 @@
  */
 package edu.uci.python.nodes.literals;
 
-
 import com.oracle.truffle.api.dsl.Specialization;
-
-import edu.uci.python.nodes.truffle.*;
 
 public abstract class StringLiteralNode extends LiteralNode {
 
@@ -49,14 +46,5 @@ public abstract class StringLiteralNode extends LiteralNode {
     @Override
     public String toString() {
         return "String(" + value + ")";
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-
-        ASTInterpreter.trace(this);
     }
 }

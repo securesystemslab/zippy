@@ -24,14 +24,13 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.nodes.truffle.*;
 
-public class ModuleNode extends RootNode implements Visualizable {
+public class ModuleNode extends RootNode {
 
     @Child BlockNode body;
 
@@ -50,17 +49,6 @@ public class ModuleNode extends RootNode implements Visualizable {
     public Object execute(VirtualFrame frame) {
         GlobalScope.getInstance(frame.materialize());
         return body.execute(frame);
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        body.visualize(level);
     }
 
     @Override

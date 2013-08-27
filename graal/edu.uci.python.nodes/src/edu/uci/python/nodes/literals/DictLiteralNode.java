@@ -27,7 +27,6 @@ package edu.uci.python.nodes.literals;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -62,7 +61,7 @@ public class DictLiteralNode extends LiteralNode {
             resolvedValues.add(e.execute(frame));
         }
 
-        Map<Object, Object> map = new ConcurrentHashMap<Object, Object>();
+        Map<Object, Object> map = new ConcurrentHashMap<>();
         for (int i = 0; i < resolvedKeys.size(); i++) {
             map.put(resolvedKeys.get(i), resolvedValues.get(i));
         }
@@ -74,23 +73,4 @@ public class DictLiteralNode extends LiteralNode {
     public String toString() {
         return "dict";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-
-        for (PNode k : keys) {
-            k.visualize(level);
-        }
-
-        for (PNode v : values) {
-            v.visualize(level);
-        }
-    }
-
 }

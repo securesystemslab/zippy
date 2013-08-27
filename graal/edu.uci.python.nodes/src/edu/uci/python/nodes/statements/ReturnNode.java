@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statements;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 
 public class ReturnNode extends StatementNode {
@@ -44,14 +43,6 @@ public class ReturnNode extends StatementNode {
         return null;
     }
 
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-    }
-
     public static class ExplicitReturnNode extends ReturnNode {
 
         @Child protected final PNode right;
@@ -65,18 +56,6 @@ public class ReturnNode extends StatementNode {
             Object returnValue = right.execute(frame);
             throw new ExplicitReturnException(returnValue);
         }
-
-        @Override
-        public void visualize(int level) {
-            for (int i = 0; i < level; i++) {
-                ASTInterpreter.trace("    ");
-            }
-            ASTInterpreter.trace(this);
-
-            level++;
-            right.visualize(level);
-        }
-
     }
 
     public static class FrameReturnNode extends ExplicitReturnNode {
@@ -92,7 +71,5 @@ public class ReturnNode extends StatementNode {
             right.execute(frame);
             throw RETURN_EXCEPTION;
         }
-
     }
-
 }

@@ -24,13 +24,11 @@
  */
 package edu.uci.python.nodes;
 
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
-import edu.uci.python.nodes.truffle.*;
 
 public abstract class GeneratorExpressionNode extends PNode {
 
@@ -58,17 +56,6 @@ public abstract class GeneratorExpressionNode extends PNode {
         } else {
             return ct.call(frame.pack());
         }
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        generator.visualize(level);
     }
 
 }

@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -131,19 +130,6 @@ public class ForNode extends StatementNode {
     @Override
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitForNode(this);
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        target.visualize(level);
-        iterator.visualize(level);
-        body.visualize(level);
     }
 
     public static class GeneratorForNode extends ForNode {

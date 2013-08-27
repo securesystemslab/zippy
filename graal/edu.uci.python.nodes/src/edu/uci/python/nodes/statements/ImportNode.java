@@ -85,7 +85,7 @@ public class ImportNode extends StatementNode {
         return null;
     }
 
-    private Object doImport(Object importedModule, String name) {
+    private static Object doImport(Object importedModule, String name) {
         try {
             if (importedModule != null && importedModule instanceof PythonModule) {
                 return ((PythonModule) importedModule).lookupMethod(name);

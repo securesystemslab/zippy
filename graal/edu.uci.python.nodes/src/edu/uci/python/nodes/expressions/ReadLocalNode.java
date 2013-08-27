@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
@@ -88,15 +87,6 @@ public abstract class ReadLocalNode extends FrameSlotNode implements ReadNode {
     @Specialization
     public Object doObject(VirtualFrame frame) {
         return getObject(frame);
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-
-        ASTInterpreter.trace(this);
     }
 
 }

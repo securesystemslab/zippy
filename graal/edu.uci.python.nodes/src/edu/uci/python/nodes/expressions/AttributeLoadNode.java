@@ -29,7 +29,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
@@ -73,17 +72,6 @@ public abstract class AttributeLoadNode extends PNode {
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + " ( " + getPrimary() + ", " + attributeId + ")";
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getPrimary().visualize(level);
     }
 
 }

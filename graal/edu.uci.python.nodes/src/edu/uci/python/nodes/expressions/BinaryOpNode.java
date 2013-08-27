@@ -28,7 +28,6 @@ import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.NodeChild;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 
 @NodeChildren({@NodeChild(value = "leftNode", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
 public abstract class BinaryOpNode extends PNode {
@@ -41,17 +40,4 @@ public abstract class BinaryOpNode extends PNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + getLeftNode() + ", " + getRightNode() + ")";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getLeftNode().visualize(level);
-        getRightNode().visualize(level);
-    }
-
 }

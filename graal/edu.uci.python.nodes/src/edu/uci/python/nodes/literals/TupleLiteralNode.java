@@ -24,12 +24,10 @@
  */
 package edu.uci.python.nodes.literals;
 
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
@@ -57,18 +55,4 @@ public final class TupleLiteralNode extends LiteralNode {
     public String toString() {
         return "tuple";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        for (PNode v : values) {
-            v.visualize(level);
-        }
-    }
-
 }

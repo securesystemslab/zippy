@@ -26,7 +26,6 @@ package edu.uci.python.nodes.literals;
 
 import java.util.*;
 
-
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -46,7 +45,7 @@ public class ListLiteralNode extends LiteralNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        List<Object> elements = new ArrayList<Object>();
+        List<Object> elements = new ArrayList<>();
 
         for (PNode v : this.values) {
             elements.add(v.execute(frame));
@@ -59,18 +58,4 @@ public class ListLiteralNode extends LiteralNode {
     public String toString() {
         return "list";
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        for (PNode v : values) {
-            v.visualize(level);
-        }
-    }
-
 }

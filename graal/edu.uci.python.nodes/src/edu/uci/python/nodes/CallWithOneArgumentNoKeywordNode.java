@@ -32,7 +32,6 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatypes.*;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 
@@ -69,17 +68,4 @@ public abstract class CallWithOneArgumentNoKeywordNode extends PNode {
             throw Py.SystemError("Unexpected callable type" + callee.getClass());
         }
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getCallee().visualize(level);
-        argument.visualize(level);
-    }
-
 }

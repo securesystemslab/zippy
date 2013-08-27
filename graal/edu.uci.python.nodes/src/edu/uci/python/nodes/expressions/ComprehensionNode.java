@@ -35,7 +35,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 import edu.uci.python.runtime.datatypes.*;
 
@@ -105,21 +104,6 @@ public abstract class ComprehensionNode extends StatementNode {
         throw new RuntimeException("This is not a concrete comprehension node!");
     }
 
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        getIterator().visualize(level);
-        target.visualize(level);
-        if (condition != null) {
-            condition.visualize(level);
-        }
-    }
-
     public abstract static class InnerComprehensionNode extends ComprehensionNode {
 
         @Child protected PNode loopBody;
@@ -145,15 +129,6 @@ public abstract class ComprehensionNode extends StatementNode {
                 results.add(loopBody.execute(frame));
             }
         }
-
-        @Override
-        public void visualize(int level) {
-            super.visualize(level);
-            if (loopBody != null) {
-                loopBody.visualize(level++);
-            }
-        }
-
     }
 
     public abstract static class OuterComprehensionNode extends ComprehensionNode {
@@ -186,14 +161,6 @@ public abstract class ComprehensionNode extends StatementNode {
             } catch (ExplicitReturnException ere) {
                 PList list = (PList) ere.getValue();
                 results.addAll(list.getList());
-            }
-        }
-
-        @Override
-        public void visualize(int level) {
-            super.visualize(level);
-            if (innerLoop != null) {
-                innerLoop.visualize(level++);
             }
         }
 

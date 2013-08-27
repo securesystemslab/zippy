@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expressions.*;
 import edu.uci.python.nodes.translation.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 
 public class WhileNode extends StatementNode {
@@ -77,17 +76,4 @@ public class WhileNode extends StatementNode {
     public <R> R accept(StatementVisitor<R> visitor) {
         return visitor.visitWhileNode(this);
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        condition.visualize(level);
-        body.visualize(level);
-    }
-
 }

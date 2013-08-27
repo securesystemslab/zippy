@@ -24,12 +24,7 @@
  */
 package edu.uci.python.nodes.literals;
 
-
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-
-import edu.uci.python.nodes.truffle.*;
 
 public abstract class IntegerLiteralNode extends LiteralNode {
 
@@ -44,21 +39,12 @@ public abstract class IntegerLiteralNode extends LiteralNode {
     }
 
     @Specialization
-    public int doInteger(VirtualFrame frame) throws UnexpectedResultException {
+    public int doInteger() {
         return value;
     }
 
     @Override
     public String toString() {
         return "int(" + value + ")";
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-
-        ASTInterpreter.trace(this);
     }
 }

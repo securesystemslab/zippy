@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.statements;
 
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
@@ -33,8 +32,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.datatypes.*;
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 
 public class FunctionDefNode extends StatementNode {
 
@@ -90,18 +87,4 @@ public class FunctionDefNode extends StatementNode {
     public String toString() {
         return super.toString() + "(" + name + ")" + funcRoot;
     }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-
-        parameters.visualize(level);
-        ((FunctionRootNode) funcRoot).visualize(level);
-    }
-
 }

@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statements;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.nodes.utils.*;
 
 public class ForRangeWithOneValueNode extends StatementNode {
@@ -74,17 +73,5 @@ public class ForRangeWithOneValueNode extends StatementNode {
         }
 
         return null;
-    }
-
-    @Override
-    public void visualize(int level) {
-        for (int i = 0; i < level; i++) {
-            ASTInterpreter.trace("    ");
-        }
-        ASTInterpreter.trace(this);
-
-        level++;
-        target.visualize(level);
-        body.visualize(level);
     }
 }

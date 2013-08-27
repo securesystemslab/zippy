@@ -48,6 +48,7 @@ public class ParametersNode extends PNode {
         return parameterNames.size();
     }
 
+    @SuppressWarnings("unused")
     public void evaluateDefaults(VirtualFrame frame) {
     }
 

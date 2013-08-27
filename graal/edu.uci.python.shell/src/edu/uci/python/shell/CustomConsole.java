@@ -30,7 +30,6 @@ import org.python.antlr.base.*;
 import org.python.core.*;
 import org.python.util.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.translation.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.Options;
@@ -47,13 +46,13 @@ public class CustomConsole extends JLineConsole {
         RootNode root = parseToAST(s, name, CompileMode.exec, cflags);
 
         if (Options.PrintAST) {
-            visualizeAST(root, "Before Specialization");
+            printAST(root, "Before Specialization");
         }
 
         ASTInterpreter.interpret(root, false);
 
         if (Options.PrintAST) {
-            visualizeAST(root, "After Specialization");
+            printAST(root, "After Specialization");
         }
 
         Py.flushLine();
@@ -73,7 +72,7 @@ public class CustomConsole extends JLineConsole {
         return rootNode;
     }
 
-    public static void visualizeAST(RootNode tree, String phase) {
+    public static void printAST(RootNode tree, String phase) {
         if (!Options.PrintAST) {
             return;
         }
@@ -82,8 +81,7 @@ public class CustomConsole extends JLineConsole {
         System.out.println("============= " + phase + " ============= ");
         // CheckStyle: resume system..print check
 
-        // There are two ways to visualize an AST.
-        ((ModuleNode) tree).visualize(0);
+        NodeUtil.printCompactTree(System.out, tree);
     }
 
 }

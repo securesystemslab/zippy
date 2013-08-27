@@ -26,7 +26,6 @@ package edu.uci.python.nodes.expressions;
 
 import java.math.BigInteger;
 
-
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeChildren;
@@ -37,6 +36,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statements.*;
 import edu.uci.python.runtime.datatypes.*;
 
+@SuppressWarnings("unused")
 @NodeChildren({@NodeChild(value = "condition", type = PNode.class), @NodeChild(value = "then", type = PNode.class), @NodeChild(value = "orelse", type = PNode.class)})
 public abstract class IfExpressionNode extends StatementNode {
 
