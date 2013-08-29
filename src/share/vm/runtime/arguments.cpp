@@ -2203,10 +2203,8 @@ bool Arguments::check_vm_args_consistency() {
 #ifdef GRAAL
   if (UseG1GC) {
       if (IgnoreUnrecognizedVMOptions) {
-        warning("UseG1GC is still experimental in Graal, use SerialGC instead ");
         FLAG_SET_CMDLINE(bool, UseG1GC, true);
       } else {
-        warning("UseG1GC is still experimental in Graal, use SerialGC instead ");
         status = true;
       }
   } else {
