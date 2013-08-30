@@ -25,7 +25,7 @@
 #ifndef GPU_PTX_HPP
 #define GPU_PTX_HPP
 
-/* 
+/*
  * Some useful macro definitions from publicly available cuda.h.
  * These definitions are for convenience.
  */
@@ -44,7 +44,7 @@
  * End of array terminator for the extra parameter to
  * ::cuLaunchKernel
  */
-#define GRAAL_CU_LAUNCH_PARAM_END            ((void *) 0x00)
+#define GRAAL_CU_LAUNCH_PARAM_END            ((void*) 0x00)
 
 /**
  * Indicator that the next value in the  extra parameter to
@@ -55,7 +55,7 @@
  *  extra array, then ::GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER will have no
  * effect.
  */
-#define GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER ((void *) 0x01)
+#define GRAAL_CU_LAUNCH_PARAM_BUFFER_POINTER ((void*) 0x01)
 
 /**
  * Indicator that the next value in the  extra parameter to
@@ -65,7 +65,7 @@
  * in the extra array if the value associated with
  * ::GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE is not zero.
  */
-#define GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE    ((void *) 0x02)
+#define GRAAL_CU_LAUNCH_PARAM_BUFFER_SIZE    ((void*) 0x02)
 
 class Ptx {
   friend class gpu;
@@ -74,28 +74,39 @@ class Ptx {
   static bool probe_linkage();
   static bool initialize_gpu();
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
-  static bool execute_kernel(address kernel, JavaCallArguments *);
-  
+  static bool execute_kernel(address kernel, PTXKernelArguments & ka, JavaValue &ret);
+public:
+#if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
+  typedef unsigned long long CUdeviceptr;
+#else
+  typedef unsigned int CUdeviceptr;
+#endif
+
 private:
   typedef int (*cuda_cu_init_func_t)(unsigned int);
-  typedef int (*cuda_cu_ctx_create_func_t)(void *, int, int);
-  typedef int (*cuda_cu_ctx_detach_func_t)(int *);
-  typedef int (*cuda_cu_ctx_synchronize_func_t)(int *);
-  typedef int (*cuda_cu_device_get_count_func_t)(int *);
-  typedef int (*cuda_cu_device_get_name_func_t)(char *, int, int);
-  typedef int (*cuda_cu_device_get_func_t)(int *, int);
-  typedef int (*cuda_cu_device_compute_capability_func_t)(int *, int *, int);
-  typedef int (*cuda_cu_device_get_attribute_func_t)(int *, int, int);
-  typedef int (*cuda_cu_launch_kernel_func_t)(void *,
+  typedef int (*cuda_cu_ctx_create_func_t)(void*, int, int);
+  typedef int (*cuda_cu_ctx_destroy_func_t)(void*);
+  typedef int (*cuda_cu_ctx_synchronize_func_t)(void);
+  typedef int (*cuda_cu_device_get_count_func_t)(int*);
+  typedef int (*cuda_cu_device_get_name_func_t)(char*, int, int);
+  typedef int (*cuda_cu_device_get_func_t)(int*, int);
+  typedef int (*cuda_cu_device_compute_capability_func_t)(int*, int*, int);
+  typedef int (*cuda_cu_device_get_attribute_func_t)(int*, int, int);
+  typedef int (*cuda_cu_launch_kernel_func_t)(struct CUfunc_st*,
                                               unsigned int, unsigned int, unsigned int,
                                               unsigned int, unsigned int, unsigned int,
-                                              unsigned int, void *, void **, void **);
-  typedef int (*cuda_cu_module_get_function_func_t)(void *, void *, const char *);
-  typedef int (*cuda_cu_module_load_data_ex_func_t)(void *, void *, unsigned int, void *, void **);
+                                              unsigned int, void*, void**, void**);
+  typedef int (*cuda_cu_module_get_function_func_t)(void*, void*, const char*);
+  typedef int (*cuda_cu_module_load_data_ex_func_t)(void*, void*, unsigned int, void*, void**);
+  typedef int (*cuda_cu_memalloc_func_t)(void*, unsigned int);
+  typedef int (*cuda_cu_memfree_func_t)(gpu::Ptx::CUdeviceptr);
+  typedef int (*cuda_cu_memcpy_htod_func_t)(gpu::Ptx::CUdeviceptr, const void*, unsigned int);
+  typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, gpu::Ptx::CUdeviceptr,  unsigned int);
 
+public:
   static cuda_cu_init_func_t                      _cuda_cu_init;
   static cuda_cu_ctx_create_func_t                _cuda_cu_ctx_create;
-  static cuda_cu_ctx_detach_func_t                _cuda_cu_ctx_detach;
+  static cuda_cu_ctx_destroy_func_t               _cuda_cu_ctx_destroy;
   static cuda_cu_ctx_synchronize_func_t           _cuda_cu_ctx_synchronize;
   static cuda_cu_device_get_count_func_t          _cuda_cu_device_get_count;
   static cuda_cu_device_get_name_func_t           _cuda_cu_device_get_name;
@@ -105,8 +116,13 @@ private:
   static cuda_cu_launch_kernel_func_t             _cuda_cu_launch_kernel;
   static cuda_cu_module_get_function_func_t       _cuda_cu_module_get_function;
   static cuda_cu_module_load_data_ex_func_t       _cuda_cu_module_load_data_ex;
+  static cuda_cu_memalloc_func_t                  _cuda_cu_memalloc;
+  static cuda_cu_memfree_func_t                   _cuda_cu_memfree;
+  static cuda_cu_memcpy_htod_func_t               _cuda_cu_memcpy_htod;
+  static cuda_cu_memcpy_dtoh_func_t               _cuda_cu_memcpy_dtoh;
 
 protected:
-  static void * _device_context;
+  static void* _device_context;
+  static int _cu_device;
 };
 #endif // GPU_PTX_HPP
