@@ -20,40 +20,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.dsl.processor.node;
-
-import java.lang.annotation.*;
-
-import javax.lang.model.element.*;
+package com.oracle.truffle.api.dsl.test;
 
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.dsl.processor.*;
-import com.oracle.truffle.dsl.processor.template.*;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.ValueNode;
 
-public class SpecializationListenerParser extends NodeMethodParser<SpecializationListenerData> {
+public class CompilerErrorTest {
 
-    public SpecializationListenerParser(ProcessorContext context, NodeData node) {
-        super(context, node);
+    abstract static class Visiblity01 extends ValueNode {
+
+        @Specialization
+        @SuppressWarnings("static-method")
+        @ExpectError("Method annotated with @Specialization must not be private.")
+        private Object s() {
+            return null;
+        }
+
     }
 
-    @Override
-    public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
-        return createDefaultMethodSpec(method, mirror, true, null);
+    @ExpectError("Classes containing a @Specialization annotation must not be private.")
+    private abstract static class Visiblity02 extends ValueNode {
+
+        @Specialization
+        public Object s() {
+            return null;
+        }
+
     }
 
-    @Override
-    protected ParameterSpec createReturnParameterSpec() {
-        return new ParameterSpec("void", getContext().getType(void.class));
-    }
+    // assert no error
+    @ExpectError({})
+    private abstract static class Visiblity03 extends ValueNode {
 
-    @Override
-    public SpecializationListenerData create(TemplateMethod method, boolean invalid) {
-        return new SpecializationListenerData(method);
-    }
-
-    @Override
-    public Class<? extends Annotation> getAnnotationType() {
-        return SpecializationListener.class;
     }
 
 }

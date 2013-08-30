@@ -199,6 +199,10 @@ public class NodeParser extends TemplateParser<NodeData> {
         }
 
         for (NodeData splittedNode : nodes) {
+            if (templateType.getModifiers().contains(Modifier.PRIVATE) && splittedNode.getSpecializations().size() > 0) {
+                splittedNode.addError("Classes containing a @%s annotation must not be private.", Specialization.class.getSimpleName());
+            }
+
             finalizeSpecializations(elements, splittedNode);
             verifyNode(splittedNode, elements);
             createPolymorphicSpecializations(splittedNode);
