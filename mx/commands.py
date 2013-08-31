@@ -286,7 +286,7 @@ def _handle_missing_VM(bld, vm):
             with VM(vm, bld):
                 build([])
             return
-    mx.abort('You need to run "mx --vm ' + vm + '--vmbuild ' + bld + ' build" to build the selected VM')
+    mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build" to build the selected VM')
 
 def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
@@ -1358,7 +1358,7 @@ def mx_init():
     mx.add_argument('--vmcwd', dest='vm_cwd', help='current directory will be changed to <path> before the VM is executed', default=None, metavar='<path>')
     mx.add_argument('--installed-jdks', help='the base directory in which the JDKs cloned from $JAVA_HOME exist. ' +
                     'The VM selected by --vm and --vmbuild options is under this directory (i.e., ' +
-                    join('<path>', '<vmbuild>', 'jre', 'lib', '<vm>', mx.add_lib_prefix(mx.add_lib_suffix('jvm'))) + ')', default=None, metavar='<path>')
+                    join('<path>', '<jdk-version>', '<vmbuild>', 'jre', 'lib', '<vm>', mx.add_lib_prefix(mx.add_lib_suffix('jvm'))) + ')', default=None, metavar='<path>')
 
     if (_vmSourcesAvailable):
         mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM type to build/run')
