@@ -20,40 +20,43 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.dsl.processor.node;
+package com.oracle.truffle.dsl.processor.typesystem;
 
 import java.lang.annotation.*;
+import java.util.*;
 
 import javax.lang.model.element.*;
+import javax.lang.model.type.*;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.dsl.processor.*;
 import com.oracle.truffle.dsl.processor.template.*;
 
-public class SpecializationListenerParser extends NodeMethodParser<SpecializationListenerData> {
+public class ImplicitCastParser extends TypeSystemMethodParser<ImplicitCastData> {
 
-    public SpecializationListenerParser(ProcessorContext context, NodeData node) {
-        super(context, node);
-    }
-
-    @Override
-    public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
-        return createDefaultMethodSpec(method, mirror, true, null);
-    }
-
-    @Override
-    protected ParameterSpec createReturnParameterSpec() {
-        return new ParameterSpec("void", getContext().getType(void.class));
-    }
-
-    @Override
-    public SpecializationListenerData create(TemplateMethod method, boolean invalid) {
-        return new SpecializationListenerData(method);
+    public ImplicitCastParser(ProcessorContext context, TypeSystemData typeSystem) {
+        super(context, typeSystem);
     }
 
     @Override
     public Class<? extends Annotation> getAnnotationType() {
-        return SpecializationListener.class;
+        return ImplicitCast.class;
+    }
+
+    @Override
+    public MethodSpec createSpecification(ExecutableElement method, AnnotationMirror mirror) {
+        List<TypeMirror> types = new ArrayList<>();
+        for (TypeData typeData : getTypeSystem().getTypes()) {
+            types.add(typeData.getPrimitiveType());
+        }
+        MethodSpec spec = new MethodSpec(new ParameterSpec("target", types));
+        spec.addRequired(new ParameterSpec("source", types)).setSignature(true);
+        return spec;
+    }
+
+    @Override
+    public ImplicitCastData create(TemplateMethod method, boolean invalid) {
+        return new ImplicitCastData(method);
     }
 
 }

@@ -24,13 +24,11 @@
 #include "precompiled.hpp"
 
 #include "graal/graalCompiler.hpp"
-#include "runtime/javaCalls.hpp"
-#include "graal/graalCompilerToVM.hpp"
 #include "graal/graalEnv.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "runtime/gpu.hpp"
 #include "runtime/javaCalls.hpp"
-
+# include "ptx/vm/kernelArguments.hpp"
 
 // Entry to native method implementation that transitions current thread to '_thread_in_vm'.
 #define C2V_VMENTRY(result_type, name, signature) \
@@ -81,27 +79,28 @@ C2V_VMENTRY(jobject, executeExternalMethodVarargs, (JNIEnv *env, jobject, jobjec
   nmethod* nm = (nmethod*) (address) nmethodValue;
   methodHandle mh = nm->method();
   Symbol* signature = mh->signature();
-  JavaCallArguments jca(mh->size_of_parameters());
-
-  JavaArgumentUnboxer jap(signature, &jca, (arrayOop) JNIHandles::resolve(args), mh->is_static());
-  JavaValue result(jap.get_ret_type());
-  jca.set_alternative_target(nm);
 
   // start value is the kernel
   jlong startValue = HotSpotInstalledCode::codeStart(hotspotInstalledCode);
 
-  if (!gpu::execute_kernel((address)startValue, &jca)) {
+  PTXKernelArguments ptxka(signature, (arrayOop) JNIHandles::resolve(args), mh->is_static());
+  JavaValue result(ptxka.get_ret_type());
+  if (!gpu::execute_kernel((address)startValue, ptxka, result)) {
     return NULL;
   }
 
-  if (jap.get_ret_type() == T_VOID) {
+  if (ptxka.get_ret_type() == T_VOID) {
     return NULL;
-  } else if (jap.get_ret_type() == T_OBJECT || jap.get_ret_type() == T_ARRAY) {
+  } else if (ptxka.get_ret_type() == T_OBJECT || ptxka.get_ret_type() == T_ARRAY) {
     return JNIHandles::make_local((oop) result.get_jobject());
   } else {
-    oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
+    oop o = java_lang_boxing_object::create(ptxka.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
+    if (TraceGPUInteraction) {
+      tty->print_cr("GPU execution returned %d", result.get_jint());
+    }
     return JNIHandles::make_local(o);
   }
+
 C2V_END
 
 C2V_VMENTRY(jboolean, deviceInit, (JNIEnv *env, jobject))
