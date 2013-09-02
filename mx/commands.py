@@ -95,8 +95,7 @@ def _get_vm():
         items = [k for k in _vmChoices.keys() if _vmChoices[k] is not None]
         descriptions = [_vmChoices[k] for k in _vmChoices.keys() if _vmChoices[k] is not None]
         vm = mx.select_items(items, descriptions, allowMultiple=False)
-        answer = raw_input('Persist this choice by adding "DEFAULT_VM=' + vm + '" to ' + envPath + '? [Yn]: ')
-        if not answer.lower().startswith('n'):
+        if mx.ask_yes_no('Persist this choice by adding "DEFAULT_VM=' + vm + '" to ' + envPath, 'y'):
             with open(envPath, 'a') as fp:
                 print >> fp, 'DEFAULT_VM=' + vm
     _vm = vm
@@ -281,8 +280,7 @@ def _jdksDir():
 def _handle_missing_VM(bld, vm):
     mx.log('The ' + bld + ' ' + vm + ' VM has not been created')
     if sys.stdout.isatty():
-        answer = raw_input('Build it now? [Yn]: ')
-        if not answer.lower().startswith('n'):
+        if mx.ask_yes_no('Build it now', 'y'):
             with VM(vm, bld):
                 build([])
             return

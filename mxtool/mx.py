@@ -919,8 +919,7 @@ def _handle_missing_java_home():
             break
     
     envPath = join(_mainSuite.dir, 'mx', 'env')
-    answer = raw_input('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath + '? [Yn]: ')
-    if not answer.lower().startswith('n'):
+    if ask_yes_no('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath, 'y'):
         with open(envPath, 'a') as fp:
             print >> fp, 'JAVA_HOME=' + javaHome
             
@@ -2928,7 +2927,7 @@ def fsckprojects(args):
                 projectConfigFiles = frozenset(['.classpath', 'nbproject'])
                 indicators = projectConfigFiles.intersection(files)
                 if len(indicators) != 0:
-                    if not sys.stdout.isatty() or raw_input(currentDir + ' looks like a removed project -- delete it? [yn]: ') == 'y':
+                    if not sys.stdout.isatty() or ask_yes_no(currentDir + ' looks like a removed project -- delete it', 'n'):
                         shutil.rmtree(currentDir)
                         log('Deleted ' + currentDir)
 
@@ -3409,6 +3408,22 @@ def show_projects(args):
             log(projectsFile)
             for p in s.projects:
                 log('\t' + p.name)
+                
+def ask_yes_no(question, default=None):
+    """"""
+    assert not default or default == 'y' or default == 'n'
+    if not sys.stdout.isatty():
+        if default:
+            return default
+        else:
+            abort("Can not answer '" + question + "?' if stdout is not a tty")
+    questionMark = '? [yn]: '
+    if default:
+        questionMark = questionMark.replace(default, default.upper())
+    answer = raw_input(question + questionMark) or default
+    while not answer:
+        answer = raw_input(question + questionMark)
+    return answer.lower().startswith('y')
 
 def add_argument(*args, **kwargs):
     """
