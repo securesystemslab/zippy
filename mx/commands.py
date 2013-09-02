@@ -521,6 +521,10 @@ def build(args, vm=None):
         assert vm == 'graal', vm
         buildSuffix = 'graal'
         
+    if _installed_jdks:
+        if not mx.ask_yes_no("You are going to build while --installed-jdks is set (" + _installed_jdks + ") are you sure you want to continue", 'n'):
+            mx.abort(1)
+        
     for build in builds:
         if build == 'ide-build-target':
             build = os.environ.get('IDE_BUILD_TARGET', None)
