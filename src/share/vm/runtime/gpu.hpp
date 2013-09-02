@@ -26,6 +26,9 @@
 #define SHARE_VM_RUNTIME_GPU_HPP
 
 #include "runtime/atomic.hpp"
+#include "oops/symbol.hpp"
+
+class PTXKernelArguments;
 
 // gpu defines the interface to the graphics processor; this includes traditional
 // GPU services such as graphics kernel load and execute.
@@ -43,7 +46,7 @@ public:
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
 
-  static bool execute_kernel(address kernel, JavaCallArguments * jca);
+  static bool execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 
   static void set_available(bool value) {
     _available = value;
@@ -80,6 +83,7 @@ protected:
 # include "gpu_bsd.hpp"
 #endif
 
+public:
 # include "ptx/vm/gpu_ptx.hpp"
 
 };
