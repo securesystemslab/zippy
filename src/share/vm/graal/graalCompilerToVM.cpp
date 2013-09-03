@@ -66,7 +66,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   int code_size = method->code_size();
   jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
 
-  bool is_rewritten = method->method_holder()->is_rewritten();
+  guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
   // iterate over all bytecodes and replace non-Java bytecodes
 
   for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
@@ -81,7 +81,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
       memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
     }
 
-    if (is_rewritten && len > 1) {
+    if (len > 1) {
       // Restore the big-endian constant pool indexes.
       // Cf. Rewriter::scan_method
       switch (code) {
