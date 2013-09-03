@@ -64,39 +64,24 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   ResourceMark rm;
 
   int code_size = method->code_size();
-  jbyte* reconstituted_code = NULL;
+  jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
 
-  // replace all breakpoints - must be done before undoing any rewriting
-  if (method->number_of_breakpoints() > 0) {
-    reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
-    memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
-    BreakpointInfo* bp = InstanceKlass::cast(method->method_holder())->breakpoints();
-    for (; bp != NULL; bp = bp->next()) {
-      if (bp->match(method())) {
-        jbyte code = bp->orig_bytecode();
-        reconstituted_code[bp->bci()] = code;
-      }
-    }
-  }
-
+  bool is_rewritten = method->method_holder()->is_rewritten();
   // iterate over all bytecodes and replace non-Java bytecodes
-  if (RewriteBytecodes || RewriteFrequentPairs || InstanceKlass::cast(method->method_holder())->is_rewritten()) {
-    if (reconstituted_code == NULL) {
-      reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
-      memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
+
+  for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
+    Bytecodes::Code code = s.code();
+    Bytecodes::Code raw_code = s.raw_code();
+    int bci = s.bci();
+    int len = s.instruction_size();
+
+    // Restore original byte code.
+    reconstituted_code[bci] = (jbyte) (s.is_wide()? Bytecodes::_wide : code);
+    if (len > 1) {
+      memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
     }
 
-    for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
-      Bytecodes::Code code = s.code();
-      Bytecodes::Code raw_code = s.raw_code();
-      int bci = s.bci();
-
-      // Restore original byte code.  The Bytecodes::is_java_code check
-      // also avoids overwriting wide bytecodes.
-      if (!Bytecodes::is_java_code(raw_code)) {
-        reconstituted_code[bci] = (jbyte) code;
-      }
-
+    if (is_rewritten && len > 1) {
       // Restore the big-endian constant pool indexes.
       // Cf. Rewriter::scan_method
       switch (code) {
@@ -141,11 +126,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
     }
   }
 
-  if (reconstituted_code == NULL) {
-    env->SetByteArrayRegion(result, 0, code_size, (jbyte *) method->code_base());
-  } else {
-    env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
-  }
+  env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
 
   return result;
 C2V_END
