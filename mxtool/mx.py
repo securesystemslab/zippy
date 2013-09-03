@@ -125,7 +125,7 @@ Built-in project properties (* = required):
     javaCompliance
         The minimum JDK version (format: x.y) to which the project's
         sources comply (required for non-native projects).
-    
+
     workingSets
         A comma separated list of working set names. The project belongs
         to the given working sets, for which the eclipseinit command
@@ -145,8 +145,6 @@ from collections import Callable
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
 from os.path import join, basename, dirname, exists, getmtime, isabs, expandvars, isdir, isfile
-
-DEFAULT_JAVA_ARGS = '-ea -Xss2m -Xmx1g'
 
 _projects = dict()
 _libs = dict()
@@ -169,17 +167,17 @@ class Distribution:
             self.path = join(suite.dir, self.path)
         self.deps = deps
         self.update_listeners = set()
-        
+
     def __str__(self):
         return self.name
-    
+
     def add_update_listener(self, listener):
         self.update_listeners.add(listener)
-        
+
     def notify_updated(self):
         for l in self.update_listeners:
             l(self)
-    
+
 """
 A dependency is a library or project specified in a suite.
 """
@@ -202,7 +200,7 @@ class Dependency:
 
     def isLibrary(self):
         return isinstance(self, Library)
-    
+
     def isProject(self):
         return isinstance(self, Project)
 
@@ -216,7 +214,7 @@ class Project(Dependency):
         self.native = False
         self.workingSets = workingSets
         self.dir = d
-        
+
         # Create directories for projects that don't yet exist
         if not exists(d):
             os.mkdir(d)
@@ -244,7 +242,7 @@ class Project(Dependency):
         return deps
 
     def _compute_max_dep_distances(self, name, distances, dist):
-        currentDist = distances.get(name);
+        currentDist = distances.get(name)
         if currentDist is None or currentDist < dist:
             distances[name] = dist
             p = project(name, False)
@@ -260,14 +258,14 @@ class Project(Dependency):
         distances = dict()
         result = set()
         self._compute_max_dep_distances(self.name, distances, 0)
-        for n,d in distances.iteritems():
+        for n, d in distances.iteritems():
             assert d > 0 or n == self.name
             if d == 1:
                 result.add(n)
 
         if len(result) == len(self.deps) and frozenset(self.deps) == result:
             return self.deps
-        return result;
+        return result
 
     def max_depth(self):
         """
@@ -275,7 +273,7 @@ class Project(Dependency):
         """
         distances = dict()
         self._compute_max_dep_distances(self.name, distances, 0)
-        return max(distances.values())        
+        return max(distances.values())
 
     def source_dirs(self):
         """
@@ -337,23 +335,23 @@ class Project(Dependency):
                                     matchFound = True
                                 if pkg and matchFound:
                                     break
-                                        
+
                         if matchFound:
-                            basename = name[:-len('.java')]
+                            simpleClassName = name[:-len('.java')]
                             assert pkg is not None
                             if pkgRoot is None or pkg.startswith(pkgRoot):
                                 pkgOutputDir = join(outputDir, pkg.replace('.', os.path.sep))
                                 if exists(pkgOutputDir):
                                     for e in os.listdir(pkgOutputDir):
                                         if includeInnerClasses:
-                                            if e.endswith('.class') and (e.startswith(basename) or e.startswith(basename + '$')):
+                                            if e.endswith('.class') and (e.startswith(simpleClassName) or e.startswith(simpleClassName + '$')):
                                                 className = pkg + '.' + e[:-len('.class')]
                                                 result[className] = source
-                                        elif e == basename + '.class':
-                                            className = pkg + '.' + basename
+                                        elif e == simpleClassName + '.class':
+                                            className = pkg + '.' + simpleClassName
                                             result[className] = source
         return result
-    
+
     def _init_packages_and_imports(self):
         if not hasattr(self, '_defined_java_packages'):
             packages = set()
@@ -367,21 +365,21 @@ class Project(Dependency):
                 for root, _, files in os.walk(sourceDir):
                     javaSources = [name for name in files if name.endswith('.java')]
                     if len(javaSources) != 0:
-                        pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                        pkg = root[len(sourceDir) + 1:].replace(os.sep, '.')
                         if not pkg in depPackages:
                             packages.add(pkg)
                         else:
                             # A project extends a package already defined by one of it dependencies
                             extendedPackages.add(pkg)
                             imports.add(pkg)
-                        
+
                         for n in javaSources:
                             with open(join(root, n)) as fp:
                                 content = fp.read()
                                 imports.update(importRe.findall(content))
             self._defined_java_packages = frozenset(packages)
             self._extended_java_packages = frozenset(extendedPackages)
-            
+
             importedPackages = set()
             for imp in imports:
                 name = imp
@@ -394,12 +392,12 @@ class Project(Dependency):
                 if name is not None:
                     importedPackages.add(name)
             self._imported_java_packages = frozenset(importedPackages)
-    
+
     def defined_java_packages(self):
         """Get the immutable set of Java packages defined by the Java sources of this project"""
         self._init_packages_and_imports()
         return self._defined_java_packages
-    
+
     def extended_java_packages(self):
         """Get the immutable set of Java packages extended by the Java sources of this project"""
         self._init_packages_and_imports()
@@ -417,7 +415,7 @@ class Project(Dependency):
             if hasattr(self, '_declaredAnnotationProcessors'):
                 ap = set(self._declaredAnnotationProcessors)
 
-            # find dependencies that auto-inject themselves as annotation processors to all dependents                
+            # find dependencies that auto-inject themselves as annotation processors to all dependents
             allDeps = self.all_deps([], includeLibs=False, includeSelf=False, includeAnnotationProcessors=False)
             for p in allDeps:
                 if hasattr(p, 'annotationProcessorForDependents') and p.annotationProcessorForDependents.lower() == 'true':
@@ -442,7 +440,7 @@ class Library(Dependency):
         if not isabs(path):
             path = join(self.suite.dir, path)
         if resolve and self.mustExist and not exists(path):
-            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path;
+            assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path
             print('Downloading ' + self.name + ' from ' + str(self.urls))
             download(path, self.urls)
         return path
@@ -462,7 +460,7 @@ class Library(Dependency):
         path = self.get_path(resolve)
         if exists(path) or not resolve:
             cp.append(path)
-            
+
     def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
         if not includeLibs or not includeSelf:
             return deps
@@ -482,11 +480,11 @@ class Suite:
         self._load_env(mxDir)
         self._load_commands(mxDir)
         self._load_includes(mxDir)
-        self.name = d # re-initialized in _load_projects
+        self.name = d  # re-initialized in _load_projects
 
     def __str__(self):
         return self.name
-    
+
     def _load_projects(self, mxDir):
         libsMap = dict()
         projsMap = dict()
@@ -536,7 +534,7 @@ class Suite:
             srcDirs = pop_list(attrs, 'sourceDirs')
             deps = pop_list(attrs, 'dependencies')
             ap = pop_list(attrs, 'annotationProcessors')
-            #deps += ap
+            # deps += ap
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None)
             if subDir is None:
@@ -570,17 +568,17 @@ class Suite:
             d = Distribution(self, name, path, deps)
             d.__dict__.update(attrs)
             self.dists.append(d)
-            
+
         if self.name is None:
             abort('Missing "suite=<name>" in ' + projectsFile)
 
     def _load_commands(self, mxDir):
-        commands = join(mxDir, 'commands.py')
-        if exists(commands):
+        commandsPath = join(mxDir, 'commands.py')
+        if exists(commandsPath):
             # temporarily extend the Python path
             sys.path.insert(0, mxDir)
             mod = __import__('commands')
-            
+
             self.commands = sys.modules.pop('commands')
             sys.modules[join(mxDir, 'commands')] = self.commands
 
@@ -588,7 +586,7 @@ class Suite:
             del sys.path[0]
 
             if not hasattr(mod, 'mx_init'):
-                abort(commands + ' must define an mx_init(env) function')
+                abort(commandsPath + ' must define an mx_init(env) function')
             if hasattr(mod, 'mx_post_parse_cmd_line'):
                 self.mx_post_parse_cmd_line = mod.mx_post_parse_cmd_line
 
@@ -632,7 +630,7 @@ class Suite:
                 abort('cannot redefine library  ' + l.name)
             _libs[l.name] = l
         for d in self.dists:
-            existing = _dists.get(l.name)
+            existing = _dists.get(d.name)
             if existing is not None:
                 abort('cannot redefine distribution  ' + d.name)
             _dists[d.name] = d
@@ -641,7 +639,7 @@ class Suite:
 
 class XMLElement(xml.dom.minidom.Element):
     def writexml(self, writer, indent="", addindent="", newl=""):
-        writer.write(indent+"<" + self.tagName)
+        writer.write(indent + "<" + self.tagName)
 
         attrs = self._get_attributes()
         a_names = attrs.keys()
@@ -657,14 +655,14 @@ class XMLElement(xml.dom.minidom.Element):
                 # text is printed without any indentation or new line padding
                 writer.write(">")
                 self.childNodes[0].writexml(writer)
-                writer.write("</%s>%s" % (self.tagName,newl))
+                writer.write("</%s>%s" % (self.tagName, newl))
             else:
-                writer.write(">%s"%(newl))
+                writer.write(">%s" % (newl))
                 for node in self.childNodes:
-                    node.writexml(writer,indent+addindent,addindent,newl)
-                writer.write("%s</%s>%s" % (indent,self.tagName,newl))
+                    node.writexml(writer, indent + addindent, addindent, newl)
+                writer.write("%s</%s>%s" % (indent, self.tagName, newl))
         else:
-            writer.write("/>%s"%(newl))
+            writer.write("/>%s" % (newl))
 
 class XMLDoc(xml.dom.minidom.Document):
 
@@ -682,7 +680,9 @@ class XMLDoc(xml.dom.minidom.Document):
     def comment(self, txt):
         self.current.appendChild(self.createComment(txt))
 
-    def open(self, tag, attributes={}, data=None):
+    def open(self, tag, attributes=None, data=None):
+        if attributes is None:
+            attributes = {}
         element = self.createElement(tag)
         for key, value in attributes.items():
             element.setAttribute(key, value)
@@ -698,7 +698,9 @@ class XMLDoc(xml.dom.minidom.Document):
         self.current = self.current.parentNode
         return self
 
-    def element(self, tag, attributes={}, data=None):
+    def element(self, tag, attributes=None, data=None):
+        if attributes is None:
+            attributes = {}
         return self.open(tag, attributes, data).close(tag)
 
     def xml(self, indent='', newl='', escape=False, standalone=None):
@@ -888,7 +890,7 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
 def _handle_missing_java_home():
     if not sys.stdout.isatty():
         abort('Could not find bootstrap JDK. Use --java-home option or ensure JAVA_HOME environment variable is set.')
- 
+
     candidateJdks = []
     if get_os() == 'darwin':
         base = '/Library/Java/JavaVirtualMachines'
@@ -908,7 +910,7 @@ def _handle_missing_java_home():
         javaHome = select_items(candidateJdks + ['<other>'], allowMultiple=False)
         if javaHome == '<other>':
             javaHome = None
-            
+
     while javaHome is None:
         javaHome = raw_input('Enter path of bootstrap JDK: ')
         rtJarPath = join(javaHome, 'jre', 'lib', 'rt.jar')
@@ -917,12 +919,12 @@ def _handle_missing_java_home():
             javaHome = None
         else:
             break
-    
+
     envPath = join(_mainSuite.dir, 'mx', 'env')
     if ask_yes_no('Persist this setting by adding "JAVA_HOME=' + javaHome + '" to ' + envPath, 'y'):
         with open(envPath, 'a') as fp:
             print >> fp, 'JAVA_HOME=' + javaHome
-            
+
     return javaHome
 
 class ArgParser(ArgumentParser):
@@ -942,7 +944,7 @@ class ArgParser(ArgumentParser):
         self.add_argument('-d', action='store_const', const=8000, dest='java_dbg_port', help='alias for "-dbg 8000"')
         self.add_argument('--cp-pfx', dest='cp_prefix', help='class path prefix', metavar='<arg>')
         self.add_argument('--cp-sfx', dest='cp_suffix', help='class path suffix', metavar='<arg>')
-        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>', default=DEFAULT_JAVA_ARGS)
+        self.add_argument('--J', dest='java_args', help='Java VM arguments (e.g. --J @-dsa)', metavar='@<args>', default='-ea -Xss2m -Xmx1g')
         self.add_argument('--Jp', action='append', dest='java_args_pfx', help='prefix Java VM arguments (e.g. --Jp @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--Ja', action='append', dest='java_args_sfx', help='suffix Java VM arguments (e.g. --Ja @-dsa)', metavar='@<args>', default=[])
         self.add_argument('--user-home', help='users home directory', metavar='<path>', default=os.path.expanduser('~'))
@@ -987,8 +989,8 @@ class ArgParser(ArgumentParser):
 
 def _format_commands():
     msg = '\navailable commands:\n\n'
-    for cmd in sorted(commands.iterkeys()):
-        c, _ = commands[cmd][:2]
+    for cmd in sorted(_commands.iterkeys()):
+        c, _ = _commands[cmd][:2]
         doc = c.__doc__
         if doc is None:
             doc = ''
@@ -1075,7 +1077,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
 
     if env is None:
         env = os.environ
-        
+
     if _opts.verbose:
         if _opts.very_verbose:
             log('Environment variables:')
@@ -1108,17 +1110,17 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
                 for line in iter(stream.readline, ''):
                     f(line)
                 stream.close()
-            stdout=out if not callable(out) else subprocess.PIPE
-            stderr=err if not callable(err) else subprocess.PIPE
+            stdout = out if not callable(out) else subprocess.PIPE
+            stderr = err if not callable(err) else subprocess.PIPE
             p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
             _currentSubprocess = (p, args)
             if callable(out):
                 t = Thread(target=redirect, args=(p.stdout, out))
-                t.daemon = True # thread dies with the program
+                t.daemon = True  # thread dies with the program
                 t.start()
             if callable(err):
                 t = Thread(target=redirect, args=(p.stderr, err))
-                t.daemon = True # thread dies with the program
+                t.daemon = True  # thread dies with the program
                 t.start()
             if timeout is None or timeout == 0:
                 retcode = waitOn(p)
@@ -1141,7 +1143,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             if _opts.very_verbose:
                 raise subprocess.CalledProcessError(retcode, ' '.join(args))
             else:
-                log('[exit code: ' + str(retcode)+ ']')
+                log('[exit code: ' + str(retcode) + ']')
         abort(retcode)
 
     return retcode
@@ -1158,7 +1160,7 @@ def add_lib_prefix(name):
     """
     Adds the platform specific library prefix to a name
     """
-    os = get_os();
+    os = get_os()
     if os == 'linux' or os == 'solaris' or os == 'darwin':
         return 'lib' + name
     return name
@@ -1167,7 +1169,7 @@ def add_lib_suffix(name):
     """
     Adds the platform specific library suffix to a name
     """
-    os = get_os();
+    os = get_os()
     if os == 'windows':
         return name + '.dll'
     if os == 'linux' or os == 'solaris':
@@ -1181,7 +1183,7 @@ A JavaCompliance simplifies comparing Java compliance values extracted from a JD
 """
 class JavaCompliance:
     def __init__(self, ver):
-        m = re.match('1\.(\d+).*', ver)
+        m = re.match(r'1\.(\d+).*', ver)
         assert m is not None, 'not a recognized version string: ' + ver
         self.value = int(m.group(1))
 
@@ -1193,22 +1195,22 @@ class JavaCompliance:
             other = JavaCompliance(other)
 
         return cmp(self.value, other.value)
-    
+
 """
 A Java version as defined in JSR-56
 """
 class JavaVersion:
     def __init__(self, versionString):
-        validChar = '[\x21-\x25\x27-\x29\x2c\x2f-\x5e\x60-\x7f]'
-        separator = '[.\-_]'
+        validChar = r'[\x21-\x25\x27-\x29\x2c\x2f-\x5e\x60-\x7f]'
+        separator = r'[.\-_]'
         m = re.match(validChar + '+(' + separator + validChar + '+)*', versionString)
         assert m is not None, 'not a recognized version string: ' + versionString
-        self.versionString = versionString;
+        self.versionString = versionString
         self.parts = [int(f) if f.isdigit() else f for f in re.split(separator, versionString)]
-        
+
     def __str__(self):
         return self.versionString
-    
+
     def __cmp__(self, other):
         return cmp(self.parts, other.parts)
 
@@ -1219,8 +1221,8 @@ class JavaConfig:
     def __init__(self, opts):
         self.jdk = opts.java_home
         self.debug_port = opts.java_dbg_port
-        self.jar   = exe_suffix(join(self.jdk, 'bin', 'jar'))
-        self.java  = exe_suffix(join(self.jdk, 'bin', 'java'))
+        self.jar = exe_suffix(join(self.jdk, 'bin', 'jar'))
+        self.java = exe_suffix(join(self.jdk, 'bin', 'java'))
         self.javac = exe_suffix(join(self.jdk, 'bin', 'javac'))
         self.javap = exe_suffix(join(self.jdk, 'bin', 'javap'))
         self.javadoc = exe_suffix(join(self.jdk, 'bin', 'javadoc'))
@@ -1298,7 +1300,7 @@ def get_env(key, default=None):
 def logv(msg=None):
     if _opts.verbose:
         log(msg)
-    
+
 def log(msg=None):
     """
     Write a message to the console.
@@ -1332,16 +1334,16 @@ def gmake_cmd():
         try:
             output = subprocess.check_output([a, '--version'])
             if 'GNU' in output:
-                return a;
+                return a
         except:
             pass
     abort('Could not find a GNU make executable on the current path.')
 
 def expandvars_in_property(value):
-        result = expandvars(value)
-        if '$' in result or '%' in result:
-            abort('Property contains an undefined environment variable: ' + value)
-        return result
+    result = expandvars(value)
+    if '$' in result or '%' in result:
+        abort('Property contains an undefined environment variable: ' + value)
+    return result
 
 
 def abort(codeOrMessage):
@@ -1352,8 +1354,8 @@ def abort(codeOrMessage):
     the object's value is printed and the exit status is one.
     """
 
-    #import traceback
-    #traceback.print_stack()
+    # import traceback
+    # traceback.print_stack()
     currentSubprocess = _currentSubprocess
     if currentSubprocess is not None:
         p, _ = currentSubprocess
@@ -1361,7 +1363,7 @@ def abort(codeOrMessage):
             p.kill()
         else:
             _kill_process_group(p.pid)
-    
+
     raise SystemExit(codeOrMessage)
 
 def download(path, urls, verbose=False):
@@ -1451,9 +1453,9 @@ def update_file(path, content):
             f.write(content)
 
         log(('modified ' if existed else 'created ') + path)
-        return True;
+        return True
     except IOError as e:
-        abort('Error while writing to ' + path + ': ' + str(e));
+        abort('Error while writing to ' + path + ': ' + str(e))
 
 # Builtin commands
 
@@ -1487,11 +1489,11 @@ def build(args, parser=None):
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
 
     args = parser.parse_args(args)
-    
+
     jdtJar = None
     if args.jdt is not None:
         if args.jdt.endswith('.jar'):
-            jdtJar=args.jdt
+            jdtJar = args.jdt
             if not exists(jdtJar) and os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath):
                 # Silently ignore JDT if default location is used but not ecj.jar exists there
                 jdtJar = None
@@ -1506,7 +1508,7 @@ def build(args, parser=None):
         sortedProjects = [project(name) for name in args.only.split(',')]
     else:
         sortedProjects = sorted_deps(projects, includeAnnotationProcessors=True)
-    
+
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -1521,7 +1523,7 @@ def build(args, parser=None):
         else:
             if not args.java:
                 continue
-            if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+            if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
                 continue
 
         # skip building this Java project if its Java compliance level is "higher" than the configured JDK
@@ -1620,11 +1622,11 @@ def build(args, parser=None):
         ap = p.annotation_processors()
         if len(ap) > 0:
             processorPath = classpath(ap, resolve=True)
-            genDir = p.source_gen_dir();
+            genDir = p.source_gen_dir()
             if exists(genDir):
                 shutil.rmtree(genDir)
             os.mkdir(genDir)
-            processorArgs += ['-processorpath', join(processorPath), '-s', genDir] 
+            processorArgs += ['-processorpath', join(processorPath), '-s', genDir]
         else:
             processorArgs += ['-proc:none']
 
@@ -1633,20 +1635,20 @@ def build(args, parser=None):
             compliance = str(p.javaCompliance) if p.javaCompliance is not None else args.compliance
             if jdtJar is None:
                 log('Compiling Java sources for {0} with javac...'.format(p.name))
-                
-                
+
+
                 javacCmd = [java().javac, '-g', '-J-Xmx1g', '-source', compliance, '-classpath', cp, '-d', outputDir]
                 if java().debug_port is not None:
                     javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
                 javacCmd += processorArgs
                 javacCmd += ['@' + argfile.name]
-                
+
                 if not args.warnAPI:
                     javacCmd.append('-XDignore.symbol.file')
                 run(javacCmd)
             else:
                 log('Compiling Java sources for {0} with JDT...'.format(p.name))
-                                
+
                 jdtArgs = [java().java, '-Xmx1g']
                 if java().debug_port is not None:
                     jdtArgs += ['-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(java().debug_port)]
@@ -1656,8 +1658,8 @@ def build(args, parser=None):
                          '-cp', cp, '-g', '-enableJavadoc',
                          '-d', outputDir]
                 jdtArgs += processorArgs
-                         
-                         
+
+
                 jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
                 rootJdtProperties = join(p.suite.dir, 'mx', 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
@@ -1678,12 +1680,12 @@ def build(args, parser=None):
                     else:
                         jdtArgs += ['-properties', jdtProperties]
                 jdtArgs.append('@' + argfile.name)
-                
+
                 run(jdtArgs)
         finally:
             for n in toBeDeleted:
                 os.remove(n)
-                
+
     for dist in _dists.values():
         archive(['@' + dist.name])
 
@@ -1700,17 +1702,17 @@ def eclipseformat(args):
     parser.add_argument('-e', '--eclipse-exe', help='location of the Eclipse executable')
     parser.add_argument('-C', '--no-backup', action='store_false', dest='backup', help='do not save backup of modified files')
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
-    
+
     args = parser.parse_args(args)
     if args.eclipse_exe is None:
         args.eclipse_exe = os.environ.get('ECLIPSE_EXE')
     if args.eclipse_exe is None:
         abort('Could not find Eclipse executable. Use -e option or ensure ECLIPSE_EXE environment variable is set.')
-        
+
     # Maybe an Eclipse installation dir was specified - look for the executable in it
     if join(args.eclipse_exe, exe_suffix('eclipse')):
         args.eclipse_exe = join(args.eclipse_exe, exe_suffix('eclipse'))
-        
+
     if not os.path.isfile(args.eclipse_exe) or not os.access(args.eclipse_exe, os.X_OK):
         abort('Not an executable file: ' + args.eclipse_exe)
 
@@ -1725,7 +1727,7 @@ def eclipseformat(args):
         def __init__(self, settingsFile):
             self.path = settingsFile
             self.javafiles = list()
-            
+
         def settings(self):
             with open(self.path) as fp:
                 return fp.read()
@@ -1744,14 +1746,14 @@ def eclipseformat(args):
                     self.content = content
                     return True
             os.utime(self.path, self.times)
-            
+
     modified = list()
-    batches = dict() # all sources with the same formatting settings are formatted together
+    batches = dict()  # all sources with the same formatting settings are formatted together
     for p in projects:
         if p.native:
             continue
         sourceDirs = p.source_dirs()
-        
+
         batch = Batch(join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs'))
 
         if not exists(batch.path):
@@ -1776,7 +1778,7 @@ def eclipseformat(args):
         for fi in batch.javafiles:
             if fi.update():
                 modified.append(fi)
-                
+
     log('{0} files were modified'.format(len(modified)))
     if len(modified) != 0:
         if args.backup:
@@ -1792,25 +1794,25 @@ def eclipseformat(args):
     return 0
 
 def processorjars():
-    
+
     projs = set()
     for p in sorted_deps():
         if _isAnnotationProcessorDependency(p):
             projs.add(p)
-            
+
     if len(projs) < 0:
         return
-    
+
     pnames = [p.name for p in projs]
     build(['--projects', ",".join(pnames)])
     archive(pnames)
 
 def archive(args):
     """create jar files for projects and distributions"""
-    parser = ArgumentParser(prog='mx archive');
+    parser = ArgumentParser(prog='mx archive')
     parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
-    
+
     for name in args.names:
         if name.startswith('@'):
             dname = name[1:]
@@ -1821,7 +1823,7 @@ def archive(args):
             def overwriteCheck(zf, arcname, source):
                 if arcname in zf.namelist():
                     log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
-                
+
             try:
                 zf = zipfile.ZipFile(tmp, 'w')
                 for dep in sorted_deps(d.deps, includeLibs=True):
@@ -1846,7 +1848,7 @@ def archive(args):
                         if java().javaCompliance < p.javaCompliance:
                             log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
                             continue
-    
+
                         logv('[' + d.path + ': adding project ' + p.name + ']')
                         outputDir = p.output_dir()
                         for root, _, files in os.walk(outputDir):
@@ -1876,7 +1878,7 @@ def archive(args):
                 shutil.rmtree(services)
                 # Atomic on Unix
                 shutil.move(tmp, d.path)
-                #print time.time(), 'move:', tmp, '->', d.path
+                # print time.time(), 'move:', tmp, '->', d.path
                 d.notify_updated()
             finally:
                 if exists(tmp):
@@ -1924,11 +1926,11 @@ def canonicalizeprojects(args):
                     out.write(line + '\n')
                 else:
                     p = project(m.group(1))
-                    
+
                     for pkg in p.defined_java_packages():
                         if not pkg.startswith(p.name):
                             abort('package in {0} does not have prefix matching project name: {1}'.format(p, pkg))
-                    
+
                     ignoredDeps = set([name for name in p.deps if project(name, False) is not None])
                     for pkg in p.imported_java_packages():
                         for name in p.deps:
@@ -1941,7 +1943,7 @@ def canonicalizeprojects(args):
                                 if pkg in dep.extended_java_packages():
                                     ignoredDeps.discard(name)
                     if len(ignoredDeps) != 0:
-                        candidates = set();
+                        candidates = set()
                         # Compute dependencies based on projects required by p
                         for d in sorted_deps():
                             if not d.defined_java_packages().isdisjoint(p.imported_java_packages()):
@@ -1950,16 +1952,16 @@ def canonicalizeprojects(args):
                         for c in list(candidates):
                             candidates.difference_update(c.all_deps([], False, False))
                         candidates = [d.name for d in candidates]
-                        
+
                         abort('{0}:{1}: {2} does not use any packages defined in these projects: {3}\nComputed project dependencies: {4}'.format(
                             projectsFile, lineNo, p, ', '.join(ignoredDeps), ','.join(candidates)))
-                    
+
                     out.write('project@' + m.group(1) + '@dependencies=' + ','.join(p.canonical_deps()) + '\n')
                 lineNo = lineNo + 1
             content = out.getvalue()
         if update_file(projectsFile, content):
             changedFiles += 1
-    return changedFiles;
+    return changedFiles
 
 def checkstyle(args):
     """run Checkstyle on the Java sources
@@ -1971,7 +1973,7 @@ def checkstyle(args):
 
     parser.add_argument('-f', action='store_true', dest='force', help='force checking (disables timestamp checking)')
     args = parser.parse_args(args)
-    
+
     totalErrors = 0
     for p in sorted_deps():
         if p.native:
@@ -1981,7 +1983,7 @@ def checkstyle(args):
 
         if not exists(dotCheckstyle):
             continue
-        
+
         # skip checking this Java project if its Java compliance level is "higher" than the configured JDK
         if java().javaCompliance < p.javaCompliance:
             log('Excluding {0} from checking (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
@@ -2074,13 +2076,12 @@ def checkstyle(args):
                     finally:
                         if exists(auditfileName):
                             errors = []
-                            source = None
+                            source = [None]
                             def start_element(name, attrs):
                                 if name == 'file':
-                                    global source
-                                    source = attrs['name']
+                                    source[0] = attrs['name']
                                 elif name == 'error':
-                                    errors.append('{}:{}: {}'.format(source, attrs['line'], attrs['message']))
+                                    errors.append('{}:{}: {}'.format(source[0], attrs['line'], attrs['message']))
 
                             p = xml.parsers.expat.ParserCreate()
                             p.StartElementHandler = start_element
@@ -2108,7 +2109,7 @@ def clean(args, parser=None):
 
     suppliedParser = parser is not None
 
-    parser = parser if suppliedParser else ArgumentParser(prog='mx build');
+    parser = parser if suppliedParser else ArgumentParser(prog='mx build')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
 
@@ -2120,13 +2121,13 @@ def clean(args, parser=None):
                 run([gmake_cmd(), '-C', p.dir, 'clean'])
         else:
             if args.java:
-                genDir = p.source_gen_dir();
+                genDir = p.source_gen_dir()
                 if genDir != '' and exists(genDir):
                     log('Clearing {0}...'.format(genDir))
                     for f in os.listdir(genDir):
                         shutil.rmtree(join(genDir, f))
-                    
-                    
+
+
                 outputDir = p.output_dir()
                 if outputDir != '' and exists(outputDir):
                     log('Removing {0}...'.format(outputDir))
@@ -2150,8 +2151,8 @@ Given a command name, print help for that command."""
         return
 
     name = args[0]
-    if not commands.has_key(name):
-        hits = [c for c in commands.iterkeys() if c.startswith(name)]
+    if not _commands.has_key(name):
+        hits = [c for c in _commands.iterkeys() if c.startswith(name)]
         if len(hits) == 1:
             name = hits[0]
         elif len(hits) == 0:
@@ -2159,7 +2160,7 @@ Given a command name, print help for that command."""
         else:
             abort('mx: command \'{0}\' is ambiguous\n    {1}'.format(name, ' '.join(hits)))
 
-    value = commands[name]
+    value = _commands[name]
     (func, usage) = value[:2]
     doc = func.__doc__
     if len(value) > 2:
@@ -2206,10 +2207,12 @@ def _source_locator_memento(deps):
     slm.close('sourceLookupDirector')
     return slm
 
-def make_eclipse_attach(hostname, port, name=None, deps=[]):
+def make_eclipse_attach(hostname, port, name=None, deps=None):
     """
     Creates an Eclipse launch configuration file for attaching to a Java process.
     """
+    if deps is None:
+        deps = []
     slm = _source_locator_memento(deps)
     launch = XMLDoc()
     launch.open('launchConfiguration', {'type' : 'org.eclipse.jdt.launching.remoteJavaApplication'})
@@ -2232,10 +2235,12 @@ def make_eclipse_attach(hostname, port, name=None, deps=[]):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
-def make_eclipse_launch(javaArgs, jre, name=None, deps=[]):
+def make_eclipse_launch(javaArgs, jre, name=None, deps=None):
     """
     Creates an Eclipse launch configuration file for running/debugging a Java command.
     """
+    if deps is None:
+        deps = []
     mainClass = None
     vmArgs = []
     appArgs = []
@@ -2302,7 +2307,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
 
     if suite is None:
         suite = _mainSuite
-        
+
     if buildProcessorJars:
         processorjars()
 
@@ -2329,7 +2334,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
             out.element('classpathentry', {'kind' : 'src', 'path' : src})
 
         if len(p.annotation_processors()) > 0:
-            genDir = p.source_gen_dir();
+            genDir = p.source_gen_dir()
             if not exists(genDir):
                 os.mkdir(genDir)
             out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
@@ -2337,12 +2342,12 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
         # Every Java program depends on the JRE
         out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER'})
 
-        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
 
         for dep in p.all_deps([], True):
             if dep == p:
-                continue;
+                continue
 
             if dep.isLibrary():
                 if hasattr(dep, 'eclipse.container'):
@@ -2419,7 +2424,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
             out.element('name', data='net.sf.eclipsecs.core.CheckstyleBuilder')
             out.element('arguments', data='')
             out.close('buildCommand')
-        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             for buildCommand in ['org.eclipse.pde.ManifestBuilder', 'org.eclipse.pde.SchemaBuilder']:
                 out.open('buildCommand')
                 out.element('name', data=buildCommand)
@@ -2427,19 +2432,19 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                 out.close('buildCommand')
 
         if _isAnnotationProcessorDependency(p):
-            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh = False, async = False, xmlIndent='', xmlStandalone='no')
-            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh = True, async = True)
-                       
+            _genEclipseBuilder(out, p, 'Jar.launch', 'archive ' + p.name, refresh=False, async=False, xmlIndent='', xmlStandalone='no')
+            _genEclipseBuilder(out, p, 'Refresh.launch', '', refresh=True, async=True)
+
         if projToDist.has_key(p.name):
             dist, distDeps = projToDist[p.name]
             _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist.launch', 'archive @' + dist.name, refresh=False, async=True)
-        
+
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
         if exists(csConfig):
             out.element('nature', data='net.sf.eclipsecs.core.CheckstyleNature')
-        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             out.element('nature', data='org.eclipse.pde.PluginNature')
         out.close('natures')
         out.close('projectDescription')
@@ -2462,7 +2467,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                     if len(p.annotation_processors()) > 0:
                         content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
                     update_file(join(settingsDir, name), content)
-        
+
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()
             out.open('factorypath')
@@ -2495,50 +2500,50 @@ def _isAnnotationProcessorDependency(p):
     return p in sorted_deps(annotation_processors())
 
 def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, async=False, logToConsole=False, xmlIndent='\t', xmlStandalone=None):
-    launchOut = XMLDoc();
+    launchOut = XMLDoc()
     consoleOn = 'true' if logToConsole else 'false'
     launchOut.open('launchConfiguration', {'type' : 'org.eclipse.ui.externaltools.ProgramBuilderLaunchConfigurationType'})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output',                'value': consoleOn})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.core.capture_output', 'value': consoleOn})
     launchOut.open('mapAttribute', {'key' : 'org.eclipse.debug.core.environmentVariables'})
-    launchOut.element('mapEntry', {'key' : 'JAVA_HOME',	'value' : java().jdk})
+    launchOut.element('mapEntry', {'key' : 'JAVA_HOME', 	'value' : java().jdk})
     launchOut.close('mapAttribute')
-    
+
     if refresh:
-        launchOut.element('stringAttribute',  {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE',            'value': '${project}'})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON',          'value': consoleOn})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND',       'value': 'true' if async else 'false'})
-    
+        launchOut.element('stringAttribute', {'key' : 'org.eclipse.debug.core.ATTR_REFRESH_SCOPE', 'value': '${project}'})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_CONSOLE_OUTPUT_ON', 'value': consoleOn})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND', 'value': 'true' if async else 'false'})
+
     baseDir = dirname(dirname(os.path.abspath(__file__)))
-    
+
     cmd = 'mx.sh'
     if get_os() == 'windows':
         cmd = 'mx.cmd'
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION',           'value': join(baseDir, cmd) })
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS',    'value': 'auto,full,incremental'})
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS',     'value': mxCommand})
-    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED','value': 'true'})
-    launchOut.element('stringAttribute',  {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY',  'value': p.suite.dir})
-    
-    
+    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_LOCATION', 'value': join(baseDir, cmd) })
+    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_RUN_BUILD_KINDS', 'value': 'auto,full,incremental'})
+    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS', 'value': mxCommand})
+    launchOut.element('booleanAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_TRIGGERS_CONFIGURED', 'value': 'true'})
+    launchOut.element('stringAttribute', {'key' : 'org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY', 'value': p.suite.dir})
+
+
     launchOut.close('launchConfiguration')
-    
+
     externalToolDir = join(p.dir, '.externalToolBuilders')
-    
+
     if not exists(externalToolDir):
         os.makedirs(externalToolDir)
     update_file(join(externalToolDir, name), launchOut.xml(indent=xmlIndent, standalone=xmlStandalone, newl='\n'))
-    
+
     dotProjectDoc.open('buildCommand')
     dotProjectDoc.element('name', data='org.eclipse.ui.externaltools.ExternalToolBuilder')
     dotProjectDoc.element('triggers', data='auto,full,incremental,')
     dotProjectDoc.open('arguments')
     dotProjectDoc.open('dictionary')
-    dotProjectDoc.element('key', data = 'LaunchConfigHandle')
-    dotProjectDoc.element('value', data = '<project>/.externalToolBuilders/' + name)
+    dotProjectDoc.element('key', data='LaunchConfigHandle')
+    dotProjectDoc.element('value', data='<project>/.externalToolBuilders/' + name)
     dotProjectDoc.close('dictionary')
     dotProjectDoc.open('dictionary')
-    dotProjectDoc.element('key', data = 'incclean')
-    dotProjectDoc.element('value', data = 'true')
+    dotProjectDoc.element('key', data='incclean')
+    dotProjectDoc.element('value', data='true')
     dotProjectDoc.close('dictionary')
     dotProjectDoc.close('arguments')
     dotProjectDoc.close('buildCommand')
@@ -2548,9 +2553,9 @@ def generate_eclipse_workingsets(suite):
     Populate the workspace's working set configuration with working sets generated from project data.
     If the workspace already contains working set definitions, the existing ones will be retained and extended.
     In case mx/env does not contain a WORKSPACE definition pointing to the workspace root directory, the Graal project root directory will be assumed.
-    If no workspace root directory can be identified, the Graal project root directory is used and the user has to place the workingsets.xml file by hand. 
+    If no workspace root directory can be identified, the Graal project root directory is used and the user has to place the workingsets.xml file by hand.
     """
-    
+
     # identify the location where to look for workingsets.xml
     wsfilename = 'workingsets.xml'
     wsroot = suite.dir
@@ -2560,7 +2565,7 @@ def generate_eclipse_workingsets(suite):
     if not exists(wsdir):
         wsdir = wsroot
     wspath = join(wsdir, wsfilename)
-    
+
     # gather working set info from project data
     workingSets = dict()
     for p in projects():
@@ -2571,24 +2576,24 @@ def generate_eclipse_workingsets(suite):
                 workingSets[w] = [p.name]
             else:
                 workingSets[w].append(p.name)
-    
+
     if exists(wspath):
         wsdoc = _copy_workingset_xml(wspath, workingSets)
     else:
         wsdoc = _make_workingset_xml(workingSets)
-    
+
     update_file(wspath, wsdoc.xml(newl='\n'))
 
 def _make_workingset_xml(workingSets):
     wsdoc = XMLDoc()
     wsdoc.open('workingSetManager')
-    
+
     for w in sorted(workingSets.keys()):
         _workingset_open(wsdoc, w)
         for p in workingSets[w]:
             _workingset_element(wsdoc, p)
         wsdoc.close('workingSet')
-    
+
     wsdoc.close('workingSetManager')
     return wsdoc
 
@@ -2597,16 +2602,16 @@ def _copy_workingset_xml(wspath, workingSets):
     target.open('workingSetManager')
 
     parser = xml.parsers.expat.ParserCreate()
-    
+
     class ParserState(object):
         def __init__(self):
             self.current_ws_name = 'none yet'
             self.current_ws = None
             self.seen_ws = list()
             self.seen_projects = list()
-    
+
     ps = ParserState()
-    
+
     # parsing logic
     def _ws_start(name, attributes):
         if name == 'workingSet':
@@ -2619,7 +2624,7 @@ def _copy_workingset_xml(wspath, workingSets):
                 ps.current_ws = None
             target.open(name, attributes)
             parser.StartElementHandler = _ws_item
-    
+
     def _ws_end(name):
         if name == 'workingSet':
             if not ps.current_ws is None:
@@ -2636,22 +2641,22 @@ def _copy_workingset_xml(wspath, workingSets):
                     for p in workingSets[w]:
                         _workingset_element(target, p)
                     target.close('workingSet')
-    
+
     def _ws_item(name, attributes):
         if name == 'item':
             if ps.current_ws is None:
                 target.element(name, attributes)
             else:
-                p_name = attributes['elementID'][1:] # strip off the leading '='
+                p_name = attributes['elementID'][1:]  # strip off the leading '='
                 _workingset_element(target, p_name)
                 ps.seen_projects.append(p_name)
-    
+
     # process document
     parser.StartElementHandler = _ws_start
     parser.EndElementHandler = _ws_end
     with open(wspath, 'r') as wsfile:
         parser.ParseFile(wsfile)
-    
+
     target.close('workingSetManager')
     return target
 
@@ -2660,22 +2665,19 @@ def _workingset_open(wsdoc, ws):
 
 def _workingset_element(wsdoc, p):
     wsdoc.element('item', {'elementID': '=' + p, 'factoryID': 'org.eclipse.jdt.ui.PersistableJavaElementFactory'})
-    
+
 def netbeansinit(args, suite=None):
     """(re)generate NetBeans project configurations"""
 
     if suite is None:
         suite = _mainSuite
 
-    def println(out, obj):
-        out.write(str(obj) + '\n')
-
     updated = False
     for p in projects():
         if p.native:
             continue
 
-        if exists(join(p.dir, 'plugin.xml')): # eclipse plugin project
+        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
             continue
 
         if not exists(join(p.dir, 'nbproject')):
@@ -2715,7 +2717,7 @@ def netbeansinit(args, suite=None):
         firstDep = True
         for dep in p.all_deps([], True):
             if dep == p:
-                continue;
+                continue
 
             if not dep.isLibrary():
                 n = dep.name.replace('.', '_')
@@ -2834,7 +2836,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 print >> out, 'src.' + src + '.dir=${' + ref + '}'
 
         javacClasspath = []
-        
+
         deps = p.all_deps([], True)
         annotationProcessorOnlyDeps = []
         if len(p.annotation_processors()) > 0:
@@ -2843,12 +2845,12 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 if not apDep in deps:
                     deps.append(apDep)
                     annotationProcessorOnlyDeps.append(apDep)
-        
-        annotationProcessorReferences = [];
-        
+
+        annotationProcessorReferences = []
+
         for dep in deps:
             if dep == p:
-                continue;
+                continue
 
             if dep.isLibrary():
                 if not dep.mustExist:
@@ -2870,12 +2872,12 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 javacClasspath.append('${' + ref + '}')
             else:
                 annotationProcessorReferences.append('${' + ref + '}')
-                annotationProcessorReferences +=  ":\\\n    ${" + ref + "}"
+                annotationProcessorReferences += ":\\\n    ${" + ref + "}"
 
         print >> out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath)
         print >> out, 'javac.test.processorpath=${javac.test.classpath}\\\n    ' + (os.pathsep + '\\\n    ').join(annotationProcessorReferences)
         print >> out, 'javac.processorpath=${javac.classpath}\\\n    ' + (os.pathsep + '\\\n    ').join(annotationProcessorReferences)
-    
+
         updated = update_file(join(p.dir, 'nbproject', 'project.properties'), out.getvalue()) or updated
         out.close()
 
@@ -2906,7 +2908,7 @@ def ideclean(args, suite=None):
             rm(join(p.dir, p.name + '.jar'))
         except:
             log("Error removing {0}".format(p.name + '.jar'))
-            
+
 
 def ideinit(args, suite=None):
     """(re)generate Eclipse and NetBeans project configurations"""
@@ -2989,11 +2991,13 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
                 logv('[package-list file exists - skipping {0}]'.format(p.name))
 
 
-    def find_packages(sourceDirs, pkgs=set()):
+    def find_packages(sourceDirs, pkgs=None):
+        if pkgs is None:
+            pkgs = set()
         for sourceDir in sourceDirs:
             for root, _, files in os.walk(sourceDir):
                 if len([name for name in files if name.endswith('.java')]) != 0:
-                    pkg = root[len(sourceDir) + 1:].replace(os.sep,'.')
+                    pkg = root[len(sourceDir) + 1:].replace(os.sep, '.')
                     if len(packages) == 0 or pkg in packages:
                         if len(exclude_packages) == 0 or not pkg in exclude_packages:
                             pkgs.add(pkg)
@@ -3011,7 +3015,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
         for p in projects:
             # The project must be built to ensure javadoc can find class files for all referenced classes
             build(['--no-native', '--projects', p.name])
-            
+
             pkgs = find_packages(p.source_dirs(), set())
             deps = p.all_deps([], includeLibs=False, includeSelf=False)
             links = ['-link', 'http://docs.oracle.com/javase/' + str(p.javaCompliance.value) + '/docs/api/']
@@ -3049,11 +3053,11 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True):
             finally:
                 if delOverviewFile:
                     os.remove(overviewFile)
-                
+
     else:
         # The projects must be built to ensure javadoc can find class files for all referenced classes
         build(['--no-native'])
-        
+
         pkgs = set()
         sp = []
         names = []
@@ -3107,7 +3111,7 @@ class Chunk:
             rdelimLen = 0
         old = content[lindex:rindex + rdelimLen]
         return content.replace(old, repl)
-        
+
 # Post-process an overview-summary.html file to move the
 # complete overview to the top of the page
 def _fix_overview_summary(path, topLink):
@@ -3139,7 +3143,7 @@ def _fix_overview_summary(path, topLink):
     assert chunk1.text, 'Could not find header section in ' + path
     assert chunk2.text, 'Could not find footer section in ' + path
 
-    content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + topLink + chunk2.text +'</div></div></div>')
+    content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + topLink + chunk2.text + '</div></div></div>')
     content = chunk2.replace(content, '')
 
     with open(path, 'w') as fp:
@@ -3171,9 +3175,9 @@ def _fix_package_summary(path):
     if chunk1.text:
         if chunk2.text:
             repl = re.sub(r'<h2 title=(.*) Description</h2>', r'<h1 title=\1</h1>', chunk2.text, 1)
-            content = chunk1.replace(content, '<div class="header">' + repl +'</div></div>')
+            content = chunk1.replace(content, '<div class="header">' + repl + '</div></div>')
             content = chunk2.replace(content, '')
-        
+
             with open(path, 'w') as fp:
                 fp.write(content)
         else:
@@ -3235,12 +3239,12 @@ def site(args):
 <tbody>"""
                     color = 'row'
                     for p in projects:
-                        print >> fp2, '<tr class="{1}Color"><td class="colFirst"><a href="../{0}/javadoc/index.html", target = "_top">{0}</a></td><td class="colLast">&nbsp;</td></tr>'.format(p.name, color)
+                        print >> fp2, '<tr class="{1}Color"><td class="colFirst"><a href="../{0}/javadoc/index.html",target = "_top">{0}</a></td><td class="colLast">&nbsp;</td></tr>'.format(p.name, color)
                         color = 'row' if color == 'alt' else 'alt'
-                        
+
                     print >> fp2, '</tbody></table></div>'
                     print >> fp2, content[idx:]
-        
+
         title = args.title if args.title is not None else args.name
         javadoc(['--base', tmpbase,
                  '--unified',
@@ -3256,10 +3260,10 @@ def site(args):
                 if not 'version' in subprocess.check_output(['dot', '-V'], stderr=subprocess.STDOUT):
                     dotErr = 'dot -V does not print a string containing "version"'
             except subprocess.CalledProcessError as e:
-                dotErr = 'error calling "dot -V": {}'.format(e) 
+                dotErr = 'error calling "dot -V": {}'.format(e)
             except OSError as e:
                 dotErr = 'error calling "dot -V": {}'.format(e)
-                 
+
             if dotErr != None:
                 abort('cannot generate dependency graph: ' + dotErr)
 
@@ -3273,7 +3277,7 @@ def site(args):
                 print >> fp, 'rankdir=BT;'
                 print >> fp, 'size = "' + str(dim) + ',' + str(dim) + '";'
                 print >> fp, 'node [shape=rect, fontcolor="blue"];'
-                #print >> fp, 'edge [color="green"];'
+                # print >> fp, 'edge [color="green"];'
                 for p in projects:
                     print >> fp, '"' + p.name + '" [URL = "../' + p.name + '/javadoc/index.html", target = "_top"]'
                     for dep in p.canonical_deps():
@@ -3284,7 +3288,7 @@ def site(args):
                     d = p.max_depth()
                     depths.setdefault(d, list()).append(p.name)
                 print >> fp, '}'
-    
+
             run(['dot', '-Tsvg', '-o' + svg, '-Tjpg', '-o' + jpg, dot])
 
             # Post-process generated SVG to remove title elements which most browsers
@@ -3295,7 +3299,7 @@ def site(args):
             content = re.sub('xlink:title="[^"]*"', '', content)
             with open(svg, 'w') as fp:
                 fp.write(content)
-        
+
             # Create HTML that embeds the svg file in an <object> frame
             with open(html, 'w') as fp:
                 print >> fp, '<html><body><object data="{}.svg" type="image/svg+xml"></object></body></html>'.format(args.dot_output_base)
@@ -3346,7 +3350,7 @@ def findclass(args, logToConsole=True):
 def select_items(items, descriptions=None, allowMultiple=True):
     """
     Presents a command line interface for selecting one or more (if allowMultiple is true) items.
-    
+
     """
     if len(items) <= 1:
         return items
@@ -3370,10 +3374,10 @@ def select_items(items, descriptions=None, allowMultiple=True):
             except:
                 log('Selection contains non-numeric characters: "' + ' '.join(s) + '"')
                 continue
-            
+
             if allowMultiple and 0 in s:
                 return items
-            
+
             indexes = []
             for n in s:
                 if n not in range(1, len(items) + 1):
@@ -3390,15 +3394,15 @@ def select_items(items, descriptions=None, allowMultiple=True):
 def javap(args):
     """disassemble classes matching given pattern with javap"""
 
-    javap = java().javap
-    if not exists(javap):
-        abort('The javap executable does not exists: ' + javap)
+    javapExe = java().javap
+    if not exists(javapExe):
+        abort('The javap executable does not exists: ' + javapExe)
     else:
         candidates = findclass(args, logToConsole=False)
         if len(candidates) == 0:
             log('no matches')
         selection = select_items(candidates)
-        run([javap, '-private', '-verbose', '-classpath', classpath()] + selection)
+        run([javapExe, '-private', '-verbose', '-classpath', classpath()] + selection)
 
 def show_projects(args):
     """show all loaded projects"""
@@ -3408,7 +3412,7 @@ def show_projects(args):
             log(projectsFile)
             for p in s.projects:
                 log('\t' + p.name)
-                
+
 def ask_yes_no(question, default=None):
     """"""
     assert not default or default == 'y' or default == 'n'
@@ -3437,7 +3441,7 @@ def add_argument(*args, **kwargs):
 # If any of the format args are instances of Callable, then they are called with an 'env' are before being
 # used in the call to str.format().
 # Extensions should update this table directly
-commands = {
+_commands = {
     'about': [about, ''],
     'build': [build, '[options]'],
     'checkstyle': [checkstyle, ''],
@@ -3502,8 +3506,8 @@ def main():
     command = commandAndArgs[0]
     command_args = commandAndArgs[1:]
 
-    if not commands.has_key(command):
-        hits = [c for c in commands.iterkeys() if c.startswith(command)]
+    if not _commands.has_key(command):
+        hits = [c for c in _commands.iterkeys() if c.startswith(command)]
         if len(hits) == 1:
             command = hits[0]
         elif len(hits) == 0:
@@ -3511,7 +3515,7 @@ def main():
         else:
             abort('mx: command \'{0}\' is ambiguous\n    {1}'.format(command, ' '.join(hits)))
 
-    c, _ = commands[command][:2]
+    c, _ = _commands[command][:2]
     def term_handler(signum, frame):
         abort(1)
     signal.signal(signal.SIGTERM, term_handler)
