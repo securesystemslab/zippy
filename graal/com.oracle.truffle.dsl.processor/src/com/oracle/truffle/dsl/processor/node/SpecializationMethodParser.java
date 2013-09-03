@@ -44,7 +44,7 @@ public class SpecializationMethodParser extends NodeMethodParser<SpecializationD
     }
 
     @Override
-    public SpecializationData create(TemplateMethod method) {
+    public SpecializationData create(TemplateMethod method, boolean invalid) {
         return parseSpecialization(method);
     }
 
@@ -57,7 +57,6 @@ public class SpecializationMethodParser extends NodeMethodParser<SpecializationD
         int order = Utils.getAnnotationValue(Integer.class, method.getMarkerAnnotation(), "order");
         if (order < 0 && order != Specialization.DEFAULT_ORDER) {
             method.addError("Invalid order attribute %d. The value must be >= 0 or the default value.");
-            return null;
         }
 
         AnnotationValue rewriteValue = Utils.getAnnotationValue(method.getMarkerAnnotation(), "rewriteOn");

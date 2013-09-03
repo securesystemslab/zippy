@@ -37,7 +37,7 @@ import com.oracle.truffle.dsl.processor.template.*;
 
 public class TypeSystemParser extends TemplateParser<TypeSystemData> {
 
-    public static final List<Class<TypeSystem>> ANNOTATIONS = Arrays.asList(TypeSystem.class);
+    public static final List<Class<? extends Annotation>> ANNOTATIONS = Arrays.asList(TypeSystem.class, ExpectError.class);
 
     public TypeSystemParser(ProcessorContext c) {
         super(c);
@@ -84,11 +84,17 @@ public class TypeSystemParser extends TemplateParser<TypeSystemData> {
         verifyExclusiveMethodAnnotation(typeSystem, TypeCast.class, TypeCheck.class);
 
         List<Element> elements = new ArrayList<>(context.getEnvironment().getElementUtils().getAllMembers(templateType));
-
+        List<ImplicitCastData> implicitCasts = new ImplicitCastParser(context, typeSystem).parse(elements);
         List<TypeCastData> casts = new TypeCastParser(context, typeSystem).parse(elements);
         List<TypeCheckData> checks = new TypeCheckParser(context, typeSystem).parse(elements);
 
-        if (casts == null || checks == null) {
+        if (casts == null || checks == null || implicitCasts == null) {
+            return typeSystem;
+        }
+        typeSystem.setCasts(casts);
+        typeSystem.setChecks(checks);
+
+        if (typeSystem.hasErrors()) {
             return typeSystem;
         }
 

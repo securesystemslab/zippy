@@ -22,6 +22,8 @@
  */
 package com.oracle.truffle.api.dsl.test;
 
+import static org.junit.Assert.*;
+
 import java.util.*;
 
 import com.oracle.truffle.api.*;
@@ -73,6 +75,71 @@ class TestHelper {
 
     static <E> Object executeWith(TestRootNode<? extends ValueNode> node, Object... values) {
         return createCallTarget(node).call(new TestArguments(values));
+    }
+
+    static Object array(Object... val) {
+        return val;
+    }
+
+    static <E> List<List<E>> permutations(List<E> list) {
+        return permutations(new ArrayList<E>(), list, new ArrayList<List<E>>());
+    }
+
+    static Object[][] permutations(Object... list) {
+        List<List<Object>> permutations = permutations(Arrays.asList(list));
+
+        Object[][] a = new Object[permutations.size()][];
+        int index = 0;
+        for (List<Object> p : permutations) {
+            a[index] = p.toArray(new Object[p.size()]);
+            index++;
+        }
+
+        return a;
+    }
+
+    static <E> List<List<E>> permutations(List<E> prefix, List<E> suffix, List<List<E>> output) {
+        if (suffix.size() == 1) {
+            ArrayList<E> newElement = new ArrayList<>(prefix);
+            newElement.addAll(suffix);
+            output.add(newElement);
+            return output;
+        }
+
+        for (int i = 0; i < suffix.size(); i++) {
+            List<E> newPrefix = new ArrayList<>(prefix);
+            newPrefix.add(suffix.get(i));
+            List<E> newSuffix = new ArrayList<>(suffix);
+            newSuffix.remove(i);
+            permutations(newPrefix, newSuffix, output);
+        }
+
+        return output;
+    }
+
+    /* Methods tests all test values in combinational order. */
+    static void assertRuns(NodeFactory<? extends ValueNode> factory, Object result, Object... testValues) {
+        // test each run by its own.
+        for (int i = 0; i < testValues.length; i++) {
+            assertValue(createRoot(factory), result, testValues);
+        }
+
+        // test all combinations of the test values
+        List<List<Object>> permuts = permutations(Arrays.asList(testValues));
+        for (List<Object> list : permuts) {
+            TestRootNode<?> root = createRoot(factory);
+            for (Object object : list) {
+                assertValue(root, result, object);
+            }
+        }
+    }
+
+    static void assertValue(TestRootNode<? extends ValueNode> root, Object result, Object testValues) {
+        if (testValues instanceof Object[]) {
+            assertEquals(result, executeWith(root, (Object[]) testValues));
+        } else {
+            assertEquals(result, executeWith(root, testValues));
+        }
     }
 
 }

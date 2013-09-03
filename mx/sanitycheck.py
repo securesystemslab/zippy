@@ -27,31 +27,31 @@ from outputparser import OutputParser, ValuesMatcher
 import re, mx, commands, os, sys, StringIO, subprocess
 from os.path import isfile, join, exists
 
-gc='UseSerialGC'
+gc = 'UseSerialGC'
 
 dacapoSanityWarmup = {
-    'avrora':     [0, 0,  3,  6, 13],
-    'batik':      [0, 0,  5,  5, 20],
-    'eclipse':    [2, 4,  5, 10, 16],
+    'avrora':     [0, 0, 3, 6, 13],
+    'batik':      [0, 0, 5, 5, 20],
+    'eclipse':    [2, 4, 5, 10, 16],
     'fop':        [4, 8, 10, 20, 30],
-    'h2':         [0, 0,  5,  5,  8],
-    'jython':     [0, 0,  5, 10, 13],
-    'luindex':    [0, 0,  5, 10, 10],
-    'lusearch':   [0, 4,  5,  5,  8],
-    'pmd':        [0, 0,  5, 10, 13],
-    'sunflow':    [0, 2,  5, 10, 15],
-    'tomcat':     [0, 0,  5, 10, 15],
-    'tradebeans': [0, 0,  5, 10, 13],
-    'tradesoap':  [2, 4,  5, 10, 15],
-    'xalan':      [0, 0,  5, 10, 18],
+    'h2':         [0, 0, 5, 5, 8],
+    'jython':     [0, 0, 5, 10, 13],
+    'luindex':    [0, 0, 5, 10, 10],
+    'lusearch':   [0, 4, 5, 5, 8],
+    'pmd':        [0, 0, 5, 10, 13],
+    'sunflow':    [0, 2, 5, 10, 15],
+    'tomcat':     [0, 0, 5, 10, 15],
+    'tradebeans': [0, 0, 5, 10, 13],
+    'tradesoap':  [2, 4, 5, 10, 15],
+    'xalan':      [0, 0, 5, 10, 18],
 }
 
 dacapoScalaSanityWarmup = {
 # (tw) actors sometimes fails verification; hardly reproducible
-    'actors':     [0, 0, 0,  0,  0],
+    'actors':     [0, 0, 0, 0, 0],
 # (lstadler) apparat was disabled due to a deadlock which I think is the benchmarks fault.
-    'apparat':    [0, 0, 0,  0,  0],
-    'factorie':   [0, 0, 2,  5,  5],
+    'apparat':    [0, 0, 0, 0, 0],
+    'factorie':   [0, 0, 2, 5, 5],
     'kiama':      [0, 0, 3, 13, 15],
     'scalac':     [0, 0, 5, 15, 20],
     'scaladoc':   [0, 0, 5, 15, 15],
@@ -59,8 +59,8 @@ dacapoScalaSanityWarmup = {
     'scalariform':[0, 0, 6, 15, 20],
     'scalatest':  [0, 0, 2, 10, 12],
     'scalaxb':    [0, 0, 5, 15, 25],
-#(gdub) specs sometimes returns a non-zero value event though there is no apparent failure
-    'specs':      [0, 0, 0,  0,  0],
+# (gdub) specs sometimes returns a non-zero value event though there is no apparent failure
+    'specs':      [0, 0, 0, 0, 0],
     'tmt':        [0, 0, 3, 10, 12]
 }
 
@@ -137,60 +137,68 @@ specjvm2008Names = [
     'xml.validation'
 ]
 
+def _noneAsEmptyList(a):
+    if a is None:
+        return []
+    return a
+
 class SanityCheckLevel:
     Fast, Gate, Normal, Extensive, Benchmark = range(5)
-    
-def getSPECjbb2005(benchArgs = []):
-    
+
+def getSPECjbb2005(benchArgs=None):
+    benchArgs = [] if benchArgs is None else benchArgs
+
     specjbb2005 = mx.get_env('SPECJBB2005')
     if specjbb2005 is None or not exists(join(specjbb2005, 'jbb.jar')):
         mx.abort('Please set the SPECJBB2005 environment variable to a SPECjbb2005 directory')
-    
+
     score = re.compile(r"^Valid run, Score is  (?P<score>[0-9]+)$", re.MULTILINE)
     error = re.compile(r"VALIDATION ERROR")
     success = re.compile(r"^Valid run, Score is  [0-9]+$", re.MULTILINE)
     matcher = ValuesMatcher(score, {'group' : 'SPECjbb2005', 'name' : 'score', 'score' : '<score>'})
     classpath = ['jbb.jar', 'check.jar']
-    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+'+gc, '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
+    return Test("SPECjbb2005", ['spec.jbb.JBBmain', '-propfile', 'SPECjbb.props'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+' + gc, '-XX:-UseCompressedOops', '-cp', os.pathsep.join(classpath)], defaultCwd=specjbb2005)
 
-def getSPECjbb2013(benchArgs = []):
-    
+def getSPECjbb2013(benchArgs=None):
+
     specjbb2013 = mx.get_env('SPECJBB2013')
     if specjbb2013 is None or not exists(join(specjbb2013, 'specjbb2013.jar')):
         mx.abort('Please set the SPECJBB2013 environment variable to a SPECjbb2013 directory')
-    
+
     jops = re.compile(r"^RUN RESULT: hbIR \(max attempted\) = [0-9]+, hbIR \(settled\) = [0-9]+, max-jOPS = (?P<max>[0-9]+), critical-jOPS = (?P<critical>[0-9]+)$", re.MULTILINE)
-    #error?
+    # error?
     success = re.compile(r"org.spec.jbb.controller: Run finished", re.MULTILINE)
     matcherMax = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'max', 'score' : '<max>'})
     matcherCritical = ValuesMatcher(jops, {'group' : 'SPECjbb2013', 'name' : 'critical', 'score' : '<critical>'})
-    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] + benchArgs, [success], [], [matcherCritical, matcherMax], vmOpts=['-Xmx6g', '-Xms6g', '-Xmn3g', '-XX:+UseParallelOldGC', '-XX:-UseAdaptiveSizePolicy', '-XX:-UseBiasedLocking', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
-    
-def getSPECjvm2008(benchArgs=[]):
-    
+    return Test("SPECjbb2013", ['-jar', 'specjbb2013.jar', '-m', 'composite'] +
+                _noneAsEmptyList(benchArgs), [success], [], [matcherCritical, matcherMax],
+                vmOpts=['-Xmx6g', '-Xms6g', '-Xmn3g', '-XX:+UseParallelOldGC', '-XX:-UseAdaptiveSizePolicy', '-XX:-UseBiasedLocking', '-XX:-UseCompressedOops'], defaultCwd=specjbb2013)
+
+def getSPECjvm2008(benchArgs=None):
+
     specjvm2008 = mx.get_env('SPECJVM2008')
     if specjvm2008 is None or not exists(join(specjvm2008, 'SPECjvm2008.jar')):
         mx.abort('Please set the SPECJVM2008 environment variable to a SPECjvm2008 directory')
-    
+
     score = re.compile(r"^(Score on|Noncompliant) (?P<benchmark>[a-zA-Z0-9\._]+)( result)?: (?P<score>[0-9]+((,|\.)[0-9]+)?)( SPECjvm2008 Base)? ops/m$", re.MULTILINE)
     error = re.compile(r"^Errors in benchmark: ", re.MULTILINE)
     # The ' ops/m' at the end of the success string is important : it's how you can tell valid and invalid runs apart
     success = re.compile(r"^(Noncompliant c|C)omposite result: [0-9]+((,|\.)[0-9]+)?( SPECjvm2008 (Base|Peak))? ops/m$", re.MULTILINE)
     matcher = ValuesMatcher(score, {'group' : 'SPECjvm2008', 'name' : '<benchmark>', 'score' : '<score>'})
-    
-    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + benchArgs, [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+'+gc, '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
 
-def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
+    return Test("SPECjvm2008", ['-jar', 'SPECjvm2008.jar'] + _noneAsEmptyList(benchArgs), [success], [error], [matcher], vmOpts=['-Xms3g', '-XX:+' + gc, '-XX:-UseCompressedOops'], defaultCwd=specjvm2008)
+
+def getDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=None):
     checks = []
-    
+
     for (bench, ns) in dacapoSanityWarmup.items():
         if ns[level] > 0:
             if gateBuildLevel is None or gateBuildLevel in dacapoGateBuildLevels[bench]:
-                checks.append(getDacapo(bench, ['-n', str(ns[level])] + dacapoArgs))
-    
+                checks.append(getDacapo(bench, ['-n', str(ns[level])] + _noneAsEmptyList(dacapoArgs)))
+
     return checks
 
-def getDacapo(name, dacapoArgs=[]):
+def getDacapo(name, dacapoArgs=None):
     dacapo = mx.get_env('DACAPO_CP')
     if dacapo is None:
         l = mx.library('DACAPO', False)
@@ -198,31 +206,31 @@ def getDacapo(name, dacapoArgs=[]):
             dacapo = l.get_path(True)
         else:
             mx.abort('DaCapo 9.12 jar file must be specified with DACAPO_CP environment variable or as DACAPO library')
-    
+
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
-    
+
     dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$", re.MULTILINE)
     dacapoFail = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     dacapoTime1 = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) completed warmup 1 in (?P<time>[0-9]+) msec =====")
-    
+
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : 'DaCapo', 'name' : '<benchmark>', 'score' : '<time>'})
     dacapoMatcher1 = ValuesMatcher(dacapoTime1, {'group' : 'DaCapo-1stRun', 'name' : '<benchmark>', 'score' : '<time>'})
-    
-    return Test("DaCapo-" + name, ['-jar', dacapo, name] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
 
-def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=[]):
+    return Test("DaCapo-" + name, ['-jar', dacapo, name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
+
+def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=None):
     checks = []
-    
+
     for (bench, ns) in dacapoScalaSanityWarmup.items():
         if ns[level] > 0:
             if gateBuildLevel is None or gateBuildLevel in dacapoScalaGateBuildLevels[bench]:
-                checks.append(getScalaDacapo(bench, ['-n', str(ns[level])] + dacapoArgs))
-    
+                checks.append(getScalaDacapo(bench, ['-n', str(ns[level])] + _noneAsEmptyList(dacapoArgs)))
+
     return checks
 
-def getScalaDacapo(name, dacapoArgs=[]):
+def getScalaDacapo(name, dacapoArgs=None):
     dacapo = mx.get_env('DACAPO_SCALA_CP')
     if dacapo is None:
         l = mx.library('DACAPO_SCALA', False)
@@ -230,23 +238,23 @@ def getScalaDacapo(name, dacapoArgs=[]):
             dacapo = l.get_path(True)
         else:
             mx.abort('Scala DaCapo 0.1.0 jar file must be specified with DACAPO_SCALA_CP environment variable or as DACAPO_SCALA library')
-    
+
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified Scala DaCapo jar file does not exist or is not a jar file: ' + dacapo)
-    
+
     dacapoSuccess = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$", re.MULTILINE)
     dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 0\.1\.0(-SNAPSHOT)? (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
-    
+
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : "Scala-DaCapo", 'name' : '<benchmark>', 'score' : '<time>'})
-    
-    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name] + dacapoArgs, [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+'+gc, '-XX:-UseCompressedOops'])
+
+    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms")
     scoreMatcher = ValuesMatcher(time, {'group' : 'Bootstrap', 'name' : 'BootstrapTime', 'score' : '<time>'})
     scoreMatcherBig = ValuesMatcher(time, {'group' : 'Bootstrap-bigHeap', 'name' : 'BootstrapTime', 'score' : '<time>'})
-    
+
     tests = []
     tests.append(Test("Bootstrap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcher], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
     tests.append(Test("Bootstrap-bigHeap", ['-version'], successREs=[time], scoreMatchers=[scoreMatcherBig], vmOpts=['-Xms2g'], ignoredVMs=['client', 'server'], benchmarkCompilationRate=False))
@@ -255,16 +263,16 @@ def getBootstraps():
 class CTWMode:
     Full, NoInline, NoComplex = range(3)
 
-def getCTW(vm,mode):
+def getCTW(vm, mode):
     time = re.compile(r"CompileTheWorld : Done \([0-9]+ classes, [0-9]+ methods, (?P<time>[0-9]+) ms\)")
     scoreMatcher = ValuesMatcher(time, {'group' : 'CompileTheWorld', 'name' : 'CompileTime', 'score' : '<time>'})
-    
+
     jre = os.environ.get('JAVA_HOME')
     if exists(join(jre, 'jre')):
         jre = join(jre, 'jre')
     rtjar = join(jre, 'lib', 'rt.jar')
 
-    
+
     args = ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
     if commands.isGraalEnabled(vm):
         args += ['-XX:+BootstrapGraal', '-G:-Debug']
@@ -276,9 +284,9 @@ def getCTW(vm,mode):
     if mode >= CTWMode.NoComplex:
         if commands.isGraalEnabled(vm):
             args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
-        
+
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
-    
+
 
 class Tee:
     def __init__(self):
@@ -291,24 +299,24 @@ class Tee:
 Encapsulates a single program that is a sanity test and/or a benchmark.
 """
 class Test:
-    def __init__(self, name, cmd, successREs=[], failureREs=[], scoreMatchers=[], vmOpts=[], defaultCwd=None, ignoredVMs=[], benchmarkCompilationRate=False):
+    def __init__(self, name, cmd, successREs=None, failureREs=None, scoreMatchers=None, vmOpts=None, defaultCwd=None, ignoredVMs=None, benchmarkCompilationRate=False):
 
         self.name = name
-        self.successREs = successREs
-        self.failureREs = failureREs + [re.compile(r"Exception occurred in scope: ")]
-        self.scoreMatchers = scoreMatchers
-        self.vmOpts = vmOpts
+        self.successREs = _noneAsEmptyList(successREs)
+        self.failureREs = _noneAsEmptyList(failureREs) + [re.compile(r"Exception occurred in scope: ")]
+        self.scoreMatchers = _noneAsEmptyList(scoreMatchers)
+        self.vmOpts = _noneAsEmptyList(vmOpts)
         self.cmd = cmd
         self.defaultCwd = defaultCwd
-        self.ignoredVMs = ignoredVMs
+        self.ignoredVMs = _noneAsEmptyList(ignoredVMs)
         self.benchmarkCompilationRate = benchmarkCompilationRate
         if benchmarkCompilationRate:
             self.vmOpts = self.vmOpts + ['-XX:+CITime']
-        
+
     def __str__(self):
         return self.name
-    
-    def test(self, vm, cwd=None, extraVmOpts=[], vmbuild=None):
+
+    def test(self, vm, cwd=None, extraVmOpts=None, vmbuild=None):
         """
         Run this program as a sanity test.
         """
@@ -319,27 +327,27 @@ class Test:
         parser = OutputParser()
         jvmError = re.compile(r"(?P<jvmerror>([A-Z]:|/).*[/\\]hs_err_pid[0-9]+\.log)")
         parser.addMatcher(ValuesMatcher(jvmError, {'jvmError' : '<jvmerror>'}))
-        
+
         for successRE in self.successREs:
             parser.addMatcher(ValuesMatcher(successRE, {'passed' : '1'}))
         for failureRE in self.failureREs:
             parser.addMatcher(ValuesMatcher(failureRE, {'failed' : '1'}))
 
         tee = Tee()
-        retcode = commands.vm(self.vmOpts + extraVmOpts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+        retcode = commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
         output = tee.output.getvalue()
         valueMaps = parser.parse(output)
 
         if len(valueMaps) == 0:
             return False
-        
+
         record = {}
         for valueMap in valueMaps:
             for key, value in valueMap.items():
                 if record.has_key(key) and record[key] != value:
                     mx.abort('Inconsistant values returned by test machers : ' + str(valueMaps))
                 record[key] = value
-        
+
         jvmErrorFile = record.get('jvmError')
         if jvmErrorFile:
             mx.log('/!\\JVM Error : dumping error log...')
@@ -347,13 +355,13 @@ class Test:
                 mx.log(fp.read())
             os.unlink(jvmErrorFile)
             return False
-        
+
         if record.get('failed') == '1':
             return False
-        
+
         return retcode == 0 and record.get('passed') == '1'
-    
-    def bench(self, vm, cwd=None, extraVmOpts=[], vmbuild=None):
+
+    def bench(self, vm, cwd=None, extraVmOpts=None, vmbuild=None):
         """
         Run this program as a benchmark.
         """
@@ -362,7 +370,7 @@ class Test:
         if cwd is None:
             cwd = self.defaultCwd
         parser = OutputParser()
-        
+
         for successRE in self.successREs:
             parser.addMatcher(ValuesMatcher(successRE, {'passed' : '1'}))
         for failureRE in self.failureREs:
@@ -379,10 +387,10 @@ class Test:
             else:
                 ibps = re.compile(r"(?P<compiler>[\w]+) compilation speed: +(?P<rate>[0-9]+) bytes/s {standard")
                 parser.addMatcher(ValuesMatcher(ibps, {'group' : 'InlinedBytecodesPerSecond', 'name' : '<compiler>:' + self.name, 'score' : '<rate>'}))
-            
+
         startDelim = 'START: ' + self.name
         endDelim = 'END: ' + self.name
-        
+
         outputfile = os.environ.get('BENCH_OUTPUT', None)
         if outputfile:
             # Used only to debug output parsing
@@ -399,7 +407,7 @@ class Test:
         else:
             tee = Tee()
             mx.log(startDelim)
-            if commands.vm(self.vmOpts + extraVmOpts + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+            if commands.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
                 mx.abort("Benchmark failed (non-zero retcode)")
             mx.log(endDelim)
             output = tee.output.getvalue()
@@ -419,8 +427,8 @@ class Test:
                 score = valueMap.get('score')
                 if name and score:
                     group[name] = score
-        
+
         if not passed:
             mx.abort("Benchmark failed (not passed)")
-        
+
         return groups

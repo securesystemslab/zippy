@@ -199,6 +199,10 @@ public class NodeParser extends TemplateParser<NodeData> {
         }
 
         for (NodeData splittedNode : nodes) {
+            if (templateType.getModifiers().contains(Modifier.PRIVATE) && splittedNode.getSpecializations().size() > 0) {
+                splittedNode.addError("Classes containing a @%s annotation must not be private.", Specialization.class.getSimpleName());
+            }
+
             finalizeSpecializations(elements, splittedNode);
             verifyNode(splittedNode, elements);
             createPolymorphicSpecializations(splittedNode);
@@ -328,10 +332,12 @@ public class NodeParser extends TemplateParser<NodeData> {
         nodeData.setNodeContainer(nodeContainer != null);
         nodeData.setTypeSystem(typeSystem);
         nodeData.setFields(parseFields(typeHierarchy, elements));
-        parsedNodes.put(Utils.getQualifiedName(templateType), nodeData);
-        // parseChildren invokes cyclic parsing.
         nodeData.setChildren(parseChildren(elements, typeHierarchy));
         nodeData.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, nodeData).parse(elements)));
+
+        // resolveChildren invokes cyclic parsing.
+        parsedNodes.put(Utils.getQualifiedName(templateType), nodeData);
+        resolveChildren(nodeData);
 
         return nodeData;
     }
@@ -378,6 +384,27 @@ public class NodeParser extends TemplateParser<NodeData> {
         }
 
         return fields;
+    }
+
+    private void resolveChildren(NodeData node) {
+        for (NodeChildData nodeChild : node.getChildren()) {
+            NodeData fieldNodeData = resolveNode(Utils.fromTypeMirror(nodeChild.getNodeType()));
+            nodeChild.setNode(fieldNodeData);
+            if (fieldNodeData == null) {
+                nodeChild.addError("Node type '%s' is invalid or not a valid Node.", Utils.getQualifiedName(nodeChild.getNodeType()));
+            } else if (!Utils.typeEquals(fieldNodeData.getTypeSystem().getTemplateType().asType(), (node.getTypeSystem().getTemplateType().asType()))) {
+                nodeChild.addError("The @%s of the node and the @%s of the @%s does not match. %s != %s. ", TypeSystem.class.getSimpleName(), TypeSystem.class.getSimpleName(),
+                                NodeChild.class.getSimpleName(), Utils.getSimpleName(node.getTypeSystem().getTemplateType()), Utils.getSimpleName(fieldNodeData.getTypeSystem().getTemplateType()));
+            }
+            if (fieldNodeData != null) {
+                List<ExecutableTypeData> types = nodeChild.findGenericExecutableTypes(context);
+                if (types.isEmpty()) {
+                    AnnotationValue executeWithValue = Utils.getAnnotationValue(nodeChild.getMessageAnnotation(), "executeWith");
+                    nodeChild.addError(executeWithValue, "No generic execute method found with %s evaluated arguments for node type %s.", nodeChild.getExecuteWith().size(),
+                                    Utils.getSimpleName(nodeChild.getNodeType()));
+                }
+            }
+        }
     }
 
     private List<NodeChildData> parseChildren(List<? extends Element> elements, final List<TypeElement> typeHierarchy) {
@@ -454,12 +481,6 @@ public class NodeParser extends TemplateParser<NodeData> {
                     continue;
                 }
 
-                NodeData fieldNodeData = resolveNode(Utils.fromTypeMirror(childType));
-                nodeChild.setNode(fieldNodeData);
-                if (fieldNodeData == null) {
-                    nodeChild.addError("Node type '%s' is invalid or not a valid Node.", Utils.getQualifiedName(childType));
-                }
-
                 index++;
             }
         }
@@ -510,12 +531,6 @@ public class NodeParser extends TemplateParser<NodeData> {
             }
             child.setExecuteWith(executeWith);
             if (child.getNodeData() == null) {
-                continue;
-            }
-
-            List<ExecutableTypeData> types = child.findGenericExecutableTypes(context);
-            if (types.isEmpty()) {
-                child.addError(executeWithValue, "No generic execute method found with %s evaluated arguments for node type %s.", executeWith.size(), Utils.getSimpleName(child.getNodeType()));
                 continue;
             }
         }
@@ -1005,9 +1020,6 @@ public class NodeParser extends TemplateParser<NodeData> {
         Set<Element> unusedElements = new HashSet<>(elements);
         for (TemplateMethod method : nodeData.getAllTemplateMethods()) {
             unusedElements.remove(method.getMethod());
-        }
-        if (nodeData.getExtensionElements() != null) {
-            unusedElements.removeAll(nodeData.getExtensionElements());
         }
 
         for (NodeFieldData field : nodeData.getFields()) {

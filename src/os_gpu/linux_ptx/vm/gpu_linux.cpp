@@ -39,7 +39,6 @@ void gpu::probe_gpu() {
  */
 
 static unsigned int nvidia_vendor_id = 0x10de;
-static unsigned int nvidia_gk110_dev_id = 0x1005;
 
 bool gpu::Linux::probe_gpu() {
   /* 
@@ -62,7 +61,7 @@ bool gpu::Linux::probe_gpu() {
   while (fgets(contents, sizeof(contents)-1, pci_devices)) {
     sscanf(contents, "%04x%04x%04x", &bus_num_devfn_ign, &vendor, &device);
     /* Break after finding the first CUDA device. */
-    if ((vendor == nvidia_vendor_id) && (device = nvidia_gk110_dev_id)) {
+    if (vendor == nvidia_vendor_id) {
       cuda_device_exists = true;
       if (TraceGPUInteraction) {
         tty->print_cr("Found supported nVidia CUDA device vendor : 0x%04x device 0x%04x", vendor, device);

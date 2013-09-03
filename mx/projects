@@ -288,7 +288,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.api.code,com.oracle.graal.graph,com.oracle.graal.debug,com.oracle.graal.api.replacements
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.debug,com.oracle.graal.api.replacements,com.oracle.graal.api.code
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
