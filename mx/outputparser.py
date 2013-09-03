@@ -26,13 +26,13 @@
 import re
 
 class OutputParser:
-    
+
     def __init__(self):
         self.matchers = []
-        
+
     def addMatcher(self, matcher):
         self.matchers.append(matcher)
-    
+
     def parse(self, output):
         valueMaps = []
         for matcher in self.matchers:
@@ -47,12 +47,12 @@ value or a named group in the regular expression. The latter is
 given as the group name enclosed in '<' and '>'.
 """
 class ValuesMatcher:
-    
+
     def __init__(self, regex, valuesTemplate):
         assert isinstance(valuesTemplate, dict)
         self.regex = regex
         self.valuesTemplate = valuesTemplate
-        
+
     def parse(self, text, valueMaps):
         for match in self.regex.finditer(text):
             valueMap = {}
@@ -62,10 +62,10 @@ class ValuesMatcher:
                 assert not valueMap.has_key(key), key
                 valueMap[key] = value
             valueMaps.append(valueMap)
-        
+
     def get_template_value(self, match, template):
         def replace_var(m):
             groupName = m.group(1)
             return match.group(groupName)
-        
+
         return re.sub(r'<([\w]+)>', replace_var, template)

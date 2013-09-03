@@ -423,6 +423,8 @@ public class Utils {
                 return getSimpleName(mirror);
             case ERROR:
                 throw new CompileErrorException("Type error " + mirror);
+            case EXECUTABLE:
+                return ((ExecutableType) mirror).toString();
             case NONE:
                 return "$none";
             default:
@@ -755,6 +757,10 @@ public class Utils {
 
     public static AnnotationMirror findAnnotationMirror(ProcessingEnvironment processingEnv, List<? extends AnnotationMirror> mirrors, Class<?> annotationClass) {
         TypeElement expectedAnnotationType = processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
+        return findAnnotationMirror(mirrors, expectedAnnotationType);
+    }
+
+    public static AnnotationMirror findAnnotationMirror(List<? extends AnnotationMirror> mirrors, TypeElement expectedAnnotationType) {
         for (AnnotationMirror mirror : mirrors) {
             DeclaredType annotationType = mirror.getAnnotationType();
             TypeElement actualAnnotationType = (TypeElement) annotationType.asElement();

@@ -621,6 +621,9 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
 
                 int index = 0;
                 for (VariableElement param : element.getParameters()) {
+                    if (Utils.isObject(param.asType())) {
+                        continue;
+                    }
                     builder.string(" && ");
                     if (!param.asType().getKind().isPrimitive()) {
                         builder.string("(arguments[" + index + "] == null || ");
@@ -639,7 +642,9 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
                 index = 0;
                 for (VariableElement param : element.getParameters()) {
                     builder.startGroup();
-                    builder.string("(").type(param.asType()).string(") ");
+                    if (!Utils.isObject(param.asType())) {
+                        builder.string("(").type(param.asType()).string(") ");
+                    }
                     builder.string("arguments[").string(String.valueOf(index)).string("]");
                     builder.end();
                     index++;
@@ -2392,15 +2397,13 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
         }
 
         private CodeTree createExecuteBody(CodeTreeBuilder parent, SpecializationData specialization, ExecutableTypeData execType) {
-            TypeData primaryType = specialization.getReturnType().getTypeSystemType();
-
             CodeTreeBuilder builder = new CodeTreeBuilder(parent);
 
             List<ExecutableTypeData> primaryExecutes = findFunctionalExecutableType(specialization, execType.getEvaluatedCount());
 
             if (primaryExecutes.contains(execType) || primaryExecutes.isEmpty()) {
                 builder.tree(createFunctionalExecute(builder, specialization, execType));
-            } else if (needsCastingExecuteMethod(execType, primaryType)) {
+            } else if (needsCastingExecuteMethod(execType)) {
                 assert !primaryExecutes.isEmpty();
                 builder.tree(createCastingExecute(builder, specialization, execType, primaryExecutes.get(0)));
             } else {
@@ -2431,11 +2434,8 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
             return method;
         }
 
-        private boolean needsCastingExecuteMethod(ExecutableTypeData execType, TypeData primaryType) {
+        private boolean needsCastingExecuteMethod(ExecutableTypeData execType) {
             if (execType.isAbstract()) {
-                return true;
-            }
-            if (Utils.isPrimitiveOrVoid(primaryType.getPrimitiveType()) && Utils.isPrimitiveOrVoid(execType.getType().getPrimitiveType())) {
                 return true;
             }
             if (execType.getType().isGeneric()) {
