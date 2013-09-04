@@ -1207,7 +1207,6 @@ def specjvm2008(args):
         if len(parts) > 1:
             assert len(parts) == 2
             group = parts[0]
-            print group
             availableBenchmarks.add(group)
 
     _run_benchmark(args, sorted(availableBenchmarks), launcher)
