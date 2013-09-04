@@ -981,6 +981,10 @@ def gate(args):
     total = Task('Gate')
     try:
 
+        t = Task('Pylint')
+        pylint([])
+        tasks.append(t.stop())
+
         t = Task('Clean')
         cleanArgs = []
         if not args.cleanNative:
