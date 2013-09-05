@@ -467,12 +467,12 @@ def pylint(args):
     env = os.environ.copy()
     env['PYTHONPATH'] = dirname(mx.__file__)
 
-    for root, _, filenames in os.walk(_graal_home):
-        for f in filenames:
-            if f.endswith('.py'):
-                pyfile = join(_graal_home, root, f)
-                mx.log('Running pylint on ' + pyfile + '...')
-                mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
+    versioned = subprocess.check_output(['hg', 'locate', '-f'], stderr=subprocess.STDOUT).split(os.linesep)
+    for f in versioned:
+        if f.endswith('.py'):
+            pyfile = f
+            mx.log('Running pylint on ' + pyfile + '...')
+            mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
 def jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
