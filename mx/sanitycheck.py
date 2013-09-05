@@ -77,7 +77,8 @@ dacapoGateBuildLevels = {
     'sunflow':    [           'fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    'tradesoap':  ['product'],
+    # tradesoap is too unreliable for the gate, often crashing with "java.net.BindException: Address already in use"
+    'tradesoap':  [                               ],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
 
