@@ -555,8 +555,8 @@ def build(args, vm=None):
         assert vm == 'graal', vm
         buildSuffix = 'graal'
 
-    if _installed_jdks:
-        if not mx.ask_yes_no("You are going to build because --installed-jdks is set (" + _installed_jdks + ") - are you sure you want to continue", 'n'):
+    if _installed_jdks and _installed_jdks != _graal_home:
+        if not mx.ask_yes_no("Warning: building while --installed-jdks is set (" + _installed_jdks + ") is not recommanded - are you sure you want to continue", 'n'):
             mx.abort(1)
 
     for build in builds:
