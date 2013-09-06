@@ -40,6 +40,16 @@ public class Graph {
 
     private final ArrayList<Node> nodes;
 
+    /**
+     * Records the modification count for nodes. This is only used in assertions.
+     */
+    private int[] nodeModCounts;
+
+    /**
+     * Records the modification count for nodes' usage lists. This is only used in assertions.
+     */
+    private int[] nodeUsageModCounts;
+
     // these two arrays contain one entry for each NodeClass, indexed by NodeClass.iterableId.
     // they contain the first and last pointer to a linked list of all nodes with this type.
     private final ArrayList<Node> nodeCacheFirst;
@@ -87,6 +97,18 @@ public class Graph {
         this(null);
     }
 
+    static final boolean MODIFICATION_COUNTS_ENABLED = assertionsEnabled();
+
+    /**
+     * Determines if assertions are enabled for the {@link Graph} class.
+     */
+    @SuppressWarnings("all")
+    private static boolean assertionsEnabled() {
+        boolean enabled = false;
+        assert enabled = true;
+        return enabled;
+    }
+
     /**
      * Creates an empty Graph with a given name.
      * 
@@ -97,6 +119,46 @@ public class Graph {
         nodeCacheFirst = new ArrayList<>(NodeClass.cacheSize());
         nodeCacheLast = new ArrayList<>(NodeClass.cacheSize());
         this.name = name;
+        if (MODIFICATION_COUNTS_ENABLED) {
+            nodeModCounts = new int[nodes.size()];
+            nodeUsageModCounts = new int[nodes.size()];
+        }
+    }
+
+    int modCount(Node node) {
+        if (node.id >= 0 && node.id < nodeModCounts.length) {
+            return nodeModCounts[node.id];
+        }
+        return 0;
+    }
+
+    void incModCount(Node node) {
+        if (node.id >= 0) {
+            if (node.id >= nodeModCounts.length) {
+                nodeModCounts = Arrays.copyOf(nodeModCounts, node.id + 30);
+            }
+            nodeModCounts[node.id]++;
+        } else {
+            assert false;
+        }
+    }
+
+    int usageModCount(Node node) {
+        if (node.id >= 0 && node.id < nodeUsageModCounts.length) {
+            return nodeUsageModCounts[node.id];
+        }
+        return 0;
+    }
+
+    void incUsageModCount(Node node) {
+        if (node.id >= 0) {
+            if (node.id >= nodeUsageModCounts.length) {
+                nodeUsageModCounts = Arrays.copyOf(nodeUsageModCounts, node.id + 30);
+            }
+            nodeUsageModCounts[node.id]++;
+        } else {
+            assert false;
+        }
     }
 
     /**

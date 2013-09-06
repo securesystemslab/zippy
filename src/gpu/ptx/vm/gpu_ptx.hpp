@@ -87,6 +87,7 @@ private:
   typedef int (*cuda_cu_ctx_create_func_t)(void*, int, int);
   typedef int (*cuda_cu_ctx_destroy_func_t)(void*);
   typedef int (*cuda_cu_ctx_synchronize_func_t)(void);
+  typedef int (*cuda_cu_ctx_set_current_func_t)(void*);
   typedef int (*cuda_cu_device_get_count_func_t)(int*);
   typedef int (*cuda_cu_device_get_name_func_t)(char*, int, int);
   typedef int (*cuda_cu_device_get_func_t)(int*, int);
@@ -98,7 +99,7 @@ private:
                                               unsigned int, void*, void**, void**);
   typedef int (*cuda_cu_module_get_function_func_t)(void*, void*, const char*);
   typedef int (*cuda_cu_module_load_data_ex_func_t)(void*, void*, unsigned int, void*, void**);
-  typedef int (*cuda_cu_memalloc_func_t)(void*, unsigned int);
+  typedef int (*cuda_cu_memalloc_func_t)(void*, size_t);
   typedef int (*cuda_cu_memfree_func_t)(gpu::Ptx::CUdeviceptr);
   typedef int (*cuda_cu_memcpy_htod_func_t)(gpu::Ptx::CUdeviceptr, const void*, unsigned int);
   typedef int (*cuda_cu_memcpy_dtoh_func_t)(const void*, gpu::Ptx::CUdeviceptr,  unsigned int);
@@ -120,6 +121,7 @@ public:
   static cuda_cu_memfree_func_t                   _cuda_cu_memfree;
   static cuda_cu_memcpy_htod_func_t               _cuda_cu_memcpy_htod;
   static cuda_cu_memcpy_dtoh_func_t               _cuda_cu_memcpy_dtoh;
+  static cuda_cu_ctx_set_current_func_t           _cuda_cu_ctx_set_current;
 
 protected:
   static void* _device_context;
