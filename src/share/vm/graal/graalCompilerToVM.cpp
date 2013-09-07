@@ -66,7 +66,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   int code_size = method->code_size();
   jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
 
-  bool is_rewritten = method->method_holder()->is_rewritten();
+  guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
   // iterate over all bytecodes and replace non-Java bytecodes
 
   for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
@@ -81,7 +81,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
       memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
     }
 
-    if (is_rewritten && len > 1) {
+    if (len > 1) {
       // Restore the big-endian constant pool indexes.
       // Cf. Rewriter::scan_method
       switch (code) {
@@ -552,6 +552,12 @@ C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klas
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
   return InstanceKlass::cast(klass)->is_initialized();
+C2V_END
+
+C2V_VMENTRY(jboolean, isTypeLinked,(JNIEnv *, jobject, jobject hotspot_klass))
+  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
+  assert(klass != NULL, "method must not be called for primitive types");
+  return InstanceKlass::cast(klass)->is_linked();
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
@@ -1198,6 +1204,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
   {CC"isTypeInitialized",             CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeInitialized)},
+  {CC"isTypeLinked",                  CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeLinked)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"initializeType",                CC"("HS_RESOLVED_TYPE")V",                                        FN_PTR(initializeType)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},

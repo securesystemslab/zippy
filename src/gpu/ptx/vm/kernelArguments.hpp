@@ -56,6 +56,7 @@ private:
     _args = args;
     _success = true;
     _bufferOffset = 0;
+    _return_value_ptr = 0;
     if (!is_static) {
       // TODO : Create a device argument for receiver object and add it to _kernelBuffer
       tty->print_cr("{CUDA] ****** TODO: Support for execution of non-static java methods not implemented yet.");

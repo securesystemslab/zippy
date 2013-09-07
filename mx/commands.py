@@ -442,6 +442,38 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log.close()
     return ret
 
+def pylint(args):
+    """run pylint (if available) over Python source files"""
+    rcfile = join(_graal_home, 'mx', '.pylintrc')
+    if not exists(rcfile):
+        mx.log('pylint configuration file does not exist: ' + rcfile)
+        return
+
+    try:
+        output = subprocess.check_output(['pylint', '--version'], stderr=subprocess.STDOUT)
+        m = re.match(r'.*pylint (\d+)\.(\d+)\.(\d+).*', output, re.DOTALL)
+        if not m:
+            mx.log('could not determine pylint version from ' + output)
+            return
+        major, minor, micro = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if major < 1:
+            mx.log('require pylint version >= 1 (got {0}.{1}.{2})'.format(major, minor, micro))
+            return
+    except BaseException:
+        mx.log('pylint is not available')
+        return
+
+
+    env = os.environ.copy()
+    env['PYTHONPATH'] = dirname(mx.__file__)
+
+    versioned = subprocess.check_output(['hg', 'locate', '-f'], stderr=subprocess.STDOUT).split(os.linesep)
+    for f in versioned:
+        if f.endswith('.py'):
+            pyfile = f
+            mx.log('Running pylint on ' + pyfile + '...')
+            mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
+
 def jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
 
@@ -523,8 +555,8 @@ def build(args, vm=None):
         assert vm == 'graal', vm
         buildSuffix = 'graal'
 
-    if _installed_jdks:
-        if not mx.ask_yes_no("You are going to build because --installed-jdks is set (" + _installed_jdks + ") - are you sure you want to continue", 'n'):
+    if _installed_jdks and _installed_jdks != _graal_home:
+        if not mx.ask_yes_no("Warning: building while --installed-jdks is set (" + _installed_jdks + ") is not recommanded - are you sure you want to continue", 'n'):
             mx.abort(1)
 
     for build in builds:
@@ -949,6 +981,10 @@ def gate(args):
     total = Task('Gate')
     try:
 
+        t = Task('Pylint')
+        pylint([])
+        tasks.append(t.stop())
+
         t = Task('Clean')
         cleanArgs = []
         if not args.cleanNative:
@@ -1207,7 +1243,6 @@ def specjvm2008(args):
         if len(parts) > 1:
             assert len(parts) == 2
             group = parts[0]
-            print group
             availableBenchmarks.add(group)
 
     _run_benchmark(args, sorted(availableBenchmarks), launcher)
@@ -1333,6 +1368,7 @@ def mx_init():
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [jdkhome, ''],
+        'pylint': [pylint, ''],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
