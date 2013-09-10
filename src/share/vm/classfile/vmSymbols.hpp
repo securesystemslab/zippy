@@ -356,6 +356,7 @@
   template(compileMethod_signature,               "(JLcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;IZ)V")                  \
   template(setOption_name,                        "setOption")                                                                        \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
+  template(finalizeOptions_name,                  "finalizeOptions")                                                                  \
   template(createUnresolvedJavaMethod_name,       "createUnresolvedJavaMethod")                                                       \
   template(createUnresolvedJavaMethod_signature,  "(Ljava/lang/String;Ljava/lang/String;Lcom/oracle/graal/api/meta/JavaType;)Lcom/oracle/graal/api/meta/JavaMethod;") \
   template(createSignature_name,                  "createSignature")                                                                  \
