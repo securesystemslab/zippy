@@ -107,11 +107,13 @@ jboolean VMToCompiler::setOption(Handle option) {
   return result.get_jboolean();
 }
 
-void VMToCompiler::finalizeOptions() {
+void VMToCompiler::finalizeOptions(jboolean ciTime) {
   KlassHandle optionsKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
-  JavaCalls::call_static(&result, optionsKlass, vmSymbols::finalizeOptions_name(), vmSymbols::void_method_signature(), THREAD);
+  JavaCallArguments args;
+  args.push_int(ciTime);
+  JavaCalls::call_static(&result, optionsKlass, vmSymbols::finalizeOptions_name(), vmSymbols::bool_void_signature(), &args, THREAD);
   check_pending_exception("Error while calling finalizeOptions");
 }
 

@@ -57,8 +57,8 @@ public:
   // public static boolean HotSpotOptions.setOption(String option);
   static jboolean setOption(Handle option);
 
-  // public static void HotSpotOptions.finalizeOptions();
-  static void finalizeOptions();
+  // public static void HotSpotOptions.finalizeOptions(boolean ciTime);
+  static void finalizeOptions(jboolean ciTime);
 
   // public abstract boolean compileMethod(long vmId, String name, int entry_bci, boolean blocking);
   static void compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking);
