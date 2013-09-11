@@ -82,46 +82,46 @@ private:
       return _return_value_ptr;
   }
 
-  
+
   void do_byte();
   void do_int();
   void do_long();
 
   inline void do_bool()   {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_char()   {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_short()  {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_float()  {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_double() {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
 
   inline void do_object() {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_object(int begin, int end) {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_array(int begin, int end)  {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
   inline void do_void() {
-    /* TODO : To be implemented */ 
+    /* TODO : To be implemented */
     guarantee(false, "NYI");
   }
 };
