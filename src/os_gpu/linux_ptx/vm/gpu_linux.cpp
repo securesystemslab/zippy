@@ -39,32 +39,40 @@ void gpu::probe_gpu() {
  */
 
 static unsigned int nvidia_vendor_id = 0x10de;
+static unsigned int amd_vendor_id = 0x1002;
 
 bool gpu::Linux::probe_gpu() {
   /* 
-   * Open /proc/bus/pci/devices to look for the first CUDA enabled
-   * device. For now, finding the first CUDA device. Will need to
-   * revisit this to support execution on multiple CUDA devices if
-   * they exist.
+   * Open /proc/bus/pci/devices to look for the first GPU device. For
+   * now, we will just find the first GPU device. Will need to revisit
+   * this to support execution on multiple GPU devices, if they exist.
    */
   FILE *pci_devices = fopen("/proc/bus/pci/devices", "r");
   char contents[4096];
   unsigned int bus_num_devfn_ign;
   unsigned int vendor;
   unsigned int device;
-  bool cuda_device_exists = false;
+  bool gpu_device_exists = false;
   if (pci_devices == NULL) {
     tty->print_cr("*** Failed to open /proc/bus/pci/devices");
-    return cuda_device_exists;
+    return gpu_device_exists;
   }
 
   while (fgets(contents, sizeof(contents)-1, pci_devices)) {
     sscanf(contents, "%04x%04x%04x", &bus_num_devfn_ign, &vendor, &device);
-    /* Break after finding the first CUDA device. */
+    /* Break after finding the first GPU device. */
     if (vendor == nvidia_vendor_id) {
-      cuda_device_exists = true;
+      gpu_device_exists = true;
+      set_target_il_type(gpu::PTX);
       if (TraceGPUInteraction) {
-        tty->print_cr("Found supported nVidia CUDA device vendor : 0x%04x device 0x%04x", vendor, device);
+        tty->print_cr("Found supported nVidia GPU device vendor : 0x%04x device 0x%04x", vendor, device);
+      }
+      break;
+    } else if (vendor == amd_vendor_id) {
+      gpu_device_exists = true;
+      set_target_il_type(gpu::HSAIL);
+      if (TraceGPUInteraction) {
+        tty->print_cr("Found supported AMD GPU device vendor : 0x%04x device 0x%04x", vendor, device);
       }
       break;
     }
@@ -73,5 +81,5 @@ bool gpu::Linux::probe_gpu() {
   // Close file pointer.
   fclose(pci_devices);
 
-  return cuda_device_exists;
+  return gpu_device_exists;
 }
