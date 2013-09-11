@@ -23,7 +23,7 @@
  */
 
 #include "precompiled.hpp"
-#include "kernelArguments.hpp"
+#include "ptxKernelArguments.hpp"
 #include "runtime/javaCalls.hpp"
 
 gpu::Ptx::cuda_cu_memalloc_func_t gpu::Ptx::_cuda_cu_memalloc;
@@ -37,8 +37,8 @@ oop PTXKernelArguments::next_arg(BasicType expectedType) {
   return arg;
 }
 
-void PTXKernelArguments::do_int()    { 
-  // If the parameter is a return value, 
+void PTXKernelArguments::do_int()    {
+  // If the parameter is a return value,
   if (is_return_type()) {
     // Allocate device memory for T_INT return value pointer on device. Size in bytes
     int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_INT_BYTE_SIZE);
@@ -67,8 +67,8 @@ void PTXKernelArguments::do_int()    {
   return;
 }
 
-void PTXKernelArguments::do_long()    { 
-  // If the parameter is a return value, 
+void PTXKernelArguments::do_long()    {
+  // If the parameter is a return value,
   if (is_return_type()) {
     // Allocate device memory for T_LONG return value pointer on device. Size in bytes
     int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_LONG_BYTE_SIZE);
@@ -97,8 +97,8 @@ void PTXKernelArguments::do_long()    {
   return;
 }
 
-void PTXKernelArguments::do_byte()    { 
-  // If the parameter is a return value, 
+void PTXKernelArguments::do_byte()    {
+  // If the parameter is a return value,
   if (is_return_type()) {
     // Allocate device memory for T_BYTE return value pointer on device. Size in bytes
     int status = gpu::Ptx::_cuda_cu_memalloc(&_return_value_ptr, T_BYTE_SIZE);

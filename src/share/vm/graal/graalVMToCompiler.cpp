@@ -24,6 +24,7 @@
 #include "precompiled.hpp"
 #include "classfile/systemDictionary.hpp"
 #include "graal/graalVMToCompiler.hpp"
+#include "runtime/gpu.hpp"
 
 // this is a *global* handle
 jobject VMToCompiler::_graalRuntimePermObject = NULL;
@@ -60,7 +61,12 @@ Handle VMToCompiler::truffleRuntime() {
 Handle VMToCompiler::graalRuntime() {
   if (JNIHandles::resolve(_graalRuntimePermObject) == NULL) {
 #ifdef AMD64
-    Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
+    Symbol* name = NULL;
+    if (UseGPU && gpu::is_available() && gpu::has_gpu_linkage()) {
+      name = vmSymbols::com_oracle_graal_hotspot_ptx_PTXHotSpotGraalRuntime();
+    } else {
+      name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
+    }
 #endif
 #ifdef SPARC
     Symbol* name = vmSymbols::com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime();

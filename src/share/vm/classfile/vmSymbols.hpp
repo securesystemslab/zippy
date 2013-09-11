@@ -311,6 +311,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
   template(com_oracle_graal_hotspot_debug_LocalImpl,                 "com/oracle/graal/hotspot/debug/LocalImpl")                      \
+  template(com_oracle_graal_hotspot_ptx_PTXHotSpotGraalRuntime,      "com/oracle/graal/hotspot/ptx/PTXHotSpotGraalRuntime")\
   AMD64_ONLY(template(com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime,"com/oracle/graal/hotspot/amd64/AMD64HotSpotGraalRuntime"))\
   SPARC_ONLY(template(com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime,"com/oracle/graal/hotspot/sparc/SPARCHotSpotGraalRuntime"))\
   /* graal.api.meta */                                                                                                                \

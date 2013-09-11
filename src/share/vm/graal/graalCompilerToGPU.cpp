@@ -28,7 +28,7 @@
 #include "graal/graalJavaAccess.hpp"
 #include "runtime/gpu.hpp"
 #include "runtime/javaCalls.hpp"
-# include "ptx/vm/kernelArguments.hpp"
+# include "ptx/vm/ptxKernelArguments.hpp"
 
 // Entry to native method implementation that transitions current thread to '_thread_in_vm'.
 #define C2V_VMENTRY(result_type, name, signature) \

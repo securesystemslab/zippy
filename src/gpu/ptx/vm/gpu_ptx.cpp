@@ -29,7 +29,7 @@
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
-#include "kernelArguments.hpp"
+#include "ptxKernelArguments.hpp"
 
 void * gpu::Ptx::_device_context;
 int    gpu::Ptx::_cu_device = 0;
