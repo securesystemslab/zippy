@@ -2558,12 +2558,14 @@ def generate_eclipse_workingsets(suite):
 
     # identify the location where to look for workingsets.xml
     wsfilename = 'workingsets.xml'
+    wsloc = '.metadata/.plugins/org.eclipse.ui.workbench'
     wsroot = suite.dir
     if os.environ.has_key('WORKSPACE'):
         wsroot = os.environ['WORKSPACE']
-    wsdir = join(wsroot, '.metadata/.plugins/org.eclipse.ui.workbench')
+    wsdir = join(wsroot, wsloc)
     if not exists(wsdir):
         wsdir = wsroot
+        log('Could not find Eclipse metadata directory. Please place ' + wsfilename + ' in ' + wsloc + ' manually.')
     wspath = join(wsdir, wsfilename)
 
     # gather working set info from project data
