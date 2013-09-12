@@ -55,10 +55,9 @@ void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name)
     if (gpu::get_target_il_type() == gpu::PTX) {
       return (gpu::Ptx::generate_kernel(code, code_len, name));
     }
-  } else {
     // Add kernel generation functionality of other GPUs here
-    return NULL;
   }
+  return NULL;
 }
 
 bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {
@@ -66,9 +65,8 @@ bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& 
     if (gpu::get_target_il_type() == gpu::PTX) {
       return (gpu::Ptx::execute_kernel(kernel, ptxka, ret));
     }
-  } else {
     // Add kernel execution functionality of other GPUs here
-    return false;
   }
+  return false;
 }
 
