@@ -2414,7 +2414,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                         # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
                         # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
                         # safest to simply use absolute paths.
-                        path = join(suite.dir, path)
+                        path = join(p.suite.dir, path)
 
                     attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
 
@@ -2506,7 +2506,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
         if not exists(settingsDir):
             os.mkdir(settingsDir)
 
-        eclipseSettingsDir = join(suite.mxDir, 'eclipse-settings')
+        eclipseSettingsDir = join(p.suite.mxDir, 'eclipse-settings')
         if exists(eclipseSettingsDir):
             for name in os.listdir(eclipseSettingsDir):
                 if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
@@ -2534,7 +2534,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
                                     # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
                                     # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
                                     # safest to simply use absolute paths.
-                                    path = join(suite.dir, path)
+                                    path = join(p.suite.dir, path)
                                 out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
                     else:
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
