@@ -29,7 +29,7 @@
 #include "utilities/ostream.hpp"
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
-#include "kernelArguments.hpp"
+#include "ptxKernelArguments.hpp"
 
 void * gpu::Ptx::_device_context;
 int    gpu::Ptx::_cu_device = 0;
@@ -49,36 +49,6 @@ gpu::Ptx::cuda_cu_module_get_function_func_t gpu::Ptx::_cuda_cu_module_get_funct
 gpu::Ptx::cuda_cu_module_load_data_ex_func_t gpu::Ptx::_cuda_cu_module_load_data_ex;
 gpu::Ptx::cuda_cu_memcpy_dtoh_func_t gpu::Ptx::_cuda_cu_memcpy_dtoh;
 gpu::Ptx::cuda_cu_memfree_func_t gpu::Ptx::_cuda_cu_memfree;
-
-void gpu::probe_linkage() {
-#if defined(__APPLE__) || defined(LINUX)
-  set_gpu_linkage(gpu::Ptx::probe_linkage());
-#else
-  set_gpu_linkage(false);
-#endif
-}
-
-void gpu::initialize_gpu() {
-  if (gpu::has_gpu_linkage()) {
-    set_initialized(gpu::Ptx::initialize_gpu());
-  }
-}
-
-void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
-  if (gpu::has_gpu_linkage()) {
-    return (gpu::Ptx::generate_kernel(code, code_len, name));
-  } else {
-    return NULL;
-  }
-}
-
-bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {
-  if (gpu::has_gpu_linkage()) {
-    return (gpu::Ptx::execute_kernel(kernel, ptxka, ret));
-  } else {
-    return false;
-  }
-}
 
 bool gpu::Ptx::initialize_gpu() {
 

@@ -467,18 +467,21 @@ def pylint(args):
     env = os.environ.copy()
     env['PYTHONPATH'] = dirname(mx.__file__)
 
-    for root, _, filenames in os.walk(_graal_home):
-        for f in filenames:
-            if f.endswith('.py'):
-                pyfile = join(_graal_home, root, f)
-                mx.log('Running pylint on ' + pyfile + '...')
-                mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
+    versioned = subprocess.check_output(['hg', 'locate', '-f'], stderr=subprocess.STDOUT).split(os.linesep)
+    for f in versioned:
+        if f.endswith('.py'):
+            pyfile = f
+            mx.log('Running pylint on ' + pyfile + '...')
+            mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
-def jdkhome(args, vm=None):
-    """print the JDK directory selected for the 'vm' command"""
-
+def jdkhome(vm=None):
+    """return the JDK directory selected for the 'vm' command"""
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    print _jdk(build, installGraalJar=False)
+    return _jdk(build, installGraalJar=False)
+
+def print_jdkhome(args, vm=None):
+    """print the JDK directory selected for the 'vm' command"""
+    print jdkhome(vm)
 
 def buildvars(args):
     """describe the variables that can be set by the -D option to the 'mx build' commmand"""
@@ -1358,7 +1361,7 @@ def site(args):
                     '--title', 'Graal OpenJDK Project Documentation',
                     '--dot-output-base', 'projects'] + args)
 
-def mx_init():
+def mx_init(suite):
     commands = {
         'build': [build, ''],
         'buildvars': [buildvars, ''],
@@ -1367,7 +1370,7 @@ def mx_init():
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
-        'jdkhome': [jdkhome, ''],
+        'jdkhome': [print_jdkhome, ''],
         'pylint': [pylint, ''],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
@@ -1406,7 +1409,7 @@ def mx_init():
             'export': [export, '[-options] [zipfile]'],
         })
 
-    mx._commands.update(commands)
+    mx.update_commands(suite, commands)
 
 def mx_post_parse_cmd_line(opts):  #
     # TODO _minVersion check could probably be part of a Suite in mx?

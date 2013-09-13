@@ -95,6 +95,8 @@ void GraalCompiler::initialize() {
         vm_abort(false);
       }
     }
+    VMToCompiler::finalizeOptions(CITime);
+
     if (UseCompiler) {
       VMToCompiler::startCompiler(BootstrapGraal);
       _initialized = true;

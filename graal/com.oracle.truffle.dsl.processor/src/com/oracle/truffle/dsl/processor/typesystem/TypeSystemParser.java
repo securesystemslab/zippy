@@ -71,7 +71,7 @@ public class TypeSystemParser extends TemplateParser<TypeSystemData> {
         }
 
         typeSystem.setTypes(parseTypes(typeSystem));
-        if (typeSystem.getTypes() == null) {
+        if (typeSystem.hasErrors()) {
             return typeSystem;
         }
 
@@ -91,6 +91,8 @@ public class TypeSystemParser extends TemplateParser<TypeSystemData> {
         if (casts == null || checks == null || implicitCasts == null) {
             return typeSystem;
         }
+
+        typeSystem.setImplicitCasts(implicitCasts);
         typeSystem.setCasts(casts);
         typeSystem.setChecks(checks);
 
