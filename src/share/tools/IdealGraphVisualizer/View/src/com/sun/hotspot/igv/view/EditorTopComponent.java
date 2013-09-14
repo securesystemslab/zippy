@@ -69,7 +69,7 @@ import org.openide.windows.TopComponent;
 import org.openide.windows.WindowManager;
 
 /**
- * 
+ *
  * @author Thomas Wuerthinger
  */
 public final class EditorTopComponent extends TopComponent implements PropertyChangeListener {
@@ -140,7 +140,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
     };
 
     private ChangedEvent<DiagramProvider> diagramChangedEvent = new ChangedEvent<>(diagramProvider);
-    
+
 
     private void updateDisplayName() {
         setDisplayName(getDiagram().getName());
@@ -254,6 +254,11 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         toolBar.add(Box.createHorizontalGlue());
         Action action = Utilities.actionsForPath("QuickSearchShadow").get(0);
         Component quicksearch = ((Presenter.Toolbar) action).getToolbarPresenter();
+        try {
+            // (aw) workaround for disappearing search bar due to reparenting one shared component instance.
+            quicksearch = (Component) quicksearch.getClass().getConstructor(KeyStroke.class).newInstance(new Object[]{null});
+        } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
+        }
         quicksearch.setMinimumSize(quicksearch.getPreferredSize()); // necessary for GTK LAF
         toolBar.add(quicksearch);
 
@@ -420,7 +425,7 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
             graphContent.set(list, null);
             diagramProvider.getChangedEvent().fire();
         }
-        
+
     };
 
     public boolean showPredSucc() {
