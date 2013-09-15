@@ -170,7 +170,7 @@ void *gpu::Ptx::generate_kernel(unsigned char *code, int code_len, const char *n
   int status = _cuda_cu_ctx_create(&_device_context, 0, _cu_device);
 
   if (status != GRAAL_CUDA_SUCCESS) {
-    tty->print_cr("[CUDA] Failed to create CUDA context for device: %d", _cu_device);
+    tty->print_cr("[CUDA] Failed to create CUDA context for device(%d): %d", _cu_device, status);
     return NULL;
   }
 
