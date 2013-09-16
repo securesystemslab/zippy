@@ -1559,6 +1559,9 @@ def build(args, parser=None):
     else:
         sortedProjects = sorted_deps(projects, includeAnnotationProcessors=True)
 
+    if args.java:
+        ideinit([], refreshOnly=True, buildProcessorJars=False)
+
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -1962,7 +1965,7 @@ def canonicalizeprojects(args):
 
     changedFiles = 0
     for s in suites():
-        projectsFile = join(s.dir, 'mx', 'projects')
+        projectsFile = join(s.mxDir, 'projects')
         if not exists(projectsFile):
             continue
         with open(projectsFile) as f:
@@ -2013,6 +2016,34 @@ def canonicalizeprojects(args):
             changedFiles += 1
     return changedFiles
 
+class TimeStampFile:
+    def __init__(self, path):
+        self.path = path
+        self.timestamp = os.path.getmtime(path) if exists(path) else None
+
+    def outOfDate(self, arg):
+        if not self.timestamp:
+            return True
+        if isinstance(arg, types.ListType):
+            files = arg
+        else:
+            files = [arg]
+        for f in files:
+            if os.path.getmtime(f) > self.timestamp:
+                return True
+        return False
+
+    def exists(self):
+        return exists(self.path)
+
+    def touch(self):
+        if exists(self.path):
+            os.utime(self.path, None)
+        else:
+            if not isdir(dirname(self.path)):
+                os.makedirs(dirname(self.path))
+            file(self.path, 'a')
+
 def checkstyle(args):
     """run Checkstyle on the Java sources
 
@@ -2047,16 +2078,10 @@ def checkstyle(args):
                 logv('[no Java sources in {0} - skipping]'.format(sourceDir))
                 continue
 
-            timestampFile = join(p.suite.mxDir, 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp')
-            if not exists(dirname(timestampFile)):
-                os.makedirs(dirname(timestampFile))
+            timestamp = TimeStampFile(join(p.suite.mxDir, 'checkstyle-timestamps', sourceDir[len(p.suite.dir) + 1:].replace(os.sep, '_') + '.timestamp'))
             mustCheck = False
-            if not args.force and exists(timestampFile):
-                timestamp = os.path.getmtime(timestampFile)
-                for f in javafilelist:
-                    if os.path.getmtime(f) > timestamp:
-                        mustCheck = True
-                        break
+            if not args.force and timestamp.exists():
+                mustCheck = timestamp.outOfDate(javafilelist)
             else:
                 mustCheck = True
 
@@ -2141,10 +2166,7 @@ def checkstyle(args):
                                 map(log, errors)
                                 totalErrors = totalErrors + len(errors)
                             else:
-                                if exists(timestampFile):
-                                    os.utime(timestampFile, None)
-                                else:
-                                    file(timestampFile, 'a')
+                                timestamp.touch()
             finally:
                 if exists(auditfileName):
                     os.unlink(auditfileName)
@@ -2352,11 +2374,20 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=None):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
-def eclipseinit(args, suite=None, buildProcessorJars=True):
+def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
     """(re)generate Eclipse project configurations and working sets"""
 
     if suite is None:
         suite = _mainSuite
+
+    projectsFile = join(suite.mxDir, 'projects')
+    timestamp = TimeStampFile(join(suite.mxDir, 'eclipseinit.timestamp'))
+    if refreshOnly and not timestamp.exists():
+        return
+
+    if not timestamp.outOfDate(projectsFile):
+        logv('[Eclipse configurations are up to date - skipping]')
+        return
 
     if buildProcessorJars:
         processorjars()
@@ -2543,7 +2574,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True):
 
     make_eclipse_attach('localhost', '8000', deps=projects())
     generate_eclipse_workingsets(suite)
-
+    timestamp.touch()
 
 def _isAnnotationProcessorDependency(p):
     """
@@ -2720,11 +2751,20 @@ def _workingset_open(wsdoc, ws):
 def _workingset_element(wsdoc, p):
     wsdoc.element('item', {'elementID': '=' + p, 'factoryID': 'org.eclipse.jdt.ui.PersistableJavaElementFactory'})
 
-def netbeansinit(args, suite=None):
+def netbeansinit(args, suite=None, refreshOnly=False, buildProcessorJars=True):
     """(re)generate NetBeans project configurations"""
 
     if suite is None:
         suite = _mainSuite
+
+    projectsFile = join(suite.mxDir, 'projects')
+    timestamp = TimeStampFile(join(suite.mxDir, 'netbeansinit.timestamp'))
+    if refreshOnly and not timestamp.exists():
+        return
+
+    if not timestamp.outOfDate(projectsFile):
+        logv('[NetBeans configurations are up to date - skipping]')
+        return
 
     updated = False
     for p in projects():
@@ -2940,11 +2980,17 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
         log('  1. Ensure that a platform named "JDK_' + str(java().version) + '" is defined (Tools -> Java Platforms)')
         log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
+    timestamp.touch()
+
 def ideclean(args, suite=None):
     """remove all Eclipse and NetBeans project configurations"""
     def rm(path):
         if exists(path):
             os.remove(path)
+
+    for s in suites():
+        rm(join(s.mxDir, 'eclipseinit.timestamp'))
+        rm(join(s.mxDir, 'netbeansinit.timestamp'))
 
     for p in projects():
         if p.native:
@@ -2964,11 +3010,12 @@ def ideclean(args, suite=None):
             log("Error removing {0}".format(p.name + '.jar'))
 
 
-def ideinit(args, suite=None):
+def ideinit(args, suite=None, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse and NetBeans project configurations"""
-    eclipseinit(args, suite)
-    netbeansinit(args, suite)
-    fsckprojects([])
+    eclipseinit(args, suite, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    netbeansinit(args, suite, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    if not refreshOnly:
+        fsckprojects([])
 
 def fsckprojects(args):
     """find directories corresponding to deleted Java projects and delete them"""
@@ -3466,7 +3513,7 @@ def javap(args):
 def show_projects(args):
     """show all loaded projects"""
     for s in suites():
-        projectsFile = join(s.dir, 'mx', 'projects')
+        projectsFile = join(s.mxDir, 'projects')
         if exists(projectsFile):
             log(projectsFile)
             for p in s.projects:
