@@ -540,7 +540,7 @@ project@com.oracle.graal.asm.hsail@javaCompliance=1.7
 # graal.asm.ptx
 project@com.oracle.graal.asm.ptx@subDir=graal
 project@com.oracle.graal.asm.ptx@sourceDirs=src
-project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.asm
+project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.asm,com.oracle.graal.graph
 project@com.oracle.graal.asm.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.ptx@javaCompliance=1.7
 project@com.oracle.graal.asm.ptx@workingSets=Graal,Assembler,PTX
