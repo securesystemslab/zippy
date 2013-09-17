@@ -23,16 +23,20 @@
  */
 package com.sun.hotspot.igv.view.widgets;
 
+import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.Properties;
+import com.sun.hotspot.igv.data.services.GraphViewer;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.DoubleClickHandler;
 import com.sun.hotspot.igv.util.PropertiesSheet;
 import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.JMenu;
@@ -49,6 +53,7 @@ import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.nodes.Sheet;
+import org.openide.util.Lookup;
 
 /**
  *
@@ -271,6 +276,27 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         JMenu successors = new JMenu("Nodes Below");
         successors.addMenuListener(new NeighborMenuListener(successors, getFigure(), true));
         menu.add(successors);
+
+        if (getFigure().getSubgraphs() != null) {
+            menu.addSeparator();
+            JMenu subgraphs = new JMenu("Subgraphs");
+            menu.add(subgraphs);
+
+            final GraphViewer viewer = Lookup.getDefault().lookup(GraphViewer.class);
+            for(final InputGraph subgraph : getFigure().getSubgraphs()) {
+                Action a = new AbstractAction() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        viewer.view(subgraph, true);
+                    }
+                };
+
+                a.setEnabled(true);
+                a.putValue(Action.NAME, subgraph.getName());
+                subgraphs.add(a);
+            }
+        }
 
         return menu;
     }

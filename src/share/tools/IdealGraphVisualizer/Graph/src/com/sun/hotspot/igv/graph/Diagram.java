@@ -119,6 +119,7 @@ public class Diagram {
             Figure f = d.createFigure();
             f.getSource().addSourceNode(n);
             f.getProperties().add(n.getProperties());
+            f.setSubgraphs(n.getSubgraphs());
             figureHash.put(n.getId(), f);
         }
 
