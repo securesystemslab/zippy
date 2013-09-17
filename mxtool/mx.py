@@ -460,6 +460,9 @@ class Library(Dependency):
         path = self.path
         if not isabs(path):
             path = join(self.suite.dir, path)
+        includedInJDK = getattr(self, 'includedInJDK', None)
+        if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
+            return None
         if resolve and self.mustExist and not exists(path):
             assert not len(self.urls) == 0, 'cannot find required library ' + self.name + ' ' + path
             print('Downloading ' + self.name + ' from ' + str(self.urls))
@@ -479,7 +482,7 @@ class Library(Dependency):
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)
-        if exists(path) or not resolve:
+        if path and (exists(path) or not resolve):
             cp.append(path)
 
     def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
@@ -1885,16 +1888,17 @@ def archive(args):
                         # merge library jar into distribution jar
                         logv('[' + d.path + ': adding library ' + l.name + ']')
                         lpath = l.get_path(resolve=True)
-                        with zipfile.ZipFile(lpath, 'r') as lp:
-                            for arcname in lp.namelist():
-                                if arcname.startswith('META-INF/services/'):
-                                    f = arcname[len('META-INF/services/'):].replace('/', os.sep)
-                                    with open(join(services, f), 'a') as outfile:
-                                        for line in lp.read(arcname).splitlines():
-                                            outfile.write(line)
-                                else:
-                                    overwriteCheck(zf, arcname, lpath + '!' + arcname)
-                                    zf.writestr(arcname, lp.read(arcname))
+                        if lpath:
+                            with zipfile.ZipFile(lpath, 'r') as lp:
+                                for arcname in lp.namelist():
+                                    if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
+                                        f = arcname[len('META-INF/services/'):].replace('/', os.sep)
+                                        with open(join(services, f), 'a') as outfile:
+                                            for line in lp.read(arcname).splitlines():
+                                                outfile.write(line)
+                                    else:
+                                        overwriteCheck(zf, arcname, lpath + '!' + arcname)
+                                        zf.writestr(arcname, lp.read(arcname))
                     else:
                         p = dep
                         # skip a  Java project if its Java compliance level is "higher" than the configured JDK
@@ -2438,7 +2442,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
                 else:
                     path = dep.path
                     dep.get_path(resolve=True)
-                    if not exists(path) and not dep.mustExist:
+                    if not path or (not exists(path) and not dep.mustExist):
                         continue
 
                     if not isabs(path):
@@ -2554,19 +2558,20 @@ def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()
             out.open('factorypath')
-            out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
+            out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipset.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             for ap in p.annotation_processors():
                 for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
                         if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
                             if dep.mustExist:
                                 path = dep.get_path(resolve=True)
-                                if not isabs(path):
-                                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                                    # safest to simply use absolute paths.
-                                    path = join(p.suite.dir, path)
-                                out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                                if path:
+                                    if not isabs(path):
+                                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                                        # safest to simply use absolute paths.
+                                        path = join(p.suite.dir, path)
+                                    out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
                     else:
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
@@ -2950,10 +2955,11 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 if not dep.mustExist:
                     continue
                 path = dep.get_path(resolve=True)
-                if os.sep == '\\':
-                    path = path.replace('\\', '\\\\')
-                ref = 'file.reference.' + dep.name + '-bin'
-                print >> out, ref + '=' + path
+                if path:
+                    if os.sep == '\\':
+                        path = path.replace('\\', '\\\\')
+                    ref = 'file.reference.' + dep.name + '-bin'
+                    print >> out, ref + '=' + path
 
             else:
                 n = dep.name.replace('.', '_')
