@@ -62,15 +62,13 @@ Handle VMToCompiler::graalRuntime() {
   if (JNIHandles::resolve(_graalRuntimePermObject) == NULL) {
 #ifdef AMD64
     Symbol* name = NULL;
-    if (UseGPU) {
-      // Set name to PTXHotSpotRuntime if nVidia GPU was detected.
-      if ((gpu::get_target_il_type() == gpu::PTX) &&
-          gpu::is_available() && gpu::has_gpu_linkage()) {
-        name = vmSymbols::com_oracle_graal_hotspot_ptx_PTXHotSpotGraalRuntime();
-      }
-      // Set name to corresponding runtime classname for other
-      // supported GPU runtimes, here.
-    } else {
+    // Set name to PTXHotSpotRuntime if nVidia GPU was detected.
+    if (UseGPU && (gpu::get_target_il_type() == gpu::PTX) &&
+        gpu::is_available() && gpu::has_gpu_linkage()) {
+      name = vmSymbols::com_oracle_graal_hotspot_ptx_PTXHotSpotGraalRuntime();
+    }
+    
+    if (name == NULL) {
       name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
     }
 #endif
