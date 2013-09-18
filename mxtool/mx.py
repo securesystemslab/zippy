@@ -2558,7 +2558,7 @@ def eclipseinit(args, suite=None, buildProcessorJars=True, refreshOnly=False):
         if len(p.annotation_processors()) > 0:
             out = XMLDoc()
             out.open('factorypath')
-            out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipset.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
+            out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             for ap in p.annotation_processors():
                 for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
