@@ -232,7 +232,7 @@ project@com.oracle.graal.lir.amd64@workingSets=Graal,LIR,AMD64
 # graal.lir.ptx
 project@com.oracle.graal.lir.ptx@subDir=graal
 project@com.oracle.graal.lir.ptx@sourceDirs=src
-project@com.oracle.graal.lir.ptx@dependencies=com.oracle.graal.asm.ptx,com.oracle.graal.lir
+project@com.oracle.graal.lir.ptx@dependencies=com.oracle.graal.asm.ptx
 project@com.oracle.graal.lir.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir.ptx@javaCompliance=1.7
 project@com.oracle.graal.lir.ptx@workingSets=Graal,LIR,PTX
@@ -540,7 +540,7 @@ project@com.oracle.graal.asm.hsail@javaCompliance=1.7
 # graal.asm.ptx
 project@com.oracle.graal.asm.ptx@subDir=graal
 project@com.oracle.graal.asm.ptx@sourceDirs=src
-project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.asm,com.oracle.graal.graph
+project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.lir
 project@com.oracle.graal.asm.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.ptx@javaCompliance=1.7
 project@com.oracle.graal.asm.ptx@workingSets=Graal,Assembler,PTX
