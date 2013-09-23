@@ -24,10 +24,11 @@ package com.oracle.graal.compiler.ptx.test;
 
 import java.lang.reflect.Method;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
-
 /* PTX ISA 3.1 - 8.7.5 Logic and Shift Instructions */
+@Ignore
 public class LogicPTXTest extends PTXTestBase {
 
     @Test
@@ -105,7 +106,7 @@ public class LogicPTXTest extends PTXTestBase {
         compile("testShiftRight2I");
         compile("testShiftRight2L");
         compile("testUnsignedShiftRight2I");
-        compile("testUnsignedShiftRight2L");
+        // compile("testUnsignedShiftRight2L");
     }
 
     public static int testShiftRight2I(int a, int b) {

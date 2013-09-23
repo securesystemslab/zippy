@@ -22,8 +22,6 @@
  */
 package com.oracle.graal.nodes.extended;
 
-import static com.oracle.graal.graph.iterators.NodePredicates.*;
-
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -32,82 +30,44 @@ import com.oracle.graal.nodes.type.*;
 /**
  * The ValueAnchor instruction keeps non-CFG (floating) nodes above a certain point in the graph.
  */
-public final class ValueAnchorNode extends FixedWithNextNode implements Canonicalizable, LIRLowerable, Node.IterableNodeType, Virtualizable, GuardingNode {
+public final class ValueAnchorNode extends FixedWithNextNode implements Canonicalizable, LIRLowerable, IterableNodeType, Virtualizable, GuardingNode {
 
-    @Input private final NodeInputList<ValueNode> anchored;
+    @Input private ValueNode anchored;
 
-    public ValueAnchorNode(ValueNode... values) {
-        this(false, values);
-    }
-
-    public ValueAnchorNode(boolean permanent, ValueNode... values) {
+    public ValueAnchorNode(ValueNode value) {
         super(StampFactory.dependency());
-        this.permanent = permanent;
-        this.anchored = new NodeInputList<>(this, values);
+        this.anchored = value;
     }
-
-    private boolean permanent;
 
     @Override
     public void generate(LIRGeneratorTool gen) {
         // Nothing to emit, since this node is used for structural purposes only.
     }
 
-    public void addAnchoredNode(ValueNode value) {
-        if (!anchored.contains(value)) {
-            this.anchored.add(value);
-        }
-    }
-
-    public void removeAnchoredNode(ValueNode value) {
-        this.anchored.remove(value);
-    }
-
-    public NodeInputList<ValueNode> getAnchoredNodes() {
+    public ValueNode getAnchoredNode() {
         return anchored;
-    }
-
-    public void setPermanent(boolean permanent) {
-        this.permanent = permanent;
-    }
-
-    public boolean isPermanent() {
-        return permanent;
     }
 
     @Override
     public ValueNode canonical(CanonicalizerTool tool) {
-        if (permanent) {
+        if (anchored != null && !anchored.isConstant() && !(anchored instanceof FixedNode)) {
+            // Found entry that needs this anchor.
             return this;
         }
-        if (this.predecessor() instanceof ValueAnchorNode) {
-            ValueAnchorNode previousAnchor = (ValueAnchorNode) this.predecessor();
-            if (previousAnchor.usages().isEmpty()) { // avoid creating cycles
-                // transfer values and remove
-                for (ValueNode node : anchored.nonNull().distinct()) {
-                    previousAnchor.addAnchoredNode(node);
-                }
-                return previousAnchor;
-            }
+
+        if (usages().isNotEmpty()) {
+            // A not uses this anchor => anchor is necessary.
+            return this;
         }
-        for (Node node : anchored.nonNull().and(isNotA(FixedNode.class))) {
-            if (!(node instanceof ConstantNode)) {
-                return this; // still necessary
-            }
-        }
-        if (usages().isEmpty()) {
-            return null; // no node which require an anchor found
-        }
-        return this;
+
+        // Anchor is not necessary any more => remove.
+        return null;
     }
 
     @Override
     public void virtualize(VirtualizerTool tool) {
-        if (permanent) {
-            return;
-        }
-        for (ValueNode node : anchored.nonNull().and(isNotA(AbstractBeginNode.class))) {
-            State state = tool.getObjectState(node);
+        if (anchored != null && !(anchored instanceof AbstractBeginNode)) {
+            State state = tool.getObjectState(anchored);
             if (state == null || state.getState() != EscapeState.Virtual) {
                 return;
             }
@@ -115,8 +75,8 @@ public final class ValueAnchorNode extends FixedWithNextNode implements Canonica
         tool.delete();
     }
 
-    @Override
-    public ValueNode asNode() {
-        return this;
+    public void removeAnchoredNode() {
+        this.updateUsages(anchored, null);
+        this.anchored = null;
     }
 }

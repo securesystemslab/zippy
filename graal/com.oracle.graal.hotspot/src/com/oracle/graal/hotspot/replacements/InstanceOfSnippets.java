@@ -89,7 +89,7 @@ public class InstanceOfSnippets implements Snippets {
             }
             return falseValue;
         }
-        BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+        BeginNode anchorNode = BeginNode.anchor();
         Word objectHub = loadHubIntrinsic(object, getWordKind(), anchorNode);
         // if we get an exact match: succeed immediately
         ExplodeLoopNode.explodeLoop();
@@ -118,7 +118,7 @@ public class InstanceOfSnippets implements Snippets {
             isNull.inc();
             return falseValue;
         }
-        BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+        BeginNode anchorNode = BeginNode.anchor();
         Word objectHub = loadHubIntrinsic(object, getWordKind(), anchorNode);
         if (probability(LIKELY_PROBABILITY, objectHub.notEqual(exactHub))) {
             exactMiss.inc();
@@ -137,7 +137,7 @@ public class InstanceOfSnippets implements Snippets {
             isNull.inc();
             return falseValue;
         }
-        BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+        BeginNode anchorNode = BeginNode.anchor();
         Word objectHub = loadHubIntrinsic(object, getWordKind(), anchorNode);
         if (probability(NOT_LIKELY_PROBABILITY, objectHub.readWord(superCheckOffset, LocationIdentity.FINAL_LOCATION).notEqual(hub))) {
             displayMiss.inc();
@@ -156,7 +156,7 @@ public class InstanceOfSnippets implements Snippets {
             isNull.inc();
             return falseValue;
         }
-        BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+        BeginNode anchorNode = BeginNode.anchor();
         Word objectHub = loadHubIntrinsic(object, getWordKind(), anchorNode);
         // if we get an exact match: succeed immediately
         ExplodeLoopNode.explodeLoop();
@@ -183,7 +183,7 @@ public class InstanceOfSnippets implements Snippets {
             isNull.inc();
             return falseValue;
         }
-        BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+        BeginNode anchorNode = BeginNode.anchor();
         Word hub = loadWordFromObject(mirror, klassOffset());
         Word objectHub = loadHubIntrinsic(object, getWordKind(), anchorNode);
         if (!checkUnknownSubType(hub, objectHub)) {
@@ -215,24 +215,25 @@ public class InstanceOfSnippets implements Snippets {
 
                 Arguments args;
 
+                StructuredGraph graph = hub.graph();
                 if (hintInfo.hintHitProbability >= hintHitProbabilityThresholdForDeoptimizingSnippet()) {
-                    Hints hints = createHints(hintInfo, runtime, false, hub.graph());
-                    args = new Arguments(instanceofWithProfile);
+                    Hints hints = createHints(hintInfo, runtime, false, graph);
+                    args = new Arguments(instanceofWithProfile, graph.getGuardsStage());
                     args.add("object", object);
                     args.addVarargs("hints", Word.class, StampFactory.forKind(wordKind()), hints.hubs);
                     args.addVarargs("hintIsPositive", boolean.class, StampFactory.forKind(Kind.Boolean), hints.isPositive);
                 } else if (hintInfo.exact != null) {
-                    args = new Arguments(instanceofExact);
+                    args = new Arguments(instanceofExact, graph.getGuardsStage());
                     args.add("object", object);
-                    args.add("exactHub", ConstantNode.forConstant(((HotSpotResolvedObjectType) hintInfo.exact).klass(), runtime, hub.graph()));
+                    args.add("exactHub", ConstantNode.forConstant(((HotSpotResolvedObjectType) hintInfo.exact).klass(), runtime, graph));
                 } else if (type.isPrimaryType()) {
-                    args = new Arguments(instanceofPrimary);
+                    args = new Arguments(instanceofPrimary, graph.getGuardsStage());
                     args.add("hub", hub);
                     args.add("object", object);
                     args.addConst("superCheckOffset", type.superCheckOffset());
                 } else {
-                    Hints hints = createHints(hintInfo, runtime, false, hub.graph());
-                    args = new Arguments(instanceofSecondary);
+                    Hints hints = createHints(hintInfo, runtime, false, graph);
+                    args = new Arguments(instanceofSecondary, graph.getGuardsStage());
                     args.add("hub", hub);
                     args.add("object", object);
                     args.addVarargs("hints", Word.class, StampFactory.forKind(getWordKind()), hints.hubs);
@@ -250,7 +251,7 @@ public class InstanceOfSnippets implements Snippets {
                 InstanceOfDynamicNode instanceOf = (InstanceOfDynamicNode) replacer.instanceOf;
                 ValueNode object = instanceOf.object();
 
-                Arguments args = new Arguments(instanceofDynamic);
+                Arguments args = new Arguments(instanceofDynamic, instanceOf.graph().getGuardsStage());
                 args.add("mirror", instanceOf.mirror());
                 args.add("object", object);
                 args.add("trueValue", replacer.trueValue);

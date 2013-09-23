@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-
 import edu.uci.python.runtime.datatypes.*;
 import edu.uci.python.runtime.modules.annotations.*;
 
@@ -877,7 +876,7 @@ public class BuiltInModule extends PythonModule {
         Iterator iter0 = getIterable(arg0);
         Iterator iter1 = getIterable(arg1);
 
-        ArrayList<PTuple> tuples = new ArrayList<PTuple>();
+        ArrayList<PTuple> tuples = new ArrayList<>();
 
         while (true) {
             Object[] temp = new Object[2];

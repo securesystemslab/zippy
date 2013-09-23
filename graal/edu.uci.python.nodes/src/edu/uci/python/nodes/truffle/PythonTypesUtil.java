@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import edu.uci.python.runtime.datatypes.*;
 
 public class PythonTypesUtil {
@@ -125,6 +127,7 @@ public class PythonTypesUtil {
         return converted.toArray(new PyObject[values.length]);
     }
 
+    @SlowPath
     public static Object unboxPyObject(PyObject value) {
         if (value instanceof PyInteger) {
             return ((PyInteger) value).getValue();

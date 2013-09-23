@@ -83,6 +83,57 @@ public abstract class BinaryNode extends FloatingNode {
         }
     }
 
+    public static BinaryNode add(ValueNode x, ValueNode y) {
+        assert x.kind() == y.kind();
+        switch (x.kind()) {
+            case Byte:
+            case Char:
+            case Short:
+            case Int:
+            case Long:
+                return IntegerArithmeticNode.add(x, y);
+            case Float:
+            case Double:
+                return x.graph().unique(new FloatAddNode(x.kind(), x, y, false));
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
+    public static BinaryNode sub(ValueNode x, ValueNode y) {
+        assert x.kind() == y.kind();
+        switch (x.kind()) {
+            case Byte:
+            case Char:
+            case Short:
+            case Int:
+            case Long:
+                return IntegerArithmeticNode.sub(x, y);
+            case Float:
+            case Double:
+                return x.graph().unique(new FloatSubNode(x.kind(), x, y, false));
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
+    public static BinaryNode mul(ValueNode x, ValueNode y) {
+        assert x.kind() == y.kind();
+        switch (x.kind()) {
+            case Byte:
+            case Char:
+            case Short:
+            case Int:
+            case Long:
+                return IntegerArithmeticNode.mul(x, y);
+            case Float:
+            case Double:
+                return x.graph().unique(new FloatMulNode(x.kind(), x, y, false));
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
     public static boolean canTryReassociate(BinaryNode node) {
         return node instanceof IntegerAddNode || node instanceof IntegerSubNode || node instanceof IntegerMulNode || node instanceof AndNode || node instanceof OrNode || node instanceof XorNode;
     }
@@ -99,14 +150,22 @@ public abstract class BinaryNode extends FloatingNode {
         return null;
     }
 
+    //@formatter:off
     /*
      * In reassociate, complexity comes from the handling of IntegerSub (non commutative) which can
-     * be mixed with IntegerAdd. if first tries to find m1, m2 which match the criterion : (a o m2)
-     * o m1 (m2 o a) o m1 m1 o (a o m2) m1 o (m2 o a) It then produces 4 boolean for the -/+ case
-     * invertA : should the final expression be like *-a (rather than a+*) aSub : should the final
-     * expression be like a-* (rather than a+*) invertM1 : should the final expression contain -m1
+     * be mixed with IntegerAdd. It first tries to find m1, m2 which match the criterion :
+     * (a o m2) o m1
+     * (m2 o a) o m1
+     * m1 o (a o m2)
+     * m1 o (m2 o a)
+     * It then produces 4 boolean for the -/+ cases:
+     * invertA : should the final expression be like *-a (rather than a+*)
+     * aSub : should the final expression be like a-* (rather than a+*)
+     * invertM1 : should the final expression contain -m1
      * invertM2 : should the final expression contain -m2
+     *
      */
+    //@formatter:on
     /**
      * Tries to re-associate values which satisfy the criterion. For example with a constantness
      * criterion : (a + 2) + 1 => a + (1 + 2)<br>

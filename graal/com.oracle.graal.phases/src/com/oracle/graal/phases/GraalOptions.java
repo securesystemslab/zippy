@@ -89,12 +89,12 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Integer> DeoptsToDisableOptimisticOptimization = new OptionValue<>(40);
 
-    // comilation queue
-    @Option(help = "")
+    // compilation queue
+    @Option(help = "Compile all methods in all classes on given class path")
     public static final OptionValue<String> CompileTheWorld = new OptionValue<>(null);
-    @Option(help = "")
+    @Option(help = "First class to consider when using CompileTheWorld")
     public static final OptionValue<Integer> CompileTheWorldStartAt = new OptionValue<>(1);
-    @Option(help = "")
+    @Option(help = "Last class to consider when using CompileTheWorld")
     public static final OptionValue<Integer> CompileTheWorldStopAt = new OptionValue<>(Integer.MAX_VALUE);
 
     // graph caching
@@ -146,12 +146,14 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Integer> GCDebugStartCycle = new OptionValue<>(-1);
     // Ideal graph visualizer output settings
-    @Option(help = "")
+    @Option(help = "Dump IdealGraphVisualizer output in binary format")
     public static final OptionValue<Boolean> PrintBinaryGraphs = new OptionValue<>(true);
-    @Option(help = "outputs probabilities for fixed nodes during binary graph dumping")
+    @Option(help = "Output probabilities for fixed nodes during binary graph dumping")
     public static final OptionValue<Boolean> PrintGraphProbabilities = new OptionValue<>(false);
-    @Option(help = "")
+    @Option(help = "Enables dumping to the C1Visualizer. Enabling this option implies PrintBackendCFG.")
     public static final OptionValue<Boolean> PrintCFG = new OptionValue<>(false);
+    @Option(help = "Enables dumping LIR, register allocation and code generation info to the C1Visualizer.")
+    public static final OptionValue<Boolean> PrintBackendCFG = new OptionValue<>(true);
     @Option(help = "")
     public static final OptionValue<Boolean> PrintIdealGraphFile = new OptionValue<>(false);
     @Option(help = "")
@@ -245,7 +247,7 @@ public final class GraalOptions {
     public static final OptionValue<Double> MinTableSwitchDensity = new OptionValue<>(0.5);
 
     // Ahead of time compilation
-    @Option(help = "configure compiler to emit code compatible with AOT requirements for HotSpot")
+    @Option(help = "Configure compiler to emit code  compatible with AOT requirements for HotSpot")
     public static final OptionValue<Boolean> AOTCompilation = new OptionValue<>(false);
 
     // Runtime settings
@@ -288,33 +290,6 @@ public final class GraalOptions {
     @Option(help = "")
     public static final OptionValue<Boolean> OptPushThroughPi = new OptionValue<>(true);
 
-    // Intrinsification settings
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyObjectClone = new OptionValue<>(false);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyArrayCopy = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyObjectMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifySystemMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyClassMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyThreadMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyUnsafeMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyMathMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyAESMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyCRC32Methods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyReflectionMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyInstalledCodeMethods = new OptionValue<>(true);
-    @Option(help = "")
-    public static final OptionValue<Boolean> IntrinsifyCallSiteTarget = new OptionValue<>(true);
 
     /**
      * Counts the various paths taken through snippets.

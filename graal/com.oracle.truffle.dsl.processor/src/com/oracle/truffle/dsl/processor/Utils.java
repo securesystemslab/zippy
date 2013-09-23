@@ -32,7 +32,7 @@ import javax.lang.model.type.*;
 import javax.lang.model.util.*;
 
 import com.oracle.truffle.dsl.processor.ast.*;
-import com.oracle.truffle.dsl.processor.ast.CodeTypeMirror.*;
+import com.oracle.truffle.dsl.processor.ast.CodeTypeMirror.DeclaredCodeTypeMirror;
 import com.oracle.truffle.dsl.processor.compiler.*;
 
 /**
@@ -48,6 +48,19 @@ public class Utils {
             }
         }
         return null;
+    }
+
+    public static boolean needsCastTo(ProcessorContext context, TypeMirror sourceType, TypeMirror targetType) {
+        if (typeEquals(sourceType, targetType)) {
+            return false;
+        } else if (isObject(targetType)) {
+            return false;
+        } else if (isVoid(targetType)) {
+            return false;
+        } else if (isAssignable(context, sourceType, targetType)) {
+            return false;
+        }
+        return true;
     }
 
     public static VariableElement findVariableElement(DeclaredType type, String name) {
@@ -179,6 +192,10 @@ public class Utils {
             return true;
         }
 
+        if (isObject(to)) {
+            return true;
+        }
+
         // JLS 5.1.2 widening primitives
         if (Utils.isPrimitive(from) && Utils.isPrimitive(to)) {
             TypeKind fromKind = from.getKind();
@@ -242,6 +259,10 @@ public class Utils {
 
         if (from instanceof ArrayType && to instanceof ArrayType) {
             return isAssignable(context, ((ArrayType) from).getComponentType(), ((ArrayType) to).getComponentType());
+        }
+
+        if (from instanceof ArrayType || to instanceof ArrayType) {
+            return false;
         }
 
         TypeElement fromType = Utils.fromTypeMirror(from);
@@ -410,6 +431,8 @@ public class Utils {
                 return getSimpleName(mirror);
             case ERROR:
                 throw new CompileErrorException("Type error " + mirror);
+            case EXECUTABLE:
+                return ((ExecutableType) mirror).toString();
             case NONE:
                 return "$none";
             default:
@@ -500,6 +523,24 @@ public class Utils {
         }
 
         return types;
+    }
+
+    public static List<TypeMirror> getAssignableTypes(ProcessorContext context, TypeMirror type) {
+        if (isPrimitive(type)) {
+            return Arrays.asList(type, boxType(context, type), context.getType(Object.class));
+        } else if (type.getKind() == TypeKind.ARRAY) {
+            return Arrays.asList(type, context.getType(Object.class));
+        } else if (type.getKind() == TypeKind.DECLARED) {
+            List<TypeElement> types = getSuperTypes(fromTypeMirror(type));
+            List<TypeMirror> mirrors = new ArrayList<>(types.size());
+            mirrors.add(type);
+            for (TypeElement typeElement : types) {
+                mirrors.add(typeElement.asType());
+            }
+            return mirrors;
+        } else {
+            return Collections.emptyList();
+        }
     }
 
     public static List<TypeElement> getSuperTypes(TypeElement element) {
@@ -724,6 +765,10 @@ public class Utils {
 
     public static AnnotationMirror findAnnotationMirror(ProcessingEnvironment processingEnv, List<? extends AnnotationMirror> mirrors, Class<?> annotationClass) {
         TypeElement expectedAnnotationType = processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
+        return findAnnotationMirror(mirrors, expectedAnnotationType);
+    }
+
+    public static AnnotationMirror findAnnotationMirror(List<? extends AnnotationMirror> mirrors, TypeElement expectedAnnotationType) {
         for (AnnotationMirror mirror : mirrors) {
             DeclaredType annotationType = mirror.getAnnotationType();
             TypeElement actualAnnotationType = (TypeElement) annotationType.asElement();
@@ -908,7 +953,7 @@ public class Utils {
     }
 
     public static boolean isObject(TypeMirror actualType) {
-        return getQualifiedName(actualType).equals("java.lang.Object");
+        return actualType.getKind() == TypeKind.DECLARED && getQualifiedName(actualType).equals("java.lang.Object");
     }
 
     public static boolean isFieldAccessible(Element element, VariableElement variable) {

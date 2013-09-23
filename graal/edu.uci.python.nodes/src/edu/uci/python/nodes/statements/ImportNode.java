@@ -56,11 +56,7 @@ public class ImportNode extends StatementNode {
         int index = 0;
         for (int i = 0; i < targetSlots.length; i++) {
             Object importee = doImport(importedModule, aliases[index++]);
-            try {
-                frame.setObject(targetSlots[i], importee);
-            } catch (FrameSlotTypeException e) {
-                FrameUtil.setObjectSafe(frame, targetSlots[i], importee);
-            }
+            frame.setObject(targetSlots[i], importee);
         }
     }
 
@@ -75,11 +71,7 @@ public class ImportNode extends StatementNode {
         int index = 0;
         for (int i = 0; i < targetSlots.length; i++) {
             Object importee = doImport(importedModule, aliases[index++]);
-            try {
-                frame.setObject(targetSlots[i], importee);
-            } catch (FrameSlotTypeException e) {
-                FrameUtil.setObjectSafe(frame, targetSlots[i], importee);
-            }
+            frame.setObject(targetSlots[i], importee);
         }
 
         return null;

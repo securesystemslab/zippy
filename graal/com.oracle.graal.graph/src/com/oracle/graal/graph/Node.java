@@ -22,11 +22,14 @@
  */
 package com.oracle.graal.graph;
 
+import static com.oracle.graal.graph.Graph.*;
+
 import java.lang.annotation.*;
 import java.util.*;
 
 import com.oracle.graal.graph.Graph.NodeChangedListener;
-import com.oracle.graal.graph.NodeClass.*;
+import com.oracle.graal.graph.NodeClass.NodeClassIterator;
+import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.graph.iterators.*;
 
 /**
@@ -101,14 +104,14 @@ public abstract class Node implements Cloneable, Formattable {
         /**
          * Determines if the stamp of the instantiated intrinsic node has its stamp set from the
          * return type of the annotated method.
+         * <p>
+         * When it is set to true, the stamp that is passed in to the constructor of ValueNode is
+         * ignored and can therefore safely be {@code null}.
          */
         boolean setStampFromReturnType() default false;
     }
 
     public interface ValueNumberable {
-    }
-
-    public interface IterableNodeType {
     }
 
     private Graph graph;
@@ -118,15 +121,22 @@ public abstract class Node implements Cloneable, Formattable {
     // therefore points to the next Node of the same type.
     Node typeCacheNext;
 
-    private NodeUsagesList usages;
+    private static final int INLINE_USAGE_COUNT = 2;
+    private static final Node[] NO_NODES = {};
+
+    /**
+     * Head of usage list. The elements of the usage list in order are {@link #usage0},
+     * {@link #usage1} and {@link #extraUsages}. The first null entry terminates the list.
+     */
+    private Node usage0;
+    private Node usage1;
+    private Node[] extraUsages = NO_NODES;
+
     private Node predecessor;
-    private int modCount;
-    private final NodeClass nodeClass;
 
     public Node() {
         this.graph = null;
         this.id = INITIAL_ID;
-        nodeClass = NodeClass.get(getClass());
     }
 
     protected int id() {
@@ -157,8 +167,221 @@ public abstract class Node implements Cloneable, Formattable {
         return getNodeClass().getSuccessorIterable(this);
     }
 
+    class NodeUsageIterator implements Iterator<Node> {
+
+        private final int expectedModCount = usageModCount();
+        int index = -1;
+        Node current;
+
+        private void advance() {
+            assert index == -1 || current != null;
+            current = null;
+            index++;
+            if (index == 0) {
+                current = usage0;
+            } else if (index == 1) {
+                current = usage1;
+            } else {
+                if (index - INLINE_USAGE_COUNT < extraUsages.length) {
+                    current = extraUsages[index - INLINE_USAGE_COUNT];
+                }
+            }
+        }
+
+        public NodeUsageIterator() {
+            advance();
+        }
+
+        public boolean hasNext() {
+            assert expectedModCount == usageModCount();
+            return current != null;
+        }
+
+        public Node next() {
+            assert expectedModCount == usageModCount();
+            Node result = current;
+            if (result == null) {
+                throw new NoSuchElementException();
+            }
+            advance();
+            return result;
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    class NodeUsageIterable extends AbstractNodeIterable<Node> {
+
+        public NodeUsageIterator iterator() {
+            return new NodeUsageIterator();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return usage0 == null;
+        }
+
+        @Override
+        public boolean isNotEmpty() {
+            return usage0 != null;
+        }
+
+        @Override
+        public int count() {
+            if (usage0 == null) {
+                return 0;
+            }
+            if (usage1 == null) {
+                return 1;
+            }
+            return 2 + indexOfLastNonNull(extraUsages) + 1;
+        }
+    }
+
+    int getUsageCountUpperBound() {
+        if (usage0 == null) {
+            return 0;
+        }
+        if (usage1 == null) {
+            return 1;
+        }
+        return 2 + extraUsages.length;
+    }
+
+    /**
+     * Gets the list of nodes that use this node (e.g., as an input).
+     */
     public final NodeIterable<Node> usages() {
-        return usages;
+        return new NodeUsageIterable();
+    }
+
+    /**
+     * Finds the index of the last non-null entry in a node array. The search assumes that all
+     * non-null entries precede the first null entry in the array.
+     * 
+     * @param nodes the array to search
+     * @return the index of the last non-null entry in {@code nodes} if it exists, else -1
+     */
+    private static int indexOfLastNonNull(Node[] nodes) {
+        if (nodes.length == 0 || nodes[0] == null) {
+            return -1;
+        }
+        if (nodes[nodes.length - 1] != null) {
+            return nodes.length - 1;
+        }
+
+        // binary search
+        int low = 0;
+        int high = nodes.length - 1;
+        while (true) {
+            int mid = (low + high) >>> 1;
+            if (nodes[mid] == null) {
+                if (nodes[mid - 1] != null) {
+                    return mid - 1;
+                }
+                high = mid - 1;
+            } else {
+                if (mid == nodes.length - 1 || nodes[mid + 1] == null) {
+                    return mid;
+                }
+                low = mid + 1;
+            }
+        }
+    }
+
+    /**
+     * Adds a given node to this node's {@linkplain #usages() usages}.
+     * 
+     * @param node the node to add
+     */
+    private void addUsage(Node node) {
+        incUsageModCount();
+        if (usage0 == null) {
+            usage0 = node;
+        } else if (usage1 == null) {
+            usage1 = node;
+        } else {
+            int length = extraUsages.length;
+            if (length == 0) {
+                extraUsages = new Node[4];
+                extraUsages[0] = node;
+            } else {
+                int lastNonNull = indexOfLastNonNull(extraUsages);
+                if (lastNonNull == length - 1) {
+                    extraUsages = Arrays.copyOf(extraUsages, length * 2 + 1);
+                    extraUsages[length] = node;
+                } else if (lastNonNull == -1) {
+                    extraUsages[0] = node;
+                } else {
+                    extraUsages[lastNonNull + 1] = node;
+                }
+            }
+        }
+    }
+
+    /**
+     * Removes a given node from this node's {@linkplain #usages() usages}.
+     * 
+     * @param node the node to remove
+     * @return whether or not {@code usage} was in the usage list
+     */
+    private boolean removeUsage(Node node) {
+        // It is critical that this method maintains the invariant that
+        // the usage list has no null element preceding a non-null element
+        incUsageModCount();
+        if (usage0 == node) {
+            if (usage1 != null) {
+                int lastNonNull = indexOfLastNonNull(extraUsages);
+                if (lastNonNull >= 0) {
+                    usage0 = extraUsages[lastNonNull];
+                    extraUsages[lastNonNull] = null;
+                } else {
+                    // usage1 is the last element
+                    usage0 = usage1;
+                    usage1 = null;
+                }
+            } else {
+                // usage0 is the last element
+                usage0 = null;
+            }
+            return true;
+        }
+        if (usage1 == node) {
+            int lastNonNull = indexOfLastNonNull(extraUsages);
+            if (lastNonNull >= 0) {
+                usage1 = extraUsages[lastNonNull];
+                extraUsages[lastNonNull] = null;
+            } else {
+                // usage1 is the last element
+                usage1 = null;
+            }
+            return true;
+        }
+        int lastNonNull = indexOfLastNonNull(extraUsages);
+        if (lastNonNull >= 0) {
+            for (int i = 0; i <= lastNonNull; ++i) {
+                Node n = extraUsages[i];
+                if (n == node) {
+                    if (i < lastNonNull) {
+                        extraUsages[i] = extraUsages[lastNonNull];
+                        extraUsages[lastNonNull] = null;
+                    } else {
+                        extraUsages[i] = null;
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void clearUsages() {
+        incUsageModCount();
+        usage0 = null;
+        usage1 = null;
+        extraUsages = NO_NODES;
     }
 
     public final Node predecessor() {
@@ -166,11 +389,29 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     final int modCount() {
-        return modCount;
+        if (MODIFICATION_COUNTS_ENABLED && graph != null) {
+            return graph.modCount(this);
+        }
+        return 0;
     }
 
     final void incModCount() {
-        modCount++;
+        if (MODIFICATION_COUNTS_ENABLED && graph != null) {
+            graph.incModCount(this);
+        }
+    }
+
+    final int usageModCount() {
+        if (MODIFICATION_COUNTS_ENABLED && graph != null) {
+            return graph.usageModCount(this);
+        }
+        return 0;
+    }
+
+    final void incUsageModCount() {
+        if (MODIFICATION_COUNTS_ENABLED && graph != null) {
+            graph.incUsageModCount(this);
+        }
     }
 
     public boolean isDeleted() {
@@ -186,7 +427,6 @@ public abstract class Node implements Cloneable, Formattable {
      * newInput: removes this node from oldInput's usages and adds this node to newInput's usages.
      */
     protected void updateUsages(Node oldInput, Node newInput) {
-        assert assertTrue(usages != null, "usages == null while adding %s to %s", newInput, this);
         if (oldInput != newInput) {
             if (oldInput != null) {
                 boolean result = removeThisFromUsages(oldInput);
@@ -197,8 +437,7 @@ public abstract class Node implements Cloneable, Formattable {
                 if (inputChanged != null) {
                     inputChanged.nodeChanged(this);
                 }
-                assert newInput.usages != null : "not yet added? " + newInput;
-                newInput.usages.add(this);
+                newInput.addUsage(this);
             } else if (oldInput != null && oldInput.usages().isEmpty()) {
                 NodeChangedListener nodeChangedListener = graph.usagesDroppedZero;
                 if (nodeChangedListener != null) {
@@ -214,14 +453,13 @@ public abstract class Node implements Cloneable, Formattable {
      * this node to newSuccessor's predecessors.
      */
     protected void updatePredecessor(Node oldSuccessor, Node newSuccessor) {
-        assert assertTrue(usages != null, "usages == null while adding %s to %s", newSuccessor, this);
         if (oldSuccessor != newSuccessor) {
             if (oldSuccessor != null) {
                 assert assertTrue(oldSuccessor.predecessor == this, "wrong predecessor in old successor (%s): %s", oldSuccessor, oldSuccessor.predecessor);
                 oldSuccessor.predecessor = null;
             }
             if (newSuccessor != null) {
-                assert assertTrue(newSuccessor.predecessor == null, "unexpected non-null predecessor in new successor (%s): %s", newSuccessor, newSuccessor.predecessor);
+                assert assertTrue(newSuccessor.predecessor == null, "unexpected non-null predecessor in new successor (%s): %s, this=%s", newSuccessor, newSuccessor.predecessor, this);
                 newSuccessor.predecessor = this;
             }
         }
@@ -231,7 +469,6 @@ public abstract class Node implements Cloneable, Formattable {
         assert assertTrue(id == INITIAL_ID, "unexpected id: %d", id);
         this.graph = newGraph;
         newGraph.register(this);
-        usages = new NodeUsagesList();
         for (Node input : inputs()) {
             updateUsages(null, input);
         }
@@ -241,7 +478,7 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     public final NodeClass getNodeClass() {
-        return nodeClass;
+        return NodeClass.get(getClass());
     }
 
     private boolean checkReplaceWith(Node other) {
@@ -254,7 +491,7 @@ public abstract class Node implements Cloneable, Formattable {
 
     public void replaceAtUsages(Node other) {
         assert checkReplaceWith(other);
-        for (Node usage : usages) {
+        for (Node usage : usages()) {
             boolean result = usage.getNodeClass().replaceFirstInput(usage, this, other);
             assert assertTrue(result, "not found in inputs, usage: %s", usage);
             if (other != null) {
@@ -262,10 +499,10 @@ public abstract class Node implements Cloneable, Formattable {
                 if (inputChanged != null) {
                     inputChanged.nodeChanged(usage);
                 }
-                other.usages.add(usage);
+                other.addUsage(usage);
             }
         }
-        usages.clear();
+        clearUsages();
     }
 
     public void replaceAtPredecessor(Node other) {
@@ -315,11 +552,7 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     private boolean removeThisFromUsages(Node n) {
-        if (n.usages.remove(this)) {
-            return true;
-        } else {
-            return false;
-        }
+        return n.removeUsage(this);
     }
 
     public void clearSuccessors() {
@@ -333,7 +566,7 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     private boolean checkDeletion() {
-        assertTrue(usages.isEmpty(), "cannot delete node %s because of usages: %s", this, usages);
+        assertTrue(usages().isEmpty(), "cannot delete node %s because of usages: %s", this, usages());
         assertTrue(predecessor == null, "cannot delete node %s because of predecessor: %s", this, predecessor);
         return true;
     }
@@ -356,28 +589,53 @@ public abstract class Node implements Cloneable, Formattable {
         NodeClass clazz = getNodeClass();
         clazz.copyInputs(this, newNode);
         for (Node input : inputs()) {
-            input.usages.add(newNode);
+            input.addUsage(newNode);
         }
         return newNode;
     }
 
-    public Node clone(Graph into) {
+    static int count = 0;
+
+    public final Node clone(Graph into) {
+        return clone(into, true);
+    }
+
+    final Node clone(Graph into, boolean clearInputsAndSuccessors) {
+        NodeClass nodeClass = getNodeClass();
+        if (nodeClass.valueNumberable() && nodeClass.isLeafNode()) {
+            Node otherNode = into.findNodeInCache(this);
+            if (otherNode != null) {
+                return otherNode;
+            }
+        }
+
         Node newNode = null;
         try {
             newNode = (Node) this.clone();
         } catch (CloneNotSupportedException e) {
             throw new GraalInternalError(e).addContext(this);
         }
-        getNodeClass().clearInputs(newNode);
-        getNodeClass().clearSuccessors(newNode);
+        if (clearInputsAndSuccessors) {
+            nodeClass.clearInputs(newNode);
+            nodeClass.clearSuccessors(newNode);
+        }
         newNode.graph = into;
         newNode.typeCacheNext = null;
         newNode.id = INITIAL_ID;
         into.register(newNode);
-        newNode.usages = new NodeUsagesList();
+        newNode.usage0 = null;
+        newNode.usage1 = null;
+        newNode.extraUsages = NO_NODES;
         newNode.predecessor = null;
-        newNode.modCount = 0;
+
+        if (nodeClass.valueNumberable() && nodeClass.isLeafNode()) {
+            into.putNodeIntoCache(newNode);
+        }
+        newNode.afterClone(this);
         return newNode;
+    }
+
+    protected void afterClone(@SuppressWarnings("unused") Node other) {
     }
 
     public boolean verify() {
@@ -555,6 +813,7 @@ public abstract class Node implements Cloneable, Formattable {
 
         boolean neighborsAlternate = ((flags & FormattableFlags.LEFT_JUSTIFY) == FormattableFlags.LEFT_JUSTIFY);
         int neighborsFlags = (neighborsAlternate ? FormattableFlags.ALTERNATE | FormattableFlags.LEFT_JUSTIFY : 0);
+        NodeClass nodeClass = getNodeClass();
         if (width > 0) {
             if (this.predecessor != null) {
                 formatter.format(" pred={");
@@ -565,10 +824,10 @@ public abstract class Node implements Cloneable, Formattable {
             NodeClassIterator inputIter = inputs().iterator();
             while (inputIter.hasNext()) {
                 Position position = inputIter.nextPosition();
-                Node input = getNodeClass().get(this, position);
+                Node input = nodeClass.get(this, position);
                 if (input != null) {
                     formatter.format(" ");
-                    formatter.format(getNodeClass().getName(position));
+                    formatter.format(nodeClass.getName(position));
                     formatter.format("={");
                     input.formatTo(formatter, neighborsFlags, width - 1, 0);
                     formatter.format("}");
@@ -577,10 +836,10 @@ public abstract class Node implements Cloneable, Formattable {
         }
 
         if (precision > 0) {
-            if (this.usages.count() > 0) {
+            if (!usages().isEmpty()) {
                 formatter.format(" usages={");
                 int z = 0;
-                for (Node usage : this.usages) {
+                for (Node usage : usages()) {
                     if (z != 0) {
                         formatter.format(", ");
                     }
@@ -593,10 +852,10 @@ public abstract class Node implements Cloneable, Formattable {
             NodeClassIterator succIter = successors().iterator();
             while (succIter.hasNext()) {
                 Position position = succIter.nextPosition();
-                Node successor = getNodeClass().get(this, position);
+                Node successor = nodeClass.get(this, position);
                 if (successor != null) {
                     formatter.format(" ");
-                    formatter.format(getNodeClass().getName(position));
+                    formatter.format(nodeClass.getName(position));
                     formatter.format("={");
                     successor.formatTo(formatter, neighborsFlags, 0, precision - 1);
                     formatter.format("}");

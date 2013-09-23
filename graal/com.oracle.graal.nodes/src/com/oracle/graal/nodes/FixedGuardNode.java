@@ -31,7 +31,7 @@ import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(nameTemplate = "FixedGuard(!={p#negated}) {p#reason/s}")
-public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implements Simplifiable, Lowerable, Node.IterableNodeType, Negatable, GuardingNode {
+public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implements Simplifiable, Lowerable, IterableNodeType, GuardingNode {
 
     @Input private LogicNode condition;
     private final DeoptimizationReason reason;
@@ -82,6 +82,12 @@ public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implemen
 
     @Override
     public void simplify(SimplifierTool tool) {
+        if (condition instanceof LogicNegationNode) {
+            LogicNegationNode negation = (LogicNegationNode) condition;
+            setCondition(negation.getInput());
+            negated = !negated;
+        }
+
         if (condition instanceof LogicConstantNode) {
             LogicConstantNode c = (LogicConstantNode) condition;
             if (c.getValue() == negated) {
@@ -100,36 +106,30 @@ public final class FixedGuardNode extends DeoptimizingFixedWithNextNode implemen
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        if (loweringType == LoweringType.BEFORE_GUARDS) {
-            tool.getRuntime().lower(this, tool);
+    public void lower(LoweringTool tool) {
+        if (graph().getGuardsStage() == StructuredGraph.GuardsStage.FLOATING_GUARDS) {
+            ValueNode guard = tool.createGuard(condition(), getReason(), getAction(), isNegated()).asNode();
+            this.replaceAtUsages(guard);
+            ValueAnchorNode newAnchor = graph().add(new ValueAnchorNode(guard.asNode()));
+            graph().replaceFixedWithFixed(this, newAnchor);
         } else {
             FixedNode next = next();
             setNext(null);
             DeoptimizeNode deopt = graph().add(new DeoptimizeNode(action, reason));
             deopt.setDeoptimizationState(getDeoptimizationState());
             IfNode ifNode;
+            AbstractBeginNode noDeoptSuccessor;
             if (negated) {
                 ifNode = graph().add(new IfNode(condition, deopt, next, 0));
+                noDeoptSuccessor = ifNode.falseSuccessor();
             } else {
                 ifNode = graph().add(new IfNode(condition, next, deopt, 1));
+                noDeoptSuccessor = ifNode.trueSuccessor();
             }
             ((FixedWithNextNode) predecessor()).setNext(ifNode);
-            this.replaceAtUsages(next.predecessor());
+            this.replaceAtUsages(noDeoptSuccessor);
             GraphUtil.killWithUnusedFloatingInputs(this);
         }
-    }
-
-    @Override
-    public Negatable negate(LogicNode cond) {
-        assert cond == condition();
-        negated = !negated;
-        return this;
-    }
-
-    @Override
-    public FixedGuardNode asNode() {
-        return this;
     }
 
     @Override

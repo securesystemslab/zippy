@@ -45,7 +45,7 @@ import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
-import com.oracle.graal.lir.StandardOp.ParametersOp;
+import com.oracle.graal.lir.StandardOp.LabelOp;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
@@ -214,7 +214,7 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
         };
         for (Block block : lir.codeEmittingOrder()) {
             for (LIRInstruction op : lir.lir(block)) {
-                if (op instanceof ParametersOp) {
+                if (op instanceof LabelOp) {
                     // Don't consider this as a definition
                 } else {
                     op.forEachTemp(defProc);
@@ -244,10 +244,10 @@ public class AMD64HotSpotBackend extends HotSpotBackend {
             AMD64Address src = new AMD64Address(receiver, config.hubOffset);
 
             AMD64HotSpotLIRGenerator gen = (AMD64HotSpotLIRGenerator) lirGen;
-            HotSpotRuntime hr = ((HotSpotRuntime) gen.getRuntime());
-            if (hr.config.useCompressedKlassPointers) {
+            AMD64HotSpotRuntime hr = ((AMD64HotSpotRuntime) gen.getRuntime());
+            if (hr.useCompressedKlassPointers()) {
                 Register register = r10;
-                AMD64Move.decodeKlassPointer(asm, register, src, hr.config.narrowKlassBase, hr.config.narrowKlassShift, hr.config.logKlassAlignment);
+                AMD64HotSpotMove.decodeKlassPointer(asm, register, hr.heapBaseRegister(), src, config.narrowKlassBase, config.narrowKlassShift, config.logKlassAlignment);
                 asm.cmpq(inlineCacheKlass, register);
             } else {
                 asm.cmpq(inlineCacheKlass, src);

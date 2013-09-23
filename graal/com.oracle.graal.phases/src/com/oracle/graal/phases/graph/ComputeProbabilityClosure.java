@@ -48,7 +48,7 @@ import com.oracle.graal.nodes.util.*;
  */
 public class ComputeProbabilityClosure {
 
-    private static final double EPSILON = 1d / Integer.MAX_VALUE;
+    private static final double EPSILON = Double.MIN_NORMAL;
 
     private final StructuredGraph graph;
     private final NodesToDoubles nodeProbabilities;
@@ -152,7 +152,7 @@ public class ComputeProbabilityClosure {
     }
 
     private static boolean doesNotAlwaysDeopt(StructuredGraph graph) {
-        return graph.getNodes(ReturnNode.class).iterator().hasNext();
+        return graph.getNodes().filter(ReturnNode.class).iterator().hasNext();
     }
 
     private void computeLoopFactors() {
@@ -187,19 +187,35 @@ public class ComputeProbabilityClosure {
                         if (t == -1) {
                             return -1;
                         }
-                        factor *= t;
+                        factor = multiplySaturate(factor, t);
                     }
                     backEdgeProb += nodeProbabilities.get(le) * factor;
                 }
-                double d = nodeProbabilities.get(loopBegin) - backEdgeProb;
-                if (d < EPSILON) {
+                double entryProb = nodeProbabilities.get(loopBegin);
+                double d = entryProb - backEdgeProb;
+                if (d <= EPSILON) {
                     d = EPSILON;
                 }
-                loopFrequency = nodeProbabilities.get(loopBegin) / d;
+                loopFrequency = entryProb / d;
                 loopBegin.setLoopFrequency(loopFrequency);
             }
             return loopFrequency;
         }
+    }
+
+    /**
+     * Multiplies a and b and saturates the result to 1/{@link Double#MIN_NORMAL}.
+     * 
+     * @param a
+     * @param b
+     * @return a times b saturated to 1/{@link Double#MIN_NORMAL}
+     */
+    public static double multiplySaturate(double a, double b) {
+        double r = a * b;
+        if (r > 1 / Double.MIN_NORMAL) {
+            return 1 / Double.MIN_NORMAL;
+        }
+        return r;
     }
 
     private class Probability extends MergeableState<Probability> {
@@ -235,7 +251,8 @@ public class ComputeProbabilityClosure {
                         if (loopFrequency == -1) {
                             return false;
                         }
-                        probability *= loopFrequency;
+                        probability = multiplySaturate(probability, loopFrequency);
+                        assert probability >= 0;
                     }
                 }
                 for (Probability other : withStates) {
@@ -246,10 +263,12 @@ public class ComputeProbabilityClosure {
                             if (loopFrequency == -1) {
                                 return false;
                             }
-                            prob *= loopFrequency;
+                            prob = multiplySaturate(prob, loopFrequency);
+                            assert prob >= 0;
                         }
                     }
                     probability += prob;
+                    assert probability >= 0;
                 }
                 loops = intersection;
                 mergeLoops.put(merge, new HashSet<>(intersection));
@@ -331,7 +350,7 @@ public class ComputeProbabilityClosure {
                 assert loops != null;
                 double countProd = 1;
                 for (LoopInfo loop : loops) {
-                    countProd *= loop.loopFrequency(nodeProbabilities);
+                    countProd = multiplySaturate(countProd, loop.loopFrequency(nodeProbabilities));
                 }
                 count = countProd;
             }
@@ -340,7 +359,7 @@ public class ComputeProbabilityClosure {
 
         @Override
         public void loopBegin(LoopBeginNode loopBegin) {
-            count *= loopBegin.loopFrequency();
+            count = multiplySaturate(count, loopBegin.loopFrequency());
         }
     }
 

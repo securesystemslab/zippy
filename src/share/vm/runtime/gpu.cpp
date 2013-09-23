@@ -25,14 +25,48 @@
 #include "precompiled.hpp"
 #include "runtime/gpu.hpp"
 
-bool gpu::_available = false;   // does the hardware exist?
-bool gpu::_gpu_linkage = false; // is the driver library to access the GPU installed
-bool gpu::_initialized = false; // is the GPU device initialized
+bool gpu::_available = false;    // does the hardware exist?
+bool gpu::_gpu_linkage = false;  // is the driver library to access the GPU installed
+bool gpu::_initialized = false;  // is the GPU device initialized
+gpu::TargetGPUIL gpu::_targetIL = gpu::NONE; // No GPU detected yet.
 
 void gpu::init() {
 #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
   gpu::probe_gpu();
+  if (gpu::get_target_il_type() == gpu::PTX) {
+    set_gpu_linkage(gpu::Ptx::probe_linkage());
+  } else {
+    set_gpu_linkage(false);
+  }
 #endif
-  // need multi-gpu TARGET ifdef
-  gpu::probe_linkage();
 }
+
+void gpu::initialize_gpu() {
+  if (gpu::has_gpu_linkage()) {
+    if (gpu::get_target_il_type() == gpu::PTX) {
+      set_initialized(gpu::Ptx::initialize_gpu());
+    }
+    // Add initialization of other GPUs here
+  }
+}
+
+void * gpu::generate_kernel(unsigned char *code, int code_len, const char *name) {
+  if (gpu::has_gpu_linkage()) {
+    if (gpu::get_target_il_type() == gpu::PTX) {
+      return (gpu::Ptx::generate_kernel(code, code_len, name));
+    }
+    // Add kernel generation functionality of other GPUs here
+  }
+  return NULL;
+}
+
+bool gpu::execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue& ret) {
+  if (gpu::has_gpu_linkage()) {
+    if (gpu::get_target_il_type() == gpu::PTX) {
+      return (gpu::Ptx::execute_kernel(kernel, ptxka, ret));
+    }
+    // Add kernel execution functionality of other GPUs here
+  }
+  return false;
+}
+

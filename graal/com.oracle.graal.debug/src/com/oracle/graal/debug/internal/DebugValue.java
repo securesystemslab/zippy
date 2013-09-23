@@ -22,14 +22,20 @@
  */
 package com.oracle.graal.debug.internal;
 
+/**
+ * A name and index for a value managed in a thread local value map. All access to the value is made
+ * via a {@link DebugValue} instance.
+ */
 public abstract class DebugValue implements Comparable<DebugValue> {
 
     private final String name;
     private int index;
+    private boolean conditional;
 
-    protected DebugValue(String name) {
+    protected DebugValue(String name, boolean conditional) {
         this.name = name;
         this.index = -1;
+        this.conditional = conditional;
     }
 
     protected long getCurrentValue() {
@@ -42,9 +48,17 @@ public abstract class DebugValue implements Comparable<DebugValue> {
         DebugScope.getInstance().setCurrentValue(index, l);
     }
 
+    public void setConditional(boolean flag) {
+        conditional = flag;
+    }
+
+    public boolean isConditional() {
+        return conditional;
+    }
+
     private void ensureInitialized() {
         if (index == -1) {
-            index = KeyRegistry.register(name, this);
+            index = KeyRegistry.register(this);
         }
     }
 
@@ -52,11 +66,17 @@ public abstract class DebugValue implements Comparable<DebugValue> {
         setCurrentValue(getCurrentValue() + value);
     }
 
+    /**
+     * Gets the globally unique index for the value represented by this object.
+     */
     public int getIndex() {
         ensureInitialized();
         return index;
     }
 
+    /**
+     * Gets the globally unique name for the value represented by this object.
+     */
     public String getName() {
         return name;
     }

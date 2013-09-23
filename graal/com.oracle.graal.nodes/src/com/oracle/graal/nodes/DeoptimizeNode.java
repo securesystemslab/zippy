@@ -28,8 +28,16 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
+/**
+ * This node represents an unconditional explicit request for immediate deoptimization.
+ * 
+ * After this node, execution will continue using a fallback execution engine (such as an
+ * interpreter) at the position described by the {@link #getDeoptimizationState() deoptimization
+ * state}.
+ * 
+ */
 @NodeInfo(shortName = "Deopt", nameTemplate = "Deopt {p#reason/s}")
-public class DeoptimizeNode extends ControlSinkNode implements Node.IterableNodeType, Lowerable, LIRLowerable, DeoptimizingNode {
+public class DeoptimizeNode extends ControlSinkNode implements IterableNodeType, LIRLowerable, DeoptimizingNode {
 
     @Input private FrameState deoptState;
 
@@ -48,11 +56,6 @@ public class DeoptimizeNode extends ControlSinkNode implements Node.IterableNode
 
     public DeoptimizationReason reason() {
         return reason;
-    }
-
-    @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
-        tool.getRuntime().lower(this, tool);
     }
 
     @Override

@@ -1,5 +1,7 @@
 ^mx/env
 ^mx/checkstyle-timestamps
+^mx/eclipseinit.timestamp
+^mx/netbeansinit.timestamp
 ^mx/eclipse-launches
 ^mx/ecj.jar
 ^mx/includes
@@ -75,3 +77,5 @@ rebuild-launch.out
 coverage
 jacoco.exec
 workingsets.xml
+.buildbot/
+graal.options

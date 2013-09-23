@@ -23,7 +23,6 @@
 package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -32,7 +31,7 @@ import com.oracle.graal.nodes.virtual.*;
 /**
  * Reads an {@linkplain AccessNode accessed} value.
  */
-public final class ReadNode extends FloatableAccessNode implements Node.IterableNodeType, LIRLowerable, Canonicalizable, PiPushable, Virtualizable {
+public final class ReadNode extends FloatableAccessNode implements LIRLowerable, Canonicalizable, PiPushable, Virtualizable {
 
     public ReadNode(ValueNode object, ValueNode location, Stamp stamp, BarrierType barrierType, boolean compressible) {
         super(object, location, stamp, barrierType, compressible);
@@ -72,7 +71,7 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
 
     public static ValueNode canonicalizeRead(ValueNode read, LocationNode location, ValueNode object, CanonicalizerTool tool, boolean compressible) {
         MetaAccessProvider runtime = tool.runtime();
-        if (read.usages().count() == 0) {
+        if (read.usages().isEmpty()) {
             // Read without usages can be savely removed.
             return null;
         }
@@ -104,28 +103,31 @@ public final class ReadNode extends FloatableAccessNode implements Node.Iterable
 
     @Override
     public boolean push(PiNode parent) {
-        if (location() instanceof ConstantLocationNode) {
-            long displacement = ((ConstantLocationNode) location()).getDisplacement();
-            if (parent.stamp() instanceof ObjectStamp) {
-                ObjectStamp piStamp = (ObjectStamp) parent.stamp();
-                ResolvedJavaType receiverType = piStamp.type();
-                if (receiverType != null) {
-                    ResolvedJavaField field = receiverType.findInstanceFieldWithOffset(displacement);
-
-                    if (field != null) {
-                        ResolvedJavaType declaringClass = field.getDeclaringClass();
-                        if (declaringClass.isAssignableFrom(receiverType) && declaringClass != receiverType && parent.object().stamp() instanceof ObjectStamp) {
-                            ObjectStamp piValueStamp = (ObjectStamp) parent.object().stamp();
-                            if (piStamp.nonNull() == piValueStamp.nonNull() && piStamp.alwaysNull() == piValueStamp.alwaysNull()) {
-                                replaceFirstInput(parent, parent.object());
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-
+        if (!(location() instanceof ConstantLocationNode && parent.stamp() instanceof ObjectStamp && parent.object().stamp() instanceof ObjectStamp)) {
+            return false;
         }
+
+        ObjectStamp piStamp = (ObjectStamp) parent.stamp();
+        ResolvedJavaType receiverType = piStamp.type();
+        if (receiverType == null) {
+            return false;
+        }
+
+        ResolvedJavaField field = receiverType.findInstanceFieldWithOffset(((ConstantLocationNode) location()).getDisplacement());
+        if (field == null) {
+            // field was not declared by receiverType
+            return false;
+        }
+
+        ObjectStamp valueStamp = (ObjectStamp) parent.object().stamp();
+        ResolvedJavaType valueType = ObjectStamp.typeOrNull(valueStamp);
+        if (valueType != null && field.getDeclaringClass().isAssignableFrom(valueType)) {
+            if (piStamp.nonNull() == valueStamp.nonNull() && piStamp.alwaysNull() == valueStamp.alwaysNull()) {
+                replaceFirstInput(parent, parent.object());
+                return true;
+            }
+        }
+
         return false;
     }
 

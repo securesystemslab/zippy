@@ -85,7 +85,6 @@ import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.tiers.*;
@@ -113,7 +112,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
     private InstanceOfSnippets.Templates instanceofSnippets;
     private NewObjectSnippets.Templates newObjectSnippets;
     private MonitorSnippets.Templates monitorSnippets;
-    private WriteBarrierSnippets.Templates writeBarrierSnippets;
+    protected WriteBarrierSnippets.Templates writeBarrierSnippets;
     private BoxingSnippets.Templates boxingSnippets;
     private LoadExceptionObjectSnippets.Templates exceptionObjectSnippets;
     private UnsafeLoadSnippets.Templates unsafeLoadSnippets;
@@ -313,31 +312,15 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
         linkForeignCall(r, G1WBPOSTCALL, c.writeBarrierPostAddress, PREPEND_THREAD, LEAF, REEXECUTABLE, NO_LOCATIONS);
         linkForeignCall(r, VALIDATE_OBJECT, c.validateObject, PREPEND_THREAD, LEAF, REEXECUTABLE, NO_LOCATIONS);
 
-        if (IntrinsifyObjectMethods.getValue()) {
-            r.registerSubstitutions(ObjectSubstitutions.class);
-        }
-        if (IntrinsifySystemMethods.getValue()) {
-            r.registerSubstitutions(SystemSubstitutions.class);
-        }
-        if (IntrinsifyThreadMethods.getValue()) {
-            r.registerSubstitutions(ThreadSubstitutions.class);
-        }
-        if (IntrinsifyUnsafeMethods.getValue()) {
-            r.registerSubstitutions(UnsafeSubstitutions.class);
-        }
-        if (IntrinsifyClassMethods.getValue()) {
-            r.registerSubstitutions(ClassSubstitutions.class);
-        }
-        if (IntrinsifyAESMethods.getValue()) {
-            r.registerSubstitutions(AESCryptSubstitutions.class);
-            r.registerSubstitutions(CipherBlockChainingSubstitutions.class);
-        }
-        if (IntrinsifyCRC32Methods.getValue()) {
-            r.registerSubstitutions(CRC32Substitutions.class);
-        }
-        if (IntrinsifyReflectionMethods.getValue()) {
-            r.registerSubstitutions(ReflectionSubstitutions.class);
-        }
+        r.registerSubstitutions(ObjectSubstitutions.class);
+        r.registerSubstitutions(SystemSubstitutions.class);
+        r.registerSubstitutions(ThreadSubstitutions.class);
+        r.registerSubstitutions(UnsafeSubstitutions.class);
+        r.registerSubstitutions(ClassSubstitutions.class);
+        r.registerSubstitutions(AESCryptSubstitutions.class);
+        r.registerSubstitutions(CipherBlockChainingSubstitutions.class);
+        r.registerSubstitutions(CRC32Substitutions.class);
+        r.registerSubstitutions(ReflectionSubstitutions.class);
 
         checkcastDynamicSnippets = new CheckCastDynamicSnippets.Templates(this, r, graalRuntime.getTarget());
         instanceofSnippets = new InstanceOfSnippets.Templates(this, r, graalRuntime.getTarget());
@@ -359,6 +342,12 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
      * Gets the register holding the current thread.
      */
     public abstract Register threadRegister();
+
+    /**
+     * Returns the register used by the runtime for maintaining the heap base address for compressed
+     * pointers.
+     */
+    public abstract Register heapBaseRegister();
 
     /**
      * Gets the stack pointer register.
@@ -487,11 +476,19 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
     }
 
     @Override
-    public int lookupArrayLength(Constant array) {
+    public Integer lookupArrayLength(Constant array) {
         if (array.getKind() != Kind.Object || array.isNull() || !array.asObject().getClass().isArray()) {
-            throw new IllegalArgumentException(array + " is not an array");
+            return null;
         }
         return Array.getLength(array.asObject());
+    }
+
+    public boolean useCompressedOops() {
+        return config.useCompressedOops;
+    }
+
+    public boolean useCompressedKlassPointers() {
+        return config.useCompressedKlassPointers;
     }
 
     @Override
@@ -557,9 +554,8 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
             assert loadField.kind() != Kind.Illegal;
             BarrierType barrierType = getFieldLoadBarrierType(field);
             ReadNode memoryRead = graph.add(new ReadNode(object, createFieldLocation(graph, field), loadField.stamp(), barrierType, (loadField.kind() == Kind.Object)));
-            tool.createNullCheckGuard(memoryRead, object);
-
             graph.replaceFixedWithFixed(loadField, memoryRead);
+            tool.createNullCheckGuard(memoryRead, object);
 
             if (loadField.isVolatile()) {
                 MembarNode preMembar = graph.add(new MembarNode(JMM_PRE_VOLATILE_READ));
@@ -608,28 +604,31 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
             LocationNode arrayLocation = createArrayLocation(graph, elementKind, storeIndexed.index());
             ValueNode value = storeIndexed.value();
             ValueNode array = storeIndexed.array();
+
+            CheckCastNode checkcastNode = null;
+            CheckCastDynamicNode checkcastDynamicNode = null;
             if (elementKind == Kind.Object && !ObjectStamp.isObjectAlwaysNull(value)) {
                 // Store check!
                 ResolvedJavaType arrayType = ObjectStamp.typeOrNull(array);
                 if (arrayType != null && ObjectStamp.isExactType(array)) {
                     ResolvedJavaType elementType = arrayType.getComponentType();
                     if (!MetaUtil.isJavaLangObject(elementType)) {
-                        CheckCastNode checkcast = graph.add(new CheckCastNode(elementType, value, null, true));
-                        graph.addBeforeFixed(storeIndexed, checkcast);
-                        value = checkcast;
+                        checkcastNode = graph.add(new CheckCastNode(elementType, value, null, true));
+                        graph.addBeforeFixed(storeIndexed, checkcastNode);
+                        value = checkcastNode;
                     }
                 } else {
-                    LoadHubNode arrayClass = graph.add(new LoadHubNode(array, wordKind, boundsCheck.asNode()));
+                    LoadHubNode arrayClass = graph.unique(new LoadHubNode(array, wordKind, boundsCheck.asNode()));
                     LocationNode location = ConstantLocationNode.create(FINAL_LOCATION, wordKind, config.arrayClassElementOffset, graph);
                     /*
                      * Anchor the read of the element klass to the cfg, because it is only valid
                      * when arrayClass is an object class, which might not be the case in other
                      * parts of the compiled method.
                      */
-                    FloatingReadNode arrayElementKlass = graph.unique(new FloatingReadNode(arrayClass, location, BeginNode.prevBegin(storeIndexed), StampFactory.forKind(wordKind())));
-                    CheckCastDynamicNode checkcast = graph.add(new CheckCastDynamicNode(arrayElementKlass, value, true));
-                    graph.addBeforeFixed(storeIndexed, checkcast);
-                    value = checkcast;
+                    FloatingReadNode arrayElementKlass = graph.unique(new FloatingReadNode(arrayClass, location, null, StampFactory.forKind(wordKind()), BeginNode.prevBegin(storeIndexed)));
+                    checkcastDynamicNode = graph.add(new CheckCastDynamicNode(arrayElementKlass, value, true));
+                    graph.addBeforeFixed(storeIndexed, checkcastDynamicNode);
+                    value = checkcastDynamicNode;
                 }
             }
             BarrierType barrierType = getArrayStoreBarrierType(storeIndexed);
@@ -638,8 +637,14 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
             memoryWrite.setStateAfter(storeIndexed.stateAfter());
             graph.replaceFixedWithFixed(storeIndexed, memoryWrite);
 
+            // Lower the associated checkcast node.
+            if (checkcastNode != null) {
+                checkcastNode.lower(tool);
+            } else if (checkcastDynamicNode != null) {
+                checkcastDynamicSnippets.lower(checkcastDynamicNode);
+            }
         } else if (n instanceof UnsafeLoadNode) {
-            if (tool.getLoweringType().ordinal() > LoweringType.BEFORE_GUARDS.ordinal()) {
+            if (graph.getGuardsStage().ordinal() > StructuredGraph.GuardsStage.FLOATING_GUARDS.ordinal()) {
                 UnsafeLoadNode load = (UnsafeLoadNode) n;
                 assert load.kind() != Kind.Illegal;
                 boolean compressible = (!load.object().isNullConstant() && load.accessKind() == Kind.Object);
@@ -678,14 +683,8 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
             StoreHubNode storeHub = (StoreHubNode) n;
             WriteNode hub = createWriteHub(graph, wordKind, storeHub.getObject(), storeHub.getValue());
             graph.replaceFixed(storeHub, hub);
-        } else if (n instanceof FixedGuardNode) {
-            FixedGuardNode node = (FixedGuardNode) n;
-            GuardingNode guard = tool.createGuard(node.condition(), node.getReason(), node.getAction(), node.isNegated());
-            ValueAnchorNode newAnchor = graph.add(new ValueAnchorNode(guard.asNode()));
-            node.replaceAtUsages(guard.asNode());
-            graph.replaceFixedWithFixed(node, newAnchor);
         } else if (n instanceof CommitAllocationNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 CommitAllocationNode commit = (CommitAllocationNode) n;
 
                 ValueNode[] allocations = new ValueNode[commit.getVirtualObjects().size()];
@@ -761,7 +760,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
                 graph.removeFixed(commit);
             }
         } else if (n instanceof OSRStartNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 OSRStartNode osrStart = (OSRStartNode) n;
                 StartNode newStart = graph.add(new StartNode());
                 LocalNode buffer = graph.unique(new LocalNode(0, StampFactory.forKind(wordKind())));
@@ -790,31 +789,31 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
         } else if (n instanceof CheckCastDynamicNode) {
             checkcastDynamicSnippets.lower((CheckCastDynamicNode) n);
         } else if (n instanceof InstanceOfNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 instanceofSnippets.lower((InstanceOfNode) n, tool);
             }
         } else if (n instanceof InstanceOfDynamicNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 instanceofSnippets.lower((InstanceOfDynamicNode) n, tool);
             }
         } else if (n instanceof NewInstanceNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_FSA) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
                 newObjectSnippets.lower((NewInstanceNode) n);
             }
         } else if (n instanceof NewArrayNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_FSA) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
                 newObjectSnippets.lower((NewArrayNode) n);
             }
         } else if (n instanceof DynamicNewArrayNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_FSA) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
                 newObjectSnippets.lower((DynamicNewArrayNode) n);
             }
         } else if (n instanceof MonitorEnterNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 monitorSnippets.lower((MonitorEnterNode) n, tool);
             }
         } else if (n instanceof MonitorExitNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_GUARDS) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {
                 monitorSnippets.lower((MonitorExitNode) n, tool);
             }
         } else if (n instanceof G1PreWriteBarrier) {
@@ -832,7 +831,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
         } else if (n instanceof G1ArrayRangePostWriteBarrier) {
             writeBarrierSnippets.lower((G1ArrayRangePostWriteBarrier) n, tool);
         } else if (n instanceof NewMultiArrayNode) {
-            if (tool.getLoweringType() == LoweringType.AFTER_FSA) {
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
                 newObjectSnippets.lower((NewMultiArrayNode) n);
             }
         } else if (n instanceof LoadExceptionObjectNode) {
@@ -840,8 +839,6 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
         } else if (n instanceof IntegerDivNode || n instanceof IntegerRemNode || n instanceof UnsignedDivNode || n instanceof UnsignedRemNode) {
             // Nothing to do for division nodes. The HotSpot signal handler catches divisions by
             // zero and the MIN_VALUE / -1 cases.
-        } else if (n instanceof UnwindNode || n instanceof DeoptimizeNode) {
-            // Nothing to do, using direct LIR lowering for these nodes.
         } else if (n instanceof BoxNode) {
             boxingSnippets.lower((BoxNode) n, tool);
         } else if (n instanceof UnboxNode) {
@@ -853,12 +850,11 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
     }
 
     private static boolean addReadBarrier(UnsafeLoadNode load) {
-        if (useG1GC()) {
-            if (load.object().kind() == Kind.Object && load.accessKind() == Kind.Object && !ObjectStamp.isObjectAlwaysNull(load.object())) {
-                ResolvedJavaType type = ObjectStamp.typeOrNull(load.object());
-                if (type != null && !type.isArray()) {
-                    return true;
-                }
+        if (useG1GC() && load.graph().getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS && load.object().kind() == Kind.Object && load.accessKind() == Kind.Object &&
+                        !ObjectStamp.isObjectAlwaysNull(load.object())) {
+            ResolvedJavaType type = ObjectStamp.typeOrNull(load.object());
+            if (type != null && !type.isArray()) {
+                return true;
             }
         }
         return false;
@@ -880,13 +876,13 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
     private FloatingReadNode createReadHub(StructuredGraph graph, Kind wordKind, ValueNode object, GuardingNode guard) {
         LocationNode location = ConstantLocationNode.create(FINAL_LOCATION, wordKind, config.hubOffset, graph);
         assert !object.isConstant() || object.asConstant().isNull();
-        return graph.add(new FloatingReadNode(object, location, null, StampFactory.forKind(wordKind()), guard, BarrierType.NONE, config.useCompressedKlassPointers));
+        return graph.unique(new FloatingReadNode(object, location, null, StampFactory.forKind(wordKind()), guard, BarrierType.NONE, useCompressedKlassPointers()));
     }
 
     private WriteNode createWriteHub(StructuredGraph graph, Kind wordKind, ValueNode object, ValueNode value) {
         LocationNode location = ConstantLocationNode.create(ANY_LOCATION, wordKind, config.hubOffset, graph);
         assert !object.isConstant() || object.asConstant().isNull();
-        return graph.add(new WriteNode(object, value, location, BarrierType.NONE, config.useCompressedKlassPointers));
+        return graph.add(new WriteNode(object, value, location, BarrierType.NONE, useCompressedKlassPointers()));
     }
 
     private static BarrierType getFieldLoadBarrierType(HotSpotResolvedJavaField loadField) {
@@ -944,7 +940,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
     }
 
     public int getScalingFactor(Kind kind) {
-        if (config.useCompressedOops && kind == Kind.Object) {
+        if (useCompressedOops() && kind == Kind.Object) {
             return this.graalRuntime.getTarget().arch.getSizeInBytes(Kind.Int);
         } else {
             return this.graalRuntime.getTarget().arch.getSizeInBytes(kind);
@@ -1151,7 +1147,7 @@ public abstract class HotSpotRuntime implements GraalCodeCacheProvider, Disassem
             case Int:
                 return Constant.forInt(base == null ? unsafe.getInt(displacement) : unsafe.getInt(base, displacement));
             case Long:
-                if (displacement == config().hubOffset && this.getGraalRuntime().getRuntime().config.useCompressedKlassPointers) {
+                if (displacement == config().hubOffset && useCompressedKlassPointers()) {
                     if (base == null) {
                         throw new GraalInternalError("Base of object must not be null");
                     } else {

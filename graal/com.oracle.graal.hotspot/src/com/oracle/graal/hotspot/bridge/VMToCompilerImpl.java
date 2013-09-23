@@ -29,6 +29,7 @@ import static com.oracle.graal.hotspot.CompilationTask.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.java.GraphBuilderPhase.*;
 import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.phases.common.InliningUtil.*;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -51,7 +52,6 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.options.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.PhasePlan.PhasePosition;
-import com.oracle.graal.phases.common.*;
 import com.oracle.graal.printer.*;
 import com.oracle.graal.replacements.*;
 
@@ -66,9 +66,6 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     @Option(help = "Print compilation queue activity periodically")
     private static final OptionValue<Boolean> PrintQueue = new OptionValue<>(false);
-
-    @Option(help = "")
-    public static final OptionValue<Integer> SlowQueueCutoff = new OptionValue<>(100000);
 
     @Option(help = "Time limit in milliseconds for bootstrap (-1 for no limit)")
     private static final OptionValue<Integer> TimedBootstrap = new OptionValue<>(-1);
@@ -108,8 +105,6 @@ public class VMToCompilerImpl implements VMToCompiler {
 
     private PrintStream log = System.out;
 
-    private boolean quietMeterAndTime;
-
     private long compilerStartTime;
 
     public VMToCompilerImpl(HotSpotGraalRuntime compiler) {
@@ -133,6 +128,8 @@ public class VMToCompilerImpl implements VMToCompiler {
     }
 
     public void startCompiler(boolean bootstrapEnabled) throws Throwable {
+
+        FastNodeClassRegistry.initialize();
 
         bootstrapRunning = bootstrapEnabled;
 
@@ -166,14 +163,26 @@ public class VMToCompilerImpl implements VMToCompiler {
         }
 
         if (config.ciTime) {
-            quietMeterAndTime = (Meter.getValue() == null && Time.getValue() == null);
-            DebugEnabled.setValue(true);
-            Meter.setValue("");
-            Time.setValue("");
+            BytecodesParsed.setConditional(false);
+            InlinedBytecodes.setConditional(false);
+            CompilationTime.setConditional(false);
         }
 
-        if (DebugEnabled.getValue()) {
+        if (Debug.isEnabled()) {
             DebugEnvironment.initialize(log);
+
+            String summary = DebugValueSummary.getValue();
+            if (summary != null) {
+                switch (summary) {
+                    case "Name":
+                    case "Partial":
+                    case "Complete":
+                    case "Thread":
+                        break;
+                    default:
+                        throw new GraalInternalError("Unsupported value for DebugSummaryValue: %s", summary);
+                }
+            }
         }
 
         assert VerifyHotSpotOptionsPhase.checkOptions();
@@ -248,6 +257,31 @@ public class VMToCompilerImpl implements VMToCompiler {
             DynamicCounterNode.enabled = true;
         }
         compilerStartTime = System.nanoTime();
+    }
+
+    /**
+     * A fast-path for {@link NodeClass} retrieval using {@link HotSpotResolvedObjectType}.
+     */
+    static class FastNodeClassRegistry extends NodeClass.Registry {
+
+        @SuppressWarnings("unused")
+        static void initialize() {
+            new FastNodeClassRegistry();
+        }
+
+        private static HotSpotResolvedObjectType type(Class<? extends Node> key) {
+            return (HotSpotResolvedObjectType) HotSpotResolvedObjectType.fromClass(key);
+        }
+
+        @Override
+        public NodeClass get(Class<? extends Node> key) {
+            return type(key).getNodeClass();
+        }
+
+        @Override
+        protected void registered(Class<? extends Node> key, NodeClass value) {
+            type(key).setNodeClass(value);
+        }
     }
 
     private final class BenchmarkCountersOutputStream extends CallbackOutputStream {
@@ -337,7 +371,7 @@ public class VMToCompilerImpl implements VMToCompiler {
         CompilationStatistics.clear(phase);
         if (graalRuntime.getConfig().ciTime) {
             parsedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, parsedBytecodesPerSecond, BytecodesParsed, CompilationTime, TimeUnit.SECONDS);
-            inlinedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, inlinedBytecodesPerSecond, InliningUtil.InlinedBytecodes, CompilationTime, TimeUnit.SECONDS);
+            inlinedBytecodesPerSecond = MetricRateInPhase.snapshot(phase, inlinedBytecodesPerSecond, InlinedBytecodes, CompilationTime, TimeUnit.SECONDS);
         }
     }
 
@@ -398,7 +432,7 @@ public class VMToCompilerImpl implements VMToCompiler {
 
         bootstrapRunning = false;
 
-        TTY.println(" in %d ms", System.currentTimeMillis() - startTime);
+        TTY.println(" in %d ms (compiled %d methods)", System.currentTimeMillis() - startTime, compileQueue.getCompletedTaskCount());
         if (graalRuntime.getCache() != null) {
             graalRuntime.getCache().clear();
         }
@@ -439,36 +473,50 @@ public class VMToCompilerImpl implements VMToCompiler {
             CompilationTask.withinEnqueue.set(Boolean.FALSE);
         }
 
-        if (Debug.isEnabled() && !quietMeterAndTime) {
+        if (Debug.isEnabled() && areDebugScopePatternsEnabled()) {
             List<DebugValueMap> topLevelMaps = DebugValueMap.getTopLevelMaps();
             List<DebugValue> debugValues = KeyRegistry.getDebugValues();
             if (debugValues.size() > 0) {
                 ArrayList<DebugValue> sortedValues = new ArrayList<>(debugValues);
                 Collections.sort(sortedValues);
 
-                if (SummarizeDebugValues.getValue()) {
-                    printSummary(topLevelMaps, sortedValues);
-                } else if (PerThreadDebugValues.getValue()) {
-                    for (DebugValueMap map : topLevelMaps) {
-                        TTY.println("Showing the results for thread: " + map.getName());
-                        map.group();
-                        map.normalize();
-                        printMap(map, sortedValues, 0);
-                    }
-                } else {
-                    DebugValueMap globalMap = new DebugValueMap("Global");
-                    for (DebugValueMap map : topLevelMaps) {
-                        if (SummarizePerPhase.getValue()) {
+                String summary = DebugValueSummary.getValue();
+                if (summary == null) {
+                    summary = "Complete";
+                }
+                switch (summary) {
+                    case "Name":
+                        printSummary(topLevelMaps, sortedValues);
+                        break;
+                    case "Partial": {
+                        DebugValueMap globalMap = new DebugValueMap("Global");
+                        for (DebugValueMap map : topLevelMaps) {
                             flattenChildren(map, globalMap);
-                        } else {
+                        }
+                        globalMap.normalize();
+                        printMap(new DebugValueScope(null, globalMap), sortedValues);
+                        break;
+                    }
+                    case "Complete": {
+                        DebugValueMap globalMap = new DebugValueMap("Global");
+                        for (DebugValueMap map : topLevelMaps) {
                             globalMap.addChild(map);
                         }
-                    }
-                    if (!SummarizePerPhase.getValue()) {
                         globalMap.group();
+                        globalMap.normalize();
+                        printMap(new DebugValueScope(null, globalMap), sortedValues);
+                        break;
                     }
-                    globalMap.normalize();
-                    printMap(globalMap, sortedValues, 0);
+                    case "Thread":
+                        for (DebugValueMap map : topLevelMaps) {
+                            TTY.println("Showing the results for thread: " + map.getName());
+                            map.group();
+                            map.normalize();
+                            printMap(new DebugValueScope(null, map), sortedValues);
+                        }
+                        break;
+                    default:
+                        throw new GraalInternalError("Unknown summary type: %s", summary);
                 }
             }
         }
@@ -501,7 +549,7 @@ public class VMToCompilerImpl implements VMToCompiler {
             long total = collectTotal(topLevelMaps, index);
             result.setCurrentValue(index, total);
         }
-        printMap(result, debugValues, 0);
+        printMap(new DebugValueScope(null, result), debugValues);
     }
 
     static long collectTotal(DebugValue value) {
@@ -526,21 +574,48 @@ public class VMToCompilerImpl implements VMToCompiler {
         return total;
     }
 
-    private static void printMap(DebugValueMap map, List<DebugValue> debugValues, int level) {
+    /**
+     * Tracks the scope when printing a {@link DebugValueMap}, allowing "empty" scopes to be
+     * omitted. An empty scope is one in which there are no (nested) non-zero debug values.
+     */
+    static class DebugValueScope {
 
-        printIndent(level);
-        TTY.println("%s", map.getName());
+        final DebugValueScope parent;
+        final int level;
+        final DebugValueMap map;
+        private boolean printed;
+
+        public DebugValueScope(DebugValueScope parent, DebugValueMap map) {
+            this.parent = parent;
+            this.map = map;
+            this.level = parent == null ? 0 : parent.level + 1;
+        }
+
+        public void print() {
+            if (!printed) {
+                printed = true;
+                if (parent != null) {
+                    parent.print();
+                }
+                printIndent(level);
+                TTY.println("%s", map.getName());
+            }
+        }
+    }
+
+    private static void printMap(DebugValueScope scope, List<DebugValue> debugValues) {
 
         for (DebugValue value : debugValues) {
-            long l = map.getCurrentValue(value.getIndex());
+            long l = scope.map.getCurrentValue(value.getIndex());
             if (l != 0) {
-                printIndent(level + 1);
+                scope.print();
+                printIndent(scope.level + 1);
                 TTY.println(value.getName() + "=" + value.toString(l));
             }
         }
 
-        for (DebugValueMap child : map.getChildren()) {
-            printMap(child, debugValues, level + 1);
+        for (DebugValueMap child : scope.map.getChildren()) {
+            printMap(new DebugValueScope(scope, child), debugValues);
         }
     }
 

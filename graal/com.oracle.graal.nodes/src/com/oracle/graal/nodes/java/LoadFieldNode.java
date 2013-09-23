@@ -36,7 +36,7 @@ import com.oracle.graal.nodes.virtual.*;
  * The {@code LoadFieldNode} represents a read of a static or instance field.
  */
 @NodeInfo(nameTemplate = "LoadField#{p#field/s}")
-public final class LoadFieldNode extends AccessFieldNode implements Canonicalizable, Node.IterableNodeType, VirtualizableRoot {
+public final class LoadFieldNode extends AccessFieldNode implements Canonicalizable, IterableNodeType, VirtualizableRoot {
 
     /**
      * Creates a new LoadFieldNode instance.
@@ -100,7 +100,7 @@ public final class LoadFieldNode extends AccessFieldNode implements Canonicaliza
                 }
                 constants[i] = constantValue;
             }
-            PhiNode newPhi = graph().add(new PhiNode(stamp(), phi.merge()));
+            PhiNode newPhi = graph().addWithoutUnique(new PhiNode(stamp(), phi.merge()));
             for (int i = 0; i < phi.valueCount(); i++) {
                 newPhi.addInput(ConstantNode.forConstant(constants[i], runtime, graph()));
             }

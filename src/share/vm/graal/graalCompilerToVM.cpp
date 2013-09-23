@@ -64,39 +64,24 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
   ResourceMark rm;
 
   int code_size = method->code_size();
-  jbyte* reconstituted_code = NULL;
+  jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
 
-  // replace all breakpoints - must be done before undoing any rewriting
-  if (method->number_of_breakpoints() > 0) {
-    reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
-    memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
-    BreakpointInfo* bp = InstanceKlass::cast(method->method_holder())->breakpoints();
-    for (; bp != NULL; bp = bp->next()) {
-      if (bp->match(method())) {
-        jbyte code = bp->orig_bytecode();
-        reconstituted_code[bp->bci()] = code;
-      }
-    }
-  }
-
+  guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
   // iterate over all bytecodes and replace non-Java bytecodes
-  if (RewriteBytecodes || RewriteFrequentPairs || InstanceKlass::cast(method->method_holder())->is_rewritten()) {
-    if (reconstituted_code == NULL) {
-      reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
-      memcpy(reconstituted_code, (jbyte *) method->code_base(), code_size);
+
+  for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
+    Bytecodes::Code code = s.code();
+    Bytecodes::Code raw_code = s.raw_code();
+    int bci = s.bci();
+    int len = s.instruction_size();
+
+    // Restore original byte code.
+    reconstituted_code[bci] = (jbyte) (s.is_wide()? Bytecodes::_wide : code);
+    if (len > 1) {
+      memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
     }
 
-    for (BytecodeStream s(method); s.next() != Bytecodes::_illegal; ) {
-      Bytecodes::Code code = s.code();
-      Bytecodes::Code raw_code = s.raw_code();
-      int bci = s.bci();
-
-      // Restore original byte code.  The Bytecodes::is_java_code check
-      // also avoids overwriting wide bytecodes.
-      if (!Bytecodes::is_java_code(raw_code)) {
-        reconstituted_code[bci] = (jbyte) code;
-      }
-
+    if (len > 1) {
       // Restore the big-endian constant pool indexes.
       // Cf. Rewriter::scan_method
       switch (code) {
@@ -141,11 +126,7 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
     }
   }
 
-  if (reconstituted_code == NULL) {
-    env->SetByteArrayRegion(result, 0, code_size, (jbyte *) method->code_base());
-  } else {
-    env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
-  }
+  env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
 
   return result;
 C2V_END
@@ -573,6 +554,12 @@ C2V_VMENTRY(jboolean, isTypeInitialized,(JNIEnv *, jobject, jobject hotspot_klas
   return InstanceKlass::cast(klass)->is_initialized();
 C2V_END
 
+C2V_VMENTRY(jboolean, isTypeLinked,(JNIEnv *, jobject, jobject hotspot_klass))
+  Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
+  assert(klass != NULL, "method must not be called for primitive types");
+  return InstanceKlass::cast(klass)->is_linked();
+C2V_END
+
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jobject hotspot_klass))
   Klass* klass = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaMirror(hotspot_klass));
   assert(klass != NULL, "method must not be called for primitive types");
@@ -928,35 +915,17 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
         if (TraceGPUInteraction) {
           tty->print_cr("installCode0: ExternalCompilationResult");
         }
-        HotSpotInstalledCode::set_start(installed_code_handle, ExternalCompilationResult::entryPoint(comp_result));
+        HotSpotInstalledCode::set_codeStart(installed_code_handle, ExternalCompilationResult::entryPoint(comp_result));
       } else {
-        HotSpotInstalledCode::set_start(installed_code_handle, (jlong) cb->code_begin());
+        HotSpotInstalledCode::set_size(installed_code_handle, cb->size());
+        HotSpotInstalledCode::set_codeStart(installed_code_handle, (jlong) cb->code_begin());
+        HotSpotInstalledCode::set_codeSize(installed_code_handle, cb->code_size());
       }
       nmethod* nm = cb->as_nmethod_or_null();
       assert(nm == NULL || !installed_code_handle->is_scavengable() || nm->on_scavenge_root_list(), "nm should be scavengable if installed_code is scavengable");
     }
   }
   return result;
-C2V_END
-
-C2V_VMENTRY(jobject, getCode, (JNIEnv *jniEnv, jobject,  jlong codeBlob))
-  ResourceMark rm;
-  HandleMark hm;
-
-  CodeBlob* cb = (CodeBlob*) (address) codeBlob;
-  if (cb == NULL) {
-    return NULL;
-  }
-  if (cb->is_nmethod()) {
-    nmethod* nm = (nmethod*) cb;
-    if (!nm->is_alive()) {
-      return NULL;
-    }
-  }
-  int length = cb->code_size();
-  arrayOop codeCopy = oopFactory::new_byteArray(length, CHECK_0);
-  memcpy(codeCopy->base(T_BYTE), cb->code_begin(), length);
-  return JNIHandles::make_local(codeCopy);
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBlob))
@@ -1235,6 +1204,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getInstanceFields",             CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_FIELD,                       FN_PTR(getInstanceFields)},
   {CC"getMethods",                    CC"("HS_RESOLVED_TYPE")["HS_RESOLVED_METHOD,                      FN_PTR(getMethods)},
   {CC"isTypeInitialized",             CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeInitialized)},
+  {CC"isTypeLinked",                  CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(isTypeLinked)},
   {CC"hasFinalizableSubclass",        CC"("HS_RESOLVED_TYPE")Z",                                        FN_PTR(hasFinalizableSubclass)},
   {CC"initializeType",                CC"("HS_RESOLVED_TYPE")V",                                        FN_PTR(initializeType)},
   {CC"getMaxCallTargetOffset",        CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
@@ -1244,7 +1214,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getJavaField",                  CC"("REFLECT_FIELD")"HS_RESOLVED_FIELD,                           FN_PTR(getJavaField)},
   {CC"initializeConfiguration",       CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
   {CC"installCode0",                  CC"("HS_COMPILED_CODE HS_INSTALLED_CODE"[Z)I",                    FN_PTR(installCode0)},
-  {CC"getCode",                       CC"(J)[B",                                                        FN_PTR(getCode)},
   {CC"disassembleCodeBlob",           CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",  CC"(["OBJECT HS_INSTALLED_CODE")"OBJECT,                          FN_PTR(executeCompiledMethodVarargs)},
   {CC"getDeoptedLeafGraphIds",        CC"()[J",                                                         FN_PTR(getDeoptedLeafGraphIds)},

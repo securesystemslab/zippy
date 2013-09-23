@@ -25,7 +25,6 @@ package com.oracle.graal.truffle.nodes.frame;
 import sun.misc.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -71,19 +70,19 @@ public class FrameGetNode extends FrameAccessNode implements IterableNodeType, V
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         assert !(getFrame() instanceof NewFrameNode);
         StructuredGraph structuredGraph = graph();
 
         LoadFieldNode loadFieldNode = graph().add(new LoadFieldNode(getFrame(), field));
         structuredGraph.addBeforeFixed(this, loadFieldNode);
         FixedWithNextNode loadNode;
-        if (!getSlotKind().isPrimitive()) {
+        if (isTagAccess()) {
+            ValueNode slotIndex = getSlotOffset(1, tool.getRuntime());
+            loadNode = graph().add(new LoadIndexedNode(loadFieldNode, slotIndex, getSlotKind()));
+        } else if (!getSlotKind().isPrimitive()) {
             ValueNode slotIndex = getSlotOffset(1, tool.getRuntime());
             loadNode = graph().add(new LoadIndexedNode(loadFieldNode, slotIndex, Kind.Object));
-        } else if (getSlotKind() == Kind.Byte) {
-            ValueNode slotIndex = getSlotOffset(1, tool.getRuntime());
-            loadNode = graph().add(new LoadIndexedNode(loadFieldNode, slotIndex, Kind.Byte));
         } else {
             ValueNode slotOffset = getSlotOffset(Unsafe.ARRAY_LONG_INDEX_SCALE, tool.getRuntime());
             loadNode = graph().add(new UnsafeLoadNode(loadFieldNode, Unsafe.ARRAY_LONG_BASE_OFFSET, slotOffset, getSlotKind()));

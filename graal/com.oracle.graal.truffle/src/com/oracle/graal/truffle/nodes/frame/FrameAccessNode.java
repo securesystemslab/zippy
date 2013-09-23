@@ -34,6 +34,7 @@ import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.truffle.*;
 import com.oracle.graal.truffle.nodes.*;
+import com.oracle.graal.truffle.substitutions.*;
 import com.oracle.truffle.api.frame.*;
 
 /**
@@ -70,7 +71,7 @@ public abstract class FrameAccessNode extends FixedWithNextNode implements Simpl
         return getConstantFrameSlot().getIndex();
     }
 
-    protected boolean isConstantFrameSlot() {
+    public boolean isConstantFrameSlot() {
         return slot.isConstant() && !slot.isNullConstant();
     }
 
@@ -113,12 +114,15 @@ public abstract class FrameAccessNode extends FixedWithNextNode implements Simpl
     }
 
     protected final boolean isValidAccessKind() {
-        if (getSlotKind() == Kind.Byte) {
-            // tag access
+        if (isTagAccess()) {
             return true;
         }
 
         return getSlotKind() == getGraalKind(getConstantFrameSlot().getKind());
+    }
+
+    protected final boolean isTagAccess() {
+        return field == FrameWithoutBoxingSubstitutions.TAGS_FIELD;
     }
 
     private static Kind getGraalKind(FrameSlotKind kind) {
@@ -129,6 +133,8 @@ public abstract class FrameAccessNode extends FixedWithNextNode implements Simpl
                 return Kind.Long;
             case Int:
                 return Kind.Int;
+            case Byte:
+                return Kind.Byte;
             case Double:
                 return Kind.Double;
             case Float:
@@ -156,6 +162,9 @@ public abstract class FrameAccessNode extends FixedWithNextNode implements Simpl
     @Override
     public Map<Object, Object> getDebugProperties(Map<Object, Object> map) {
         Map<Object, Object> properties = super.getDebugProperties(map);
+        if (isTagAccess()) {
+            properties.put("slotKind", "Tag");
+        }
         if (isConstantFrameSlot()) {
             properties.put("frameSlot", getConstantFrameSlot().toString());
         }

@@ -32,12 +32,16 @@ import com.oracle.graal.nodes.type.*;
  * A floating read of a value from memory specified in terms of an object base and an object
  * relative location. This node does not null check the object.
  */
-public final class FloatingReadNode extends FloatingAccessNode implements Node.IterableNodeType, LIRLowerable, Canonicalizable {
+public final class FloatingReadNode extends FloatingAccessNode implements IterableNodeType, LIRLowerable, Canonicalizable {
 
     @Input private Node lastLocationAccess;
 
     public FloatingReadNode(ValueNode object, LocationNode location, Node lastLocationAccess, Stamp stamp) {
         this(object, location, lastLocationAccess, stamp, null, BarrierType.NONE, false);
+    }
+
+    public FloatingReadNode(ValueNode object, LocationNode location, Node lastLocationAccess, Stamp stamp, GuardingNode guard) {
+        this(object, location, lastLocationAccess, stamp, guard, BarrierType.NONE, false);
     }
 
     public FloatingReadNode(ValueNode object, LocationNode location, Node lastLocationAccess, Stamp stamp, GuardingNode guard, BarrierType barrierType, boolean compressible) {
@@ -47,6 +51,11 @@ public final class FloatingReadNode extends FloatingAccessNode implements Node.I
 
     public Node lastLocationAccess() {
         return lastLocationAccess;
+    }
+
+    public void setLastLocationAccess(Node newlla) {
+        updateUsages(lastLocationAccess, newlla);
+        lastLocationAccess = newlla;
     }
 
     @Override

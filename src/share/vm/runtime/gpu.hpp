@@ -26,6 +26,9 @@
 #define SHARE_VM_RUNTIME_GPU_HPP
 
 #include "runtime/atomic.hpp"
+#include "oops/symbol.hpp"
+
+class PTXKernelArguments;
 
 // gpu defines the interface to the graphics processor; this includes traditional
 // GPU services such as graphics kernel load and execute.
@@ -33,17 +36,17 @@
 
 class gpu: AllStatic {
 public:
+
+  enum TargetGPUIL { NONE = 0, PTX = 1, HSAIL = 2};
   static void init(void);
 
   static void probe_gpu();
 
-  static void probe_linkage();
-  
   static void initialize_gpu();
   
   static void * generate_kernel(unsigned char *code, int code_len, const char *name);
 
-  static bool execute_kernel(address kernel, JavaCallArguments * jca);
+  static bool execute_kernel(address kernel, PTXKernelArguments & ptxka, JavaValue & ret);
 
   static void set_available(bool value) {
     _available = value;
@@ -63,10 +66,19 @@ public:
 
   static bool has_gpu_linkage() { return _gpu_linkage; }
 
+  static void set_target_il_type(TargetGPUIL value) {
+    _targetIL = value;
+  }
+
+  static enum gpu::TargetGPUIL get_target_il_type() {
+    return _targetIL;
+  }
+
 protected:
   static bool _available;
   static bool _gpu_linkage;
   static bool _initialized;
+  static TargetGPUIL _targetIL;
 
   // Platform dependent stuff
 #ifdef TARGET_OS_FAMILY_linux
@@ -80,6 +92,7 @@ protected:
 # include "gpu_bsd.hpp"
 #endif
 
+public:
 # include "ptx/vm/gpu_ptx.hpp"
 
 };

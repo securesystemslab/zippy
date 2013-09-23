@@ -42,8 +42,7 @@ public class EarlyReadEliminationTest extends PEAReadEliminationTest {
         graph = parse(snippet);
         Assumptions assumptions = new Assumptions(false);
         HighTierContext context = new HighTierContext(runtime(), assumptions, replacements, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
-        new InliningPhase().apply(graph, context);
-        CanonicalizerPhase canonicalizer = new CanonicalizerPhase(true);
-        new EarlyReadEliminationPhase(canonicalizer).apply(graph, context);
+        new InliningPhase(new CanonicalizerPhase(true)).apply(graph, context);
+        new EarlyReadEliminationPhase(new CanonicalizerPhase(true)).apply(graph, context);
     }
 }

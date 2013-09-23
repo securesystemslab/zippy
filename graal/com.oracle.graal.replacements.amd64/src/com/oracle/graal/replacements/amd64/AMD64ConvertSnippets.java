@@ -172,9 +172,9 @@ public class AMD64ConvertSnippets implements Snippets {
             // Convert node are replaced by the placeholder which in turn is replaced by the
             // snippet.
 
-            LocalNode replacee = graph.add(new LocalNode(Integer.MAX_VALUE, convert.stamp()));
+            LocalNode replacee = graph.addWithoutUnique(new LocalNode(Integer.MAX_VALUE, convert.stamp()));
             convert.replaceAtUsages(replacee);
-            Arguments args = new Arguments(key);
+            Arguments args = new Arguments(key, graph.getGuardsStage());
             args.add("input", convert.value());
             args.add("result", convert.graph().unique(new AMD64ConvertNode(convert.opcode, convert.value())));
 

@@ -37,7 +37,7 @@ library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
 library@JYTHON@urls=http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
 
 distribution@GRAAL@path=graal.jar
-distribution@GRAAL@dependencies=com.oracle.graal.hotspot.amd64,com.oracle.graal.truffle,com.oracle.graal.truffle.printer,com.oracle.graal.hotspot.sparc,com.oracle.graal.hotspot,com.oracle.graal.compiler.hsail
+distribution@GRAAL@dependencies=com.oracle.graal.hotspot.amd64,com.oracle.graal.hotspot.ptx,com.oracle.graal.truffle,com.oracle.graal.truffle.printer,com.oracle.graal.hotspot.sparc,com.oracle.graal.hotspot,com.oracle.graal.compiler.hsail
 
 # graal.api.runtime
 project@com.oracle.graal.api.runtime@subDir=graal
@@ -143,6 +143,15 @@ project@com.oracle.graal.hotspot.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.sparc@javaCompliance=1.7
 project@com.oracle.graal.hotspot.sparc@workingSets=Graal,HotSpot,SPARC
 
+# graal.hotspot.ptx
+project@com.oracle.graal.hotspot.ptx@subDir=graal
+project@com.oracle.graal.hotspot.ptx@sourceDirs=src
+project@com.oracle.graal.hotspot.ptx@dependencies=com.oracle.graal.hotspot,com.oracle.graal.ptx
+project@com.oracle.graal.hotspot.ptx@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.ptx@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.hotspot.ptx@javaCompliance=1.7
+project@com.oracle.graal.hotspot.ptx@workingSets=Graal,HotSpot,PTX
+
 # graal.hotspot.server
 project@com.oracle.graal.hotspot.server@subDir=graal
 project@com.oracle.graal.hotspot.server@sourceDirs=src
@@ -186,7 +195,7 @@ project@com.oracle.graal.options@workingSets=Graal,Codegen
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
-project@com.oracle.graal.graph@dependencies=
+project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug
 project@com.oracle.graal.graph@javaCompliance=1.7
 project@com.oracle.graal.graph@workingSets=Graal,Graph
 
@@ -232,7 +241,7 @@ project@com.oracle.graal.lir.amd64@workingSets=Graal,LIR,AMD64
 # graal.lir.ptx
 project@com.oracle.graal.lir.ptx@subDir=graal
 project@com.oracle.graal.lir.ptx@sourceDirs=src
-project@com.oracle.graal.lir.ptx@dependencies=com.oracle.graal.asm.ptx,com.oracle.graal.lir
+project@com.oracle.graal.lir.ptx@dependencies=com.oracle.graal.asm.ptx
 project@com.oracle.graal.lir.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir.ptx@javaCompliance=1.7
 project@com.oracle.graal.lir.ptx@workingSets=Graal,LIR,PTX
@@ -297,7 +306,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.api.code,com.oracle.graal.graph,com.oracle.graal.debug,com.oracle.graal.api.replacements
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.api.code
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.7
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
@@ -540,7 +549,7 @@ project@com.oracle.graal.asm.hsail@javaCompliance=1.7
 # graal.asm.ptx
 project@com.oracle.graal.asm.ptx@subDir=graal
 project@com.oracle.graal.asm.ptx@sourceDirs=src
-project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.asm
+project@com.oracle.graal.asm.ptx@dependencies=com.oracle.graal.lir
 project@com.oracle.graal.asm.ptx@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.ptx@javaCompliance=1.7
 project@com.oracle.graal.asm.ptx@workingSets=Graal,Assembler,PTX

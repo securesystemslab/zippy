@@ -39,7 +39,6 @@ import com.oracle.graal.hotspot.phases.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.HeapAccess.BarrierType;
 import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.spi.Lowerable.LoweringType;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
@@ -153,7 +152,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test5() throws Exception {
-        test("test5Snippet", useG1GC() ? 9 : 4);
+        test("test5Snippet", useG1GC() ? 1 : 0);
     }
 
     public static Object test5Snippet() throws Exception {
@@ -195,7 +194,7 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
      */
     @Test
     public void test10() throws Exception {
-        test2("testUnsafeLoad", wr, new Long(8), new Integer(8));
+        test2("testUnsafeLoad", wr, new Long(useCompressedOops() ? 6 : 8), new Integer(useCompressedOops() ? 6 : 8));
     }
 
     /**
@@ -249,10 +248,10 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
                 StructuredGraph graph = parse(snippet);
                 HighTierContext highContext = new HighTierContext(runtime(), new Assumptions(false), replacements, null, getDefaultPhasePlan(), OptimisticOptimizations.ALL);
                 MidTierContext midContext = new MidTierContext(runtime(), new Assumptions(false), replacements, runtime().getTarget(), OptimisticOptimizations.ALL);
-                new InliningPhase(new InliningPhase.InlineEverythingPolicy()).apply(graph, highContext);
-                new LoweringPhase(LoweringType.BEFORE_GUARDS).apply(graph, highContext);
+                new InliningPhase(new InliningPhase.InlineEverythingPolicy(), new CanonicalizerPhase(true)).apply(graph, highContext);
+                new LoweringPhase(new CanonicalizerPhase(true)).apply(graph, highContext);
                 new GuardLoweringPhase().apply(graph, midContext);
-                new LoweringPhase(LoweringType.AFTER_GUARDS).apply(graph, midContext);
+                new LoweringPhase(new CanonicalizerPhase(true)).apply(graph, midContext);
                 new WriteBarrierAdditionPhase().apply(graph);
                 Debug.dump(graph, "After Write Barrier Addition");
 
@@ -262,29 +261,29 @@ public class WriteBarrierAdditionTest extends GraalCompilerTest {
                 } else {
                     barriers = graph.getNodes(SerialWriteBarrier.class).count();
                 }
-                Assert.assertTrue(barriers == expectedBarriers);
-                for (WriteNode write : graph.getNodes(WriteNode.class)) {
+                Assert.assertEquals(expectedBarriers, barriers);
+                for (WriteNode write : graph.getNodes().filter(WriteNode.class)) {
                     if (useG1GC()) {
                         if (write.getBarrierType() != BarrierType.NONE) {
-                            Assert.assertTrue(write.successors().count() == 1);
+                            Assert.assertEquals(1, write.successors().count());
                             Assert.assertTrue(write.next() instanceof G1PostWriteBarrier);
                             Assert.assertTrue(write.predecessor() instanceof G1PreWriteBarrier);
                         }
                     } else {
                         if (write.getBarrierType() != BarrierType.NONE) {
-                            Assert.assertTrue(write.successors().count() == 1);
+                            Assert.assertEquals(1, write.successors().count());
                             Assert.assertTrue(write.next() instanceof SerialWriteBarrier);
                         }
                     }
                 }
 
-                for (ReadNode read : graph.getNodes(ReadNode.class)) {
+                for (ReadNode read : graph.getNodes().filter(ReadNode.class)) {
                     if (read.getBarrierType() != BarrierType.NONE) {
                         if (read.location() instanceof ConstantLocationNode) {
-                            Assert.assertTrue(((ConstantLocationNode) (read.location())).getDisplacement() == referentOffset());
+                            Assert.assertEquals(referentOffset(), ((ConstantLocationNode) (read.location())).getDisplacement());
                         }
                         Assert.assertTrue(useG1GC());
-                        Assert.assertTrue(read.getBarrierType() == BarrierType.PRECISE);
+                        Assert.assertEquals(BarrierType.PRECISE, read.getBarrierType());
                         Assert.assertTrue(read.next() instanceof G1ReferentFieldReadBarrier);
                     }
                 }

@@ -35,11 +35,23 @@ public final class FrameUtil {
      * @param value the new value of the local variable
      */
     public static void setObjectSafe(Frame frame, FrameSlot slot, Object value) {
-        if (slot.getKind() != FrameSlotKind.Object) {
-            slot.setKind(FrameSlotKind.Object);
+        frame.setObject(slot, value);
+    }
+
+    /**
+     * Write access to a local variable of type {@code byte}.
+     * 
+     * Sets the frame slot type to {@code byte} if it isn't already.
+     * 
+     * @param slot the slot of the local variable
+     * @param value the new value of the local variable
+     */
+    public static void setByteSafe(Frame frame, FrameSlot slot, byte value) {
+        if (slot.getKind() != FrameSlotKind.Byte) {
+            slot.setKind(FrameSlotKind.Byte);
         }
         try {
-            frame.setObject(slot, value);
+            frame.setByte(slot, value);
         } catch (FrameSlotTypeException e) {
             throw new IllegalStateException();
         }

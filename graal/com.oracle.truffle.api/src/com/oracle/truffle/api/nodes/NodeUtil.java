@@ -37,7 +37,7 @@ import com.oracle.truffle.api.nodes.Node.Children;
 /**
  * Utility class that manages the special access methods for node instances.
  */
-public class NodeUtil {
+public final class NodeUtil {
 
     /**
      * Interface that allows the customization of field offsets used for {@link Unsafe} field
@@ -274,7 +274,7 @@ public class NodeUtil {
         return array;
     }
 
-    protected static final Unsafe unsafe = getUnsafe();
+    private static final Unsafe unsafe = getUnsafe();
 
     private static Unsafe getUnsafe() {
         try {
@@ -364,6 +364,7 @@ public class NodeUtil {
             if (unsafe.getObject(parent, fieldOffset) == oldChild) {
                 assert assertAssignable(nodeClass, fieldOffset, newChild);
                 unsafe.putObject(parent, fieldOffset, newChild);
+                return;
             }
         }
 
@@ -376,6 +377,7 @@ public class NodeUtil {
                     if (array[i] == oldChild) {
                         assert assertAssignable(nodeClass, fieldOffset, newChild);
                         array[i] = newChild;
+                        return;
                     }
                 }
             }
@@ -421,6 +423,24 @@ public class NodeUtil {
         T[] result = Arrays.copyOf(first, first.length + second.length);
         System.arraycopy(second, 0, result, first.length, second.length);
         return result;
+    }
+
+    /**
+     * Get the nth parent of a node, where the 0th parent is the node itself. Returns null if there
+     * are less than n ancestors.
+     */
+    public static Node getNthParent(Node node, int n) {
+        Node parent = node;
+
+        for (int i = 0; i < n; i++) {
+            parent = parent.getParent();
+
+            if (parent == null) {
+                return null;
+            }
+        }
+
+        return parent;
     }
 
     /** find annotation in class/interface hierarchy. */

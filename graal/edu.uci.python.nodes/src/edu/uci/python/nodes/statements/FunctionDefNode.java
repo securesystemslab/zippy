@@ -26,8 +26,6 @@ package edu.uci.python.nodes.statements;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotTypeException;
-import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
@@ -61,25 +59,14 @@ public class FunctionDefNode extends StatementNode {
     public void executeVoid(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
         PFunction fn = new PFunction(name, parameters, callTarget);
-
-        try {
-            frame.setObject(slot, fn);
-        } catch (FrameSlotTypeException e) {
-            FrameUtil.setObjectSafe(frame, slot, fn);
-        }
+        frame.setObject(slot, fn);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         parameters.evaluateDefaults(frame);
         PFunction fn = new PFunction(name, parameters, callTarget);
-
-        try {
-            frame.setObject(slot, fn);
-        } catch (FrameSlotTypeException e) {
-            FrameUtil.setObjectSafe(frame, slot, fn);
-        }
-
+        frame.setObject(slot, fn);
         return null;
     }
 

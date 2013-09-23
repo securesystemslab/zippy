@@ -24,26 +24,31 @@ package com.oracle.graal.compiler.ptx.test;
 
 import java.lang.reflect.Method;
 
-import org.junit.Test;
+import org.junit.*;
 
-public class ArrayTest extends PTXTestBase {
+@Ignore
+public class ArrayPTXTest extends PTXTestBase {
 
     @Test
     public void testArray() {
-        compile("testArray1I");
-        compile("testArray1J");
-        compile("testArray1B");
-        compile("testArray1S");
-        compile("testArray1C");
-        compile("testArray1F");
-        compile("testArray1D");
-        compile("testArray1L");
-        compile("testStoreArray1I");
-        compile("testStoreArray1J");
-        compile("testStoreArray1B");
-        compile("testStoreArray1S");
-        compile("testStoreArray1F");
-        compile("testStoreArray1D");
+        int[] arrayI = {
+            1, 2, 3, 4, 5
+        };
+        Integer resI = (Integer) invoke(compile("testArray1I"), arrayI, 3);
+        printReport("testArray1I: " + resI);
+        // compile("testArray1J");
+        // compile("testArray1B");
+        // compile("testArray1S");
+        // compile("testArray1C");
+        // compile("testArray1F");
+        // compile("testArray1D");
+        // compile("testArray1L");
+        // compile("testStoreArray1I");
+        // compile("testStoreArray1J");
+        // compile("testStoreArray1B");
+        // compile("testStoreArray1S");
+        // compile("testStoreArray1F");
+        // compile("testStoreArray1D");
     }
 
     public static int testArray1I(int[] array, int i) {
@@ -102,9 +107,16 @@ public class ArrayTest extends PTXTestBase {
         array[i] = val;
     }
 
+    public static void printReport(String message) {
+        // CheckStyle: stop system..print check
+        System.out.println(message);
+        // CheckStyle: resume system..print check
+
+    }
+
     public static void main(String[] args) {
-        ArrayTest test = new ArrayTest();
-        for (Method m : ArrayTest.class.getMethods()) {
+        ArrayPTXTest test = new ArrayPTXTest();
+        for (Method m : ArrayPTXTest.class.getMethods()) {
             String name = m.getName();
             if (m.getAnnotation(Test.class) == null && name.startsWith("test")) {
                 // CheckStyle: stop system..print check

@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.lir.ptx;
 
+import static com.oracle.graal.asm.ptx.PTXAssembler.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
@@ -116,100 +117,6 @@ public class PTXMove {
         }
     }
 
-    public static class LoadOp extends PTXLIRInstruction {
-
-        private final Kind kind;
-        @Def({REG}) protected AllocatableValue result;
-        @Use({COMPOSITE}) protected PTXAddressValue address;
-        @State protected LIRFrameState state;
-
-        public LoadOp(Kind kind, AllocatableValue result, PTXAddressValue address, LIRFrameState state) {
-            this.kind = kind;
-            this.result = result;
-            this.address = address;
-            this.state = state;
-        }
-
-        @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
-            PTXAddress addr = address.toAddress();
-            switch (kind) {
-                case Byte:
-                    masm.ld_global_s8(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Short:
-                    masm.ld_global_s16(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Char:
-                    masm.ld_global_u16(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Int:
-                    masm.ld_global_s32(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Long:
-                    masm.ld_global_s64(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Float:
-                    masm.ld_global_f32(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Double:
-                    masm.ld_global_f64(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                case Object:
-                    masm.ld_global_u32(asRegister(result), addr.getBase(), addr.getDisplacement());
-                    break;
-                default:
-                    throw GraalInternalError.shouldNotReachHere();
-            }
-        }
-    }
-
-    public static class StoreOp extends PTXLIRInstruction {
-
-        private final Kind kind;
-        @Use({COMPOSITE}) protected PTXAddressValue address;
-        @Use({REG}) protected AllocatableValue input;
-        @State protected LIRFrameState state;
-
-        public StoreOp(Kind kind, PTXAddressValue address, AllocatableValue input, LIRFrameState state) {
-            this.kind = kind;
-            this.address = address;
-            this.input = input;
-            this.state = state;
-        }
-
-        @Override
-        public void emitCode(TargetMethodAssembler tasm, PTXAssembler masm) {
-            assert isRegister(input);
-            PTXAddress addr = address.toAddress();
-            switch (kind) {
-                case Byte:
-                    masm.st_global_s8(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                case Short:
-                    masm.st_global_s8(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                case Int:
-                    masm.st_global_s32(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                case Long:
-                    masm.st_global_s64(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                case Float:
-                    masm.st_global_f32(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                case Double:
-                    masm.st_global_f64(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                case Object:
-                    masm.st_global_s32(addr.getBase(), addr.getDisplacement(), asRegister(input));
-                    break;
-                default:
-                    throw GraalInternalError.shouldNotReachHere("missing: " + address.getKind());
-            }
-        }
-    }
-
     public static class LeaOp extends PTXLIRInstruction {
 
         @Def({REG}) protected AllocatableValue result;
@@ -282,24 +189,19 @@ public class PTXMove {
     }
 
     private static void reg2reg(PTXAssembler masm, Value result, Value input) {
-        if (asRegister(input).equals(asRegister(result))) {
+        Variable dest = (Variable) result;
+        Variable source = (Variable) input;
+
+        if (dest.index == source.index) {
             return;
         }
         switch (input.getKind()) {
             case Int:
-                masm.mov_s32(asRegister(result), asRegister(input));
-                break;
             case Long:
-                masm.mov_s64(asRegister(result), asRegister(input));
-                break;
             case Float:
-                masm.mov_f32(asRegister(result), asRegister(input));
-                break;
             case Double:
-                masm.mov_f64(asRegister(result), asRegister(input));
-                break;
             case Object:
-                masm.mov_u64(asRegister(result), asRegister(input));
+                new Mov(dest, source).emit(masm);
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + input.getKind());
@@ -307,27 +209,24 @@ public class PTXMove {
     }
 
     private static void const2reg(TargetMethodAssembler tasm, PTXAssembler masm, Value result, Constant input) {
+        Variable dest = (Variable) result;
+
         switch (input.getKind().getStackKind()) {
             case Int:
-                if (tasm.runtime.needsDataPatch(input)) {
-                    tasm.recordDataReferenceInCode(input, 0, true);
-                }
-                masm.mov_s32(asRegister(result), input.asInt());
-                break;
             case Long:
                 if (tasm.runtime.needsDataPatch(input)) {
                     tasm.recordDataReferenceInCode(input, 0, true);
                 }
-                masm.mov_s64(asRegister(result), input.asLong());
+                new Mov(dest, input).emit(masm);
                 break;
             case Object:
                 if (input.isNull()) {
-                    masm.mov_u64(asRegister(result), 0x0L);
+                    new Mov(dest, Constant.forLong(0x0L)).emit(masm);
                 } else if (tasm.target.inlineObjects) {
                     tasm.recordDataReferenceInCode(input, 0, true);
-                    masm.mov_u64(asRegister(result), 0xDEADDEADDEADDEADL);
+                    new Mov(dest, Constant.forLong(0xDEADDEADDEADDEADL)).emit(masm);
                 } else {
-                    masm.mov_u64(asRegister(result), tasm.recordDataReferenceInCode(input, 0, false));
+                    // new Mov(dest, tasm.recordDataReferenceInCode(input, 0, false));
                 }
                 break;
             default:

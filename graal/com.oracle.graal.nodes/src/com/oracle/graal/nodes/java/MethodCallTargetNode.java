@@ -30,7 +30,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
-public class MethodCallTargetNode extends CallTargetNode implements Node.IterableNodeType, Canonicalizable {
+public class MethodCallTargetNode extends CallTargetNode implements IterableNodeType, Canonicalizable {
 
     public enum InvokeKind {
         Interface, Special, Static, Virtual
@@ -128,7 +128,7 @@ public class MethodCallTargetNode extends CallTargetNode implements Node.Iterabl
     public ValueNode canonical(CanonicalizerTool tool) {
         if (!isStatic()) {
             ValueNode receiver = receiver();
-            if (receiver != null && ObjectStamp.isExactType(receiver)) {
+            if (receiver != null && ObjectStamp.isExactType(receiver) && ObjectStamp.typeOrNull(receiver) != null) {
                 if (invokeKind == InvokeKind.Interface || invokeKind == InvokeKind.Virtual) {
                     ResolvedJavaMethod method = ObjectStamp.typeOrNull(receiver).resolveMethod(targetMethod);
                     if (method != null) {

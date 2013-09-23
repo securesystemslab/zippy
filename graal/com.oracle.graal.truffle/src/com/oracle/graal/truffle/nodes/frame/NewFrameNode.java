@@ -27,7 +27,6 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -59,7 +58,7 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
     }
 
     public NewFrameNode(ValueNode descriptor, ValueNode caller, ValueNode arguments) {
-        this(StampFactory.declaredNonNull(FRAME_TYPE), descriptor, caller, arguments);
+        this(StampFactory.exactNonNull(FRAME_TYPE), descriptor, caller, arguments);
     }
 
     public ValueNode getDescriptor() {
@@ -92,12 +91,12 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
         throw new RuntimeException("Frame field not found: " + fieldName);
     }
 
-    public static class VirtualOnlyInstanceNode extends VirtualInstanceNode implements Node.IterableNodeType {
+    public static class VirtualOnlyInstanceNode extends VirtualInstanceNode {
 
         private boolean allowMaterialization;
 
         public VirtualOnlyInstanceNode(ResolvedJavaType type, ResolvedJavaField[] fields) {
-            super(type, fields);
+            super(type, fields, false);
         }
 
         @Override

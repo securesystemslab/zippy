@@ -51,7 +51,7 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -76,8 +76,8 @@ public final class InstanceOfNode extends LogicNode implements Canonicalizable, 
                 } else {
                     // the instanceof matches if the object is non-null, so return true depending on
                     // the null-ness.
-                    negateUsages();
-                    return graph().unique(new IsNullNode(object()));
+                    IsNullNode isNull = graph().unique(new IsNullNode(object()));
+                    return graph().unique(new LogicNegationNode(isNull));
                 }
             } else {
                 if (objectStamp.isExactType()) {

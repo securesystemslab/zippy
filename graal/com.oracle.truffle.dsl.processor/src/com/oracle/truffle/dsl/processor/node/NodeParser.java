@@ -199,6 +199,10 @@ public class NodeParser extends TemplateParser<NodeData> {
         }
 
         for (NodeData splittedNode : nodes) {
+            if (templateType.getModifiers().contains(Modifier.PRIVATE) && splittedNode.getSpecializations().size() > 0) {
+                splittedNode.addError("Classes containing a @%s annotation must not be private.", Specialization.class.getSimpleName());
+            }
+
             finalizeSpecializations(elements, splittedNode);
             verifyNode(splittedNode, elements);
             createPolymorphicSpecializations(splittedNode);
@@ -328,10 +332,12 @@ public class NodeParser extends TemplateParser<NodeData> {
         nodeData.setNodeContainer(nodeContainer != null);
         nodeData.setTypeSystem(typeSystem);
         nodeData.setFields(parseFields(typeHierarchy, elements));
-        parsedNodes.put(Utils.getQualifiedName(templateType), nodeData);
-        // parseChildren invokes cyclic parsing.
-        nodeData.setChildren(parseChildren(elements, typeHierarchy));
+        nodeData.setChildren(parseChildren(nodeData, elements, typeHierarchy));
         nodeData.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, nodeData).parse(elements)));
+
+        // resolveChildren invokes cyclic parsing.
+        parsedNodes.put(Utils.getQualifiedName(templateType), nodeData);
+        resolveChildren(nodeData);
 
         return nodeData;
     }
@@ -380,7 +386,28 @@ public class NodeParser extends TemplateParser<NodeData> {
         return fields;
     }
 
-    private List<NodeChildData> parseChildren(List<? extends Element> elements, final List<TypeElement> typeHierarchy) {
+    private void resolveChildren(NodeData node) {
+        for (NodeChildData nodeChild : node.getChildren()) {
+            NodeData fieldNodeData = resolveNode(Utils.fromTypeMirror(nodeChild.getNodeType()));
+            nodeChild.setNode(fieldNodeData);
+            if (fieldNodeData == null) {
+                nodeChild.addError("Node type '%s' is invalid or not a valid Node.", Utils.getQualifiedName(nodeChild.getNodeType()));
+            } else if (!Utils.typeEquals(fieldNodeData.getTypeSystem().getTemplateType().asType(), (node.getTypeSystem().getTemplateType().asType()))) {
+                nodeChild.addError("The @%s of the node and the @%s of the @%s does not match. %s != %s. ", TypeSystem.class.getSimpleName(), TypeSystem.class.getSimpleName(),
+                                NodeChild.class.getSimpleName(), Utils.getSimpleName(node.getTypeSystem().getTemplateType()), Utils.getSimpleName(fieldNodeData.getTypeSystem().getTemplateType()));
+            }
+            if (fieldNodeData != null) {
+                List<ExecutableTypeData> types = nodeChild.findGenericExecutableTypes(context);
+                if (types.isEmpty()) {
+                    AnnotationValue executeWithValue = Utils.getAnnotationValue(nodeChild.getMessageAnnotation(), "executeWith");
+                    nodeChild.addError(executeWithValue, "No generic execute method found with %s evaluated arguments for node type %s.", nodeChild.getExecuteWith().size(),
+                                    Utils.getSimpleName(nodeChild.getNodeType()));
+                }
+            }
+        }
+    }
+
+    private List<NodeChildData> parseChildren(NodeData parent, List<? extends Element> elements, final List<TypeElement> typeHierarchy) {
         Set<String> shortCircuits = new HashSet<>();
         for (ExecutableElement method : ElementFilter.methodsIn(elements)) {
             AnnotationMirror mirror = Utils.findAnnotationMirror(processingEnv, method, ShortCircuit.class);
@@ -445,19 +472,13 @@ public class NodeParser extends TemplateParser<NodeData> {
                     kind = ExecutionKind.SHORT_CIRCUIT;
                 }
 
-                NodeChildData nodeChild = new NodeChildData(type, childMirror, name, childType, originalChildType, getter, cardinality, kind);
+                NodeChildData nodeChild = new NodeChildData(parent, type, childMirror, name, childType, originalChildType, getter, cardinality, kind);
 
                 parsedChildren.add(nodeChild);
 
                 verifyNodeChild(nodeChild);
                 if (nodeChild.hasErrors()) {
                     continue;
-                }
-
-                NodeData fieldNodeData = resolveNode(Utils.fromTypeMirror(childType));
-                nodeChild.setNode(fieldNodeData);
-                if (fieldNodeData == null) {
-                    nodeChild.addError("Node type '%s' is invalid or not a valid Node.", Utils.getQualifiedName(childType));
                 }
 
                 index++;
@@ -510,12 +531,6 @@ public class NodeParser extends TemplateParser<NodeData> {
             }
             child.setExecuteWith(executeWith);
             if (child.getNodeData() == null) {
-                continue;
-            }
-
-            List<ExecutableTypeData> types = child.findGenericExecutableTypes(context);
-            if (types.isEmpty()) {
-                child.addError(executeWithValue, "No generic execute method found with %s evaluated arguments for node type %s.", executeWith.size(), Utils.getSimpleName(child.getNodeType()));
                 continue;
             }
         }
@@ -1006,9 +1021,6 @@ public class NodeParser extends TemplateParser<NodeData> {
         for (TemplateMethod method : nodeData.getAllTemplateMethods()) {
             unusedElements.remove(method.getMethod());
         }
-        if (nodeData.getExtensionElements() != null) {
-            unusedElements.removeAll(nodeData.getExtensionElements());
-        }
 
         for (NodeFieldData field : nodeData.getFields()) {
             if (field.getGetter() != null) {
@@ -1040,7 +1052,7 @@ public class NodeParser extends TemplateParser<NodeData> {
 
         boolean parametersFound = false;
         for (ExecutableElement constructor : constructors) {
-            if (!constructor.getParameters().isEmpty()) {
+            if (!constructor.getParameters().isEmpty() && !isSourceSectionConstructor(context, constructor)) {
                 parametersFound = true;
             }
         }
@@ -1063,6 +1075,10 @@ public class NodeParser extends TemplateParser<NodeData> {
 
         // not found
         nodeData.addError("Specialization constructor '%s(%s previousNode) { this(...); }' is required.", Utils.getSimpleName(type), Utils.getSimpleName(type));
+    }
+
+    static boolean isSourceSectionConstructor(ProcessorContext context, ExecutableElement constructor) {
+        return constructor.getParameters().size() == 1 && constructor.getParameters().get(0).asType().equals(context.getTruffleTypes().getSourceSection());
     }
 
     private static boolean verifySpecializationParameters(NodeData nodeData) {

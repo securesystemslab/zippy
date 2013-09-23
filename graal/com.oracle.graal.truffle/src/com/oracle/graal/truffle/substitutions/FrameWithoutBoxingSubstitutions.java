@@ -36,7 +36,7 @@ public class FrameWithoutBoxingSubstitutions {
 
     private static final ResolvedJavaField LOCALS_FIELD;
     private static final ResolvedJavaField PRIMITIVELOCALS_FIELD;
-    private static final ResolvedJavaField TAGS_FIELD;
+    public static final ResolvedJavaField TAGS_FIELD;
 
     static {
         try {
@@ -77,6 +77,18 @@ public class FrameWithoutBoxingSubstitutions {
     public static void setBoolean(FrameWithoutBoxing frame, FrameSlot slot, boolean value) {
         verifySet(frame, slot, FrameSlotKind.Boolean);
         setBooleanUnsafe(frame, slot, value);
+    }
+
+    @MethodSubstitution(isStatic = false, forced = true)
+    public static byte getByte(FrameWithoutBoxing frame, FrameSlot slot) {
+        verifyGet(frame, slot, FrameSlotKind.Byte);
+        return getByteUnsafe(frame, slot);
+    }
+
+    @MethodSubstitution(isStatic = false, forced = true)
+    public static void setByte(FrameWithoutBoxing frame, FrameSlot slot, byte value) {
+        verifySet(frame, slot, FrameSlotKind.Byte);
+        setByteUnsafe(frame, slot, value);
     }
 
     @MethodSubstitution(isStatic = false, forced = true)
@@ -148,6 +160,16 @@ public class FrameWithoutBoxingSubstitutions {
     }
 
     @MethodSubstitution(isStatic = false)
+    public static byte getByteUnsafe(FrameWithoutBoxing frame, FrameSlot slot) {
+        return FrameGetNode.get(Kind.Byte, frame, slot, PRIMITIVELOCALS_FIELD);
+    }
+
+    @MethodSubstitution(isStatic = false)
+    public static void setByteUnsafe(FrameWithoutBoxing frame, FrameSlot slot, byte value) {
+        FrameSetNode.set(Kind.Byte, frame, slot, value, PRIMITIVELOCALS_FIELD);
+    }
+
+    @MethodSubstitution(isStatic = false)
     public static int getIntUnsafe(FrameWithoutBoxing frame, FrameSlot slot) {
         return FrameGetNode.get(Kind.Int, frame, slot, PRIMITIVELOCALS_FIELD);
     }
@@ -192,7 +214,8 @@ public class FrameWithoutBoxingSubstitutions {
     }
 
     private static void verifyGet(FrameWithoutBoxing frame, FrameSlot slot, FrameSlotKind accessType) {
-        if (getTag(frame, slot) != (byte) accessType.ordinal()) {
+        byte tag = getTag(frame, slot);
+        if (accessType == FrameSlotKind.Object ? (tag & 0xfe) != 0 : tag != (byte) accessType.ordinal()) {
             DeoptimizeNode.deopt(DeoptimizationAction.InvalidateReprofile, DeoptimizationReason.UnreachedCode);
         }
     }

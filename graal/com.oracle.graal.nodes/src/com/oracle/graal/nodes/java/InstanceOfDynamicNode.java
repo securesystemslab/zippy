@@ -23,9 +23,7 @@
 package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -47,12 +45,12 @@ public final class InstanceOfDynamicNode extends LogicNode implements Canonicali
         this.mirror = mirror;
         this.object = object;
         assert mirror.kind() == Kind.Object : mirror.kind();
-        assert mirror.stamp() instanceof ObjectStamp;
-        assert ((ObjectStamp) mirror.stamp()).type().getName().equals("Ljava/lang/Class;");
+        assert ObjectStamp.isExactType(mirror);
+        assert ObjectStamp.typeOrNull(mirror).getName().equals("Ljava/lang/Class;");
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         tool.getRuntime().lower(this, tool);
     }
 
@@ -73,13 +71,5 @@ public final class InstanceOfDynamicNode extends LogicNode implements Canonicali
 
     public ValueNode mirror() {
         return mirror;
-    }
-
-    @Override
-    public boolean verify() {
-        for (Node usage : usages()) {
-            assertTrue(usage instanceof IfNode || usage instanceof FixedGuardNode || usage instanceof ConditionalNode, "unsupported usage: %s", usage);
-        }
-        return super.verify();
     }
 }

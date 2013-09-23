@@ -127,7 +127,7 @@ class CFGPrinter extends CompilationPrinter {
      * @param label A label describing the compilation phase that produced the control flow graph.
      * @param blocks The list of blocks to be printed.
      */
-    public void printCFG(String label, List<Block> blocks) {
+    public void printCFG(String label, List<Block> blocks, boolean printNodes) {
         if (lir == null) {
             latestScheduling = new NodeMap<>(cfg.getNodeToBlock());
             for (Block block : blocks) {
@@ -149,7 +149,7 @@ class CFGPrinter extends CompilationPrinter {
         begin("cfg");
         out.print("name \"").print(label).println('"');
         for (Block block : blocks) {
-            printBlock(block);
+            printBlock(block, printNodes);
         }
         end("cfg");
 
@@ -185,7 +185,7 @@ class CFGPrinter extends CompilationPrinter {
         }
     }
 
-    private void printBlock(Block block) {
+    private void printBlock(Block block, boolean printNodes) {
         begin("block");
 
         out.print("name \"").print(blockToString(block)).println('"');
@@ -231,7 +231,9 @@ class CFGPrinter extends CompilationPrinter {
             out.print("loop_depth ").println(block.getLoop().depth);
         }
 
-        printNodes(block);
+        if (printNodes) {
+            printNodes(block);
+        }
         printLIR(block);
         end("block");
     }
@@ -241,12 +243,6 @@ class CFGPrinter extends CompilationPrinter {
         out.println("HIR");
         out.disableIndentation();
 
-        if (block.getPredecessorCount() == 0) {
-            // Currently method parameters are not in the schedule, so print them separately here.
-            for (ValueNode param : block.getBeginNode().graph().getNodes(LocalNode.class)) {
-                printNode(param, false);
-            }
-        }
         if (block.getBeginNode() instanceof MergeNode) {
             // Currently phi functions are not in the schedule, so print them separately here.
             for (ValueNode phi : ((MergeNode) block.getBeginNode()).phis()) {

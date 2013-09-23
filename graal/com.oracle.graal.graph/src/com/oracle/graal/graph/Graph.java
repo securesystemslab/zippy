@@ -25,7 +25,6 @@ package com.oracle.graal.graph;
 import java.util.*;
 
 import com.oracle.graal.graph.GraphEvent.NodeEvent;
-import com.oracle.graal.graph.Node.IterableNodeType;
 import com.oracle.graal.graph.Node.ValueNumberable;
 import com.oracle.graal.graph.iterators.*;
 
@@ -39,6 +38,16 @@ public class Graph {
     private static final boolean TIME_TRAVEL = false;
 
     private final ArrayList<Node> nodes;
+
+    /**
+     * Records the modification count for nodes. This is only used in assertions.
+     */
+    private int[] nodeModCounts;
+
+    /**
+     * Records the modification count for nodes' usage lists. This is only used in assertions.
+     */
+    private int[] nodeUsageModCounts;
 
     // these two arrays contain one entry for each NodeClass, indexed by NodeClass.iterableId.
     // they contain the first and last pointer to a linked list of all nodes with this type.
@@ -56,6 +65,8 @@ public class Graph {
         private final Node node;
 
         public CacheEntry(Node node) {
+            assert node.getNodeClass().valueNumberable();
+            assert node.getNodeClass().isLeafNode();
             this.node = node;
         }
 
@@ -72,8 +83,8 @@ public class Graph {
             if (obj instanceof CacheEntry) {
                 CacheEntry other = (CacheEntry) obj;
                 NodeClass nodeClass = node.getNodeClass();
-                if (other.node.getNodeClass() == nodeClass) {
-                    return nodeClass.valueNumberable() && nodeClass.valueEqual(node, other.node) && nodeClass.edgesEqual(node, other.node);
+                if (other.node.getClass() == node.getClass()) {
+                    return nodeClass.valueEqual(node, other.node);
                 }
             }
             return false;
@@ -87,6 +98,18 @@ public class Graph {
         this(null);
     }
 
+    static final boolean MODIFICATION_COUNTS_ENABLED = assertionsEnabled();
+
+    /**
+     * Determines if assertions are enabled for the {@link Graph} class.
+     */
+    @SuppressWarnings("all")
+    private static boolean assertionsEnabled() {
+        boolean enabled = false;
+        assert enabled = true;
+        return enabled;
+    }
+
     /**
      * Creates an empty Graph with a given name.
      * 
@@ -97,6 +120,58 @@ public class Graph {
         nodeCacheFirst = new ArrayList<>(NodeClass.cacheSize());
         nodeCacheLast = new ArrayList<>(NodeClass.cacheSize());
         this.name = name;
+        if (MODIFICATION_COUNTS_ENABLED) {
+            nodeModCounts = new int[nodes.size()];
+            nodeUsageModCounts = new int[nodes.size()];
+        }
+    }
+
+    int extractOriginalNodeId(Node node) {
+        int id = node.id;
+        if (id <= Node.DELETED_ID_START) {
+            id = Node.DELETED_ID_START - id;
+        }
+        return id;
+    }
+
+    int modCount(Node node) {
+        int id = extractOriginalNodeId(node);
+        if (id >= 0 && id < nodeModCounts.length) {
+            return nodeModCounts[id];
+        }
+        return 0;
+    }
+
+    void incModCount(Node node) {
+        int id = extractOriginalNodeId(node);
+        if (id >= 0) {
+            if (id >= nodeModCounts.length) {
+                nodeModCounts = Arrays.copyOf(nodeModCounts, id + 30);
+            }
+            nodeModCounts[id]++;
+        } else {
+            assert false;
+        }
+    }
+
+    int usageModCount(Node node) {
+        int id = extractOriginalNodeId(node);
+        if (id >= 0 && id < nodeUsageModCounts.length) {
+            return nodeUsageModCounts[id];
+        }
+        return 0;
+    }
+
+    void incUsageModCount(Node node) {
+        int id = extractOriginalNodeId(node);
+        if (id >= 0) {
+            if (id >= nodeUsageModCounts.length) {
+                nodeUsageModCounts = Arrays.copyOf(nodeUsageModCounts, id + 30);
+            }
+            nodeUsageModCounts[id]++;
+        } else {
+            assert false;
+        }
     }
 
     /**
@@ -113,8 +188,7 @@ public class Graph {
      */
     public Graph copy(String newName) {
         Graph copy = new Graph(newName);
-        Map<Node, Node> emptyMap = Collections.emptyMap();
-        copy.addDuplicates(getNodes(), emptyMap);
+        copy.addDuplicates(getNodes(), this, this.getNodeCount(), (Map<Node, Node>) null);
         return copy;
     }
 
@@ -149,6 +223,24 @@ public class Graph {
      * @return the node which was added to the graph
      */
     public <T extends Node> T add(T node) {
+        if (node.getNodeClass().valueNumberable()) {
+            throw new IllegalStateException("Using add for value numberable node. Consider using either unique or addWithoutUnique.");
+        }
+        return addHelper(node);
+    }
+
+    public <T extends Node> T addWithoutUnique(T node) {
+        return addHelper(node);
+    }
+
+    public <T extends Node> T addOrUnique(T node) {
+        if (node.getNodeClass().valueNumberable()) {
+            return uniqueHelper(node);
+        }
+        return add(node);
+    }
+
+    private <T extends Node> T addHelper(T node) {
         node.initialize(this);
         return node;
     }
@@ -158,20 +250,54 @@ public class Graph {
         void nodeChanged(Node node);
     }
 
+    private static class ChainedNodeChangedListener implements NodeChangedListener {
+
+        NodeChangedListener head;
+        NodeChangedListener next;
+
+        ChainedNodeChangedListener(NodeChangedListener head, NodeChangedListener next) {
+            this.head = head;
+            this.next = next;
+        }
+
+        public void nodeChanged(Node node) {
+            head.nodeChanged(node);
+            next.nodeChanged(node);
+        }
+    }
+
     public void trackInputChange(NodeChangedListener inputChangedListener) {
-        this.inputChanged = inputChangedListener;
+        if (inputChanged == null) {
+            inputChanged = inputChangedListener;
+        } else {
+            inputChanged = new ChainedNodeChangedListener(inputChangedListener, inputChanged);
+        }
     }
 
     public void stopTrackingInputChange() {
-        inputChanged = null;
+        assert inputChanged != null;
+        if (inputChanged instanceof ChainedNodeChangedListener) {
+            inputChanged = ((ChainedNodeChangedListener) inputChanged).next;
+        } else {
+            inputChanged = null;
+        }
     }
 
     public void trackUsagesDroppedZero(NodeChangedListener usagesDroppedZeroListener) {
-        this.usagesDroppedZero = usagesDroppedZeroListener;
+        if (usagesDroppedZero == null) {
+            usagesDroppedZero = usagesDroppedZeroListener;
+        } else {
+            usagesDroppedZero = new ChainedNodeChangedListener(usagesDroppedZeroListener, usagesDroppedZero);
+        }
     }
 
     public void stopTrackingUsagesDroppedZero() {
-        usagesDroppedZero = null;
+        assert usagesDroppedZero != null;
+        if (usagesDroppedZero instanceof ChainedNodeChangedListener) {
+            usagesDroppedZero = ((ChainedNodeChangedListener) usagesDroppedZero).next;
+        } else {
+            usagesDroppedZero = null;
+        }
     }
 
     /**
@@ -183,53 +309,76 @@ public class Graph {
      * @return the node which was added to the graph or a <i>similar</i> which was already in the
      *         graph.
      */
-    @SuppressWarnings("unchecked")
     public <T extends Node & ValueNumberable> T unique(T node) {
         assert checkValueNumberable(node);
+        return uniqueHelper(node);
+    }
 
-        for (Node input : node.inputs()) {
-            if (input != null) {
-                for (Node usage : input.usages()) {
-                    if (usage != node && node.getNodeClass().valueEqual(node, usage) && node.getNodeClass().edgesEqual(node, usage)) {
-                        return (T) usage;
-                    }
-                }
-                return add(node);
-            }
-        }
-        Node cachedNode = cachedNodes.get(new CacheEntry(node));
-        if (cachedNode != null && cachedNode.isAlive()) {
-            return (T) cachedNode;
+    @SuppressWarnings("unchecked")
+    <T extends Node> T uniqueHelper(T node) {
+        assert node.getNodeClass().valueNumberable();
+        Node other = this.findDuplicate(node);
+        if (other != null) {
+            return (T) other;
         } else {
-            Node result = add(node);
-            cachedNodes.put(new CacheEntry(node), result);
+            Node result = addHelper(node);
+            if (node.getNodeClass().isLeafNode()) {
+                putNodeIntoCache(result);
+            }
             return (T) result;
         }
     }
 
-    public Node findDuplicate(Node node) {
-        if (node.getNodeClass().valueNumberable()) {
-            for (Node input : node.inputs()) {
-                if (input != null) {
-                    for (Node usage : input.usages()) {
-                        if (usage != node && node.getNodeClass().valueEqual(node, usage) && node.getNodeClass().edgesEqual(node, usage)) {
-                            return usage;
-                        }
-                    }
-                    return null;
-                }
-            }
-        }
+    void putNodeIntoCache(Node node) {
+        assert node.graph() == this || node.graph() == null;
+        assert node.getNodeClass().valueNumberable();
+        assert node.getNodeClass().isLeafNode() : node.getClass();
+        cachedNodes.put(new CacheEntry(node), node);
+    }
+
+    Node findNodeInCache(Node node) {
         CacheEntry key = new CacheEntry(node);
-        Node cachedNode = cachedNodes.get(key);
-        if (cachedNode != null) {
-            if (!cachedNode.isAlive()) {
-                cachedNodes.remove(key);
+        Node result = cachedNodes.get(key);
+        if (result != null && result.isDeleted()) {
+            cachedNodes.remove(key);
+            return null;
+        }
+        return result;
+    }
+
+    public Node findDuplicate(Node node) {
+        NodeClass nodeClass = node.getNodeClass();
+        assert nodeClass.valueNumberable();
+        if (nodeClass.isLeafNode()) {
+            Node cachedNode = findNodeInCache(node);
+            if (cachedNode != null) {
+                return cachedNode;
+            } else {
                 return null;
             }
-            return cachedNode != node ? cachedNode : null;
         } else {
-            cachedNodes.put(key, node);
+
+            int minCount = Integer.MAX_VALUE;
+            Node minCountNode = null;
+            for (Node input : node.inputs()) {
+                if (input != null) {
+                    int estimate = input.getUsageCountUpperBound();
+                    if (estimate == 0) {
+                        return null;
+                    } else if (estimate < minCount) {
+                        minCount = estimate;
+                        minCountNode = input;
+                    }
+                }
+            }
+            if (minCountNode != null) {
+                for (Node usage : minCountNode.usages()) {
+                    if (usage != node && nodeClass == usage.getNodeClass() && nodeClass.valueEqual(node, usage) && nodeClass.edgesEqual(node, usage)) {
+                        return usage;
+                    }
+                }
+                return null;
+            }
             return null;
         }
     }
@@ -239,6 +388,10 @@ public class Graph {
             throw new VerificationError("node is not valueNumberable").addContext(node);
         }
         return true;
+    }
+
+    public boolean isNew(int mark, Node node) {
+        return node.id >= mark;
     }
 
     /**
@@ -440,7 +593,7 @@ public class Graph {
      * {@code type}.
      * 
      * @param type the type of node to return
-     * @return an {@link Iterable} providing all the matching nodes.
+     * @return an {@link Iterable} providing all the matching nodes
      */
     public <T extends Node & IterableNodeType> NodeIterable<T> getNodes(final Class<T> type) {
         final NodeClass nodeClass = NodeClass.get(type);
@@ -593,14 +746,14 @@ public class Graph {
      * @param replacementsMap the replacement map (can be null if no replacement is to be performed)
      * @return a map which associates the original nodes from {@code nodes} to their duplicates
      */
-    public Map<Node, Node> addDuplicates(Iterable<Node> newNodes, Map<Node, Node> replacementsMap) {
+    public Map<Node, Node> addDuplicates(Iterable<Node> newNodes, final Graph oldGraph, int estimatedNodeCount, Map<Node, Node> replacementsMap) {
         DuplicationReplacement replacements;
         if (replacementsMap == null) {
             replacements = null;
         } else {
             replacements = new MapReplacement(replacementsMap);
         }
-        return addDuplicates(newNodes, replacements);
+        return addDuplicates(newNodes, oldGraph, estimatedNodeCount, replacements);
     }
 
     public interface DuplicationReplacement {
@@ -624,19 +777,8 @@ public class Graph {
 
     }
 
-    private static final DuplicationReplacement NO_REPLACEMENT = new DuplicationReplacement() {
-
-        @Override
-        public Node replacement(Node original) {
-            return original;
-        }
-    };
-
     @SuppressWarnings("all")
-    public Map<Node, Node> addDuplicates(Iterable<Node> newNodes, DuplicationReplacement replacements) {
-        if (replacements == null) {
-            replacements = NO_REPLACEMENT;
-        }
-        return NodeClass.addGraphDuplicate(this, newNodes, replacements);
+    public Map<Node, Node> addDuplicates(Iterable<Node> newNodes, final Graph oldGraph, int estimatedNodeCount, DuplicationReplacement replacements) {
+        return NodeClass.addGraphDuplicate(this, oldGraph, estimatedNodeCount, newNodes, replacements);
     }
 }

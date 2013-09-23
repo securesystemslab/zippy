@@ -29,7 +29,20 @@ import org.junit.*;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.dsl.test.GuardsTestFactory.GlobalFlagGuardFactory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.GuardWithBaseClassFactory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.GuardWithBaseInterfaceFactory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.GuardWithBoxedPrimitiveFactory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.GuardWithObjectFactory;
 import com.oracle.truffle.api.dsl.test.GuardsTestFactory.InvocationGuardFactory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.TestAbstractGuard1Factory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.TestGuardResolve1Factory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.TestGuardResolve2Factory;
+import com.oracle.truffle.api.dsl.test.GuardsTestFactory.TestGuardResolve3Factory;
+import com.oracle.truffle.api.dsl.test.NodeContainerTest.Str;
+import com.oracle.truffle.api.dsl.test.NodeContainerTest.StrBase;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.Abstract;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.BExtendsAbstract;
+import com.oracle.truffle.api.dsl.test.TypeSystemTest.CExtendsAbstract;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.TestRootNode;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.ValueNode;
 
@@ -104,6 +117,200 @@ public class GuardsTest {
         @Generic
         int doGeneric(Object value0) {
             return 42; // the generic answer to all questions
+        }
+    }
+
+    @Test
+    public void testGuardWithBaseClass() {
+        TestRootNode<?> root = createRoot(GuardWithBaseClassFactory.getInstance());
+
+        assertEquals(42, executeWith(root, new Str("42")));
+    }
+
+    @NodeChild("expression")
+    public abstract static class GuardWithBaseClass extends ValueNode {
+
+        boolean baseGuard(StrBase base) {
+            return true;
+        }
+
+        @Specialization(guards = "baseGuard")
+        int doSpecialized(Str value0) {
+            return 42;
+        }
+    }
+
+    @Test
+    public void testGuardWithBaseInterface() {
+        TestRootNode<?> root = createRoot(GuardWithBaseInterfaceFactory.getInstance());
+
+        assertEquals(42, executeWith(root, "anything"));
+    }
+
+    @NodeChild("expression")
+    public abstract static class GuardWithBaseInterface extends ValueNode {
+
+        boolean baseGuard(CharSequence base) {
+            return true;
+        }
+
+        @Specialization(guards = "baseGuard")
+        int doSpecialized(String value0) {
+            return 42;
+        }
+    }
+
+    @Test
+    public void testGuardWithPrimitive() {
+        TestRootNode<?> root = createRoot(GuardWithBoxedPrimitiveFactory.getInstance());
+
+        assertEquals(42, executeWith(root, 42));
+    }
+
+    @NodeChild("expression")
+    public abstract static class GuardWithBoxedPrimitive extends ValueNode {
+
+        boolean baseGuard(Integer primitive) {
+            return true;
+        }
+
+        @Specialization(guards = "baseGuard")
+        int doSpecialized(int value0) {
+            return value0;
+        }
+    }
+
+    @Test
+    public void testGuardWithObject() {
+        TestRootNode<?> root = createRoot(GuardWithObjectFactory.getInstance());
+
+        assertEquals(42, executeWith(root, 42));
+    }
+
+    @NodeChild("expression")
+    public abstract static class GuardWithObject extends ValueNode {
+
+        boolean baseGuard(Object primitive) {
+            return true;
+        }
+
+        @Specialization(guards = "baseGuard")
+        int doSpecialized(int value0) {
+            return value0;
+        }
+    }
+
+    @Test
+    public void testGuardResolve1() {
+        TestRootNode<?> root = createRoot(TestGuardResolve1Factory.getInstance());
+
+        assertEquals(42, executeWith(root, 42));
+    }
+
+    @NodeChild("expression")
+    public abstract static class TestGuardResolve1 extends ValueNode {
+
+        boolean guard(Object primitive) {
+            return false;
+        }
+
+        boolean guard(int primitive) {
+            return true;
+        }
+
+        @Specialization(guards = "guard")
+        int doSpecialized(int value0) {
+            return value0;
+        }
+    }
+
+    @Test
+    public void testGuardResolve2() {
+        TestRootNode<?> root = createRoot(TestGuardResolve2Factory.getInstance());
+        assertEquals(42, executeWith(root, new Str("")));
+    }
+
+    @NodeChild("expression")
+    public abstract static class TestGuardResolve2 extends ValueNode {
+
+        boolean guard(Object primitive) {
+            return false;
+        }
+
+        boolean guard(StrBase primitive) {
+            return true;
+        }
+
+        @Specialization(guards = "guard")
+        int doSpecialized(Str value0) {
+            return 42;
+        }
+    }
+
+    @Test
+    public void testGuardResolve3() {
+        TestRootNode<?> root = createRoot(TestGuardResolve3Factory.getInstance());
+
+        assertEquals(42, executeWith(root, new Str("")));
+    }
+
+    @NodeChild("expression")
+    public abstract static class TestGuardResolve3 extends ValueNode {
+
+        boolean guard(Object primitive) {
+            return false;
+        }
+
+        boolean guard(StrBase primitive) {
+            return false;
+        }
+
+        boolean guard(Str primitive) {
+            return true;
+        }
+
+        @Specialization(guards = "guard")
+        int doSpecialized(Str value0) {
+            return 42;
+        }
+    }
+
+    @NodeChild("expression")
+    public abstract static class TestGuardResolve4 extends ValueNode {
+
+        boolean guard(StrBase primitive) {
+            return false;
+        }
+
+        @Specialization(guards = "guard")
+        int doSpecialized(Str value0) {
+            return 42;
+        }
+    }
+
+    @Test
+    public void testAbstractGuard1() {
+        TestRootNode<?> root = createRoot(TestAbstractGuard1Factory.getInstance());
+
+        assertEquals(BExtendsAbstract.INSTANCE, executeWith(root, BExtendsAbstract.INSTANCE));
+        assertEquals(CExtendsAbstract.INSTANCE, executeWith(root, CExtendsAbstract.INSTANCE));
+    }
+
+    @NodeChild("expression")
+    public abstract static class TestAbstractGuard1 extends ValueNode {
+
+        boolean guard(Abstract value0) {
+            return true;
+        }
+
+        @Specialization(order = 1, guards = "guard")
+        BExtendsAbstract doSpecialized1(BExtendsAbstract value0) {
+            return value0;
+        }
+
+        @Specialization(order = 2, guards = "guard")
+        CExtendsAbstract doSpecialized2(CExtendsAbstract value0) {
+            return value0;
         }
     }
 

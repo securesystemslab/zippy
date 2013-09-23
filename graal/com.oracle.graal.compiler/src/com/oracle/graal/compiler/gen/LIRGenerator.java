@@ -40,7 +40,6 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.StandardOp.LabelOp;
-import com.oracle.graal.lir.StandardOp.ParametersOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
@@ -367,7 +366,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     protected void emitNode(ValueNode node) {
-        if (Debug.isLogEnabled() && node.stamp() == StampFactory.illegal()) {
+        if (Debug.isLogEnabled() && node.stamp() instanceof IllegalStamp) {
             Debug.log("This node has invalid type, we are emitting dead code(?): %s", node);
         }
         if (node instanceof LIRGenLowerable) {
@@ -405,7 +404,7 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
     }
 
     public void emitIncomingValues(Value[] params) {
-        append(new ParametersOp(params));
+        ((LabelOp) lir.lir(currentBlock).get(0)).setIncomingValues(params);
     }
 
     @Override
@@ -452,12 +451,16 @@ public abstract class LIRGenerator implements LIRGeneratorTool {
         append(new JumpOp(getLIRBlock(merge)));
     }
 
+    protected PlatformKind getPhiKind(PhiNode phi) {
+        return phi.kind();
+    }
+
     private Value operandForPhi(PhiNode phi) {
         assert phi.type() == PhiType.Value : "wrong phi type: " + phi;
         Value result = operand(phi);
         if (result == null) {
             // allocate a variable for this phi
-            Variable newOperand = newVariable(phi.kind());
+            Variable newOperand = newVariable(getPhiKind(phi));
             setResult(phi, newOperand);
             return newOperand;
         } else {

@@ -24,6 +24,7 @@
 #include "precompiled.hpp"
 #include "classfile/systemDictionary.hpp"
 #include "graal/graalVMToCompiler.hpp"
+#include "runtime/gpu.hpp"
 
 // this is a *global* handle
 jobject VMToCompiler::_graalRuntimePermObject = NULL;
@@ -60,7 +61,16 @@ Handle VMToCompiler::truffleRuntime() {
 Handle VMToCompiler::graalRuntime() {
   if (JNIHandles::resolve(_graalRuntimePermObject) == NULL) {
 #ifdef AMD64
-    Symbol* name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
+    Symbol* name = NULL;
+    // Set name to PTXHotSpotRuntime if nVidia GPU was detected.
+    if (UseGPU && (gpu::get_target_il_type() == gpu::PTX) &&
+        gpu::is_available() && gpu::has_gpu_linkage()) {
+      name = vmSymbols::com_oracle_graal_hotspot_ptx_PTXHotSpotGraalRuntime();
+    }
+    
+    if (name == NULL) {
+      name = vmSymbols::com_oracle_graal_hotspot_amd64_AMD64HotSpotGraalRuntime();
+    }
 #endif
 #ifdef SPARC
     Symbol* name = vmSymbols::com_oracle_graal_hotspot_sparc_SPARCHotSpotGraalRuntime();
@@ -90,21 +100,31 @@ Handle VMToCompiler::instance() {
 }
 
 void VMToCompiler::initOptions() {
-  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
+  KlassHandle optionsKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
   Thread* THREAD = Thread::current();
-  compilerKlass->initialize(THREAD);
+  optionsKlass->initialize(THREAD);
   check_pending_exception("Error while calling initOptions");
 }
 
 jboolean VMToCompiler::setOption(Handle option) {
   assert(!option.is_null(), "");
-  KlassHandle compilerKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
+  KlassHandle optionsKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
 
   Thread* THREAD = Thread::current();
   JavaValue result(T_BOOLEAN);
-  JavaCalls::call_static(&result, compilerKlass, vmSymbols::setOption_name(), vmSymbols::setOption_signature(), option, THREAD);
+  JavaCalls::call_static(&result, optionsKlass, vmSymbols::setOption_name(), vmSymbols::setOption_signature(), option, THREAD);
   check_pending_exception("Error while calling setOption");
   return result.get_jboolean();
+}
+
+void VMToCompiler::finalizeOptions(jboolean ciTime) {
+  KlassHandle optionsKlass = loadClass(vmSymbols::com_oracle_graal_hotspot_HotSpotOptions());
+  Thread* THREAD = Thread::current();
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_int(ciTime);
+  JavaCalls::call_static(&result, optionsKlass, vmSymbols::finalizeOptions_name(), vmSymbols::bool_void_signature(), &args, THREAD);
+  check_pending_exception("Error while calling finalizeOptions");
 }
 
 void VMToCompiler::compileMethod(Method* method, Handle holder, int entry_bci, jboolean blocking) {

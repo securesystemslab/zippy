@@ -28,10 +28,11 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 
 /**
  * This class tests some specific patterns the stamp system should be able to canonicalize away
- * using {@link IntegerStamp#mask()}.
+ * using {@link IntegerStamp#upMask()}.
  */
 public class StampCanonicalizerTest extends GraalCompilerTest {
 
@@ -109,7 +110,7 @@ public class StampCanonicalizerTest extends GraalCompilerTest {
 
     private void testZeroReturn(String methodName) {
         StructuredGraph graph = parse(methodName);
-        new CanonicalizerPhase.Instance(runtime(), new Assumptions(false), true).apply(graph);
+        new CanonicalizerPhase(true).apply(graph, new PhaseContext(runtime(), new Assumptions(false), replacements));
         new DeadCodeEliminationPhase().apply(graph);
         assertConstantReturn(graph, 0);
     }

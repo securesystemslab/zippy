@@ -26,10 +26,13 @@ import org.junit.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.test.SpecializationGroupingTestFactory.TestElseConnectionBug1Factory;
+import com.oracle.truffle.api.dsl.test.SpecializationGroupingTestFactory.TestElseConnectionBug2Factory;
 import com.oracle.truffle.api.dsl.test.SpecializationGroupingTestFactory.TestGroupingFactory;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.SimpleTypes;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.TestRootNode;
 import com.oracle.truffle.api.dsl.test.TypeSystemTest.ValueNode;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 /**
@@ -152,6 +155,83 @@ public class SpecializationGroupingTest {
             return value1 + value2;
         }
 
+    }
+
+    @Test
+    public void testElseConnectionBug1() {
+        CallTarget target = TestHelper.createCallTarget(TestElseConnectionBug1Factory.create(new GenericInt()));
+        Assert.assertEquals(42, target.call());
+    }
+
+    @SuppressWarnings("unused")
+    @NodeChild(value = "genericChild", type = GenericInt.class)
+    public abstract static class TestElseConnectionBug1 extends ValueNode {
+
+        @Specialization(order = 1, rewriteOn = {SlowPathException.class}, guards = "isInitialized")
+        public int doInteger(int value) throws SlowPathException {
+            throw new SlowPathException();
+        }
+
+        @Specialization(order = 3, guards = "isInitialized")
+        public int doObject(int value) {
+            return value == 42 ? value : 0;
+        }
+
+        @Specialization(order = 4, guards = "!isInitialized")
+        public Object doUninitialized(int value) {
+            throw new AssertionError();
+        }
+
+        boolean isInitialized(int value) {
+            return true;
+        }
+    }
+
+    public static final class GenericInt extends ValueNode {
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return executeInt(frame);
+        }
+
+        @Override
+        public int executeInt(VirtualFrame frame) {
+            return 42;
+        }
+
+    }
+
+    @Test
+    public void testElseConnectionBug2() {
+        TestHelper.assertRuns(TestElseConnectionBug2Factory.getInstance(), 42, 42);
+    }
+
+    @SuppressWarnings("unused")
+    @NodeChild
+    public abstract static class TestElseConnectionBug2 extends ValueNode {
+
+        @Specialization(order = 2, guards = "guard0")
+        public int doGuard0(int value) {
+            throw new AssertionError();
+        }
+
+        @Specialization(order = 3, guards = "guard1")
+        public int doGuard1(int value) {
+            throw new AssertionError();
+        }
+
+        @Specialization(order = 4, guards = "!guard0")
+        public int doUninitialized(int value) {
+            return value;
+        }
+
+        boolean guard0(int value) {
+            return false;
+        }
+
+        boolean guard1(int value) {
+            return false;
+        }
     }
 
     private static class MockAssumption implements Assumption {

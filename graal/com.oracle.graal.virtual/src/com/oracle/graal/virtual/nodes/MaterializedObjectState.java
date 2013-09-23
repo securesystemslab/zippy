@@ -29,7 +29,7 @@ import com.oracle.graal.nodes.virtual.*;
 /**
  * This class encapsulated the materialized state of an escape analyzed object.
  */
-public final class MaterializedObjectState extends EscapeObjectState implements Node.IterableNodeType, Node.ValueNumberable {
+public final class MaterializedObjectState extends EscapeObjectState implements IterableNodeType, Node.ValueNumberable {
 
     @Input private ValueNode materializedValue;
 
@@ -44,7 +44,7 @@ public final class MaterializedObjectState extends EscapeObjectState implements 
 
     @Override
     public MaterializedObjectState duplicateWithVirtualState() {
-        return graph().add(new MaterializedObjectState(object(), materializedValue));
+        return graph().addWithoutUnique(new MaterializedObjectState(object(), materializedValue));
     }
 
     @Override

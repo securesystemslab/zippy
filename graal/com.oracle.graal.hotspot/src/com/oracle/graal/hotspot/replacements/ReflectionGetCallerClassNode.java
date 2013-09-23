@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.compiler.GraalCompiler.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
@@ -47,7 +47,7 @@ public class ReflectionGetCallerClassNode extends MacroNode implements Canonical
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         ConstantNode callerClassNode = getCallerClassNode(tool.getRuntime());
 
         if (callerClassNode != null) {
@@ -65,7 +65,7 @@ public class ReflectionGetCallerClassNode extends MacroNode implements Canonical
      * @return ConstantNode of the caller class, or null
      */
     private ConstantNode getCallerClassNode(MetaAccessProvider runtime) {
-        if (!IntrinsifyReflectionMethods.getValue()) {
+        if (!shouldIntrinsify(getTargetMethod())) {
             return null;
         }
 

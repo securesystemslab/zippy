@@ -55,14 +55,17 @@ public final class ArrayLengthNode extends FixedWithNextNode implements Canonica
         if (runtime != null && array().isConstant() && !array().isNullConstant()) {
             Constant constantValue = array().asConstant();
             if (constantValue != null && constantValue.isNonNull()) {
-                return ConstantNode.forInt(runtime.lookupArrayLength(constantValue), graph());
+                Integer constantLength = runtime.lookupArrayLength(constantValue);
+                if (constantLength != null) {
+                    return ConstantNode.forInt(constantLength, graph());
+                }
             }
         }
         return this;
     }
 
     @Override
-    public void lower(LoweringTool tool, LoweringType loweringType) {
+    public void lower(LoweringTool tool) {
         tool.getRuntime().lower(this, tool);
     }
 

@@ -34,14 +34,17 @@ import com.oracle.graal.debug.*;
 public class DebugEnvironment {
 
     public static void initialize(PrintStream log) {
-        Debug.enable();
+        if (!Debug.isEnabled()) {
+            log.println("WARNING: Scope debugging needs to be enabled with -esa or -D" + Debug.Initialization.INITIALIZER_PROPERTY_NAME + "=true");
+            return;
+        }
         List<DebugDumpHandler> dumpHandlers = new ArrayList<>();
         dumpHandlers.add(new GraphPrinterDumpHandler());
-        if (PrintCFG.getValue()) {
-            if (PrintBinaryGraphs.getValue()) {
-                TTY.println("CFG dumping slows down PrintBinaryGraphs: use -G:-PrintCFG to disable it");
+        if (PrintCFG.getValue() || PrintBackendCFG.getValue()) {
+            if (PrintBinaryGraphs.getValue() && PrintCFG.getValue()) {
+                TTY.println("Complete C1Visualizer dumping slows down PrintBinaryGraphs: use -G:-PrintCFG to disable it");
             }
-            dumpHandlers.add(new CFGPrinterObserver());
+            dumpHandlers.add(new CFGPrinterObserver(PrintCFG.getValue()));
         }
         if (DecompileAfterPhase.getValue() != null) {
             dumpHandlers.add(new DecompilerDebugDumpHandler());

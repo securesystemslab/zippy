@@ -46,8 +46,18 @@ final class DefaultMaterializedFrame implements MaterializedFrame, PackedFrame {
     }
 
     @Override
-    public void setObject(FrameSlot slot, Object value) throws FrameSlotTypeException {
+    public void setObject(FrameSlot slot, Object value) {
         wrapped.setObject(slot, value);
+    }
+
+    @Override
+    public byte getByte(FrameSlot slot) throws FrameSlotTypeException {
+        return wrapped.getByte(slot);
+    }
+
+    @Override
+    public void setByte(FrameSlot slot, byte value) throws FrameSlotTypeException {
+        wrapped.setByte(slot, value);
     }
 
     @Override

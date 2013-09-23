@@ -22,19 +22,48 @@
  */
 package com.oracle.graal.debug;
 
-import com.oracle.graal.debug.internal.*;
+import static com.oracle.graal.debug.Debug.Initialization.*;
 
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.oracle.graal.debug.internal.*;
+
+/**
+ * Scope based debugging facility. This facility is {@link #isEnabled()} if assertions are enabled
+ * for the {@link Debug} class or the {@value Initialization#INITIALIZER_PROPERTY_NAME} system
+ * property is {@code "true"} when {@link Debug} is initialized.
+ */
 public class Debug {
 
-    private static boolean ENABLED = false;
+    /**
+     * Class to assist with initialization of {@link Debug}.
+     */
+    public static class Initialization {
 
-    public static void enable() {
-        ENABLED = true;
+        public static final String INITIALIZER_PROPERTY_NAME = "graal.debug.enable";
+
+        private static boolean initialized;
+
+        /**
+         * Determines if {@link Debug} has been initialized.
+         */
+        public static boolean isDebugInitialized() {
+            return initialized;
+        }
+
     }
+
+    @SuppressWarnings("all")
+    private static boolean initialize() {
+        boolean assertionsEnabled = false;
+        assert assertionsEnabled = true;
+        Initialization.initialized = true;
+        return assertionsEnabled || Boolean.getBoolean(INITIALIZER_PROPERTY_NAME);
+    }
+
+    private static final boolean ENABLED = initialize();
 
     public static boolean isEnabled() {
         return ENABLED;
@@ -158,12 +187,22 @@ public class Debug {
         }
     }
 
+    /**
+     * Prints an indented message to the current DebugLevel's logging stream if logging is enabled.
+     * 
+     * @param msg The format string of the log message
+     * @param args The arguments referenced by the log message string
+     * @see Indent#log
+     */
     public static void log(String msg, Object... args) {
-        if (ENABLED && DebugScope.getInstance().isLogEnabled()) {
+        if (ENABLED) {
             DebugScope.getInstance().log(msg, args);
         }
     }
 
+    /**
+     * The same as {@link #log}, but without line termination and without indentation.
+     */
     public static void printf(String msg, Object... args) {
         if (ENABLED && DebugScope.getInstance().isLogEnabled()) {
             DebugScope.getInstance().printf(msg, args);
@@ -174,6 +213,105 @@ public class Debug {
         if (ENABLED && DebugScope.getInstance().isDumpEnabled()) {
             DebugScope.getInstance().dump(object, msg, args);
         }
+    }
+
+    private static final class NoLogger implements Indent {
+
+        @Override
+        public void log(String msg, Object... args) {
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+        }
+
+        @Override
+        public Indent indent() {
+            return this;
+        }
+
+        @Override
+        public Indent logIndent(String msg, Object... args) {
+            return this;
+        }
+
+        @Override
+        public Indent outdent() {
+            return this;
+        }
+
+    }
+
+    private static final NoLogger noLoggerInstance = new NoLogger();
+
+    /**
+     * Creates a new indentation level (by adding some spaces) based on the last used Indent of the
+     * current DebugScope.
+     * 
+     * @return The new indentation level
+     * @see Indent#indent
+     */
+    public static Indent indent() {
+        if (ENABLED) {
+            DebugScope scope = DebugScope.getInstance();
+            return scope.pushIndentLogger();
+        }
+        return noLoggerInstance;
+    }
+
+    /**
+     * Creates a new indentation level based on the last used Indent of the current DebugScope and
+     * turns on/off logging.
+     * 
+     * @param enabled If true, logging is enabled, otherwise disabled
+     * @return The new indentation level
+     */
+    public static Indent indent(boolean enabled) {
+        if (ENABLED) {
+            Indent logger = DebugScope.getInstance().pushIndentLogger();
+            logger.setEnabled(enabled);
+            return logger;
+        }
+        return noLoggerInstance;
+    }
+
+    /**
+     * A convenience function which combines {@link #log} and {@link #indent()}.
+     * 
+     * @param msg The format string of the log message
+     * @param args The arguments referenced by the log message string
+     * @return The new indentation level
+     * @see Indent#logIndent
+     */
+    public static Indent logIndent(String msg, Object... args) {
+        if (ENABLED) {
+            DebugScope scope = DebugScope.getInstance();
+            scope.log(msg, args);
+            return scope.pushIndentLogger();
+        }
+        return noLoggerInstance;
+    }
+
+    /**
+     * A convenience function which combines {@link #log} and {@link #indent(boolean)}.
+     * 
+     * @param enabled If true, logging is enabled, otherwise disabled
+     * @param msg The format string of the log message
+     * @param args The arguments referenced by the log message string
+     * @return The new indentation level
+     */
+    public static Indent logIndent(boolean enabled, String msg, Object... args) {
+        if (ENABLED) {
+            DebugScope scope = DebugScope.getInstance();
+            boolean saveLogEnabled = scope.isLogEnabled();
+            scope.setLogEnabled(enabled);
+            scope.log(msg, args);
+            scope.setLogEnabled(saveLogEnabled);
+            Indent indent = scope.pushIndentLogger();
+            indent.setEnabled(enabled);
+            return indent;
+        }
+        return noLoggerInstance;
     }
 
     public static Iterable<Object> context() {
@@ -217,7 +355,7 @@ public class Debug {
 
     public static DebugMetric metric(String name) {
         if (ENABLED) {
-            return new MetricImpl(name);
+            return new MetricImpl(name, true);
         } else {
             return VOID_METRIC;
         }
@@ -229,6 +367,9 @@ public class Debug {
         }
     }
 
+    /**
+     * Creates an object for counting value frequencies.
+     */
     public static DebugHistogram createHistogram(String name) {
         return new DebugHistogramImpl(name);
     }
@@ -289,11 +430,19 @@ public class Debug {
 
         public void add(long value) {
         }
+
+        public void setConditional(boolean flag) {
+            throw new InternalError("Cannot make void metric conditional");
+        }
+
+        public boolean isConditional() {
+            return false;
+        }
     };
 
     public static DebugTimer timer(String name) {
         if (ENABLED) {
-            return new TimerImpl(name);
+            return new TimerImpl(name, true);
         } else {
             return VOID_TIMER;
         }
@@ -303,6 +452,14 @@ public class Debug {
 
         public TimerCloseable start() {
             return TimerImpl.VOID_CLOSEABLE;
+        }
+
+        public void setConditional(boolean flag) {
+            throw new InternalError("Cannot make void timer conditional");
+        }
+
+        public boolean isConditional() {
+            return false;
         }
     };
 }

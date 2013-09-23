@@ -31,7 +31,6 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
-import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 
 import edu.uci.python.runtime.modules.*;
@@ -138,11 +137,7 @@ public final class GlobalScope {
         FrameSlot cached = findCachedGlobalFrameSlot(name);
 
         if (cached != null) {
-            try {
-                cachedGlobalFrame.setObject(cached, value);
-            } catch (FrameSlotTypeException e) {
-                FrameUtil.setObjectSafe(cachedGlobalFrame, cached, value);
-            }
+            cachedGlobalFrame.setObject(cached, value);
         } else {
             setTruffleOrJythonObject(name, PythonTypesUtil.adaptToPyObject(value));
         }

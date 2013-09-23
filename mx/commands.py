@@ -31,6 +31,7 @@ from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, REMAINDER
 import mx
 import sanitycheck
+import itertools
 import json, textwrap
 
 # This works because when mx loads this file, it makes sure __file__ gets an absolute path
@@ -44,10 +45,10 @@ _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_h
 _vmChoices = {
     'graal' : 'All compilation is performed with Graal. This includes bootstrapping Graal itself unless -XX:-BootstrapGraal is used.',
     'server' : 'Normal compilation is performed with the tiered system (i.e., client + server), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
-    'client' : None, # normal compilation with client compiler, explicit compilation (e.g., by Truffle) with Graal
-    'server-nograal' : None, # all compilation with tiered system (i.e., client + server), Graal omitted
-    'client-nograal' : None, # all compilation with client compiler, Graal omitted
-    'original' : None, # default VM copied from bootstrap JDK
+    'client' : None,  # normal compilation with client compiler, explicit compilation (e.g., by Truffle) with Graal
+    'server-nograal' : None,  # all compilation with tiered system (i.e., client + server), Graal omitted
+    'client-nograal' : None,  # all compilation with client compiler, Graal omitted
+    'original' : None,  # default VM copied from bootstrap JDK
 }
 
 """ The VM that will be run by the 'vm' command and built by default by the 'build' command.
@@ -59,17 +60,20 @@ _vm = None
 _vmbuildChoices = ['product', 'fastdebug', 'debug', 'optimized']
 
 """ The VM build that will be run by the 'vm' command.
-    This can be set via the global '--product', '--fastdebug' and '--debug' options.
+    This can be set via the global '--vmbuild' option.
     It can also be temporarily set by using of a VM context manager object in a 'with' statement. """
 _vmbuild = _vmbuildChoices[0]
 
 _jacoco = 'off'
 
-_workdir = None
+""" The current working directory to switch to before running the VM. """
+_vm_cwd = None
 
-_vmdir = None
+""" The base directory in which the JDKs cloned from $JAVA_HOME exist. """
+_installed_jdks = None
 
-_native_dbg = None
+""" Prefix for running the VM. """
+_vm_prefix = None
 
 _make_eclipse_launch = False
 
@@ -91,14 +95,13 @@ def _get_vm():
         items = [k for k in _vmChoices.keys() if _vmChoices[k] is not None]
         descriptions = [_vmChoices[k] for k in _vmChoices.keys() if _vmChoices[k] is not None]
         vm = mx.select_items(items, descriptions, allowMultiple=False)
-        answer = raw_input('Persist this choice by adding "DEFAULT_VM=' + vm + '" to ' + envPath + '? [Yn]: ')
-        if not answer.lower().startswith('n'):
+        if mx.ask_yes_no('Persist this choice by adding "DEFAULT_VM=' + vm + '" to ' + envPath, 'y'):
             with open(envPath, 'a') as fp:
                 print >> fp, 'DEFAULT_VM=' + vm
     _vm = vm
     return vm
 
-""" 
+"""
 A context manager that can be used with the 'with' statement to set the VM
 used by all VM executions within the scope of the 'with' statement. For example:
 
@@ -113,17 +116,17 @@ class VM:
         self.build = build if build else _vmbuild
         self.previousVm = _vm
         self.previousBuild = _vmbuild
-        
+
     def __enter__(self):
         global _vm, _vmbuild
         _vm = self.vm
         _vmbuild = self.build
-        
+
     def __exit__(self, exc_type, exc_value, traceback):
         global _vm, _vmbuild
         _vm = self.previousVm
         _vmbuild = self.previousBuild
-    
+
 def _chmodDir(chmodFlags, dirname, fnames):
     os.chmod(dirname, chmodFlags)
     for name in fnames:
@@ -141,7 +144,7 @@ def clean(args):
                 shutil.rmtree(name)
             elif os.path.isfile(name):
                 os.unlink(name)
-                
+
         rmIfExists(join(_graal_home, 'build'))
         rmIfExists(join(_graal_home, 'build-nograal'))
         rmIfExists(_jdksDir())
@@ -150,7 +153,7 @@ def clean(args):
 def export(args):
     """create a GraalVM zip file for distribution"""
 
-    parser = ArgumentParser(prog='mx export');
+    parser = ArgumentParser(prog='mx export')
     parser.add_argument('--omit-vm-build', action='store_false', dest='vmbuild', help='omit VM build step')
     parser.add_argument('--omit-dist-init', action='store_false', dest='distInit', help='omit class files and IDE configurations from distribution')
     parser.add_argument('zipfile', nargs=REMAINDER, metavar='zipfile')
@@ -160,7 +163,8 @@ def export(args):
     tmp = tempfile.mkdtemp(prefix='tmp', dir=_graal_home)
     if args.vmbuild:
         # Make sure the product VM binary is up to date
-        build(['product'])
+        with VM(vmbuild='product'):
+            build([])
 
     mx.log('Copying Java sources and mx files...')
     mx.run(('hg archive -I graal -I mx -I mxtool -I mx.sh ' + tmp).split())
@@ -191,106 +195,49 @@ def export(args):
 
     mx.log('Created distribution in ' + zfName)
 
-def dacapo(args):
-    """run one or all DaCapo benchmarks
+def _run_benchmark(args, availableBenchmarks, runBenchmark):
 
-    DaCapo options are distinguished from VM options by a '@' prefix.
-    For example, '@-n @5' will pass '-n 5' to the
-    DaCapo harness."""
+    vmOpts, benchmarksAndOptions = _extract_VM_args(args, useDoubleDash=availableBenchmarks is None)
 
-    numTests = {}
-    if len(args) > 0:
-        level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
-        if level is not None:
-            del args[0]
-            for (bench, ns) in sanitycheck.dacapoSanityWarmup.items():
-                if ns[level] > 0:
-                    numTests[bench] = ns[level]
-        else:
-            while len(args) != 0 and args[0][0] not in ['-', '@']:
-                n = 1
-                if args[0].isdigit():
-                    n = int(args[0])
-                    assert len(args) > 1 and args[1][0] not in ['-', '@'] and not args[1].isdigit()
-                    bm = args[1]
-                    del args[0]
-                else:
-                    bm = args[0]
+    if availableBenchmarks is None:
+        harnessArgs = benchmarksAndOptions
+        return runBenchmark(None, harnessArgs, vmOpts)
 
-                del args[0]
-                if bm not in sanitycheck.dacapoSanityWarmup.keys():
-                    mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoSanityWarmup.keys()))
-                numTests[bm] = n
+    if len(benchmarksAndOptions) == 0:
+        mx.abort('at least one benchmark name or "all" must be specified')
+    benchmarks = list(itertools.takewhile(lambda x: not x.startswith('-'), benchmarksAndOptions))
+    harnessArgs = benchmarksAndOptions[len(benchmarks):]
 
-    if len(numTests) is 0:
-        for bench in sanitycheck.dacapoSanityWarmup.keys():
-            numTests[bench] = 1
-
-    # Extract DaCapo options
-    dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
-
-    # The remainder are VM options
-    vmOpts = [arg for arg in args if not arg.startswith('@')]
-    vm = _get_vm()
+    if 'all' in benchmarks:
+        benchmarks = availableBenchmarks
+    else:
+        for bm in benchmarks:
+            if bm not in availableBenchmarks:
+                mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(availableBenchmarks))
 
     failed = []
-    for (test, n) in numTests.items():
-        if not sanitycheck.getDacapo(test, n, dacapoArgs).test(vm, opts=vmOpts):
-            failed.append(test)
+    for bm in benchmarks:
+        if not runBenchmark(bm, harnessArgs, vmOpts):
+            failed.append(bm)
 
     if len(failed) != 0:
-        mx.abort('DaCapo failures: ' + str(failed))
+        mx.abort('Benchmark failures: ' + str(failed))
+
+def dacapo(args):
+    """run one or more DaCapo benchmarks"""
+
+    def launcher(bm, harnessArgs, extraVmOpts):
+        return sanitycheck.getDacapo(bm, harnessArgs).test(_get_vm(), extraVmOpts=extraVmOpts)
+
+    _run_benchmark(args, sanitycheck.dacapoSanityWarmup.keys(), launcher)
 
 def scaladacapo(args):
-    """run one or all Scala DaCapo benchmarks
+    """run one or more Scala DaCapo benchmarks"""
 
-    Scala DaCapo options are distinguished from VM options by a '@' prefix.
-    For example, '@--iterations @5' will pass '--iterations 5' to the
-    DaCapo harness."""
+    def launcher(bm, harnessArgs, extraVmOpts):
+        return sanitycheck.getScalaDacapo(bm, harnessArgs).test(_get_vm(), extraVmOpts=extraVmOpts)
 
-    numTests = {}
-
-    if len(args) > 0:
-        level = getattr(sanitycheck.SanityCheckLevel, args[0], None)
-        if level is not None:
-            del args[0]
-            for (bench, ns) in sanitycheck.dacapoScalaSanityWarmup.items():
-                if ns[level] > 0:
-                    numTests[bench] = ns[level]
-        else:
-            while len(args) != 0 and args[0][0] not in ['-', '@']:
-                n = 1
-                if args[0].isdigit():
-                    n = int(args[0])
-                    assert len(args) > 1 and args[1][0] not in ['-', '@'] and not args[1].isdigit()
-                    bm = args[1]
-                    del args[0]
-                else:
-                    bm = args[0]
-
-                del args[0]
-                if bm not in sanitycheck.dacapoScalaSanityWarmup.keys():
-                    mx.abort('unknown benchmark: ' + bm + '\nselect one of: ' + str(sanitycheck.dacapoScalaSanityWarmup.keys()))
-                numTests[bm] = n
-
-    if len(numTests) is 0:
-        for bench in sanitycheck.dacapoScalaSanityWarmup.keys():
-            numTests[bench] = 1
-
-    # Extract DaCapo options
-    dacapoArgs = [(arg[1:]) for arg in args if arg.startswith('@')]
-
-    # The remainder are VM options
-    vmOpts = [arg for arg in args if not arg.startswith('@')]
-    vm = _get_vm()
-
-    failed = []
-    for (test, n) in numTests.items():
-        if not sanitycheck.getScalaDacapo(test, n, dacapoArgs).test(vm, opts=vmOpts):
-            failed.append(test)
-
-    if len(failed) != 0:
-        mx.abort('Scala DaCapo failures: ' + str(failed))
+    _run_benchmark(args, sanitycheck.dacapoScalaSanityWarmup.keys(), launcher)
 
 def _arch():
     machine = platform.uname()[4]
@@ -328,16 +275,16 @@ def _vmCfgInJdk(jdk):
     return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
 
 def _jdksDir():
-    return os.path.abspath(join(_vmdir if _vmdir else _graal_home, 'jdk' + str(mx.java().version)))
+    return os.path.abspath(join(_installed_jdks if _installed_jdks else _graal_home, 'jdk' + str(mx.java().version)))
 
 def _handle_missing_VM(bld, vm):
     mx.log('The ' + bld + ' ' + vm + ' VM has not been created')
     if sys.stdout.isatty():
-        answer = raw_input('Build it now? [Yn]: ')
-        if not answer.lower().startswith('n'):
-            build([bld], vm=vm)
+        if mx.ask_yes_no('Build it now', 'y'):
+            with VM(vm, bld):
+                build([])
             return
-    mx.abort('You need to run "mx --vm ' + vm + ' build ' + bld + '" to build the selected VM')
+    mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build" to build the selected VM')
 
 def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
     """
@@ -385,7 +332,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, 0755)
             shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), 'original'))
-            
+
 
             with open(jvmCfg, 'w') as fp:
                 for line in jvmCfgLines:
@@ -398,11 +345,13 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 pass
     else:
         if not exists(jdk):
+            if _installed_jdks and mx._opts.verbose:
+                mx.log("Could not find JDK directory at " + jdk)
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
-            
+
     if installGraalJar:
         _installGraalJarInJdks(mx.distribution('GRAAL'))
-    
+
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
         found = False
@@ -413,7 +362,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                     break
         if not found:
             _handle_missing_VM(build, vmToCheck)
-        
+
     return jdk
 
 def _installGraalJarInJdks(graalDist):
@@ -429,25 +378,27 @@ def _installGraalJarInJdks(graalDist):
                 shutil.copyfile(graalJar, tmp)
                 os.close(fd)
                 shutil.move(tmp, join(jreLibDir, 'graal.jar'))
-                
+
                 if exists(graalOptions):
                     shutil.copy(graalOptions, join(jreLibDir, 'graal.options'))
 
 # run a command in the windows SDK Debug Shell
-def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo={}):
+def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
+    if respondTo is None:
+        respondTo = {}
     newLine = os.linesep
-    STARTTOKEN = 'RUNINDEBUGSHELL_STARTSEQUENCE'
-    ENDTOKEN = 'RUNINDEBUGSHELL_ENDSEQUENCE'
+    startToken = 'RUNINDEBUGSHELL_STARTSEQUENCE'
+    endToken = 'RUNINDEBUGSHELL_ENDSEQUENCE'
 
     winSDK = mx.get_env('WIN_SDK', 'C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\')
-    
+
     if not exists(winSDK):
         mx.abort("Could not find Windows SDK : '" + winSDK + "' does not exist")
-        
+
     if not exists(join(winSDK, 'Bin', 'SetEnv.cmd')):
         mx.abort("Invalid Windows SDK path (" + winSDK + ") : could not find Bin/SetEnv.cmd (you can use the WIN_SDK environment variable to specify an other path)")
 
-    p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + winSDK + '/Bin/SetEnv.cmd" & echo ' + STARTTOKEN + '"', \
+    p = subprocess.Popen('cmd.exe /E:ON /V:ON /K ""' + winSDK + '/Bin/SetEnv.cmd" & echo ' + startToken + '"', \
             shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     stdout = p.stdout
     stdin = p.stdin
@@ -455,20 +406,20 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         log = open(logFile, 'w')
     ret = False
     while True:
-        
+
         # encoding may be None on windows plattforms
         if sys.stdout.encoding is None:
             encoding = 'utf-8'
         else:
             encoding = sys.stdout.encoding
-        
+
         line = stdout.readline().decode(encoding)
         if logFile:
             log.write(line.encode('utf-8'))
         line = line.strip()
         mx.log(line)
-        if line == STARTTOKEN:
-            stdin.write('cd /D ' + workingDir + ' & ' + cmd + ' & echo ' + ENDTOKEN + newLine)
+        if line == startToken:
+            stdin.write('cd /D ' + workingDir + ' & ' + cmd + ' & echo ' + endToken + newLine)
         for regex in respondTo.keys():
             match = regex.search(line)
             if match:
@@ -477,7 +428,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
             match = findInOutput.search(line)
             if match:
                 ret = True
-        if line == ENDTOKEN:
+        if line == endToken:
             if not findInOutput:
                 stdin.write('echo ERRXXX%errorlevel%' + newLine)
             else:
@@ -485,20 +436,55 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
         if line.startswith('ERRXXX'):
             if line == 'ERRXXX0':
                 ret = True
-            break;
+            break
     stdin.write('exit' + newLine)
     if logFile:
         log.close()
     return ret
 
-def jdkhome(args, vm=None):
-    """print the JDK directory selected for the 'vm' command"""
+def pylint(args):
+    """run pylint (if available) over Python source files"""
+    rcfile = join(_graal_home, 'mx', '.pylintrc')
+    if not exists(rcfile):
+        mx.log('pylint configuration file does not exist: ' + rcfile)
+        return
 
+    try:
+        output = subprocess.check_output(['pylint', '--version'], stderr=subprocess.STDOUT)
+        m = re.match(r'.*pylint (\d+)\.(\d+)\.(\d+).*', output, re.DOTALL)
+        if not m:
+            mx.log('could not determine pylint version from ' + output)
+            return
+        major, minor, micro = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if major < 1:
+            mx.log('require pylint version >= 1 (got {0}.{1}.{2})'.format(major, minor, micro))
+            return
+    except BaseException:
+        mx.log('pylint is not available')
+        return
+
+
+    env = os.environ.copy()
+    env['PYTHONPATH'] = dirname(mx.__file__)
+
+    versioned = subprocess.check_output(['hg', 'locate', '-f'], stderr=subprocess.STDOUT).split(os.linesep)
+    for f in versioned:
+        if f.endswith('.py'):
+            pyfile = f
+            mx.log('Running pylint on ' + pyfile + '...')
+            mx.run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
+
+def jdkhome(vm=None):
+    """return the JDK directory selected for the 'vm' command"""
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    print _jdk(build, installGraalJar=False)
+    return _jdk(build, installGraalJar=False)
+
+def print_jdkhome(args, vm=None):
+    """print the JDK directory selected for the 'vm' command"""
+    print jdkhome(vm)
 
 def buildvars(args):
-    """Describes the variables that can be set by the -D option to the 'mx build' commmand"""
+    """describe the variables that can be set by the -D option to the 'mx build' commmand"""
 
     buildVars = {
         'ALT_BOOTDIR' : 'The location of the bootstrap JDK installation (default: ' + mx.java().jdk + ')',
@@ -507,29 +493,41 @@ def buildvars(args):
         'INSTALL' : 'Install the built VM into the JDK? (default: y)',
         'ZIP_DEBUGINFO_FILES' : 'Install zipped debug symbols file? (default: 0)',
     }
-    
+
     mx.log('HotSpot build variables that can be set by the -D option to "mx build":')
     mx.log('')
     for n in sorted(buildVars.iterkeys()):
         mx.log(n)
         mx.log(textwrap.fill(buildVars[n], initial_indent='    ', subsequent_indent='    ', width=200))
-        
+
     mx.log('')
     mx.log('Note that these variables can be given persistent values in the file ' + join(_graal_home, 'mx', 'env') + ' (see \'mx about\').')
-    
+
 def build(args, vm=None):
     """build the VM binary
 
-    The global '--vm' option selects which VM to build. This command also
-    compiles the Graal classes irrespective of what VM is being built.
-    The optional last argument specifies what build level is to be used
-    for the VM binary."""
+    The global '--vm' and '--vmbuild' options select which VM type and build target to build."""
+
+    # Override to fail quickly if extra arguments are given
+    # at the end of the command line. This allows for a more
+    # helpful error message.
+    class AP(ArgumentParser):
+        def __init__(self):
+            ArgumentParser.__init__(self, prog='mx build')
+        def parse_args(self, args):
+            result = ArgumentParser.parse_args(self, args)
+            if len(result.remainder) != 0:
+                firstBuildTarget = result.remainder[0]
+                mx.abort('To specify the ' + firstBuildTarget + ' VM build target, you need to use the global "--vmbuild" option. For example:\n' +
+                         '    mx --vmbuild ' + firstBuildTarget + ' build')
+            return result
 
     # Call mx.build to compile the Java sources
-    parser=ArgumentParser(prog='mx build')
+    parser = AP()
     parser.add_argument('--export-dir', help='directory to which graal.jar and graal.options will be copied', metavar='<path>')
     parser.add_argument('-D', action='append', help='set a HotSpot build variable (run \'mx buildvars\' to list variables)', metavar='name=value')
     opts2 = mx.build(['--source', '1.7'] + args, parser=parser)
+    assert len(opts2.remainder) == 0
 
     if opts2.export_dir is not None:
         if not exists(opts2.export_dir):
@@ -545,9 +543,7 @@ def build(args, vm=None):
     if not _vmSourcesAvailable or not opts2.native:
         return
 
-    builds = opts2.remainder
-    if len(builds) == 0:
-        builds = ['product']
+    builds = [_vmbuild]
 
     if vm is None:
         vm = _get_vm()
@@ -561,7 +557,11 @@ def build(args, vm=None):
     else:
         assert vm == 'graal', vm
         buildSuffix = 'graal'
-        
+
+    if _installed_jdks and _installed_jdks != _graal_home:
+        if not mx.ask_yes_no("Warning: building while --installed-jdks is set (" + _installed_jdks + ") is not recommanded - are you sure you want to continue", 'n'):
+            mx.abort(1)
+
     for build in builds:
         if build == 'ide-build-target':
             build = os.environ.get('IDE_BUILD_TARGET', None)
@@ -616,7 +616,7 @@ def build(args, vm=None):
             variant = {'client': 'compiler1', 'server': 'compiler2'}.get(vm, vm)
             project_config = variant + '_' + build
             _runInDebugShell('msbuild ' + _graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=' + project_config + ' /target:clean', _graal_home)
-            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' +_graal_home + r'\make\windows"& call create.bat ' + _graal_home
+            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + jdk + r'& set JAVA_HOME=' + jdk + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' + _graal_home + r'\make\windows"& call create.bat ' + _graal_home
             print(winCompileCmd)
             winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
             if not _runInDebugShell(winCompileCmd, _graal_home, compilelogfile, winCompileSuccess):
@@ -629,14 +629,14 @@ def build(args, vm=None):
         else:
             cpus = multiprocessing.cpu_count()
             runCmd = [mx.gmake_cmd()]
-            runCmd.append(build + buildSuffix) 
+            runCmd.append(build + buildSuffix)
             env = os.environ.copy()
-            
+
             if opts2.D:
                 for nv in opts2.D:
                     name, value = nv.split('=', 1)
                     env[name.strip()] = value
-            
+
             env.setdefault('ARCH_DATA_MODEL', '64')
             env.setdefault('LANG', 'C')
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
@@ -684,7 +684,7 @@ def build(args, vm=None):
                 if line.strip() == vmKnown.strip():
                     found = True
                 lines.append(line)
-                
+
         if not found:
             mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
@@ -718,9 +718,9 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         vm = _get_vm()
 
     if cwd is None:
-        cwd = _workdir
-    elif _workdir is not None:
-        mx.abort("conflicting working directories: do not set --workdir for this command")
+        cwd = _vm_cwd
+    elif _vm_cwd is not None and _vm_cwd != cwd:
+        mx.abort("conflicting working directories: do not set --vmcwd for this command")
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
@@ -738,7 +738,7 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         for p in mx.projects():
             excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True).keys()
             excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True).keys()
-            
+
         includes = ['com.oracle.graal.*']
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
@@ -752,14 +752,14 @@ def vm(args, vm=None, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout
         args = ['-d64'] + args
 
     exe = join(jdk, 'bin', mx.exe_suffix('java'))
-    dbg = _native_dbg.split() if _native_dbg is not None else []
-    
+    pfx = _vm_prefix.split() if _vm_prefix is not None else []
+
     if '-version' in args:
-        ignoredArgs = args[args.index('-version')+1:]
+        ignoredArgs = args[args.index('-version') + 1:]
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
-    
-    return mx.run(dbg + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
+
+    return mx.run(pfx + [exe, '-' + vm] + args, nonZeroIsFatal=nonZeroIsFatal, out=out, err=err, cwd=cwd, timeout=timeout)
 
 def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=False):
     """
@@ -767,20 +767,41 @@ def _find_classes_with_annotations(p, pkgRoot, annotations, includeInnerClasses=
     (ignoring preceding whitespace) and return the fully qualified class name for each Java
     source file matched in a list.
     """
-    
+
     matches = lambda line : len([a for a in annotations if line == a or line.startswith(a + '(')]) != 0
     return p.find_classes_with_matching_source_line(pkgRoot, matches, includeInnerClasses)
 
-def _run_tests(args, harness, annotations, testfile):
-    tests = [a for a in args if a[0] != '@' ]
-    vmArgs = [a[1:] for a in args if a[0] == '@']
+def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False):
+    """
+    Partitions a command line into a leading sequence of HotSpot VM options and the rest.
+    """
+    for i in range(0, len(args)):
+        if useDoubleDash:
+            if args[i] == '--':
+                vmArgs = args[:i]
+                remainder = args[i + 1:]
+                return vmArgs, remainder
+        else:
+            if not args[i].startswith('-'):
+                if i != 0 and (args[i - 1] == '-cp' or args[i - 1] == '-classpath'):
+                    if not allowClasspath:
+                        mx.abort('Cannot supply explicit class path option')
+                    else:
+                        continue
+                vmArgs = args[:i]
+                remainder = args[i:]
+                return vmArgs, remainder
 
-    def containsAny(c, substrings):
-        for s in substrings:
-            if s in c:
-                return True
-        return False
-    
+    return args, []
+
+def _run_tests(args, harness, annotations, testfile):
+
+
+    vmArgs, tests = _extract_VM_args(args)
+    for t in tests:
+        if t.startswith('-'):
+            mx.abort('VM option ' + t + ' must precede ' + tests[0])
+
     candidates = []
     for p in mx.projects():
         if mx.java().javaCompliance < p.javaCompliance:
@@ -792,9 +813,6 @@ def _run_tests(args, harness, annotations, testfile):
         classes = candidates
     else:
         for t in tests:
-            if t.startswith('-'):
-                mx.abort('VM option needs @ prefix (i.e., @' + t + ')')
-                
             found = False
             for c in candidates:
                 if t in c:
@@ -848,16 +866,14 @@ _unittestHelpSuffix = """
 
     If filters are supplied, only tests whose fully qualified name
     includes a filter as a substring are run.
-    
-    Options with a '@' prefix are passed to the VM.
-    
+
     For example, this command line:
-    
-       mx unittest BC_aload @-G:Dump= @-G:MethodFilter=BC_aload.* @-G:+PrintCFG
-    
+
+       mx unittest -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG BC_aload
+
     will run all JUnit test classes that contain 'BC_aload' in their
-    fully qualified name and will pass these options to the VM: 
-    
+    fully qualified name and will pass these options to the VM:
+
         -G:Dump= -G:MethodFilter=BC_aload.* -G:+PrintCFG
 
     To get around command line length limitations on some OSes, the
@@ -868,9 +884,9 @@ _unittestHelpSuffix = """
     (unlike the temporary file otherwise used).
 
     As with all other commands, using the global '-v' before 'unittest'
-    command will cause mx to show the complete shell command line
+    command will cause mx to show the complete command line
     it uses to run the VM.
-""" 
+"""
 
 def unittest(args):
     """run the JUnit tests (all testcases){0}"""
@@ -892,8 +908,8 @@ def buildvms(args):
 
     vmsDefault = ','.join(_vmChoices.keys())
     vmbuildsDefault = ','.join(_vmbuildChoices)
-    
-    parser = ArgumentParser(prog='mx buildvms');
+
+    parser = ArgumentParser(prog='mx buildvms')
     parser.add_argument('--vms', help='a comma separated list of VMs to build (default: ' + vmsDefault + ')', metavar='<args>', default=vmsDefault)
     parser.add_argument('--builds', help='a comma separated list of build types (default: ' + vmbuildsDefault + ')', metavar='<args>', default=vmbuildsDefault)
     parser.add_argument('-n', '--no-check', action='store_true', help='omit running "java -version" after each build')
@@ -914,12 +930,13 @@ def buildvms(args):
                 start = time.time()
                 mx.log('BEGIN: ' + v + '-' + vmbuild + '\t(see: ' + logFile + ')')
                 # Run as subprocess so that output can be directed to a file
-                subprocess.check_call([sys.executable, '-u', join('mxtool', 'mx.py'), '--vm', v, 'build', vmbuild], cwd=_graal_home, stdout=log, stderr=subprocess.STDOUT)
+                subprocess.check_call([sys.executable, '-u', join('mxtool', 'mx.py'), '--vm', v, '--vmbuild',
+                                       vmbuild, 'build'], cwd=_graal_home, stdout=log, stderr=subprocess.STDOUT)
                 duration = datetime.timedelta(seconds=time.time() - start)
                 mx.log('END:   ' + v + '-' + vmbuild + '\t[' + str(duration) + ']')
             else:
-                with VM(v):
-                    build([vmbuild])
+                with VM(v, vmbuild):
+                    build([])
             if not args.no_check:
                 vmargs = ['-version']
                 if v == 'graal':
@@ -953,7 +970,7 @@ def gate(args):
             mx.abort(codeOrMessage)
             return self
 
-    parser = ArgumentParser(prog='mx gate');
+    parser = ArgumentParser(prog='mx gate')
     parser.add_argument('-j', '--omit-java-clean', action='store_false', dest='cleanJava', help='omit cleaning Java native code')
     parser.add_argument('-n', '--omit-native-clean', action='store_false', dest='cleanNative', help='omit cleaning and building native code')
     parser.add_argument('-g', '--only-build-graalvm', action='store_false', dest='buildNonGraal', help='only build the Graal VM')
@@ -962,10 +979,14 @@ def gate(args):
     args = parser.parse_args(args)
 
     global _jacoco
-    
+
     tasks = []
     total = Task('Gate')
     try:
+
+        t = Task('Pylint')
+        pylint([])
+        tasks.append(t.stop())
 
         t = Task('Clean')
         cleanArgs = []
@@ -993,7 +1014,7 @@ def gate(args):
         if mx.canonicalizeprojects([]) != 0:
             t.abort('Rerun "mx canonicalizeprojects" and check-in the modified mx/projects files.')
         tasks.append(t.stop())
-        
+
         t = Task('BuildJava')
         build(['--no-native', '--jdt-warning-as-error'])
         tasks.append(t.stop())
@@ -1002,10 +1023,10 @@ def gate(args):
         if mx.checkstyle([]) != 0:
             t.abort('Checkstyle warnings were found')
         tasks.append(t.stop())
-        
+
         if exists('jacoco.exec'):
             os.unlink('jacoco.exec')
-        
+
         if args.jacocout is not None:
             _jacoco = 'append'
         else:
@@ -1024,10 +1045,10 @@ def gate(args):
             t = Task('BootstrapWithGCVerification:product')
             vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
             tasks.append(t.stop())
-    
+
         with VM('graal', 'product'):
             t = Task('BootstrapWithG1GCVerification:product')
-            vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC','-XX:+UseG1GC','-XX:+UseNewCode','-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
+            vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+UseNewCode', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'])
             tasks.append(t.stop())
 
         with VM('graal', 'product'):
@@ -1040,7 +1061,7 @@ def gate(args):
             vm(['-G:+AOTCompilation', '-G:+VerifyPhases', '-esa', '-version'])
             tasks.append(t.stop())
 
-        with VM('server', 'product'): # hosted mode
+        with VM('server', 'product'):  # hosted mode
             t = Task('UnitTests:hosted-product')
             unittest([])
             tasks.append(t.stop())
@@ -1054,7 +1075,7 @@ def gate(args):
 
         if args.jacocout is not None:
             jacocoreport([args.jacocout])
-            
+
         _jacoco = 'off'
 
         t = Task('CleanAndBuildGraalVisualizer')
@@ -1075,9 +1096,9 @@ def gate(args):
                         t = Task('DaCapo_pmd:' + theVm + ':' + vmbuild)
                         dacapo(['pmd'])
                         tasks.append(t.stop())
-    
+
                         t = Task('UnitTests:' + theVm + ':' + vmbuild)
-                        unittest(['@-XX:CompileCommand=exclude,*::run*', 'graal.api'])
+                        unittest(['-XX:CompileCommand=exclude,*::run*', 'graal.api'])
                         tasks.append(t.stop())
 
     except KeyboardInterrupt:
@@ -1095,9 +1116,9 @@ def gate(args):
         mx.log('  ' + str(t.duration) + '\t' + t.title)
     mx.log('  =======')
     mx.log('  ' + str(total.duration))
-    
+
 def deoptalot(args):
-    """Bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
+    """bootstrap a fastdebug Graal VM with DeoptimizeALot and VerifyOops on
 
     If the first argument is a number, the process will be repeated
     this number of times. All other arguments are passed to the VM."""
@@ -1105,15 +1126,15 @@ def deoptalot(args):
     if len(args) > 0 and args[0].isdigit():
         count = int(args[0])
         del args[0]
-    
+
     for _ in range(count):
         if not vm(['-XX:+DeoptimizeALot', '-XX:+VerifyOops'] + args + ['-version'], vmbuild='fastdebug') == 0:
             mx.abort("Failed")
-            
+
 def longtests(args):
-    
+
     deoptalot(['15', '-Xmx48m'])
-    
+
     dacapo(['100', 'eclipse', '-esa'])
 
 def gv(args):
@@ -1148,7 +1169,7 @@ def bench(args):
     vm = _get_vm()
     if len(args) is 0:
         args = ['all']
-    
+
     vmArgs = [arg for arg in args if arg.startswith('-')]
 
     def benchmarks_in_group(group):
@@ -1157,7 +1178,7 @@ def bench(args):
 
     results = {}
     benchmarks = []
-    #DaCapo
+    # DaCapo
     if ('dacapo' in args or 'all' in args):
         benchmarks += sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Benchmark)
     else:
@@ -1178,25 +1199,25 @@ def bench(args):
                 mx.abort('Unknown Scala DaCapo : ' + scaladacapo)
             iterations = sanitycheck.dacapoScalaSanityWarmup[scaladacapo][sanitycheck.SanityCheckLevel.Benchmark]
             if (iterations > 0):
-                benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, iterations)]
+                benchmarks += [sanitycheck.getScalaDacapo(scaladacapo, ['-n', str(iterations)])]
 
-    #Bootstrap
+    # Bootstrap
     if ('bootstrap' in args or 'all' in args):
         benchmarks += sanitycheck.getBootstraps()
-    #SPECjvm2008
+    # SPECjvm2008
     if ('specjvm2008' in args or 'all' in args):
-        benchmarks += [sanitycheck.getSPECjvm2008([], False, True, 120, 120)]
+        benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', '120', '-it', '120'])]
     else:
         specjvms = benchmarks_in_group('specjvm2008')
         for specjvm in specjvms:
-            benchmarks += [sanitycheck.getSPECjvm2008([specjvm], False, True, 120, 120)]
-            
+            benchmarks += [sanitycheck.getSPECjvm2008(['-ikv', '-wt', '120', '-it', '120', specjvm])]
+
     if ('specjbb2005' in args or 'all' in args):
         benchmarks += [sanitycheck.getSPECjbb2005()]
-        
-    if ('specjbb2013' in args): # or 'all' in args //currently not in default set
+
+    if ('specjbb2013' in args):  # or 'all' in args //currently not in default set
         benchmarks += [sanitycheck.getSPECjbb2013()]
-        
+
     if ('ctw-full' in args):
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.Full))
     if ('ctw-noinline' in args):
@@ -1209,7 +1230,7 @@ def bench(args):
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
 
     for test in benchmarks:
-        for (groupName, res) in test.bench(vm, opts=vmArgs).items():
+        for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
             group = results.setdefault(groupName, {})
             group.update(res)
     mx.log(json.dumps(results))
@@ -1218,61 +1239,38 @@ def bench(args):
             f.write(json.dumps(results))
 
 def specjvm2008(args):
-    """run one or all SPECjvm2008 benchmarks
+    """run one or more SPECjvm2008 benchmarks"""
 
-    All options begining with - will be passed to the vm except for -ikv -ict -wt and -it.
-    Other options are supposed to be benchmark names and will be passed to SPECjvm2008."""
-    benchArgs = [a for a in args if a[0] != '-']
-    vmArgs = [a for a in args if a[0] == '-']
-    wt = None
-    it = None
-    skipValid = False
-    skipCheck = False
-    if '-v' in vmArgs:
-        vmArgs.remove('-v')
-        benchArgs.append('-v')
-    if '-ict' in vmArgs:
-        skipCheck = True
-        vmArgs.remove('-ict')
-    if '-ikv' in vmArgs:
-        skipValid = True
-        vmArgs.remove('-ikv')
-    if '-wt' in vmArgs:
-        wtIdx = args.index('-wt')
-        try:
-            wt = int(args[wtIdx+1])
-        except:
-            mx.abort('-wt (Warmup time) needs a numeric value (seconds)')
-        vmArgs.remove('-wt')
-        benchArgs.remove(args[wtIdx+1])
-    if '-it' in vmArgs:
-        itIdx = args.index('-it')
-        try:
-            it = int(args[itIdx+1])
-        except:
-            mx.abort('-it (Iteration time) needs a numeric value (seconds)')
-        vmArgs.remove('-it')
-        benchArgs.remove(args[itIdx+1])
-    vm = _get_vm();
-    sanitycheck.getSPECjvm2008(benchArgs, skipCheck, skipValid, wt, it).bench(vm, opts=vmArgs)
-    
+    def launcher(bm, harnessArgs, extraVmOpts):
+        return sanitycheck.getSPECjvm2008(harnessArgs + [bm]).bench(_get_vm(), extraVmOpts=extraVmOpts)
+
+    availableBenchmarks = set(sanitycheck.specjvm2008Names)
+    for name in sanitycheck.specjvm2008Names:
+        parts = name.rsplit('.', 1)
+        if len(parts) > 1:
+            assert len(parts) == 2
+            group = parts[0]
+            availableBenchmarks.add(group)
+
+    _run_benchmark(args, sorted(availableBenchmarks), launcher)
+
 def specjbb2013(args):
-    """runs the composite SPECjbb2013 benchmark
+    """runs the composite SPECjbb2013 benchmark"""
 
-    All options begining with - will be passed to the vm"""
-    benchArgs = [a for a in args if a[0] != '-']
-    vmArgs = [a for a in args if a[0] == '-']
-    vm = _get_vm();
-    sanitycheck.getSPECjbb2013(benchArgs).bench(vm, opts=vmArgs)
+    def launcher(bm, harnessArgs, extraVmOpts):
+        assert bm is None
+        return sanitycheck.getSPECjbb2013(harnessArgs).bench(_get_vm(), extraVmOpts=extraVmOpts)
+
+    _run_benchmark(args, None, launcher)
 
 def specjbb2005(args):
-    """runs the composite SPECjbb2005 benchmark
-        
-        All options begining with - will be passed to the vm"""
-    benchArgs = [a for a in args if a[0] != '-']
-    vmArgs = [a for a in args if a[0] == '-']
-    vm = _get_vm();
-    sanitycheck.getSPECjbb2005(benchArgs).bench(vm, opts=vmArgs)
+    """runs the composite SPECjbb2005 benchmark"""
+
+    def launcher(bm, harnessArgs, extraVmOpts):
+        assert bm is None
+        return sanitycheck.getSPECjbb2005(harnessArgs).bench(_get_vm(), extraVmOpts=extraVmOpts)
+
+    _run_benchmark(args, None, launcher)
 
 def hsdis(args, copyToDir=None):
     """download the hsdis library
@@ -1282,7 +1280,7 @@ def hsdis(args, copyToDir=None):
     flavor = 'intel'
     if 'att' in args:
         flavor = 'att'
-    lib = mx.lib_suffix('hsdis-' + _arch())
+    lib = mx.add_lib_suffix('hsdis-' + _arch())
     path = join(_graal_home, 'lib', lib)
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
@@ -1295,17 +1293,17 @@ def hcfdis(args):
     Run a tool over the input files to convert all embedded HexCodeFiles
     to a disassembled format."""
 
-    parser = ArgumentParser(prog='mx hcfdis');
+    parser = ArgumentParser(prog='mx hcfdis')
     parser.add_argument('-m', '--map', help='address to symbol map applied to disassembler output')
     parser.add_argument('files', nargs=REMAINDER, metavar='files...')
 
     args = parser.parse_args(args)
-    
+
     path = join(_graal_home, 'lib', 'hcfdis-1.jar')
     if not exists(path):
         mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-1.jar'])
     mx.run_java(['-jar', path] + args.files)
-    
+
     if args.map is not None:
         addressRE = re.compile(r'0[xX]([A-Fa-f0-9]+)')
         with open(args.map) as fp:
@@ -1314,8 +1312,8 @@ def hcfdis(args):
         for l in lines:
             addressAndSymbol = l.split(' ', 1)
             if len(addressAndSymbol) == 2:
-                address, symbol = addressAndSymbol;
-                if address.startswith('0x'): 
+                address, symbol = addressAndSymbol
+                if address.startswith('0x'):
                     address = long(address, 16)
                     symbols[address] = symbol
         for f in args.files:
@@ -1383,27 +1381,28 @@ def site(args):
                     '--title', 'Graal OpenJDK Project Documentation',
                     '--dot-output-base', 'projects'] + args)
 
-def mx_init():
+def mx_init(suite):
     commands = {
-        'build': [build, '[-options]'],
+        'build': [build, ''],
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'clean': [clean, ''],
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
-        'jdkhome': [jdkhome, ''],
-        'dacapo': [dacapo, '[[n] benchmark] [VM options|@DaCapo options]'],
-        'scaladacapo': [scaladacapo, '[[n] benchmark] [VM options|@Scala DaCapo options]'],
-        'specjvm2008': [specjvm2008, '[VM options|specjvm2008 options (-v, -ikv, -ict, -wt, -it)]'],
-        'specjbb2013': [specjbb2013, '[VM options]'],
-        'specjbb2005': [specjbb2005, '[VM options]'],
+        'jdkhome': [print_jdkhome, ''],
+        'pylint': [pylint, ''],
+        'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
+        'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
+        'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
+        'specjbb2013': [specjbb2013, '[VM options] [-- [SPECjbb2013 options]]'],
+        'specjbb2005': [specjbb2005, '[VM options] [-- [SPECjbb2005 options]]'],
         'gate' : [gate, '[-options]'],
         'gv' : [gv, ''],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
-        'unittest' : [unittest, '[filters...|@VM options]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[filters...|@VM options]', _unittestHelpSuffix],
-        'shortunittest' : [shortunittest, '[filters...|@VM options]', _unittestHelpSuffix],
+        'unittest' : [unittest, '[VM options] [filters...]', _unittestHelpSuffix],
+        'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
+        'shortunittest' : [shortunittest, '[VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'python' : [python, '[Python args|@VM options]'],
         'site' : [site, '[-options]'],
@@ -1415,25 +1414,25 @@ def mx_init():
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
-    mx.add_argument('--workdir', help='runs the VM in the given directory', default=None)
-    mx.add_argument('--vmdir', help='specify where the directory in which the vms should be', default=None)
+    mx.add_argument('--vmcwd', dest='vm_cwd', help='current directory will be changed to <path> before the VM is executed', default=None, metavar='<path>')
+    mx.add_argument('--installed-jdks', help='the base directory in which the JDKs cloned from $JAVA_HOME exist. ' +
+                    'The VM selected by --vm and --vmbuild options is under this directory (i.e., ' +
+                    join('<path>', '<jdk-version>', '<vmbuild>', 'jre', 'lib', '<vm>', mx.add_lib_prefix(mx.add_lib_suffix('jvm'))) + ')', default=None, metavar='<path>')
 
     if (_vmSourcesAvailable):
-        mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM to build/run')
-        for c in _vmbuildChoices:
-            mx.add_argument('--' + c, action='store_const', dest='vmbuild', const=c, help='select the ' + c + ' build of the VM')
+        mx.add_argument('--vm', action='store', dest='vm', choices=_vmChoices.keys(), help='the VM type to build/run')
+        mx.add_argument('--vmbuild', action='store', dest='vmbuild', choices=_vmbuildChoices, help='the VM build to build/run (default: ' + _vmbuildChoices[0] + ')')
         mx.add_argument('--ecl', action='store_true', dest='make_eclipse_launch', help='create launch configuration for running VM execution(s) in Eclipse')
-        mx.add_argument('--native-dbg', action='store', dest='native_dbg', help='Start the vm inside a debugger', metavar='<debugger>')
-        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='native_dbg', help='alias for --native-dbg /usr/bin/gdb --args')
+        mx.add_argument('--vmprefix', action='store', dest='vm_prefix', help='prefix for running the VM (e.g. "/usr/bin/gdb --args")', metavar='<prefix>')
+        mx.add_argument('--gdb', action='store_const', const='/usr/bin/gdb --args', dest='vm_prefix', help='alias for --vmprefix "/usr/bin/gdb --args"')
 
         commands.update({
             'export': [export, '[-options] [zipfile]'],
-            'build': [build, '[-options] [' + '|'.join(_vmbuildChoices) + ']...']
         })
 
-    mx.commands.update(commands)
+    mx.update_commands(suite, commands)
 
-def mx_post_parse_cmd_line(opts):#
+def mx_post_parse_cmd_line(opts):  #
     # TODO _minVersion check could probably be part of a Suite in mx?
     if (mx.java().version < _minVersion) :
         mx.abort('Requires Java version ' + str(_minVersion) + ' or greater, got version ' + str(mx.java().version))
@@ -1449,11 +1448,11 @@ def mx_post_parse_cmd_line(opts):#
         _make_eclipse_launch = getattr(opts, 'make_eclipse_launch', False)
     global _jacoco
     _jacoco = opts.jacoco
-    global _workdir
-    _workdir = opts.workdir
-    global _vmdir
-    _vmdir = opts.vmdir
-    global _native_dbg
-    _native_dbg = opts.native_dbg
+    global _vm_cwd
+    _vm_cwd = opts.vm_cwd
+    global _installed_jdks
+    _installed_jdks = opts.installed_jdks
+    global _vm_prefix
+    _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)

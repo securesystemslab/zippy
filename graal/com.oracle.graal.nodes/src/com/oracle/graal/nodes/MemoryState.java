@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,46 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.extended;
+package com.oracle.graal.nodes;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.graph.*;
 
-public final class WriteMemoryCheckpointNode extends AbstractStateSplit implements StateSplit, LIRLowerable, MemoryCheckpoint.Single {
+public class MemoryState extends VirtualState {
 
-    public WriteMemoryCheckpointNode() {
-        this(StampFactory.forVoid());
+    private MemoryMap<Node> memoryMap;
+    @Input private Node object;
+
+    public MemoryState(MemoryMap<Node> memoryMap, FixedNode object) {
+        this.memoryMap = memoryMap;
+        this.object = object;
     }
 
-    public WriteMemoryCheckpointNode(Stamp stamp) {
-        super(stamp);
+    public Node object() {
+        return object;
+    }
+
+    public MemoryMap<Node> getMemoryMap() {
+        return memoryMap;
     }
 
     @Override
-    public LocationIdentity getLocationIdentity() {
-        return LocationIdentity.ANY_LOCATION;
+    public VirtualState duplicateWithVirtualState() {
+        throw new GraalInternalError("should not reach here");
     }
 
     @Override
-    public void generate(LIRGeneratorTool generator) {
-        // nothing to do...
+    public void applyToNonVirtual(NodeClosure<? super ValueNode> closure) {
+        throw new GraalInternalError("should not reach here");
+    }
+
+    @Override
+    public void applyToVirtual(VirtualClosure closure) {
+        throw new GraalInternalError("should not reach here");
+    }
+
+    @Override
+    public boolean isPartOfThisState(VirtualState state) {
+        throw new GraalInternalError("should not reach here");
     }
 }

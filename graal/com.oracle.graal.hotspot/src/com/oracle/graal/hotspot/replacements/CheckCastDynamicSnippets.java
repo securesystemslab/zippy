@@ -52,13 +52,13 @@ public class CheckCastDynamicSnippets implements Snippets {
         if (probability(NOT_FREQUENT_PROBABILITY, object == null)) {
             isNull.inc();
         } else {
-            BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+            BeginNode anchorNode = BeginNode.anchor();
             Word objectHub = loadHubIntrinsic(object, getWordKind(), anchorNode);
             if (!checkUnknownSubType(hub, objectHub)) {
                 DeoptimizeNode.deopt(InvalidateReprofile, ClassCastException);
             }
         }
-        BeginNode anchorNode = BeginNode.anchor(StampFactory.forNodeIntrinsic());
+        BeginNode anchorNode = BeginNode.anchor();
         return unsafeCast(verifyOop(object), StampFactory.forNodeIntrinsic(), anchorNode);
     }
 
@@ -74,7 +74,7 @@ public class CheckCastDynamicSnippets implements Snippets {
             StructuredGraph graph = checkcast.graph();
             ValueNode object = checkcast.object();
 
-            Arguments args = new Arguments(dynamic);
+            Arguments args = new Arguments(dynamic, graph.getGuardsStage());
             args.add("hub", checkcast.hub());
             args.add("object", object);
 

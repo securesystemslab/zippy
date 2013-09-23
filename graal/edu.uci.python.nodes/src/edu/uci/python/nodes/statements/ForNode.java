@@ -67,7 +67,7 @@ public class ForNode extends StatementNode {
         } else if (evaluatedIterator instanceof PyObject) {
             loopOnPyObject(frame, (PyObject) evaluatedIterator);
         } else {
-            throw new RuntimeException("Unexpected iterator type " + evaluatedIterator.getClass());
+            throw new RuntimeException("Unexpected iterator type ");
         }
 
         return null;
