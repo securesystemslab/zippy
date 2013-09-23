@@ -24,7 +24,6 @@
  */
 package edu.uci.python.nodes.expressions;
 
-
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
@@ -52,7 +51,7 @@ public abstract class SubscriptLoadNode extends BinaryOpNode {
             stop = start;
         }
         if (step == 1) {
-            return primary.substring(start, stop);
+            return getSubString(primary, start, stop);
         } else {
             char[] newChars = new char[length];
             int j = 0;
@@ -64,12 +63,25 @@ public abstract class SubscriptLoadNode extends BinaryOpNode {
         }
     }
 
+    private static String getSubString(String origin, int start, int stop) {
+        char[] chars = new char[stop - start];
+        origin.getChars(start, stop, chars, 0);
+        return new String(chars);
+    }
+
     @Specialization(order = 1)
     public String doString(String primary, int slice) {
+        int fixedSlice = slice;
+
         if (slice < 0) {
-            slice += primary.length();
+            fixedSlice += primary.length();
         }
-        return String.valueOf(primary.charAt(slice));
+        return charAtToString(primary, fixedSlice);
+    }
+
+    private static String charAtToString(String primary, int fixedSlice) {
+        char charactor = primary.charAt(fixedSlice);
+        return new String(new char[]{charactor});
     }
 
     @Specialization(order = 2)
@@ -117,6 +129,7 @@ public abstract class SubscriptLoadNode extends BinaryOpNode {
         return primary.getSlice(slice);
     }
 
+    @SuppressWarnings("unused")
     @Generic
     public Object doGeneric(Object primary, Object slice) {
         throw new RuntimeException("Unsupported primary Type " + primary.getClass().getSimpleName());

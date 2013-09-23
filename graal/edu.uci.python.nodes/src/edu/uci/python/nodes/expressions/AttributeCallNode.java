@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatypes.*;
@@ -105,6 +106,7 @@ public abstract class AttributeCallNode extends PNode {
         return unboxPyObject(callable.__call__(pyargs));
     }
 
+    @ExplodeLoop
     private Object[] doArguments(VirtualFrame frame) {
         Object[] evaluated = new Object[arguments.length];
         int index = 0;

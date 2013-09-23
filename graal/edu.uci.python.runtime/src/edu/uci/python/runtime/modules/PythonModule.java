@@ -27,7 +27,7 @@ package edu.uci.python.runtime.modules;
 import java.lang.reflect.*;
 import java.util.*;
 
-
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.PackedFrame;
 
 import edu.uci.python.runtime.datatypes.*;
@@ -156,6 +156,7 @@ public class PythonModule extends PObject {
 
                 final PCallable pythonMethod = new PCallable(name) {
 
+                    @SlowPath
                     @Override
                     public Object call(PackedFrame caller, Object arg) {
                         try {
@@ -165,6 +166,7 @@ public class PythonModule extends PObject {
                         }
                     }
 
+                    @SlowPath
                     @Override
                     public Object call(PackedFrame caller, Object arg0, Object arg1) {
                         try {
@@ -174,6 +176,7 @@ public class PythonModule extends PObject {
                         }
                     }
 
+                    @SlowPath
                     @Override
                     public Object call(PackedFrame frame, Object[] args, Object[] keywords) {
                         try {
