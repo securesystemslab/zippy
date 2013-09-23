@@ -37,16 +37,6 @@ import edu.uci.python.runtime.datatypes.*;
 public class PythonTypes {
 
     @TypeCheck
-    public boolean isInteger(Object value) {
-        return value instanceof Integer;
-    }
-
-    @TypeCast
-    public int asInteger(Object value) {
-        return (int) value;
-    }
-
-    @TypeCheck
     public boolean isBigInteger(Object value) {
         return value instanceof BigInteger || value instanceof Integer;
     }
@@ -58,6 +48,11 @@ public class PythonTypes {
         } else {
             return BigInteger.valueOf((int) value);
         }
+    }
+
+    @TypeCast
+    public BigInteger asBigInteger(int value) {
+        return BigInteger.valueOf(value);
     }
 
     @TypeCheck
@@ -76,6 +71,11 @@ public class PythonTypes {
             BigInteger bigInteger = (BigInteger) value;
             return bigInteger.doubleValue();
         }
+    }
+
+    @TypeCast
+    public double asDouble(int value) {
+        return value;
     }
 
     @TypeCheck
@@ -103,5 +103,4 @@ public class PythonTypes {
             return complex;
         }
     }
-
 }
