@@ -6,7 +6,7 @@
 # modified by Maciej Fijalkowski
 # 2to3
 
-import sys 
+import sys, time
 
 def combinations(l):
     result = []
@@ -112,7 +112,9 @@ def main(n, ref='sun'):
     advance(0.01, n)
     report_energy()
 
+start = time.time()
 if __name__ == '__main__':
     main(int(sys.argv[1]))
 
-print("nbody: " + str(0))
+duration = "%.3f\n" % (time.time() - start)
+print("nbody: " + duration)

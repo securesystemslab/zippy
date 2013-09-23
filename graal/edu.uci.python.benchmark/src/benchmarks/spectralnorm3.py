@@ -9,7 +9,7 @@
 
 from array     import array
 from math      import sqrt
-import sys
+import sys, time
 
 #if sys.version_info < (3, 0):
 #    from itertools import izip as zip
@@ -70,5 +70,7 @@ def main():
 
     print("%0.9f" % (sqrt(vBv/vv)))
 
+start = time.time()
 main()
-print("spectralnorm: " + '0')
+duration = "%.3f\n" % (time.time() - start)
+print("spectralnorm: " + duration)

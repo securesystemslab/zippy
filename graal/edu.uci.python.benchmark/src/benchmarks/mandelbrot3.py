@@ -5,7 +5,7 @@
 # 2to3 - fixed by Daniele Varrazzo
 
 #from __future__ import print_function
-import sys
+import sys, time
 
 def main():
     cout = sys.stdout.write
@@ -46,6 +46,7 @@ def main():
             bit = 128
             byte_acc = 0
 
+start = time.time()
 main()
-print()
-print("mandelbrot: " + '0')
+duration = "%.3f\n" % (time.time() - start)
+print("mandelbrot: " + duration)

@@ -7,7 +7,7 @@
 # modified by Mariano Chouza
 # 2to3
 
-import sys, bisect, array
+import sys, bisect, array, time
 
 alu = (
    'GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG'
@@ -101,5 +101,8 @@ def main():
     print('>THREE Homo sapiens frequency')
     randomFasta(homosapiens, n*5)
     
+
+start = time.time()
 main()
-print('fasta: 0')
+duration = "%.3f\n" % (time.time() - start)
+print("fasta: " + duration)

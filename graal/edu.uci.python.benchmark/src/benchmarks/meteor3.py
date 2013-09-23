@@ -6,6 +6,7 @@
 from __future__ import print_function
 import sys
 from bisect import bisect
+import time
 
 w, h = 5, 10
 dir_no = 6
@@ -139,5 +140,7 @@ def main(n):
     print(len(solutions),  'solutions found\n')
     for i in (0, -1): print_board(solutions[i])
 
+start = time.time()
 main(int(sys.argv[1]))
-print("meteor: " + '0')
+duration = "%.3f\n" % (time.time() - start)
+print("meteor: " + duration)
