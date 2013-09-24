@@ -518,13 +518,13 @@ class Suite:
         projectsFile = join(mxDir, 'projects')
         if not exists(projectsFile):
             return
-        
+
         def _find_suite_key():
             for items in _suites.items():
                 if items[1].dir == self.dir:
                     return items[0]
             raise KeyError
-        
+
         with open(projectsFile) as f:
             for line in f:
                 line = line.strip()
@@ -769,7 +769,7 @@ def get_os():
         return 'windows'
     else:
         abort('Unknown operating system ' + sys.platform)
-        
+
 def _loadSuite(d, primary=False):
     """
     Load a suite from the 'mx' or 'mx.bbb' subdirectory of d, where 'bbb' is basename of d
@@ -828,7 +828,7 @@ def projects(opt_limit_to_suite=False):
     """
     Get the list of all loaded projects limited by --suite option if opt_limit_to_suite == True
     """
-    
+
     if opt_limit_to_suite:
         return _projects_opt_limit_to_suites(_projects.values())
     else:
@@ -971,7 +971,7 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
     true, libraries are omitted from the result.
     """
     projects = projects_from_names(projectNames)
-        
+
     return sorted_project_deps(projects, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
 
 def sorted_project_deps(projects, includeLibs=False, includeAnnotationProcessors=False):
@@ -1601,12 +1601,12 @@ def build(args, parser=None):
     if args.only is not None:
         # N.B. This build will not include dependencies including annotation processor dependencies
         sortedProjects = [project(name) for name in args.only.split(',')]
-    else:       
+    else:
         if args.projects is not None:
             projectNames = args.projects.split(',')
         else:
             projectNames = None
-        
+
         projects = _projects_opt_limit_to_suites(projects_from_names(projectNames))
         # N.B. Limiting to a suite only affects the starting set of projects. Dependencies in other suites will still be compiled
         sortedProjects = sorted_project_deps(projects, includeAnnotationProcessors=True)
@@ -2355,7 +2355,7 @@ def make_eclipse_attach(suite, hostname, port, name=None, deps=None):
 
     if name is None:
         if len(suites()) == 1:
-            suitePrefix =''
+            suitePrefix = ''
         else:
             suitePrefix = suite.name + '-'
         name = suitePrefix + 'attach-' + hostname + '-' + port
@@ -2435,7 +2435,7 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
     """(re)generate Eclipse project configurations and working sets"""
     for s in suites(True):
         _eclipseinit_suite(args, s, buildProcessorJars, refreshOnly)
-    
+
     generate_eclipse_workingsets()
 
 
@@ -2636,7 +2636,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
     make_eclipse_attach(suite, 'localhost', '8000', deps=projects())
     timestamp.touch()
- 
+
 def _isAnnotationProcessorDependency(p):
     """
     Determines if a given project is part of an annotation processor.
@@ -2707,12 +2707,12 @@ def generate_eclipse_workingsets():
         expected_wsroot = os.environ['WORKSPACE']
     else:
         expected_wsroot = _mainSuite.dir
-        
-    wsroot =_find_eclipse_wsroot(expected_wsroot)
+
+    wsroot = _find_eclipse_wsroot(expected_wsroot)
     if wsroot is None:
         # failed to find it
         wsroot = expected_wsroot
-    
+
     wsdir = join(wsroot, wsloc)
     if not exists(wsdir):
         wsdir = wsroot
@@ -2736,7 +2736,7 @@ def generate_eclipse_workingsets():
         wsdoc = _make_workingset_xml(workingSets)
 
     update_file(wspath, wsdoc.xml(newl='\n'))
-    
+
 def _find_eclipse_wsroot(wsdir):
     md = join(wsdir, '.metadata')
     if exists(md):
@@ -3603,7 +3603,7 @@ def show_projects(args):
             log(projectsFile)
             for p in s.projects:
                 log('\t' + p.name)
-                
+
 def ask_yes_no(question, default=None):
     """"""
     assert not default or default == 'y' or default == 'n'
